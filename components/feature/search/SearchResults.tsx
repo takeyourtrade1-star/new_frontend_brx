@@ -4,15 +4,41 @@
  * Pagina risultati ricerca – layout come screenshot BRX:
  * Breadcrumb, filtri (Categoria, Edizione, Rarità, Nome), vista Lista/Griglia, paginazione.
  * Dati da API /api/search (Meilisearch).
+ * Nome: in lingua selezionata (principale) e sotto in inglese se lingua !== en.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, ChevronLeft, ChevronRight, LayoutList, LayoutGrid } from 'lucide-react';
 import { getCardImageUrl } from '@/lib/assets';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 import type { SearchHit } from '@/app/api/search/route';
+
+const BACKEND_LANG_ORDER = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
+type SupportedLang = (typeof BACKEND_LANG_ORDER)[number];
+
+function normalizeLang(lang: string): SupportedLang {
+  return BACKEND_LANG_ORDER.includes(lang as SupportedLang) ? (lang as SupportedLang) : 'en';
+}
+
+/** Restituisce il nome nella lingua richiesta da keywords_localized (ordine: en, de, es, fr, it, pt). */
+function getLocalizedName(keywords: string[] | undefined, lang: string): string | null {
+  if (!keywords?.length) return null;
+  const l = normalizeLang(lang);
+  const idx = BACKEND_LANG_ORDER.indexOf(l);
+  if (idx < 0 || !keywords[idx]) return null;
+  const raw = keywords[idx];
+  return (typeof raw === 'string' ? raw : '').trim() || null;
+}
+
+/** Nome principale (lingua corrente) e secondario (inglese, solo se lingua !== en). */
+function getDisplayNames(hit: SearchHit, currentLang: string): { primary: string; secondary: string | null } {
+  const primary = getLocalizedName(hit.keywords_localized, currentLang) ?? hit.name;
+  const secondary = currentLang !== 'en' ? hit.name : null;
+  return { primary, secondary };
+}
 
 const GAME_BREADCRUMB: Record<string, string> = {
   mtg: 'MAGIC: THE GATHERING',
@@ -48,6 +74,8 @@ export function SearchResults({
   category: string;
   categoryLabel: string;
 }) {
+  const router = useRouter();
+  const { selectedLang } = useLanguage();
   const searchParams = useSearchParams();
   const q = (searchParams.get('q') ?? initialQuery ?? '').trim();
   const game = searchParams.get('game') ?? '';
@@ -311,22 +339,29 @@ export function SearchResults({
                 </thead>
                 <tbody>
                   {hits.map((hit) => {
+                    const productHref = `/products/${hit.id}`;
                     const imgUrl = getCardImageUrl(hit.image ?? null);
+                    const { primary, secondary } = getDisplayNames(hit, selectedLang);
                     return (
                       <tr
                         key={hit.id}
-                        className="border-b border-gray-100 hover:bg-gray-50/50"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => router.push(productHref)}
+                        onKeyDown={(e) => e.key === 'Enter' && router.push(productHref)}
+                        className="border-b border-gray-100 hover:bg-orange-50/80 cursor-pointer transition-colors"
                       >
-                        <td className="p-3">
+                        <td className="p-3" onClick={(e) => e.stopPropagation()}>
                           <Link
-                            href={`/products/${hit.id}`}
+                            href={productHref}
                             className="flex items-center gap-3 hover:text-orange-600"
+                            aria-label={`Dettaglio: ${primary}`}
                           >
                             {imgUrl ? (
                               <div className="relative w-10 h-14 rounded overflow-hidden bg-gray-100 flex-shrink-0">
                                 <Image
                                   src={imgUrl}
-                                  alt={hit.name}
+                                  alt={primary}
                                   fill
                                   className="object-cover"
                                   sizes="40px"
@@ -336,7 +371,10 @@ export function SearchResults({
                               <div className="w-10 h-14 rounded bg-gray-200 flex-shrink-0" />
                             )}
                             <div>
-                              <span className="font-medium text-gray-900">{hit.name}</span>
+                              <span className="font-medium text-gray-900">{primary}</span>
+                              {secondary && (
+                                <p className="text-xs text-gray-500">{secondary}</p>
+                              )}
                               {hit.set_name && (
                                 <p className="text-xs text-gray-500">{hit.set_name}</p>
                               )}
@@ -360,6 +398,7 @@ export function SearchResults({
             <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {hits.map((hit) => {
                 const imgUrl = getCardImageUrl(hit.image ?? null);
+                const { primary, secondary } = getDisplayNames(hit, selectedLang);
                 return (
                   <Link
                     key={hit.id}
@@ -370,7 +409,7 @@ export function SearchResults({
                       {imgUrl ? (
                         <Image
                           src={imgUrl}
-                          alt={hit.name}
+                          alt={primary}
                           fill
                           className="object-contain group-hover:scale-105 transition-transform"
                           sizes="(max-width:640px) 50vw, 20vw"
@@ -381,7 +420,10 @@ export function SearchResults({
                         </div>
                       )}
                     </div>
-                    <p className="font-medium text-gray-900 text-sm line-clamp-2">{hit.name}</p>
+                    <p className="font-medium text-gray-900 text-sm line-clamp-2">{primary}</p>
+                    {secondary && (
+                      <p className="text-xs text-gray-500 line-clamp-1">{secondary}</p>
+                    )}
                     {hit.set_name && (
                       <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{hit.set_name}</p>
                     )}

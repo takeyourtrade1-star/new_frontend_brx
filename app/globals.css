@@ -2,11 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Comodo Regular: font locale per display/tab */
+/* Comodo Regular: font display/tab (fallback a font di sistema se i file non sono in public/fonts) */
 @font-face {
   font-family: 'Comodo Regular';
-  src: url('/fonts/Comodo-Regular.woff2') format('woff2'),
-       url('/fonts/Comodo-Regular.ttf') format('truetype');
+  src: local('Segoe UI'), local('Arial Rounded MT Bold'), local('Arial');
   font-weight: 400;
   font-style: normal;
   font-display: swap;

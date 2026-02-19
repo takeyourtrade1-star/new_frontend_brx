@@ -176,9 +176,12 @@ export function TopBar() {
         </div>
       )}
 
-      <div className="flex items-center gap-2 py-3 min-w-0">
-        {/* Left: Logo + Magic dropdown (min-w-0 per lasciare spazio al blocco destra) */}
-        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-2 py-2 min-w-0">
+        {/* Left: Logo + Magic dropdown — non flex-1 quando loggato così il menu centrale può espandersi */}
+        <div className={cn(
+          'flex min-w-0 items-center gap-2 sm:gap-3',
+          isAuthenticated ? 'flex-initial' : 'flex-1'
+        )}>
           <Link
             href="/"
             className="ml-3 flex items-center rounded-lg px-2 py-1 transition-opacity hover:opacity-90"
@@ -326,11 +329,16 @@ export function TopBar() {
           </>
         )}
 
-        {/* Right: se loggato = User + Acquisti + Vendi + Scambi + Aste + Carrello (icona+importo) + Hamburger */}
-        <div className="flex flex-1 shrink-0 min-w-0 justify-end items-center gap-2 sm:gap-3 mr-4 sm:mr-6">
+        {/* Centro/Destra: se loggato = menu distribuito al centro + Hamburger a destra */}
+        <div className={cn(
+          'flex min-w-0 items-center mr-4 sm:mr-6',
+          isAuthenticated ? 'flex-1' : 'flex-1 shrink-0 justify-end gap-2 sm:gap-3'
+        )}>
           {isAuthenticated && user ? (
             <>
-              {/* 1. Nome utente + icona (a sinistra nel blocco) */}
+              {/* Menu centrale: User, Acquisti, Vendi, Carrello, Scambi, Aste — distribuiti in modo uniforme */}
+              <div className="flex flex-1 justify-evenly items-center gap-1 sm:gap-2 lg:gap-4 max-w-4xl mx-auto">
+              {/* 1. Nome utente + icona */}
               <div className="relative flex items-center gap-2" ref={accountMenuRef}>
                 <button
                   type="button"
@@ -377,42 +385,12 @@ export function TopBar() {
 
                 {accountMenuOpen && (
                   <div
-                    className="absolute left-0 top-full z-[110] mt-1 min-w-[240px] rounded-xl p-3 shadow-xl"
-                    style={{ backgroundColor: '#333333' }}
+                    className="absolute left-0 top-full z-[110] mt-1 min-w-[200px] rounded-2xl px-4 py-3 shadow-xl"
+                    style={{ backgroundColor: '#FF8C00' }}
                     role="menu"
+                    aria-label="Menu account"
                   >
-                    <div className="mb-3 flex items-center gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full">
-                        {user.image ? (
-                          <Image
-                            src={user.image}
-                            alt=""
-                            width={40}
-                            height={40}
-                            className="h-10 w-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <Image
-                            src="/images/user-icon.png"
-                            alt=""
-                            width={40}
-                            height={40}
-                            className="h-10 w-10 object-contain"
-                          />
-                        )}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium uppercase tracking-wide text-white">
-                          {displayName}
-                        </p>
-                        <p className="text-sm text-white">({balance})</p>
-                      </div>
-                    </div>
-                    <nav
-                      className="rounded-2xl px-4 py-3"
-                      style={{ backgroundColor: '#FF8C00' }}
-                      aria-label="Menu account"
-                    >
+                    <nav className="flex flex-col" aria-label="Menu account">
                       <Link
                         href="/account"
                         className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
@@ -437,16 +415,21 @@ export function TopBar() {
                         CREDITO
                       </Link>
                       <div className="my-1 h-px bg-white/80" aria-hidden />
-                      <button
-                        type="button"
-                        className="block w-full py-2 text-left text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                        onClick={() => {
-                          logout();
-                          setAccountMenuOpen(false);
-                        }}
+                      <Link
+                        href="/account/oggetti"
+                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                        onClick={() => setAccountMenuOpen(false)}
                       >
-                        ESCI
-                      </button>
+                        I MIEI OGGETTI
+                      </Link>
+                      <div className="my-1 h-px bg-white/80" aria-hidden />
+                      <Link
+                        href="/account/sincronizzazione"
+                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                        onClick={() => setAccountMenuOpen(false)}
+                      >
+                        SINCRONIZZAZIONE
+                      </Link>
                     </nav>
                   </div>
                 )}
@@ -600,6 +583,7 @@ export function TopBar() {
                   ({formatEuro(cartTotal)})
                 </span>
               </Link>
+              </div>
             </>
           ) : (
             <>

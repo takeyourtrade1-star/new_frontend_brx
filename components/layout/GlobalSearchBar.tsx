@@ -442,19 +442,16 @@ function CardHit({
 }
 
 /**
- * Genera uno slug per la navigazione a /products/[slug]
- * Usa il nome della carta per generare uno slug URL-friendly
+ * Slug/ID per la navigazione a /products/[slug].
+ * Se l'id è già un id documento Meilisearch (mtg_123, op_456, pk_789, sealed_10) lo usa così com'è,
+ * così la pagina dettaglio carica i dati da Meilisearch.
  */
 function getCardSlugForUrl(hit: CardSearchHit): string {
-  // Prova a estrarre uno slug esistente dall'ID
-  const raw = hit.id ?? hit.card_print_id ?? hit.objectID ?? '';
-  const prefixMatch = raw.match(/^(mtg|pk|op)_(.+)$/);
-  if (prefixMatch) {
-    return prefixMatch[2]; // Restituisce la parte dopo il prefisso del gioco
+  const raw = (hit.id ?? hit.card_print_id ?? hit.objectID ?? '').toString().trim();
+  if (/^(mtg|pk|op|sealed)_\d+$/.test(raw)) {
+    return raw;
   }
-  
-  // Altrimenti genera uno slug dal nome della carta
-  return generateSlug(hit.name);
+  return generateSlug(hit.name ?? '');
 }
 
 function SearchResultsDropdown({
@@ -769,9 +766,9 @@ export default function GlobalSearchBar() {
 
   return (
     <div
-      className="w-full bg-white border-b border-gray-100 flex justify-center items-center py-2 z-[99]"
+      className="w-full flex justify-center items-center py-1.5 z-[99]"
       style={{
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+        backgroundColor: '#1D3160',
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
         overflow: 'visible',
       }}

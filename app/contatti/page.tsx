@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import { ChevronLeft, Mail, MessageCircle } from 'lucide-react';
 
 export const metadata = {
@@ -66,7 +65,6 @@ export default function ContattiPage() {
           </p>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

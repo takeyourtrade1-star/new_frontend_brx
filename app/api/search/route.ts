@@ -82,26 +82,29 @@ export async function GET(request: NextRequest) {
   const filter = filterParts.length ? filterParts.join(' AND ') : undefined;
   const sort = buildSort(sortBy);
 
-  const body: Record<string, unknown> = {
-    q: q || undefined,
-    limit,
-    offset,
-    sort,
-  };
-  if (filter) body.filter = filter;
-
   const url = `${MEILI_URL}/indexes/${INDEX}/search`;
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${MEILI_KEY}`,
+  };
+
+  const doSearch = (includeSort: boolean) => {
+    const body: Record<string, unknown> = {
+      q: q || undefined,
+      limit,
+      offset,
+    };
+    if (filter) body.filter = filter;
+    if (includeSort) body.sort = sort;
+    return fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+  };
 
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${MEILI_KEY}`,
-      },
-      body: JSON.stringify(body),
-    });
-
+    let res = await doSearch(true);
+    // Se 400 (es. sortable non configurati), riprova senza sort (ordinamento per rilevanza)
+    if (res.status === 400) {
+      res = await doSearch(false);
+    }
     if (!res.ok) {
       const text = await res.text();
       return NextResponse.json(

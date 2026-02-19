@@ -5,7 +5,6 @@ import { useCartStore } from '@/lib/stores/cart-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import { ShoppingBag } from 'lucide-react';
 
 export default function CartPage() {
@@ -91,7 +90,6 @@ export default function CartPage() {
           </>
         )}
       </main>
-      <Footer />
     </div>
   );
 }

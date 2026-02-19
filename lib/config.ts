@@ -28,7 +28,7 @@ const getAuthApiURL = (): string => {
       throw new Error('NEXT_PUBLIC_AUTH_API_URL non è configurato. Configura la variabile d\'ambiente con l\'URL AWS.');
     }
     console.warn('NEXT_PUBLIC_AUTH_API_URL non configurato. Usa URL AWS di default.');
-    return 'http://35.152.141.53:8000';
+    return 'http://35.152.143.30:8000';
   }
 
   return normalizeURL(envUrl);
@@ -43,11 +43,12 @@ const getMeilisearchHost = (): string => {
     process.env.NEXT_PUBLIC_MEILISEARCH_URL || process.env.NEXT_PUBLIC_MEILISEARCH_HOST;
   if (url) return normalizeURL(url);
   if (isDevelopment) {
-    return 'http://localhost:7700';
+    return 'http://35.152.143.30:7700';
   }
   return '';
 };
 
+/** Chiave API Meilisearch: deve essere quella dell'istanza attuale (es. 35.152.143.30). Se l'istanza accetta ricerca senza chiave, lasciare vuoto. */
 const getMeilisearchApiKey = (): string => {
   return process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ?? '';
 };
@@ -103,6 +104,11 @@ export const config = {
   app: {
     name: process.env.NEXT_PUBLIC_APP_NAME || 'Ebartex',
     version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
+  },
+  meilisearch: {
+    url: MEILISEARCH.host,
+    apiKey: MEILISEARCH.apiKey,
+    indexName: MEILISEARCH.indexName,
   },
   debug: {
     isDevelopment,

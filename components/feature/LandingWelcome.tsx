@@ -3,7 +3,6 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Footer } from '@/components/layout/Footer';
 
 const FEATURES = [
   {
@@ -188,9 +187,6 @@ export function LandingWelcome() {
           </div>
         </nav>
 
-        <div className="mt-8">
-          <Footer />
-        </div>
       </div>
     </div>
   );

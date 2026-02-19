@@ -7,13 +7,18 @@ export function AccountShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const hideSidebar =
     pathname === '/account/messaggi' ||
+    pathname === '/account/oggetti' ||
     pathname === '/account/impostazioni/lingua' ||
     pathname === '/account/impostazioni/email' ||
     pathname === '/account/impostazioni/utenti-bloccati' ||
     pathname === '/account/impostazioni/paesi-spedizione';
 
-  if (pathname === '/account/messaggi') {
-    return <main className="w-full">{children}</main>;
+  if (pathname === '/account/messaggi' || pathname === '/account/oggetti') {
+    return (
+      <main className="w-full px-4 py-8 md:container md:mx-auto">
+        {children}
+      </main>
+    );
   }
 
   return (

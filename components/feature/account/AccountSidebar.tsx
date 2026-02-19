@@ -21,6 +21,7 @@ const SIDEBAR_SECTIONS: SidebarLink[][] = [
   [
     { href: '/account/statistiche', label: 'STATISTICHE' },
     { href: '/account/sicurezza', label: 'SICUREZZA' },
+    { href: '/account/sincronizzazione', label: 'SINCRONIZZAZIONE' },
     { href: '/account/impostazioni', label: 'IMPOSTAZIONI' },
     { href: '/account/downloads', label: 'DOWNLOADS' },
   ],
@@ -40,27 +41,29 @@ export function AccountSidebar() {
   }
 
   const sidebarTitle =
-    pathname === '/account/credito'
-      ? 'CREDITO'
-      : pathname === '/account/coupon'
-        ? 'COUPON'
-        : pathname === '/account/transazioni'
-          ? 'TRANSAZIONI'
-          : pathname === '/account/statistiche'
-            ? 'STATISTICHE'
-            : pathname === '/account/sicurezza'
-              ? 'SICUREZZA'
-              : pathname.startsWith('/account/impostazioni')
-                ? 'IMPOSTAZIONI'
-                : pathname === '/account/downloads'
-                  ? 'DOWNLOADS'
-                  : pathname === '/account/profilo'
-                    ? 'Profilo'
-                    : pathname === '/account/messaggi'
-                      ? 'I MIEI MESSAGGI'
-                      : pathname === '/account/indirizzi'
-                        ? 'INDIRIZZI'
-                        : 'Account';
+    pathname === '/account/sincronizzazione'
+      ? 'SINCRONIZZAZIONE'
+      : pathname === '/account/credito'
+          ? 'CREDITO'
+          : pathname === '/account/coupon'
+            ? 'COUPON'
+            : pathname === '/account/transazioni'
+              ? 'TRANSAZIONI'
+              : pathname === '/account/statistiche'
+                ? 'STATISTICHE'
+                : pathname === '/account/sicurezza'
+                  ? 'SICUREZZA'
+                  : pathname.startsWith('/account/impostazioni')
+                    ? 'IMPOSTAZIONI'
+                    : pathname === '/account/downloads'
+                      ? 'DOWNLOADS'
+                      : pathname === '/account/profilo'
+                        ? 'Profilo'
+                        : pathname === '/account/messaggi'
+                          ? 'I MIEI MESSAGGI'
+                          : pathname === '/account/indirizzi'
+                            ? 'INDIRIZZI'
+                            : 'Account';
 
   return (
     <aside className="w-72 shrink-0 border-r-2 border-white/30 pr-8">

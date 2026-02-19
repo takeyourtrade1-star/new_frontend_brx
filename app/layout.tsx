@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/components/providers';
+import { Footer } from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
   title: 'Ebartex | Enterprise E-Commerce',
@@ -21,8 +22,13 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans antialiased min-h-screen">
-        <Providers>{children}</Providers>
+      <body className="font-sans antialiased min-h-screen flex flex-col">
+        <Providers>
+          <div className="flex-1 flex flex-col">
+            {children}
+            <Footer />
+          </div>
+        </Providers>
       </body>
     </html>
   );

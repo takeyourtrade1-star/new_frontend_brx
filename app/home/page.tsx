@@ -4,7 +4,6 @@ import { FeaturesSection } from '@/components/feature/FeaturesSection';
 import { MarketplaceDashboard } from '@/components/feature/MarketplaceDashboard';
 import { CategoriesGrid } from '@/components/feature/CategoriesGrid';
 import { EbartexProductsSection } from '@/components/feature/EbartexProductsSection';
-import { Footer } from '@/components/layout/Footer';
 
 export default function HomePage() {
   return (
@@ -31,8 +30,6 @@ export default function HomePage() {
       <CategoriesGrid />
 
       <EbartexProductsSection />
-
-      <Footer />
     </main>
   );
 }
