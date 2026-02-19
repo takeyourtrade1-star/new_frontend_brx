@@ -1,0 +1,43 @@
+{
+  "name": "ebartex",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "dev:3001": "next dev -p 3001 -H 127.0.0.1",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.9.0",
+    "@meilisearch/instant-meilisearch": "^0.30.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@tanstack/react-query": "^5.50.0",
+    "axios": "^1.13.5",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "country-flag-icons": "^1.6.13",
+    "lucide-react": "^0.400.0",
+    "next": "^15.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-hook-form": "^7.52.0",
+    "react-instantsearch": "^7.23.2",
+    "tailwind-merge": "^2.2.0",
+    "zod": "^3.23.0",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^10.0.0",
+    "eslint-config-next": "^0.2.4",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.5.0"
+  }
+}

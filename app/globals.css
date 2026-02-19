@@ -1,0 +1,232 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Comodo Regular: font locale per display/tab */
+@font-face {
+  font-family: 'Comodo Regular';
+  src: url('/fonts/Comodo-Regular.woff2') format('woff2'),
+       url('/fonts/Comodo-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    /* Palette principale (gradiente e blocchi) */
+    --color-brand: #3D65C6;
+    --color-brand-dark: #1D3160;
+    /* Font principale: SF Compact Rounded (Apple) + fallback */
+    --font-sans: 'SF Compact Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    /* Font display: Comodo Regular (locale in public/fonts) */
+    --font-comodo: 'Comodo Regular', sans-serif;
+
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+/* Font display: Comodo Regular (tab COMPRA, GUADAGNA, ecc.) */
+.font-display {
+  font-family: var(--font-comodo) !important;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    min-height: 100%;
+  }
+  body {
+    @apply transition-colors duration-300 min-h-screen;
+    /* Sfondo: gradiente palette + pattern BRX (come nelle altre pagine) */
+    background-image:
+      linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)),
+      url("/brx_bg.png"),
+      linear-gradient(180deg, #3D65C6 0%, #1D3160 100%);
+    background-repeat: no-repeat, repeat, no-repeat;
+    background-size: cover, auto, cover;
+    background-attachment: fixed;
+    color: #fff;
+  }
+  html:not(.dark) body {
+    background-image:
+      linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)),
+      url("/brx_bg.png"),
+      linear-gradient(180deg, #3D65C6 0%, #1D3160 100%);
+    background-repeat: no-repeat, repeat, no-repeat;
+    background-size: cover, auto, cover;
+    background-attachment: fixed;
+    color: #fff;
+  }
+  html.dark body {
+    background-image:
+      linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)),
+      url("/brx_bg.png"),
+      linear-gradient(180deg, #3D65C6 0%, #1D3160 100%);
+    background-repeat: no-repeat, repeat, no-repeat;
+    background-size: cover, auto, cover;
+    background-attachment: fixed;
+    color: #fff;
+  }
+}
+
+/* Features section: gradient + texture solo in dark mode */
+.dark .features-section {
+  background-image: linear-gradient(180deg, rgba(61,101,198,0.88) 0%, rgba(61,101,198,0.88) 100%), url("/brx_bg.png");
+  background-repeat: no-repeat, repeat;
+  background-size: 100% 100%, auto;
+}
+
+/* Menu Prodotti: solo il pezzo blu chiaro a SINISTRA che "esce" un pochino al hover */
+.prodotti-menu-item {
+  position: relative;
+}
+.prodotti-menu-item::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -4px;
+  width: 8px;
+  height: 100%;
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+.prodotti-menu-item:hover::after,
+.prodotti-menu-item:focus-visible::after {
+  background-color: #fff;
+}
+
+/* Marquee: gradiente F3C76A, margine superiore ridotto per spostare in alto */
+.marquee {
+  background: linear-gradient(90deg, #F3C76A 0%, #e5b85c 100%);
+  margin-top: 0;
+}
+
+/* --- FloatingInput: fieldset/legend per il taglio nel bordo --- */
+.floating-group {
+  position: relative;
+  margin-top: 20px;
+}
+
+/* L'input deve avere placeholder=" " (spazio) per :placeholder-shown */
+.floating-input {
+  position: relative;
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  outline: none;
+  border: none;
+  font-size: 16px;
+  color: inherit;
+  box-sizing: border-box;
+  z-index: 2;
+}
+
+.floating-label {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  color: #999;
+  pointer-events: none;
+  transform-origin: left top;
+  transition: 0.2s ease all;
+  z-index: 3;
+}
+
+.floating-fieldset {
+  position: absolute;
+  top: -9px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 0 8px;
+  pointer-events: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: transparent;
+  transition: border-color 0.2s;
+  z-index: 1;
+}
+
+.floating-legend {
+  width: auto;
+  height: 11px;
+  font-size: 0.75em;
+  visibility: hidden;
+  max-width: 0.01px;
+  transition: max-width 50ms;
+  white-space: nowrap;
+}
+
+.floating-legend span {
+  padding: 0 5px;
+}
+
+.floating-input:focus ~ .floating-fieldset {
+  border: 2px solid #2196f3;
+}
+
+.floating-input:focus ~ .floating-fieldset .floating-legend,
+.floating-input:not(:placeholder-shown) ~ .floating-fieldset .floating-legend {
+  max-width: 1000px;
+}
+
+.floating-input:focus ~ .floating-label,
+.floating-input:not(:placeholder-shown) ~ .floating-label {
+  top: -10px;
+  font-size: 12px;
+  color: #2196f3;
+}
+
+/* Nasconde la scrollbar mantenendo lo scroll (landing loghi giochi) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
