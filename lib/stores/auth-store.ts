@@ -38,11 +38,12 @@ function normalizeUser(user: UserResponse | User | null): User | null {
       DEFAULT_PREFERENCES.is_onboarding_completed,
   };
 
+  const u = user as UserResponse & { name?: string | null; image?: string | null };
   return {
     id: user.id,
     email: user.email,
-    name: user.name ?? null,
-    image: user.image ?? null,
+    name: u.name ?? null,
+    image: u.image ?? null,
     account_status: (user as UserResponse).account_status,
     mfa_enabled: (user as UserResponse).mfa_enabled,
     created_at: (user as UserResponse).created_at,
