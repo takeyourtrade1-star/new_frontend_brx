@@ -38,8 +38,14 @@ export interface CardDocument {
   game_slug: string;
   image?: string | null;
   category_name?: string;
+  /** CardTrader blueprint ID (per fetch listings/venditori). */
+  cardtrader_id?: number;
+  /** MTG: Rare, Mythic, Common, Uncommon, etc. */
   rarity?: string;
+  /** MTG: numero collezionista (es. "028", "1910"). */
   collector_number?: string;
+  /** MTG: codici lingua in cui la carta è disponibile (es. ["en","it","fr"]). */
+  available_languages?: string[];
   market_price?: number;
   foil_price?: number;
   keywords_localized?: string[];
@@ -53,6 +59,10 @@ export interface ProductDetailData {
   category_name?: string;
   imageUrl: string | null;
   keywords_localized?: string[];
+  /** MTG: per pagina dettaglio */
+  collector_number?: string;
+  rarity?: string;
+  available_languages?: string[];
 }
 
 const GAME_LABELS: Record<string, string> = {
@@ -136,15 +146,7 @@ export async function getProductById(id: string): Promise<ProductDetailData | nu
 
     if (res.status === 404 || !res.ok) return null;
 
-    const doc = (await res.json()) as {
-      id: string;
-      name?: string;
-      set_name?: string;
-      game_slug?: string;
-      category_name?: string;
-      image?: string | null;
-      keywords_localized?: string[];
-    };
+    const doc = (await res.json()) as CardDocument;
 
     return {
       id: doc.id,
@@ -154,6 +156,9 @@ export async function getProductById(id: string): Promise<ProductDetailData | nu
       category_name: doc.category_name,
       imageUrl: buildImageUrl(doc.image ?? null),
       keywords_localized: doc.keywords_localized,
+      collector_number: doc.collector_number,
+      rarity: doc.rarity,
+      available_languages: doc.available_languages,
     };
   } catch {
     return null;

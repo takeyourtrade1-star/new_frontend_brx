@@ -94,9 +94,9 @@ export const useAuthStore = create<AuthState>()(
       mfaRequired: false,
       flashMessage: null,
 
-      // Initialize auth from localStorage and validate with backend
+      // Initialize auth: refresh proattivo se c'è refresh_token, poi valida con /api/auth/me
       initializeAuth: async () => {
-        const accessToken =
+        let accessToken: string | null =
           typeof window !== 'undefined'
             ? localStorage.getItem(config.auth.tokenKey)
             : null;
@@ -109,17 +109,38 @@ export const useAuthStore = create<AuthState>()(
             ? localStorage.getItem(config.auth.userKey)
             : null;
 
-        // Se ci sono i token, validiamo la sessione chiamando /api/auth/me
+        // Se c'è refresh_token, rinnoviamo subito l'access token (anche dopo F5 o token scaduto)
+        if (refreshToken && typeof window !== 'undefined') {
+          try {
+            const refreshRes = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({ refresh_token: refreshToken }),
+              credentials: 'same-origin',
+            });
+            const refreshData = await refreshRes.json().catch(() => ({}));
+            const newAccess =
+              (refreshData?.data?.access_token ?? refreshData?.access_token) as string | undefined;
+            const newRefresh =
+              (refreshData?.data?.refresh_token ?? refreshData?.refresh_token) as string | undefined;
+            if (newAccess && refreshRes.ok) {
+              authApi.setToken(newAccess, newRefresh);
+              set({ accessToken: newAccess, isAuthenticated: true });
+              accessToken = newAccess;
+            } else if (refreshToken) {
+              // refresh_token presente ma risposta non ok (scaduto/revocato) → logout
+              await get().logout();
+              return;
+            }
+          } catch {
+            // errore di rete: proseguiamo, /me con token vecchio potrebbe far scattare refresh in interceptor
+          }
+        }
+
         if (accessToken) {
           try {
-            // Imposta il token per le richieste
             authApi.setToken(accessToken);
-
-            // Valida la sessione chiamando /api/auth/me
-            // L'interceptor gestirà automaticamente il refresh se il token è scaduto
             const response = (await authApi.get('/api/auth/me')) as any;
-
-            // Se la chiamata è andata a buon fine, aggiorna i dati utente
             const user =
               response.user ||
               response.data?.user ||
@@ -143,21 +164,16 @@ export const useAuthStore = create<AuthState>()(
                 await get().logout();
               }
             } else {
-              // Se non c'è user nella risposta, fai logout
               await get().logout();
             }
-          } catch (error) {
-            // Se la chiamata fallisce (e anche il refresh fallisce),
-            // l'interceptor avrà già fatto il logout forzato
-
-            // Se non c'è refresh token o la validazione è fallita, pulisci tutto
+          } catch {
             if (!refreshToken) {
               await get().logout();
+            } else {
+              set({ user: null, accessToken: null, isAuthenticated: false });
             }
-            // Se c'è refresh token, l'interceptor ha gestito il refresh e il logout se necessario
           }
         } else {
-          // Nessun token salvato, assicuriamoci che tutto sia pulito
           set({
             user: null,
             accessToken: null,

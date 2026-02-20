@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -9,6 +9,7 @@ import { getCardImageUrl } from '@/lib/assets';
 import { getCardDisplayNames } from '@/lib/card-display-name';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { getGameLabel, buildBreadcrumbsFromCard, type CardDocument } from '@/lib/product-detail';
+import { syncClient, type ListingItem } from '@/lib/api/sync-client';
 
 import group558Icon from '@/assets/images/Group_558.png';
 import starIcon from '@/assets/images/star.png';
@@ -17,23 +18,6 @@ import cartIcon from '@/assets/images/cart-icon.png';
 
 const PRIMARY_BLUE = '#1D3160';
 const ACCENT_ORANGE = '#f97316';
-
-const MOCK_SELLERS = [
-  { rank: 250, country: 'IT', name: 'LEO', badge: true, condition: 'CARTA UNICA FOIL SPED RAPIDA', price: 18.0, qty: 11 },
-  { rank: 312, country: 'IT', name: 'MARCO', badge: false, condition: 'NM FOIL', price: 17.5, qty: 3 },
-  { rank: 89, country: 'DE', name: 'HANS', badge: true, condition: 'EX+ SPED RAPIDA', price: 19.0, qty: 7 },
-  { rank: 445, country: 'FR', name: 'PIERRE', badge: false, condition: 'LP FOIL', price: 16.8, qty: 2 },
-  { rank: 120, country: 'IT', name: 'GIULIA', badge: true, condition: 'MINT FOIL SPED RAPIDA', price: 20.0, qty: 5 },
-  { rank: 501, country: 'ES', name: 'CARLOS', badge: false, condition: 'NM', price: 15.9, qty: 1 },
-  { rank: 78, country: 'IT', name: 'ALESSIO', badge: true, condition: 'NM FOIL', price: 18.2, qty: 4 },
-  { rank: 203, country: 'DE', name: 'STEFAN', badge: false, condition: 'EX SPED RAPIDA', price: 17.0, qty: 6 },
-  { rank: 567, country: 'FR', name: 'JEAN', badge: false, condition: 'LP', price: 16.5, qty: 2 },
-  { rank: 42, country: 'IT', name: 'FRANCESCA', badge: true, condition: 'MINT FOIL', price: 21.0, qty: 3 },
-  { rank: 389, country: 'ES', name: 'PABLO', badge: false, condition: 'NM SPED RAPIDA', price: 17.8, qty: 8 },
-  { rank: 156, country: 'IT', name: 'MATTEO', badge: true, condition: 'EX+ FOIL', price: 19.5, qty: 1 },
-  { rank: 612, country: 'DE', name: 'KLAUS', badge: false, condition: 'LP FOIL SPED RAPIDA', price: 16.0, qty: 5 },
-  { rank: 95, country: 'FR', name: 'LUC', badge: true, condition: 'NM', price: 18.5, qty: 9 },
-];
 
 type ProductDetailViewProps =
   | { card: CardDocument; slug?: string; title?: string; subtitle?: string; breadcrumbs?: { label: string; href?: string }[]; imageSrc?: string }
@@ -71,6 +55,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [alterata, setAlterata] = useState<'SÌ' | 'NO' | 'ENTRAMBI'>('ENTRAMBI');
   const [quantita, setQuantita] = useState(33);
 
+  const [listings, setListings] = useState<ListingItem[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(false);
+  const [listingsError, setListingsError] = useState<string | null>(null);
+
   /* Form "Metti in vendita" (tab VENDI) */
   const [quantitaVendi, setQuantitaVendi] = useState(1);
   const [linguaVendi, setLinguaVendi] = useState('en');
@@ -95,12 +83,68 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     { code: 'FR', label: 'Francia' },
   ] as const;
 
-  const effectiveImageSrc =
-    imageError || !imageSrc
-      ? 'https://placehold.co/280x373/e5e7eb/6b7280?text=Carta'
-      : imageSrc;
+  /** Mappa codice lingua → etichetta per select Lingua (tab VENDI) e per Lingue disponibili (INFO). */
+  const LANG_OPTIONS: { code: string; label: string }[] = useMemo(
+    () => [
+      { code: 'en', label: 'English' },
+      { code: 'it', label: 'Italiano' },
+      { code: 'de', label: 'Deutsch' },
+      { code: 'fr', label: 'Français' },
+      { code: 'es', label: 'Español' },
+      { code: 'pt', label: 'Português' },
+      { code: 'ja', label: '日本語' },
+      { code: 'jp', label: '日本語' },
+      { code: 'ko', label: '한국어' },
+      { code: 'zh', label: '中文' },
+    ],
+    []
+  );
+  const langLabelByCode = useMemo(() => Object.fromEntries(LANG_OPTIONS.map((o) => [o.code, o.label])), [LANG_OPTIONS]);
+
+  /** Opzioni Lingua nel tab VENDI: se la carta ha available_languages, solo quelle; altrimenti tutte. */
+  const vendiLanguageOptions = useMemo(() => {
+    if (card?.available_languages?.length) {
+      return card.available_languages
+        .map((code) => ({ code, label: langLabelByCode[code] ?? code }))
+        .filter((o, i, arr) => arr.findIndex((x) => x.code === o.code) === i);
+    }
+    return LANG_OPTIONS.filter((o) => o.code !== 'jp');
+  }, [card?.available_languages, langLabelByCode]);
+
+  useEffect(() => {
+    if (vendiLanguageOptions.length && !vendiLanguageOptions.some((o) => o.code === linguaVendi)) {
+      setLinguaVendi(vendiLanguageOptions[0].code);
+    }
+  }, [vendiLanguageOptions, linguaVendi]);
+
+  useEffect(() => {
+    const blueprintId = card?.cardtrader_id;
+    if (blueprintId == null) {
+      setListings([]);
+      setListingsLoading(false);
+      setListingsError(null);
+      return;
+    }
+    setListingsLoading(true);
+    setListingsError(null);
+    syncClient
+      .getListingsByBlueprint(blueprintId)
+      .then((res) => {
+        setListings(res.listings ?? []);
+      })
+      .catch((err) => {
+        setListings([]);
+        setListingsError(err instanceof Error ? err.message : 'Errore caricamento venditori');
+      })
+      .finally(() => setListingsLoading(false));
+  }, [card?.cardtrader_id]);
+
+  const showImagePlaceholder = imageError || !imageSrc;
+  const effectiveImageSrc = showImagePlaceholder ? '' : imageSrc;
   const isLocalImage = effectiveImageSrc.startsWith('/') && !effectiveImageSrc.startsWith('//');
   const gameLabel = card ? getGameLabel(card.game_slug) : null;
+
+  const EBARTEX_LOGO_PLACEHOLDER = '/landing/Logo%20Principale%20EBARTEX.png';
 
   const formatEuro = (n: number) =>
     new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(n);
@@ -156,10 +200,21 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             {/* Colonna sinistra: immagine carta più piccola per adattarsi all'altezza del contenuto INFO */}
             <aside className="flex flex-col w-full md:w-[min(280px,26vw)] lg:min-w-[260px] flex-shrink-0 items-center p-4 sm:p-5 lg:p-6 bg-white border-b md:border-b-0 md:border-r border-gray-200">
               <div
-                className="relative w-full overflow-hidden rounded-md shrink-0 border border-gray-800 max-w-[260px]"
+                className="relative w-full overflow-hidden rounded-md shrink-0 border border-gray-800 max-w-[260px] flex flex-col items-center justify-center bg-gray-100"
                 style={{ aspectRatio: '63/88' }}
               >
-              {isLocalImage ? (
+              {showImagePlaceholder ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
+                  <img
+                    src={EBARTEX_LOGO_PLACEHOLDER}
+                    alt="Ebartex"
+                    className="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0"
+                  />
+                  <p className="mt-2 text-[10px] sm:text-xs font-medium text-gray-600 leading-tight">
+                    Questa immagine non è al momento disponibile
+                  </p>
+                </div>
+              ) : isLocalImage ? (
                 <img
                   src={effectiveImageSrc}
                   alt={card?.name ?? title}
@@ -239,6 +294,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     <p className="mt-0.5 text-xs sm:text-sm font-bold uppercase text-black">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
                     <Link href="#" className="mt-1 inline-block text-xs font-medium text-[#FF8800] hover:underline uppercase">MOSTRA RISTAMPE</Link>
                   </div>
+                  {card?.game_slug === 'mtg' && card?.available_languages && card.available_languages.length > 0 && (
+                    <div className="mt-3 sm:mt-4">
+                      <span className="text-[10px] font-bold uppercase text-black">LINGUE DISPONIBILI</span>
+                      <p className="mt-0.5 text-xs sm:text-sm font-bold uppercase text-black">
+                        {card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ')}
+                      </p>
+                    </div>
+                  )}
                   <div className="mt-3 sm:mt-4">
                     <span className="text-[10px] font-bold uppercase text-black">DISPONIBILI</span>
                     <p className="mt-0.5 text-xl sm:text-2xl font-bold text-black">1148</p>
@@ -303,12 +366,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           Lingua <span className="text-gray-400" title="Info">ⓘ</span>
                         </label>
                         <select value={linguaVendi} onChange={(e) => setLinguaVendi(e.target.value)} className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm bg-white">
-                          <option value="en">English</option>
-                          <option value="it">Italiano</option>
-                          <option value="de">Deutsch</option>
-                          <option value="fr">Français</option>
-                          <option value="es">Español</option>
-                          <option value="jp">日本語</option>
+                          {vendiLanguageOptions.map((opt) => (
+                            <option key={opt.code} value={opt.code}>
+                              {opt.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -609,28 +671,48 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       </tr>
                     </thead>
                     <tbody>
-                      {MOCK_SELLERS.map((seller, i) => (
-                        <tr key={`${seller.name}-${i}`} className={cn('align-middle', i % 2 === 0 ? 'bg-gray-50' : 'bg-white')}>
+                      {listingsLoading && (
+                        <tr>
+                          <td colSpan={3} className="px-3 py-6 sm:px-4 text-center text-sm text-gray-500">
+                            Caricamento venditori…
+                          </td>
+                        </tr>
+                      )}
+                      {!listingsLoading && listingsError && (
+                        <tr>
+                          <td colSpan={3} className="px-3 py-6 sm:px-4 text-center text-sm text-amber-600">
+                            {listingsError}
+                          </td>
+                        </tr>
+                      )}
+                      {!listingsLoading && !listingsError && listings.length === 0 && (
+                        <tr>
+                          <td colSpan={3} className="px-3 py-8 sm:px-4 text-center text-sm text-gray-600">
+                            Presto ci saranno articoli in vendita disponibili.
+                          </td>
+                        </tr>
+                      )}
+                      {!listingsLoading && !listingsError && listings.map((item, i) => (
+                        <tr key={item.item_id} className={cn('align-middle', i % 2 === 0 ? 'bg-gray-50' : 'bg-white')}>
                           <td className="px-3 py-3 sm:px-4 sm:py-3.5">
                             <div className="flex items-center gap-2">
-                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-gray-200 text-xs font-bold text-gray-700">{seller.rank}</span>
-                              <span aria-hidden>🇮🇹</span>
-                              <span className="min-w-0 truncate text-sm font-medium uppercase text-gray-900">{seller.name}</span>
+                              <span className="min-w-0 truncate text-sm font-medium uppercase text-gray-900">{item.seller_display_name}</span>
+                              <span className="text-sm text-gray-600">{item.country ?? '—'}</span>
                               <Image src={medalIcon} alt="" width={24} height={24} className="h-6 w-6 shrink-0 object-contain" aria-hidden />
                             </div>
                           </td>
                           <td className="px-3 py-3 sm:px-4 sm:py-3.5">
                             <div className="flex items-center gap-2">
-                              <div className="h-8 w-8 shrink-0 rounded bg-gray-200" />
                               <span className="inline-flex h-[22px] min-w-[44px] items-center justify-center rounded-full px-2.5 text-xs font-bold text-white" style={{ backgroundColor: '#1D3160' }}>MT</span>
                               <Image src={starIcon} alt="" width={24} height={24} className="h-6 w-6 shrink-0 object-contain" aria-hidden />
-                              <span className="text-sm text-gray-700">{seller.condition}</span>
+                              <span className="text-sm text-gray-700">{item.condition ?? '—'}</span>
+                              {item.mtg_language && <span className="text-xs text-gray-500">({item.mtg_language})</span>}
                             </div>
                           </td>
                           <td className="px-3 py-3 sm:px-4 sm:py-3.5">
                             <div className="flex items-center gap-2 justify-end flex-wrap">
-                              <span className="text-sm font-semibold text-blue-600 tabular-nums">{formatEuro(seller.price)}</span>
-                              <span className="text-sm text-gray-600 tabular-nums">{seller.qty}</span>
+                              <span className="text-sm font-semibold text-blue-600 tabular-nums">{formatEuro(item.price_cents / 100)}</span>
+                              <span className="text-sm text-gray-600 tabular-nums">{item.quantity}</span>
                               <button type="button" className="shrink-0 rounded-full border-2 border-[#FF8800] bg-[#EAEAEA] px-3 py-1.5 text-xs font-bold uppercase text-[#FF8800] hover:opacity-90">SCAMBIA</button>
                               <button type="button" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full" aria-label="Aggiungi al carrello" style={{ color: ACCENT_ORANGE }}>
                                 <Image src={cartIcon} alt="" width={22} height={22} className="h-5 w-5 object-contain" />

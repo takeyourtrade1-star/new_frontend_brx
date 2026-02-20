@@ -11,6 +11,12 @@ import axios, {
 } from 'axios';
 import { config } from '../config';
 
+/** In browser use same-origin proxy (/api/auth/*) to avoid CORS; on server call Auth API directly. */
+function getAuthBaseURL(): string {
+  if (typeof window !== 'undefined') return '';
+  return config.api.baseURL;
+}
+
 class AuthApiClient {
   private instance: AxiosInstance;
   private token: string | null = null;
@@ -21,11 +27,11 @@ class AuthApiClient {
   }> = [];
 
   constructor() {
-    const baseURL = config.api.baseURL;
+    const baseURL = getAuthBaseURL();
 
     // Log per debug (solo in sviluppo)
     if (typeof window !== 'undefined' && config.debug.isDevelopment) {
-      console.log('[AuthApiClient] Base URL:', baseURL);
+      console.log('[AuthApiClient] Base URL:', baseURL || '(same-origin /api/auth proxy)');
     }
 
     this.instance = axios.create({
@@ -109,9 +115,9 @@ class AuthApiClient {
           this.isRefreshing = true;
 
           try {
-            // Tenta di rinfrescare il token usando il microservizio Auth
-            const refreshResponse = await axios.post(
-              `${config.api.baseURL}/api/auth/refresh`,
+            // Tenta di rinfrescare il token (usa this.instance così in browser passa dal proxy)
+            const refreshResponse = await this.instance.post(
+              '/api/auth/refresh',
               { refresh_token: refreshToken },
               {
                 headers: {
@@ -132,6 +138,16 @@ class AuthApiClient {
               this.token = accessToken;
               this.setStoredToken(accessToken);
               this.setStoredRefreshToken(newRefreshToken);
+
+              // Allinea lo store Zustand così tutta l'app usa il token nuovo (evita dipendenze circolari con import dinamico)
+              try {
+                const { useAuthStore } = await import(
+                  /* webpackChunkName: "auth-store" */ '@/lib/stores/auth-store'
+                );
+                useAuthStore.getState().setToken(accessToken, newRefreshToken);
+              } catch {
+                // ignore se store non disponibile (SSR o primo load)
+              }
 
               // Aggiorna l'header della richiesta originale
               if (originalRequest.headers) {

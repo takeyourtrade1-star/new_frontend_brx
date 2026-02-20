@@ -38,6 +38,10 @@ export interface ProductDetailDoc {
   category_name?: string;
   image?: string | null;
   keywords_localized?: string[];
+  /** MTG: per pagina dettaglio */
+  collector_number?: string;
+  rarity?: string;
+  available_languages?: string[];
 }
 
 export interface ProductDetailResponse {
@@ -48,6 +52,9 @@ export interface ProductDetailResponse {
   category_name?: string;
   imageUrl: string | null;
   keywords_localized?: string[];
+  collector_number?: string;
+  rarity?: string;
+  available_languages?: string[];
 }
 
 export async function GET(
@@ -105,6 +112,9 @@ export async function GET(
       category_name: doc.category_name ?? undefined,
       imageUrl,
       keywords_localized: doc.keywords_localized,
+      collector_number: doc.collector_number,
+      rarity: doc.rarity,
+      available_languages: doc.available_languages,
     };
 
     return NextResponse.json(response);
