@@ -15,15 +15,21 @@ const nextConfig = {
     NEXT_PUBLIC_MEILISEARCH_INDEX: process.env.NEXT_PUBLIC_MEILISEARCH_INDEX || process.env.VITE_MEILISEARCH_INDEX,
     NEXT_PUBLIC_SEARCH_API_URL: process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL,
   },
-  // Rewrites (solo search-api per reindex; Auth e Meilisearch usano URL diretto da .env)
+  // Rewrites: proxy verso servizi esterni (stesso origin per il browser, niente CORS)
   async rewrites() {
     const searchApiUrl = process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL || 'http://localhost:8000';
+    const syncApiUrl = (process.env.SYNC_API_URL || process.env.NEXT_PUBLIC_SYNC_API_URL || process.env.VITE_SYNC_API_URL || 'https://sync.ebartex.com').replace(/\/+$/, '');
 
     return [
       // Proxy per Search Engine (BRX_Search) - reindex e altre API admin
       {
         source: '/search-api/:path*',
         destination: `${searchApiUrl}/:path*`,
+      },
+      // Proxy per BRX Sync (CardTrader): /api/sync/* → sync.ebartex.com (imposta SYNC_API_URL su Amplify)
+      {
+        source: '/api/sync/:path*',
+        destination: `${syncApiUrl}/api/v1/sync/:path*`,
       },
     ];
   },
