@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, Loader2, Pencil, Search, ShoppingCart, Trash2, X } from 'lucide-react';
+import { Home, Loader2, Pencil, Search, ShoppingCart, Trash2, X, CheckSquare, Square } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { syncClient } from '@/lib/api/sync-client';
@@ -290,6 +290,13 @@ function OggettiTable({
   onRefresh,
   onSyncResult,
   onSyncPending,
+  syncEnabled,
+  selectedIds,
+  onToggleSelect,
+  onSelectAll,
+  onDeselectAll,
+  onDeleteSelected,
+  bulkDeleting,
 }: {
   items: InventoryItemWithCatalog[];
   buildImageUrl: (raw: string | null | undefined) => string | null;
@@ -299,6 +306,13 @@ function OggettiTable({
   onRefresh: () => Promise<void>;
   onSyncResult: (result: { success: boolean; message?: string }) => void;
   onSyncPending?: () => void;
+  syncEnabled: boolean;
+  selectedIds?: Set<number>;
+  onToggleSelect?: (id: number) => void;
+  onSelectAll?: () => void;
+  onDeselectAll?: () => void;
+  onDeleteSelected?: (ids: number[]) => void;
+  bulkDeleting?: boolean;
 }) {
   const { selectedLang } = useLanguage();
   const [editItem, setEditItem] = useState<InventoryItemWithCatalog | null>(null);
@@ -306,6 +320,11 @@ function OggettiTable({
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const selectionMode = !syncEnabled && selectedIds != null && onToggleSelect != null;
+  const allSelected = selectionMode && items.length > 0 && items.every((i) => selectedIds!.has(i.id));
+  const someSelected = selectionMode && items.some((i) => selectedIds!.has(i.id));
+  const selectedCount = selectionMode ? items.filter((i) => selectedIds!.has(i.id)).length : 0;
 
   const handlePurchase = async (item: InventoryItemWithCatalog) => {
     const qty = Math.min(1, item.quantity);
@@ -453,6 +472,23 @@ function OggettiTable({
         <table className="w-full min-w-[880px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700/50">
+              {selectionMode && (
+                <th className="w-0 p-2 font-semibold text-gray-700 dark:text-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => (allSelected ? onDeselectAll?.() : onSelectAll?.())}
+                    className="inline-flex items-center justify-center rounded p-1 text-gray-600 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-600"
+                    title={allSelected ? 'Deseleziona tutte' : 'Seleziona tutte'}
+                    aria-label={allSelected ? 'Deseleziona tutte' : 'Seleziona tutte'}
+                  >
+                    {allSelected ? (
+                      <CheckSquare className="h-5 w-5 text-[#FF7300]" aria-hidden />
+                    ) : (
+                      <Square className="h-5 w-5" aria-hidden />
+                    )}
+                  </button>
+                </th>
+              )}
               <th className="w-0 p-2 font-semibold text-gray-700 dark:text-gray-200">Immagine</th>
               <th className="p-3 font-semibold text-gray-700 dark:text-gray-200">Nome</th>
               <th className="p-3 font-semibold text-gray-700 dark:text-gray-200">Set</th>
@@ -492,6 +528,22 @@ function OggettiTable({
                   key={item.id}
                   className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50/50 dark:hover:bg-gray-700/30"
                 >
+                  {selectionMode && (
+                    <td className="w-0 p-2 align-middle">
+                      <button
+                        type="button"
+                        onClick={() => onToggleSelect?.(item.id)}
+                        className="inline-flex items-center justify-center rounded p-1 text-gray-600 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-600"
+                        aria-label={selectedIds!.has(item.id) ? 'Deseleziona' : 'Seleziona'}
+                      >
+                        {selectedIds!.has(item.id) ? (
+                          <CheckSquare className="h-5 w-5 text-[#FF7300]" aria-hidden />
+                        ) : (
+                          <Square className="h-5 w-5" aria-hidden />
+                        )}
+                      </button>
+                    </td>
+                  )}
                   <td className="w-0 p-2 align-middle overflow-visible">
                     {item.card?.id ? (
                       <Link
@@ -641,6 +693,9 @@ export function OggettiContent() {
   const [syncBanner, setSyncBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [syncPending, setSyncPending] = useState(false);
   const [inventorySearchQuery, setInventorySearchQuery] = useState('');
+  /** Selezione per eliminazione in blocco (solo quando sincronizzazione non attiva). */
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   /** Verifica lato frontend: chiamate al sync service solo se integrazione CardTrader attiva. */
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
@@ -758,6 +813,47 @@ export function OggettiContent() {
       cancelled = true;
     };
   }, [user?.id, accessToken, loadInventory]);
+
+  const onToggleSelect = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const onSelectAll = useCallback(() => {
+    setSelectedIds(new Set(filteredInventoryItems.map((i) => i.id)));
+  }, [filteredInventoryItems]);
+
+  const onDeselectAll = useCallback(() => setSelectedIds(new Set()), []);
+
+  const onDeleteSelected = useCallback(
+    async (ids: number[]) => {
+      if (!user?.id || !accessToken || ids.length === 0) return;
+      if (
+        !confirm(
+          `Eliminare ${ids.length} ${ids.length === 1 ? 'oggetto' : 'oggetti'} dall'inventario? Questa azione non può essere annullata.`
+        )
+      )
+        return;
+      setBulkDeleting(true);
+      try {
+        for (const id of ids) {
+          await syncClient.deleteInventoryItem(user.id, id, accessToken);
+        }
+        await loadInventory();
+        setSelectedIds(new Set());
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Errore durante l\'eliminazione';
+        setError(msg);
+      } finally {
+        setBulkDeleting(false);
+      }
+    },
+    [user?.id, accessToken, loadInventory]
+  );
 
   if (!user || !accessToken) {
     return (
@@ -951,23 +1047,68 @@ export function OggettiContent() {
           </p>
         </div>
       ) : (
-        <OggettiTable
-          items={filteredInventoryItems}
-          buildImageUrl={buildImageUrl}
-          defaultImage={DEFAULT_IMAGE}
-          userId={user.id}
-          accessToken={accessToken}
-          onRefresh={loadInventory}
-          onSyncResult={(result) => {
-            setSyncPending(false);
-            setSyncBanner(
-              result.success
-                ? { type: 'success', message: '' }
-                : { type: 'error', message: result.message ?? '' }
-            );
-          }}
-          onSyncPending={() => setSyncPending(true)}
-        />
+        <>
+          {!syncEnabled && filteredInventoryItems.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-white/20 bg-white/5 p-3 dark:border-gray-600 dark:bg-gray-800/50">
+              <span className="text-sm font-medium text-white/80">Selezione:</span>
+              <button
+                type="button"
+                onClick={onSelectAll}
+                disabled={bulkDeleting}
+                className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50"
+              >
+                <CheckSquare className="h-4 w-4" />
+                Seleziona tutte
+              </button>
+              <button
+                type="button"
+                onClick={onDeselectAll}
+                disabled={bulkDeleting}
+                className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50"
+              >
+                <Square className="h-4 w-4" />
+                Deseleziona tutte
+              </button>
+              <button
+                type="button"
+                onClick={() => onDeleteSelected(Array.from(selectedIds))}
+                disabled={bulkDeleting || selectedIds.size === 0}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/20 px-3 py-1.5 text-sm font-medium text-red-200 hover:bg-red-500/30 disabled:opacity-50"
+              >
+                {bulkDeleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Elimina selezionate {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
+              </button>
+            </div>
+          )}
+          <OggettiTable
+            items={filteredInventoryItems}
+            buildImageUrl={buildImageUrl}
+            defaultImage={DEFAULT_IMAGE}
+            userId={user.id}
+            accessToken={accessToken}
+            onRefresh={loadInventory}
+            onSyncResult={(result) => {
+              setSyncPending(false);
+              setSyncBanner(
+                result.success
+                  ? { type: 'success', message: '' }
+                  : { type: 'error', message: result.message ?? '' }
+              );
+            }}
+            onSyncPending={() => setSyncPending(true)}
+            syncEnabled={syncEnabled}
+            selectedIds={selectedIds}
+            onToggleSelect={onToggleSelect}
+            onSelectAll={onSelectAll}
+            onDeselectAll={onDeselectAll}
+            onDeleteSelected={(ids) => onDeleteSelected(ids)}
+            bulkDeleting={bulkDeleting}
+          />
+        </>
       )}
     </div>
   );
