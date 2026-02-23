@@ -655,12 +655,29 @@ export function OggettiContent() {
     return inventoryItems.filter((item) => matchInventorySearch(item, inventorySearchQuery));
   }, [inventoryItems, inventorySearchQuery]);
 
-  /** KPI: totale oggetti unici (righe) e totale oggetti (somma quantità). Con ricerca attiva si riferiscono ai risultati filtrati. */
+  /** KPI: totale oggetti unici, totale oggetti (somma quantità), valore totale (quantità × prezzo). Con ricerca attiva si riferiscono ai risultati filtrati. */
   const totalUnique = filteredInventoryItems.length;
   const totalQuantity = useMemo(
     () => filteredInventoryItems.reduce((sum, item) => sum + (item.quantity ?? 0), 0),
     [filteredInventoryItems]
   );
+  const totalValueCents = useMemo(
+    () =>
+      filteredInventoryItems.reduce(
+        (sum, item) => sum + (item.quantity ?? 0) * (item.price_cents ?? 0),
+        0
+      ),
+    [filteredInventoryItems]
+  );
+  const totalValueFormatted =
+    totalValueCents >= 0
+      ? new Intl.NumberFormat('it-IT', {
+          style: 'currency',
+          currency: 'EUR',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(totalValueCents / 100)
+      : '—';
 
   useEffect(() => {
     if (!syncBanner) return;
@@ -776,8 +793,8 @@ export function OggettiContent() {
         <span className="text-white">I MIEI OGGETTI</span>
       </nav>
 
-      {/* KPI: totale oggetti unici e totale oggetti (somma quantità) */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:gap-6">
+      {/* KPI: totale oggetti unici, totale oggetti, valore totale collezione */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
         <div className="rounded-xl border border-white/20 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
           <p className="text-xs font-medium uppercase tracking-wider text-white/60">Totale oggetti unici</p>
           <p className="mt-1 text-2xl font-bold tabular-nums text-white">
@@ -794,6 +811,15 @@ export function OggettiContent() {
           </p>
           <p className="mt-0.5 text-xs text-white/50">
             {inventorySearchQuery.trim() ? 'pezzi in vista' : 'somma quantità'}
+          </p>
+        </div>
+        <div className="rounded-xl border border-white/20 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
+          <p className="text-xs font-medium uppercase tracking-wider text-white/60">Valore totale collezione</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-white">
+            {loading ? '—' : totalValueFormatted}
+          </p>
+          <p className="mt-0.5 text-xs text-white/50">
+            {inventorySearchQuery.trim() ? 'valore in vista' : 'prezzo × quantità'}
           </p>
         </div>
       </div>
