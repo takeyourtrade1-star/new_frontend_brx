@@ -114,8 +114,19 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   }, [vendiLanguageOptions, linguaVendi]);
 
   useEffect(() => {
-    const blueprintId = card?.cardtrader_id;
-    if (blueprintId == null) {
+    const raw = card?.cardtrader_id;
+    if (raw == null) {
+      setListings([]);
+      setListingsLoading(false);
+      setListingsError(null);
+      return;
+    }
+    // Normalize: backend expects integer; Meilisearch may return number or "278502:1" style string
+    const blueprintId =
+      typeof raw === 'number'
+        ? raw
+        : parseInt(String(raw).includes(':') ? String(raw).split(':')[0] : String(raw), 10);
+    if (!Number.isFinite(blueprintId) || blueprintId < 1) {
       setListings([]);
       setListingsLoading(false);
       setListingsError(null);

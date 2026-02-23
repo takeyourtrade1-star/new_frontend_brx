@@ -15,7 +15,8 @@ export async function GET(
   context: { params: Promise<{ blueprintId: string }> }
 ) {
   const { blueprintId } = await context.params;
-  const blueprintIdNum = parseInt(blueprintId, 10);
+  const base = blueprintId.includes(':') ? blueprintId.split(':')[0] : blueprintId;
+  const blueprintIdNum = parseInt(base, 10);
   if (Number.isNaN(blueprintIdNum) || blueprintIdNum < 1) {
     return NextResponse.json({ error: 'blueprintId non valido' }, { status: 400 });
   }

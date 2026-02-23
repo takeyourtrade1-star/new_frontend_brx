@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, Loader2, Pencil, Search, ShoppingCart, Trash2, X, CheckSquare, Square } from 'lucide-react';
+import { Home, Loader2, Pencil, Search, ShoppingCart, Trash2, X, CheckSquare, Square, Download, FileJson, FileSpreadsheet } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { syncClient } from '@/lib/api/sync-client';
@@ -47,6 +47,58 @@ function getLanguageLabel(code: string | null | undefined): string {
   if (code == null || code === '') return '—';
   const c = String(code).toLowerCase().trim();
   return LANG_CODE_TO_LABEL[c] ?? c;
+}
+
+/** Distingue singole (carte: mtg, op, pk) da oggetti (sealed). Basato su id/game_slug del catalogo Meilisearch (cards_prints, op_prints, pk_prints = singole; sealed_products = oggetti). */
+function getItemKind(item: InventoryItemWithCatalog): 'singole' | 'oggetti' {
+  const id = item.card?.id;
+  const gameSlug = item.card?.game_slug;
+  if (typeof id === 'string' && id.startsWith('sealed_')) return 'oggetti';
+  if (gameSlug === 'sealed' || gameSlug === 'sealed_products') return 'oggetti';
+  return 'singole';
+}
+
+type KindFilterValue = 'all' | 'singole' | 'oggetti';
+
+/** Oggetto serializzabile per export CSV/JSON (tutti i campi utili, niente riferimenti circolari). */
+function itemToExportRow(item: InventoryItemWithCatalog): Record<string, unknown> {
+  const props = (item.properties as Record<string, unknown>) || {};
+  return {
+    id: item.id,
+    blueprint_id: item.blueprint_id,
+    quantity: item.quantity,
+    price_cents: item.price_cents,
+    price_eur: (item.price_cents ?? 0) / 100,
+    condition: props.condition ?? '',
+    mtg_language: props.mtg_language ?? '',
+    description: item.description ?? '',
+    graded: item.graded ?? false,
+    external_stock_id: item.external_stock_id ?? '',
+    updated_at: item.updated_at ?? '',
+    created_at: (item as { created_at?: string }).created_at ?? '',
+    // Da catalogo (solo lettura)
+    name: item.card?.name ?? '',
+    set_name: item.card?.set_name ?? '',
+    rarity: item.card?.rarity ?? '',
+    collector_number: item.card?.collector_number ?? '',
+    game_slug: item.card?.game_slug ?? '',
+    card_id: item.card?.id ?? '',
+  };
+}
+
+function escapeCsvCell(value: unknown): string {
+  const s = value == null ? '' : String(value);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 const CONDITION_OPTIONS = [
@@ -693,9 +745,13 @@ export function OggettiContent() {
   const [syncBanner, setSyncBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [syncPending, setSyncPending] = useState(false);
   const [inventorySearchQuery, setInventorySearchQuery] = useState('');
+  /** Filtro per tipo: tutti, solo singole (carte), solo oggetti (sealed). */
+  const [kindFilter, setKindFilter] = useState<KindFilterValue>('all');
   /** Selezione per eliminazione in blocco (solo quando sincronizzazione non attiva). */
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  /** Modale export: scelta CSV o JSON (solo client-side, nessun carico server). */
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
   /** Verifica lato frontend: chiamate al sync service solo se integrazione CardTrader attiva. */
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
@@ -704,11 +760,28 @@ export function OggettiContent() {
     Boolean(syncStatus && !syncStatus.disconnected) &&
     (syncStatus?.sync_status === 'active' || syncStatus?.sync_status === 'initial_sync');
 
-  /** Filtro client-side: nessuna chiamata API/DB, solo sugli item già in memoria. */
+  /** Filtro per tipo (singole/oggetti) poi per ricerca testuale. */
   const filteredInventoryItems = useMemo(() => {
-    if (!inventorySearchQuery.trim()) return inventoryItems;
-    return inventoryItems.filter((item) => matchInventorySearch(item, inventorySearchQuery));
-  }, [inventoryItems, inventorySearchQuery]);
+    let list = inventoryItems;
+    if (kindFilter !== 'all') {
+      list = list.filter((item) => getItemKind(item) === kindFilter);
+    }
+    if (inventorySearchQuery.trim()) {
+      list = list.filter((item) => matchInventorySearch(item, inventorySearchQuery));
+    }
+    return list;
+  }, [inventoryItems, kindFilter, inventorySearchQuery]);
+
+  /** Conteggi per tipo (per le etichette dei tab). */
+  const countsByKind = useMemo(() => {
+    let singole = 0;
+    let oggetti = 0;
+    for (const item of inventoryItems) {
+      if (getItemKind(item) === 'oggetti') oggetti++;
+      else singole++;
+    }
+    return { singole, oggetti };
+  }, [inventoryItems]);
 
   /** KPI: totale oggetti unici, totale oggetti (somma quantità), valore totale (quantità × prezzo). Con ricerca attiva si riferiscono ai risultati filtrati. */
   const totalUnique = filteredInventoryItems.length;
@@ -855,6 +928,39 @@ export function OggettiContent() {
     [user?.id, accessToken, loadInventory]
   );
 
+  /** Export in CSV (solo dati in memoria, nessuna chiamata API). */
+  const handleExportCSV = useCallback(() => {
+    const rows = filteredInventoryItems.map(itemToExportRow);
+    if (rows.length === 0) {
+      return;
+    }
+    const headers = Object.keys(rows[0] as object);
+    const csvLines = [
+      headers.map(escapeCsvCell).join(','),
+      ...rows.map((r) => headers.map((h) => escapeCsvCell((r as Record<string, unknown>)[h])).join(',')),
+    ];
+    const csv = csvLines.join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const filename = `collezione-ebartex-${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadBlob(blob, filename);
+    setExportModalOpen(false);
+  }, [filteredInventoryItems]);
+
+  /** Export in JSON (solo dati in memoria, nessuna chiamata API). */
+  const handleExportJSON = useCallback(() => {
+    const data = {
+      exported_at: new Date().toISOString(),
+      total_items: filteredInventoryItems.length,
+      total_quantity: filteredInventoryItems.reduce((s, i) => s + (i.quantity ?? 0), 0),
+      items: filteredInventoryItems.map(itemToExportRow),
+    };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+    const filename = `collezione-ebartex-${new Date().toISOString().slice(0, 10)}.json`;
+    downloadBlob(blob, filename);
+    setExportModalOpen(false);
+  }, [filteredInventoryItems]);
+
   if (!user || !accessToken) {
     return (
       <div className="text-white">
@@ -897,7 +1003,9 @@ export function OggettiContent() {
             {loading ? '—' : totalUnique}
           </p>
           <p className="mt-0.5 text-xs text-white/50">
-            {inventorySearchQuery.trim() ? 'risultati in vista' : 'righe in inventario'}
+            {kindFilter !== 'all' || inventorySearchQuery.trim()
+              ? 'in vista'
+              : 'righe in inventario'}
           </p>
         </div>
         <div className="rounded-xl border border-white/20 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
@@ -906,7 +1014,9 @@ export function OggettiContent() {
             {loading ? '—' : totalQuantity}
           </p>
           <p className="mt-0.5 text-xs text-white/50">
-            {inventorySearchQuery.trim() ? 'pezzi in vista' : 'somma quantità'}
+            {kindFilter !== 'all' || inventorySearchQuery.trim()
+              ? 'pezzi in vista'
+              : 'somma quantità'}
           </p>
         </div>
         <div className="rounded-xl border border-white/20 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
@@ -915,9 +1025,56 @@ export function OggettiContent() {
             {loading ? '—' : totalValueFormatted}
           </p>
           <p className="mt-0.5 text-xs text-white/50">
-            {inventorySearchQuery.trim() ? 'valore in vista' : 'prezzo × quantità'}
+            {kindFilter !== 'all' || inventorySearchQuery.trim()
+              ? 'valore in vista'
+              : 'prezzo × quantità'}
           </p>
         </div>
+      </div>
+
+      {/* Filtro per tipo: Tutti / Singole (carte) / Oggetti */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="mr-2 text-sm font-medium text-white/70">Mostra:</span>
+        <div className="flex flex-wrap gap-1 rounded-lg border border-white/20 bg-white/5 p-1 dark:border-gray-600 dark:bg-gray-800/50">
+          <button
+            type="button"
+            onClick={() => setKindFilter('all')}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              kindFilter === 'all'
+                ? 'bg-[#FF7300] text-white'
+                : 'text-white/80 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            Tutti ({inventoryItems.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setKindFilter('singole')}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              kindFilter === 'singole'
+                ? 'bg-[#FF7300] text-white'
+                : 'text-white/80 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            Singole ({countsByKind.singole})
+          </button>
+          <button
+            type="button"
+            onClick={() => setKindFilter('oggetti')}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              kindFilter === 'oggetti'
+                ? 'bg-[#FF7300] text-white'
+                : 'text-white/80 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            Oggetti ({countsByKind.oggetti})
+          </button>
+        </div>
+        <p className="text-xs text-white/50">
+          {kindFilter === 'all' && 'Carte e prodotti sigillati'}
+          {kindFilter === 'singole' && 'Solo carte (MTG, Pokémon, Yu-Gi-Oh!, ecc.)'}
+          {kindFilter === 'oggetti' && 'Solo prodotti sigillati (sealed)'}
+        </p>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
@@ -943,6 +1100,16 @@ export function OggettiContent() {
               </Link>
             )
           )}
+          <button
+            type="button"
+            onClick={() => setExportModalOpen(true)}
+            disabled={loading || filteredInventoryItems.length === 0}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            title="Esporta la collezione in vista (CSV o JSON)"
+          >
+            <Download className="h-4 w-4" />
+            Esporta
+          </button>
         </div>
         <div className="flex flex-1 min-w-0 max-w-md justify-center px-2">
           <div className="relative w-full">
@@ -1109,6 +1276,57 @@ export function OggettiContent() {
             bulkDeleting={bulkDeleting}
           />
         </>
+      )}
+
+      {/* Modale Export: scelta CSV o JSON (solo client-side) */}
+      {exportModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-200"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="export-modal-title"
+          onClick={() => setExportModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-md rounded-2xl border border-white/20 bg-gray-900 shadow-2xl p-6 animate-export-modal-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="absolute right-3 top-3">
+              <button
+                type="button"
+                onClick={() => setExportModalOpen(false)}
+                className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+                aria-label="Chiudi"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <h2 id="export-modal-title" className="pr-8 text-lg font-semibold text-white mb-1">
+              Come vuoi esportare la tua collezione?
+            </h2>
+            <p className="text-sm text-white/70 mb-6">
+              Verranno esportati i dati attualmente in vista ({filteredInventoryItems.length} oggetti). L&apos;export avviene sul tuo dispositivo, senza caricare il server.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                className="flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-500/50 bg-emerald-500/20 px-5 py-3 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/30 transition-colors"
+              >
+                <FileSpreadsheet className="h-5 w-5" />
+                Esporta CSV
+              </button>
+              <button
+                type="button"
+                onClick={handleExportJSON}
+                className="flex items-center justify-center gap-2 rounded-xl border-2 border-amber-500/50 bg-amber-500/20 px-5 py-3 text-sm font-semibold text-amber-200 hover:bg-amber-500/30 transition-colors"
+              >
+                <FileJson className="h-5 w-5" />
+                Esporta JSON
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
