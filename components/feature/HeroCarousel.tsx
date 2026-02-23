@@ -1,32 +1,32 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getCdnImageUrl } from '@/lib/config';
 
-/**
- * Immagini del carousel (in public/carousel/).
- */
-const SLIDES = [
-  { src: '/carousel/slide1.jpg', alt: 'Carte da collezione e monete su tavolo' },
-  { src: '/carousel/slide2.jpg', alt: 'Carte fantasy e accessori da gioco' },
-  { src: '/carousel/slide3.jpg', alt: 'Tavolo di gioco in paesaggio fantasy' },
+/** Immagini del carousel (da CDN /images/carousel/). */
+const getSlides = () => [
+  { src: getCdnImageUrl('carousel/slide1.jpg'), alt: 'Carte da collezione e monete su tavolo' },
+  { src: getCdnImageUrl('carousel/slide2.jpg'), alt: 'Carte fantasy e accessori da gioco' },
+  { src: getCdnImageUrl('carousel/slide3.jpg'), alt: 'Tavolo di gioco in paesaggio fantasy' },
 ];
 
 const AUTO_PLAY_INTERVAL_MS = 4500;
 
 export function HeroCarousel() {
+  const SLIDES = useMemo(() => getSlides(), []);
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   const goNext = useCallback(() => {
     setCurrent((prev) => (prev + 1) % SLIDES.length);
-  }, []);
+  }, [SLIDES.length]);
 
   const goPrev = useCallback(() => {
     setCurrent((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
-  }, []);
+  }, [SLIDES.length]);
 
   useEffect(() => {
     if (isPaused) return;
@@ -58,6 +58,7 @@ export function HeroCarousel() {
               className="object-cover"
               sizes="100vw"
               priority={index === 0}
+              unoptimized
             />
           </div>
         ))}

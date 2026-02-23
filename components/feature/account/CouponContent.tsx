@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Home, ChevronDown } from 'lucide-react';
+import { getCdnImageUrl } from '@/lib/config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -39,7 +40,7 @@ export function CouponContent() {
       {/* Pannello filtri - identico al riferimento */}
       <div
         className="rounded-xl bg-cover bg-center bg-no-repeat p-6 shadow-md"
-        style={{ backgroundImage: "url('/images/rectangle-97.png')" }}
+        style={{ backgroundImage: `url(${getCdnImageUrl('rectangle-97.png')})` }}
       >
         <div className="mx-auto flex max-w-3xl flex-wrap items-end justify-center gap-20">
           <div className="w-36 shrink-0">

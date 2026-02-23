@@ -3,57 +3,33 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { getCdnImageUrl } from '@/lib/config';
 
-const FEATURES = [
-  {
-    icon: '/landing/sale%201.png',
-    title: 'Prezzi Migliori',
-    description: 'Più di 2.000.000 acquirenti da più di 30 paesi.',
-  },
-  {
-    icon: '/landing/security-lock%201.png',
-    title: 'Sistema Sicuro',
-    description: 'Sistema Trust verificato per il massimo della protezione.',
-  },
-  {
-    icon: '/landing/swap%201.png',
-    title: 'Gestione Semplice',
-    description:
-      'Mercato online di carte collezionabili con conti virtuali per transazioni semplici.',
-  },
-  {
-    icon: '/landing/justice%201.png',
-    title: 'Grande Domanda',
-    description: 'Più di 2.000.000 acquirenti da più di 30 paesi.',
-  },
-  {
-    icon: '/landing/sold-out%201.png',
-    title: 'Vendite Semplici',
-    description:
-      'Vendi in pochi click, grazie al nostro database sempre aggiornato su carte e spese di spedizione.',
-  },
-  {
-    icon: '/landing/economic-growth%201.png',
-    title: 'Commissioni Leggere',
-    description: 'Nessun limite di tempo, solo il 5% quando vendi.',
-  },
+const getFeatures = () => [
+  { icon: getCdnImageUrl('landing/sale%201.png'), title: 'Prezzi Migliori', description: 'Più di 2.000.000 acquirenti da più di 30 paesi.' },
+  { icon: getCdnImageUrl('landing/security-lock%201.png'), title: 'Sistema Sicuro', description: 'Sistema Trust verificato per il massimo della protezione.' },
+  { icon: getCdnImageUrl('landing/swap%201.png'), title: 'Gestione Semplice', description: 'Mercato online di carte collezionabili con conti virtuali per transazioni semplici.' },
+  { icon: getCdnImageUrl('landing/justice%201.png'), title: 'Grande Domanda', description: 'Più di 2.000.000 acquirenti da più di 30 paesi.' },
+  { icon: getCdnImageUrl('landing/sold-out%201.png'), title: 'Vendite Semplici', description: 'Vendi in pochi click, grazie al nostro database sempre aggiornato su carte e spese di spedizione.' },
+  { icon: getCdnImageUrl('landing/economic-growth%201.png'), title: 'Commissioni Leggere', description: 'Nessun limite di tempo, solo il 5% quando vendi.' },
 ];
 
-const GAME_LOGOS = [
-  { src: '/loghi-giochi/magic.png', alt: 'Magic The Gathering' },
-  { src: '/loghi-giochi/yu-gi-oh.png', alt: 'Yu-Gi-Oh! Trading Card Game' },
-  { src: '/loghi-giochi/pokèmon.png', alt: 'Pokémon Trading Card Game' },
-  { src: '/loghi-giochi/One_Piece_Card_Game_Logo%201.png', alt: 'One Piece Card Game' },
-  { src: '/loghi-giochi/Disney_Lorcana_480x480%201.png', alt: 'Disney Lorcana' },
+const getGameLogos = () => [
+  { src: getCdnImageUrl('loghi-giochi/magic.png'), alt: 'Magic The Gathering' },
+  { src: getCdnImageUrl('loghi-giochi/yu-gi-oh.png'), alt: 'Yu-Gi-Oh! Trading Card Game' },
+  { src: getCdnImageUrl('loghi-giochi/pokèmon.png'), alt: 'Pokémon Trading Card Game' },
+  { src: getCdnImageUrl('loghi-giochi/One_Piece_Card_Game_Logo%201.png'), alt: 'One Piece Card Game' },
+  { src: getCdnImageUrl('loghi-giochi/Disney_Lorcana_480x480%201.png'), alt: 'Disney Lorcana' },
 ];
 
 export function LandingWelcome() {
+  const FEATURES = getFeatures();
+  const GAME_LOGOS = getGameLogos();
   return (
     <div
       className="relative min-h-screen w-full overflow-x-hidden text-white"
       style={{
-        backgroundImage:
-          'linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)), url("/brx_bg.png"), linear-gradient(180deg, #3D65C6 0%, #1D3160 100%)',
+        backgroundImage: `linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)), url(${getCdnImageUrl('brx_bg.png')}), linear-gradient(180deg, #3D65C6 0%, #1D3160 100%)`,
         backgroundRepeat: 'no-repeat, repeat, no-repeat',
         backgroundSize: 'cover, auto, cover',
         backgroundAttachment: 'fixed',
@@ -64,12 +40,13 @@ export function LandingWelcome() {
         <header className="flex items-center justify-center px-4 pt-4 pb-1">
           <div className="relative flex w-full max-w-5xl items-center justify-center">
             <Image
-              src="/landing/Logo%20Principale%20EBARTEX.png"
+              src={getCdnImageUrl('landing/Logo%20Principale%20EBARTEX.png')}
               alt="ebartex"
               width={800}
               height={300}
               className="h-80 w-auto max-w-full object-contain object-center sm:h-96 md:h-[28rem] lg:h-[32rem] xl:h-[36rem]"
               priority
+              unoptimized
             />
           </div>
         </header>
@@ -101,6 +78,7 @@ export function LandingWelcome() {
                     width={176}
                     height={112}
                     className="max-h-20 w-auto max-w-full object-contain sm:max-h-24 md:max-h-28"
+                    unoptimized
                   />
                 </Link>
               ))}
@@ -123,6 +101,7 @@ export function LandingWelcome() {
                     width={80}
                     height={80}
                     className="h-full w-full object-contain"
+                    unoptimized
                   />
                 </div>
                 <div className="w-full">
@@ -147,7 +126,7 @@ export function LandingWelcome() {
           <div
             className="flex h-[60px] w-full items-center justify-center border border-[#2c1810]"
             style={{
-              backgroundImage: 'url("/rectangle-30.jpg")',
+              backgroundImage: `url(${getCdnImageUrl('rectangle-30.jpg')})`,
               backgroundRepeat: 'repeat-x',
               backgroundSize: 'auto 100%',
             }}

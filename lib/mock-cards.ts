@@ -3,6 +3,10 @@
  * Usato per navigazione e Product Detail Page quando non ci sono API reali
  */
 
+import { getCdnImageUrl } from '@/lib/config';
+
+const MOCK_CARD_IMAGE = getCdnImageUrl('kyurem.png');
+
 export interface MockCard {
   slug: string;
   name: string;
@@ -54,8 +58,8 @@ export const MOCK_CARDS: MockCard[] = [
     collectorNumber: '1',
     type: 'Artifact',
     rarity: 'Rare',
-    imageUrl: '/images/kyurem.png',
-    imageSmall: '/images/kyurem.png',
+    imageUrl: MOCK_CARD_IMAGE,
+    imageSmall: MOCK_CARD_IMAGE,
     price: 15000.0,
     description: 'La carta più rara e costosa di Magic: The Gathering',
     breadcrumbs: [
@@ -78,8 +82,8 @@ export const MOCK_CARDS: MockCard[] = [
     collectorNumber: '123',
     type: 'Creature',
     rarity: 'Uncommon',
-    imageUrl: '/images/kyurem.png',
-    imageSmall: '/images/kyurem.png',
+    imageUrl: MOCK_CARD_IMAGE,
+    imageSmall: MOCK_CARD_IMAGE,
     price: 18.0,
     description: 'Carta creature da Sussurri nel Pozzo',
     breadcrumbs: [
@@ -102,8 +106,8 @@ export const MOCK_CARDS: MockCard[] = [
     collectorNumber: '58',
     type: 'Lightning',
     rarity: 'Common',
-    imageUrl: '/images/kyurem.png',
-    imageSmall: '/images/kyurem.png',
+    imageUrl: MOCK_CARD_IMAGE,
+    imageSmall: MOCK_CARD_IMAGE,
     price: 25.0,
     description: 'Il Pokémon più famoso del mondo',
     breadcrumbs: [
@@ -126,8 +130,8 @@ export const MOCK_CARDS: MockCard[] = [
     collectorNumber: '001',
     type: 'Dragon',
     rarity: 'Ultra Rare',
-    imageUrl: '/images/kyurem.png',
-    imageSmall: '/images/kyurem.png',
+    imageUrl: MOCK_CARD_IMAGE,
+    imageSmall: MOCK_CARD_IMAGE,
     price: 500.0,
     description: 'La carta più iconica di Yu-Gi-Oh!',
     breadcrumbs: [
@@ -150,8 +154,8 @@ export const MOCK_CARDS: MockCard[] = [
     collectorNumber: '161',
     type: 'Instant',
     rarity: 'Common',
-    imageUrl: '/images/kyurem.png',
-    imageSmall: '/images/kyurem.png',
+    imageUrl: MOCK_CARD_IMAGE,
+    imageSmall: MOCK_CARD_IMAGE,
     price: 1200.0,
     description: 'Uno degli incantesimi più iconici di Magic',
     breadcrumbs: [
@@ -174,8 +178,8 @@ export const MOCK_CARDS: MockCard[] = [
     collectorNumber: '4',
     type: 'Fire',
     rarity: 'Rare Holo',
-    imageUrl: '/images/kyurem.png',
-    imageSmall: '/images/kyurem.png',
+    imageUrl: MOCK_CARD_IMAGE,
+    imageSmall: MOCK_CARD_IMAGE,
     price: 300.0,
     description: 'Il Pokémon drago più desiderato',
     breadcrumbs: [
@@ -198,8 +202,8 @@ export const MOCK_CARDS: MockCard[] = [
     collectorNumber: '005',
     type: 'Spellcaster',
     rarity: 'Ultra Rare',
-    imageUrl: '/images/kyurem.png',
-    imageSmall: '/images/kyurem.png',
+    imageUrl: MOCK_CARD_IMAGE,
+    imageSmall: MOCK_CARD_IMAGE,
     price: 150.0,
     description: 'Il mago più potente di Yu-Gi-Oh!',
     breadcrumbs: [

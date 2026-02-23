@@ -1,20 +1,25 @@
 /**
  * Proxy to BRX Sync microservice (CardTrader).
- * Avoids CORS: browser calls same-origin /api/sync/... and this route forwards to SYNC_API_URL.
+ * Browser calls same-origin /api/sync/... (correct); this route forwards to the Sync backend.
+ * Use SYNC_API_URL for server-side (runtime on Amplify). NEXT_PUBLIC_* is for client/build.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const SYNC_API_URL = (
-  process.env.NEXT_PUBLIC_SYNC_API_URL ||
-  process.env.SYNC_API_URL ||
-  ''
-).replace(/\/+$/, '');
+function getSyncApiUrl(): string {
+  const url =
+    process.env.SYNC_API_URL ||
+    process.env.NEXT_PUBLIC_SYNC_API_URL ||
+    process.env.VITE_SYNC_API_URL ||
+    '';
+  return url.replace(/\/+$/, '');
+}
 
 async function proxy(request: NextRequest, pathSegments: string[]) {
+  const SYNC_API_URL = getSyncApiUrl();
   if (!SYNC_API_URL) {
     return NextResponse.json(
-      { detail: 'NEXT_PUBLIC_SYNC_API_URL is not configured' },
+      { detail: 'SYNC_API_URL or NEXT_PUBLIC_SYNC_API_URL is not configured' },
       { status: 503 }
     );
   }

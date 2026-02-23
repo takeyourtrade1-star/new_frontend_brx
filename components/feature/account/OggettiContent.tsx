@@ -11,7 +11,7 @@ import type { InventoryItemResponse, SyncStatusResponse } from '@/lib/api/sync-c
 import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
 import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { getCardDisplayNames } from '@/lib/card-display-name';
-import { ASSETS } from '@/lib/config';
+import { ASSETS, getCdnImageUrl } from '@/lib/config';
 
 type InventoryItemWithCatalog = InventoryItemResponse & {
   card?: CardCatalogHit | null;
@@ -27,7 +27,7 @@ function buildImageUrl(raw: string | null | undefined): string | null {
   return ASSETS.cdnUrl ? `${ASSETS.cdnUrl}${withSlash}` : withSlash;
 }
 
-const DEFAULT_IMAGE = '/landing/Logo%20Principale%20EBARTEX.png';
+const DEFAULT_IMAGE = getCdnImageUrl('landing/Logo%20Principale%20EBARTEX.png');
 
 /** Codice lingua (dalla singola riga inventario) → etichetta per visualizzazione. */
 const LANG_CODE_TO_LABEL: Record<string, string> = {

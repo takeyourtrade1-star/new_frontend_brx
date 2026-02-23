@@ -1,20 +1,21 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { RecuperaCredenzialiForm } from '@/components/feature/login/recupera-credenziali-form';
+import { getCdnImageUrl } from '@/lib/config';
 
 export const metadata = {
   title: 'Recupera credenziali | Ebartex',
   description: 'Reimposta la password del tuo account Ebartex',
 };
 
-const CAROUSEL_BG = '/carousel/slide1.jpg';
-
 export default function RecuperaCredenzialiPage() {
+  const carouselBg = getCdnImageUrl('carousel/slide1.jpg');
+  const logoUrl = getCdnImageUrl('logo.png');
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#2d2d2d]">
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url("${CAROUSEL_BG}")` }}
+        style={{ backgroundImage: `url("${carouselBg}")` }}
         aria-hidden
       />
       <div
@@ -30,12 +31,13 @@ export default function RecuperaCredenzialiPage() {
             aria-label="Ebartex Home"
           >
             <Image
-              src="/logo.png"
+              src={logoUrl}
               alt="Ebartex"
               fill
               className="object-contain object-center"
               priority
               sizes="(max-width: 640px) 200px, 260px"
+              unoptimized
             />
           </Link>
         </div>

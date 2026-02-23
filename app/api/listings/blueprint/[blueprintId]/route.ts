@@ -5,8 +5,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const SYNC_API_URL = (
-  process.env.NEXT_PUBLIC_SYNC_API_URL ||
   process.env.SYNC_API_URL ||
+  process.env.NEXT_PUBLIC_SYNC_API_URL ||
   ''
 ).replace(/\/+$/, '');
 

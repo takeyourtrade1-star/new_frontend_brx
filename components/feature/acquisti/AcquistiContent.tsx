@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Home, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getCdnImageUrl } from '@/lib/config';
 
 const TABS_LEFT = [
   { id: 'da-pagare', label: 'DA PAGARE' },
@@ -67,8 +68,7 @@ export function AcquistiContent() {
     <div
       className="min-h-screen w-full px-4 py-8 text-white md:px-8 md:py-10"
       style={{
-        backgroundImage:
-          'linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)), url("/brx_bg.png"), linear-gradient(180deg, #3D65C6 0%, #1D3160 100%)',
+        backgroundImage: `linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)), url(${getCdnImageUrl('brx_bg.png')}), linear-gradient(180deg, #3D65C6 0%, #1D3160 100%)`,
         backgroundRepeat: 'no-repeat, repeat, no-repeat',
         backgroundSize: 'cover, auto, cover',
         backgroundAttachment: 'fixed',

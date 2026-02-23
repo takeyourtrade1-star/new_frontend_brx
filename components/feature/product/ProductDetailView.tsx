@@ -10,11 +10,7 @@ import { getCardDisplayNames } from '@/lib/card-display-name';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { getGameLabel, buildBreadcrumbsFromCard, type CardDocument } from '@/lib/product-detail';
 import { syncClient, type ListingItem } from '@/lib/api/sync-client';
-
-import group558Icon from '@/assets/images/Group_558.png';
-import starIcon from '@/assets/images/star.png';
-import medalIcon from '@/assets/images/medal.png';
-import cartIcon from '@/assets/images/cart-icon.png';
+import { getCdnImageUrl } from '@/lib/config';
 
 const PRIMARY_BLUE = '#1D3160';
 const ACCENT_ORANGE = '#f97316';
@@ -45,7 +41,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     { label: 'ECLISSI DI QUALCOSA', href: '#' },
     { label: 'STORMO DELLA SCISSIONE', href: '#' },
   ]);
-  const imageSrc = props.imageSrc ?? (card?.image != null ? getCardImageUrl(card.image) : null) ?? '/images/kyurem.png';
+  const imageSrc = props.imageSrc ?? (card?.image != null ? getCardImageUrl(card.image) : null) ?? getCdnImageUrl('kyurem.png');
   const [activeTab, setActiveTab] = useState<'INFO' | 'VENDI' | 'SCAMBIA' | 'ASTA'>('INFO');
   const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'SCAMBIO' | 'ASTA'>('VENDITORI');
   const [imageError, setImageError] = useState(false);
@@ -280,7 +276,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                         {card?.rarity ? (
                           <span className="text-sm font-bold text-black">{card.rarity}</span>
                         ) : (
-                          <Image src="/images/stellina.png" alt="" width={28} height={28} className="h-6 w-6 sm:h-7 sm:w-7 object-contain" aria-hidden />
+                          <Image src={getCdnImageUrl('stellina.png')} alt="" width={28} height={28} className="h-6 w-6 sm:h-7 sm:w-7 object-contain" aria-hidden unoptimized />
                         )}
                       </div>
                     </div>
@@ -698,13 +694,13 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                             <div className="flex items-center gap-2">
                               <span className="min-w-0 truncate text-sm font-medium uppercase text-gray-900">{item.seller_display_name}</span>
                               <span className="text-sm text-gray-600">{item.country ?? '—'}</span>
-                              <Image src={medalIcon} alt="" width={24} height={24} className="h-6 w-6 shrink-0 object-contain" aria-hidden />
+                              <Image src={getCdnImageUrl('medal.png')} alt="" width={24} height={24} className="h-6 w-6 shrink-0 object-contain" aria-hidden unoptimized />
                             </div>
                           </td>
                           <td className="px-3 py-3 sm:px-4 sm:py-3.5">
                             <div className="flex items-center gap-2">
                               <span className="inline-flex h-[22px] min-w-[44px] items-center justify-center rounded-full px-2.5 text-xs font-bold text-white" style={{ backgroundColor: '#1D3160' }}>MT</span>
-                              <Image src={starIcon} alt="" width={24} height={24} className="h-6 w-6 shrink-0 object-contain" aria-hidden />
+                              <Image src={getCdnImageUrl('star.png')} alt="" width={24} height={24} className="h-6 w-6 shrink-0 object-contain" aria-hidden unoptimized />
                               <span className="text-sm text-gray-700">{item.condition ?? '—'}</span>
                               {item.mtg_language && <span className="text-xs text-gray-500">({item.mtg_language})</span>}
                             </div>
@@ -715,7 +711,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                               <span className="text-sm text-gray-600 tabular-nums">{item.quantity}</span>
                               <button type="button" className="shrink-0 rounded-full border-2 border-[#FF8800] bg-[#EAEAEA] px-3 py-1.5 text-xs font-bold uppercase text-[#FF8800] hover:opacity-90">SCAMBIA</button>
                               <button type="button" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full" aria-label="Aggiungi al carrello" style={{ color: ACCENT_ORANGE }}>
-                                <Image src={cartIcon} alt="" width={22} height={22} className="h-5 w-5 object-contain" />
+                                <Image src={getCdnImageUrl('cart-icon.png')} alt="" width={22} height={22} className="h-5 w-5 object-contain" unoptimized />
                               </button>
                             </div>
                           </td>

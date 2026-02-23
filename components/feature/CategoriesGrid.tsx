@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { getCdnImageUrl } from '@/lib/config';
 
 const CATEGORIES = [
   { id: 'singles', label: 'SINGLES' },
@@ -36,7 +37,7 @@ export function CategoriesGrid() {
           <div
             className="absolute inset-0 scale-105 bg-cover bg-center"
             style={{
-              backgroundImage: 'url(/category-cards-bg.jpg)',
+              backgroundImage: `url(${getCdnImageUrl('category-cards-bg.jpg')})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               filter: 'blur(3px)',

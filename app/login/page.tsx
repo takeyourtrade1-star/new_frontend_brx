@@ -1,22 +1,22 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { LoginForm } from '@/components/feature/login/login-form';
+import { getCdnImageUrl } from '@/lib/config';
 
 export const metadata = {
   title: 'Login | Ebartex',
   description: 'Accedi al tuo account Ebartex',
 };
 
-/** Sfondo: fuori dal riquadro resta visibile (no blur) */
-const CAROUSEL_BG = '/carousel/slide1.jpg';
-
 export default function LoginPage() {
+  const carouselBg = getCdnImageUrl('carousel/slide1.jpg');
+  const logoUrl = getCdnImageUrl('logo.png');
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#2d2d2d]">
       {/* Sfondo visibile (non sfocato) fuori dal riquadro */}
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url("${CAROUSEL_BG}")` }}
+        style={{ backgroundImage: `url("${carouselBg}")` }}
         aria-hidden
       />
       <div
@@ -32,12 +32,13 @@ export default function LoginPage() {
             aria-label="Ebartex Home"
           >
             <Image
-              src="/logo.png"
+              src={logoUrl}
               alt="Ebartex"
               fill
               className="object-contain object-center"
               priority
               sizes="(max-width: 640px) 200px, 260px"
+              unoptimized
             />
           </Link>
         </div>

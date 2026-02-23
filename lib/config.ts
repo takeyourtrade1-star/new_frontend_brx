@@ -71,11 +71,25 @@ export const MEILISEARCH = {
 
 /**
  * Configurazione per gli asset (CDN)
- * NEXT_PUBLIC_CDN_URL: base URL della CDN per risolvere i path relativi delle immagini (es. mtg/abc.jpg)
+ * - cdnUrl: base CDN per immagini carte (es. https://....cloudfront.net) → path tipo /cards/4/xxx.webp
+ * - imagesBaseUrl: base CDN per immagini UI (es. https://....cloudfront.net/images) → aste.png, cart-icon.png, etc.
  */
+const cdnBase = (process.env.NEXT_PUBLIC_CDN_URL || '').replace(/\/+$/, '');
 export const ASSETS = {
-  cdnUrl: process.env.NEXT_PUBLIC_CDN_URL || '',
+  cdnUrl: cdnBase,
+  /** URL base per immagini UI: CDN + /images (es. https://di0y87a9s8da9.cloudfront.net/images) */
+  imagesBaseUrl: cdnBase ? `${cdnBase}/images` : '',
 } as const;
+
+/**
+ * Restituisce l'URL dell'immagine UI (icone, illustrazioni). Se CDN configurato usa ASSETS.imagesBaseUrl, altrimenti /images/.
+ * @param path - path relativo senza leading slash (es. "aste.png", "icone-credito/xxx.png")
+ */
+export function getCdnImageUrl(path: string): string {
+  const p = path.replace(/^\/+/, '');
+  if (ASSETS.imagesBaseUrl) return `${ASSETS.imagesBaseUrl}/${p}`;
+  return `/images/${p}`;
+}
 
 /**
  * URL del servizio Search Engine (BRX_Search) per operazioni admin (es. reindex).

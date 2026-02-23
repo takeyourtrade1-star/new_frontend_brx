@@ -1,23 +1,26 @@
 import Image from 'next/image';
 import { NuoveOccasioniCard } from './NuoveOccasioniCard';
+import { getCdnImageUrl } from '@/lib/config';
 const SECTION_RADIUS = '1rem';
 
-const bestSellersCards = [
-  { src: '/cards/card2.png', label: 'Carta Pikachu', price: '3$', rank: 1 },
-  { src: '/cards/card3.png', label: 'Carta Pikachu', price: '3$', rank: 2 },
-  { src: '/cards/card1.png', label: 'Carta Pikachu', price: '3$', rank: 3 },
+const getBestSellersCards = () => [
+  { src: getCdnImageUrl('cards/card2.png'), label: 'Carta Pikachu', price: '3$', rank: 1 },
+  { src: getCdnImageUrl('cards/card3.png'), label: 'Carta Pikachu', price: '3$', rank: 2 },
+  { src: getCdnImageUrl('cards/card1.png'), label: 'Carta Pikachu', price: '3$', rank: 3 },
 ];
 
 const listItem = { label: 'Il gattopardo magico', price: '3$' };
 const listItems = Array(3).fill(listItem);
 
-const scambiaCards = [
-  { src: '/cards/card2.png', label: 'Carta Pikachu', price: '3$', rank: 1 },
-  { src: '/cards/card3.png', label: 'Carta Pikachu', price: '3$', rank: 2 },
-  { src: '/cards/card1.png', label: 'Carta Pikachu', price: '3$', rank: 3 },
+const getScambiaCards = () => [
+  { src: getCdnImageUrl('cards/card2.png'), label: 'Carta Pikachu', price: '3$', rank: 1 },
+  { src: getCdnImageUrl('cards/card3.png'), label: 'Carta Pikachu', price: '3$', rank: 2 },
+  { src: getCdnImageUrl('cards/card1.png'), label: 'Carta Pikachu', price: '3$', rank: 3 },
 ];
 
 export function MarketplaceDashboard() {
+  const bestSellersCards = getBestSellersCards();
+  const scambiaCards = getScambiaCards();
   return (
     <div className="w-full font-sans bg-transparent text-white transition-colors duration-300">
       {/* Titolo centrato: NON LASCIARTELI SCAPPARE (sottolineato); nessuno sfondo proprio, si vede il background del body */}
@@ -77,6 +80,7 @@ export function MarketplaceDashboard() {
                         fill
                         className="object-cover"
                         sizes="(max-width: 768px) 33vw, 16vw"
+                        unoptimized
                       />
                     </div>
                     <div className="w-full px-2 pb-2 pt-1.5 text-center">
@@ -151,6 +155,7 @@ export function MarketplaceDashboard() {
                         fill
                         className="object-cover"
                         sizes="(max-width: 768px) 33vw, 16vw"
+                        unoptimized
                       />
                     </div>
                     <div className="w-full px-2 pb-2 pt-1.5 text-center">
@@ -224,6 +229,7 @@ export function MarketplaceDashboard() {
                       fill
                       className="object-cover"
                       sizes="(max-width: 768px) 33vw, 16vw"
+                      unoptimized
                     />
                   </div>
                   <div className="w-full px-2 pb-2 pt-1.5 text-center">
@@ -291,12 +297,13 @@ export function MarketplaceDashboard() {
             {/* Immagine Avatar (leggermente zoommata) con titolo sotto la barra */}
             <div className="relative aspect-square w-full overflow-hidden">
               <Image
-                src="/footer/b3bc471ced1aee6228467881901001b851ead8a6.jpg"
+                src={getCdnImageUrl('footer/b3bc471ced1aee6228467881901001b851ead8a6.jpg')}
                 alt="I misteri passati di Aang"
                 fill
                 className="object-cover"
                 style={{ transform: 'scale(1.3)' }}
                 sizes="(max-width: 768px) 100vw, 33vw"
+                unoptimized
               />
               <div
                 className="absolute inset-x-0 top-0 flex flex-col pt-1 pl-4"

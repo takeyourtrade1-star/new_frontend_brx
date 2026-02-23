@@ -9,6 +9,7 @@ import { Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { getCdnImageUrl } from '@/lib/config';
 
 const contoBancarioSchema = z.object({
   iban: z.string().min(1, 'Inserisci IBAN'),
@@ -25,17 +26,18 @@ type ContoBancarioValues = z.infer<typeof contoBancarioSchema>;
 
 const SALDO_MOCK = '0,00';
 
-const ICONS = {
-  lightning: '/images/icone-credito/9ce32205c84b551967e2b78ce4f3823f747b4d4d.png',
-  paypal: '/images/icone-credito/5940e1c945029bd0805d24688010007167cbe82c.png',
-  clock: '/images/icone-credito/89f450008f53edeaf10d33852a6134c379915b3d.png',
-  bankTransfer: '/images/icone-credito/6bcd80fb790eb6df62388f889069a5ad296b52f8.png',
-  ebank: '/images/icone-credito/be0f0648125838db80b716b448190891f79f9dfc.png',
-} as const;
+const getCreditoIcons = () => ({
+  lightning: getCdnImageUrl('icone-credito/9ce32205c84b551967e2b78ce4f3823f747b4d4d.png'),
+  paypal: getCdnImageUrl('icone-credito/5940e1c945029bd0805d24688010007167cbe82c.png'),
+  clock: getCdnImageUrl('icone-credito/89f450008f53edeaf10d33852a6134c379915b3d.png'),
+  bankTransfer: getCdnImageUrl('icone-credito/6bcd80fb790eb6df62388f889069a5ad296b52f8.png'),
+  ebank: getCdnImageUrl('icone-credito/be0f0648125838db80b716b448190891f79f9dfc.png'),
+});
 
 export function CreditoContent() {
   const user = useAuthStore((s) => s.user);
   const intestatario = (user?.name || 'LEONARDO XHETA').toUpperCase();
+  const ICONS = getCreditoIcons();
 
   const {
     register,
@@ -107,6 +109,7 @@ export function CreditoContent() {
             height={32}
             className="h-8 w-8 object-contain"
             aria-hidden
+            unoptimized
           />
           <span className="text-lg font-bold uppercase">Trasferimento bancario</span>
         </div>
@@ -119,7 +122,7 @@ export function CreditoContent() {
           >
             <div
               className="flex w-[120px] shrink-0 items-center justify-center rounded-l-[10px] bg-cover bg-center bg-no-repeat p-4"
-              style={{ backgroundImage: "url('/images/rectangle-99.png')" }}
+              style={{ backgroundImage: `url(${getCdnImageUrl('rectangle-99.png')})` }}
             >
               <Image
                 src={ICONS.paypal}
@@ -127,6 +130,7 @@ export function CreditoContent() {
                 width={140}
                 height={140}
                 className="h-24 w-24 object-contain sm:h-28 sm:w-28"
+                unoptimized
               />
             </div>
             <div className="flex min-w-0 flex-1 flex-col justify-center rounded-r-[10px] bg-[#1D3160] p-4">
@@ -144,7 +148,7 @@ export function CreditoContent() {
           >
             <div
               className="flex w-[120px] shrink-0 items-center justify-center rounded-l-[10px] bg-cover bg-center bg-no-repeat p-4"
-              style={{ backgroundImage: "url('/images/rectangle-99.png')" }}
+              style={{ backgroundImage: `url(${getCdnImageUrl('rectangle-99.png')})` }}
             >
               <Image
                 src={ICONS.bankTransfer}
@@ -152,6 +156,7 @@ export function CreditoContent() {
                 width={80}
                 height={80}
                 className="h-16 w-16 object-contain sm:h-20 sm:w-20"
+                unoptimized
               />
             </div>
             <div className="flex min-w-0 flex-1 flex-col justify-center rounded-r-[10px] bg-[#1D3160] p-4">
@@ -177,6 +182,7 @@ export function CreditoContent() {
                 height={36}
                 className="h-9 w-9 shrink-0 object-contain"
                 aria-hidden
+                unoptimized
               />
               <span className="text-lg font-bold uppercase tracking-wide">
                 Trasferimento classico
@@ -188,7 +194,7 @@ export function CreditoContent() {
             >
               <div
                 className="flex w-[120px] shrink-0 items-center justify-center rounded-l-[10px] bg-cover bg-center bg-no-repeat p-4"
-                style={{ backgroundImage: "url('/images/rectangle-99.png')" }}
+                style={{ backgroundImage: `url(${getCdnImageUrl('rectangle-99.png')})` }}
               >
                 <Image
                   src={ICONS.ebank}
@@ -196,6 +202,7 @@ export function CreditoContent() {
                   width={80}
                   height={80}
                   className="h-16 w-16 object-contain sm:h-20 sm:w-20"
+                  unoptimized
                 />
               </div>
               <div className="flex min-w-0 flex-1 flex-col justify-center rounded-r-[10px] bg-[#1D3160] p-4">
@@ -250,7 +257,7 @@ export function CreditoContent() {
               </label>
               <div
                 className="flex h-9 items-center rounded-full bg-cover bg-center bg-no-repeat px-4 py-1"
-                style={{ backgroundImage: "url('/images/rectangle-72.png')" }}
+                style={{ backgroundImage: `url(${getCdnImageUrl('rectangle-72.png')})` }}
               >
                 <Input
                   id="iban"
@@ -270,7 +277,7 @@ export function CreditoContent() {
               </label>
               <div
                 className="flex h-9 items-center rounded-full bg-cover bg-center bg-no-repeat px-4 py-1"
-                style={{ backgroundImage: "url('/images/rectangle-72.png')" }}
+                style={{ backgroundImage: `url(${getCdnImageUrl('rectangle-72.png')})` }}
               >
                 <Input
                   id="bicSwift"
@@ -290,7 +297,7 @@ export function CreditoContent() {
               </label>
               <div
                 className="flex h-9 items-center rounded-full bg-cover bg-center bg-no-repeat px-4 py-1"
-                style={{ backgroundImage: "url('/images/rectangle-72.png')" }}
+                style={{ backgroundImage: `url(${getCdnImageUrl('rectangle-72.png')})` }}
               >
                 <Input
                   id="nomeBanca"

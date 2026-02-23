@@ -1,4 +1,5 @@
 import { ProductDetailView } from '@/components/feature/product/ProductDetailView';
+import { getCdnImageUrl } from '@/lib/config';
 import { getCardBySlug } from '@/lib/mock-cards';
 import { getCardDocumentById, isIndexProductId } from '@/lib/product-detail';
 
@@ -40,7 +41,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           { label: 'ECLISSI DI QUALCOSA', href: '#' },
           { label: 'STORMO DELLA SCISSIONE', href: '#' },
         ]}
-        imageSrc="/images/kyurem.png"
+        imageSrc={getCdnImageUrl('kyurem.png')}
       />
     );
   }

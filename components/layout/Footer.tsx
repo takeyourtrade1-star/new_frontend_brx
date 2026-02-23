@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { getCdnImageUrl } from '@/lib/config';
 
 /** Colonne link in stile CardTrader: titolo + lista link */
 const FOOTER_COLUMNS = [
@@ -61,11 +62,12 @@ export function Footer() {
       >
         <Link href="/" className="flex items-center" aria-label="Ebartex Home">
           <Image
-            src="/landing/Logo%20Principale%20EBARTEX.png"
+            src={getCdnImageUrl('landing/Logo%20Principale%20EBARTEX.png')}
             alt="Ebartex"
             width={320}
             height={128}
             className="h-[7.5rem] w-auto drop-shadow-sm md:h-[8rem]"
+            unoptimized
           />
         </Link>
         <p className="text-center text-sm font-medium text-white/95 md:text-base">

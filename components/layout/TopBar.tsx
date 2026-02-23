@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLogin } from '@/lib/hooks/use-auth';
 import { headerLoginSchema, type HeaderLoginValues } from '@/lib/validations/auth';
+import { getCdnImageUrl } from '@/lib/config';
 
 const MAGIC_OPTIONS = ['Magic', 'Yu-Gi-Oh!', 'Pokémon'] as const;
 
@@ -188,12 +189,13 @@ export function TopBar() {
             aria-label="BRX Home"
           >
             <Image
-              src="/landing/Logo%20Corto%20BRX.png"
+              src={getCdnImageUrl('landing/Logo%20Corto%20BRX.png')}
               alt="BRX"
               width={140}
               height={70}
               className="h-14 w-auto object-contain"
               priority
+              unoptimized
             />
           </Link>
 
@@ -362,11 +364,12 @@ export function TopBar() {
                       />
                     ) : (
                       <Image
-                        src="/images/user-icon.png"
+                        src={getCdnImageUrl('user-icon.png')}
                         alt=""
                         width={32}
                         height={32}
                         className="h-8 w-8 object-contain"
+                        unoptimized
                       />
                     )}
                   </span>
@@ -450,11 +453,12 @@ export function TopBar() {
                 >
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center" aria-hidden>
                     <Image
-                      src="/images/acquisti-icon.png"
+                      src={getCdnImageUrl('acquisti-icon.png')}
                       alt=""
                       width={32}
                       height={32}
                       className="h-8 w-8 object-contain"
+                      unoptimized
                     />
                   </span>
                   <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
@@ -509,11 +513,12 @@ export function TopBar() {
                 aria-label="Vendi"
               >
                 <Image
-                  src="/images/brx-icon.png"
+                  src={getCdnImageUrl('brx-icon.png')}
                   alt="BRX"
                   width={56}
                   height={28}
                   className="h-7 w-auto shrink-0 object-contain sm:h-8"
+                  unoptimized
                 />
                 <span className="hidden whitespace-nowrap text-sm font-medium uppercase lg:inline">
                   VENDI
@@ -527,12 +532,13 @@ export function TopBar() {
                 aria-label="Scambi"
               >
                 <Image
-                  src="/images/scambi.png"
-                  alt=""
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 object-contain"
-                />
+src={getCdnImageUrl('scambi.png')}
+                alt=""
+                width={32}
+                height={32}
+                className="h-8 w-8 object-contain"
+                unoptimized
+              />
                 <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
                   SCAMBI
                 </span>
@@ -545,12 +551,13 @@ export function TopBar() {
                 aria-label="Aste"
               >
                 <Image
-                  src="/images/aste.png"
-                  alt=""
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 object-contain"
-                />
+src={getCdnImageUrl('aste.png')}
+                alt=""
+                width={32}
+                height={32}
+                className="h-8 w-8 object-contain"
+                unoptimized
+              />
                 <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
                   ASTE
                 </span>
@@ -564,11 +571,12 @@ export function TopBar() {
               >
                 <span className="relative flex h-8 w-8 shrink-0 items-center justify-center">
                   <Image
-                    src="/images/cart-icon.png"
+                    src={getCdnImageUrl('cart-icon.png')}
                     alt=""
                     width={32}
                     height={32}
                     className="h-8 w-8 object-contain"
+                    unoptimized
                   />
                   {cartCount > 0 && (
                     <span
@@ -600,11 +608,12 @@ export function TopBar() {
                 aria-label={`Carrello${cartCount > 0 ? ` (${cartCount} articoli)` : ''}`}
               >
                 <Image
-                  src="/images/cart-icon.png"
+                  src={getCdnImageUrl('cart-icon.png')}
                   alt=""
                   width={40}
                   height={40}
                   className="h-10 w-10 object-contain"
+                  unoptimized
                 />
                 {cartCount > 0 && (
                   <span
