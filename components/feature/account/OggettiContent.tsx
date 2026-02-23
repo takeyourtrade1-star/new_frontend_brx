@@ -655,6 +655,13 @@ export function OggettiContent() {
     return inventoryItems.filter((item) => matchInventorySearch(item, inventorySearchQuery));
   }, [inventoryItems, inventorySearchQuery]);
 
+  /** KPI: totale oggetti unici (righe) e totale oggetti (somma quantità). Con ricerca attiva si riferiscono ai risultati filtrati. */
+  const totalUnique = filteredInventoryItems.length;
+  const totalQuantity = useMemo(
+    () => filteredInventoryItems.reduce((sum, item) => sum + (item.quantity ?? 0), 0),
+    [filteredInventoryItems]
+  );
+
   useEffect(() => {
     if (!syncBanner) return;
     const t = setTimeout(() => setSyncBanner(null), 5000);
@@ -769,6 +776,28 @@ export function OggettiContent() {
         <span className="text-white">I MIEI OGGETTI</span>
       </nav>
 
+      {/* KPI: totale oggetti unici e totale oggetti (somma quantità) */}
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:gap-6">
+        <div className="rounded-xl border border-white/20 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
+          <p className="text-xs font-medium uppercase tracking-wider text-white/60">Totale oggetti unici</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-white">
+            {loading ? '—' : totalUnique}
+          </p>
+          <p className="mt-0.5 text-xs text-white/50">
+            {inventorySearchQuery.trim() ? 'risultati in vista' : 'righe in inventario'}
+          </p>
+        </div>
+        <div className="rounded-xl border border-white/20 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
+          <p className="text-xs font-medium uppercase tracking-wider text-white/60">Totale oggetti</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-white">
+            {loading ? '—' : totalQuantity}
+          </p>
+          <p className="mt-0.5 text-xs text-white/50">
+            {inventorySearchQuery.trim() ? 'pezzi in vista' : 'somma quantità'}
+          </p>
+        </div>
+      </div>
+
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold uppercase tracking-wide text-white">
@@ -820,7 +849,7 @@ export function OggettiContent() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {syncPending && (
+          {syncEnabled && syncPending && (
             <div
               role="status"
               className="rounded-lg border border-sky-500/50 bg-sky-500/20 px-4 py-2 text-sm font-medium text-sky-200"
@@ -828,7 +857,7 @@ export function OggettiContent() {
               Sincronizzazione in corso con CardTrader…
             </div>
           )}
-          {syncBanner && !syncPending && (
+          {syncEnabled && syncBanner && !syncPending && (
             <div
               role="alert"
               className={`rounded-lg border px-4 py-2 text-sm font-medium ${
