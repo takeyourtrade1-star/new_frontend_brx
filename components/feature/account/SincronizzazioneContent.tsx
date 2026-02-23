@@ -330,7 +330,7 @@ export function SincronizzazioneContent() {
       {isDisconnected && (
         <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
           <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-            Collegamento CardTrader rimosso. Inserisci di nuovo il token nello Step 1 per sincronizzare.
+            L&apos;integrazione non è più attiva. Le tue carte restano su CardTrader; non è stata effettuata alcuna rimozione. Modifiche e eliminazioni non verranno più inviate a CardTrader. Per collegarti di nuovo inserisci il token nello Step 1.
           </p>
         </div>
       )}
@@ -473,7 +473,7 @@ export function SincronizzazioneContent() {
                   disabled={loadingDisconnect}
                   variant="outline"
                   className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
-                  title="Rimuove il collegamento con CardTrader. Dovrai inserire di nuovo il token."
+                  title="Disattiva l'integrazione: il token viene rimosso. Le carte restano su CardTrader; non vengono eliminate. Per sincronizzare di nuovo inserisci il token nello Step 1."
                 >
                   {loadingDisconnect && disconnectConfirm === 'remove' ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

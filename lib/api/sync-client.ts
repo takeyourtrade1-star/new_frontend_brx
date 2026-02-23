@@ -1,6 +1,7 @@
 /**
  * Sync API Client - BRX Sync microservice (CardTrader)
- * Usa NEXT_PUBLIC_SYNC_API_URL + /api/v1 per chiamate dirette al server Sync (CORS consentito dal backend).
+ * Le richieste vanno direttamente al server Sync (NEXT_PUBLIC_SYNC_API_URL + /api/v1).
+ * sync.ebartex.com deve essere raggiungibile: DNS + reverse proxy su 80/443 → :8002 (vedi SYNC_DOMAIN_SETUP.md).
  * Su 401 (token scaduto) tenta un refresh automatico e ritenta la richiesta una volta.
  */
 
@@ -43,7 +44,7 @@ async function getNewTokenViaRefresh(): Promise<string | null> {
   return syncRefreshPromise;
 }
 
-/** Base URL for sync requests: forza NEXT_PUBLIC_SYNC_API_URL + /api/v1 (chiamata diretta al server Sync). */
+/** Base URL Sync: sempre chiamata diretta (NEXT_PUBLIC_SYNC_API_URL + /api/v1). Il dominio deve essere raggiungibile. */
 function getSyncBaseUrl(): string {
   const baseUrl = process.env.NEXT_PUBLIC_SYNC_API_URL || 'https://sync.ebartex.com';
   return `${baseUrl.replace(/\/+$/, '')}/api/v1`;

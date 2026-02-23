@@ -710,10 +710,10 @@ export function OggettiContent() {
     }
   }, [user?.id, accessToken]);
 
-  // 2) Carica inventario solo se integrazione CardTrader è attiva (nessuna chiamata sync se disattiva)
+  // 2) Carica inventario sempre (la collezione esiste anche senza sincronizzazione CardTrader)
   useEffect(() => {
-    if (!user?.id || !accessToken || !syncEnabled || syncStatusLoading) {
-      if (!syncStatusLoading) setLoading(false);
+    if (!user?.id || !accessToken) {
+      setLoading(false);
       return;
     }
 
@@ -733,7 +733,7 @@ export function OggettiContent() {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, accessToken, syncEnabled, syncStatusLoading, loadInventory]);
+  }, [user?.id, accessToken, loadInventory]);
 
   if (!user || !accessToken) {
     return (
@@ -757,60 +757,6 @@ export function OggettiContent() {
     );
   }
 
-  // Integrazione CardTrader disattiva: nessuna chiamata al sync service, solo CTA
-  if (!syncStatusLoading && !syncEnabled) {
-    return (
-      <div className="text-white">
-        <nav className="mb-6 flex items-center gap-2 text-sm text-white/90" aria-label="Breadcrumb">
-          <Link href="/account" className="hover:text-white" aria-label="Account">
-            <Home className="h-4 w-4" />
-          </Link>
-          <span className="text-white/60">/</span>
-          <span>ACCOUNT</span>
-          <span className="text-white/60">/</span>
-          <span className="text-white">I MIEI OGGETTI</span>
-        </nav>
-        <div className="mt-8 rounded-lg border border-amber-200 bg-amber-50/90 p-8 dark:border-amber-800 dark:bg-amber-900/20">
-          <h2 className="mb-2 text-lg font-semibold text-amber-900 dark:text-amber-100">
-            Sincronizzazione CardTrader non attiva
-          </h2>
-          <p className="mb-4 text-sm text-amber-800 dark:text-amber-200">
-            La gestione degli oggetti inventario è disponibile solo con l&apos;integrazione CardTrader attiva.
-            Collega il tuo account e avvia la sincronizzazione per vedere e modificare qui il tuo inventario.
-          </p>
-          <Link
-            href="/account/sincronizzazione"
-            className="inline-flex items-center gap-2 rounded-lg bg-[#FF7300] px-4 py-2 text-sm font-medium text-white hover:bg-[#e66a00]"
-          >
-            Vai a Sincronizzazione
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (syncStatusLoading) {
-    return (
-      <div className="text-white">
-        <nav className="mb-6 flex items-center gap-2 text-sm text-white/90" aria-label="Breadcrumb">
-          <Link href="/account" className="hover:text-white" aria-label="Account">
-            <Home className="h-4 w-4" />
-          </Link>
-          <span className="text-white/60">/</span>
-          <span>ACCOUNT</span>
-          <span className="text-white/60">/</span>
-          <span className="text-white">I MIEI OGGETTI</span>
-        </nav>
-        <div className="mt-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white/5 p-12 dark:border-gray-700 dark:bg-gray-800/50">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-[#FF7300]" />
-            <p className="text-sm text-white/80">Verifica stato sincronizzazione...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="text-white">
       <nav className="mb-6 flex items-center gap-2 text-sm text-white/90" aria-label="Breadcrumb">
@@ -824,9 +770,29 @@ export function OggettiContent() {
       </nav>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold uppercase tracking-wide text-white">
-          I Miei Oggetti
-        </h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold uppercase tracking-wide text-white">
+            I Miei Oggetti
+          </h1>
+          {!syncStatusLoading && (
+            syncEnabled ? (
+              <span
+                className="inline-flex items-center rounded-full border border-emerald-500/50 bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-200"
+                title="Le modifiche e le eliminazioni vengono sincronizzate con CardTrader"
+              >
+                Sincronizzazione attiva
+              </span>
+            ) : (
+              <Link
+                href="/account/sincronizzazione"
+                className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium text-white/80 hover:bg-white/20 hover:text-white"
+                title="Collega CardTrader per sincronizzare l'inventario"
+              >
+                Sincronizzazione non attiva
+              </Link>
+            )
+          )}
+        </div>
         <div className="flex flex-1 min-w-0 max-w-md justify-center px-2">
           <div className="relative w-full">
             <Search
@@ -908,11 +874,11 @@ export function OggettiContent() {
       ) : inventoryItems.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-white p-10 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <p className="text-center text-gray-600 dark:text-gray-300">
-            Non hai ancora nessun oggetto nel tuo inventario. Avvia una sincronizzazione dalla pagina{' '}
+            Non hai ancora oggetti in inventario. Collega CardTrader e avvia la sincronizzazione dalla pagina{' '}
             <Link href="/account/sincronizzazione" className="font-medium text-[#FF7300] hover:underline">
-              Sincronizzazione CardTrader
+              Sincronizzazione
             </Link>
-            .
+            {' '}per importare le tue carte.
           </p>
         </div>
       ) : filteredInventoryItems.length === 0 ? (

@@ -21,6 +21,8 @@ const nextConfig = {
     const syncApiUrl = (process.env.SYNC_API_URL || process.env.NEXT_PUBLIC_SYNC_API_URL || process.env.VITE_SYNC_API_URL || 'https://sync.ebartex.com').replace(/\/+$/, '');
 
     return [
+      // Favicon: evita 404 su /favicon.ico servendo icon.svg
+      { source: '/favicon.ico', destination: '/icon.svg' },
       // Proxy per Search Engine (BRX_Search) - reindex e altre API admin
       {
         source: '/search-api/:path*',

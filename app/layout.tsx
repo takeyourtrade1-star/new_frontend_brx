@@ -6,6 +6,7 @@ import { Footer } from '@/components/layout/Footer';
 export const metadata: Metadata = {
   title: 'Ebartex | Enterprise E-Commerce',
   description: 'Enterprise-level e-commerce platform',
+  icons: { icon: '/icon.svg' },
 };
 
 /** URL sfondo BRX per CSS (da CDN se configurato). */
