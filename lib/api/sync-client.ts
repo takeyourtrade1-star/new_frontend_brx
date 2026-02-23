@@ -1,6 +1,6 @@
 /**
  * Sync API Client - BRX Sync microservice (CardTrader)
- * Uses same-origin proxy /api/sync/... to avoid CORS (proxy forwards to NEXT_PUBLIC_SYNC_API_URL).
+ * Usa NEXT_PUBLIC_SYNC_API_URL + /api/v1 per chiamate dirette al server Sync (CORS consentito dal backend).
  * Su 401 (token scaduto) tenta un refresh automatico e ritenta la richiesta una volta.
  */
 
@@ -43,14 +43,10 @@ async function getNewTokenViaRefresh(): Promise<string | null> {
   return syncRefreshPromise;
 }
 
-/** Base URL for sync requests: '' = same origin (Next.js proxy at /api/sync/[...path]) */
+/** Base URL for sync requests: forza NEXT_PUBLIC_SYNC_API_URL + /api/v1 (chiamata diretta al server Sync). */
 function getSyncBaseUrl(): string {
-  if (typeof window !== 'undefined') {
-    return ''; // Browser: always use same-origin proxy to avoid CORS
-  }
-  const url =
-    process.env.NEXT_PUBLIC_SYNC_API_URL || process.env.VITE_SYNC_API_URL || '';
-  return url.replace(/\/+$/, '');
+  const baseUrl = process.env.NEXT_PUBLIC_SYNC_API_URL || 'https://sync.ebartex.com';
+  return `${baseUrl.replace(/\/+$/, '')}/api/v1`;
 }
 
 export type SyncStatus = 'idle' | 'initial_sync' | 'active' | 'error';
@@ -164,11 +160,11 @@ async function request<T>(
     throw err;
   }
   const base = getSyncBaseUrl();
-  // path is either /api/sync/... (proxy, base '') or /api/v1/sync/... (direct, base = SYNC_API_URL)
-  const pathForProxy = path.replace(/^\/api\/v1\/sync/, '/api/sync');
+  // base = SYNC_API_URL + /api/v1 → path /api/v1/sync/... diventa base + /sync/...
+  const pathSuffix = path.startsWith('/api/v1') ? path.replace(/^\/api\/v1/, '') : path;
   const url = path.startsWith('http')
     ? path
-    : `${base}${pathForProxy.startsWith('/') ? '' : '/'}${pathForProxy}`;
+    : `${base}${pathSuffix.startsWith('/') ? '' : '/'}${pathSuffix}`;
   const res = await fetch(url, {
     ...options,
     credentials: 'same-origin',
