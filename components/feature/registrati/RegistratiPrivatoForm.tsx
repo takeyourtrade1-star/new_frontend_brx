@@ -60,7 +60,10 @@ export function RegistratiPrivatoForm() {
   useEffect(() => {
     if (!registrationFieldErrors) return;
     Object.entries(registrationFieldErrors).forEach(([field, message]) => {
-      setError(field as keyof RegisterPrivatoValues, { type: 'server', message });
+      setError(
+        field as Extract<keyof RegisterPrivatoValues, string>,
+        { type: 'server', message }
+      );
     });
   }, [registrationFieldErrors, setError]);
 
@@ -106,7 +109,7 @@ export function RegistratiPrivatoForm() {
           {...register('first_name')}
         />
         {errors.first_name && (
-          <p className="mt-1 text-sm text-red-500">{errors.first_name.message}</p>
+          <p className="mt-1 text-sm text-red-500">{String(errors.first_name.message ?? '')}</p>
         )}
       </div>
 
@@ -122,7 +125,7 @@ export function RegistratiPrivatoForm() {
           {...register('last_name')}
         />
         {errors.last_name && (
-          <p className="mt-1 text-sm text-red-500">{errors.last_name.message}</p>
+          <p className="mt-1 text-sm text-red-500">{String(errors.last_name.message ?? '')}</p>
         )}
       </div>
 
@@ -138,7 +141,7 @@ export function RegistratiPrivatoForm() {
           {...register('username')}
         />
         {errors.username && (
-          <p className="mt-1 text-sm text-red-500">{errors.username.message}</p>
+          <p className="mt-1 text-sm text-red-500">{String(errors.username.message ?? '')}</p>
         )}
       </div>
 
@@ -154,7 +157,7 @@ export function RegistratiPrivatoForm() {
           {...register('email')}
         />
         {errors.email && (
-          <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
+          <p className="mt-1 text-sm text-red-500">{String(errors.email.message ?? '')}</p>
         )}
       </div>
 
@@ -178,7 +181,7 @@ export function RegistratiPrivatoForm() {
           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
         </button>
         {errors.password && (
-          <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
+          <p className="mt-1 text-sm text-red-500">{String(errors.password.message ?? '')}</p>
         )}
       </div>
 
@@ -212,7 +215,7 @@ export function RegistratiPrivatoForm() {
             {...register('phone')}
           />
           {errors.phone && (
-            <p className="mt-1 text-sm text-red-500">{errors.phone.message}</p>
+            <p className="mt-1 text-sm text-red-500">{String(errors.phone.message ?? '')}</p>
           )}
         </div>
       </div>
@@ -240,7 +243,7 @@ export function RegistratiPrivatoForm() {
           Paese *
         </label>
         {errors.country && (
-          <p className="mt-1 text-sm text-red-500">{errors.country.message}</p>
+          <p className="mt-1 text-sm text-red-500">{String(errors.country.message ?? '')}</p>
         )}
       </div>
 
@@ -263,7 +266,12 @@ export function RegistratiPrivatoForm() {
         </label>
         {(errors.termsAccepted || errors.privacyAccepted || errors.cancellationAccepted || errors.adultConfirmed) && (
           <p className="text-sm text-red-500">
-            {errors.termsAccepted?.message || errors.privacyAccepted?.message || errors.cancellationAccepted?.message || errors.adultConfirmed?.message}
+            {String(
+              (errors.termsAccepted?.message ||
+                errors.privacyAccepted?.message ||
+                errors.cancellationAccepted?.message ||
+                errors.adultConfirmed?.message) ?? ''
+            )}
           </p>
         )}
       </div>

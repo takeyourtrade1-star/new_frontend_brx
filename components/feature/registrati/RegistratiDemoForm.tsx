@@ -59,7 +59,10 @@ export function RegistratiDemoForm() {
   useEffect(() => {
     if (!registrationFieldErrors) return;
     Object.entries(registrationFieldErrors).forEach(([field, message]) => {
-      setError(field as keyof RegisterDemoValues, { type: 'server', message });
+      setError(
+        field as Extract<keyof RegisterDemoValues, string>,
+        { type: 'server', message }
+      );
     });
   }, [registrationFieldErrors, setError]);
 
@@ -106,7 +109,7 @@ export function RegistratiDemoForm() {
           {...register('username')}
         />
         {errors.username && (
-          <p className="mt-1 text-sm text-red-500">{errors.username.message}</p>
+          <p className="mt-1 text-sm text-red-500">{String(errors.username.message ?? '')}</p>
         )}
       </div>
 
@@ -122,7 +125,7 @@ export function RegistratiDemoForm() {
           {...register('email')}
         />
         {errors.email && (
-          <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
+          <p className="mt-1 text-sm text-red-500">{String(errors.email.message ?? '')}</p>
         )}
       </div>
 
@@ -146,7 +149,7 @@ export function RegistratiDemoForm() {
           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
         </button>
         {errors.password && (
-          <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
+          <p className="mt-1 text-sm text-red-500">{String(errors.password.message ?? '')}</p>
         )}
       </div>
 
@@ -180,7 +183,7 @@ export function RegistratiDemoForm() {
             {...register('phone')}
           />
           {errors.phone && (
-            <p className="mt-1 text-sm text-red-500">{errors.phone.message}</p>
+            <p className="mt-1 text-sm text-red-500">{String(errors.phone.message ?? '')}</p>
           )}
         </div>
       </div>
@@ -208,7 +211,7 @@ export function RegistratiDemoForm() {
           Paese *
         </label>
         {errors.country && (
-          <p className="mt-1 text-sm text-red-500">{errors.country.message}</p>
+          <p className="mt-1 text-sm text-red-500">{String(errors.country.message ?? '')}</p>
         )}
       </div>
 
@@ -231,7 +234,12 @@ export function RegistratiDemoForm() {
         </label>
         {(errors.termsAccepted || errors.privacyAccepted || errors.cancellationAccepted || errors.adultConfirmed) && (
           <p className="text-sm text-red-500">
-            {errors.termsAccepted?.message || errors.privacyAccepted?.message || errors.cancellationAccepted?.message || errors.adultConfirmed?.message}
+            {String(
+              (errors.termsAccepted?.message ||
+                errors.privacyAccepted?.message ||
+                errors.cancellationAccepted?.message ||
+                errors.adultConfirmed?.message) ?? ''
+            )}
           </p>
         )}
       </div>
