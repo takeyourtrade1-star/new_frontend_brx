@@ -63,6 +63,8 @@ interface AuthState {
   mfaRequired: boolean;
   /** Messaggio one-time (es. "Login avvenuto con successo"); non persistito. */
   flashMessage: string | null;
+  /** Errori per campo dalla registrazione (422); usato solo dai form di registrazione. */
+  registrationFieldErrors: Record<string, string> | null;
 
   // Actions
   login: (
@@ -94,6 +96,7 @@ export const useAuthStore = create<AuthState>()(
       preAuthToken: null,
       mfaRequired: false,
       flashMessage: null,
+      registrationFieldErrors: null,
 
       // Initialize auth: refresh proattivo se c'è refresh_token, poi valida con /api/auth/me
       initializeAuth: async () => {
@@ -440,18 +443,17 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      // Register
+      // Register (solo registrazione: non toccare login)
       register: async (data: RegisterData) => {
-        set({ isLoading: true, error: null });
+        set({ isLoading: true, error: null, registrationFieldErrors: null });
 
         try {
-          // Add honeypot field (required by backend)
+          // Honeypot: backend richiede website_url sempre ""
           const payload = {
             ...data,
-            website_url: data.website_url || '', // Honeypot field - must be empty string
+            website_url: data.website_url ?? '',
           };
 
-          // La chiamata API. Se fallisce (es. 400, 500), Axios lancerà un errore e andremo nel catch.
           const response = (await authApi.post(
             '/api/auth/register',
             payload
@@ -500,44 +502,39 @@ export const useAuthStore = create<AuthState>()(
             });
           }
         } catch (error: any) {
-          // Estrai messaggio errore più dettagliato
-          // Supporta sia formato FastAPI che altri formati
           let errorMessage = 'Errore durante la registrazione';
+          let fieldErrors: Record<string, string> | null = null;
+          const status = error.response?.status;
+          const errorData = error.response?.data;
 
-          if (error.response?.data) {
-            const errorData = error.response.data;
-
-            // FastAPI format: { detail: [{ loc: [...], msg: "...", type: "..." }] }
-            if (
-              errorData.detail &&
-              Array.isArray(errorData.detail) &&
-              errorData.detail.length > 0
-            ) {
-              // Prendi il primo errore dalla lista detail
-              const firstDetail = errorData.detail[0];
-              errorMessage =
-                firstDetail.msg || firstDetail.message || errorMessage;
-
-              // Se ci sono più errori, possiamo concatenarli (opzionale)
-              if (errorData.detail.length > 1) {
-                const allMessages = errorData.detail
-                  .map((d: any) => d.msg || d.message)
-                  .filter((m: any) => m)
-                  .join(', ');
-                if (allMessages) {
-                  errorMessage = allMessages;
-                }
-              }
+          if (errorData) {
+            // 409 Conflict: Username o email già registrati
+            if (status === 409 && typeof errorData.detail === 'string') {
+              errorMessage = errorData.detail;
+              const d = errorData.detail.toLowerCase();
+              if (d.includes('username')) fieldErrors = { username: errorData.detail };
+              else if (d.includes('email')) fieldErrors = { email: errorData.detail };
             }
-            // Altri formati: { message: "..." }
-            else if (errorData.message) {
+            // 422 Unprocessable: validazione campi (errors[] con loc, msg)
+            else if (status === 422 && Array.isArray(errorData.errors)) {
+              fieldErrors = {};
+              errorData.errors.forEach((err: { loc?: string[]; msg?: string }) => {
+                const loc = err.loc;
+                const field = Array.isArray(loc) ? loc[loc.length - 1] : null;
+                if (field && typeof field === 'string' && err.msg && !fieldErrors![field]) {
+                  fieldErrors![field] = err.msg;
+                }
+              });
+              errorMessage = errorData.detail || 'Controlla i campi e riprova';
+            }
+            // 400 Honeypot / altri
+            else if (typeof errorData.detail === 'string') {
+              errorMessage = errorData.detail;
+            } else if (errorData.detail && Array.isArray(errorData.detail) && errorData.detail.length > 0) {
+              const first = errorData.detail[0];
+              errorMessage = first?.msg || first?.message || errorMessage;
+            } else if (errorData.message) {
               errorMessage = errorData.message;
-            } else if (errorData.errors) {
-              // Se ci sono errori di validazione, mostra il primo
-              const firstError = Object.values(errorData.errors)[0];
-              if (Array.isArray(firstError) && firstError.length > 0) {
-                errorMessage = firstError[0] as string;
-              }
             }
           } else if (error.message) {
             errorMessage = error.message;
@@ -546,6 +543,7 @@ export const useAuthStore = create<AuthState>()(
           set({
             isLoading: false,
             error: errorMessage,
+            registrationFieldErrors: fieldErrors,
           });
 
           throw error;
@@ -636,9 +634,9 @@ export const useAuthStore = create<AuthState>()(
         set({ accessToken: accessToken, isAuthenticated: true });
       },
 
-      // Clear error
+      // Clear error (e errori per campo registrazione)
       clearError: () => {
-        set({ error: null });
+        set({ error: null, registrationFieldErrors: null });
       },
 
       // Set flash message

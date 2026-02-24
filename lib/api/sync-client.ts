@@ -6,43 +6,8 @@
  */
 
 import { authApi } from '@/lib/api/auth-client';
-import { config } from '@/lib/config';
+import { refreshAccessToken } from '@/lib/api/refresh-token';
 import { useAuthStore } from '@/lib/stores/auth-store';
-
-/** Un solo refresh in corso: le richieste che ricevono 401 attendono questo promise invece di lanciare N refresh. */
-let syncRefreshPromise: Promise<string | null> | null = null;
-
-/** Esegue il refresh del token; aggiorna authApi e ritorna il nuovo access token o null. Condiviso tra tutte le richieste 401. */
-async function getNewTokenViaRefresh(): Promise<string | null> {
-  if (syncRefreshPromise) return syncRefreshPromise;
-  syncRefreshPromise = (async (): Promise<string | null> => {
-    if (typeof window === 'undefined') return null;
-    const refreshToken = localStorage.getItem(config.auth.refreshTokenKey);
-    if (!refreshToken) return null;
-    try {
-      const refreshRes = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-        credentials: 'same-origin',
-      });
-      const refreshData = await refreshRes.json().catch(() => ({}));
-      const newAccess = (refreshData?.data?.access_token ?? refreshData?.access_token) as string | undefined;
-      const newRefresh = (refreshData?.data?.refresh_token ?? refreshData?.refresh_token) as string | undefined;
-      if (newAccess) {
-        authApi.setToken(newAccess, newRefresh);
-        useAuthStore.getState().setToken(newAccess, newRefresh);
-        return newAccess;
-      }
-      return null;
-    } catch {
-      return null;
-    } finally {
-      syncRefreshPromise = null;
-    }
-  })();
-  return syncRefreshPromise;
-}
 
 /** Base URL Sync: sempre chiamata diretta (NEXT_PUBLIC_SYNC_API_URL + /api/v1). Il dominio deve essere raggiungibile. */
 function getSyncBaseUrl(): string {
@@ -178,11 +143,13 @@ async function request<T>(
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    // Su 401 (token scaduto): un solo refresh condiviso tra tutte le richieste, poi ritenta una volta
+    // Su 401: usa il refresh centralizzato (stesso lock di auth-client, evita doppio refresh)
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const newAccess = await getNewTokenViaRefresh();
-      if (newAccess) {
-        return request<T>(path, newAccess, options, true);
+      const result = await refreshAccessToken();
+      if (result) {
+        authApi.setToken(result.accessToken, result.refreshToken);
+        useAuthStore.getState().setToken(result.accessToken, result.refreshToken);
+        return request<T>(path, result.accessToken, options, true);
       }
     }
     const err = new Error((data.detail as string) || data.message || res.statusText) as Error & { status?: number; data?: unknown };

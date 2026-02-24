@@ -10,6 +10,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from 'axios';
 import { config } from '../config';
+import { refreshAccessToken } from './refresh-token';
 
 /** In browser use same-origin proxy (/api/auth/*) to avoid CORS; on server call Auth API directly. */
 function getAuthBaseURL(): string {
@@ -86,84 +87,49 @@ class AuthApiClient {
         ) {
           originalRequest._retry = true; // Marca per evitare loop infiniti
 
-          const refreshToken = this.getStoredRefreshToken();
-
-          if (!refreshToken) {
-            // Se non c'è refresh token, fai il logout forzato
-            this.forceLogout();
-            return Promise.reject(error);
-          }
-
-          // Se stiamo già refrescando, metti in coda la richiesta
+          // Se stiamo già refrescando, metti in coda la richiesta (usa lo stesso lock condiviso con sync-client)
           if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
               this.failedQueue.push({ resolve, reject });
             })
               .then(() => {
-                // Riprova la richiesta originale con il nuovo token
                 if (this.token && originalRequest.headers) {
                   originalRequest.headers.Authorization = `Bearer ${this.token}`;
                 }
                 return this.instance(originalRequest);
               })
-              .catch((err) => {
-                return Promise.reject(err);
-              });
+              .catch((err) => Promise.reject(err));
           }
 
-          // Inizia il refresh
           this.isRefreshing = true;
 
           try {
-            // Tenta di rinfrescare il token (usa this.instance così in browser passa dal proxy)
-            const refreshResponse = await this.instance.post(
-              '/api/auth/refresh',
-              { refresh_token: refreshToken },
-              {
-                headers: {
-                  'Content-Type': 'application/json',
-                  Accept: 'application/json',
-                },
-              }
-            );
+            // Refresh centralizzato: una sola chiamata a /api/auth/refresh per tutta l'app
+            const result = await refreshAccessToken();
 
-            // Successo! Salva i nuovi token
-            const responseData = refreshResponse.data;
-            const accessToken =
-              responseData.data?.access_token || responseData.access_token;
-            const newRefreshToken =
-              responseData.data?.refresh_token || responseData.refresh_token;
-
-            if (accessToken && newRefreshToken) {
-              this.token = accessToken;
-              this.setStoredToken(accessToken);
-              this.setStoredRefreshToken(newRefreshToken);
-
-              // Allinea lo store Zustand così tutta l'app usa il token nuovo (evita dipendenze circolari con import dinamico)
+            if (result) {
+              this.token = result.accessToken;
+              this.setStoredToken(result.accessToken);
+              this.setStoredRefreshToken(result.refreshToken);
               try {
                 const { useAuthStore } = await import(
                   /* webpackChunkName: "auth-store" */ '@/lib/stores/auth-store'
                 );
-                useAuthStore.getState().setToken(accessToken, newRefreshToken);
+                useAuthStore.getState().setToken(result.accessToken, result.refreshToken);
               } catch {
                 // ignore se store non disponibile (SSR o primo load)
               }
-
-              // Aggiorna l'header della richiesta originale
               if (originalRequest.headers) {
-                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+                originalRequest.headers.Authorization = `Bearer ${result.accessToken}`;
               }
-
-              // Processa tutte le richieste in coda
               this.processQueue(null);
-
-              // Riprova la richiesta originale
               return this.instance(originalRequest);
-            } else {
-              throw new Error('Invalid refresh response format');
             }
+
+            this.processQueue(error);
+            this.forceLogout();
+            return Promise.reject(error);
           } catch (refreshError) {
-            // Refresh fallito! Logout forzato
             this.processQueue(refreshError);
             this.forceLogout();
             return Promise.reject(refreshError);

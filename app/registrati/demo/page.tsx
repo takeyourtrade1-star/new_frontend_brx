@@ -1,31 +1,26 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { RegistratiChoice } from '@/components/feature/registrati/RegistratiChoice';
+import { RegistratiDemoForm } from '@/components/feature/registrati/RegistratiDemoForm';
 import { getCdnImageUrl } from '@/lib/config';
 
 export const metadata = {
-  title: 'Registrati | Ebartex',
-  description: 'Crea il tuo account Ebartex',
+  title: 'Registrazione demo | Registrati | Ebartex',
+  description: 'Registrazione veloce in 30 secondi',
 };
 
-export default function RegistratiPage() {
+export default function RegistratiDemoPage() {
   const carouselBg = getCdnImageUrl('carousel/slide1.jpg');
   const logoUrl = getCdnImageUrl('logo.png');
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#2d2d2d]">
-      {/* Sfondo visibile (non sfocato) fuori dal riquadro */}
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url("${carouselBg}")` }}
         aria-hidden
       />
-      <div
-        className="absolute inset-0 bg-[#2d2d2d]/40"
-        aria-hidden
-      />
+      <div className="absolute inset-0 bg-[#2d2d2d]/40" aria-hidden />
 
       <div className="relative z-10 flex min-h-screen flex-col pt-8">
-        {/* Logo Ebartex */}
         <div className="flex justify-center px-4">
           <Link
             href="/"
@@ -43,21 +38,15 @@ export default function RegistratiPage() {
             />
           </Link>
         </div>
-
-        {/* Link account business in alto a destra */}
         <div className="absolute right-4 top-8 text-right">
-          <Link
-            href="/account-business"
-            className="text-sm text-white hover:underline"
-          >
+          <Link href="/account-business" className="text-sm text-white hover:underline">
             Sei un professionista? Apri un account business
           </Link>
         </div>
 
-        {/* Scelta tipo registrazione: Demo, Privato, Business */}
         <div className="mx-auto mt-8 w-full max-w-xl flex-1 px-4 pb-12">
           <h1 className="mb-6 text-center text-3xl font-bold uppercase tracking-wide text-white">
-            Registrati
+            Registrazione demo
           </h1>
           <div
             className="overflow-hidden rounded-3xl border-2 border-white"
@@ -69,10 +58,13 @@ export default function RegistratiPage() {
             }}
           >
             <div className="p-12">
-              <RegistratiChoice />
+              <RegistratiDemoForm />
             </div>
           </div>
-          <div className="mt-4 text-center">
+          <div className="mt-4 flex flex-wrap justify-center gap-4 text-center">
+            <Link href="/registrati" className="text-sm text-white hover:underline">
+              Torna alla scelta
+            </Link>
             <Link href="/login" className="text-sm text-white hover:underline">
               Hai già un account? Login
             </Link>

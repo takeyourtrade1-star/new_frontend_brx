@@ -46,11 +46,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <GameProvider>
-          <LanguageProvider>
-            {children}
-          </LanguageProvider>
-        </GameProvider>
+        <AuthInitializer>
+          <GameProvider>
+            <LanguageProvider>
+              {children}
+            </LanguageProvider>
+          </GameProvider>
+        </AuthInitializer>
       </ThemeProvider>
     </QueryClientProvider>
   );
