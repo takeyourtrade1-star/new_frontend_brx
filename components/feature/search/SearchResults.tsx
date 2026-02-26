@@ -43,14 +43,18 @@ function getDisplayNames(hit: SearchHit, currentLang: string): { primary: string
 const GAME_BREADCRUMB: Record<string, string> = {
   mtg: 'MAGIC: THE GATHERING',
   op: 'ONE PIECE',
+  'one-piece': 'ONE PIECE',
   pokemon: 'POKÉMON',
+  pk: 'POKÉMON',
 };
 
 /** Slug usati nell’URL/frontend → slug in Meilisearch/DB (per filtro API). */
 const GAME_TO_MEILISEARCH: Record<string, string> = {
   mtg: 'mtg',
   pokemon: 'pokemon',
+  pk: 'pokemon',
   op: 'one-piece',
+  'one-piece': 'one-piece',
 };
 
 const SORT_OPTIONS = [
@@ -74,10 +78,12 @@ interface SearchApiResponse {
 
 export function SearchResults({
   query: initialQuery,
+  game: initialGame,
   category: initialCategory,
   categoryLabel,
 }: {
   query: string;
+  game?: string;
   category: string;
   categoryLabel: string;
 }) {
@@ -85,7 +91,7 @@ export function SearchResults({
   const { selectedLang } = useLanguage();
   const searchParams = useSearchParams();
   const q = (searchParams.get('q') ?? initialQuery ?? '').trim();
-  const game = searchParams.get('game') ?? '';
+  const game = searchParams.get('game') ?? initialGame ?? '';
   const setFilter = searchParams.get('set') ?? '';
   const categoryId = searchParams.get('category_id') ?? '';
   const pageParam = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);

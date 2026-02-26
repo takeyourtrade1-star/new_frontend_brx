@@ -44,11 +44,18 @@ export interface CardSearchHit {
   __position?: number;
 }
 
-/** Costruisce URL pagina risultati con q e opzionale game (per filtro Meilisearch). */
+/** Slug frontend (GameContext) → slug tabella games / Meilisearch (DB: mtg, pokemon, one-piece). */
+const FRONTEND_TO_DB_SLUG: Record<string, string> = {
+  mtg: 'mtg',
+  pokemon: 'pokemon',
+  op: 'one-piece',
+};
+
+/** Costruisce URL pagina risultati; game in query = slug DB (per /api/search e Meilisearch). */
 function buildSearchUrl(q: string, game?: GameSlug | null): string {
   const params = new URLSearchParams();
   if (q) params.set('q', q);
-  if (game) params.set('game', game);
+  if (game) params.set('game', FRONTEND_TO_DB_SLUG[game] ?? game);
   return `/search?${params.toString()}`;
 }
 
@@ -472,11 +479,14 @@ function SearchResultsDropdown({
   onSelect,
   containerRef,
   anchorRef,
+  inputValue,
 }: {
   gameSlug: GameSlug;
   onSelect: () => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
   anchorRef: React.RefObject<HTMLDivElement | null>;
+  /** Valore attuale dell'input (per mostrare suggerimenti subito mentre digiti, prima che query InstantSearch si aggiorni) */
+  inputValue?: string;
 }) {
   const router = useRouter();
   const { query, isSearchStalled } = useSearchBox();
@@ -526,7 +536,9 @@ function SearchResultsDropdown({
     }
   };
 
-  const hasQuery = (query ?? '').trim().length > 0;
+  const queryTrimmed = (query ?? '').trim();
+  const inputTrimmed = (inputValue ?? '').trim();
+  const hasQuery = queryTrimmed.length > 0 || inputTrimmed.length > 0;
   const hasHits = hits.length > 0;
 
   if (!position) return null;
@@ -900,15 +912,21 @@ function SearchWithInstantSearch({
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownDismissed, setDropdownDismissed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
   const { query, refine } = useSearchBox();
   const [localValue, setLocalValue] = useState(query ?? '');
+  const hasText = (localValue ?? '').trim().length > 0;
 
   useEffect(() => {
     setLocalValue(query ?? '');
   }, [query]);
+
+  useEffect(() => {
+    if (hasText) setDropdownDismissed(false);
+  }, [hasText]);
 
   const handleEnter = () => {
     const searchQuery = (query ?? '').trim();
@@ -918,37 +936,44 @@ function SearchWithInstantSearch({
     }
   };
 
-  const openPanel = () => setIsOpen(true);
-  const closePanel = () => setIsOpen(false);
+  const openPanel = () => {
+    setIsOpen(true);
+    setDropdownDismissed(false);
+  };
+  const closePanel = () => {
+    setIsOpen(false);
+    setDropdownDismissed(true);
+  };
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (!isOpen) return;
       const target = e.target as Node;
       if (triggerRef.current?.contains(target) || dropdownContainerRef.current?.contains(target)) return;
       closePanel();
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
+  }, []);
 
-  // Dropdown risultati subito sotto la barra (stile Cardmarket: niente "Cosa stai cercando?", risultati diretti)
-  const dropdownContent =
-    isOpen && selectedGame ? (
-      <SearchResultsDropdown
-        gameSlug={selectedGame}
-        onSelect={closePanel}
-        containerRef={dropdownContainerRef}
-        anchorRef={triggerRef}
-      />
-    ) : null;
+  // Dropdown (autocomplete): visibile quando (pannello aperto O c'è testo digitato) e non chiuso con click fuori
+  const showDropdown = selectedGame && (isOpen || hasText) && !dropdownDismissed;
+  const dropdownContent = showDropdown ? (
+    <SearchResultsDropdown
+      gameSlug={selectedGame}
+      onSelect={closePanel}
+      containerRef={dropdownContainerRef}
+      anchorRef={triggerRef}
+      inputValue={localValue}
+    />
+  ) : null;
 
-  // Barra: bordo arancione solo qui (sottile, meno arrotondato). Il dropdown sotto resta separato senza bordo arancione.
+  // Stile "aperto" (bianco, bordo): barra bianca quando aperta o quando c'è testo
+  const showOpenStyle = selectedGame && (isOpen || hasText);
   const triggerBar = (
     <div
       ref={triggerRef}
       className={`search-container flex min-w-[200px] flex-1 items-center gap-0 overflow-hidden w-full transition-[background-color,border-color,border-radius] duration-200 ${
-        isOpen && selectedGame
+        showOpenStyle
           ? 'search-container--open rounded-xl border border-[#FF7300] bg-white'
           : 'rounded-[50px]'
       }`}
@@ -973,7 +998,7 @@ function SearchWithInstantSearch({
         }}
         placeholder="Cerca carte..."
         className={`min-w-0 flex-1 border-0 bg-transparent px-4 py-2.5 text-base outline-none font-sans transition-colors duration-200 ${
-          isOpen && selectedGame
+          showOpenStyle
             ? 'text-gray-900 placeholder:text-gray-500'
             : 'placeholder:text-white/30 text-white'
         }`}
@@ -985,7 +1010,7 @@ function SearchWithInstantSearch({
           type="button"
           onClick={handleEnter}
           className={`search-btn flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-200 ${
-            isOpen && selectedGame
+            showOpenStyle
               ? 'text-[#FF7300] hover:bg-orange-50 hover:text-orange-600'
               : 'text-white hover:bg-white/20'
           }`}
@@ -1010,15 +1035,8 @@ export default function GlobalSearchBar() {
 
   const gameFilter = useMemo(() => {
     if (!selectedGame) return undefined;
-
-    // Mappiamo gli slug del frontend con quelli di Meilisearch/DB
-    const dbSlugs: Record<string, string> = {
-      mtg: 'mtg',
-      pokemon: 'pokemon',
-      op: 'one-piece',
-    };
-
-    const realSlug = dbSlugs[selectedGame] || selectedGame;
+    // Filtro Meilisearch: game_slug = slug della tabella games (mtg, pokemon, one-piece).
+    const realSlug = FRONTEND_TO_DB_SLUG[selectedGame] ?? selectedGame;
     return [`game_slug:${realSlug}`];
   }, [selectedGame]);
 
