@@ -9,6 +9,14 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      screens: {
+        '3xl': '1920px',
+      },
+      maxWidth: {
+        'content': '90rem',
+        'content-xl': '100rem',
+        'content-2xl': '120rem',
+      },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
         display: ['var(--font-comodo)'],

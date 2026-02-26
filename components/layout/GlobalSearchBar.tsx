@@ -6,7 +6,7 @@
  * Input disabilitato finché non è selezionato un gioco; filtro rigoroso game_slug.
  */
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Loader2, X, ChevronDown, Camera } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -32,6 +32,7 @@ export interface CardSearchHit {
   collector_number?: string;
   /** Path dall'indice Meilisearch (es. cards/4/158647.webp o img/cards/4/158647.webp; il prefisso img/ viene rimosso) */
   image?: string | null;
+  image_path?: string | null;
   image_uri_small?: string | null;
   image_uri_normal?: string | null;
   icon_svg_uri?: string | null;
@@ -222,6 +223,7 @@ function SearchInput({
   hasResults,
   inputRef,
   onEnter,
+  variant = 'default',
 }: {
   disabled: boolean;
   placeholder: string;
@@ -230,6 +232,7 @@ function SearchInput({
   hasResults: boolean;
   inputRef: React.RefObject<HTMLInputElement | null>;
   onEnter?: () => void;
+  variant?: 'default' | 'pill';
 }) {
   const { query, refine, isSearchStalled } = useSearchBox();
   const [localValue, setLocalValue] = useState(query ?? '');
@@ -266,8 +269,10 @@ function SearchInput({
     }
   };
 
+  const isPill = variant === 'pill';
+
   return (
-    <div className="relative flex-1">
+    <div className={`relative flex-1 min-w-0 ${isPill ? 'flex' : ''}`}>
       <input
         ref={inputRef as React.Ref<HTMLInputElement>}
         type="text"
@@ -278,25 +283,33 @@ function SearchInput({
         onBlur={handleBlur}
         disabled={disabled}
         placeholder={placeholder}
-        className="w-full px-4 py-2 pr-16 text-sm md:text-[14px] border border-gray-200 rounded-lg outline-none transition-all duration-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:ring-opacity-30 placeholder-gray-400 bg-gray-50 focus:bg-white disabled:opacity-60 disabled:cursor-not-allowed text-gray-900"
-        style={{
-          borderRadius: isOpen && hasResults ? '10px 10px 0 0' : '10px',
-          borderBottom: isOpen && hasResults ? 'none' : undefined,
-          fontSize: '16px',
-        }}
+        className={
+          isPill
+            ? 'w-full min-w-0 px-5 py-2.5 pr-12 text-base border-0 bg-transparent rounded-l-[50px] outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus:ring-0 focus:ring-offset-0 placeholder:text-[rgba(3,3,3,0.7)] text-[rgba(3,3,3,0.9)]'
+            : 'w-full px-4 py-2 pr-16 text-sm md:text-[14px] border border-gray-200 rounded-lg outline-none transition-all duration-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:ring-opacity-30 placeholder-gray-400 bg-gray-50 focus:bg-white disabled:opacity-60 disabled:cursor-not-allowed text-gray-900'
+        }
+        style={
+          isPill
+            ? { fontSize: '16px' }
+            : {
+                borderRadius: isOpen && hasResults ? '10px 10px 0 0' : '10px',
+                borderBottom: isOpen && hasResults ? 'none' : undefined,
+                fontSize: '16px',
+              }
+        }
         aria-label="Cerca carte"
         autoComplete="off"
       />
       {isSearchStalled && (
-        <div className="absolute right-10 top-1/2 -translate-y-1/2 pointer-events-none">
-          <Loader2 className="w-3.5 h-3.5 text-gray-400 animate-spin" />
+        <div className={`absolute top-1/2 -translate-y-1/2 pointer-events-none ${isPill ? 'right-12' : 'right-10'}`}>
+          <Loader2 className="w-3.5 h-3.5 text-gray-500 animate-spin" />
         </div>
       )}
       {localValue && !isSearchStalled && (
         <button
           type="button"
           onClick={handleClear}
-          className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10"
+          className={`absolute top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 z-10 ${isPill ? 'right-12' : 'right-10'}`}
           aria-label="Cancella ricerca"
         >
           <X className="w-3.5 h-3.5" />
@@ -331,9 +344,9 @@ function CardHit({
   const cameraButtonRef = useRef<HTMLButtonElement>(null);
   const { selectedLang } = useLanguage();
   const fullImage = useMemo(() => {
-    const raw = hit.image ?? hit.image_uri_normal ?? hit.image_uri_small ?? null;
+    const raw = hit.image ?? hit.image_path ?? hit.image_uri_normal ?? hit.image_uri_small ?? null;
     return getCardImageUrl(raw);
-  }, [hit.image, hit.image_uri_normal, hit.image_uri_small]);
+  }, [hit.image, hit.image_path, hit.image_uri_normal, hit.image_uri_small]);
   const setIcon = hit.set_icon_uri ?? hit.icon_svg_uri ?? null;
   const setCode = hit.set_code ?? (hit.set_name ? hit.set_name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) : null);
   const setName = hit.set_name ?? '';
@@ -458,10 +471,12 @@ function SearchResultsDropdown({
   gameSlug,
   onSelect,
   containerRef,
+  anchorRef,
 }: {
   gameSlug: GameSlug;
   onSelect: () => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  anchorRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const router = useRouter();
   const { query, isSearchStalled } = useSearchBox();
@@ -471,7 +486,25 @@ function SearchResultsDropdown({
     name: string;
     rect: DOMRect;
   } | null>(null);
+  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useLayoutEffect(() => {
+    if (!anchorRef.current) return;
+    const update = () => {
+      if (anchorRef.current) {
+        const rect = anchorRef.current.getBoundingClientRect();
+        setPosition({ top: rect.bottom, left: rect.left, width: rect.width });
+      }
+    };
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [anchorRef, query]);
 
   const showInlinePreview = (url: string, name: string, buttonRect: DOMRect) => {
     if (closeTimeoutRef.current) {
@@ -496,12 +529,20 @@ function SearchResultsDropdown({
   const hasQuery = (query ?? '').trim().length > 0;
   const hasHits = hits.length > 0;
 
-  return (
+  if (!position) return null;
+
+  const dropdownContent = (
     <>
       <div
         ref={containerRef as React.Ref<HTMLDivElement>}
-        className="absolute top-full left-0 right-0 z-[1001] bg-white rounded-b-[10px] border-x border-b border-gray-200 max-h-[400px] overflow-hidden min-h-[80px] flex flex-col"
-        style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)' }}
+        className="bg-white rounded-lg border border-gray-200 max-h-[400px] overflow-hidden min-h-[80px] flex flex-col shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+        style={{
+          position: 'fixed',
+          top: position.top + 4,
+          left: position.left,
+          width: position.width,
+          zIndex: 1001,
+        }}
         role="listbox"
         aria-label="Suggerimenti ricerca"
       >
@@ -539,10 +580,10 @@ function SearchResultsDropdown({
               type="button"
               onClick={() => {
                 const q = (query ?? '').trim();
-                if (q) router.push(`/search?q=${encodeURIComponent(q)}`);
+                if (q) router.push(buildSearchUrl(q, gameSlug));
                 onSelect();
               }}
-              className="w-full py-3 px-4 text-sm font-semibold text-gray-800 bg-[#F8F8F8] rounded-b-[10px] hover:bg-[#EEEEEE] transition-colors"
+              className="w-full py-4 text-center text-base font-medium text-[#0f172a] bg-[#F8F8F8] rounded-b-lg hover:bg-[#EEEEEE] transition-colors"
             >
               Mostra tutti i risultati ({hits.length}+)
             </button>
@@ -552,7 +593,6 @@ function SearchResultsDropdown({
         )}
       </div>
 
-      {/* Anteprima inline sotto l'icona fotocamera (stile CardTrader) */}
       {inlinePreview &&
         typeof document !== 'undefined' &&
         createPortal(
@@ -580,19 +620,202 @@ function SearchResultsDropdown({
         )}
     </>
   );
+
+  return typeof document !== 'undefined' ? createPortal(dropdownContent, document.body) : null;
 }
 
-function SearchSubmitButton({ selectedGame }: { selectedGame: GameSlug }) {
+/** Corpo del pannello: input "Digita per cercare carte" + lista risultati (stile Figma) */
+function SearchPanelBody({
+  inputRef,
+  onEnter,
+  onSelectResult,
+  selectedGame,
+  hideInput = false,
+}: {
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onEnter: () => void;
+  onSelectResult: () => void;
+  selectedGame: GameSlug | null;
+  /** Se true, non mostrare l'input nel pannello (si scrive nella barra) */
+  hideInput?: boolean;
+}) {
+  const router = useRouter();
+  const { query, refine, isSearchStalled } = useSearchBox();
+  const { hits } = useHits();
+  const [localValue, setLocalValue] = useState(query ?? '');
+  const [inlinePreview, setInlinePreview] = useState<{ url: string; name: string; rect: DOMRect } | null>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setLocalValue(query ?? '');
+  }, [query]);
+
+  const hasQuery = (query ?? '').trim().length > 0;
+  const hasHits = hits.length > 0;
+
+  const showInlinePreview = (url: string, name: string, buttonRect: DOMRect) => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = null;
+    setInlinePreview({ url, name, rect: buttonRect });
+  };
+  const scheduleClose = () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => setInlinePreview(null), HOVER_CLOSE_DELAY_MS);
+  };
+  const cancelClose = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
+  return (
+    <>
+      {!hideInput && (
+        <div className="search-panel-input-wrap mx-4 mt-2 mb-1 px-4 py-2">
+          <input
+            ref={inputRef as React.Ref<HTMLInputElement>}
+            type="text"
+            value={localValue}
+            onChange={(e) => {
+              const v = e.target.value;
+              setLocalValue(v);
+              refine(v);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                onEnter();
+              }
+            }}
+            placeholder="Digita per cercare carte"
+            className="w-full border-0 bg-transparent py-2 pl-1 text-base outline-none"
+            aria-label="Cerca carte"
+            autoComplete="off"
+          />
+        </div>
+      )}
+      {hideInput && <div className="pt-1" />}
+      {isSearchStalled && (
+        <div className="flex items-center justify-center gap-2 px-4 py-4 text-white/70">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="text-sm">Ricerca in corso...</span>
+        </div>
+      )}
+      {!isSearchStalled && !hasQuery && <div className="min-h-[24px]" />}
+      {!selectedGame && (
+        <div className="px-4 py-3 text-sm text-white/60">Seleziona un gioco (Categorie) per cercare</div>
+      )}
+      {!isSearchStalled && hasQuery && !hasHits && selectedGame && (
+        <div className="px-4 py-4 text-sm text-white/60">Nessun risultato trovato</div>
+      )}
+      {!isSearchStalled && hasQuery && hasHits && selectedGame && (
+        <>
+          <div
+            className="max-h-[260px] overflow-y-auto"
+            onScroll={() => setInlinePreview(null)}
+          >
+            {hits.map((hit, index) => (
+              <CardHit
+                key={(hit as CardSearchHit).id ?? (hit as CardSearchHit).objectID ?? index}
+                hit={hit as unknown as CardSearchHit}
+                index={index}
+                gameSlug={selectedGame}
+                searchQuery={query ?? ''}
+                onNavigate={() => {
+                  const slug = getCardSlugForUrl(hit as unknown as CardSearchHit);
+                  router.push(`/products/${slug}`);
+                  onSelectResult();
+                }}
+                onShowInlinePreview={showInlinePreview}
+                onScheduleClose={scheduleClose}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const q = (query ?? '').trim();
+              if (q) router.push(buildSearchUrl(q, selectedGame));
+              onSelectResult();
+            }}
+            className="w-full py-4 text-center text-base font-medium text-white bg-white/10 hover:bg-[#ff7300]/30 transition-colors rounded-b-2xl"
+          >
+            Mostra tutti i risultati ({hits.length}+)
+          </button>
+        </>
+      )}
+      {inlinePreview &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="fixed z-[1100] rounded-lg border border-gray-200 bg-white shadow-xl overflow-hidden"
+            style={{
+              left: inlinePreview.rect.left,
+              top: inlinePreview.rect.bottom + 4,
+              width: INLINE_PREVIEW_WIDTH,
+            }}
+            onMouseEnter={cancelClose}
+            onMouseLeave={() => setInlinePreview(null)}
+            role="img"
+            aria-label={`Anteprima: ${inlinePreview.name}`}
+          >
+            <img
+              src={inlinePreview.url}
+              alt={inlinePreview.name}
+              className="block h-auto w-full"
+              loading="lazy"
+              draggable={false}
+            />
+          </div>,
+          document.body
+        )}
+    </>
+  );
+}
+
+function SearchSubmitButton({
+  selectedGame,
+  variant = 'default',
+}: {
+  selectedGame: GameSlug | null;
+  variant?: 'default' | 'pill' | 'panel';
+}) {
   const router = useRouter();
   const { query } = useSearchBox();
 
   const handleSubmit = () => {
     const searchQuery = (query ?? '').trim();
     if (searchQuery) {
-      // Naviga alla Search Results Page con parametro q
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+      router.push(buildSearchUrl(searchQuery, selectedGame));
     }
   };
+
+  if (variant === 'pill') {
+    return (
+      <button
+        type="button"
+        onClick={handleSubmit}
+        className="flex shrink-0 items-center justify-center rounded-r-[50px] w-12 h-full text-gray-700 hover:text-gray-900 hover:bg-gray-200/60 z-10 transition-colors"
+        aria-label="Cerca e vai ai risultati"
+      >
+        <Search className="w-5 h-5" strokeWidth={2} />
+      </button>
+    );
+  }
+
+  if (variant === 'panel') {
+    return (
+      <button
+        type="button"
+        onClick={handleSubmit}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-600 hover:bg-gray-200/60"
+        aria-label="Cerca"
+      >
+        <Search className="h-5 w-5" strokeWidth={2} />
+      </button>
+    );
+  }
 
   return (
     <button
@@ -606,67 +829,8 @@ function SearchSubmitButton({ selectedGame }: { selectedGame: GameSlug }) {
   );
 }
 
-function SearchWithInstantSearch({ selectedGame }: { selectedGame: GameSlug }) {
-  const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
-  const { gameDisplayName } = useGame();
-  const { query } = useSearchBox();
-
-  const placeholder = `Cerca carte ${gameDisplayName(selectedGame)}...`;
-
-  const handleEnter = () => {
-    const searchQuery = (query ?? '').trim();
-    if (searchQuery) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
-      setIsOpen(false);
-    }
-  };
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      const target = e.target as Node;
-      if (
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(target) &&
-        inputRef.current &&
-        !inputRef.current.contains(target)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="relative flex-1 max-w-[800px] md:max-w-none" style={{ zIndex: 1000 }}>
-      <div className="relative">
-        <SearchInput
-          disabled={false}
-          placeholder={placeholder}
-          onFocus={() => setIsOpen(true)}
-          isOpen={isOpen}
-          hasResults={true}
-          inputRef={inputRef}
-          onEnter={handleEnter}
-        />
-        <SearchSubmitButton selectedGame={selectedGame} />
-      </div>
-
-      {isOpen && (
-        <SearchResultsDropdown
-          gameSlug={selectedGame}
-          onSelect={() => setIsOpen(false)}
-          containerRef={suggestionsRef}
-        />
-      )}
-    </div>
-  );
-}
-
-function GameSelector({
+/** Bottone "Categorie" in stile Figma (grigio, testo + chevron) */
+function CategorieButton({
   selectedGame,
   onSelect,
   gameDisplayName,
@@ -678,18 +842,10 @@ function GameSelector({
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const colors: Record<GameSlug, string> = {
-    mtg: 'bg-violet-100 text-violet-800 border-violet-200',
-    pk: 'bg-amber-100 text-amber-800 border-amber-200',
-    op: 'bg-red-100 text-red-800 border-red-200',
-  };
-
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener('click', handler);
     return () => document.removeEventListener('click', handler);
@@ -700,38 +856,30 @@ function GameSelector({
       <button
         type="button"
         onClick={(e) => {
-          e.preventDefault();
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-md min-w-[120px] justify-between text-xs font-medium transition-colors ${
-          selectedGame ? colors[selectedGame] : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-        }`}
+        className="flex items-center gap-1.5 rounded-[50px] border-0 bg-transparent px-3 py-1.5 text-sm text-white/90 font-sans"
       >
-        <span>{selectedGame ? gameDisplayName(selectedGame) : 'Seleziona gioco'}</span>
-        <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span>{selectedGame ? gameDisplayName(selectedGame) : 'Categorie'}</span>
+        <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg min-w-[140px] z-[9999] overflow-hidden">
+        <div className="categorie-dropdown absolute top-full left-0 z-[1002] mt-1 min-w-[140px] overflow-hidden shadow-lg">
           {GAME_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
               onClick={(e) => {
-                e.preventDefault();
                 e.stopPropagation();
                 onSelect(opt.value);
                 setOpen(false);
               }}
-              className={`w-full px-4 py-2.5 text-left text-sm font-medium transition-colors flex items-center gap-2 ${
-                opt.value === 'mtg' && 'hover:bg-violet-50 text-violet-800'
-              } ${opt.value === 'pk' && 'hover:bg-amber-50 text-amber-800'} ${
-                opt.value === 'op' && 'hover:bg-red-50 text-red-800'
-              }`}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium font-sans"
             >
               <span
-                className={`w-2 h-2 rounded-full ${
-                  opt.value === 'mtg' ? 'bg-violet-500' : opt.value === 'pk' ? 'bg-amber-500' : 'bg-red-500'
+                className={`h-2 w-2 rounded-full ${
+                  opt.value === 'mtg' ? 'bg-violet-500' : opt.value === 'pokemon' ? 'bg-amber-500' : 'bg-red-500'
                 }`}
               />
               {opt.label}
@@ -743,104 +891,163 @@ function GameSelector({
   );
 }
 
-export default function GlobalSearchBar() {
-  const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
-  const langDropdownRef = useRef<HTMLDivElement>(null);
-  const { selectedGame, setSelectedGame, gameDisplayName } = useGame();
-  const { selectedLang, setSelectedLang, availableLangs, isLangLoading } = useLanguage();
+function SearchWithInstantSearch({
+  selectedGame,
+}: {
+  selectedGame: GameSlug | null;
+  setSelectedGame: (g: GameSlug | null) => void;
+  gameDisplayName: (slug: GameSlug | null) => string;
+}) {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const dropdownContainerRef = useRef<HTMLDivElement>(null);
+  const { query, refine } = useSearchBox();
+  const [localValue, setLocalValue] = useState(query ?? '');
+
+  useEffect(() => {
+    setLocalValue(query ?? '');
+  }, [query]);
+
+  const handleEnter = () => {
+    const searchQuery = (query ?? '').trim();
+    if (searchQuery) {
+      router.push(buildSearchUrl(searchQuery, selectedGame));
+      closePanel();
+    }
+  };
+
+  const openPanel = () => setIsOpen(true);
+  const closePanel = () => setIsOpen(false);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (langDropdownRef.current && !langDropdownRef.current.contains(e.target as Node)) {
-        setIsLangDropdownOpen(false);
-      }
+      if (!isOpen) return;
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target) || dropdownContainerRef.current?.contains(target)) return;
+      closePanel();
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isOpen]);
+
+  // Dropdown risultati subito sotto la barra (stile Cardmarket: niente "Cosa stai cercando?", risultati diretti)
+  const dropdownContent =
+    isOpen && selectedGame ? (
+      <SearchResultsDropdown
+        gameSlug={selectedGame}
+        onSelect={closePanel}
+        containerRef={dropdownContainerRef}
+        anchorRef={triggerRef}
+      />
+    ) : null;
+
+  // Barra: bordo arancione solo qui (sottile, meno arrotondato). Il dropdown sotto resta separato senza bordo arancione.
+  const triggerBar = (
+    <div
+      ref={triggerRef}
+      className={`search-container flex min-w-[200px] flex-1 items-center gap-0 overflow-hidden w-full transition-[background-color,border-color,border-radius] duration-200 ${
+        isOpen && selectedGame
+          ? 'search-container--open rounded-xl border border-[#FF7300] bg-white'
+          : 'rounded-[50px]'
+      }`}
+      style={{ zIndex: 1000 }}
+      onClick={() => inputRef.current?.focus()}
+    >
+      <input
+        ref={inputRef}
+        type="text"
+        value={localValue}
+        onChange={(e) => {
+          const v = e.target.value;
+          setLocalValue(v);
+          refine(v);
+        }}
+        onFocus={openPanel}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            handleEnter();
+          }
+        }}
+        placeholder="Cerca carte..."
+        className={`min-w-0 flex-1 border-0 bg-transparent px-4 py-2.5 text-base outline-none font-sans transition-colors duration-200 ${
+          isOpen && selectedGame
+            ? 'text-gray-900 placeholder:text-gray-500'
+            : 'placeholder:text-white/30 text-white'
+        }`}
+        aria-label="Cerca carte"
+        autoComplete="off"
+      />
+      <div className="search-right flex flex-shrink-0 items-center pr-2" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={handleEnter}
+          className={`search-btn flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-200 ${
+            isOpen && selectedGame
+              ? 'text-[#FF7300] hover:bg-orange-50 hover:text-orange-600'
+              : 'text-white hover:bg-white/20'
+          }`}
+          aria-label="Cerca"
+        >
+          <Search className="h-5 w-5" strokeWidth={2} />
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {triggerBar}
+      {dropdownContent}
+    </>
+  );
+}
+
+export default function GlobalSearchBar() {
+  const { selectedGame, setSelectedGame, gameDisplayName } = useGame();
 
   const gameFilter = useMemo(() => {
     if (!selectedGame) return undefined;
-    return [`game_slug:${selectedGame}`];
+
+    // Mappiamo gli slug del frontend con quelli di Meilisearch/DB
+    const dbSlugs: Record<string, string> = {
+      mtg: 'mtg',
+      pokemon: 'pokemon',
+      op: 'one-piece',
+    };
+
+    const realSlug = dbSlugs[selectedGame] || selectedGame;
+    return [`game_slug:${realSlug}`];
   }, [selectedGame]);
 
   return (
     <div
-      className="w-full flex justify-center items-center py-1.5 z-[99]"
+      className="w-full flex justify-center items-center py-1.5 z-[99] font-sans"
       style={{
         backgroundColor: '#1D3160',
-        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
         overflow: 'visible',
       }}
     >
       <div
-        className="w-full px-4 md:px-6 md:max-w-[1100px] flex items-center gap-2 md:gap-3 flex-row justify-center"
+        className="w-full flex-1 min-w-0 flex items-center gap-2 md:gap-3 flex-row"
         style={{ position: 'relative', overflow: 'visible' }}
       >
-        <div className="relative flex-shrink-0" style={{ zIndex: 1001 }}>
-          <GameSelector
-            selectedGame={selectedGame}
-            onSelect={setSelectedGame}
-            gameDisplayName={gameDisplayName}
-          />
-        </div>
-
-        <div className="relative flex-shrink-0 hidden md:block" ref={langDropdownRef} style={{ zIndex: 1001 }}>
-          <button
-            type="button"
-            onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors text-xs font-medium text-gray-600 min-w-[100px] justify-between"
-            disabled={isLangLoading}
-          >
-            <span>{LANGUAGE_NAMES[selectedLang] ?? selectedLang.toUpperCase()}</span>
-            {isLangLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-            ) : (
-              <ChevronDown className={`w-4 h-4 transition-transform ${isLangDropdownOpen ? 'rotate-180' : ''}`} />
-            )}
-          </button>
-          {isLangDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg min-w-[120px] max-h-60 overflow-y-auto z-[1002]">
-              {availableLangs.map((lang) => (
-                <button
-                  key={lang}
-                  type="button"
-                  onClick={() => {
-                    setSelectedLang(lang);
-                    setIsLangDropdownOpen(false);
-                  }}
-                  className={`w-full px-4 py-2 text-left text-sm transition-colors ${
-                    selectedLang === lang ? 'bg-orange-50 text-orange-600 font-medium' : 'hover:bg-gray-50 text-gray-700'
-                  }`}
-                >
-                  {LANGUAGE_NAMES[lang] ?? lang.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {selectedGame ? (
+        <div className="flex-1 min-w-0 flex">
           <InstantSearch
             searchClient={searchClient}
             indexName={MEILISEARCH.indexName}
             future={{ preserveSharedStateOnUnmount: true }}
           >
             <Configure facetFilters={gameFilter} hitsPerPage={8} />
-            <SearchWithInstantSearch selectedGame={selectedGame} />
-          </InstantSearch>
-        ) : (
-          <div className="relative flex-1 max-w-[800px] md:max-w-none" style={{ zIndex: 1000 }}>
-            <input
-              type="text"
-              disabled
-              placeholder="Seleziona prima un gioco..."
-              className="w-full px-4 py-2 pr-12 text-sm md:text-[14px] border border-gray-200 rounded-lg outline-none bg-gray-50 opacity-70 cursor-not-allowed placeholder-gray-400"
-              style={{ fontSize: '16px' }}
-              aria-label="Seleziona un gioco per cercare"
+            <SearchWithInstantSearch
+              selectedGame={selectedGame}
+              setSelectedGame={setSelectedGame}
+              gameDisplayName={gameDisplayName}
             />
-          </div>
-        )}
+          </InstantSearch>
+        </div>
       </div>
     </div>
   );

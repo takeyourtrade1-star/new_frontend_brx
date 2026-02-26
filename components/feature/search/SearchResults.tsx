@@ -43,7 +43,14 @@ function getDisplayNames(hit: SearchHit, currentLang: string): { primary: string
 const GAME_BREADCRUMB: Record<string, string> = {
   mtg: 'MAGIC: THE GATHERING',
   op: 'ONE PIECE',
-  pk: 'POKÉMON',
+  pokemon: 'POKÉMON',
+};
+
+/** Slug usati nell’URL/frontend → slug in Meilisearch/DB (per filtro API). */
+const GAME_TO_MEILISEARCH: Record<string, string> = {
+  mtg: 'mtg',
+  pokemon: 'pokemon',
+  op: 'one-piece',
 };
 
 const SORT_OPTIONS = [
@@ -101,7 +108,8 @@ export function SearchResults({
     setError(null);
     const params = new URLSearchParams();
     if (q) params.set('q', q);
-    if (game) params.set('game', game);
+    const apiGame = game ? (GAME_TO_MEILISEARCH[game] || game) : '';
+    if (apiGame) params.set('game', apiGame);
     if (setFilter) params.set('set', setFilter);
     if (categoryId) params.set('category_id', categoryId);
     params.set('page', String(pageParam));
@@ -154,11 +162,10 @@ export function SearchResults({
 
   return (
     <section className="min-h-screen pb-12" style={{ backgroundColor: '#193874' }}>
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
+      <div className="container-content py-6">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-white/80 text-sm mb-2">
-          <Link href="/" className="hover:text-white flex items-center gap-1">
-            <span className="inline-block w-4 h-4">🏠</span>
+          <Link href="/" className="hover:text-white">
             {gameLabel || 'GIOCHI'}
           </Link>
           <span>/</span>

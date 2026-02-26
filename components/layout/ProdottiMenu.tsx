@@ -39,7 +39,7 @@ export function ProdottiMenu() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
+        className="flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] font-sans"
         style={{ backgroundColor: ORANGE, borderColor: BORDER }}
         aria-expanded={open}
         aria-haspopup="true"
@@ -64,7 +64,7 @@ export function ProdottiMenu() {
             style={{ borderColor: SEPARATOR }}
           >
             <LayoutGrid className="h-4 w-4 shrink-0 text-white" strokeWidth={2} aria-hidden />
-            <span className="text-sm font-medium text-white">Prodotti</span>
+            <span className="text-sm font-medium text-white font-sans">Prodotti</span>
           </div>
 
           {/* Voci: testo bianco, hover = sfondo blu + barra a DESTRA che esce un pochino (come in immagine) */}
@@ -80,7 +80,7 @@ export function ProdottiMenu() {
                 <Link
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="prodotti-menu-item block px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-white transition-[color,font-size] duration-200 hover:text-white hover:text-base focus:outline-none focus-visible:text-white focus-visible:text-base"
+                  className="prodotti-menu-item block px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-white font-sans transition-colors duration-200 focus:outline-none focus-visible:text-white"
                   role="menuitem"
                 >
                   {item.label}

@@ -151,7 +151,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const isLocalImage = effectiveImageSrc.startsWith('/') && !effectiveImageSrc.startsWith('//');
   const gameLabel = card ? getGameLabel(card.game_slug) : null;
 
-  const EBARTEX_LOGO_PLACEHOLDER = '/landing/Logo%20Principale%20EBARTEX.png';
+  const EBARTEX_LOGO_PLACEHOLDER = '/images/Logo%20Principale%20EBARTEX.png';
 
   const formatEuro = (n: number) =>
     new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(n);
@@ -169,7 +169,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
       {/* Sezione titolo: sfondo grigio come il resto della pagina; titolo e sottotitolo allineati a sinistra */}
       <section className="w-full bg-[#F0F0F0] border-b border-gray-300">
-        <div className="mx-auto max-w-[90rem] w-full px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
+        <div className="container-content py-3 sm:py-4 lg:py-4">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <nav aria-label="Breadcrumb" className="text-xs font-medium text-gray-600 sm:text-sm min-w-0">
               {breadcrumbs.map((b, i) => (
@@ -202,7 +202,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
       {/* Contenuto principale: card bianca su sfondo grigio – responsive padding e layout */}
       <section className="w-full bg-[#F0F0F0] px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 pb-10 sm:pb-12 min-h-[50vh]">
-        <div className="mx-auto max-w-[90rem] w-full">
+        <div className="container-content">
           <div className="flex flex-col rounded-lg bg-white shadow-md overflow-hidden md:flex-row min-h-0">
             {/* Colonna sinistra: immagine carta più piccola per adattarsi all'altezza del contenuto INFO */}
             <aside className="flex flex-col w-full md:w-[min(280px,26vw)] lg:min-w-[260px] flex-shrink-0 items-center p-4 sm:p-5 lg:p-6 bg-white border-b md:border-b-0 md:border-r border-gray-200">
@@ -530,7 +530,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
       {/* Sezione sempre visibile: FILTRI (sinistra) + tab VENDITORI | SCAMBIO | VEDI ALL'ASTA + tabella (destra) – non cambia con INFO/VENDI/SCAMBIA/METTI ALL'ASTA */}
       <section className="w-full bg-[#F0F0F0] border-t border-gray-300">
-        <div className="mx-auto max-w-[90rem] w-full px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <div className="container-content py-4 sm:py-6 lg:py-8">
           <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
             {/* Sidebar FILTRI – come negli screenshot */}
             <aside className="w-full lg:w-[280px] xl:w-[300px] flex-shrink-0">

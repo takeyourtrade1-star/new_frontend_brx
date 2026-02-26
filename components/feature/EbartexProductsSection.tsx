@@ -1,67 +1,78 @@
+'use client';
+
 import Link from 'next/link';
-import Image from 'next/image';
+import { ChevronRight } from 'lucide-react';
+import { getCdnImageUrl } from '@/lib/config';
+import { ScrollMarquee } from './ScrollMarquee';
 
-const PRODUCTS = [
-  { id: 'dadi-magici', label: 'DADI MAGICI', href: '/products?category=dadi', image: '/footer/f5ad6b7217e9abd6ed3e026333913ba96dd00f74.png' },
-  { id: 'buste', label: 'BUSTE', href: '/products?category=buste', image: '/footer/7f25a7bd6a52315737a312ef1283fe8d250ed5eb.png' },
-  { id: 'album', label: 'ALBUM', href: '/products?category=album', image: '/footer/b3bc471ced1aee6228467881901001b851ead8a6.jpg' },
-  { id: 'tappetini', label: 'TAPPETINI', href: '/products?category=tappetini', image: '/footer/b7e23951c913fe308eeda498f429598d53369372.jpg' },
-  { id: 'game-kits', label: 'GAME KITS', href: '/products?category=game-kits', image: '/footer/f5ad6b7217e9abd6ed3e026333913ba96dd00f74.png' },
-  { id: 'esplora-altro', label: 'ESPLORA ALTRO', href: '/products', image: '/footer/0d7d930f0e4154893466c139c778f7bdd2b8a23b.png' },
-] as const;
+/** Voce Ebartex Boutique – dati da backend */
+export type BoutiqueProductItem = {
+  id: string;
+  label: string;
+  href: string;
+  imageUrl?: string | null;
+};
 
-export function EbartexProductsSection() {
+/** Placeholder con immagini da public/images (card-3, acquisti-frames) */
+const DEFAULT_PRODUCTS: BoutiqueProductItem[] = [
+  { id: 'dadi', label: 'DADI', href: '/products?category=dadi', imageUrl: getCdnImageUrl('card-3/4978fe1369c0fbf68d42ac63d0582ffc6cf67d60.png') },
+  { id: 'buste', label: 'BUSTE', href: '/products?category=buste', imageUrl: getCdnImageUrl('card-3/8b5d86761fe7404aee02bee1471c3e0fc815d3bb.png') },
+  { id: 'tappetini', label: 'TAPPETINI', href: '/products?category=tappetini', imageUrl: getCdnImageUrl('card-3/a8020835a8ffd96555a4b53cd6ef0d04866ca8b1.png') },
+  { id: 'memorabilia', label: 'MEMORABILIA', href: '/products?category=memorabilia', imageUrl: getCdnImageUrl('acquisti-frames/Frame%20334.jpg') },
+  { id: 'albums', label: 'ALBUMS', href: '/products?category=albums', imageUrl: getCdnImageUrl('acquisti-frames/Frame%20335.jpg') },
+  { id: 'game-kits', label: 'GAME KITS', href: '/products?category=game-kits', imageUrl: getCdnImageUrl('acquisti-frames/Frame%20336.jpg') },
+];
+
+export function EbartexProductsSection({ products }: { products?: BoutiqueProductItem[] } = {}) {
+  const items = products?.length ? products : DEFAULT_PRODUCTS;
+
   return (
-    <section className="w-full py-10 md:py-14 bg-transparent">
-      <div className="mx-auto max-w-7xl px-2 sm:px-3">
-        <div className="flex w-full justify-center pb-8">
-          <span
-            className="font-display text-center text-2xl font-bold uppercase tracking-wide md:text-3xl"
-            style={{
-              background: 'linear-gradient(135deg, #FAE27A 0%, #DA6B32 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              borderBottom: '3px solid #DA6B32',
-              paddingBottom: 8,
-            }}
-          >
-            EBARTEX PRODUCTS
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          {PRODUCTS.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              className="group relative flex aspect-[4/3] w-full overflow-hidden rounded-xl transition-transform hover:scale-[1.02]"
-            >
-              <Image
-                src={item.image}
-                alt={item.label}
-                fill
-                className="object-cover transition-transform group-hover:scale-105"
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-              />
-              <div
-                className={
-                  item.id === 'esplora-altro'
-                    ? 'absolute inset-0 flex items-center justify-center'
-                    : 'absolute inset-x-0 bottom-0 flex justify-center pb-3 pt-8'
-                }
+    <section className="w-full py-10 md:py-14 bg-transparent text-white">
+      <div className="container-content">
+        <ScrollMarquee label="EBARTEX BOUTIQUE" />
+        <div className="mt-4 flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <div className="grid min-w-0 flex-1 grid-cols-2 grid-rows-auto items-stretch gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            {items.map((item) => (
+              <Link
+                key={item.id}
+                href={item.href}
+                className="group relative flex min-h-[160px] w-full flex-col overflow-hidden rounded-2xl border border-white/20 bg-white/5 shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-[1.02] hover:border-[#ff7300]/50 hover:shadow-xl hover:shadow-[#ff7300]/10"
               >
-                <span
-                  className="inline-flex h-[38px] min-w-[120px] items-center justify-center rounded-full px-6 text-center text-sm font-bold uppercase tracking-wide text-white"
-                  style={{
-                    background: 'linear-gradient(180deg, #a78bfa 0%, #7c3aed 50%, #6d28d9 100%)',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                  }}
-                >
-                  {item.label}
-                </span>
-              </div>
-            </Link>
-          ))}
+                <div className="relative min-h-[120px] flex-1">
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-700/90 to-gray-800/80" aria-hidden />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
+                </div>
+                <div className="absolute inset-x-0 bottom-0 flex justify-center pb-3 pt-8">
+                  <span
+                    className="inline-flex min-h-[38px] min-w-[100px] items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-bold uppercase tracking-wide text-white shadow-lg backdrop-blur-md"
+                    style={{
+                      backgroundColor: 'rgba(15, 25, 45, 0.8)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <Link
+            href="/products"
+            className="flex shrink-0 items-center justify-center gap-1.5 self-center rounded-full border-2 border-[#ff7300] bg-[#ff7300]/10 px-6 py-3 text-sm font-bold uppercase tracking-wide text-[#ff7300] transition-colors hover:bg-[#ff7300] hover:text-white"
+            aria-label="Vedi tutto i prodotti"
+          >
+            <span>Vedi tutto</span>
+            <ChevronRight className="h-5 w-5 shrink-0" aria-hidden />
+          </Link>
         </div>
       </div>
     </section>

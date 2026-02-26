@@ -7,6 +7,8 @@ import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  AlertCircle,
+  Check,
   ChevronDown,
   ChevronUp,
   Eye,
@@ -23,8 +25,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLogin } from '@/lib/hooks/use-auth';
 import { headerLoginSchema, type HeaderLoginValues } from '@/lib/validations/auth';
 import { getCdnImageUrl } from '@/lib/config';
-
-const MAGIC_OPTIONS = ['Magic', 'Yu-Gi-Oh!', 'Pokémon'] as const;
+import { useGame, GAME_OPTIONS } from '@/lib/contexts/GameContext';
 
 const AUTH_INPUT_HEIGHT = 'h-9';
 const AUTH_INPUT_WIDTH = 'w-36';
@@ -36,11 +37,13 @@ const FLASH_DURATION_MS = 4500;
 export function TopBar() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [magicValue, setMagicValue] = useState<string>(MAGIC_OPTIONS[0]);
+  const { selectedGame, setSelectedGame, gameDisplayName } = useGame();
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [acquistiMenuOpen, setAcquistiMenuOpen] = useState(false);
+  const [gamesMenuOpen, setGamesMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const acquistiMenuRef = useRef<HTMLDivElement>(null);
+  const gamesMenuRef = useRef<HTMLDivElement>(null);
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const flashMessage = useAuthStore((s) => s.flashMessage);
@@ -50,6 +53,10 @@ export function TopBar() {
   const cartCount = useCartStore((s) => s.getItemCount());
   const cartTotal = useCartStore((s) => s.getTotal());
   const [loginError, setLoginError] = useState<string | null>(null);
+  const lastFlashRef = useRef<string | null>(null);
+  const [toastExiting, setToastExiting] = useState(false);
+  const lastErrorRef = useRef<string | null>(null);
+  const [errorExiting, setErrorExiting] = useState(false);
 
   const formatEuro = (n: number) =>
     new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
@@ -109,13 +116,46 @@ export function TopBar() {
   };
 
   useEffect(() => {
+    if (flashMessage) {
+      lastFlashRef.current = flashMessage;
+      setToastExiting(false);
+    } else if (lastFlashRef.current != null) {
+      setToastExiting(true);
+    }
+  }, [flashMessage]);
+
+  useEffect(() => {
     if (!flashMessage) return;
-    // Auto-rimuovi il flash message dopo 4.5 secondi
-    const t = setTimeout(() => {
-      setFlashMessage(null);
-    }, FLASH_DURATION_MS);
+    const t = setTimeout(() => setFlashMessage(null), FLASH_DURATION_MS);
     return () => clearTimeout(t);
   }, [flashMessage, setFlashMessage]);
+
+  useEffect(() => {
+    if (!toastExiting) return;
+    const t = setTimeout(() => {
+      setToastExiting(false);
+      lastFlashRef.current = null;
+    }, 320);
+    return () => clearTimeout(t);
+  }, [toastExiting]);
+
+  useEffect(() => {
+    if (loginError) {
+      lastErrorRef.current = loginError;
+      setErrorExiting(false);
+    } else if (lastErrorRef.current != null) {
+      setErrorExiting(true);
+    }
+  }, [loginError]);
+
+  useEffect(() => {
+    if (!errorExiting) return;
+    const t = setTimeout(() => {
+      setErrorExiting(false);
+      lastErrorRef.current = null;
+    }, 320);
+    return () => clearTimeout(t);
+  }, [errorExiting]);
 
   useEffect(() => {
     if (!loginError) return;
@@ -148,32 +188,70 @@ export function TopBar() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [acquistiMenuOpen]);
 
-  const displayName = (user?.name || user?.email || 'Utente').toUpperCase();
+  useEffect(() => {
+    if (!gamesMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (gamesMenuRef.current && !gamesMenuRef.current.contains(e.target as Node)) {
+        setGamesMenuOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [gamesMenuOpen]);
+
+  /** Accorcia email (es. JROVERA05@GMAIL.COM → JROVERA05@GMAI...) o nome per occupare meno spazio in header */
+  const shortLabel = (() => {
+    const raw = user?.name || user?.email || 'Utente';
+    const s = raw.trim();
+    if (s.includes('@')) {
+      const [local, domain] = s.split('@');
+      const loc = (local || '').slice(0, 9);
+      const dom = (domain || '').slice(0, 4);
+      return `${loc}@${dom}${(domain?.length ?? 0) > 4 ? '…' : ''}`.toUpperCase();
+    }
+    return s.length > 12 ? `${s.slice(0, 12)}…` : s;
+  })();
   const balance = '0,00€';
 
   return (
     <>
-      {/* Messaggio "Login avvenuto con successo" (fixed in alto al centro) - Verde per successo */}
-      {flashMessage && (
+      {/* Toast successo: sotto la barra di ricerca, entra da destra e esce a destra */}
+      {(flashMessage || toastExiting) && (
         <div
-          className="fixed left-1/2 top-4 z-[60] -translate-x-1/2 rounded-lg px-5 py-2.5 text-sm font-medium text-white shadow-lg animate-in fade-in slide-in-from-top-2"
-          style={{ backgroundColor: '#22c55e' }}
+          className={cn(
+            'fixed right-6 z-[60] flex items-center gap-3 rounded-xl border border-gray-200/80 bg-white px-4 py-3 shadow-[0_4px_24px_rgba(0,0,0,0.12)]',
+            toastExiting ? 'toast-exit' : 'toast-enter'
+          )}
+          style={{ top: 200, borderLeft: '4px solid #22c55e' }}
           role="status"
           aria-live="polite"
         >
-          {flashMessage}
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+            <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+          </span>
+          <span className="text-sm font-medium text-gray-800">
+            {flashMessage ?? lastFlashRef.current}
+          </span>
         </div>
       )}
-      
-      {/* Messaggio di errore (fixed in alto al centro) - Rosso per errori */}
-      {loginError && (
+
+      {/* Toast errore (credenziali sbagliate ecc.): stessa posizione e animazione da destra */}
+      {(loginError || errorExiting) && (
         <div
-          className="fixed left-1/2 top-4 z-[60] -translate-x-1/2 rounded-lg px-5 py-2.5 text-sm font-medium text-white shadow-lg animate-in fade-in slide-in-from-top-2"
-          style={{ backgroundColor: '#ef4444' }}
+          className={cn(
+            'fixed right-6 z-[60] flex items-center gap-3 rounded-xl border border-gray-200/80 bg-white px-4 py-3 shadow-[0_4px_24px_rgba(0,0,0,0.12)]',
+            errorExiting ? 'toast-exit' : 'toast-enter'
+          )}
+          style={{ top: 200, borderLeft: '4px solid #ef4444' }}
           role="alert"
           aria-live="assertive"
         >
-          {loginError}
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+            <AlertCircle className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+          </span>
+          <span className="text-sm font-medium text-gray-800">
+            {loginError ?? lastErrorRef.current}
+          </span>
         </div>
       )}
 
@@ -189,7 +267,7 @@ export function TopBar() {
             aria-label="BRX Home"
           >
             <Image
-              src={getCdnImageUrl('landing/Logo%20Corto%20BRX.png')}
+              src={getCdnImageUrl('Logo%20Corto%20BRX.png')}
               alt="BRX"
               width={140}
               height={70}
@@ -199,32 +277,64 @@ export function TopBar() {
             />
           </Link>
 
-          <div className="relative ml-[3.25rem]">
-            <select
-              value={magicValue}
-              onChange={(e) => {
-                const v = e.target.value;
-                setMagicValue(v);
-                router.push('/home');
-              }}
+          <div className="relative ml-[3.25rem]" ref={gamesMenuRef}>
+            <button
+              type="button"
+              onClick={() => setGamesMenuOpen((o) => !o)}
               className={cn(
-                'appearance-none rounded-full px-4 py-1.5 pr-8 text-sm font-medium text-white',
+                'games-dropdown-trigger relative flex items-center gap-1 px-3 py-1.5 pr-7 text-sm font-medium',
                 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/40 focus:ring-offset-2 focus:ring-offset-[#1D3160]',
-                'transition-colors hover:opacity-90'
+                'transition-colors min-w-[100px] justify-between'
               )}
-              style={{ backgroundColor: '#FF7300' }}
+              aria-expanded={gamesMenuOpen}
+              aria-haspopup="true"
               aria-label="Seleziona gioco"
             >
-              {MAGIC_OPTIONS.map((opt) => (
-                <option key={opt} value={opt} className="bg-[#1D3160] text-white">
-                  {opt}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white"
-              aria-hidden
-            />
+              <span>{selectedGame ? gameDisplayName(selectedGame) : 'Seleziona gioco'}</span>
+              <span
+                className={cn(
+                  'pointer-events-none absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full transition-transform',
+                  'bg-[#FF7300]',
+                  gamesMenuOpen && 'rotate-180'
+                )}
+                aria-hidden
+              >
+                <ChevronDown className="h-3.5 w-3.5 text-white" strokeWidth={2} />
+              </span>
+            </button>
+            {gamesMenuOpen && (
+              <div
+                className="games-dropdown-menu absolute left-0 top-full z-[110] mt-1 min-w-[160px] px-2 py-2 shadow-xl"
+                role="menu"
+                aria-label="Menu giochi"
+              >
+                {GAME_OPTIONS.map((opt, i) => (
+                  <div key={opt.value}>
+                    {i > 0 && <div className="my-1 h-px bg-white/30" aria-hidden />}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedGame(opt.value);
+                        setGamesMenuOpen(false);
+                        router.push('/home');
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium uppercase tracking-wide transition-colors"
+                      role="menuitem"
+                    >
+                      <span
+                        className={cn(
+                          'h-2 w-2 shrink-0 rounded-full',
+                          opt.value === 'mtg' && 'bg-violet-500',
+                          opt.value === 'pokemon' && 'bg-amber-500',
+                          opt.value === 'op' && 'bg-red-500'
+                        )}
+                      />
+                      {opt.label}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -246,7 +356,7 @@ export function TopBar() {
             <div className="relative">
               <Input
                 type="text"
-                placeholder="Email o Username"
+                placeholder="Username"
                 autoComplete="email"
                 className={cn(
                   inputBase,
@@ -338,8 +448,8 @@ export function TopBar() {
         )}>
           {isAuthenticated && user ? (
             <>
-              {/* Menu centrale: User, Acquisti, Vendi, Carrello, Scambi, Aste — distribuiti in modo uniforme */}
-              <div className="flex flex-1 justify-evenly items-center gap-1 sm:gap-2 lg:gap-4 max-w-4xl mx-auto">
+              {/* Menu centrale: User, Acquisti, Vendi, Carrello, Scambi, Aste — spacing lineare e omogeneo (Figma) */}
+              <div className="flex flex-1 justify-evenly items-center gap-3 sm:gap-4 max-w-4xl mx-auto">
               {/* 1. Nome utente + icona */}
               <div className="relative flex items-center gap-2" ref={accountMenuRef}>
                 <button
@@ -373,11 +483,14 @@ export function TopBar() {
                       />
                     )}
                   </span>
-                  <span className="hidden max-w-[100px] truncate text-sm font-medium uppercase md:block lg:max-w-[140px]">
-                    {displayName}
+                  <span className="hidden max-w-[6.5rem] shrink-0 text-sm font-medium uppercase text-white md:block" title={user?.email ?? user?.name ?? undefined}>
+                    {shortLabel}
                   </span>
-                  <span className="hidden text-sm text-white sm:inline">({balance})</span>
-                  <span className="flex shrink-0 items-center justify-center text-white" aria-hidden>
+                  <span className="hidden text-sm text-white sm:inline shrink-0">({balance})</span>
+                  <span
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white"
+                    aria-hidden
+                  >
                     {accountMenuOpen ? (
                       <ChevronUp className="h-3.5 w-3.5" strokeWidth={2} />
                     ) : (
@@ -464,7 +577,10 @@ export function TopBar() {
                   <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
                     ACQUISTI
                   </span>
-                  <span className="flex shrink-0 items-center justify-center text-white" aria-hidden>
+                  <span
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white"
+                    aria-hidden
+                  >
                     {acquistiMenuOpen ? (
                       <ChevronUp className="h-3.5 w-3.5" strokeWidth={2} />
                     ) : (

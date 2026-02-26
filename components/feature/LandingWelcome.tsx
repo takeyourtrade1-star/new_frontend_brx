@@ -40,7 +40,7 @@ export function LandingWelcome() {
         <header className="flex items-center justify-center px-4 pt-4 pb-1">
           <div className="relative flex w-full max-w-5xl items-center justify-center">
             <Image
-              src={getCdnImageUrl('landing/Logo%20Principale%20EBARTEX.png')}
+              src={getCdnImageUrl('Logo%20Principale%20EBARTEX.png')}
               alt="ebartex"
               width={800}
               height={300}
@@ -63,7 +63,7 @@ export function LandingWelcome() {
 
         {/* Loghi giochi - sezione in fila, scroll orizzontale */}
         <section className="px-4 pb-6">
-          <div className="mx-auto max-w-[90rem] rounded-3xl border-2 border-white/90 px-10 py-8 sm:px-14 sm:py-10 md:px-20 md:py-12">
+          <div className="container-content rounded-3xl border-2 border-white/90 px-10 py-8 sm:px-14 sm:py-10 md:px-20 md:py-12">
             <div className="scrollbar-hide flex flex-nowrap items-center justify-center gap-10 overflow-x-auto sm:gap-14 md:gap-20 lg:gap-24">
               {GAME_LOGOS.map((game) => (
                 <Link

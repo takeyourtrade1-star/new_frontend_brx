@@ -62,7 +62,7 @@ export function Footer() {
       >
         <Link href="/" className="flex items-center" aria-label="Ebartex Home">
           <Image
-            src={getCdnImageUrl('landing/Logo%20Principale%20EBARTEX.png')}
+            src={getCdnImageUrl('Logo%20Principale%20EBARTEX.png')}
             alt="Ebartex"
             width={320}
             height={128}
@@ -80,7 +80,7 @@ export function Footer() {
         className="border-t-4 border-[#FF7300] px-4 py-10 text-white md:px-6 md:py-14"
         style={{ backgroundColor: HEADER_BG }}
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-7xl 2xl:max-w-[100rem] 3xl:max-w-[120rem] px-4 md:px-6">
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5">
             {FOOTER_COLUMNS.map((col) => (
               <div key={col.title}>

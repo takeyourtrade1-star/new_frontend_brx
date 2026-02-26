@@ -8,20 +8,21 @@ import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme-context';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLogout } from '@/lib/hooks/use-auth';
+import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
 
 const MENU_BG = '#ff6b00';
 const SEPARATOR = 'rgba(255,255,255,0.25)';
 const FLAG_BASE = 'https://flagcdn.com';
 
-/** Stesse lingue usate in registrati/account-form */
-const LINGUE = [
-  { id: 'it' as const, label: 'ITALIANO', countryCode: 'it' },
-  { id: 'ja' as const, label: 'GIAPPONESE', countryCode: 'jp' },
-  { id: 'en' as const, label: 'INGLESE', countryCode: 'gb' },
-  { id: 'es' as const, label: 'SPAGNOLO', countryCode: 'es' },
-  { id: 'de' as const, label: 'TEDESCO', countryCode: 'de' },
-  { id: 'fr' as const, label: 'FRANCESE', countryCode: 'fr' },
-] as const;
+/** Codice lingua (LanguageContext) → codice paese per bandiera flagcdn */
+const LANG_TO_COUNTRY: Record<string, string> = {
+  en: 'gb',
+  de: 'de',
+  es: 'es',
+  fr: 'fr',
+  it: 'it',
+  pt: 'pt',
+};
 
 const menuItems = [
   { label: 'Ricerca utente', href: '/search' },
@@ -39,14 +40,15 @@ const AUTH_ITEMS = [
 export function HamburgerMenu() {
   const [open, setOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  const [linguaId, setLinguaId] = useState<(typeof LINGUE)[number]['id']>('it');
+  const { selectedLang, setSelectedLang, availableLangs } = useLanguage();
   const [linguaDropdownOpen, setLinguaDropdownOpen] = useState(false);
   const linguaDropdownRef = useRef<HTMLDivElement>(null);
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const logoutMutation = useLogout();
 
-  const currentLingua = LINGUE.find((l) => l.id === linguaId) ?? LINGUE[0];
+  const currentLangLabel = (LANGUAGE_NAMES[selectedLang] ?? selectedLang).toUpperCase();
+  const currentCountryCode = LANG_TO_COUNTRY[selectedLang] ?? selectedLang;
   const isDark = theme === 'dark';
 
   const handleLogout = async () => {
@@ -84,15 +86,18 @@ export function HamburgerMenu() {
 
   return (
     <>
-      {/* Trigger: solo le tre linee (hamburger) - z-index alto per essere sopra tutto */}
+      {/* Trigger: nascosto quando il pannello è aperto per evitare sovrapposizione con la X */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="relative z-[10001] -mr-2 flex h-12 w-12 shrink-0 items-center justify-center text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
+        className={cn(
+          'relative z-[10001] -mr-2 flex h-12 w-12 shrink-0 items-center justify-center text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]',
+          open && 'pointer-events-none invisible'
+        )}
         aria-label="Apri menu"
         aria-expanded={open}
       >
-        <Menu className="h-8 w-8" strokeWidth={2.5} aria-hidden />
+        <Menu className="h-8 w-8 shrink-0" strokeWidth={2.5} aria-hidden />
       </button>
 
       {/* Overlay (sopra tutto, incluso barra di ricerca) */}
@@ -218,10 +223,10 @@ export function HamburgerMenu() {
               aria-haspopup="listbox"
               aria-label="Seleziona lingua"
             >
-              <span>{currentLingua.label}</span>
+              <span>{currentLangLabel}</span>
               <div className="flex items-center gap-2">
                 <Image
-                  src={`${FLAG_BASE}/w40/${currentLingua.countryCode}.png`}
+                  src={`${FLAG_BASE}/w40/${currentCountryCode}.png`}
                   alt=""
                   width={24}
                   height={16}
@@ -240,28 +245,28 @@ export function HamburgerMenu() {
                 style={{ backgroundColor: MENU_BG, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}
                 role="listbox"
               >
-                {LINGUE.map((lang) => (
-                  <li key={lang.id} role="option" aria-selected={linguaId === lang.id}>
+                {availableLangs.map((lang) => (
+                  <li key={lang} role="option" aria-selected={selectedLang === lang}>
                     <button
                       type="button"
                       onClick={() => {
-                        setLinguaId(lang.id);
+                        setSelectedLang(lang);
                         setLinguaDropdownOpen(false);
                       }}
                       className={cn(
                         'flex w-full items-center gap-3 px-5 py-3 text-left text-sm font-semibold uppercase tracking-wide text-white transition-opacity hover:opacity-90',
-                        linguaId === lang.id && 'opacity-100'
+                        selectedLang === lang && 'opacity-100'
                       )}
                     >
                       <Image
-                        src={`${FLAG_BASE}/w40/${lang.countryCode}.png`}
+                        src={`${FLAG_BASE}/w40/${LANG_TO_COUNTRY[lang] ?? lang}.png`}
                         alt=""
                         width={24}
                         height={16}
                         className="h-4 w-6 shrink-0 rounded object-cover"
                         unoptimized
                       />
-                      {lang.label}
+                      {(LANGUAGE_NAMES[lang] ?? lang).toUpperCase()}
                     </button>
                   </li>
                 ))}

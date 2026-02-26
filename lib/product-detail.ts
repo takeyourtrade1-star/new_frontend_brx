@@ -69,6 +69,7 @@ const GAME_LABELS: Record<string, string> = {
   mtg: 'MAGIC: THE GATHERING',
   op: 'ONE PIECE',
   pk: 'POKÉMON',
+  pokemon: 'POKÉMON',
 };
 
 export function getGameLabel(gameSlug: string): string {

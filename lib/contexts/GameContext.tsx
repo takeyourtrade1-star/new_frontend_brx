@@ -2,11 +2,11 @@
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
-export type GameSlug = 'mtg' | 'pk' | 'op';
+export type GameSlug = 'mtg' | 'pokemon' | 'op';
 
 export const GAME_OPTIONS: { value: GameSlug; label: string; color: string }[] = [
   { value: 'mtg', label: 'Magic', color: 'violet' },
-  { value: 'pk', label: 'Pokémon', color: 'yellow' },
+  { value: 'pokemon', label: 'Pokémon', color: 'yellow' },
   { value: 'op', label: 'One Piece', color: 'red' },
 ];
 
@@ -25,7 +25,7 @@ function getStoredGame(): GameSlug | null {
   if (typeof window === 'undefined') return null;
   try {
     const stored = localStorage.getItem(GAME_STORAGE_KEY);
-    if (stored && (stored === 'mtg' || stored === 'pk' || stored === 'op')) {
+    if (stored && (stored === 'mtg' || stored === 'pokemon' || stored === 'op')) {
       return stored;
     }
   } catch {

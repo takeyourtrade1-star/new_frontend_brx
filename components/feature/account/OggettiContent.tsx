@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, Loader2, Pencil, Search, ShoppingCart, Trash2, X, CheckSquare, Square, Download, FileJson, FileSpreadsheet } from 'lucide-react';
+import { Home, Loader2, Pencil, Search, ShoppingCart, Trash2, X, CheckSquare, Square, Download, FileJson, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { syncClient } from '@/lib/api/sync-client';
@@ -27,7 +27,7 @@ function buildImageUrl(raw: string | null | undefined): string | null {
   return ASSETS.cdnUrl ? `${ASSETS.cdnUrl}${withSlash}` : withSlash;
 }
 
-const DEFAULT_IMAGE = getCdnImageUrl('landing/Logo%20Principale%20EBARTEX.png');
+const DEFAULT_IMAGE = getCdnImageUrl('Logo%20Principale%20EBARTEX.png');
 
 /** Codice lingua (dalla singola riga inventario) → etichetta per visualizzazione. */
 const LANG_CODE_TO_LABEL: Record<string, string> = {
@@ -347,6 +347,8 @@ function OggettiTable({
   onToggleSelect,
   onSelectAll,
   onDeselectAll,
+  onSelectAllPage,
+  onDeselectAllPage,
   onDeleteSelected,
   bulkDeleting,
 }: {
@@ -363,6 +365,9 @@ function OggettiTable({
   onToggleSelect?: (id: number) => void;
   onSelectAll?: () => void;
   onDeselectAll?: () => void;
+  /** Se presente, la checkbox in intestazione seleziona/deseleziona solo la pagina corrente. */
+  onSelectAllPage?: () => void;
+  onDeselectAllPage?: () => void;
   onDeleteSelected?: (ids: number[]) => void;
   bulkDeleting?: boolean;
 }) {
@@ -377,6 +382,8 @@ function OggettiTable({
   const allSelected = selectionMode && items.length > 0 && items.every((i) => selectedIds!.has(i.id));
   const someSelected = selectionMode && items.some((i) => selectedIds!.has(i.id));
   const selectedCount = selectionMode ? items.filter((i) => selectedIds!.has(i.id)).length : 0;
+  const selectAllHandler = onSelectAllPage ?? onSelectAll;
+  const deselectAllHandler = onDeselectAllPage ?? onDeselectAll;
 
   const handlePurchase = async (item: InventoryItemWithCatalog) => {
     const qty = Math.min(1, item.quantity);
@@ -528,10 +535,10 @@ function OggettiTable({
                 <th className="w-0 p-2 font-semibold text-gray-700 dark:text-gray-200">
                   <button
                     type="button"
-                    onClick={() => (allSelected ? onDeselectAll?.() : onSelectAll?.())}
+                    onClick={() => (allSelected ? deselectAllHandler?.() : selectAllHandler?.())}
                     className="inline-flex items-center justify-center rounded p-1 text-gray-600 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-600"
-                    title={allSelected ? 'Deseleziona tutte' : 'Seleziona tutte'}
-                    aria-label={allSelected ? 'Deseleziona tutte' : 'Seleziona tutte'}
+                    title={allSelected ? (onDeselectAllPage ? 'Deseleziona pagina' : 'Deseleziona tutte') : (onSelectAllPage ? 'Seleziona pagina' : 'Seleziona tutte')}
+                    aria-label={allSelected ? 'Deseleziona' : 'Seleziona pagina'}
                   >
                     {allSelected ? (
                       <CheckSquare className="h-5 w-5 text-[#FF7300]" aria-hidden />
@@ -783,7 +790,7 @@ export function OggettiContent() {
     return { singole, oggetti };
   }, [inventoryItems]);
 
-  /** KPI: totale oggetti unici, totale oggetti (somma quantità), valore totale (quantità × prezzo). Con ricerca attiva si riferiscono ai risultati filtrati. */
+  /** KPI: totale oggetti unici, totale oggetti (somma quantità), valore totale (quantità × prezzo). Calcolati su tutti i dati filtrati (precisi). */
   const totalUnique = filteredInventoryItems.length;
   const totalQuantity = useMemo(
     () => filteredInventoryItems.reduce((sum, item) => sum + (item.quantity ?? 0), 0),
@@ -806,6 +813,27 @@ export function OggettiContent() {
           maximumFractionDigits: 2,
         }).format(totalValueCents / 100)
       : '—';
+  /** Carte in inventario = righe di tipo "singole" nella vista corrente. */
+  const cardsInView = useMemo(
+    () => filteredInventoryItems.filter((item) => getItemKind(item) === 'singole').length,
+    [filteredInventoryItems]
+  );
+
+  const ITEMS_PER_PAGE = 200;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filteredInventoryItems.length / ITEMS_PER_PAGE));
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredInventoryItems.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredInventoryItems, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [kindFilter, inventorySearchQuery]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(Math.max(1, totalPages));
+  }, [currentPage, totalPages]);
 
   useEffect(() => {
     if (!syncBanner) return;
@@ -835,21 +863,34 @@ export function OggettiContent() {
     return () => { cancelled = true; };
   }, [user?.id, accessToken]);
 
+  /** Carica tutto l'inventario (pagine da 500) per avere dati completi e KPIs corrette. */
   const loadInventory = useCallback(async () => {
     if (!user?.id || !accessToken) return;
     try {
-      const res = await syncClient.getInventory(user.id, accessToken, 500, 0);
-      const items = res.items ?? [];
-      setTotal(res.total ?? items.length);
+      const allItems: InventoryItemResponse[] = [];
+      const pageSize = 500;
+      let offset = 0;
+      let totalFromApi = 0;
 
-      const blueprintIds = [...new Set(items.map((i) => i.blueprint_id).filter(Boolean))] as number[];
+      do {
+        const res = await syncClient.getInventory(user.id, accessToken, pageSize, offset);
+        const items = res.items ?? [];
+        totalFromApi = res.total ?? allItems.length + items.length;
+        allItems.push(...items);
+        offset += items.length;
+        if (items.length < pageSize || offset >= totalFromApi) break;
+      } while (true);
+
+      setTotal(totalFromApi);
+
+      const blueprintIds = [...new Set(allItems.map((i) => i.blueprint_id).filter(Boolean))] as number[];
       let blueprintToCard: Record<number, CardCatalogHit> = {};
       if (blueprintIds.length > 0) {
         const map = await fetchCardsByBlueprintIds(blueprintIds);
         blueprintToCard = { ...map };
       }
 
-      const merged: InventoryItemWithCatalog[] = items.map((item) => ({
+      const merged: InventoryItemWithCatalog[] = allItems.map((item) => ({
         ...item,
         card: blueprintToCard[item.blueprint_id],
       }));
@@ -901,6 +942,22 @@ export function OggettiContent() {
   }, [filteredInventoryItems]);
 
   const onDeselectAll = useCallback(() => setSelectedIds(new Set()), []);
+
+  const onSelectAllPage = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      paginatedItems.forEach((i) => next.add(i.id));
+      return next;
+    });
+  }, [paginatedItems]);
+
+  const onDeselectAllPage = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      paginatedItems.forEach((i) => next.delete(i.id));
+      return next;
+    });
+  }, [paginatedItems]);
 
   const onDeleteSelected = useCallback(
     async (ids: number[]) => {
@@ -995,8 +1052,8 @@ export function OggettiContent() {
         <span className="text-white">I MIEI OGGETTI</span>
       </nav>
 
-      {/* KPI: totale oggetti unici, totale oggetti, valore totale collezione */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
+      {/* KPI: totale oggetti unici, totale oggetti, valore totale collezione, carte in inventario (calcoli sul totale filtrato) */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
         <div className="rounded-xl border border-white/20 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
           <p className="text-xs font-medium uppercase tracking-wider text-white/60">Totale oggetti unici</p>
           <p className="mt-1 text-2xl font-bold tabular-nums text-white">
@@ -1028,6 +1085,15 @@ export function OggettiContent() {
             {kindFilter !== 'all' || inventorySearchQuery.trim()
               ? 'valore in vista'
               : 'prezzo × quantità'}
+          </p>
+        </div>
+        <div className="rounded-xl border border-white/20 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
+          <p className="text-xs font-medium uppercase tracking-wider text-white/60">Carte in inventario</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-white">
+            {loading ? '—' : cardsInView}
+          </p>
+          <p className="mt-0.5 text-xs text-white/50">
+            {kindFilter === 'singole' ? 'solo singole' : kindFilter === 'all' ? 'righe tipo carte' : '—'}
           </p>
         </div>
       </div>
@@ -1252,7 +1318,7 @@ export function OggettiContent() {
             </div>
           )}
           <OggettiTable
-            items={filteredInventoryItems}
+            items={paginatedItems}
             buildImageUrl={buildImageUrl}
             defaultImage={DEFAULT_IMAGE}
             userId={user.id}
@@ -1272,9 +1338,68 @@ export function OggettiContent() {
             onToggleSelect={onToggleSelect}
             onSelectAll={onSelectAll}
             onDeselectAll={onDeselectAll}
+            onSelectAllPage={onSelectAllPage}
+            onDeselectAllPage={onDeselectAllPage}
             onDeleteSelected={(ids) => onDeleteSelected(ids)}
             bulkDeleting={bulkDeleting}
           />
+          {totalPages > 1 && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-white/20 bg-white/5 px-4 py-3 dark:border-gray-600 dark:bg-gray-800/50">
+              <p className="text-sm text-white/80">
+                Pagina <span className="font-semibold text-white">{currentPage}</span> di{' '}
+                <span className="font-semibold text-white">{totalPages}</span>
+                {' · '}
+                <span className="text-white/60">{ITEMS_PER_PAGE} per pagina</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="inline-flex items-center gap-1 rounded-lg border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  aria-label="Pagina precedente"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Precedente
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+                    let pageNum: number;
+                    if (totalPages <= 7) pageNum = i + 1;
+                    else if (currentPage <= 4) pageNum = i + 1;
+                    else if (currentPage >= totalPages - 3) pageNum = totalPages - 6 + i;
+                    else pageNum = currentPage - 3 + i;
+                    return (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`min-w-[2.25rem] rounded-lg border px-2 py-1.5 text-sm font-medium transition-colors ${
+                          currentPage === pageNum
+                            ? 'border-[#FF7300] bg-[#FF7300] text-white'
+                            : 'border-white/30 bg-white/10 text-white hover:bg-white/20'
+                        }`}
+                        aria-label={`Pagina ${pageNum}`}
+                        aria-current={currentPage === pageNum ? 'page' : undefined}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="inline-flex items-center gap-1 rounded-lg border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  aria-label="Pagina successiva"
+                >
+                  Successiva
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

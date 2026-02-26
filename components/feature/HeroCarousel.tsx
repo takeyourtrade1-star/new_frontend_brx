@@ -1,32 +1,31 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCdnImageUrl } from '@/lib/config';
 
-/** Immagini del carousel (da CDN /images/carousel/). */
-const getSlides = () => [
-  { src: getCdnImageUrl('carousel/slide1.jpg'), alt: 'Carte da collezione e monete su tavolo' },
-  { src: getCdnImageUrl('carousel/slide2.jpg'), alt: 'Carte fantasy e accessori da gioco' },
-  { src: getCdnImageUrl('carousel/slide3.jpg'), alt: 'Tavolo di gioco in paesaggio fantasy' },
-];
-
+const SLIDE_COUNT = 3;
 const AUTO_PLAY_INTERVAL_MS = 4500;
 
+const HERO_SLIDES = [
+  getCdnImageUrl('carousel/slide1.jpg'),
+  getCdnImageUrl('carousel/slide2.jpg'),
+  getCdnImageUrl('carousel/slide3.jpg'),
+];
+
 export function HeroCarousel() {
-  const SLIDES = useMemo(() => getSlides(), []);
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   const goNext = useCallback(() => {
-    setCurrent((prev) => (prev + 1) % SLIDES.length);
-  }, [SLIDES.length]);
+    setCurrent((prev) => (prev + 1) % SLIDE_COUNT);
+  }, []);
 
   const goPrev = useCallback(() => {
-    setCurrent((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
-  }, [SLIDES.length]);
+    setCurrent((prev) => (prev - 1 + SLIDE_COUNT) % SLIDE_COUNT);
+  }, []);
 
   useEffect(() => {
     if (isPaused) return;
@@ -43,23 +42,26 @@ export function HeroCarousel() {
       onBlur={() => setIsPaused(false)}
     >
       <div className="relative aspect-[1200/480] w-full max-h-[480px]">
-        {SLIDES.map((slide, index) => (
+        {Array.from({ length: SLIDE_COUNT }).map((_, index) => (
           <div
-            key={slide.src}
+            key={index}
             className={cn(
               'absolute inset-0 transition-opacity duration-500 ease-out',
               index === current ? 'opacity-100 z-10' : 'opacity-0 z-0'
             )}
+            aria-hidden={index !== current}
           >
-            <Image
-              src={slide.src}
-              alt={slide.alt}
-              fill
-              className="object-cover"
-              sizes="100vw"
-              priority={index === 0}
-              unoptimized
-            />
+            <div className="relative h-full w-full">
+              <Image
+                src={HERO_SLIDES[index]}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="(max-width: 1200px) 100vw, 1200px"
+                priority={index === 0}
+                unoptimized
+              />
+            </div>
           </div>
         ))}
       </div>
@@ -84,7 +86,7 @@ export function HeroCarousel() {
 
       {/* Pallini */}
       <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
-        {SLIDES.map((_, index) => (
+        {Array.from({ length: SLIDE_COUNT }).map((_, index) => (
           <button
             key={index}
             type="button"

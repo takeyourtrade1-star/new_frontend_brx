@@ -79,7 +79,7 @@
     min-height: 100%;
   }
   body {
-    @apply transition-colors duration-300 min-h-screen;
+    @apply transition-colors duration-300 min-h-screen font-medium;
     /* Sfondo: gradiente palette + pattern BRX (da CDN se NEXT_PUBLIC_CDN_URL impostato) */
     background-image:
       linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)),
@@ -120,27 +120,19 @@
 }
 
 /* Menu Prodotti: solo il pezzo blu chiaro a SINISTRA che "esce" un pochino al hover */
+/* Hover come altri menu a tendina: solo sottolineatura */
 .prodotti-menu-item {
-  position: relative;
+  text-decoration: none;
 }
-.prodotti-menu-item::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -4px;
-  width: 8px;
-  height: 100%;
-  background: transparent;
-  transition: background-color 0.2s ease;
-}
-.prodotti-menu-item:hover::after,
-.prodotti-menu-item:focus-visible::after {
-  background-color: #fff;
+.prodotti-menu-item:hover,
+.prodotti-menu-item:focus-visible {
+  text-decoration: underline;
 }
 
-/* Marquee: gradiente F3C76A, margine superiore ridotto per spostare in alto */
+/* Marquee: font COMODO, oro in gradiente verso il basso */
 .marquee {
-  background: linear-gradient(90deg, #F3C76A 0%, #e5b85c 100%);
+  font-family: var(--font-comodo), sans-serif;
+  background: linear-gradient(180deg, #F3C76A 0%, #e5b85c 50%, #d4a84b 100%);
   margin-top: 0;
 }
 
@@ -230,6 +222,44 @@
   display: none;
 }
 
+/* Contenitore principale responsive: su schermi larghi usa più spazio (evita tutto accentrato) */
+.container-content {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 90rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+@media (min-width: 640px) {
+  .container-content {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+@media (min-width: 768px) {
+  .container-content {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .container-content {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+@media (min-width: 1536px) {
+  .container-content {
+    max-width: 100rem;
+  }
+}
+@media (min-width: 1920px) {
+  .container-content {
+    max-width: 120rem;
+  }
+}
+
 /* Animazione modale export collezione */
 @keyframes export-modal-in {
   from {
@@ -243,4 +273,327 @@
 }
 .animate-export-modal-in {
   animation: export-modal-in 0.2s ease-out forwards;
+}
+
+/* Toast flash (login/error): entra da destra, esce a destra – sotto la barra di ricerca */
+@keyframes toast-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes toast-slide-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+.toast-enter {
+  animation: toast-slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.toast-exit {
+  animation: toast-slide-out-right 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* Barra di ricerca: effetto vetro (glass), bordo e testo più chiari */
+.search-container {
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Stato aperto: bordo arancione solo sulla barra (sottile, meno arrotondato), sfondo bianco */
+.search-container.search-container--open {
+  background: #fff !important;
+  border: 1px solid #ff7300 !important;
+  border-radius: 12px !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Pannello ricerca aperto: sotto la barra, vetro e bordi rotondi in basso */
+.search-panel {
+  border-radius: 0 0 50px 50px;
+  background: rgba(29, 49, 96, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-top: none;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+.search-panel-header {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.95);
+}
+.search-panel-body {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 0 0 50px 50px;
+}
+.search-panel-input-wrap {
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.search-panel-input-wrap input {
+  color: rgba(255, 255, 255, 0.9);
+}
+.search-panel-input-wrap input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+/* Menu Categorie dentro il pannello: sempre visibile, sopra tutto */
+.search-panel .categorie-dropdown {
+  z-index: 1010;
+}
+
+/* Testo e placeholder nella barra: più chiari per leggibilità */
+.search-container .search-bar-text,
+.search-container input::placeholder {
+  color: rgba(255, 255, 255, 0.65);
+}
+.search-container input {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Con suggerimenti aperti: testo nero e placeholder grigio */
+.search-container--open input {
+  color: #111 !important;
+}
+.search-container--open input::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Pulsante "Categorie" dentro la barra: stesso arrotondamento della barra (pill 50px), mini-effetto glass */
+.category-split {
+  border-radius: 50px;
+  overflow: hidden;
+  background: rgba(10, 10, 15, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.category-split button {
+  border-radius: 50px;
+}
+
+/* Menu a tendina Categorie (scelta gioco): più rotondo, stesso bordo della barra di ricerca */
+.categorie-dropdown {
+  border-radius: 28px;
+  background: rgba(20, 25, 45, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.categorie-dropdown button {
+  color: rgba(255, 255, 255, 0.95);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+.categorie-dropdown button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Menu lingua: stessa grafica glass, padding compatto */
+.lang-dropdown-trigger {
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+.lang-dropdown-trigger:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.lang-dropdown-menu {
+  border-radius: 20px;
+  background: rgba(20, 25, 45, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.lang-dropdown-menu button {
+  color: rgba(255, 255, 255, 0.95);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+.lang-dropdown-menu button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.lang-dropdown-menu button.lang-dropdown-selected {
+  background: rgba(255, 255, 255, 0.15);
+  font-weight: 600;
+}
+
+/* Menu giochi in alto a sinistra: stessa grafica glass, padding compatto */
+.games-dropdown-trigger {
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.95);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+.games-dropdown-trigger:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.games-dropdown-menu {
+  border-radius: 20px;
+  background: rgba(20, 25, 45, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.games-dropdown-menu button {
+  color: rgba(255, 255, 255, 0.95);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+.games-dropdown-menu button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ===== HitCard (schermata Scambi / AsteScreen) ===== */
+.hit-card {
+  width: 400px;
+  height: 220px;
+  border-radius: 34px;
+  padding: 0;
+  position: relative;
+  color: white;
+  box-shadow: 0 1px 40px rgba(0, 0, 0, 1), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: all 0.85s cubic-bezier(0.23, 1, 0.32, 1);
+  overflow: hidden;
+  user-select: none;
+  cursor: pointer;
+  font-family: var(--font-comodo), sans-serif;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: radial-gradient(white, black);
+}
+.hit-card.hit-card-active {
+  box-shadow: 0 1px 40px rgba(0, 0, 0, 1), inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+.hit-card-content {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+.hit-card-left {
+  width: 250px;
+  height: 100%;
+  padding: 30px 16px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.85s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.hit-card-title {
+  font-size: 24px;
+  font-weight: 400;
+  margin: 0;
+  text-transform: uppercase;
+  color: white;
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: all 0.85s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.hit-card-item-name {
+  font-size: 14px;
+  margin: 6px 0 0 0;
+  opacity: 0.8;
+  color: #e8e8e8;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+.hit-card-bottom-info {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hit-card-condition-text,
+.hit-card-details-text {
+  font-size: 14px;
+  margin: 0;
+  opacity: 0.8;
+  color: #e8e8e8;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+.hit-card-right {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.hit-card-img-box {
+  width: 142px;
+  height: 142px;
+  background: transparent;
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 80px rgba(255, 255, 255, 0.4);
+  overflow: hidden;
+  transition: all 0.85s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.hit-card-actual-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.hit-card:hover .hit-card-actual-img {
+  transform: scale(1.1);
+}
+.hit-card-badge {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: #ff5a00;
+  color: white;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  z-index: 10;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(255, 90, 0, 0.3);
+}
+.aste-hits-mode-all .hit-card {
+  width: 440px;
+  height: 240px;
+}
+.aste-hits-mode-all .hit-card-img-box {
+  width: 174px;
+  height: 174px;
+}
+.aste-hits-mode-all .hit-card-left {
+  width: 246px;
+  padding: 30px 16px 24px 34px;
+}
+.aste-hits-mode-all .hit-card-title {
+  font-size: 26px;
 }
