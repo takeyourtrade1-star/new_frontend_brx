@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Pencil } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Home, Pencil, Plus } from 'lucide-react';
 import type { Address } from '@/types';
 
 const MOCK_ADDRESSES: Address[] = [
@@ -19,7 +18,7 @@ const MOCK_ADDRESSES: Address[] = [
 
 function AddressCard({ address }: { address: Address }) {
   return (
-    <div className="relative flex flex-col rounded-lg bg-[#E8EAED] p-5 shadow-sm">
+    <div className="relative flex flex-col rounded-none bg-[#E8EAED] p-5 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <Home className="h-5 w-5 text-[#FF7300]" aria-hidden />
         <h3 className="text-base font-bold uppercase tracking-wide text-[#374151]">
@@ -37,7 +36,7 @@ function AddressCard({ address }: { address: Address }) {
       <div className="mt-4 flex justify-end">
         <button
           type="button"
-          className="rounded-full p-2 text-[#FF7300] transition-colors hover:bg-[#FF7300]/10"
+          className="rounded-none p-2 text-[#FF7300] transition-colors hover:bg-[#FF7300]/10"
           aria-label={`Modifica indirizzo ${address.label}`}
         >
           <Pencil className="h-5 w-5" />
@@ -51,43 +50,43 @@ export function IndirizziContent() {
   const addresses = MOCK_ADDRESSES;
 
   return (
-    <div className="text-white">
+    <div className="text-gray-900">
       {/* Breadcrumb */}
       <nav
-        className="mb-6 flex items-center gap-2 text-sm text-white/90"
+        className="mb-6 flex items-center gap-2 text-sm text-gray-700"
         aria-label="Breadcrumb"
       >
-        <Link href="/account" className="hover:text-white" aria-label="Account">
+        <Link href="/account" className="hover:text-gray-900" aria-label="Account">
           <Home className="h-4 w-4" />
         </Link>
-        <span className="text-white/60">/</span>
+        <span className="text-gray-400">/</span>
         <span>ACCOUNT</span>
-        <span className="text-white/60">/</span>
-        <span className="text-white">INDIRIZZI</span>
+        <span className="text-gray-400">/</span>
+        <span className="text-gray-900">INDIRIZZI</span>
       </nav>
 
-      <h1 className="mb-8 text-2xl font-bold uppercase tracking-wide text-white sm:text-3xl">
+      <h1 className="mb-8 text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">
         INDIRIZZI
       </h1>
 
-      <div className="grid gap-6 sm:grid-cols-[1fr_auto] lg:grid-cols-[minmax(0,360px)_minmax(0,420px)]">
+      <div className="flex flex-wrap gap-4">
         {/* Lista indirizzi */}
-        <div className="flex flex-col gap-4">
-          {addresses.map((addr) => (
-            <AddressCard key={addr.id} address={addr} />
-          ))}
-        </div>
+        {addresses.map((addr) => (
+          <AddressCard key={addr.id} address={addr} />
+        ))}
 
-        {/* Box Aggiungi indirizzo */}
-        <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg bg-[#1D3160] p-8">
-          <Button
-            asChild
-            className="h-12 rounded-lg px-6 text-base font-semibold uppercase tracking-wide text-white hover:opacity-90"
-            style={{ backgroundColor: '#FF7300' }}
-          >
-            <Link href="#">AGGIUNGI INDIRIZZO</Link>
-          </Button>
-        </div>
+        {/* Card Aggiungi indirizzo: stessa dimensione delle card indirizzo */}
+        <Link
+          href="#"
+          className="group flex min-h-[160px] w-full max-w-[280px] flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-gray-300 bg-white p-6 text-gray-500 transition-all hover:border-[#FF7300] hover:text-[#FF7300] sm:w-[280px]"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-current transition-colors">
+            <Plus className="h-5 w-5" strokeWidth={2.5} />
+          </span>
+          <span className="text-sm font-semibold uppercase tracking-wide">
+            Aggiungi indirizzo
+          </span>
+        </Link>
       </div>
     </div>
   );

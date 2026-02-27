@@ -27,10 +27,6 @@ const SIDEBAR_SECTIONS: SidebarLink[][] = [
   ],
 ];
 
-function SidebarDivider() {
-  return <hr className="my-2 border-t border-white/20" aria-hidden />;
-}
-
 export function AccountSidebar() {
   const pathname = usePathname();
 
@@ -40,50 +36,24 @@ export function AccountSidebar() {
       : pathname.startsWith(href);
   }
 
-  const sidebarTitle =
-    pathname === '/account/sincronizzazione'
-      ? 'SINCRONIZZAZIONE'
-      : pathname === '/account/credito'
-          ? 'CREDITO'
-          : pathname === '/account/coupon'
-            ? 'COUPON'
-            : pathname === '/account/transazioni'
-              ? 'TRANSAZIONI'
-              : pathname === '/account/statistiche'
-                ? 'STATISTICHE'
-                : pathname === '/account/sicurezza'
-                  ? 'SICUREZZA'
-                  : pathname.startsWith('/account/impostazioni')
-                    ? 'IMPOSTAZIONI'
-                    : pathname === '/account/downloads'
-                      ? 'DOWNLOADS'
-                      : pathname === '/account/profilo'
-                        ? 'Profilo'
-                        : pathname === '/account/messaggi'
-                          ? 'I MIEI MESSAGGI'
-                          : pathname === '/account/indirizzi'
-                            ? 'INDIRIZZI'
-                            : 'Account';
-
   return (
-    <aside className="w-72 shrink-0 border-r-2 border-white/30 pr-8">
-      <h2 className="mb-5 text-3xl font-bold uppercase tracking-wide text-white">
-        {sidebarTitle}
-      </h2>
-      <nav className="-ml-12 mt-20 flex flex-col" aria-label="Menu account">
+    <aside className="w-56 shrink-0 border-r border-gray-300">
+      <nav className="flex flex-col" aria-label="Menu account">
         {SIDEBAR_SECTIONS.map((section, sectionIndex) => (
           <div key={sectionIndex}>
-            {sectionIndex > 0 && <SidebarDivider />}
-            <div className="flex flex-col gap-1">
+            {sectionIndex > 0 && (
+              <div className="my-1 h-px bg-gray-200" aria-hidden />
+            )}
+            <div className="flex flex-col">
               {section.map(({ href, label }) => (
                 <Link
                   key={href}
                   href={href}
                   className={cn(
-                    'relative flex items-center rounded-r-lg border-l-4 py-3 pl-0 pr-4 text-base font-medium uppercase tracking-wide transition-colors',
+                    'flex items-center border-l-4 py-2.5 pl-4 pr-3 text-sm font-semibold uppercase tracking-wide transition-colors',
                     isActive(href)
-                      ? 'border-[#FF7300] bg-[#FF7300] text-white'
-                      : 'border-transparent text-white hover:bg-white/10'
+                      ? 'border-[#FF7300] bg-[#FF7300]/8 text-[#FF7300]'
+                      : 'border-transparent text-gray-700 hover:border-gray-300 hover:bg-gray-100 hover:text-gray-900'
                   )}
                 >
                   {label}

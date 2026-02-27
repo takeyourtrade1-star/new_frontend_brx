@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { Home, ChevronDown } from 'lucide-react';
@@ -8,29 +8,29 @@ import { Input } from '@/components/ui/input';
 
 export function CouponContent() {
   return (
-    <div className="text-white">
+    <div className="text-gray-900">
       {/* Breadcrumb */}
       <nav
-        className="mb-6 flex items-center gap-2 text-sm text-white/90"
+        className="mb-6 flex items-center gap-2 text-sm text-gray-700"
         aria-label="Breadcrumb"
       >
-        <Link href="/account" className="hover:text-white" aria-label="Account">
+        <Link href="/account" className="hover:text-gray-900" aria-label="Account">
           <Home className="h-4 w-4" />
         </Link>
-        <span className="text-white/60">/</span>
+        <span className="text-gray-400">/</span>
         <span>ACCOUNT</span>
-        <span className="text-white/60">/</span>
-        <span className="text-white">COUPON</span>
+        <span className="text-gray-400">/</span>
+        <span className="text-gray-900">COUPON</span>
       </nav>
 
-      <p className="mb-8 mt-8 text-white/90">
+      <p className="mb-8 mt-8 text-gray-700">
         QUI TROVI UN ELENCO DI TUTTI I COUPON CHE HAI ACQUISTATO IN PASSATO.
       </p>
 
       <div className="mb-10 flex justify-start">
         <Button
           type="button"
-          className="rounded-xl px-8 py-6 text-base font-semibold uppercase shadow-md transition-opacity hover:opacity-90"
+          className="rounded-none px-8 py-6 text-base font-semibold uppercase shadow-md transition-opacity hover:opacity-90"
           style={{ backgroundColor: '#FF8C00' }}
         >
           INCASSA UN COUPON
@@ -39,18 +39,18 @@ export function CouponContent() {
 
       {/* Pannello filtri - identico al riferimento */}
       <div
-        className="rounded-xl bg-cover bg-center bg-no-repeat p-6 shadow-md"
+        className="rounded-none bg-cover bg-center bg-no-repeat p-6 shadow-md"
         style={{ backgroundImage: `url(${getCdnImageUrl('rectangle-97.png')})` }}
       >
         <div className="mx-auto flex max-w-3xl flex-wrap items-end justify-center gap-20">
           <div className="w-36 shrink-0">
             <label
               htmlFor="coupon-stato"
-              className="mb-2 block text-sm font-medium uppercase text-white"
+              className="mb-2 block text-sm font-medium uppercase text-gray-900"
             >
               STATO
             </label>
-            <div className="relative flex h-10 items-center rounded-lg bg-gray-200 px-4 py-2">
+            <div className="relative flex h-10 items-center rounded-none bg-gray-200 px-4 py-2">
               <select
                 id="coupon-stato"
                 className="h-full w-full appearance-none border-0 bg-transparent pr-8 text-sm font-medium uppercase text-gray-900 focus:outline-none focus:ring-0"
@@ -66,11 +66,11 @@ export function CouponContent() {
           <div className="w-36 shrink-0">
             <label
               htmlFor="coupon-data-inizio"
-              className="mb-2 block text-sm font-medium uppercase text-white"
+              className="mb-2 block text-sm font-medium uppercase text-gray-900"
             >
               DATA INIZIO
             </label>
-            <div className="relative flex h-10 items-center rounded-lg bg-gray-200 px-4 py-2">
+            <div className="relative flex h-10 items-center rounded-none bg-gray-200 px-4 py-2">
               <Input
                 id="coupon-data-inizio"
                 type="text"
@@ -83,11 +83,11 @@ export function CouponContent() {
           <div className="w-36 shrink-0">
             <label
               htmlFor="coupon-data-fine"
-              className="mb-2 block text-sm font-medium uppercase text-white"
+              className="mb-2 block text-sm font-medium uppercase text-gray-900"
             >
               DATA FINE
             </label>
-            <div className="relative flex h-10 items-center rounded-lg bg-gray-200 px-4 py-2">
+            <div className="relative flex h-10 items-center rounded-none bg-gray-200 px-4 py-2">
               <Input
                 id="coupon-data-fine"
                 type="text"
@@ -99,7 +99,7 @@ export function CouponContent() {
           </div>
           <Button
             type="button"
-            className="h-10 shrink-0 rounded-lg px-6 font-semibold uppercase text-white shadow-md transition-opacity hover:opacity-90"
+            className="h-10 shrink-0 rounded-none px-6 font-semibold uppercase text-gray-900 shadow-md transition-opacity hover:opacity-90"
             style={{ backgroundColor: '#FF8C00' }}
           >
             CERCA

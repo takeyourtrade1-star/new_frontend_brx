@@ -119,14 +119,40 @@
   background-size: 100% 100%, auto;
 }
 
-/* Menu Prodotti: solo il pezzo blu chiaro a SINISTRA che "esce" un pochino al hover */
-/* Hover come altri menu a tendina: solo sottolineatura */
-.prodotti-menu-item {
+/* Menu Prodotti / Menu Giochi: highlight con barretta arancione a sinistra (stile Cardmarket) */
+.prodotti-menu-item,
+.games-menu-item {
+  position: relative;
   text-decoration: none;
+  padding-left: 1rem;
+}
+.prodotti-menu-item::before,
+.games-menu-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  background-color: #FF7300;
+  border-radius: 999px;
+  opacity: 0;
+  transform: scaleY(0.6);
+  transform-origin: center;
+  transition: opacity 120ms ease-out, transform 120ms ease-out;
 }
 .prodotti-menu-item:hover,
-.prodotti-menu-item:focus-visible {
-  text-decoration: underline;
+.prodotti-menu-item:focus-visible,
+.games-menu-item:hover,
+.games-menu-item:focus-visible {
+  background-color: #f3f4f6;
+}
+.prodotti-menu-item:hover::before,
+.prodotti-menu-item:focus-visible::before,
+.games-menu-item:hover::before,
+.games-menu-item:focus-visible::before {
+  opacity: 1;
+  transform: scaleY(1);
 }
 
 /* Marquee: font COMODO, oro in gradiente verso il basso */
@@ -227,36 +253,61 @@
   width: 100%;
   margin-left: auto;
   margin-right: auto;
-  max-width: 90rem;
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
+  max-width: 78rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
 }
 @media (min-width: 640px) {
   .container-content {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 1.75rem;
+    padding-right: 1.75rem;
   }
 }
 @media (min-width: 768px) {
   .container-content {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
   }
 }
 @media (min-width: 1024px) {
   .container-content {
-    padding-left: 2rem;
-    padding-right: 2rem;
+    padding-left: 3.25rem;
+    padding-right: 3.25rem;
   }
 }
 @media (min-width: 1536px) {
   .container-content {
-    max-width: 100rem;
+    max-width: 90rem;
   }
 }
 @media (min-width: 1920px) {
   .container-content {
-    max-width: 120rem;
+    max-width: 102rem;
+  }
+}
+
+/* Header più largo del body: meno margini laterali, più respiro orizzontale */
+.container-header {
+  max-width: 100%;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+@media (min-width: 640px) {
+  .container-header {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+@media (min-width: 768px) {
+  .container-header {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+@media (min-width: 1024px) {
+  .container-header {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }
 
@@ -303,20 +354,22 @@
   animation: toast-slide-out-right 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
-/* Barra di ricerca: effetto vetro (glass), bordo e testo più chiari */
+/* Barra di ricerca: pill quando chiusa, altezza fissa uguale al bottone Prodotti */
 .search-container {
   border-radius: 50px;
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  min-height: 36px;
+  height: 36px;
 }
 
-/* Stato aperto: bordo arancione solo sulla barra (sottile, meno arrotondato), sfondo bianco */
+/* Stato aperto (si sta scrivendo): squadrata, sfondo bianco, bordo grigio sottile */
 .search-container.search-container--open {
   background: #fff !important;
-  border: 1px solid #ff7300 !important;
-  border-radius: 12px !important;
+  border: 1px solid rgba(0,0,0,0.15) !important;
+  border-radius: 0 !important;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -435,34 +488,7 @@
   font-weight: 600;
 }
 
-/* Menu giochi in alto a sinistra: stessa grafica glass, padding compatto */
-.games-dropdown-trigger {
-  border-radius: 50px;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.95);
-  font-family: var(--font-sans), system-ui, sans-serif;
-}
-.games-dropdown-trigger:hover {
-  background: rgba(255, 255, 255, 0.18);
-}
-.games-dropdown-menu {
-  border-radius: 20px;
-  background: rgba(20, 25, 45, 0.6);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-.games-dropdown-menu button {
-  color: rgba(255, 255, 255, 0.95);
-  font-family: var(--font-sans), system-ui, sans-serif;
-}
-.games-dropdown-menu button:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
+/* Menu giochi: lo stile del trigger è ora gestito in TopBar; il pannello usa lo stesso stile del menu Prodotti */
 
 /* ===== HitCard (schermata Scambi / AsteScreen) ===== */
 .hit-card {

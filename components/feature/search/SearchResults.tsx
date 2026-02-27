@@ -167,11 +167,11 @@ export function SearchResults({
   };
 
   return (
-    <section className="min-h-screen pb-12" style={{ backgroundColor: '#193874' }}>
+    <section className="min-h-screen pb-12" style={{ backgroundColor: '#F5F4F0' }}>
       <div className="container-content py-6">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-white/80 text-sm mb-2">
-          <Link href="/" className="hover:text-white">
+        <nav className="flex items-center gap-2 text-gray-500 text-sm mb-2">
+          <Link href="/" className="hover:text-gray-900">
             {gameLabel || 'GIOCHI'}
           </Link>
           <span>/</span>
@@ -179,26 +179,26 @@ export function SearchResults({
           {setFilter && (
             <>
               <span>/</span>
-              <span className="text-white">{setFilter}</span>
+              <span className="text-gray-900">{setFilter}</span>
             </>
           )}
         </nav>
 
-        <h1 className="text-3xl md:text-4xl font-bold text-white uppercase tracking-wide mb-1">
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 uppercase tracking-wide mb-1">
           SINGLES
         </h1>
-        <p className="text-white/90 text-sm md:text-base mb-6">
+        <p className="text-gray-700 text-sm md:text-base mb-6">
           ESPLORA LA COLLEZIONE COMPLETA DI CARTE SINGOLE {gameLabel || ''}
         </p>
 
-        {/* Pannello filtri – sfondo chiaro arrotondato */}
-        <div className="rounded-2xl bg-white/95 shadow-lg p-4 md:p-6 mb-4">
+        {/* Pannello filtri – squadrato, sfondo bianco */}
+        <div className="rounded-none border border-gray-300 bg-white shadow-sm p-4 md:p-6 mb-4">
           <div className="flex flex-wrap items-end gap-3 md:gap-4">
             <div className="flex flex-wrap gap-2 md:gap-4 items-end">
               <label className="flex flex-col gap-1 text-gray-700 text-xs font-medium uppercase">
                 Categoria
                 <select
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm min-w-[140px] bg-white"
+                  className="border border-gray-300 rounded-none px-3 py-2 text-sm min-w-[140px] bg-white"
                   value={categoryId ? (categoryId === '1' ? 'carte-singole' : '') : ''}
                   onChange={(e) => {
                     const v = e.target.value;
@@ -219,7 +219,7 @@ export function SearchResults({
                 <input
                   type="text"
                   placeholder="Set/Edizione"
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm min-w-[140px]"
+                  className="border border-gray-300 rounded-none px-3 py-2 text-sm min-w-[140px]"
                   value={edizioneInput}
                   onChange={(e) => setEdizioneInput(e.target.value)}
                 />
@@ -227,7 +227,7 @@ export function SearchResults({
               <label className="flex flex-col gap-1 text-gray-700 text-xs font-medium uppercase">
                 Rarità
                 <select
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm min-w-[120px] bg-white"
+                  className="border border-gray-300 rounded-none px-3 py-2 text-sm min-w-[120px] bg-white"
                   disabled
                   title="Presto disponibile"
                 >
@@ -239,7 +239,7 @@ export function SearchResults({
                 <input
                   type="text"
                   placeholder="CERCA PER NOME"
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm min-w-[180px]"
+                  className="border border-gray-300 rounded-none px-3 py-2 text-sm min-w-[180px]"
                   value={nomeInput}
                   onChange={(e) => setNomeInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
@@ -257,7 +257,7 @@ export function SearchResults({
             <button
               type="button"
               onClick={handleCerca}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#FF7300] hover:bg-orange-600 text-white font-semibold rounded-none transition-colors"
             >
               <Search className="w-4 h-4" />
               CERCA
@@ -266,7 +266,7 @@ export function SearchResults({
         </div>
 
         {/* Barra risultati + ordinamento + vista */}
-        <div className="flex flex-wrap items-center justify-between gap-3 py-3 px-4 rounded-xl bg-gray-100/90 mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 py-3 px-4 border border-gray-300 bg-white mb-4">
           <p className="text-gray-700 text-sm">
             <strong>{total}</strong> RISULTATI
             {total > 0 && (
@@ -279,7 +279,7 @@ export function SearchResults({
             <div className="flex items-center gap-2">
               <span className="text-gray-600 text-sm">ORDINA PER</span>
               <select
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white"
+                className="border border-gray-300 rounded-none px-3 py-1.5 text-sm bg-white"
                 value={sortParam}
                 onChange={(e) => {
                   window.location.href = buildSearchUrl({ sort: e.target.value, page: '1' });
@@ -292,13 +292,13 @@ export function SearchResults({
                 ))}
               </select>
             </div>
-            <div className="flex rounded-lg overflow-hidden border border-gray-300">
+            <div className="flex overflow-hidden border border-gray-300">
               <button
                 type="button"
                 onClick={() => setViewMode('list')}
                 className={`px-4 py-2 text-sm font-medium flex items-center gap-1 ${
                   viewMode === 'list'
-                    ? 'bg-[#193874] text-white'
+                    ? 'bg-[#1D3160] text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -310,7 +310,7 @@ export function SearchResults({
                 onClick={() => setViewMode('grid')}
                 className={`px-4 py-2 text-sm font-medium flex items-center gap-1 ${
                   viewMode === 'grid'
-                    ? 'bg-[#193874] text-white'
+                    ? 'bg-[#1D3160] text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -322,7 +322,7 @@ export function SearchResults({
         </div>
 
         {/* Contenuto: lista o griglia */}
-        <div className="rounded-2xl bg-white shadow-lg overflow-hidden">
+        <div className="border border-gray-300 bg-white overflow-hidden">
           {error && (
             <div className="p-6 text-center text-red-600 bg-red-50">
               {error}
@@ -362,16 +362,16 @@ export function SearchResults({
                         tabIndex={0}
                         onClick={() => router.push(productHref)}
                         onKeyDown={(e) => e.key === 'Enter' && router.push(productHref)}
-                        className="border-b border-gray-100 hover:bg-orange-50/80 cursor-pointer transition-colors"
+                        className="border-b border-gray-100 hover:bg-orange-50/60 cursor-pointer transition-colors"
                       >
                         <td className="p-3" onClick={(e) => e.stopPropagation()}>
                           <Link
                             href={productHref}
-                            className="flex items-center gap-3 hover:text-orange-600"
+                            className="flex items-center gap-3 hover:text-[#FF7300]"
                             aria-label={`Dettaglio: ${primary}`}
                           >
                             {imgUrl ? (
-                              <div className="relative w-10 h-14 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                              <div className="relative w-10 h-14 overflow-hidden bg-gray-100 flex-shrink-0">
                                 <Image
                                   src={imgUrl}
                                   alt={primary}
@@ -381,7 +381,7 @@ export function SearchResults({
                                 />
                               </div>
                             ) : (
-                              <div className="w-10 h-14 rounded bg-gray-200 flex-shrink-0" />
+                              <div className="w-10 h-14 bg-gray-200 flex-shrink-0" />
                             )}
                             <div>
                               <span className="font-medium text-gray-900">{primary}</span>
@@ -397,7 +397,7 @@ export function SearchResults({
                         <td className="p-3 text-gray-500">–</td>
                         <td className="p-3 text-gray-500">–</td>
                         <td className="p-3 text-gray-500">–</td>
-                        <td className="p-3 text-orange-600 font-semibold">–</td>
+                        <td className="p-3 text-[#FF7300] font-semibold">–</td>
                         <td className="p-3 text-gray-500">NO</td>
                         <td className="p-3 text-gray-500">NO</td>
                       </tr>
@@ -416,9 +416,9 @@ export function SearchResults({
                   <Link
                     key={hit.id}
                     href={`/products/${hit.id}`}
-                    className="group rounded-xl border border-gray-200 bg-white p-3 hover:border-orange-300 hover:shadow-md transition-all"
+                    className="group border border-gray-200 bg-white p-3 hover:border-[#FF7300] hover:shadow-sm transition-all"
                   >
-                    <div className="relative aspect-[63/88] rounded-lg overflow-hidden bg-gray-100 mb-2">
+                    <div className="relative aspect-[63/88] overflow-hidden bg-gray-100 mb-2">
                       {imgUrl ? (
                         <Image
                           src={imgUrl}
@@ -440,7 +440,7 @@ export function SearchResults({
                     {hit.set_name && (
                       <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{hit.set_name}</p>
                     )}
-                    <p className="text-orange-600 font-semibold text-sm mt-1">DA – €</p>
+                    <p className="text-[#FF7300] font-semibold text-sm mt-1">DA – €</p>
                   </Link>
                 );
               })}
@@ -449,10 +449,10 @@ export function SearchResults({
 
           {/* Paginazione */}
           {!loading && !error && totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 py-4 px-4 bg-orange-500 text-white">
+            <div className="flex items-center justify-center gap-2 py-4 px-4 bg-[#FF7300] text-white">
               <Link
                 href={buildSearchUrl({ page: String(Math.max(1, currentPage - 1)) })}
-                className={`p-2 rounded ${currentPage <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-orange-600'}`}
+                className={`p-2 ${currentPage <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-orange-600'}`}
                 aria-label="Pagina precedente"
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -462,7 +462,7 @@ export function SearchResults({
               </span>
               <Link
                 href={buildSearchUrl({ page: String(Math.min(totalPages, currentPage + 1)) })}
-                className={`p-2 rounded ${currentPage >= totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-orange-600'}`}
+                className={`p-2 ${currentPage >= totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-orange-600'}`}
                 aria-label="Pagina successiva"
               >
                 <ChevronRight className="w-5 h-5" />

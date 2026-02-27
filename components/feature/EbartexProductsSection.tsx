@@ -27,9 +27,10 @@ export function EbartexProductsSection({ products }: { products?: BoutiqueProduc
   const items = products?.length ? products : DEFAULT_PRODUCTS;
 
   return (
-    <section className="w-full py-10 md:py-14 bg-transparent text-white">
+    <section className="w-full pb-10 pt-0 md:pb-14 bg-transparent text-white">
+      {/* Barra full width senza margini laterali */}
+      <ScrollMarquee label="EBARTEX BOUTIQUE" />
       <div className="container-content">
-        <ScrollMarquee label="EBARTEX BOUTIQUE" />
         <div className="mt-4 flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
           <div className="grid min-w-0 flex-1 grid-cols-2 grid-rows-auto items-stretch gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {items.map((item) => (

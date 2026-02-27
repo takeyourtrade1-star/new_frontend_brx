@@ -11,8 +11,8 @@ const bullets = [
 
 export function SimpleSecureTuoSection() {
   return (
-    <section className="flex flex-col rounded-2xl p-6 md:p-8 text-white">
-      <h2 className="text-xl font-bold uppercase tracking-wide md:text-2xl mb-6">
+    <section className="flex flex-col rounded-2xl bg-white p-6 text-gray-900 md:p-8">
+      <h2 className="mb-6 text-xl font-bold uppercase tracking-wide text-gray-900 md:text-2xl">
         SEMPLICE. SICURO. TUO.
       </h2>
       <ul className="space-y-4">
@@ -25,7 +25,7 @@ export function SimpleSecureTuoSection() {
             >
               <Plus className="h-3.5 w-3.5 text-white" strokeWidth={3} />
             </span>
-            <span className="text-sm leading-relaxed text-white/95 md:text-base">
+            <span className="text-sm leading-relaxed text-gray-800 md:text-base">
               {text}
             </span>
           </li>

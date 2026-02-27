@@ -2,7 +2,7 @@ import { AttivaContoVenditore } from '@/components/feature/account/AttivaContoVe
 
 export default function AccountPage() {
   return (
-    <div className="text-white">
+    <div className="text-gray-900">
       <AttivaContoVenditore />
     </div>
   );

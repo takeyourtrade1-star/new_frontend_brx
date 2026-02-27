@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Home, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getCdnImageUrl } from '@/lib/config';
 
 const TABS_LEFT = [
   { id: 'da-pagare', label: 'DA PAGARE' },
@@ -49,8 +48,8 @@ const EMPTY_STATE_BY_TAB: Record<string, EmptyState> = {
     linkText: 'SCOPRI COME PARTECIPARE ALLE ASTE',
     linkHref: '/aiuto',
   },
-  'non-ricevuto': { message: 'Spiacente, non hai nessun ordine non ricevuto.' },
-  cancellato: { message: 'Spiacente, non hai nessun ordine cancellato.' },
+  'non-ricevuto': { message: 'Nessun ordine non ricevuto.' },
+  cancellato: { message: 'Nessun ordine cancellato.' },
 };
 
 function getTabLabel(tabId: string): string {
@@ -65,46 +64,35 @@ export function AcquistiContent() {
   };
 
   return (
-    <div
-      className="min-h-screen w-full px-4 py-8 text-white md:px-8 md:py-10"
-      style={{
-        backgroundImage: `linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)), url(${getCdnImageUrl('brx_bg.png')}), linear-gradient(180deg, #3D65C6 0%, #1D3160 100%)`,
-        backgroundRepeat: 'no-repeat, repeat, no-repeat',
-        backgroundSize: 'cover, auto, cover',
-        backgroundAttachment: 'fixed',
-      }}
-    >
-      <div className="mx-auto max-w-6xl">
-        {/* Breadcrumb e help */}
+    <div className="min-h-screen w-full font-sans" style={{ backgroundColor: '#F5F4F0' }}>
+      <div className="container-content mx-auto py-8 md:py-10">
+        {/* Breadcrumb + aiuto */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <nav
-            className="flex items-center gap-2 text-sm text-white/90"
-            aria-label="Breadcrumb"
-          >
-            <Link href="/" className="text-[#FF7300] hover:text-[#FF8C1A]" aria-label="Home">
+          <nav className="flex items-center gap-2 text-sm text-gray-500" aria-label="Breadcrumb">
+            <Link href="/" className="hover:text-gray-900" aria-label="Home">
               <Home className="h-4 w-4" />
             </Link>
-            <span className="text-white/60">/</span>
-            <span className="text-white/70">ORDINI</span>
-            <span className="text-white/60">/</span>
-            <span className="text-white/70">I MIEI ACQUISTI</span>
-            <span className="text-white/60">/</span>
-            <span className="text-white">{activeLabel}</span>
+            <span>/</span>
+            <span>ORDINI</span>
+            <span>/</span>
+            <Link href="/ordini/acquisti" className="hover:text-gray-900">I MIEI ACQUISTI</Link>
+            <span>/</span>
+            <span className="font-medium text-gray-900">{activeLabel}</span>
           </nav>
           <Link
             href="/aiuto"
-            className="ml-auto text-sm font-normal text-white/90 hover:underline"
+            className="text-sm font-medium text-[#FF7300] hover:underline"
           >
             HAI BISOGNO DI AIUTO?
           </Link>
         </div>
 
-        <h1 className="mb-4 text-2xl font-bold uppercase tracking-wide text-white sm:text-3xl">
-          {activeLabel}
+        <h1 className="mb-6 text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">
+          I MIEI ACQUISTI
         </h1>
 
-        {/* Tab: abbassati e rimpiccioliti */}
-        <div className="mb-6 mt-4 flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1.5 border-b border-white/20 pb-2">
+        {/* Tab: pill arrotondate come richiesto */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-b border-gray-200 pb-3">
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
             {TABS_LEFT.map((tab) => (
               <button
@@ -112,10 +100,10 @@ export function AcquistiContent() {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide transition-colors',
+                  'rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
                   activeTab === tab.id
-                    ? 'bg-[#FF7300] text-white'
-                    : 'text-white/90 hover:text-white'
+                    ? 'bg-[#FF7300] text-white shadow-sm'
+                    : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-900'
                 )}
               >
                 {tab.label}
@@ -129,10 +117,10 @@ export function AcquistiContent() {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide transition-colors',
+                  'rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
                   activeTab === tab.id
-                    ? 'bg-[#FF7300] text-white'
-                    : 'text-white/90 hover:text-white'
+                    ? 'bg-gray-700 text-white shadow-sm'
+                    : 'bg-white text-gray-500 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-700'
                 )}
               >
                 {tab.label}
@@ -141,9 +129,9 @@ export function AcquistiContent() {
           </div>
         </div>
 
-        {/* Box contenuto vuoto (messaggio + link opzionale come nelle foto) */}
-        <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-xl bg-[#E8EAED] px-6 py-12">
-          <p className="text-center text-base font-medium uppercase tracking-wide text-gray-600">
+        {/* Box stato vuoto: squadrato, sfondo bianco */}
+        <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 border border-gray-200 bg-white px-6 py-12">
+          <p className="text-center text-base font-semibold uppercase tracking-wide text-gray-500">
             {emptyState.message}
           </p>
           {emptyState.linkText && emptyState.linkHref && (

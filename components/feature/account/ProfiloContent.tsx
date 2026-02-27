@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { Home, Pencil } from 'lucide-react';
@@ -15,13 +15,13 @@ function ProfiloRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-3">
-      <span className="text-sm font-normal uppercase text-white">{label}</span>
+      <span className="text-sm font-normal uppercase text-gray-900">{label}</span>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-normal text-white">{value}</span>
+        <span className="text-sm font-normal text-gray-900">{value}</span>
         {editable && (
           <button
             type="button"
-            className="rounded p-1 text-[#FF7300] hover:bg-white/10"
+            className="rounded p-1 text-[#FF7300] hover:bg-gray-100"
             aria-label={`Modifica ${label}`}
           >
             <Pencil className="h-4 w-4" />
@@ -33,7 +33,7 @@ function ProfiloRow({
 }
 
 function Separator() {
-  return <hr className="border-t border-white/20" />;
+  return <hr className="border-t border-gray-200" />;
 }
 
 export function ProfiloContent() {
@@ -43,26 +43,26 @@ export function ProfiloContent() {
   const email = user?.email ?? '—';
 
   return (
-    <div className="text-white">
+    <div className="text-gray-900 font-sans">
       {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-2 text-sm text-white/90" aria-label="Breadcrumb">
-        <Link href="/account" className="hover:text-white">
+      <nav className="mb-6 flex items-center gap-2 text-sm text-gray-700" aria-label="Breadcrumb">
+        <Link href="/account" className="hover:text-gray-900">
           <Home className="h-4 w-4" />
         </Link>
-        <span className="text-white/60">/</span>
+        <span className="text-gray-400">/</span>
         <span>ACCOUNT</span>
-        <span className="text-white/60">/</span>
-        <span className="text-white">PROFILO</span>
+        <span className="text-gray-400">/</span>
+        <span className="text-gray-900">PROFILO</span>
       </nav>
 
       {/* Intestazione: nome utente + link profilo pubblico */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold uppercase tracking-wide text-white sm:text-3xl">
+        <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">
           {displayName}
         </h1>
         <Link
           href="#"
-          className="text-sm font-normal text-white underline hover:opacity-90"
+          className="text-sm font-normal text-gray-900 underline hover:opacity-90"
         >
           Il tuo profilo pubblico
         </Link>

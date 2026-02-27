@@ -6,16 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  AlertCircle,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Eye,
-  EyeOff,
-  LogIn,
-  LogOut,
-} from 'lucide-react';
+import { AlertCircle, Check, ChevronDown, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
 import { HamburgerMenu } from './HamburgerMenu';
 import { useCartStore } from '@/lib/stores/cart-store';
 import { Button } from '@/components/ui/button';
@@ -26,6 +17,13 @@ import { useLogin } from '@/lib/hooks/use-auth';
 import { headerLoginSchema, type HeaderLoginValues } from '@/lib/validations/auth';
 import { getCdnImageUrl } from '@/lib/config';
 import { useGame, GAME_OPTIONS } from '@/lib/contexts/GameContext';
+import type { GameSlug } from '@/lib/contexts/GameContext';
+
+const GAME_HOME_PATH: Record<GameSlug, string> = {
+  mtg: '/home/magic',
+  pokemon: '/home/pokemon',
+  op: '/home/one-piece',
+};
 
 const AUTH_INPUT_HEIGHT = 'h-9';
 const AUTH_INPUT_WIDTH = 'w-36';
@@ -199,17 +197,19 @@ export function TopBar() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [gamesMenuOpen]);
 
-  /** Accorcia email (es. JROVERA05@GMAIL.COM → JROVERA05@GMAI...) o nome per occupare meno spazio in header */
+  /** Mostra nome utente: se c'è un nome reale (senza @) usalo, altrimenti la parte prima della @ dell'email */
   const shortLabel = (() => {
-    const raw = user?.name || user?.email || 'Utente';
-    const s = raw.trim();
-    if (s.includes('@')) {
-      const [local, domain] = s.split('@');
-      const loc = (local || '').slice(0, 9);
-      const dom = (domain || '').slice(0, 4);
-      return `${loc}@${dom}${(domain?.length ?? 0) > 4 ? '…' : ''}`.toUpperCase();
+    const name = user?.name?.trim();
+    const email = user?.email?.trim() ?? '';
+    if (name && !name.includes('@')) {
+      return name.length > 12 ? `${name.slice(0, 12)}…` : name;
     }
-    return s.length > 12 ? `${s.slice(0, 12)}…` : s;
+    if (email) {
+      const username = (email.split('@')[0] || '').trim() || 'Utente';
+      const display = username.length > 12 ? `${username.slice(0, 12)}…` : username;
+      return display.toUpperCase();
+    }
+    return 'Utente';
   })();
   const balance = '0,00€';
 
@@ -255,7 +255,7 @@ export function TopBar() {
         </div>
       )}
 
-      <div className="flex items-center gap-2 py-2 min-w-0">
+      <div className="flex items-center gap-2 py-0 min-w-0">
         {/* Left: Logo + Magic dropdown — non flex-1 quando loggato così il menu centrale può espandersi */}
         <div className={cn(
           'flex min-w-0 items-center gap-2 sm:gap-3',
@@ -263,7 +263,7 @@ export function TopBar() {
         )}>
           <Link
             href="/"
-            className="ml-3 flex items-center rounded-lg px-2 py-1 transition-opacity hover:opacity-90"
+            className="flex items-center rounded-lg px-2 py-1 transition-opacity hover:opacity-90"
             aria-label="BRX Home"
           >
             <Image
@@ -282,9 +282,8 @@ export function TopBar() {
               type="button"
               onClick={() => setGamesMenuOpen((o) => !o)}
               className={cn(
-                'games-dropdown-trigger relative flex items-center gap-1 px-3 py-1.5 pr-7 text-sm font-medium',
-                'cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/40 focus:ring-offset-2 focus:ring-offset-[#1D3160]',
-                'transition-colors min-w-[100px] justify-between'
+                'relative flex items-center gap-1 px-0 py-0 text-sm font-medium text-white',
+                'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]'
               )}
               aria-expanded={gamesMenuOpen}
               aria-haspopup="true"
@@ -293,46 +292,51 @@ export function TopBar() {
               <span>{selectedGame ? gameDisplayName(selectedGame) : 'Seleziona gioco'}</span>
               <span
                 className={cn(
-                  'pointer-events-none absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full transition-transform',
-                  'bg-[#FF7300]',
+                  'ml-1 flex h-4 w-4 items-center justify-center text-[#FF7300] transition-transform',
                   gamesMenuOpen && 'rotate-180'
                 )}
                 aria-hidden
               >
-                <ChevronDown className="h-3.5 w-3.5 text-white" strokeWidth={2} />
+                <ChevronDown className="h-3.5 w-3.5" strokeWidth={2} />
               </span>
             </button>
             {gamesMenuOpen && (
               <div
-                className="games-dropdown-menu absolute left-0 top-full z-[110] mt-1 min-w-[160px] px-2 py-2 shadow-xl"
+                className="absolute left-0 top-full z-[110] mt-0 min-w-[180px] border border-gray-200 bg-white py-2 shadow-lg"
                 role="menu"
                 aria-label="Menu giochi"
               >
-                {GAME_OPTIONS.map((opt, i) => (
+                {GAME_OPTIONS.map((opt, i) => {
+                  const logoSrc =
+                    opt.value === 'mtg'
+                      ? getCdnImageUrl('loghi-giochi/magic.png')
+                      : opt.value === 'pokemon'
+                      ? getCdnImageUrl('loghi-giochi/pokèmon.png')
+                      : getCdnImageUrl('loghi-giochi/One_Piece_Card_Game_Logo%201.png');
+                  return (
                   <div key={opt.value}>
-                    {i > 0 && <div className="my-1 h-px bg-white/30" aria-hidden />}
-                    <button
-                      type="button"
+                    {i > 0 && <div className="my-1 h-px bg-gray-100" aria-hidden />}
+                    <Link
+                      href={GAME_HOME_PATH[opt.value]}
                       onClick={() => {
                         setSelectedGame(opt.value);
                         setGamesMenuOpen(false);
-                        router.push('/home');
                       }}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium uppercase tracking-wide transition-colors"
+                      className="games-menu-item flex w-full items-center justify-center px-4 py-3 text-gray-900 transition-colors"
                       role="menuitem"
+                      aria-label={opt.label}
                     >
-                      <span
-                        className={cn(
-                          'h-2 w-2 shrink-0 rounded-full',
-                          opt.value === 'mtg' && 'bg-violet-500',
-                          opt.value === 'pokemon' && 'bg-amber-500',
-                          opt.value === 'op' && 'bg-red-500'
-                        )}
+                      <Image
+                        src={logoSrc}
+                        alt={opt.label}
+                        width={140}
+                        height={56}
+                        className="max-h-10 w-auto object-contain sm:max-h-12"
+                        unoptimized
                       />
-                      {opt.label}
-                    </button>
+                    </Link>
                   </div>
-                ))}
+                )})}
               </div>
             )}
           </div>
@@ -443,7 +447,7 @@ export function TopBar() {
 
         {/* Centro/Destra: se loggato = menu distribuito al centro + Hamburger a destra */}
         <div className={cn(
-          'flex min-w-0 items-center mr-4 sm:mr-6',
+          'flex min-w-0 items-center mr-0',
           isAuthenticated ? 'flex-1' : 'flex-1 shrink-0 justify-end gap-2 sm:gap-3'
         )}>
           {isAuthenticated && user ? (
@@ -463,39 +467,52 @@ export function TopBar() {
                   aria-haspopup="true"
                   aria-label="Menu account"
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full" aria-hidden>
-                    {user.image ? (
-                      <Image
-                        src={user.image}
-                        alt=""
-                        width={32}
-                        height={32}
-                        className="h-8 w-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <Image
-                        src={getCdnImageUrl('user-icon.png')}
-                        alt=""
-                        width={32}
-                        height={32}
-                        className="h-8 w-8 object-contain"
-                        unoptimized
-                      />
-                    )}
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full"
+                    aria-hidden
+                  >
+                    {/* Icona profilo SVG (24x24, stroke #FF7300) */}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#FF7300"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-6 w-6"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
                   </span>
                   <span className="hidden max-w-[6.5rem] shrink-0 text-sm font-medium uppercase text-white md:block" title={user?.email ?? user?.name ?? undefined}>
                     {shortLabel}
                   </span>
                   <span className="hidden text-sm text-white sm:inline shrink-0">({balance})</span>
                   <span
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white"
+                    className={cn(
+                      'ml-1 flex h-4 w-4 shrink-0 items-center justify-center text-[#FF7300] transition-transform',
+                      accountMenuOpen && 'rotate-180'
+                    )}
                     aria-hidden
                   >
-                    {accountMenuOpen ? (
-                      <ChevronUp className="h-3.5 w-3.5" strokeWidth={2} />
-                    ) : (
-                      <ChevronDown className="h-3.5 w-3.5" strokeWidth={2} />
-                    )}
+                    {/* Freccia dropdown SVG (16x16, stroke #FF7300) */}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                   </span>
                 </button>
 
@@ -551,7 +568,7 @@ export function TopBar() {
                 )}
               </div>
 
-              {/* 2. ACQUISTI: icona + testo + dropdown */}
+              {/* 2. ACQUISTI: icona shopping bag + testo + dropdown, stile coordinato al profilo */}
               <div className="relative flex items-center gap-2" ref={acquistiMenuRef}>
                 <button
                   type="button"
@@ -564,28 +581,50 @@ export function TopBar() {
                   aria-haspopup="true"
                   aria-label="Menu acquisti"
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center" aria-hidden>
-                    <Image
-                      src={getCdnImageUrl('acquisti-icon.png')}
-                      alt=""
-                      width={32}
-                      height={32}
-                      className="h-8 w-8 object-contain"
-                      unoptimized
-                    />
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
+                    aria-hidden
+                  >
+                    {/* Icona ACQUISTI: shopping bag (stroke #FF7300, 2px) */}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#FF7300"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5"
+                    >
+                      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                      <line x1="3" y1="6" x2="21" y2="6"></line>
+                      <path d="M16 10a4 4 0 0 1-8 0"></path>
+                    </svg>
                   </span>
                   <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
                     ACQUISTI
                   </span>
                   <span
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white"
+                    className="ml-0.5 flex h-4 w-4 shrink-0 items-center justify-center text-[#FF7300]"
                     aria-hidden
                   >
-                    {acquistiMenuOpen ? (
-                      <ChevronUp className="h-3.5 w-3.5" strokeWidth={2} />
-                    ) : (
-                      <ChevronDown className="h-3.5 w-3.5" strokeWidth={2} />
-                    )}
+                    {/* Freccia dropdown minimal, senza “bottone nel bottone” */}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={cn('h-4 w-4 transition-transform', acquistiMenuOpen && 'rotate-180')}
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                   </span>
                 </button>
 
@@ -610,90 +649,133 @@ export function TopBar() {
                     >
                       LISTA DESIDERI
                     </Link>
-                    <div className="my-1 h-px bg-white/80" aria-hidden />
-                    <Link
-                      href="/shopping-wizard"
-                      className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                      onClick={() => setAcquistiMenuOpen(false)}
-                    >
-                      SHOPPING WIZARD
-                    </Link>
                   </div>
                 )}
               </div>
 
-              {/* 3. VENDI: logo BRX + testo */}
+              {/* 3. VENDI: icona price tag + testo, coordinata al resto */}
               <Link
                 href="/account-business"
                 className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
                 aria-label="Vendi"
               >
-                <Image
-                  src={getCdnImageUrl('brx-icon.png')}
-                  alt="BRX"
-                  width={56}
-                  height={28}
-                  className="h-7 w-auto shrink-0 object-contain sm:h-8"
-                  unoptimized
-                />
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
+                  aria-hidden
+                >
+                  {/* Icona VENDI: price tag (stroke #FF7300, 2px) */}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FF7300"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                  </svg>
+                </span>
                 <span className="hidden whitespace-nowrap text-sm font-medium uppercase lg:inline">
                   VENDI
                 </span>
               </Link>
 
-              {/* 4. SCAMBI: icona + testo */}
+              {/* 4. SCAMBI: frecce circolari (sync), coordinato alle altre icone */}
               <Link
                 href="/scambi"
                 className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
                 aria-label="Scambi"
               >
-                <Image
-src={getCdnImageUrl('scambi.png')}
-                alt=""
-                width={32}
-                height={32}
-                className="h-8 w-8 object-contain"
-                unoptimized
-              />
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
+                  aria-hidden
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FF7300"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <polyline points="17 1 21 5 17 9"></polyline>
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                    <polyline points="7 23 3 19 7 15"></polyline>
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                  </svg>
+                </span>
                 <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
                   SCAMBI
                 </span>
               </Link>
 
-              {/* 5. ASTE: icona + testo */}
+              {/* 5. ASTE: martelletto da battitore, coordinato alle altre icone */}
               <Link
                 href="/aste"
                 className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
                 aria-label="Aste"
               >
-                <Image
-src={getCdnImageUrl('aste.png')}
-                alt=""
-                width={32}
-                height={32}
-                className="h-8 w-8 object-contain"
-                unoptimized
-              />
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
+                  aria-hidden
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FF7300"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8"></path>
+                    <path d="m16 16 6-6"></path>
+                    <path d="m8 8 6-6"></path>
+                    <path d="m9 7 8 8"></path>
+                    <path d="m21 11-8-8"></path>
+                  </svg>
+                </span>
                 <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
                   ASTE
                 </span>
               </Link>
 
-              {/* 6. Carrello: solo icona + importo (nessun testo "Carrello") */}
+              {/* 6. Carrello: outline moderno, coordinato alle altre icone */}
               <Link
                 href="/cart"
                 className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
                 aria-label={`Carrello ${formatEuro(cartTotal)}`}
               >
-                <span className="relative flex h-8 w-8 shrink-0 items-center justify-center">
-                  <Image
-                    src={getCdnImageUrl('cart-icon.png')}
-                    alt=""
-                    width={32}
-                    height={32}
-                    className="h-8 w-8 object-contain"
-                    unoptimized
-                  />
+                <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FF7300"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                    aria-hidden
+                  >
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                  </svg>
                   {cartCount > 0 && (
                     <span
                       className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-white px-0.5 text-[9px] font-bold text-[#FF7300]"
@@ -720,17 +802,26 @@ src={getCdnImageUrl('aste.png')}
               </Button>
               <Link
                 href="/cart"
-                className="relative flex h-10 w-10 shrink-0 items-center justify-center text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
+                className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
                 aria-label={`Carrello${cartCount > 0 ? ` (${cartCount} articoli)` : ''}`}
               >
-                <Image
-                  src={getCdnImageUrl('cart-icon.png')}
-                  alt=""
-                  width={40}
-                  height={40}
-                  className="h-10 w-10 object-contain"
-                  unoptimized
-                />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#FF7300"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-6 w-6"
+                  aria-hidden
+                >
+                  <circle cx="9" cy="21" r="1"></circle>
+                  <circle cx="20" cy="21" r="1"></circle>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
                 {cartCount > 0 && (
                   <span
                     className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#FF7300] px-1 text-[10px] font-bold text-white"

@@ -10,6 +10,12 @@ export const GAME_OPTIONS: { value: GameSlug; label: string; color: string }[] =
   { value: 'op', label: 'One Piece', color: 'red' },
 ];
 
+const GAME_HEADER_LABELS: Record<GameSlug, string> = {
+  mtg: 'MAGIC: THE GATHERING',
+  pokemon: 'POKÉMON',
+  op: 'ONE PIECE',
+};
+
 interface GameContextValue {
   selectedGame: GameSlug | null;
   setSelectedGame: (game: GameSlug | null) => void;
@@ -54,7 +60,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const gameDisplayName = useCallback((slug: GameSlug | null): string => {
     if (!slug) return '';
-    return GAME_OPTIONS.find((o) => o.value === slug)?.label ?? slug.toUpperCase();
+    return GAME_HEADER_LABELS[slug] ?? slug.toUpperCase();
   }, []);
 
   React.useEffect(() => {

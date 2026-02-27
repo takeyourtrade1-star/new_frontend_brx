@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
@@ -220,9 +220,9 @@ function EditItemModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white shadow-xl dark:bg-gray-800">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-none bg-white shadow-xl dark:bg-gray-800">
         <div className="sticky top-0 border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
-          <h2 id="edit-modal-title" className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 id="edit-modal-title" className="text-lg font-semibold text-gray-900 dark:text-gray-900">
             Modifica oggetto
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -238,7 +238,7 @@ function EditItemModal({
                 min={0}
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value) || 0)}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-900"
               />
             </div>
             <div>
@@ -248,7 +248,7 @@ function EditItemModal({
                 inputMode="decimal"
                 value={priceEuro}
                 onChange={(e) => setPriceEuro(e.target.value)}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-900"
               />
             </div>
           </div>
@@ -257,7 +257,7 @@ function EditItemModal({
             <select
               value={condition}
               onChange={(e) => setCondition(e.target.value)}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-900"
             >
               <option value="">—</option>
               {conditionOptions.map((opt) => (
@@ -270,7 +270,7 @@ function EditItemModal({
             <select
               value={mtgLanguage}
               onChange={(e) => setMtgLanguage(e.target.value)}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-900"
             >
               {langOptions.map((opt) => (
                 <option key={opt.code} value={opt.code}>{opt.label}</option>
@@ -283,7 +283,7 @@ function EditItemModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-900"
             />
           </div>
           <div className="flex flex-wrap gap-4">
@@ -308,7 +308,7 @@ function EditItemModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+              className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-900 dark:hover:bg-gray-600"
             >
               Annulla
             </button>
@@ -526,7 +526,7 @@ function OggettiTable({
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+    <div className="overflow-hidden rounded-none border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[880px] border-collapse text-left text-sm">
           <thead>
@@ -638,7 +638,7 @@ function OggettiTable({
                   </td>
                   <td className="p-3">
                     <div>
-                      <span className="font-medium text-gray-900 dark:text-white">{namePrimary}</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-900">{namePrimary}</span>
                       {displayNames.secondary && (
                         <p className="text-xs text-gray-500 dark:text-gray-400">EN: {displayNames.secondary}</p>
                       )}
@@ -657,8 +657,8 @@ function OggettiTable({
                   <td className="p-3 text-gray-600 dark:text-gray-300" title={languageCode ?? undefined}>
                     {languageLabel}
                   </td>
-                  <td className="p-3 font-medium text-gray-900 dark:text-white">{item.quantity}</td>
-                  <td className="p-3 font-medium text-gray-900 dark:text-white">
+                  <td className="p-3 font-medium text-gray-900 dark:text-gray-900">{item.quantity}</td>
+                  <td className="p-3 font-medium text-gray-900 dark:text-gray-900">
                     {(item.price_cents / 100).toFixed(2)} €
                   </td>
                   <td className="p-3">
@@ -1020,20 +1020,20 @@ export function OggettiContent() {
 
   if (!user || !accessToken) {
     return (
-      <div className="text-white">
-        <nav className="mb-6 flex items-center gap-2 text-sm text-white/90" aria-label="Breadcrumb">
-          <Link href="/account" className="hover:text-white" aria-label="Account">
+      <div className="text-gray-900">
+        <nav className="mb-6 flex items-center gap-2 text-sm text-gray-700" aria-label="Breadcrumb">
+          <Link href="/account" className="hover:text-gray-900" aria-label="Account">
             <Home className="h-4 w-4" />
           </Link>
-          <span className="text-white/60">/</span>
+          <span className="text-gray-400">/</span>
           <span>ACCOUNT</span>
-          <span className="text-white/60">/</span>
-          <span className="text-white">I MIEI OGGETTI</span>
+          <span className="text-gray-400">/</span>
+          <span className="text-gray-900">I MIEI OGGETTI</span>
         </nav>
-        <div className="mt-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white/5 p-12 dark:border-gray-700 dark:bg-gray-800/50">
+        <div className="mt-8 flex items-center justify-center rounded-none border border-gray-200 bg-white/5 p-12 dark:border-gray-700 dark:bg-gray-800/50">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-[#FF7300]" />
-            <p className="text-sm text-white/80">Caricamento account...</p>
+            <p className="text-sm text-gray-500">Caricamento account...</p>
           </div>
         </div>
       </div>
@@ -1041,22 +1041,22 @@ export function OggettiContent() {
   }
 
   return (
-    <div className="text-white">
-      <nav className="mb-6 flex items-center gap-2 text-sm text-white/90" aria-label="Breadcrumb">
-        <Link href="/account" className="hover:text-white" aria-label="Account">
+    <div className="text-gray-900">
+      <nav className="mb-6 flex items-center gap-2 text-sm text-gray-700" aria-label="Breadcrumb">
+        <Link href="/account" className="hover:text-gray-900" aria-label="Account">
           <Home className="h-4 w-4" />
         </Link>
-        <span className="text-white/60">/</span>
+        <span className="text-gray-400">/</span>
         <span>ACCOUNT</span>
-        <span className="text-white/60">/</span>
-        <span className="text-white">I MIEI OGGETTI</span>
+        <span className="text-gray-400">/</span>
+        <span className="text-gray-900">I MIEI OGGETTI</span>
       </nav>
 
       {/* KPI: totale oggetti unici, totale oggetti, valore totale collezione, carte in inventario (calcoli sul totale filtrato) */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
-        <div className="rounded-xl border border-white/20 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
-          <p className="text-xs font-medium uppercase tracking-wider text-white/60">Totale oggetti unici</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-white">
+        <div className="rounded-none border border-gray-200 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
+          <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Totale oggetti unici</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
             {loading ? '—' : totalUnique}
           </p>
           <p className="mt-0.5 text-xs text-white/50">
@@ -1065,9 +1065,9 @@ export function OggettiContent() {
               : 'righe in inventario'}
           </p>
         </div>
-        <div className="rounded-xl border border-white/20 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
-          <p className="text-xs font-medium uppercase tracking-wider text-white/60">Totale oggetti</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-white">
+        <div className="rounded-none border border-gray-200 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
+          <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Totale oggetti</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
             {loading ? '—' : totalQuantity}
           </p>
           <p className="mt-0.5 text-xs text-white/50">
@@ -1076,9 +1076,9 @@ export function OggettiContent() {
               : 'somma quantità'}
           </p>
         </div>
-        <div className="rounded-xl border border-white/20 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
-          <p className="text-xs font-medium uppercase tracking-wider text-white/60">Valore totale collezione</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-white">
+        <div className="rounded-none border border-gray-200 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
+          <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Valore totale collezione</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
             {loading ? '—' : totalValueFormatted}
           </p>
           <p className="mt-0.5 text-xs text-white/50">
@@ -1087,9 +1087,9 @@ export function OggettiContent() {
               : 'prezzo × quantità'}
           </p>
         </div>
-        <div className="rounded-xl border border-white/20 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
-          <p className="text-xs font-medium uppercase tracking-wider text-white/60">Carte in inventario</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-white">
+        <div className="rounded-none border border-gray-200 bg-white/5 p-4 dark:border-gray-600 dark:bg-gray-800/50">
+          <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Carte in inventario</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
             {loading ? '—' : cardsInView}
           </p>
           <p className="mt-0.5 text-xs text-white/50">
@@ -1101,14 +1101,14 @@ export function OggettiContent() {
       {/* Filtro per tipo: Tutti / Singole (carte) / Oggetti */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <span className="mr-2 text-sm font-medium text-white/70">Mostra:</span>
-        <div className="flex flex-wrap gap-1 rounded-lg border border-white/20 bg-white/5 p-1 dark:border-gray-600 dark:bg-gray-800/50">
+        <div className="flex flex-wrap gap-1 rounded-none border border-gray-200 bg-white/5 p-1 dark:border-gray-600 dark:bg-gray-800/50">
           <button
             type="button"
             onClick={() => setKindFilter('all')}
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               kindFilter === 'all'
                 ? 'bg-[#FF7300] text-white'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
             }`}
           >
             Tutti ({inventoryItems.length})
@@ -1119,7 +1119,7 @@ export function OggettiContent() {
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               kindFilter === 'singole'
                 ? 'bg-[#FF7300] text-white'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
             }`}
           >
             Singole ({countsByKind.singole})
@@ -1130,7 +1130,7 @@ export function OggettiContent() {
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               kindFilter === 'oggetti'
                 ? 'bg-[#FF7300] text-white'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
             }`}
           >
             Oggetti ({countsByKind.oggetti})
@@ -1145,7 +1145,7 @@ export function OggettiContent() {
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold uppercase tracking-wide text-white">
+          <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900">
             I Miei Oggetti
           </h1>
           {!syncStatusLoading && (
@@ -1159,7 +1159,7 @@ export function OggettiContent() {
             ) : (
               <Link
                 href="/account/sincronizzazione"
-                className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium text-white/80 hover:bg-white/20 hover:text-white"
+                className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium text-gray-500 hover:bg-white/20 hover:text-gray-900"
                 title="Collega CardTrader per sincronizzare l'inventario"
               >
                 Sincronizzazione non attiva
@@ -1170,7 +1170,7 @@ export function OggettiContent() {
             type="button"
             onClick={() => setExportModalOpen(true)}
             disabled={loading || filteredInventoryItems.length === 0}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            className="inline-flex items-center gap-2 rounded-none border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-white/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
             title="Esporta la collezione in vista (CSV o JSON)"
           >
             <Download className="h-4 w-4" />
@@ -1188,14 +1188,14 @@ export function OggettiContent() {
               value={inventorySearchQuery}
               onChange={(e) => setInventorySearchQuery(e.target.value)}
               placeholder="Cerca nel tuo inventario (tutte le lingue)..."
-              className="w-full rounded-lg border border-white/20 bg-white/10 py-2 pl-9 pr-9 text-sm text-white placeholder:text-white/50 focus:border-[#FF7300] focus:outline-none focus:ring-1 focus:ring-[#FF7300]"
+              className="w-full rounded-none border border-gray-200 bg-white/10 py-2 pl-9 pr-9 text-sm text-gray-900 placeholder:text-white/50 focus:border-[#FF7300] focus:outline-none focus:ring-1 focus:ring-[#FF7300]"
               aria-label="Cerca nell’inventario (nome, set, rarità, condizione - tutte le lingue)"
             />
             {inventorySearchQuery.length > 0 && (
               <button
                 type="button"
                 onClick={() => setInventorySearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-white/70 hover:bg-white/10 hover:text-white"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-white/70 hover:bg-gray-100 hover:text-gray-900"
                 aria-label="Cancella ricerca"
               >
                 <X className="h-4 w-4" />
@@ -1207,7 +1207,7 @@ export function OggettiContent() {
           {syncEnabled && syncPending && (
             <div
               role="status"
-              className="rounded-lg border border-sky-500/50 bg-sky-500/20 px-4 py-2 text-sm font-medium text-sky-200"
+              className="rounded-none border border-sky-500/50 bg-sky-500/20 px-4 py-2 text-sm font-medium text-sky-200"
             >
               Sincronizzazione in corso con CardTrader…
             </div>
@@ -1215,7 +1215,7 @@ export function OggettiContent() {
           {syncEnabled && syncBanner && !syncPending && (
             <div
               role="alert"
-              className={`rounded-lg border px-4 py-2 text-sm font-medium ${
+              className={`rounded-none border px-4 py-2 text-sm font-medium ${
                 syncBanner.type === 'success'
                   ? 'border-emerald-500/50 bg-emerald-500/20 text-emerald-200'
                   : 'border-red-500/50 bg-red-500/20 text-red-200'
@@ -1226,10 +1226,10 @@ export function OggettiContent() {
                 : `Errore nella sincronizzazione${syncBanner.message ? `: ${syncBanner.message}` : ''}`}
             </div>
           )}
-          <p className="text-sm text-white/80">
+          <p className="text-sm text-gray-500">
             {inventorySearchQuery.trim() ? (
               <>
-                <span className="font-medium text-white">{filteredInventoryItems.length}</span>
+                <span className="font-medium text-gray-900">{filteredInventoryItems.length}</span>
                 {' di '}
                 {total} {total === 1 ? 'carta' : 'carte'}
               </>
@@ -1243,20 +1243,20 @@ export function OggettiContent() {
       </div>
 
       {error && (
-        <div className="mb-6 rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        <div className="mb-6 rounded-none border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="rounded-none border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-center justify-center gap-3 p-12">
             <Loader2 className="h-8 w-8 animate-spin text-[#FF7300]" />
             <span className="text-gray-600 dark:text-gray-300">Caricamento inventario...</span>
           </div>
         </div>
       ) : inventoryItems.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 bg-white p-10 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="rounded-none border border-gray-200 bg-white p-10 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <p className="text-center text-gray-600 dark:text-gray-300">
             Non hai ancora oggetti in inventario. Collega CardTrader e avvia la sincronizzazione dalla pagina{' '}
             <Link href="/account/sincronizzazione" className="font-medium text-[#FF7300] hover:underline">
@@ -1266,7 +1266,7 @@ export function OggettiContent() {
           </p>
         </div>
       ) : filteredInventoryItems.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 bg-white p-10 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="rounded-none border border-gray-200 bg-white p-10 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <p className="text-center text-gray-600 dark:text-gray-300">
             Nessun risultato per &quot;{inventorySearchQuery}&quot;. Prova con altri termini o{' '}
             <button
@@ -1282,13 +1282,13 @@ export function OggettiContent() {
       ) : (
         <>
           {!syncEnabled && filteredInventoryItems.length > 0 && (
-            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-white/20 bg-white/5 p-3 dark:border-gray-600 dark:bg-gray-800/50">
-              <span className="text-sm font-medium text-white/80">Selezione:</span>
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-none border border-gray-200 bg-white/5 p-3 dark:border-gray-600 dark:bg-gray-800/50">
+              <span className="text-sm font-medium text-gray-500">Selezione:</span>
               <button
                 type="button"
                 onClick={onSelectAll}
                 disabled={bulkDeleting}
-                className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-none border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-gray-900 hover:bg-white/20 disabled:opacity-50"
               >
                 <CheckSquare className="h-4 w-4" />
                 Seleziona tutte
@@ -1297,7 +1297,7 @@ export function OggettiContent() {
                 type="button"
                 onClick={onDeselectAll}
                 disabled={bulkDeleting}
-                className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-none border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-gray-900 hover:bg-white/20 disabled:opacity-50"
               >
                 <Square className="h-4 w-4" />
                 Deseleziona tutte
@@ -1306,7 +1306,7 @@ export function OggettiContent() {
                 type="button"
                 onClick={() => onDeleteSelected(Array.from(selectedIds))}
                 disabled={bulkDeleting || selectedIds.size === 0}
-                className="inline-flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/20 px-3 py-1.5 text-sm font-medium text-red-200 hover:bg-red-500/30 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-none border border-red-500/50 bg-red-500/20 px-3 py-1.5 text-sm font-medium text-red-200 hover:bg-red-500/30 disabled:opacity-50"
               >
                 {bulkDeleting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -1344,19 +1344,19 @@ export function OggettiContent() {
             bulkDeleting={bulkDeleting}
           />
           {totalPages > 1 && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-white/20 bg-white/5 px-4 py-3 dark:border-gray-600 dark:bg-gray-800/50">
-              <p className="text-sm text-white/80">
-                Pagina <span className="font-semibold text-white">{currentPage}</span> di{' '}
-                <span className="font-semibold text-white">{totalPages}</span>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-none border border-gray-200 bg-white/5 px-4 py-3 dark:border-gray-600 dark:bg-gray-800/50">
+              <p className="text-sm text-gray-500">
+                Pagina <span className="font-semibold text-gray-900">{currentPage}</span> di{' '}
+                <span className="font-semibold text-gray-900">{totalPages}</span>
                 {' · '}
-                <span className="text-white/60">{ITEMS_PER_PAGE} per pagina</span>
+                <span className="text-gray-400">{ITEMS_PER_PAGE} per pagina</span>
               </p>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
-                  className="inline-flex items-center gap-1 rounded-lg border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  className="inline-flex items-center gap-1 rounded-none border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-white/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
                   aria-label="Pagina precedente"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -1374,10 +1374,10 @@ export function OggettiContent() {
                         key={pageNum}
                         type="button"
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`min-w-[2.25rem] rounded-lg border px-2 py-1.5 text-sm font-medium transition-colors ${
+                        className={`min-w-[2.25rem] rounded-none border px-2 py-1.5 text-sm font-medium transition-colors ${
                           currentPage === pageNum
                             ? 'border-[#FF7300] bg-[#FF7300] text-white'
-                            : 'border-white/30 bg-white/10 text-white hover:bg-white/20'
+                            : 'border-white/30 bg-white/10 text-gray-900 hover:bg-white/20'
                         }`}
                         aria-label={`Pagina ${pageNum}`}
                         aria-current={currentPage === pageNum ? 'page' : undefined}
@@ -1391,7 +1391,7 @@ export function OggettiContent() {
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className="inline-flex items-center gap-1 rounded-lg border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  className="inline-flex items-center gap-1 rounded-none border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-white/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
                   aria-label="Pagina successiva"
                 >
                   Successiva
@@ -1413,20 +1413,20 @@ export function OggettiContent() {
           onClick={() => setExportModalOpen(false)}
         >
           <div
-            className="relative w-full max-w-md rounded-2xl border border-white/20 bg-gray-900 shadow-2xl p-6 animate-export-modal-in"
+            className="relative w-full max-w-md rounded-none border border-gray-200 bg-gray-900 shadow-2xl p-6 animate-export-modal-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="absolute right-3 top-3">
               <button
                 type="button"
                 onClick={() => setExportModalOpen(false)}
-                className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+                className="rounded-none p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                 aria-label="Chiudi"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <h2 id="export-modal-title" className="pr-8 text-lg font-semibold text-white mb-1">
+            <h2 id="export-modal-title" className="pr-8 text-lg font-semibold text-gray-900 mb-1">
               Come vuoi esportare la tua collezione?
             </h2>
             <p className="text-sm text-white/70 mb-6">
@@ -1436,7 +1436,7 @@ export function OggettiContent() {
               <button
                 type="button"
                 onClick={handleExportCSV}
-                className="flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-500/50 bg-emerald-500/20 px-5 py-3 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/30 transition-colors"
+                className="flex items-center justify-center gap-2 rounded-none border-2 border-emerald-500/50 bg-emerald-500/20 px-5 py-3 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/30 transition-colors"
               >
                 <FileSpreadsheet className="h-5 w-5" />
                 Esporta CSV
@@ -1444,7 +1444,7 @@ export function OggettiContent() {
               <button
                 type="button"
                 onClick={handleExportJSON}
-                className="flex items-center justify-center gap-2 rounded-xl border-2 border-amber-500/50 bg-amber-500/20 px-5 py-3 text-sm font-semibold text-amber-200 hover:bg-amber-500/30 transition-colors"
+                className="flex items-center justify-center gap-2 rounded-none border-2 border-amber-500/50 bg-amber-500/20 px-5 py-3 text-sm font-semibold text-amber-200 hover:bg-amber-500/30 transition-colors"
               >
                 <FileJson className="h-5 w-5" />
                 Esporta JSON

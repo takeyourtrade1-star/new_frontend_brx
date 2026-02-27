@@ -92,6 +92,17 @@ export function getCdnImageUrl(path: string): string {
 }
 
 /**
+ * Restituisce l'URL di un video (es. sfondo landing). Stessa logica delle immagini: CDN o path locale sotto /images/.
+ * Per S3: caricare in bucket sotto images/videos/ (es. video_carte.mp4).
+ * @param path - path relativo senza leading slash (es. "videos/sfondo_carte.mp4", "videos/video_carte.mp4")
+ */
+export function getCdnVideoUrl(path: string): string {
+  const p = path.replace(/^\/+/, '');
+  if (ASSETS.imagesBaseUrl) return `${ASSETS.imagesBaseUrl}/${p}`;
+  return `/images/${p}`;
+}
+
+/**
  * URL del servizio Search Engine (BRX_Search) per operazioni admin (es. reindex).
  * Impostare NEXT_PUBLIC_SEARCH_API_URL nel .env (es. http://localhost:8000 o URL AWS).
  */

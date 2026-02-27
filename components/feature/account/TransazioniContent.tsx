@@ -9,23 +9,23 @@ const SALDO_MOCK = '0,00';
 
 export function TransazioniContent() {
   return (
-    <div className="text-white" style={{ backgroundColor: 'transparent' }}>
+    <div className="text-gray-900" style={{ backgroundColor: 'transparent' }}>
       {/* Breadcrumb */}
       <nav
-        className="mb-6 flex items-center gap-2 text-sm text-white/90"
+        className="mb-6 flex items-center gap-2 text-sm text-gray-700"
         aria-label="Breadcrumb"
       >
-        <Link href="/account" className="hover:text-white" aria-label="Account">
+        <Link href="/account" className="hover:text-gray-900" aria-label="Account">
           <Home className="h-4 w-4" />
         </Link>
-        <span className="text-white/60">/</span>
+        <span className="text-gray-400">/</span>
         <span>ACCOUNT</span>
-        <span className="text-white/60">/</span>
-        <span className="text-white">TRANSAZIONI</span>
+        <span className="text-gray-400">/</span>
+        <span className="text-gray-900">TRANSAZIONI</span>
       </nav>
 
       {/* Top Section: Credit Balance */}
-      <div className="mb-6 mt-8 rounded-2xl bg-gray-100 px-6 py-5 shadow-md">
+      <div className="mb-6 mt-8 rounded-none bg-gray-100 px-6 py-5 shadow-md">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <span className="text-sm font-medium uppercase tracking-wide text-gray-700">
             IL TUO CREDITO
@@ -41,22 +41,22 @@ export function TransazioniContent() {
         <div className="flex flex-wrap items-center gap-3">
           <Button
             type="button"
-            className="rounded-full px-6 py-2.5 text-sm font-semibold uppercase text-white shadow-md transition-opacity hover:opacity-90"
+            className="rounded-none px-6 py-2.5 text-sm font-semibold uppercase text-gray-900 shadow-md transition-opacity hover:opacity-90"
             style={{ backgroundColor: '#ff7f00' }}
           >
             RICARICA CONTO
           </Button>
           <Button
             type="button"
-            className="rounded-full border border-slate-600/50 px-6 py-2.5 text-sm font-semibold uppercase text-white shadow-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: '#0f172a' }}
+            className="rounded-none border border-[#1D3160] px-6 py-2.5 text-sm font-semibold uppercase text-white shadow-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: '#1D3160' }}
           >
             RITIRA CREDITO
           </Button>
         </div>
         <Link
           href="/account/transazioni"
-          className="text-sm text-white underline hover:text-white/90"
+          className="text-sm text-gray-900 underline hover:text-gray-700"
         >
           TUTTE LE TRANSAZIONI
         </Link>
@@ -64,11 +64,11 @@ export function TransazioniContent() {
 
       {/* Bottom Section: Transactions Filter */}
       <section>
-        <h2 className="mb-4 text-lg font-bold uppercase tracking-wide text-white">
+        <h2 className="mb-4 text-lg font-bold uppercase tracking-wide text-gray-900">
           TUTTE LE TRANSAZIONI
         </h2>
 
-        <div className="rounded-2xl bg-gray-100 p-6 shadow-md">
+        <div className="rounded-none bg-gray-100 p-6 shadow-md">
           <div className="grid grid-cols-1 items-end gap-10 sm:grid-cols-[1fr_1fr_1fr_auto]">
             {/* SCEGLI UN PERIODO - sinistra */}
             <div className="min-w-0">
@@ -78,7 +78,7 @@ export function TransazioniContent() {
               >
                 SCEGLI UN PERIODO
               </label>
-              <div className="relative flex h-10 items-center rounded-full bg-white px-4 py-2 shadow-sm">
+              <div className="relative flex h-10 items-center rounded-none bg-white px-4 py-2 shadow-sm">
                 <select
                   id="transazioni-periodo"
                   className="h-full w-full appearance-none border-0 bg-transparent pr-8 text-sm font-medium uppercase text-gray-900 focus:outline-none focus:ring-0"
@@ -103,7 +103,7 @@ export function TransazioniContent() {
               >
                 DATA INIZIO
               </label>
-              <div className="relative flex h-10 items-center rounded-full bg-white px-4 py-2 shadow-sm">
+              <div className="relative flex h-10 items-center rounded-none bg-white px-4 py-2 shadow-sm">
                 <Input
                   id="transazioni-data-inizio"
                   type="text"
@@ -125,7 +125,7 @@ export function TransazioniContent() {
               >
                 DATA FINE
               </label>
-              <div className="relative flex h-10 items-center rounded-full bg-white px-4 py-2 shadow-sm">
+              <div className="relative flex h-10 items-center rounded-none bg-white px-4 py-2 shadow-sm">
                 <Input
                   id="transazioni-data-fine"
                   type="text"
@@ -141,7 +141,7 @@ export function TransazioniContent() {
 
             <Button
               type="button"
-              className="h-10 shrink-0 rounded-xl px-6 font-semibold uppercase text-white shadow-md transition-opacity hover:opacity-90"
+              className="h-10 shrink-0 rounded-none px-6 font-semibold uppercase text-gray-900 shadow-md transition-opacity hover:opacity-90"
               style={{ backgroundColor: '#ff7f00' }}
             >
               CERCA

@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { getCdnImageUrl } from '@/lib/config';
+import { getCardImageUrl } from '@/lib/assets';
 import { SimpleSecureTuoSection } from './SimpleSecureTuoSection';
 
 const SECTION_RADIUS = '1rem';
@@ -95,6 +96,13 @@ const headerOrange = {
   backgroundColor: '#ff7300',
 };
 
+type SearchHit = {
+  id: string;
+  name: string;
+  set_name: string;
+  image?: string | null;
+};
+
 function CardThumb({ item, showPrice }: { item: HomeCardItem; showPrice?: boolean }) {
   return (
     <div className="flex flex-col items-center">
@@ -111,14 +119,31 @@ function CardThumb({ item, showPrice }: { item: HomeCardItem; showPrice?: boolea
       ) : (
         <div className="w-full aspect-[3/4] rounded-lg bg-gray-600/60" aria-hidden />
       )}
-      <p className="mt-1 text-xs text-white/90">{item.label}</p>
+      <p className="mt-1 text-xs text-gray-700">{item.label}</p>
       {showPrice !== false && item.price != null && (
-        <p className="text-sm font-bold text-white">{item.price}</p>
+        <p className="text-sm font-bold text-gray-900">{item.price}</p>
       )}
       {showPrice === false && (
         <span className="mt-1 text-xs font-medium text-[#ff7300]">SCAMBIA</span>
       )}
     </div>
+  );
+}
+
+function MagicSearchCard({ hit }: { hit: SearchHit }) {
+  const imgUrl = getCardImageUrl(hit.image ?? null);
+  return (
+    <Link href={`/products/${hit.id}`} className="group flex flex-col items-center" aria-label={`Apri dettaglio ${hit.name}`}>
+      {imgUrl ? (
+        <div className="relative w-full aspect-[3/4] overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <Image src={imgUrl} alt={hit.name} fill className="object-cover transition-transform group-hover:scale-[1.02]" unoptimized />
+        </div>
+      ) : (
+        <div className="w-full aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
+      )}
+      <p className="mt-1 line-clamp-1 text-center text-xs font-semibold text-gray-900">{hit.name}</p>
+      <p className="line-clamp-1 text-center text-[11px] text-gray-500">{hit.set_name}</p>
+    </Link>
   );
 }
 
@@ -209,6 +234,9 @@ export function MarketplaceDashboard({
   asta?: AstaData;
   nuoveEspansioni?: NuovaEspansioneItem[];
 } = {}) {
+  const [magicHits, setMagicHits] = useState<SearchHit[]>([]);
+  const [magicOffset, setMagicOffset] = useState(0);
+  const [magicLoading, setMagicLoading] = useState(true);
   const compra = compraVendi ?? PLACEHOLDER_COMPRA_VENDI;
   const scambiaData = scambia ?? PLACEHOLDER_SCAMBIA;
   const astaData = asta ?? PLACEHOLDER_ASTA;
@@ -216,41 +244,94 @@ export function MarketplaceDashboard({
     ? nuoveEspansioni
     : NUOVE_ESPANSIONI_PLACEHOLDER;
 
+  useEffect(() => {
+    let isMounted = true;
+    const loadMagicCards = async () => {
+      try {
+        const res = await fetch('/api/search?game=mtg&category_id=1&limit=30&sort=name_asc');
+        if (!res.ok) return;
+        const json = (await res.json()) as { hits?: SearchHit[] };
+        const hits = Array.isArray(json.hits) ? json.hits.filter((h) => h?.id && h?.name) : [];
+        if (isMounted) setMagicHits(hits);
+      } catch {
+        // no-op: mostriamo placeholder neutri, non mock
+      } finally {
+        if (isMounted) setMagicLoading(false);
+      }
+    };
+    loadMagicCards();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (magicHits.length < 4) return;
+    const timer = setInterval(() => {
+      setMagicOffset((prev) => (prev + 1) % magicHits.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [magicHits.length]);
+
+  const pickThreeCards = useCallback(
+    (start: number): SearchHit[] => {
+      if (magicHits.length === 0) return [];
+      return [0, 1, 2].map((i) => magicHits[(start + i) % magicHits.length]);
+    },
+    [magicHits]
+  );
+
+  const buyTopCards = pickThreeCards(magicOffset);
+  const tradeTopCards = pickThreeCards(magicOffset + 3);
+  const buyListCards = pickThreeCards(magicOffset + 6);
+  const tradeListCards = pickThreeCards(magicOffset + 9);
+  const featuredAstaCard = magicHits.length > 0 ? magicHits[(magicOffset + 12) % magicHits.length] : null;
+
   return (
-    <div className="w-full font-sans bg-transparent text-white transition-colors duration-300">
-      <div className="container-content space-y-4 pb-8 pt-6">
+    <div className="w-full bg-white font-sans text-gray-900 transition-colors duration-300">
+      <div className="container-content space-y-12 pb-12 pt-8 md:space-y-14 md:pb-14 md:pt-10">
         {/* Row 1: una sola card COMPRA E VENDI | separatore | SCAMBIA ORA (come Figma) + card ASTA — +15% altezza */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
           {/* Unica card: nessuna barra blu in alto, solo contenuto con divisore (da sopra immagini a sotto Vedi tutto) */}
           <div
             className="flex min-h-[437px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[483px] lg:col-span-2"
-            style={{ borderRadius: SECTION_RADIUS, border: '2px solid #ff7300', backgroundColor: '#1e293b' }}
+            style={{ borderRadius: SECTION_RADIUS, border: '2px solid #ff7300', backgroundColor: '#ffffff' }}
           >
             <div className="flex min-h-0 flex-1">
-              <div className="flex min-w-0 flex-1 flex-col space-y-4 p-5 md:p-6" style={{ backgroundColor: '#1e293b' }}>
+              <div className="flex min-w-0 flex-1 flex-col space-y-4 p-5 md:p-6" style={{ backgroundColor: '#ffffff' }}>
                 <div className="grid grid-cols-3 gap-3">
-                  {compra.topCards.slice(0, 3).map((item, i) => (
-                    <CardThumb key={item.id ?? i} item={item} showPrice />
-                  ))}
+                  {buyTopCards.length > 0
+                    ? buyTopCards.map((hit) => <MagicSearchCard key={hit.id} hit={hit} />)
+                    : Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
+                      ))}
                 </div>
                 <ul className="flex-1 space-y-2">
-                  {compra.listItems.map((item, i) => (
-                    <li key={item.id ?? i} className="flex items-center gap-3 text-sm text-white">
+                  {(buyListCards.length > 0 ? buyListCards : []).map((hit, i) => (
+                    <li key={hit.id} className="flex items-center gap-3 text-sm text-gray-800">
                       <span className="w-5">{i + 4}.</span>
-                      {item.imageUrl ? (
-                        <div className="relative h-8 w-12 shrink-0 overflow-hidden rounded">
-                          <Image src={item.imageUrl} alt="" fill className="object-cover" unoptimized />
-                        </div>
-                      ) : (
-                        <div className="h-8 w-12 shrink-0 rounded bg-gray-500/50" aria-hidden />
-                      )}
-                      <span className="flex-1">{item.label}</span>
-                      {item.price != null && <span>{item.price}</span>}
+                      {(() => {
+                        const cardSrc = getCardImageUrl(hit.image ?? null);
+                        return cardSrc ? (
+                          <div className="relative h-8 w-12 shrink-0 overflow-hidden rounded">
+                            <Image src={cardSrc} alt={hit.name} fill className="object-cover" unoptimized />
+                          </div>
+                        ) : (
+                          <div className="h-8 w-12 shrink-0 rounded bg-gray-200" aria-hidden />
+                        );
+                      })()}
+                      <Link href={`/products/${hit.id}`} className="flex-1 truncate hover:text-[#ff7300] hover:underline">
+                        {hit.name}
+                      </Link>
+                      <span className="truncate text-xs text-gray-500">{hit.set_name}</span>
                     </li>
                   ))}
+                  {!magicLoading && buyListCards.length === 0 && (
+                    <li className="text-sm text-gray-500">Nessuna singola disponibile.</li>
+                  )}
                 </ul>
                 <Link
-                  href={compra.vediTuttoHref ?? '/products'}
+                  href="/search"
                   className="block text-center text-sm font-medium text-[#ff7300] hover:underline"
                 >
                   VEDI TUTTO →
@@ -261,30 +342,57 @@ export function MarketplaceDashboard({
                 <div className="w-px flex-1 min-h-0 bg-[#ff7300]/80" />
               </div>
 
-              <div className="flex min-w-0 flex-1 flex-col space-y-4 p-5 md:p-6" style={{ backgroundColor: '#1e293b' }}>
+              <div className="flex min-w-0 flex-1 flex-col space-y-4 p-5 md:p-6" style={{ backgroundColor: '#ffffff' }}>
                 <div className="grid grid-cols-3 gap-3">
-                  {scambiaData.topCards.slice(0, 3).map((item, i) => (
-                    <CardThumb key={item.id ?? i} item={item} showPrice={false} />
-                  ))}
+                  {tradeTopCards.length > 0
+                    ? tradeTopCards.map((hit) => (
+                        <Link key={hit.id} href={`/products/${hit.id}`} className="group flex flex-col items-center" aria-label={`Scambia ${hit.name}`}>
+                          {(() => {
+                            const cardSrc = getCardImageUrl(hit.image ?? null);
+                            return cardSrc ? (
+                              <div className="relative w-full aspect-[3/4] overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                <Image src={cardSrc} alt={hit.name} fill className="object-cover transition-transform group-hover:scale-[1.02]" unoptimized />
+                              </div>
+                            ) : (
+                              <div className="w-full aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
+                            );
+                          })()}
+                          <p className="mt-1 line-clamp-1 text-center text-xs font-semibold text-gray-900">{hit.name}</p>
+                          <span className="mt-1 rounded px-2 py-0.5 text-[11px] font-semibold text-white" style={{ backgroundColor: '#ff7300' }}>
+                            SCAMBIA
+                          </span>
+                        </Link>
+                      ))
+                    : Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
+                      ))}
                 </div>
                 <ul className="flex-1 space-y-2">
-                  {scambiaData.listItems.map((item, i) => (
-                    <li key={item.id ?? i} className="flex items-center gap-3 text-sm text-white">
+                  {(tradeListCards.length > 0 ? tradeListCards : []).map((hit, i) => (
+                    <li key={hit.id} className="flex items-center gap-3 text-sm text-gray-800">
                       <span className="w-5">{i + 4}.</span>
-                      {item.imageUrl ? (
-                        <div className="relative h-8 w-12 shrink-0 overflow-hidden rounded">
-                          <Image src={item.imageUrl} alt="" fill className="object-cover" unoptimized />
-                        </div>
-                      ) : (
-                        <div className="h-8 w-12 shrink-0 rounded bg-gray-500/50" aria-hidden />
-                      )}
-                      <span className="flex-1">{item.label}</span>
-                      <span className="text-xs font-medium text-[#ff7300]">SCAMBIA</span>
+                      {(() => {
+                        const cardSrc = getCardImageUrl(hit.image ?? null);
+                        return cardSrc ? (
+                          <div className="relative h-8 w-12 shrink-0 overflow-hidden rounded">
+                            <Image src={cardSrc} alt={hit.name} fill className="object-cover" unoptimized />
+                          </div>
+                        ) : (
+                          <div className="h-8 w-12 shrink-0 rounded bg-gray-200" aria-hidden />
+                        );
+                      })()}
+                      <span className="flex-1 truncate">{hit.name}</span>
+                      <Link href={`/products/${hit.id}`} className="text-xs font-medium text-[#ff7300] hover:underline">
+                        SCAMBIA
+                      </Link>
                     </li>
                   ))}
+                  {!magicLoading && tradeListCards.length === 0 && (
+                    <li className="text-sm text-gray-500">Nessuna singola disponibile.</li>
+                  )}
                 </ul>
                 <Link
-                  href={scambiaData.vediTuttoHref ?? '/scambi'}
+                  href="/search"
                   className="block text-center text-sm font-medium text-[#ff7300] hover:underline"
                 >
                   VEDI TUTTO →
@@ -296,7 +404,7 @@ export function MarketplaceDashboard({
           {/* L'ASTA TERMINA TRA 10 MINUTI — +15% altezza */}
           <div
             className="flex min-h-[437px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[483px]"
-            style={{ borderRadius: SECTION_RADIUS, border: '2px solid #1e3a5f' }}
+            style={{ borderRadius: SECTION_RADIUS, border: '2px solid #ff7300', backgroundColor: '#ffffff' }}
           >
             <div
               className="flex w-full items-center justify-center py-3 px-4 rounded-t-2xl"
@@ -306,29 +414,51 @@ export function MarketplaceDashboard({
                 l&apos;asta termina tra 10 minuti
               </span>
             </div>
-            <div className="flex flex-1 flex-col justify-between space-y-4 p-5 md:p-6" style={{ backgroundColor: '#1e293b' }}>
+            <div className="flex flex-1 flex-col justify-between space-y-4 p-5 md:p-6" style={{ backgroundColor: '#ffffff' }}>
               <div className="flex justify-center">
-                {astaData.featuredImageUrl ? (
-                  <div className="relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-lg">
-                    <Image
-                      src={astaData.featuredImageUrl}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full max-w-[200px] aspect-[3/4] rounded-lg bg-gray-600/60" aria-hidden />
+                {(() => {
+                  const featuredSrc = featuredAstaCard ? getCardImageUrl(featuredAstaCard.image ?? null) : null;
+                  if (featuredAstaCard && featuredSrc) {
+                    return (
+                      <Link href={`/products/${featuredAstaCard.id}`} className="relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-lg border border-gray-200 bg-white">
+                        <Image
+                          src={featuredSrc}
+                          alt={featuredAstaCard.name}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </Link>
+                    );
+                  }
+                  if (astaData.featuredImageUrl) {
+                    return (
+                      <div className="relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-lg border border-gray-200 bg-white">
+                        <Image
+                          src={astaData.featuredImageUrl}
+                          alt=""
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </div>
+                    );
+                  }
+                  return <div className="w-full max-w-[200px] aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />;
+                })()}
+              </div>
+              <div className="space-y-1 text-center">
+                <p className="text-sm font-semibold text-gray-900">
+                  {featuredAstaCard?.name || astaData.featuredTitle || 'Aste in evidenza'}
+                </p>
+                {featuredAstaCard?.set_name && (
+                  <p className="text-xs text-gray-500">{featuredAstaCard.set_name}</p>
                 )}
               </div>
-              <p className="text-center text-sm font-medium text-white">
-                {astaData.featuredTitle ?? 'dragone giallo'}
-              </p>
               <div className="flex justify-center gap-1" aria-hidden>
-                <div className="h-2 w-2 rounded-full bg-white" />
-                <div className="h-2 w-2 rounded-full bg-white/50" />
-                <div className="h-2 w-2 rounded-full bg-white/50" />
+                <div className="h-2 w-2 rounded-full bg-[#ff7300]" />
+                <div className="h-2 w-2 rounded-full bg-[#ff7300]/45" />
+                <div className="h-2 w-2 rounded-full bg-[#ff7300]/45" />
               </div>
               <Link
                 href={astaData.href ?? '/aste'}
@@ -344,7 +474,7 @@ export function MarketplaceDashboard({
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
           <NuoveEspansioniCarousel items={espansioniItems} />
 
-          <div className="flex flex-col overflow-hidden rounded-2xl bg-transparent">
+          <div className="flex flex-col overflow-hidden rounded-2xl bg-white">
             <SimpleSecureTuoSection />
           </div>
         </div>

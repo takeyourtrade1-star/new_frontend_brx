@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { Home } from 'lucide-react';
@@ -8,37 +8,37 @@ export function UtentiBloccatiContent() {
   const [username, setUsername] = useState('');
 
   return (
-    <div className="font-sans text-white">
+    <div className="font-sans text-gray-900">
       {/* Breadcrumb + Help */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <nav
-          className="flex items-center gap-2 text-lg text-white/90"
+          className="flex items-center gap-2 text-lg text-gray-700"
           aria-label="Breadcrumb"
         >
-          <Link href="/account" className="hover:text-white" aria-label="Account">
+          <Link href="/account" className="hover:text-gray-900" aria-label="Account">
             <Home className="h-5 w-5" />
           </Link>
-          <span className="text-white/60">/</span>
-          <Link href="/account/impostazioni" className="hover:text-white">
+          <span className="text-gray-400">/</span>
+          <Link href="/account/impostazioni" className="hover:text-gray-900">
             ACCOUNT
           </Link>
-          <span className="text-white/60">/</span>
-          <Link href="/account/impostazioni" className="hover:text-white">
+          <span className="text-gray-400">/</span>
+          <Link href="/account/impostazioni" className="hover:text-gray-900">
             IMPOSTAZIONI
           </Link>
-          <span className="text-white/60">/</span>
-          <span className="text-white">UTENTI BLOCCATI</span>
+          <span className="text-gray-400">/</span>
+          <span className="text-gray-900">UTENTI BLOCCATI</span>
         </nav>
         <Link
           href="/aiuto"
-          className="ml-auto text-sm font-medium uppercase text-white/90 hover:text-white"
+          className="ml-auto text-sm font-medium uppercase text-gray-700 hover:text-gray-900"
         >
           HAI BISOGNO DI AIUTO?
         </Link>
       </div>
 
       {/* InfoBlock */}
-      <section className="mb-10 mt-8 max-w-3xl space-y-4 text-base leading-relaxed text-white">
+      <section className="mb-10 mt-8 max-w-3xl space-y-4 text-base leading-relaxed text-gray-900">
         <p className="uppercase">
           Questa è la tua lista utenti bloccati. Puoi aggiungere un utente alla
           lista utenti bloccati digitando il suo username. Se un utente è sulla
@@ -73,10 +73,10 @@ export function UtentiBloccatiContent() {
 
       {/* ManageUsers */}
       <section className="flex max-w-4xl flex-wrap items-center gap-4">
-        <h2 className="shrink-0 text-xl font-bold uppercase tracking-wide text-white">
+        <h2 className="shrink-0 text-xl font-bold uppercase tracking-wide text-gray-900">
           GESTISCI UTENTI BLOCCATI
         </h2>
-        <div className="flex min-w-0 flex-1 items-center overflow-hidden rounded-full bg-gray-200 py-1.5 pr-1.5">
+        <div className="flex min-w-0 flex-1 items-center overflow-hidden rounded-none bg-gray-200 py-1.5 pr-1.5">
           <input
             type="text"
             value={username}
@@ -86,7 +86,7 @@ export function UtentiBloccatiContent() {
           />
           <button
             type="button"
-            className="shrink-0 rounded-full border-2 border-[#ff7f00] bg-[#0f172a] px-5 py-2.5 text-base font-semibold uppercase text-[#ff7f00] transition-opacity hover:opacity-90"
+            className="shrink-0 rounded-none border-2 border-[#ff7f00] bg-[#0f172a] px-5 py-2.5 text-base font-semibold uppercase text-[#ff7f00] transition-opacity hover:opacity-90"
           >
             AGGIUNGI LISTA
           </button>

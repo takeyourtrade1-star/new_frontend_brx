@@ -547,10 +547,10 @@ function SearchResultsDropdown({
     <>
       <div
         ref={containerRef as React.Ref<HTMLDivElement>}
-        className="bg-white rounded-lg border border-gray-200 max-h-[400px] overflow-hidden min-h-[80px] flex flex-col shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+        className="bg-white rounded-none border border-gray-200 border-t-0 max-h-[400px] overflow-hidden min-h-[80px] flex flex-col shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
         style={{
           position: 'fixed',
-          top: position.top + 4,
+          top: position.top,
           left: position.left,
           width: position.width,
           zIndex: 1001,
@@ -595,7 +595,7 @@ function SearchResultsDropdown({
                 if (q) router.push(buildSearchUrl(q, gameSlug));
                 onSelect();
               }}
-              className="w-full py-4 text-center text-base font-medium text-[#0f172a] bg-[#F8F8F8] rounded-b-lg hover:bg-[#EEEEEE] transition-colors"
+              className="w-full py-4 text-center text-base font-medium text-[#0f172a] bg-[#F8F8F8] rounded-none hover:bg-[#EEEEEE] transition-colors"
             >
               Mostra tutti i risultati ({hits.length}+)
             </button>
@@ -751,7 +751,7 @@ function SearchPanelBody({
               if (q) router.push(buildSearchUrl(q, selectedGame));
               onSelectResult();
             }}
-            className="w-full py-4 text-center text-base font-medium text-white bg-white/10 hover:bg-[#ff7300]/30 transition-colors rounded-b-2xl"
+            className="w-full py-4 text-center text-base font-medium text-white bg-white/10 hover:bg-[#ff7300]/30 transition-colors rounded-none"
           >
             Mostra tutti i risultati ({hits.length}+)
           </button>
@@ -974,7 +974,7 @@ function SearchWithInstantSearch({
       ref={triggerRef}
       className={`search-container flex min-w-[200px] flex-1 items-center gap-0 overflow-hidden w-full transition-[background-color,border-color,border-radius] duration-200 ${
         showOpenStyle
-          ? 'search-container--open rounded-xl border border-[#FF7300] bg-white'
+          ? 'search-container--open rounded-none bg-white'
           : 'rounded-[50px]'
       }`}
       style={{ zIndex: 1000 }}
@@ -1042,7 +1042,7 @@ export default function GlobalSearchBar() {
 
   return (
     <div
-      className="w-full flex justify-center items-center py-1.5 z-[99] font-sans"
+      className="w-full flex justify-center items-stretch py-0 z-[99] font-sans"
       style={{
         backgroundColor: '#1D3160',
         overflow: 'visible',

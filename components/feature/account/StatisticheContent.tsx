@@ -14,10 +14,10 @@ function FilterRow({ thirdLabel }: { thirdLabel: string }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4 py-3">
       <div className="flex flex-wrap items-end gap-4">
-        <span className="text-sm font-medium uppercase text-white">
+        <span className="text-sm font-medium uppercase text-gray-900">
           ORDINI VENDUTI
         </span>
-        <div className="relative flex h-10 items-center rounded-full bg-white px-4 py-2 shadow-sm">
+        <div className="relative flex h-10 items-center rounded-none bg-white px-4 py-2 shadow-sm">
           <select
             className="h-full w-full appearance-none border-0 bg-transparent pr-8 text-sm font-medium uppercase text-gray-900 focus:outline-none focus:ring-0"
             defaultValue="MESE"
@@ -31,7 +31,7 @@ function FilterRow({ thirdLabel }: { thirdLabel: string }) {
             aria-hidden
           />
         </div>
-        <div className="relative flex h-10 items-center rounded-full bg-white px-4 py-2 shadow-sm">
+        <div className="relative flex h-10 items-center rounded-none bg-white px-4 py-2 shadow-sm">
           <select
             className="h-full w-full appearance-none border-0 bg-transparent pr-8 text-sm font-medium uppercase text-gray-900 focus:outline-none focus:ring-0"
             defaultValue="ANNO"
@@ -45,7 +45,7 @@ function FilterRow({ thirdLabel }: { thirdLabel: string }) {
             aria-hidden
           />
         </div>
-        <div className="relative flex h-10 w-40 items-center rounded-full bg-white px-4 py-2 shadow-sm">
+        <div className="relative flex h-10 w-40 items-center rounded-none bg-white px-4 py-2 shadow-sm">
           <select
             className="h-full w-full appearance-none border-0 bg-transparent pr-8 text-sm font-medium uppercase text-gray-900 focus:outline-none focus:ring-0"
             defaultValue={thirdLabel}
@@ -61,14 +61,14 @@ function FilterRow({ thirdLabel }: { thirdLabel: string }) {
       <div className="flex items-center gap-6">
         <Link
           href="#"
-          className="text-sm font-semibold uppercase text-white hover:underline"
+          className="text-sm font-semibold uppercase text-gray-900 hover:underline"
           style={{ color: '#ff7f00' }}
         >
           ESPORTA (.CSV)
         </Link>
         <Link
           href="#"
-          className="text-sm font-semibold uppercase text-white hover:underline"
+          className="text-sm font-semibold uppercase text-gray-900 hover:underline"
           style={{ color: '#ff7f00' }}
         >
           ESPORTA (.XLS)
@@ -80,27 +80,27 @@ function FilterRow({ thirdLabel }: { thirdLabel: string }) {
 
 export function StatisticheContent() {
   return (
-    <div className="font-sans text-white">
+    <div className="font-sans text-gray-900">
       {/* Breadcrumb */}
       <nav
-        className="mb-6 flex items-center gap-2 text-sm text-white/90"
+        className="mb-6 flex items-center gap-2 text-sm text-gray-700"
         aria-label="Breadcrumb"
       >
-        <Link href="/account" className="hover:text-white" aria-label="Account">
+        <Link href="/account" className="hover:text-gray-900" aria-label="Account">
           <Home className="h-4 w-4" />
         </Link>
-        <span className="text-white/60">/</span>
+        <span className="text-gray-400">/</span>
         <span>ACCOUNT</span>
-        <span className="text-white/60">/</span>
-        <span className="text-white">STATISTICHE</span>
+        <span className="text-gray-400">/</span>
+        <span className="text-gray-900">STATISTICHE</span>
       </nav>
 
       {/* Section 1: Sommario */}
       <section className="mb-12 mt-10">
-        <h2 className="mb-1 text-lg font-bold uppercase tracking-wide text-white">
+        <h2 className="mb-1 text-lg font-bold uppercase tracking-wide text-gray-900">
           SOMMARIO DEGLI ACQUISTI E DELLE VENDITE
         </h2>
-        <p className="mb-6 text-sm text-white/90">
+        <p className="mb-6 text-sm text-gray-700">
           VEDI LE STATISTICHE DELLA TUA ATTIVITÀ (ACQUISTI E VENDITE)
         </p>
         <div className="divide-y divide-white/20">
@@ -115,10 +115,10 @@ export function StatisticheContent() {
 
       {/* Section 2: Statistiche vendita */}
       <section className="mb-12">
-        <h2 className="mb-1 text-lg font-bold uppercase tracking-wide text-white">
+        <h2 className="mb-1 text-lg font-bold uppercase tracking-wide text-gray-900">
           STATISTICHE VENDITA
         </h2>
-        <p className="text-sm uppercase text-white/80">
+        <p className="text-sm uppercase text-gray-500">
           CONTROLLA LE VENDITE PER ESPANSIONI
         </p>
       </section>
@@ -128,22 +128,21 @@ export function StatisticheContent() {
 
       {/* Section 3: Referrals */}
       <section className="mb-12">
-        <h2 className="mb-4 text-lg font-bold uppercase tracking-wide text-white">
+        <h2 className="mb-4 text-lg font-bold uppercase tracking-wide text-gray-900">
           REFERRALS
         </h2>
-        <p className="mb-8 max-w-2xl text-sm leading-relaxed text-white/90">
+        <p className="mb-8 max-w-2xl text-sm leading-relaxed text-gray-700">
           CONTROLLA GLI UTENTI CHE HAI PORTATO SU EBARTEX. CONDIVIDI IL TUO LINK
           REFERRAL E GUADAGNA CREDITI QUANDO I TUOI REFERRAL EFFETTUANO ACQUISTI.
           PUOI RINUNCIARE AL PROGRAMMA REFERRAL IN QUALSIASI MOMENTO.
         </p>
-        <p className="mb-6 text-center text-base font-bold uppercase text-white">
+        <p className="mb-6 text-center text-base font-bold uppercase text-gray-900">
           NON HAI REFERRALS.
         </p>
         <div className="flex justify-center">
           <button
             type="button"
-            className="rounded-full border border-white/40 px-6 py-2.5 text-sm font-semibold uppercase text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: '#0f172a' }}
+            className="rounded-none border border-gray-300 px-6 py-2.5 text-sm font-semibold uppercase text-gray-700 transition-colors hover:border-red-400 hover:text-red-600"
           >
             RINUNCIA AL PROGRAMMA REFERRAL
           </button>

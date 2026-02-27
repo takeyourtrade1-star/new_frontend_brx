@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { ScrollMarquee } from './ScrollMarquee';
+import { getCdnImageUrl } from '@/lib/config';
 
 /** Voce categoria Emporio – dati da backend */
 export type CategoryItem = {
@@ -31,10 +32,10 @@ function CategoryTitle({
 }) {
   return (
     <span
-      className={`relative z-10 font-display text-center text-xl font-bold uppercase tracking-wide text-white md:text-2xl transition-all duration-200 ease-out ${className}`}
-      style={{ textShadow: '0 2px 6px rgba(0,0,0,0.35)' }}
+      className={`relative z-10 text-center font-sans text-3xl font-bold uppercase leading-none tracking-[0.04em] text-white transition-all duration-200 ease-out md:text-5xl ${className}`}
+      style={{ textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}
     >
-      <span className="inline-block rounded-lg bg-black/35 px-4 py-2 backdrop-blur-sm transition-[text-shadow,color] duration-200 group-hover:text-[#FF7300] group-hover:[text-shadow:0_0_16px_rgba(255,115,0,0.95),0_0_32px_rgba(255,115,0,0.7),0_2px_6px_rgba(0,0,0,0.35)]">
+      <span className="inline-block px-4 py-2 transition-colors duration-200 group-hover:text-[#FF7300]">
         {labelLine2 ? (
           <>
             <span className="block">{label}</span>
@@ -48,21 +49,28 @@ function CategoryTitle({
   );
 }
 
-const CARD_MIN_HEIGHT = 'min-h-[140px]';
+const CARD_MIN_HEIGHT = 'min-h-[200px] md:min-h-[230px]';
 
 export function CategoriesGrid({ categories }: { categories?: CategoryItem[] } = {}) {
   const items = categories?.length ? categories : DEFAULT_CATEGORIES;
   const [first, second, ...rest] = items;
+  const heroBg = getCdnImageUrl('carousel/slide1.jpg');
 
   return (
     <section
-      className="w-full py-10 md:py-14 bg-transparent text-white transition-colors duration-300"
+      className="w-full py-0 bg-transparent text-white transition-colors duration-300"
     >
-      <div className="container-content">
-        <ScrollMarquee label="L'EMPORIO DEL COLLEZIONISTA" />
-        <div className="relative overflow-hidden rounded-xl border-2 border-white mt-4">
+      {/* Barra full width senza margini laterali */}
+      <ScrollMarquee label="L'EMPORIO DEL COLLEZIONISTA" />
+      <div>
+        <div className="relative mt-0 overflow-hidden rounded-none border-y-2 border-white">
           <div
-            className="absolute inset-0 bg-gray-800/90"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${heroBg})` }}
+            aria-hidden
+          />
+          <div
+            className="absolute inset-0 bg-black/30"
             aria-hidden
           />
           <div
@@ -72,13 +80,13 @@ export function CategoriesGrid({ categories }: { categories?: CategoryItem[] } =
             {/* Prima e seconda card unite in una sola card con divisore al centro (come Figma) */}
             {first && second && (
               <div
-                className="col-span-2 flex w-full border-b border-white bg-black/25"
-                style={{ minHeight: '140px' }}
+                className="col-span-2 flex w-full border-b border-white/80"
+                style={{ minHeight: '200px' }}
               >
                 <Link
                   key={first.id}
                   href={`/products?category=${first.id}`}
-                  className="group relative flex flex-1 items-center justify-center transition-colors hover:bg-black/20"
+                  className="group relative flex flex-1 items-center justify-center transition-colors hover:bg-black/10"
                 >
                   <CategoryTitle label={first.label} labelLine2={first.labelLine2} />
                 </Link>
@@ -90,7 +98,7 @@ export function CategoriesGrid({ categories }: { categories?: CategoryItem[] } =
                 <Link
                   key={second.id}
                   href={`/products?category=${second.id}`}
-                  className="group relative flex flex-1 items-center justify-center transition-colors hover:bg-black/20"
+                  className="group relative flex flex-1 items-center justify-center transition-colors hover:bg-black/10"
                 >
                   <CategoryTitle label={second.label} labelLine2={second.labelLine2} />
                 </Link>
@@ -101,7 +109,7 @@ export function CategoriesGrid({ categories }: { categories?: CategoryItem[] } =
               <Link
                 key={cat.id}
                 href={`/products?category=${cat.id}`}
-                className={`group relative flex w-full items-center justify-center border border-white border-t-0 bg-black/25 transition-colors hover:bg-black/20 ${CARD_MIN_HEIGHT}`}
+                className={`group relative flex w-full items-center justify-center border border-white/80 border-t-0 transition-colors hover:bg-black/10 ${CARD_MIN_HEIGHT}`}
               >
                 <CategoryTitle label={cat.label} labelLine2={cat.labelLine2} />
               </Link>
