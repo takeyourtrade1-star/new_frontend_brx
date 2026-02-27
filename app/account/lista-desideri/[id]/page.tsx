@@ -1,5 +1,6 @@
 import { ListaDesideriDetailContent } from '@/components/feature/account/ListaDesideriDetailContent';
 
-export default function ListaDesideriDetailPage({ params }: { params: { id: string } }) {
-  return <ListaDesideriDetailContent listId={params.id} />;
+export default async function ListaDesideriDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <ListaDesideriDetailContent listId={id} />;
 }
