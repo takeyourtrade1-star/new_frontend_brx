@@ -44,6 +44,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const imageSrc = props.imageSrc ?? (card?.image != null ? getCardImageUrl(card.image) : null) ?? getCdnImageUrl('kyurem.png');
   const [activeTab, setActiveTab] = useState<'INFO' | 'VENDI' | 'SCAMBIA' | 'ASTA'>('INFO');
   const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'SCAMBIO' | 'ASTA'>('VENDITORI');
+  const [filtersOpen, setFiltersOpen] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [soloFoil, setSoloFoil] = useState(false);
   const [tipoVenditore, setTipoVenditore] = useState<string | null>(null);
@@ -146,6 +147,12 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       .finally(() => setListingsLoading(false));
   }, [card?.cardtrader_id]);
 
+  /* All’apertura della pagina i filtri partono aperti e dopo 1 secondo si chiudono in automatico (per far vedere che ci sono). */
+  useEffect(() => {
+    const t = setTimeout(() => setFiltersOpen(false), 1000);
+    return () => clearTimeout(t);
+  }, []);
+
   const showImagePlaceholder = imageError || !imageSrc;
   const effectiveImageSrc = showImagePlaceholder ? '' : imageSrc;
   const isLocalImage = effectiveImageSrc.startsWith('/') && !effectiveImageSrc.startsWith('//');
@@ -169,8 +176,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
       {/* Sezione titolo: sfondo grigio come il resto della pagina; titolo e sottotitolo allineati a sinistra */}
       <section className="w-full bg-[#F0F0F0] border-b border-gray-300">
-        <div className="container-content py-3 sm:py-4 lg:py-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div className="container-content py-2 sm:py-2.5 lg:py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
             <nav aria-label="Breadcrumb" className="text-xs font-medium text-gray-600 sm:text-sm min-w-0">
               {breadcrumbs.map((b, i) => (
                 <span key={b.label}>
@@ -190,10 +197,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             </Link>
           </div>
           <div className="text-left">
-            <h1 className="text-xl font-bold uppercase tracking-tight text-gray-900 sm:text-2xl md:text-3xl lg:text-4xl break-words">
+            <h1 className="text-lg font-bold uppercase tracking-tight text-gray-900 sm:text-xl md:text-2xl lg:text-3xl break-words">
               {title}
             </h1>
-            <p className="mt-1.5 text-xs sm:text-sm font-bold uppercase tracking-tight text-gray-700 break-words">
+            <p className="mt-1 text-xs sm:text-sm font-bold uppercase tracking-tight text-gray-700 break-words">
               {subtitle}
             </p>
           </div>
@@ -201,11 +208,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       </section>
 
       {/* Contenuto principale: card bianca su sfondo grigio – responsive padding e layout */}
-      <section className="w-full bg-[#F0F0F0] px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 pb-10 sm:pb-12 min-h-[50vh]">
+      <section className="w-full bg-[#F0F0F0] px-4 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 pb-4 sm:pb-6 min-h-0">
         <div className="container-content">
           <div className="flex flex-col rounded-lg bg-white shadow-md overflow-hidden md:flex-row min-h-0">
             {/* Colonna sinistra: immagine carta più piccola per adattarsi all'altezza del contenuto INFO */}
-            <aside className="flex flex-col w-full md:w-[min(280px,26vw)] lg:min-w-[260px] flex-shrink-0 items-center p-4 sm:p-5 lg:p-6 bg-white border-b md:border-b-0 md:border-r border-gray-200">
+            <aside className="flex flex-col w-full md:w-[min(280px,26vw)] lg:min-w-[260px] flex-shrink-0 items-center p-3 sm:p-4 lg:p-4 bg-white border-b md:border-b-0 md:border-r border-gray-200">
               <div
                 className="relative w-full overflow-hidden rounded-md shrink-0 border border-gray-800 max-w-[260px] flex flex-col items-center justify-center bg-gray-100"
                 style={{ aspectRatio: '63/88' }}
@@ -243,7 +250,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             </div>
             <button
               type="button"
-              className="mt-3 w-full max-w-[240px] sm:max-w-[260px] flex items-center justify-center gap-2 py-2 px-3 rounded-md border border-gray-300 bg-white text-gray-700 hover:border-[#FF8800] hover:text-[#FF8800] transition-colors"
+              className="mt-2 w-full max-w-[240px] sm:max-w-[260px] flex items-center justify-center gap-2 py-1.5 px-3 rounded-md border border-gray-300 bg-white text-gray-700 hover:border-[#FF8800] hover:text-[#FF8800] transition-colors"
               aria-label="Aggiungi ai preferiti"
             >
               <svg width="20" height="18" viewBox="0 0 32 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden>
@@ -263,7 +270,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   type="button"
                   onClick={() => setActiveTab(t.id)}
                   className={cn(
-                    'relative flex-1 min-w-0 min-h-[48px] px-2 sm:px-3 py-3 text-xs sm:text-sm font-bold uppercase transition-colors border-r border-gray-300 last:border-r-0',
+                    'relative flex-1 min-w-0 min-h-[40px] px-2 sm:px-3 py-2 text-xs sm:text-sm font-bold uppercase transition-colors border-r border-gray-300 last:border-r-0',
                     activeTab === t.id
                       ? 'bg-white text-gray-900 border-b-[3px] border-b-[#FF8800] border-r-2 border-r-[#FF8800]'
                       : 'text-gray-600 hover:bg-gray-100'
@@ -277,10 +284,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
             {/* Contenuto tab INFO: box info (sinistra) e grafico/prezzi (destra) – occupano bene lo spazio come screenshot */}
             {activeTab === 'INFO' && (
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-4 sm:gap-5 lg:gap-6 p-4 sm:p-5 lg:p-6 min-w-0 w-full">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-3 sm:gap-4 lg:gap-4 p-3 sm:p-4 lg:p-4 min-w-0 w-full">
                 {/* Box info carta: RARITÀ, NUMERO, STAMPATA IN, DISPONIBILI */}
-                <div className="flex flex-col min-h-0 bg-white rounded-lg p-4 sm:p-5 border border-gray-200 shadow-sm">
-                  <div className="flex items-stretch border-b border-gray-200 pb-3 sm:pb-4">
+                <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
+                  <div className="flex items-stretch border-b border-gray-200 pb-2 sm:pb-3">
                     <div className="flex flex-col items-center pr-3 sm:pr-4 border-r border-gray-200">
                       <span className="text-[10px] font-bold uppercase text-black">RARITÀ</span>
                       <div className="mt-1">
@@ -296,57 +303,73 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       <span className="mt-1 text-base sm:text-lg font-bold text-black">{card?.collector_number ?? '015'}</span>
                     </div>
                   </div>
-                  <div className="mt-3 sm:mt-4">
+                  <div className="mt-2 sm:mt-3">
                     <span className="text-[10px] font-bold uppercase text-black">STAMPATA IN</span>
                     <p className="mt-0.5 text-xs sm:text-sm font-bold uppercase text-black">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
                     <Link href="#" className="mt-1 inline-block text-xs font-medium text-[#FF8800] hover:underline uppercase">MOSTRA RISTAMPE</Link>
                   </div>
                   {card?.game_slug === 'mtg' && card?.available_languages && card.available_languages.length > 0 && (
-                    <div className="mt-3 sm:mt-4">
+                    <div className="mt-2 sm:mt-3">
                       <span className="text-[10px] font-bold uppercase text-black">LINGUE DISPONIBILI</span>
                       <p className="mt-0.5 text-xs sm:text-sm font-bold uppercase text-black">
                         {card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ')}
                       </p>
                     </div>
                   )}
-                  <div className="mt-3 sm:mt-4">
+                  <div className="mt-2 sm:mt-3">
                     <span className="text-[10px] font-bold uppercase text-black">DISPONIBILI</span>
-                    <p className="mt-0.5 text-xl sm:text-2xl font-bold text-black">1148</p>
+                    <p className="mt-0.5 text-lg sm:text-xl font-bold text-black">1148</p>
                   </div>
-                  <Link href="#" className="mt-3 sm:mt-4 inline-block text-[10px] font-medium text-[#FF8800] hover:underline">
+                  <Link href="#" className="mt-2 sm:mt-3 inline-block text-[10px] font-medium text-[#FF8800] hover:underline">
                     Informazioni sull&apos;RSGP / Produttore
                   </Link>
                 </div>
                 {/* Box grafico e prezzi: occupa il resto della riga */}
-                <div className="flex flex-col min-h-0 bg-white rounded-lg p-4 sm:p-5 border border-gray-200 shadow-sm">
-                  <div className="flex flex-col sm:flex-row flex-1 min-h-[200px] sm:min-h-0 gap-4 sm:gap-5">
-                    {/* Grafico tendenza */}
-                    <div className="flex flex-[1.5] min-w-0 flex-col">
+                <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
+                  <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-3 sm:gap-4">
+                    {/* Grafico tendenza – riempie lo spazio con proporzioni corrette */}
+                    <div className="flex flex-[1.5] min-w-0 flex-col min-h-[140px] sm:min-h-[160px]">
                       <p className="text-xs sm:text-sm text-gray-700 mb-1">Tendenza di prezzo</p>
-                      <div className="flex flex-1 min-h-[140px] sm:min-h-[160px] items-stretch gap-2">
+                      <div className="flex flex-1 min-h-0 items-stretch gap-2">
                         <div className="flex shrink-0 flex-col justify-between text-[10px] font-medium text-gray-600 py-0.5">
                           {['3 €', '2 €', '1 €', '0 €'].map((l, i) => <span key={i}>{l}</span>)}
                         </div>
-                        <div className="min-w-0 flex-1 bg-[#F5F5F5] rounded border border-gray-200">
-                          <svg viewBox="0 0 200 120" className="h-full w-full" preserveAspectRatio="none">
-                            {[0, 1, 2, 3, 4].map((i) => <line key={`h${i}`} x1="0" y1={i * 30} x2="200" y2={i * 30} stroke="#e5e7eb" strokeWidth="0.5" />)}
-                            {[0, 1, 2, 3, 4].map((i) => <line key={`v${i}`} x1={i * 50} y1="0" x2={i * 50} y2="120" stroke="#e5e7eb" strokeWidth="0.5" />)}
-                            <polyline fill="none" stroke="#FF8800" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points="0,90 30,40 60,100 90,25 120,70 150,50 180,35 200,45" />
-                          </svg>
-                          <div className="flex justify-between px-1 text-[10px] text-gray-500 mt-0.5">
-                            <span>01/01/28</span>
-                            <span>01/01/28</span>
-                            <span>01/01/28</span>
+                        <div className="min-w-0 flex-1 flex flex-col rounded-md bg-[#FAFAFA] border border-gray-200 overflow-hidden">
+                          <div className="flex-1 min-h-0 w-full p-2 sm:p-3">
+                            <svg viewBox="0 0 260 100" className="h-full w-full" preserveAspectRatio="xMidYMid meet">
+                              <defs>
+                                <linearGradient id="chartGradient" x1="0" y1="1" x2="0" y2="0">
+                                  <stop offset="0%" stopColor="#FF8800" stopOpacity="0.15" />
+                                  <stop offset="100%" stopColor="#FF8800" stopOpacity="0" />
+                                </linearGradient>
+                              </defs>
+                              {/* Griglia leggera */}
+                              {[1, 2, 3].map((i) => (
+                                <line key={`h${i}`} x1="20" y1={i * 25} x2="240" y2={i * 25} stroke="#e5e7eb" strokeWidth="0.8" strokeDasharray="2 2" />
+                              ))}
+                              {[1, 2, 3, 4].map((i) => (
+                                <line key={`v${i}`} x1={20 + i * 55} y1="0" x2={20 + i * 55} y2="100" stroke="#e5e7eb" strokeWidth="0.8" strokeDasharray="2 2" />
+                              ))}
+                              {/* Area sotto la linea (riempimento) */}
+                              <path fill="url(#chartGradient)" d="M 20,60 C 50,35 80,75 110,20 140,65 170,45 200,30 230,25 240,28 L 240,100 L 20,100 Z" />
+                              {/* Linea tendenza */}
+                              <path fill="none" stroke="#FF8800" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M 20,60 C 50,35 80,75 110,20 140,65 170,45 200,30 230,25 240,28" />
+                            </svg>
+                          </div>
+                          <div className="flex justify-between px-2 pb-1 text-[10px] text-gray-500 border-t border-gray-100 pt-1">
+                            <span>01/01/20</span>
+                            <span>01/01/23</span>
+                            <span>01/01/25</span>
                           </div>
                         </div>
                       </div>
                     </div>
                     {/* Valore tendenza + Prezzo medio */}
-                    <div className="flex flex-col justify-start sm:justify-center flex-shrink-0 sm:w-[140px] lg:w-[160px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-4 sm:pt-0 sm:pl-4">
+                    <div className="flex flex-col justify-start sm:justify-center flex-shrink-0 sm:w-[120px] lg:w-[140px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-3">
                       <p className="text-xs sm:text-sm text-gray-700">Tendenza di prezzo</p>
-                      <p className="mt-0.5 text-lg sm:text-xl font-bold text-[#FF8800] underline">1,46 €</p>
-                      <p className="mt-3 text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
-                      <ul className="mt-1.5 list-none space-y-1 text-xs sm:text-sm">
+                      <p className="mt-0.5 text-base sm:text-lg font-bold text-[#FF8800] underline">1,46 €</p>
+                      <p className="mt-2 text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
+                      <ul className="mt-1 list-none space-y-0.5 text-xs sm:text-sm">
                         <li className="flex justify-between gap-3"><span className="text-gray-600">30 gg</span><span className="font-bold text-gray-900">1,35 €</span></li>
                         <li className="flex justify-between gap-3"><span className="text-gray-600">7 gg</span><span className="font-bold text-gray-900">1,48 €</span></li>
                         <li className="flex justify-between gap-3"><span className="text-gray-600">1 gg</span><span className="font-bold text-gray-900">1,05 €</span></li>
@@ -440,33 +463,46 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
                 </div>
                 {/* Grafico prezzo – uguale al tab INFO */}
-                <div className="flex flex-col min-h-0 bg-white rounded-lg p-4 sm:p-5 border border-gray-200 shadow-sm">
-                  <div className="flex flex-col sm:flex-row flex-1 min-h-[200px] sm:min-h-0 gap-4 sm:gap-5">
-                    <div className="flex flex-[1.5] min-w-0 flex-col">
+                <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
+                  <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-3 sm:gap-4">
+                    <div className="flex flex-[1.5] min-w-0 flex-col min-h-[140px] sm:min-h-[160px]">
                       <p className="text-xs sm:text-sm text-gray-700 mb-1">Tendenza di prezzo</p>
-                      <div className="flex flex-1 min-h-[140px] sm:min-h-[160px] items-stretch gap-2">
+                      <div className="flex flex-1 min-h-0 items-stretch gap-2">
                         <div className="flex shrink-0 flex-col justify-between text-[10px] font-medium text-gray-600 py-0.5">
                           {['3 €', '2 €', '1 €', '0 €'].map((l, i) => <span key={i}>{l}</span>)}
                         </div>
-                        <div className="min-w-0 flex-1 bg-[#F5F5F5] rounded border border-gray-200">
-                          <svg viewBox="0 0 200 120" className="h-full w-full" preserveAspectRatio="none">
-                            {[0, 1, 2, 3, 4].map((i) => <line key={`h${i}`} x1="0" y1={i * 30} x2="200" y2={i * 30} stroke="#e5e7eb" strokeWidth="0.5" />)}
-                            {[0, 1, 2, 3, 4].map((i) => <line key={`v${i}`} x1={i * 50} y1="0" x2={i * 50} y2="120" stroke="#e5e7eb" strokeWidth="0.5" />)}
-                            <polyline fill="none" stroke="#FF8800" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points="0,90 30,40 60,100 90,25 120,70 150,50 180,35 200,45" />
-                          </svg>
-                          <div className="flex justify-between px-1 text-[10px] text-gray-500 mt-0.5">
-                            <span>01/01/28</span>
-                            <span>01/01/28</span>
-                            <span>01/01/28</span>
+                        <div className="min-w-0 flex-1 flex flex-col rounded-md bg-[#FAFAFA] border border-gray-200 overflow-hidden">
+                          <div className="flex-1 min-h-0 w-full p-2 sm:p-3">
+                            <svg viewBox="0 0 260 100" className="h-full w-full" preserveAspectRatio="xMidYMid meet">
+                              <defs>
+                                <linearGradient id="chartGradientVendi" x1="0" y1="1" x2="0" y2="0">
+                                  <stop offset="0%" stopColor="#FF8800" stopOpacity="0.15" />
+                                  <stop offset="100%" stopColor="#FF8800" stopOpacity="0" />
+                                </linearGradient>
+                              </defs>
+                              {[1, 2, 3].map((i) => (
+                                <line key={`h${i}`} x1="20" y1={i * 25} x2="240" y2={i * 25} stroke="#e5e7eb" strokeWidth="0.8" strokeDasharray="2 2" />
+                              ))}
+                              {[1, 2, 3, 4].map((i) => (
+                                <line key={`v${i}`} x1={20 + i * 55} y1="0" x2={20 + i * 55} y2="100" stroke="#e5e7eb" strokeWidth="0.8" strokeDasharray="2 2" />
+                              ))}
+                              <path fill="url(#chartGradientVendi)" d="M 20,60 C 50,35 80,75 110,20 140,65 170,45 200,30 230,25 240,28 L 240,100 L 20,100 Z" />
+                              <path fill="none" stroke="#FF8800" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M 20,60 C 50,35 80,75 110,20 140,65 170,45 200,30 230,25 240,28" />
+                            </svg>
+                          </div>
+                          <div className="flex justify-between px-2 pb-1 text-[10px] text-gray-500 border-t border-gray-100 pt-1">
+                            <span>01/01/20</span>
+                            <span>01/01/23</span>
+                            <span>01/01/25</span>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col justify-start sm:justify-center flex-shrink-0 sm:w-[140px] lg:w-[160px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-4 sm:pt-0 sm:pl-4">
+                    <div className="flex flex-col justify-start sm:justify-center flex-shrink-0 sm:w-[120px] lg:w-[140px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-3">
                       <p className="text-xs sm:text-sm text-gray-700">Tendenza di prezzo</p>
-                      <p className="mt-0.5 text-lg sm:text-xl font-bold text-[#FF8800] underline">1,46 €</p>
-                      <p className="mt-3 text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
-                      <ul className="mt-1.5 list-none space-y-1 text-xs sm:text-sm">
+                      <p className="mt-0.5 text-base sm:text-lg font-bold text-[#FF8800] underline">1,46 €</p>
+                      <p className="mt-2 text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
+                      <ul className="mt-1 list-none space-y-0.5 text-xs sm:text-sm">
                         <li className="flex justify-between gap-3"><span className="text-gray-600">30 gg</span><span className="font-bold text-gray-900">1,35 €</span></li>
                         <li className="flex justify-between gap-3"><span className="text-gray-600">7 gg</span><span className="font-bold text-gray-900">1,48 €</span></li>
                         <li className="flex justify-between gap-3"><span className="text-gray-600">1 gg</span><span className="font-bold text-gray-900">1,05 €</span></li>
@@ -528,18 +564,49 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         </div>
       </section>
 
-      {/* Sezione sempre visibile: FILTRI (sinistra) + tab VENDITORI | SCAMBIO | VEDI ALL'ASTA + tabella (destra) – non cambia con INFO/VENDI/SCAMBIA/METTI ALL'ASTA */}
+      {/* Sezione FILTRI a fianco della tabella (sinistra) + tab IN VENDITA | DISPONIBILI ALLO SCAMBIO | DISPONIBILI ALL'ASTA + tabella – filtri in striscia stretta quando chiusi, pannello pieno quando aperti */}
       <section className="w-full bg-[#F0F0F0] border-t border-gray-300">
-        <div className="container-content py-4 sm:py-6 lg:py-8">
-          <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-            {/* Sidebar FILTRI – come negli screenshot */}
-            <aside className="w-full lg:w-[280px] xl:w-[300px] flex-shrink-0">
-              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-sm font-bold uppercase text-gray-900">Filtri</span>
-                  <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        <div className="container-content py-2.5 sm:py-3 lg:py-4">
+          <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch">
+            {/* Sidebar FILTRI – subito a sinistra della tabella: striscia stretta quando chiusa, pannello largo quando aperta */}
+            <aside
+              className={cn(
+                'flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-out',
+                filtersOpen ? 'w-full lg:w-[280px] xl:w-[300px]' : 'w-full lg:w-14'
+              )}
+            >
+              {!filtersOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen(true)}
+                  className="w-full h-full min-h-[120px] lg:min-h-[200px] flex flex-col items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white p-2 shadow-sm hover:bg-gray-50 transition-colors"
+                  aria-label="Apri filtri"
+                >
+                  <svg className="h-5 w-5 text-gray-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
+                  <span className="text-xs font-bold uppercase text-gray-600 lg:hidden">Filtri</span>
+                  <span className="text-[10px] font-bold uppercase text-gray-600 hidden lg:inline" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>Filtri</span>
+                </button>
+              ) : (
+              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm h-full min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold uppercase text-gray-900">Filtri</span>
+                    <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                    </svg>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFiltersOpen(false)}
+                    className="flex items-center justify-center rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                    aria-label="Chiudi filtri"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
                 <div className="space-y-4">
                   <div>
@@ -643,38 +710,66 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
                 </div>
               </div>
+              )}
             </aside>
 
-            {/* Area destra: tab VENDITORI | SCAMBIO | VEDI ALL'ASTA + contenuto */}
+            {/* Tabella Venditori / Scambio / Asta – subito a destra dei filtri */}
             <div className="flex-1 min-w-0 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
               <div className="flex border-b border-gray-200 bg-[#E5E7EB]">
-                {(['VENDITORI', 'SCAMBIO', 'ASTA'] as const).map((tab) => (
+                {(['VENDITORI', 'SCAMBIO', 'ASTA'] as const).map((tab) => {
+                  const tabLabel = tab === 'VENDITORI' ? 'IN VENDITA' : tab === 'SCAMBIO' ? 'DISPONIBILI ALLO SCAMBIO' : "DISPONIBILI ALL'ASTA";
+                  const iconClass = 'h-5 w-5 shrink-0';
+                  return (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setSellerSubTab(tab)}
                     className={cn(
-                      'flex-1 min-w-0 min-h-[48px] px-4 py-3 text-sm font-bold uppercase transition-colors',
+                      'flex flex-1 min-w-0 min-h-[48px] items-center justify-center gap-2 px-4 py-3 text-sm font-bold uppercase transition-colors',
                       sellerSubTab === tab ? 'bg-[#FF8800] text-white' : 'bg-transparent text-gray-600 hover:bg-gray-100'
                     )}
                   >
-                    {tab === 'ASTA' ? "VEDI ALL'ASTA" : tab}
+                    {tab === 'VENDITORI' && (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden>
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                        <line x1="7" y1="7" x2="7.01" y2="7" />
+                      </svg>
+                    )}
+                    {tab === 'SCAMBIO' && (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden>
+                        <polyline points="17 1 21 5 17 9" />
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                        <polyline points="7 23 3 19 7 15" />
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                      </svg>
+                    )}
+                    {tab === 'ASTA' && (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden>
+                        <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8" />
+                        <path d="m16 16 6-6" />
+                        <path d="m8 8 6-6" />
+                        <path d="m9 7 8 8" />
+                        <path d="m21 11-8-8" />
+                      </svg>
+                    )}
+                    <span className="truncate">{tabLabel}</span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
               {sellerSubTab === 'VENDITORI' && (
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[640px] table-fixed text-left text-xs sm:text-sm">
                     <colgroup>
-                      <col style={{ width: '26%' }} />
-                      <col style={{ width: '38%' }} />
-                      <col style={{ width: '36%' }} />
+                      <col style={{ width: '33.33%' }} />
+                      <col style={{ width: '33.33%' }} />
+                      <col style={{ width: '33.34%' }} />
                     </colgroup>
                     <thead>
-                      <tr className="text-xs font-semibold uppercase tracking-wider" style={{ backgroundColor: '#E5E7EB', borderTop: '2px solid #1D3160', borderLeft: '2px solid #1D3160', borderRight: '2px solid #1D3160', color: '#1D3160' }}>
-                        <th className="px-3 py-2.5 sm:px-4 sm:py-3 text-center">Venditore</th>
-                        <th className="px-3 py-2.5 sm:px-4 sm:py-3 text-center">Informazioni prodotto</th>
-                        <th className="px-3 py-2.5 sm:px-4 sm:py-3 text-center">Offerta</th>
+                      <tr className="text-xs font-medium uppercase tracking-wide text-gray-500 bg-gray-50 border-b border-gray-200">
+                        <th className="px-3 py-2 sm:px-4 sm:py-2.5 text-center">Venditore</th>
+                        <th className="px-3 py-2 sm:px-4 sm:py-2.5 text-center">Informazioni prodotto</th>
+                        <th className="px-3 py-2 sm:px-4 sm:py-2.5 text-center">Offerta</th>
                       </tr>
                     </thead>
                     <tbody>
