@@ -4,7 +4,7 @@ import { EbartexBoutiquePage } from '@/components/feature/product/EbartexBoutiqu
 import { getCdnImageUrl } from '@/lib/config';
 import { getCardBySlug } from '@/lib/mock-cards';
 import { getCardDocumentById, isIndexProductId } from '@/lib/product-detail';
-import { CATEGORY_SLUGS } from '@/lib/product-categories';
+import { CATEGORY_SLUGS, type ProductCategorySlug } from '@/lib/product-categories';
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -21,7 +21,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   // Slug categoria (singles, boosters, sigillati, ecc.) → pagina elenco categoria
   if (CATEGORY_SLUGS.has(slug)) {
-    return <ProductCategoryPageClient categorySlug={slug} />;
+    return <ProductCategoryPageClient categorySlug={slug as ProductCategorySlug} />;
   }
 
   const cardId = slug;

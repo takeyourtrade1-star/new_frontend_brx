@@ -15,4 +15,4 @@ export const PRODUCT_CATEGORIES = [
 export type ProductCategorySlug = (typeof PRODUCT_CATEGORIES)[number]['slug'];
 
 /** Set degli slug categoria per distinguere /products/singles da /products/mtg_123 */
-export const CATEGORY_SLUGS = new Set(PRODUCT_CATEGORIES.map((c) => c.slug));
+export const CATEGORY_SLUGS: Set<string> = new Set(PRODUCT_CATEGORIES.map((c) => c.slug));
