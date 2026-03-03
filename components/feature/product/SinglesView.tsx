@@ -220,8 +220,8 @@ export function ProductCategoryView({
               <select
                 className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[140px] bg-gray-50 text-gray-900"
                 value={categorySlug}
-                readOnly
-                aria-readonly
+                disabled
+                aria-label="Categoria corrente"
               >
                 <option value={categorySlug}>{categoryLabel}</option>
               </select>
