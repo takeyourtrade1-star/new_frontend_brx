@@ -38,7 +38,7 @@ function normalizeUser(user: UserResponse | User | null): User | null {
       DEFAULT_PREFERENCES.is_onboarding_completed,
   };
 
-  const u = user as UserResponse & { name?: string | null; image?: string | null };
+  const u = user as UserResponse & { name?: string | null; image?: string | null; country?: string };
   return {
     id: user.id,
     email: user.email,
@@ -48,6 +48,7 @@ function normalizeUser(user: UserResponse | User | null): User | null {
     mfa_enabled: (user as UserResponse).mfa_enabled,
     created_at: (user as UserResponse).created_at,
     preferences,
+    country: u.country ?? undefined,
   };
 }
 
@@ -586,7 +587,7 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      // Set user (normalize preferences)
+      // Set user (normalize preferences) and mark as authenticated
       setUser: (user: User) => {
         const normalized = normalizeUser(user as UserResponse);
         if (normalized) {
@@ -596,7 +597,7 @@ export const useAuthStore = create<AuthState>()(
               JSON.stringify(normalized)
             );
           }
-          set({ user: normalized });
+          set({ user: normalized, isAuthenticated: true });
         }
       },
 

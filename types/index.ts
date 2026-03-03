@@ -32,6 +32,8 @@ export interface User {
   mfa_enabled?: boolean;
   created_at?: string;
   preferences?: UserPreferences;
+  /** Codice paese dell'utente (es. IT), se restituito dal backend */
+  country?: string;
 }
 
 export interface UserPreferences {

@@ -9,13 +9,13 @@ const BORDER = '#878787';
 const SEPARATOR = 'rgba(0,0,0,0.15)';
 
 const MENU_ITEMS = [
-  { id: 'singles', label: 'SINGLES', href: '/products/mowgli-cucciolo-duomo' },
-  { id: 'boosters', label: 'BOOSTERS', href: '/products?category=boosters' },
-  { id: 'booster-box', label: 'BOOSTER BOXES', href: '/products?category=booster-box' },
-  { id: 'set-lotti', label: 'SET, LOTTI E COLLEZIONI', href: '/products?category=set-lotti' },
-  { id: 'sigillati', label: 'PRODOTTI SIGILLATI', href: '/products?category=sigillati' },
-  { id: 'accessori', label: 'ACCESSORI', href: '/products?category=accessori' },
-  { id: 'boutique', label: 'EBARTEX BOUTIQUE', href: '/products' },
+  { id: 'singles', label: 'SINGLES', href: '/products/singles' },
+  { id: 'boosters', label: 'BOOSTERS', href: '/products/boosters' },
+  { id: 'booster-box', label: 'BOOSTER BOXES', href: '/products/booster-boxes' },
+  { id: 'set-lotti', label: 'SET, LOTTI E COLLEZIONI', href: '/products/set-lotti-collezioni' },
+  { id: 'sigillati', label: 'PRODOTTI SIGILLATI', href: '/products/sigillati' },
+  { id: 'accessori', label: 'ACCESSORI', href: '/products/accessori' },
+  { id: 'boutique', label: 'EBARTEX BOUTIQUE', href: '/products/boutique' },
 ] as const;
 
 export function ProdottiMenu() {

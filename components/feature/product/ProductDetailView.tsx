@@ -11,8 +11,20 @@ import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { getGameLabel, buildBreadcrumbsFromCard, type CardDocument } from '@/lib/product-detail';
 import { syncClient, type ListingItem } from '@/lib/api/sync-client';
 import { getCdnImageUrl } from '@/lib/config';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { COUNTRIES } from '@/lib/registrati/schema';
 
 const PRIMARY_BLUE = '#1D3160';
+
+/** Restituisce l’emoji bandiera per un codice paese ISO 2 lettere (es. IT → 🇮🇹). */
+function countryFlag(code: string): string {
+  if (code.length !== 2) return '';
+  return code
+    .toUpperCase()
+    .split('')
+    .map((c) => String.fromCodePoint(0x1f1e6 - 65 + c.charCodeAt(0)))
+    .join('');
+}
 const ACCENT_ORANGE = '#f97316';
 
 type ProductDetailViewProps =
@@ -51,6 +63,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [firmata, setFirmata] = useState<'SÌ' | 'NO' | 'ENTRAMBI'>('ENTRAMBI');
   const [alterata, setAlterata] = useState<'SÌ' | 'NO' | 'ENTRAMBI'>('ENTRAMBI');
   const [quantita, setQuantita] = useState(33);
+  const [posizioneVenditore, setPosizioneVenditore] = useState<string>(() => COUNTRIES[0].code);
+
+  const user = useAuthStore((s) => s.user);
 
   const [listings, setListings] = useState<ListingItem[]>([]);
   const [listingsLoading, setListingsLoading] = useState(false);
@@ -152,6 +167,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     const t = setTimeout(() => setFiltersOpen(false), 1000);
     return () => clearTimeout(t);
   }, []);
+
+  /* Quando l'utente loggato ha un paese, usa quello come "Posizione venditore". */
+  useEffect(() => {
+    if (user?.country) setPosizioneVenditore(user.country);
+  }, [user?.country]);
 
   const showImagePlaceholder = imageError || !imageSrc;
   const effectiveImageSrc = showImagePlaceholder ? '' : imageSrc;
@@ -611,8 +631,16 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Posizione venditore</label>
-                    <select className="w-full rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-900">
-                      <option>Paesi</option>
+                    <select
+                      value={posizioneVenditore}
+                      onChange={(e) => setPosizioneVenditore(e.target.value)}
+                      className="w-full rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-900"
+                    >
+                      {COUNTRIES.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {countryFlag(c.code)} {c.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>

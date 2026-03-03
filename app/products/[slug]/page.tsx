@@ -1,7 +1,10 @@
 import { ProductDetailView } from '@/components/feature/product/ProductDetailView';
+import { ProductCategoryPageClient } from '@/components/feature/product/ProductCategoryPageClient';
+import { EbartexBoutiquePage } from '@/components/feature/product/EbartexBoutiquePage';
 import { getCdnImageUrl } from '@/lib/config';
 import { getCardBySlug } from '@/lib/mock-cards';
 import { getCardDocumentById, isIndexProductId } from '@/lib/product-detail';
+import { CATEGORY_SLUGS } from '@/lib/product-categories';
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -9,7 +12,19 @@ type ProductPageProps = {
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const resolvedParams = await params;
-  const cardId = resolvedParams.slug;
+  const slug = resolvedParams.slug;
+
+  // Ebartex Boutique: pagina dedicata con carousel, categorie, stampa 3D
+  if (slug === 'boutique') {
+    return <EbartexBoutiquePage />;
+  }
+
+  // Slug categoria (singles, boosters, sigillati, ecc.) → pagina elenco categoria
+  if (CATEGORY_SLUGS.has(slug)) {
+    return <ProductCategoryPageClient categorySlug={slug} />;
+  }
+
+  const cardId = slug;
 
   // Id da ricerca (Meilisearch): mtg_123, op_456, pk_789, sealed_10 → fetch da Meilisearch (GET doc + fallback search)
   if (isIndexProductId(cardId)) {
