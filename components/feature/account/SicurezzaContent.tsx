@@ -115,11 +115,12 @@ export function SicurezzaContent() {
   });
 
   const isMFAEnabled = user?.mfa_enabled ?? false;
+  const verifyMfaCode = watchVerifyCode('mfa_code');
   const verifyDigits = useMemo(() => {
-    const raw = (watchVerifyCode?.mfa_code ?? '').toString();
+    const raw = (verifyMfaCode ?? '').toString();
     const only = raw.replace(/\D/g, '').slice(0, 6);
     return only.padEnd(6, ' ').split('').slice(0, 6);
-  }, [watchVerifyCode]);
+  }, [verifyMfaCode]);
 
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
 
