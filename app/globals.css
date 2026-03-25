@@ -1,0 +1,725 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Comodo Regular: font display/tab (fallback a font di sistema se i file non sono in public/fonts) */
+@font-face {
+  font-family: 'Comodo Regular';
+  src: local('Segoe UI'), local('Arial Rounded MT Bold'), local('Arial');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    /* Palette principale (gradiente e blocchi) */
+    --color-brand: #3D65C6;
+    --color-brand-dark: #1D3160;
+    /* Font principale: SF Compact Rounded (Apple) + fallback */
+    --font-sans: 'SF Compact Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    /* Font display: Comodo Regular (locale in public/fonts) */
+    --font-comodo: 'Comodo Regular', sans-serif;
+
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+/* Font display: Comodo Regular (tab COMPRA, GUADAGNA, ecc.) */
+.font-display {
+  font-family: var(--font-comodo) !important;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    min-height: 100%;
+  }
+  body {
+    @apply transition-colors duration-300 min-h-screen font-medium;
+    /* Sfondo: gradiente palette + pattern BRX (da CDN se NEXT_PUBLIC_CDN_URL impostato) */
+    background-image:
+      linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)),
+      var(--brx-bg-url, url("/brx_bg.png")),
+      linear-gradient(180deg, #3D65C6 0%, #1D3160 100%);
+    background-repeat: no-repeat, repeat, no-repeat;
+    background-size: cover, auto, cover;
+    background-attachment: fixed;
+    color: #fff;
+  }
+  html:not(.dark) body {
+    background-image:
+      linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)),
+      var(--brx-bg-url, url("/brx_bg.png")),
+      linear-gradient(180deg, #3D65C6 0%, #1D3160 100%);
+    background-repeat: no-repeat, repeat, no-repeat;
+    background-size: cover, auto, cover;
+    background-attachment: fixed;
+    color: #fff;
+  }
+  html.dark body {
+    background-image:
+      linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)),
+      var(--brx-bg-url, url("/brx_bg.png")),
+      linear-gradient(180deg, #3D65C6 0%, #1D3160 100%);
+    background-repeat: no-repeat, repeat, no-repeat;
+    background-size: cover, auto, cover;
+    background-attachment: fixed;
+    color: #fff;
+  }
+}
+
+/* Aste / creazione: primo risultato ricerca catalogo — lampeggio leggero sul bordo arancione (#FF7300) */
+@keyframes auction-search-top-hit-border {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(255, 115, 0, 0.22);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(255, 115, 0, 0.48);
+  }
+}
+
+.auction-search-top-hit {
+  animation: auction-search-top-hit-border 2.4s ease-in-out infinite;
+  border-radius: 0.375rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auction-search-top-hit {
+    animation: none;
+    box-shadow: 0 0 0 1px rgba(255, 115, 0, 0.3);
+  }
+}
+
+/* Features section: gradient + texture solo in dark mode */
+.dark .features-section {
+  background-image: linear-gradient(180deg, rgba(61,101,198,0.88) 0%, rgba(61,101,198,0.88) 100%), var(--brx-bg-url, url("/brx_bg.png"));
+  background-repeat: no-repeat, repeat;
+  background-size: 100% 100%, auto;
+}
+
+/* Menu Prodotti / Menu Giochi: highlight con barretta arancione a sinistra (stile Cardmarket) */
+.prodotti-menu-item,
+.games-menu-item {
+  position: relative;
+  text-decoration: none;
+  padding-left: 1rem;
+}
+.prodotti-menu-item::before,
+.games-menu-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  background-color: #FF7300;
+  border-radius: 999px;
+  opacity: 0;
+  transform: scaleY(0.6);
+  transform-origin: center;
+  transition: opacity 120ms ease-out, transform 120ms ease-out;
+}
+.prodotti-menu-item:hover,
+.prodotti-menu-item:focus-visible,
+.games-menu-item:hover,
+.games-menu-item:focus-visible {
+  background-color: #f3f4f6;
+}
+.prodotti-menu-item:hover::before,
+.prodotti-menu-item:focus-visible::before,
+.games-menu-item:hover::before,
+.games-menu-item:focus-visible::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+/* Righe tabella risultati ricerca: stesso highlight del menu Prodotti (barra arancione + sfondo grigio chiaro) */
+.search-results-table-wrapper {
+  /* Impedisce che la tabella diventi uno scroll-container verticale
+     (che “blocca” lo scroll pagina e lascia la paginazione ferma). */
+  overflow-y: hidden !important;
+  overflow-x: auto !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+.search-results-card {
+  overflow-y: visible !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+.search-result-row td:first-child {
+  border-left: 3px solid transparent;
+  transition:
+    border-color 120ms ease-out,
+    background-color 120ms ease-out;
+}
+.search-result-row td {
+  transition: background-color 120ms ease-out;
+}
+.search-result-row:hover td:first-child,
+.search-result-row:focus-within td:first-child {
+  border-left-color: #ff7300;
+}
+.search-result-row:hover td,
+.search-result-row:focus-within td {
+  background-color: #f3f4f6;
+}
+
+/* Marquee: font COMODO, oro in gradiente verso il basso */
+.marquee {
+  font-family: var(--font-comodo), sans-serif;
+  background: linear-gradient(180deg, #F3C76A 0%, #e5b85c 50%, #d4a84b 100%);
+  margin-top: 0;
+}
+
+/* --- FloatingInput: fieldset/legend per il taglio nel bordo --- */
+.floating-group {
+  position: relative;
+  margin-top: 20px;
+}
+
+/* L'input deve avere placeholder=" " (spazio) per :placeholder-shown */
+.floating-input {
+  position: relative;
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  outline: none;
+  border: none;
+  font-size: 16px;
+  color: inherit;
+  box-sizing: border-box;
+  z-index: 2;
+}
+
+.floating-label {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  color: #999;
+  pointer-events: none;
+  transform-origin: left top;
+  transition: 0.2s ease all;
+  z-index: 3;
+}
+
+.floating-fieldset {
+  position: absolute;
+  top: -9px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 0 8px;
+  pointer-events: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: transparent;
+  transition: border-color 0.2s;
+  z-index: 1;
+}
+
+.floating-legend {
+  width: auto;
+  height: 11px;
+  font-size: 0.75em;
+  visibility: hidden;
+  max-width: 0.01px;
+  transition: max-width 50ms;
+  white-space: nowrap;
+}
+
+.floating-legend span {
+  padding: 0 5px;
+}
+
+.floating-input:focus ~ .floating-fieldset {
+  border: 2px solid #2196f3;
+}
+
+.floating-input:focus ~ .floating-fieldset .floating-legend,
+.floating-input:not(:placeholder-shown) ~ .floating-fieldset .floating-legend {
+  max-width: 1000px;
+}
+
+.floating-input:focus ~ .floating-label,
+.floating-input:not(:placeholder-shown) ~ .floating-label {
+  top: -10px;
+  font-size: 12px;
+  color: #2196f3;
+}
+
+/* Nasconde la scrollbar mantenendo lo scroll (landing loghi giochi) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Contenitore principale responsive: su schermi larghi usa più spazio (evita tutto accentrato) */
+.container-content {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 78rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+@media (min-width: 640px) {
+  .container-content {
+    padding-left: 1.75rem;
+    padding-right: 1.75rem;
+  }
+}
+@media (min-width: 768px) {
+  .container-content {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .container-content {
+    padding-left: 3.25rem;
+    padding-right: 3.25rem;
+  }
+}
+@media (min-width: 1536px) {
+  .container-content {
+    max-width: 90rem;
+  }
+}
+@media (min-width: 1920px) {
+  .container-content {
+    max-width: 102rem;
+  }
+}
+
+/* Header più largo del body: meno margini laterali, più respiro orizzontale */
+.container-header {
+  max-width: 100%;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+@media (min-width: 640px) {
+  .container-header {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+@media (min-width: 768px) {
+  .container-header {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+@media (min-width: 1024px) {
+  .container-header {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Animazione modale export collezione */
+@keyframes export-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-export-modal-in {
+  animation: export-modal-in 0.2s ease-out forwards;
+}
+
+/* Toast flash (login/error): entra da destra, esce a destra – sotto la barra di ricerca */
+@keyframes toast-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes toast-slide-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+.toast-enter {
+  animation: toast-slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.toast-exit {
+  animation: toast-slide-out-right 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* Barra di ricerca: pill quando chiusa — stessa altezza del tasto Prodotti (44px / 2.75rem) */
+.search-container {
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-sizing: border-box;
+  min-height: 2.75rem;
+  height: 2.75rem;
+}
+@media (min-width: 768px) {
+  .search-container {
+    min-height: unset;
+    height: auto;
+  }
+}
+
+/* Stato aperto (si sta scrivendo): squadrata, sfondo bianco, bordo grigio sottile */
+.search-container.search-container--open {
+  background: #fff !important;
+  border: 1px solid rgba(0,0,0,0.15) !important;
+  border-radius: 0 !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Pannello ricerca aperto: sotto la barra, vetro e bordi rotondi in basso */
+.search-panel {
+  border-radius: 0 0 50px 50px;
+  background: rgba(29, 49, 96, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-top: none;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+.search-panel-header {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.95);
+}
+.search-panel-body {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 0 0 50px 50px;
+}
+.search-panel-input-wrap {
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.search-panel-input-wrap input {
+  color: rgba(255, 255, 255, 0.9);
+}
+.search-panel-input-wrap input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+/* Menu Categorie dentro il pannello: sempre visibile, sopra tutto */
+.search-panel .categorie-dropdown {
+  z-index: 1010;
+}
+
+/* Testo e placeholder nella barra: più chiari per leggibilità */
+.search-container .search-bar-text,
+.search-container input::placeholder {
+  color: rgba(255, 255, 255, 0.65);
+}
+.search-container input {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Con suggerimenti aperti: testo nero e placeholder grigio */
+.search-container--open input {
+  color: #111 !important;
+}
+.search-container--open input::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Pulsante "Categorie" dentro la barra: stesso arrotondamento della barra (pill 50px), mini-effetto glass */
+.category-split {
+  border-radius: 50px;
+  overflow: hidden;
+  background: rgba(10, 10, 15, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.category-split button {
+  border-radius: 50px;
+}
+
+/* Menu a tendina Categorie (scelta gioco): più rotondo, stesso bordo della barra di ricerca */
+.categorie-dropdown {
+  border-radius: 28px;
+  background: rgba(20, 25, 45, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.categorie-dropdown button {
+  color: rgba(255, 255, 255, 0.95);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+.categorie-dropdown button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Menu lingua: stessa grafica glass, padding compatto */
+.lang-dropdown-trigger {
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+.lang-dropdown-trigger:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.lang-dropdown-menu {
+  border-radius: 20px;
+  background: rgba(20, 25, 45, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.lang-dropdown-menu button {
+  color: rgba(255, 255, 255, 0.95);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+.lang-dropdown-menu button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.lang-dropdown-menu button.lang-dropdown-selected {
+  background: rgba(255, 255, 255, 0.15);
+  font-weight: 600;
+}
+
+/* Menu giochi: lo stile del trigger è ora gestito in TopBar; il pannello usa lo stesso stile del menu Prodotti */
+
+/* ===== HitCard (schermata Scambi / AsteScreen) ===== */
+.hit-card {
+  width: 400px;
+  height: 220px;
+  border-radius: 34px;
+  padding: 0;
+  position: relative;
+  color: white;
+  box-shadow: 0 1px 40px rgba(0, 0, 0, 1), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: all 0.85s cubic-bezier(0.23, 1, 0.32, 1);
+  overflow: hidden;
+  user-select: none;
+  cursor: pointer;
+  font-family: var(--font-comodo), sans-serif;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: radial-gradient(white, black);
+}
+.hit-card.hit-card-active {
+  box-shadow: 0 1px 40px rgba(0, 0, 0, 1), inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+.hit-card-content {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+.hit-card-left {
+  width: 250px;
+  height: 100%;
+  padding: 30px 16px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.85s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.hit-card-title {
+  font-size: 24px;
+  font-weight: 400;
+  margin: 0;
+  text-transform: uppercase;
+  color: white;
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: all 0.85s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.hit-card-item-name {
+  font-size: 14px;
+  margin: 6px 0 0 0;
+  opacity: 0.8;
+  color: #e8e8e8;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+.hit-card-bottom-info {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hit-card-condition-text,
+.hit-card-details-text {
+  font-size: 14px;
+  margin: 0;
+  opacity: 0.8;
+  color: #e8e8e8;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+.hit-card-right {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.hit-card-img-box {
+  width: 142px;
+  height: 142px;
+  background: transparent;
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 80px rgba(255, 255, 255, 0.4);
+  overflow: hidden;
+  transition: all 0.85s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.hit-card-actual-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.hit-card:hover .hit-card-actual-img {
+  transform: scale(1.1);
+}
+.hit-card-badge {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: #ff5a00;
+  color: white;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  z-index: 10;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(255, 90, 0, 0.3);
+}
+.aste-hits-mode-all .hit-card {
+  width: 440px;
+  height: 240px;
+}
+.aste-hits-mode-all .hit-card-img-box {
+  width: 174px;
+  height: 174px;
+}
+.aste-hits-mode-all .hit-card-left {
+  width: 246px;
+  padding: 30px 16px 24px 34px;
+}
+.aste-hits-mode-all .hit-card-title {
+  font-size: 26px;
+}
+
+/* Landing: barra parole (VENDER / GANA / …) — marquee orizzontale, una sola riga */
+@keyframes landing-nav-ticker {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.landing-nav-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: landing-nav-ticker 55s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-nav-ticker-track {
+    animation-duration: 140s;
+  }
+}
+
+/*
+ * iOS Safari (e alcuni browser mobile): zoom automatico al focus se font-size < 16px.
+ * Imposta 16px sui campi modulo su viewport stretti così lo zoom non si attiva (niente scroll “saltato”).
+ * Esclusi checkbox/radio/file/bottoni che non hanno questo comportamento.
+ */
+@media (max-width: 1023px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='button']):not([type='submit']):not([type='reset']):not([type='file']):not([type='hidden']):not([type='image']),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

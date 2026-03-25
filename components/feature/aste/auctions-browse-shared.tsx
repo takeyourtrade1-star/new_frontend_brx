@@ -1,0 +1,276 @@
+'use client';
+
+/**
+ * Lista / griglia aste — stessi pattern della pagina risultati Meilisearch (SearchResults.tsx).
+ */
+
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { LayoutGrid, LayoutList } from 'lucide-react';
+import { auctionDetailPath } from '@/lib/auction/auction-paths';
+import { countryFlagEmoji } from '@/lib/auction/country-flag';
+import type { MessageKey } from '@/lib/i18n/messages/en';
+import { isAuctionEnded, type AuctionGame } from '@/components/feature/aste/mock-auctions';
+
+export type EnrichedAuction = import('@/components/feature/aste/mock-auctions').AuctionMock & {
+  endsAt: string;
+};
+
+export function formatHMS(ms: number): string {
+  if (ms <= 0) return '00:00:00';
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return [h, m, sec].map((n) => String(n).padStart(2, '0')).join(':');
+}
+
+const GAME_KEYS: Record<AuctionGame, MessageKey> = {
+  mtg: 'auctions.gameMtg',
+  lorcana: 'auctions.gameLorcana',
+  pokemon: 'auctions.gamePokemon',
+  op: 'auctions.gameOp',
+  ygo: 'auctions.gameYgo',
+  other: 'auctions.gameAll',
+};
+
+export function auctionGameLabel(
+  t: (k: MessageKey, vars?: Record<string, string | number>) => string,
+  g: AuctionGame
+): string {
+  return t(GAME_KEYS[g]);
+}
+
+export type AuctionTranslate = (k: MessageKey, vars?: Record<string, string | number>) => string;
+
+export function AuctionViewToggle({
+  viewMode,
+  onViewModeChange,
+  listLabel,
+  gridLabel,
+}: {
+  viewMode: 'list' | 'grid';
+  onViewModeChange: (v: 'list' | 'grid') => void;
+  listLabel: string;
+  gridLabel: string;
+}) {
+  return (
+    <div className="flex overflow-hidden rounded-none border border-[#FF7300]/50">
+      <button
+        type="button"
+        onClick={() => onViewModeChange('list')}
+        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold uppercase transition-colors ${
+          viewMode === 'list'
+            ? 'bg-[#FF7300] text-white shadow-inner hover:bg-[#e86800]'
+            : 'border-r border-[#FF7300]/30 bg-white text-[#FF7300] hover:bg-orange-50/80'
+        }`}
+      >
+        <LayoutList className="h-4 w-4 shrink-0" />
+        {listLabel}
+      </button>
+      <button
+        type="button"
+        onClick={() => onViewModeChange('grid')}
+        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold uppercase transition-colors ${
+          viewMode === 'grid'
+            ? 'bg-[#FF7300] text-white shadow-inner hover:bg-[#e86800]'
+            : 'border-l border-[#FF7300]/30 bg-white text-[#FF7300] hover:bg-orange-50/80'
+        }`}
+      >
+        <LayoutGrid className="h-4 w-4 shrink-0" />
+        {gridLabel}
+      </button>
+    </div>
+  );
+}
+
+export function AuctionGridCard({
+  auction,
+  now,
+  t,
+}: {
+  auction: EnrichedAuction;
+  now: number;
+  t: AuctionTranslate;
+}) {
+  const ended = isAuctionEnded(auction);
+  const ms = new Date(auction.endsAt).getTime() - now;
+  return (
+    <Link
+      href={auctionDetailPath(auction.id)}
+      scroll
+      prefetch
+      className="group flex flex-col border border-gray-200 bg-white p-3 transition-all hover:border-[#FF7300] hover:shadow-sm"
+    >
+      <div className="relative mb-2 aspect-[63/88] overflow-hidden bg-gray-100">
+        <Image
+          src={auction.image}
+          alt=""
+          fill
+          className="object-contain transition-transform group-hover:scale-[1.02]"
+          sizes="(max-width:640px) 50vw, 20vw"
+          unoptimized
+        />
+        <div className="absolute left-2 top-2 rounded-full bg-[#1A2B45]/90 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+          {auctionGameLabel(t, auction.game)}
+        </div>
+      </div>
+      <p className="line-clamp-2 min-h-[2.5rem] text-sm font-medium text-gray-900">{auction.title}</p>
+      <div className="mt-2 flex items-center gap-2 text-xs text-gray-600">
+        <span className="text-base leading-none">{countryFlagEmoji(auction.sellerCountry)}</span>
+        <span className="truncate font-medium">{auction.seller}</span>
+      </div>
+      <p className="mt-0.5 text-xs text-amber-700">
+        ★ {auction.sellerRating}% · ({auction.sellerReviewCount})
+      </p>
+      <div className="mt-2 rounded-lg bg-[#1A2B45] px-2 py-1.5 text-center">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[#FF7300]/90">
+          {ended ? t('auctions.ended') : t('auctions.countdownTitle')}
+        </p>
+        <p className="font-mono text-lg font-bold tabular-nums text-[#FF7300]" suppressHydrationWarning>
+          {ended ? '—' : formatHMS(ms)}
+        </p>
+      </div>
+      <div className="mt-2 flex items-end justify-between gap-2 border-t border-gray-100 pt-2">
+        <div>
+          <p className="text-[10px] font-semibold uppercase text-gray-400">
+            {ended ? t('auctions.finalPriceLabel') : t('auctions.currentBid')}
+          </p>
+          <p className="text-base font-bold text-[#FF7300]">
+            {auction.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] font-semibold uppercase text-gray-400">{t('auctions.colBids')}</p>
+          <p className="text-base font-bold text-gray-900">{auction.bidCount}</p>
+        </div>
+      </div>
+      <span className="mt-3 w-full rounded-full bg-[#FF7300] py-2 text-center text-xs font-bold uppercase text-white group-hover:bg-[#e86800]">
+        {ended ? t('auctions.viewClosedAuction') : t('auctions.participate')}
+      </span>
+    </Link>
+  );
+}
+
+export function AuctionListTable({
+  auctions,
+  now,
+  t,
+  myBidById,
+}: {
+  auctions: EnrichedAuction[];
+  now: number;
+  t: AuctionTranslate;
+  /** Se presente, colonna aggiuntiva “La tua offerta”. */
+  myBidById?: Record<string, number>;
+}) {
+  const router = useRouter();
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[720px] text-sm">
+        <thead>
+          <tr className="border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold uppercase text-gray-600">
+            <th className="p-3">{t('search.thName')}</th>
+            <th className="p-3">{t('auctions.seller')}</th>
+            <th className="p-3">{t('auctions.currentBid')}</th>
+            {myBidById && <th className="whitespace-nowrap p-3">{t('auctions.colMyBid')}</th>}
+            <th className="p-3">{t('auctions.colBids')}</th>
+            <th className="whitespace-nowrap p-3">{t('auctions.countdownTitle')}</th>
+            <th className="w-32 p-3" />
+          </tr>
+        </thead>
+        <tbody>
+          {auctions.map((a) => {
+            const ended = isAuctionEnded(a);
+            const ms = new Date(a.endsAt).getTime() - now;
+            const myBid = myBidById?.[a.id];
+            return (
+              <tr
+                key={a.id}
+                className="cursor-pointer border-b border-gray-100 transition-colors hover:bg-orange-50/60"
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest('a')) return;
+                  router.push(auctionDetailPath(a.id));
+                }}
+              >
+                <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                  <Link
+                    href={auctionDetailPath(a.id)}
+                    className="flex items-center gap-3 font-medium text-gray-900 hover:text-[#FF7300]"
+                  >
+                    <span className="relative h-14 w-10 shrink-0 overflow-hidden bg-gray-100">
+                      <Image src={a.image} alt="" fill className="object-cover" sizes="40px" unoptimized />
+                    </span>
+                    <span>
+                      <span className="line-clamp-2 block">{a.title}</span>
+                      <span className="mt-0.5 block text-[10px] font-semibold uppercase text-gray-400">
+                        {auctionGameLabel(t, a.game)}
+                      </span>
+                    </span>
+                  </Link>
+                </td>
+                <td className="p-3">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="flex items-center gap-1 text-gray-800">
+                      <span>{countryFlagEmoji(a.sellerCountry)}</span>
+                      {a.seller}
+                    </span>
+                    <span className="text-xs text-amber-600">
+                      ★ {a.sellerRating}% ({a.sellerReviewCount})
+                    </span>
+                  </div>
+                </td>
+                <td className="p-3 font-bold text-[#FF7300]">
+                  {a.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                </td>
+                {myBidById && (
+                  <td className="p-3 font-semibold text-gray-900">
+                    {myBid != null
+                      ? myBid.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+                      : '—'}
+                  </td>
+                )}
+                <td className="p-3 font-semibold text-gray-800">{a.bidCount}</td>
+                <td className="p-3">
+                  <span className="inline-block min-w-[7rem] rounded-md bg-[#1A2B45] px-2 py-1 text-center font-mono text-sm font-bold tabular-nums text-[#FF7300]">
+                    {ended ? t('auctions.ended') : formatHMS(ms)}
+                  </span>
+                </td>
+                <td className="p-3">
+                  <Link
+                    href={auctionDetailPath(a.id)}
+                    scroll
+                    prefetch
+                    className="inline-flex rounded-lg bg-[#FF7300] px-3 py-2 text-xs font-bold uppercase text-white hover:bg-[#e86800]"
+                  >
+                    {ended ? t('auctions.viewClosedAuction') : t('auctions.participate')}
+                  </Link>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function AuctionResultsGrid({
+  auctions,
+  now,
+  t,
+}: {
+  auctions: EnrichedAuction[];
+  now: number;
+  t: AuctionTranslate;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      {auctions.map((a) => (
+        <AuctionGridCard key={a.id} auction={a} now={now} t={t} />
+      ))}
+    </div>
+  );
+}

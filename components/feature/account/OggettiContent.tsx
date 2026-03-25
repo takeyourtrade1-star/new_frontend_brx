@@ -1,0 +1,1532 @@
+'use client';
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import {
+  Home,
+  Loader2,
+  Pencil,
+  Search,
+  ShoppingCart,
+  Trash2,
+  X,
+  CheckSquare,
+  Square,
+  Download,
+  FileJson,
+  FileSpreadsheet,
+  ChevronLeft,
+  ChevronRight,
+  Edit3,
+  LayoutList,
+  LayoutGrid,
+} from 'lucide-react';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import { syncClient } from '@/lib/api/sync-client';
+import type { InventoryItemResponse, SyncStatusResponse } from '@/lib/api/sync-client';
+import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
+import {
+  InventoryEditModal,
+  INVENTORY_CONDITION_OPTIONS,
+  INVENTORY_LANG_OPTIONS_EDIT,
+} from '@/components/feature/sync/InventoryEditModal';
+import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
+import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
+import { getCardDisplayNames } from '@/lib/card-display-name';
+import { ASSETS, getCdnImageUrl } from '@/lib/config';
+
+function buildImageUrl(raw: string | null | undefined): string | null {
+  if (raw == null || raw === '') return null;
+  const trimmed = String(raw).trim();
+  if (trimmed.startsWith('http')) return trimmed;
+  const path = trimmed.replace(/^\/img\//, '').replace(/^img\//, '');
+  if (!path) return null;
+  const withSlash = path.startsWith('/') ? path : `/${path}`;
+  return ASSETS.cdnUrl ? `${ASSETS.cdnUrl}${withSlash}` : withSlash;
+}
+
+const DEFAULT_IMAGE = getCdnImageUrl('Logo%20Principale%20EBARTEX.png');
+
+/** Codice lingua (dalla singola riga inventario) → etichetta per visualizzazione. */
+const LANG_CODE_TO_LABEL: Record<string, string> = {
+  en: 'English',
+  it: 'Italiano',
+  de: 'Deutsch',
+  fr: 'Français',
+  es: 'Español',
+  pt: 'Português',
+  ja: '日本語',
+  jp: '日本語',
+  ko: '한국어',
+  zh: '中文',
+};
+
+function getLanguageLabel(code: string | null | undefined): string {
+  if (code == null || code === '') return '—';
+  const c = String(code).toLowerCase().trim();
+  return LANG_CODE_TO_LABEL[c] ?? c;
+}
+
+function formatPrice(priceCents: number | null | undefined): string {
+  const cents = priceCents ?? 0;
+  return new Intl.NumberFormat('it-IT', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
+/** Distingue singole (carte: mtg, op, pk) da oggetti (sealed). Basato su id/game_slug del catalogo Meilisearch (cards_prints, op_prints, pk_prints = singole; sealed_products = oggetti). */
+function getItemKind(item: InventoryItemWithCatalog): 'singole' | 'oggetti' {
+  const id = item.card?.id;
+  const gameSlug = item.card?.game_slug;
+  if (typeof id === 'string' && id.startsWith('sealed_')) return 'oggetti';
+  if (gameSlug === 'sealed' || gameSlug === 'sealed_products') return 'oggetti';
+  return 'singole';
+}
+
+type KindFilterValue = 'all' | 'singole' | 'oggetti';
+
+/** Oggetto serializzabile per export CSV/JSON (tutti i campi utili, niente riferimenti circolari). */
+function itemToExportRow(item: InventoryItemWithCatalog): Record<string, unknown> {
+  const props = (item.properties as Record<string, unknown>) || {};
+  return {
+    id: item.id,
+    blueprint_id: item.blueprint_id,
+    quantity: item.quantity,
+    price_cents: item.price_cents,
+    price_eur: (item.price_cents ?? 0) / 100,
+    condition: props.condition ?? '',
+    mtg_language: props.mtg_language ?? '',
+    description: item.description ?? '',
+    graded: item.graded ?? false,
+    external_stock_id: item.external_stock_id ?? '',
+    updated_at: item.updated_at ?? '',
+    created_at: (item as { created_at?: string }).created_at ?? '',
+    // Da catalogo (solo lettura)
+    name: item.card?.name ?? '',
+    set_name: item.card?.set_name ?? '',
+    rarity: item.card?.rarity ?? '',
+    collector_number: item.card?.collector_number ?? '',
+    game_slug: item.card?.game_slug ?? '',
+    card_id: item.card?.id ?? '',
+  };
+}
+
+function escapeCsvCell(value: unknown): string {
+  const s = value == null ? '' : String(value);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Normalizza per ricerca multilingua: minuscolo e senza accenti (é→e, ü→u, etc.). */
+function normalizeForSearch(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Mc}/gu, '')
+    .replace(/\p{Mn}/gu, '');
+}
+
+/** Testa se un item inventario matcha la query di ricerca (solo client-side, nessuna chiamata API).
+ * Cerca in tutte le lingue: name, set_name, e tutti i nomi in keywords_localized (en, de, es, fr, it, pt). */
+function matchInventorySearch(item: InventoryItemWithCatalog, query: string): boolean {
+  const q = query.trim();
+  if (!q) return true;
+  const qNorm = normalizeForSearch(q);
+  const condition =
+    item.properties && typeof item.properties.condition === 'string' ? item.properties.condition : '';
+  const langCode =
+    item.properties && typeof item.properties.mtg_language === 'string'
+      ? item.properties.mtg_language
+      : '';
+  const langLabel = getLanguageLabel(langCode);
+  const localizedNames = (item.card?.keywords_localized ?? [])
+    .filter((s): s is string => typeof s === 'string' && String(s).trim().length > 0)
+    .join(' ');
+  const searchable = [
+    item.card?.name ?? '',
+    item.card?.set_name ?? '',
+    item.card?.rarity ?? '',
+    item.card?.collector_number ?? '',
+    localizedNames,
+    String(item.blueprint_id),
+    item.description ?? '',
+    condition,
+    langLabel,
+    langCode,
+  ]
+    .join(' ');
+  const searchableNorm = normalizeForSearch(searchable);
+  const parts = qNorm.split(/\s+/).filter(Boolean);
+  return parts.every((part) => searchableNorm.includes(part));
+}
+
+type OggettiViewMode = 'table' | 'cards';
+
+function OggettiTable({
+  items,
+  buildImageUrl,
+  defaultImage,
+  userId,
+  accessToken,
+  onRefresh,
+  onSyncResult,
+  onSyncPending,
+  syncEnabled,
+  selectedIds,
+  onToggleSelect,
+  onSelectAll,
+  onDeselectAll,
+  onSelectAllPage,
+  onDeselectAllPage,
+  onDeleteSelected,
+  bulkDeleting,
+  viewMode = 'table',
+}: {
+  items: InventoryItemWithCatalog[];
+  buildImageUrl: (raw: string | null | undefined) => string | null;
+  defaultImage: string;
+  userId: string;
+  accessToken: string;
+  onRefresh: () => Promise<void>;
+  onSyncResult: (result: { success: boolean; message?: string }) => void;
+  onSyncPending?: () => void;
+  syncEnabled: boolean;
+  selectedIds?: Set<number>;
+  onToggleSelect?: (id: number) => void;
+  onSelectAll?: () => void;
+  onDeselectAll?: () => void;
+  /** Se presente, la checkbox in intestazione seleziona/deseleziona solo la pagina corrente. */
+  onSelectAllPage?: () => void;
+  onDeselectAllPage?: () => void;
+  onDeleteSelected?: (ids: number[]) => void;
+  bulkDeleting?: boolean;
+  viewMode?: OggettiViewMode;
+}) {
+  const { selectedLang } = useLanguage();
+  const [editItem, setEditItem] = useState<InventoryItemWithCatalog | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [purchasingId, setPurchasingId] = useState<number | null>(null);
+  const [purchaseItem, setPurchaseItem] = useState<InventoryItemWithCatalog | null>(null);
+  const [purchaseQty, setPurchaseQty] = useState<number>(1);
+  const [purchaseSubmitting, setPurchaseSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const selectionMode = !syncEnabled && selectedIds != null && onToggleSelect != null;
+  const allSelected = selectionMode && items.length > 0 && items.every((i) => selectedIds!.has(i.id));
+  const someSelected = selectionMode && items.some((i) => selectedIds!.has(i.id));
+  const selectedCount = selectionMode ? items.filter((i) => selectedIds!.has(i.id)).length : 0;
+  const selectAllHandler = onSelectAllPage ?? onSelectAll;
+  const deselectAllHandler = onDeselectAllPage ?? onDeselectAll;
+
+  const openPurchaseModal = (item: InventoryItemWithCatalog) => {
+    if (!item.external_stock_id) {
+      setActionError('Questo oggetto non è collegato a CardTrader. Sincronizza l\'inventario per abilitare il carrello.');
+      return;
+    }
+    if (item.quantity < 1) {
+      setActionError('Quantità insufficiente per simulare l\'acquisto.');
+      return;
+    }
+    setActionError(null);
+    setPurchaseItem(item);
+    setPurchaseQty(1);
+  };
+
+  const handleConfirmPurchase = async () => {
+    if (!purchaseItem) return;
+    const safeQty = Math.max(1, Math.min(purchaseQty, purchaseItem.quantity));
+    if (safeQty < 1) {
+      setActionError('Quantità non valida.');
+      return;
+    }
+    setActionError(null);
+    setPurchasingId(purchaseItem.id);
+    setPurchaseSubmitting(true);
+    try {
+      const res = await syncClient.purchaseInventoryItem(userId, purchaseItem.id, { quantity: safeQty }, accessToken);
+      if (res.status === 'success') {
+        await onRefresh();
+        onSyncResult({ success: true });
+        setPurchaseItem(null);
+      } else {
+        const rawMsg = res.message || res.error || 'Acquisto non completato';
+        // Messaggio più leggibile per quantità insufficiente
+        if (rawMsg.toLowerCase().includes('quantità insufficiente')) {
+          setActionError(rawMsg);
+        } else {
+          setActionError('Errore durante la verifica con CardTrader. Riprova più tardi.');
+        }
+        onSyncResult({ success: false, message: rawMsg });
+      }
+    } catch (e) {
+      const err = e as Error & { data?: { detail?: string } };
+      const technical = err.data?.detail ?? err.message ?? 'Errore durante la simulazione acquisto';
+      setActionError('Errore interno durante l\'allineamento con CardTrader. Riprova più tardi.');
+      onSyncResult({ success: false, message: technical });
+    } finally {
+      setPurchasingId(null);
+      setPurchaseSubmitting(false);
+    }
+  };
+
+  /** Poll sync task until ready, then report success/error. No blocking UI. */
+  const pollSyncTaskThenNotify = useCallback(
+    async (taskId: string) => {
+      onSyncPending?.();
+      const maxPolls = 60;
+      const intervalMs = 1500;
+      for (let i = 0; i < maxPolls; i++) {
+        await new Promise((r) => setTimeout(r, intervalMs));
+        try {
+          const status = await syncClient.getTaskStatus(taskId, accessToken);
+          if (status.ready) {
+            if (status.error) {
+              onSyncResult({
+                success: false,
+                message: typeof status.error === 'string' ? status.error : status.message ?? 'Sincronizzazione fallita',
+              });
+            } else {
+              onSyncResult({ success: true });
+            }
+            await onRefresh();
+            return;
+          }
+        } catch {
+          // keep polling on transient errors
+        }
+      }
+      onSyncResult({ success: false, message: 'Timeout: sincronizzazione non completata' });
+    },
+    [accessToken, onRefresh, onSyncResult, onSyncPending]
+  );
+
+  const handleDelete = async (item: InventoryItemWithCatalog) => {
+    if (!confirm('Eliminare questo oggetto dall\'inventario? Se la sincronizzazione con CardTrader è attiva, la rimozione verrà inviata anche lì.')) return;
+    setActionError(null);
+    setDeletingId(item.id);
+    try {
+      const res = await syncClient.deleteInventoryItem(userId, item.id, accessToken);
+      await onRefresh();
+      if (res.sync_queue_error) {
+        onSyncResult({ success: false, message: res.sync_queue_error });
+      } else if (res.sync_task_id) {
+        pollSyncTaskThenNotify(res.sync_task_id);
+      } else {
+        onSyncResult({ success: true });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Errore durante l\'eliminazione';
+      setActionError(msg);
+      onSyncResult({ success: false, message: msg });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleEditSubmit = async (form: {
+    quantity: number;
+    price_cents: number;
+    condition: string;
+    mtg_language: string;
+    description: string;
+    graded: boolean;
+    signed?: boolean;
+    altered?: boolean;
+    mtg_foil?: boolean;
+  }) => {
+    if (!editItem) return;
+    setActionError(null);
+    setSaving(true);
+    try {
+      const properties: Record<string, unknown> = {
+        ...(editItem.properties as Record<string, unknown> | undefined),
+        condition: form.condition || undefined,
+        mtg_language: form.mtg_language || undefined,
+        signed: form.signed ?? (editItem.properties && (editItem.properties as Record<string, unknown>).signed),
+        altered: form.altered ?? (editItem.properties && (editItem.properties as Record<string, unknown>).altered),
+        mtg_foil: form.mtg_foil ?? (editItem.properties && (editItem.properties as Record<string, unknown>).mtg_foil),
+      };
+      const res = await syncClient.updateInventoryItem(
+        userId,
+        editItem.id,
+        {
+          quantity: form.quantity,
+          price_cents: form.price_cents,
+          description: form.description || null,
+          graded: form.graded,
+          properties,
+        },
+        accessToken
+      );
+      setEditItem(null);
+      await onRefresh();
+      if (res.sync_queue_error) {
+        onSyncResult({ success: false, message: res.sync_queue_error });
+      } else if (res.sync_task_id) {
+        pollSyncTaskThenNotify(res.sync_task_id);
+      } else {
+        onSyncResult({ success: true });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Errore durante il salvataggio';
+      setActionError(msg);
+      onSyncResult({ success: false, message: msg });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (viewMode === 'cards') {
+    return (
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {items.map((item) => {
+          const imgUrl = item.card?.image
+            ? buildImageUrl(item.card.image) || defaultImage
+            : defaultImage;
+          const condition =
+            item.properties && typeof item.properties.condition === 'string'
+              ? item.properties.condition
+              : '—';
+          const languageCode =
+            item.properties && typeof item.properties.mtg_language === 'string'
+              ? item.properties.mtg_language
+              : null;
+          const languageLabel = getLanguageLabel(languageCode);
+          const displayNames: { primary: string; secondary: string | null } = item.card
+            ? getCardDisplayNames(
+                { name: item.card.name ?? '', keywords_localized: item.card.keywords_localized },
+                selectedLang
+              )
+            : { primary: `Carta #${item.blueprint_id}`, secondary: null };
+          const namePrimary = (displayNames.primary || item.card?.name) ?? `Carta #${item.blueprint_id}`;
+
+          return (
+            <div
+              key={item.id}
+              className="flex gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm"
+            >
+              <div className="relative h-24 w-16 shrink-0 rounded bg-gray-100 overflow-hidden">
+                <Image
+                  src={imgUrl}
+                  alt=""
+                  fill
+                  className="object-cover object-top"
+                  sizes="64px"
+                  unoptimized={imgUrl.startsWith('http') || imgUrl === defaultImage}
+                />
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-gray-900">{namePrimary}</p>
+                    {displayNames.secondary && (
+                      <p className="truncate text-xs text-gray-500">EN: {displayNames.secondary}</p>
+                    )}
+                    {item.card?.set_name && (
+                      <p className="truncate text-xs text-gray-400">{item.card.set_name}</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500">Qtà</p>
+                    <p className="text-sm font-semibold text-gray-900">{item.quantity}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {formatPrice(item.price_cents)} {languageLabel ? `· ${languageLabel}` : ''}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                    {condition}
+                  </span>
+                  {selectionMode && (
+                    <button
+                      type="button"
+                      onClick={() => onToggleSelect?.(item.id)}
+                      className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-2 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      {selectedIds!.has(item.id) ? (
+                        <>
+                          <CheckSquare className="h-3.5 w-3.5 text-[#FF7300]" />
+                          Selezionata
+                        </>
+                      ) : (
+                        <>
+                          <Square className="h-3.5 w-3.5" />
+                          Seleziona
+                        </>
+                      )}
+                    </button>
+                  )}
+                  <div className="ml-auto flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditItem(item)}
+                      className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-2.5 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                      Modifica
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openPurchaseModal(item)}
+                      className="inline-flex items-center gap-1 rounded-full border border-emerald-500/60 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                    >
+                      <ShoppingCart className="h-3.5 w-3.5" />
+                      Carrello
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[880px] border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700/50">
+              {selectionMode && (
+                <th className="w-0 p-2 font-semibold text-gray-700 dark:text-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => (allSelected ? deselectAllHandler?.() : selectAllHandler?.())}
+                    className="inline-flex items-center justify-center rounded p-1 text-gray-600 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-600"
+                    title={allSelected ? (onDeselectAllPage ? 'Deseleziona pagina' : 'Deseleziona tutte') : (onSelectAllPage ? 'Seleziona pagina' : 'Seleziona tutte')}
+                    aria-label={allSelected ? 'Deseleziona' : 'Seleziona pagina'}
+                  >
+                    {allSelected ? (
+                      <CheckSquare className="h-5 w-5 text-[#FF7300]" aria-hidden />
+                    ) : (
+                      <Square className="h-5 w-5" aria-hidden />
+                    )}
+                  </button>
+                </th>
+              )}
+              <th className="w-0 p-2 font-semibold text-gray-700 dark:text-gray-200">Immagine</th>
+              <th className="p-3 font-semibold text-gray-700 dark:text-gray-200">Nome</th>
+              <th className="p-3 font-semibold text-gray-700 dark:text-gray-200">Set</th>
+              <th className="p-3 font-semibold text-gray-700 dark:text-gray-200">Rarità</th>
+              <th className="p-3 font-semibold text-gray-700 dark:text-gray-200">N. coll.</th>
+              <th className="p-3 font-semibold text-gray-700 dark:text-gray-200">Condizione</th>
+              <th className="p-3 font-semibold text-gray-700 dark:text-gray-200">Lingua</th>
+              <th className="p-3 font-semibold text-gray-700 dark:text-gray-200">Quantità</th>
+              <th className="p-3 font-semibold text-gray-700 dark:text-gray-200">Prezzo</th>
+              <th className="p-3 font-semibold text-gray-700 dark:text-gray-200">Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => {
+              const imgUrl = item.card?.image
+                ? buildImageUrl(item.card.image) || defaultImage
+                : defaultImage;
+              const condition =
+                item.properties && typeof item.properties.condition === 'string'
+                  ? item.properties.condition
+                  : '—';
+              const languageCode =
+                item.properties && typeof item.properties.mtg_language === 'string'
+                  ? item.properties.mtg_language
+                  : null;
+              const languageLabel = getLanguageLabel(languageCode);
+              const displayNames: { primary: string; secondary: string | null } = item.card
+                ? getCardDisplayNames(
+                    { name: item.card.name ?? '', keywords_localized: item.card.keywords_localized },
+                    selectedLang
+                  )
+                : { primary: `Carta #${item.blueprint_id}`, secondary: null };
+              const namePrimary = (displayNames.primary || item.card?.name) ?? `Carta #${item.blueprint_id}`;
+
+              return (
+                <tr
+                  key={item.id}
+                  className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50/50 dark:hover:bg-gray-700/30"
+                >
+                  {selectionMode && (
+                    <td className="w-0 p-2 align-middle">
+                      <button
+                        type="button"
+                        onClick={() => onToggleSelect?.(item.id)}
+                        className="inline-flex items-center justify-center rounded p-1 text-gray-600 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-600"
+                        aria-label={selectedIds!.has(item.id) ? 'Deseleziona' : 'Seleziona'}
+                      >
+                        {selectedIds!.has(item.id) ? (
+                          <CheckSquare className="h-5 w-5 text-[#FF7300]" aria-hidden />
+                        ) : (
+                          <Square className="h-5 w-5" aria-hidden />
+                        )}
+                      </button>
+                    </td>
+                  )}
+                  <td className="w-0 p-2 align-middle overflow-visible">
+                    {item.card?.id ? (
+                      <Link
+                        href={`/products/${item.card.id}`}
+                        className="block group relative h-20 w-14 shrink-0 rounded bg-gray-100 dark:bg-gray-700 overflow-visible focus:outline-none focus:ring-2 focus:ring-[#FF7300] focus:ring-offset-1 rounded"
+                        aria-label={`Vai al dettaglio di ${namePrimary}`}
+                      >
+                        <div className="absolute left-0 top-0 h-20 w-14 origin-top-left rounded transition-[transform,box-shadow] duration-200 group-hover:z-20 group-hover:scale-[2.5] group-hover:shadow-xl group-hover:ring group-hover:ring-1 group-hover:ring-[#FF7300]">
+                          <Image
+                            src={imgUrl}
+                            alt=""
+                            fill
+                            className="object-cover object-top rounded"
+                            sizes="56px"
+                            unoptimized={imgUrl.startsWith('http') || imgUrl === defaultImage}
+                          />
+                        </div>
+                      </Link>
+                    ) : (
+                      <div className="group relative h-20 w-14 shrink-0 rounded bg-gray-100 dark:bg-gray-700 overflow-visible">
+                        <div className="absolute left-0 top-0 h-20 w-14 origin-top-left rounded transition-[transform,box-shadow] duration-200 group-hover:z-20 group-hover:scale-[2.5] group-hover:shadow-xl group-hover:ring group-hover:ring-1 group-hover:ring-[#FF7300]">
+                          <Image
+                            src={imgUrl}
+                            alt=""
+                            fill
+                            className="object-cover object-top rounded"
+                            sizes="56px"
+                            unoptimized={imgUrl.startsWith('http') || imgUrl === defaultImage}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-3">
+                    <div>
+                      <span className="font-medium text-gray-900 dark:text-gray-900">{namePrimary}</span>
+                      {displayNames.secondary && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">EN: {displayNames.secondary}</p>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-3 text-gray-600 dark:text-gray-300">
+                    {item.card?.set_name ?? '—'}
+                  </td>
+                  <td className="p-3 text-gray-600 dark:text-gray-300">
+                    {item.card?.rarity ?? '—'}
+                  </td>
+                  <td className="p-3 text-gray-600 dark:text-gray-300">
+                    {item.card?.collector_number ?? '—'}
+                  </td>
+                  <td className="p-3 text-gray-600 dark:text-gray-300">{condition}</td>
+                  <td className="p-3 text-gray-600 dark:text-gray-300" title={languageCode ?? undefined}>
+                    {languageLabel}
+                  </td>
+                  <td className="p-3 font-medium text-gray-900 dark:text-gray-900">{item.quantity}</td>
+                  <td className="p-3 font-medium text-gray-900 dark:text-gray-900">
+                    {(item.price_cents / 100).toFixed(2)} €
+                  </td>
+                  <td className="p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditItem(item)}
+                        className="inline-flex items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                        aria-label="Modifica"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Modifica
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openPurchaseModal(item)}
+                        disabled={
+                          purchasingId === item.id ||
+                          deletingId === item.id ||
+                          !item.external_stock_id ||
+                          item.quantity < 1
+                        }
+                        title={
+                          !item.external_stock_id
+                            ? 'Collegare a CardTrader con una sincronizzazione per abilitare il carrello'
+                            : item.quantity < 1
+                              ? 'Quantità insufficiente'
+                              : 'Simula acquisto: verifica inventario e CardTrader poi decrementa'
+                        }
+                        className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-white px-2 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:bg-gray-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20 disabled:opacity-50"
+                        aria-label="Carrello (simula acquisto)"
+                      >
+                        {purchasingId === item.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <ShoppingCart className="h-3.5 w-3.5" />
+                        )}
+                        Carrello
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item)}
+                        disabled={deletingId === item.id}
+                        className="inline-flex items-center gap-1 rounded border border-red-200 bg-white px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-800 dark:bg-gray-700 dark:text-red-300 dark:hover:bg-red-900/20 disabled:opacity-50"
+                        aria-label="Elimina"
+                      >
+                        {deletingId === item.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        Elimina
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {actionError && (
+        <div className="border-t border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+          {actionError}
+        </div>
+      )}
+      {purchaseItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="purchase-modal-title"
+        >
+          <div className="w-full max-w-sm rounded-none border border-gray-200 bg-white p-5 shadow-xl">
+            <h2 id="purchase-modal-title" className="mb-1 text-lg font-semibold text-gray-900">
+              Simula acquisto
+            </h2>
+            <p className="mb-4 text-sm text-gray-600">
+              {purchaseItem.card?.name ?? `Carta #${purchaseItem.blueprint_id}`}
+            </p>
+            <div className="mb-3 text-sm text-gray-600">
+              Disponibili: <span className="font-semibold">{purchaseItem.quantity}</span>
+            </div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Quantità da acquistare
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={purchaseItem.quantity}
+              value={purchaseQty}
+              onChange={(e) => setPurchaseQty(Number(e.target.value) || 1)}
+              className="mb-4 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+            <div className="flex justify-end gap-2 border-t border-gray-200 pt-3">
+              <button
+                type="button"
+                onClick={() => { setPurchaseItem(null); }}
+                className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                disabled={purchaseSubmitting}
+              >
+                Annulla
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPurchase}
+                disabled={purchaseSubmitting}
+                className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {purchaseSubmitting ? <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> : null}
+                Conferma
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {editItem && (
+        <InventoryEditModal
+          item={editItem}
+          onClose={() => { setEditItem(null); setActionError(null); }}
+          onSubmit={handleEditSubmit}
+          saving={saving}
+          conditionOptions={INVENTORY_CONDITION_OPTIONS}
+          langOptions={INVENTORY_LANG_OPTIONS_EDIT}
+        />
+      )}
+    </div>
+  );
+}
+
+export function OggettiContent() {
+  const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore(
+    (s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
+  );
+
+  const [inventoryItems, setInventoryItems] = useState<InventoryItemWithCatalog[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [syncBanner, setSyncBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [syncPending, setSyncPending] = useState(false);
+  const [inventorySearchQuery, setInventorySearchQuery] = useState('');
+  /** Filtro per tipo: tutti, solo singole (carte), solo oggetti (sealed). */
+  const [kindFilter, setKindFilter] = useState<KindFilterValue>('all');
+  /** Selezione per eliminazione in blocco (solo quando sincronizzazione non attiva). */
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  /** Modale export: scelta CSV o JSON (solo client-side, nessun carico server). */
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<OggettiViewMode>('table');
+
+  /** Verifica lato frontend: chiamate al sync service solo se integrazione CardTrader attiva. */
+  const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
+  const [syncStatusLoading, setSyncStatusLoading] = useState(true);
+  const syncEnabled =
+    Boolean(syncStatus && !syncStatus.disconnected) &&
+    (syncStatus?.sync_status === 'active' || syncStatus?.sync_status === 'initial_sync');
+
+  /** Filtro per tipo (singole/oggetti) poi per ricerca testuale. */
+  const filteredInventoryItems = useMemo(() => {
+    let list = inventoryItems;
+    if (kindFilter !== 'all') {
+      list = list.filter((item) => getItemKind(item) === kindFilter);
+    }
+    if (inventorySearchQuery.trim()) {
+      list = list.filter((item) => matchInventorySearch(item, inventorySearchQuery));
+    }
+    return list;
+  }, [inventoryItems, kindFilter, inventorySearchQuery]);
+
+  /** Conteggi per tipo (per le etichette dei tab). */
+  const countsByKind = useMemo(() => {
+    let singole = 0;
+    let oggetti = 0;
+    for (const item of inventoryItems) {
+      if (getItemKind(item) === 'oggetti') oggetti++;
+      else singole++;
+    }
+    return { singole, oggetti };
+  }, [inventoryItems]);
+
+  /** KPI: totale oggetti unici, totale oggetti (somma quantità), valore totale (quantità × prezzo). Calcolati su tutti i dati filtrati (precisi). */
+  const totalUnique = filteredInventoryItems.length;
+  const totalQuantity = useMemo(
+    () => filteredInventoryItems.reduce((sum, item) => sum + (item.quantity ?? 0), 0),
+    [filteredInventoryItems]
+  );
+  const totalValueCents = useMemo(
+    () =>
+      filteredInventoryItems.reduce(
+        (sum, item) => sum + (item.quantity ?? 0) * (item.price_cents ?? 0),
+        0
+      ),
+    [filteredInventoryItems]
+  );
+  const totalValueFormatted =
+    totalValueCents >= 0
+      ? new Intl.NumberFormat('it-IT', {
+          style: 'currency',
+          currency: 'EUR',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(totalValueCents / 100)
+      : '—';
+  /** Carte in inventario = righe di tipo "singole" nella vista corrente. */
+  const cardsInView = useMemo(
+    () => filteredInventoryItems.filter((item) => getItemKind(item) === 'singole').length,
+    [filteredInventoryItems]
+  );
+
+  const ITEMS_PER_PAGE = 200;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filteredInventoryItems.length / ITEMS_PER_PAGE));
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredInventoryItems.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredInventoryItems, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [kindFilter, inventorySearchQuery]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(Math.max(1, totalPages));
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    if (!syncBanner) return;
+    const t = setTimeout(() => setSyncBanner(null), 5000);
+    return () => clearTimeout(t);
+  }, [syncBanner]);
+
+  // 1) Verifica stato sync con CardTrader (una sola chiamata, prima di qualsiasi altra al sync service)
+  useEffect(() => {
+    if (!user?.id || !accessToken) {
+      setSyncStatusLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setSyncStatusLoading(true);
+    syncClient
+      .getSyncStatus(user.id, accessToken)
+      .then((res) => {
+        if (!cancelled) setSyncStatus(res);
+      })
+      .catch(() => {
+        if (!cancelled) setSyncStatus(null);
+      })
+      .finally(() => {
+        if (!cancelled) setSyncStatusLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [user?.id, accessToken]);
+
+  /** Carica tutto l'inventario (pagine da 500) per avere dati completi e KPIs corrette. */
+  const loadInventory = useCallback(async () => {
+    if (!user?.id || !accessToken) return;
+    try {
+      const allItems: InventoryItemResponse[] = [];
+      const pageSize = 500;
+      let offset = 0;
+      let totalFromApi = 0;
+
+      do {
+        const res = await syncClient.getInventory(user.id, accessToken, pageSize, offset);
+        const items = res.items ?? [];
+        totalFromApi = res.total ?? allItems.length + items.length;
+        allItems.push(...items);
+        offset += items.length;
+        if (items.length < pageSize || offset >= totalFromApi) break;
+      } while (true);
+
+      setTotal(totalFromApi);
+
+      const blueprintIds = [...new Set(allItems.map((i) => i.blueprint_id).filter(Boolean))] as number[];
+      let blueprintToCard: Record<number, CardCatalogHit> = {};
+      if (blueprintIds.length > 0) {
+        const map = await fetchCardsByBlueprintIds(blueprintIds);
+        blueprintToCard = { ...map };
+      }
+
+      const merged: InventoryItemWithCatalog[] = allItems.map((item) => ({
+        ...item,
+        card: blueprintToCard[item.blueprint_id],
+      }));
+      setInventoryItems(merged);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Errore caricamento inventario');
+      setInventoryItems([]);
+      setTotal(0);
+    }
+  }, [user?.id, accessToken]);
+
+  // 2) Carica inventario sempre (la collezione esiste anche senza sincronizzazione CardTrader)
+  useEffect(() => {
+    if (!user?.id || !accessToken) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    (async () => {
+      try {
+        await loadInventory();
+        if (!cancelled) setLoading(false);
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, accessToken, loadInventory]);
+
+  const onToggleSelect = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const onSelectAll = useCallback(() => {
+    setSelectedIds(new Set(filteredInventoryItems.map((i) => i.id)));
+  }, [filteredInventoryItems]);
+
+  const onDeselectAll = useCallback(() => setSelectedIds(new Set()), []);
+
+  const onSelectAllPage = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      paginatedItems.forEach((i) => next.add(i.id));
+      return next;
+    });
+  }, [paginatedItems]);
+
+  const onDeselectAllPage = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      paginatedItems.forEach((i) => next.delete(i.id));
+      return next;
+    });
+  }, [paginatedItems]);
+
+  const onDeleteSelected = useCallback(
+    async (ids: number[]) => {
+      if (!user?.id || !accessToken || ids.length === 0) return;
+      const noun =
+        ids.length === 1 ? t('accountPage.itemsBulkNounOne') : t('accountPage.itemsBulkNounMany');
+      if (!confirm(t('accountPage.itemsBulkConfirm', { count: ids.length, noun }))) return;
+      setBulkDeleting(true);
+      try {
+        for (const id of ids) {
+          await syncClient.deleteInventoryItem(user.id, id, accessToken);
+        }
+        await loadInventory();
+        setSelectedIds(new Set());
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : t('accountPage.itemsBulkDeleteError');
+        setError(msg);
+      } finally {
+        setBulkDeleting(false);
+      }
+    },
+    [user?.id, accessToken, loadInventory, t]
+  );
+
+  /** Export in CSV (solo dati in memoria, nessuna chiamata API). */
+  const handleExportCSV = useCallback(() => {
+    const rows = filteredInventoryItems.map(itemToExportRow);
+    if (rows.length === 0) {
+      return;
+    }
+    const headers = Object.keys(rows[0] as object);
+    const csvLines = [
+      headers.map(escapeCsvCell).join(','),
+      ...rows.map((r) => headers.map((h) => escapeCsvCell((r as Record<string, unknown>)[h])).join(',')),
+    ];
+    const csv = csvLines.join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const filename = `collezione-ebartex-${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadBlob(blob, filename);
+    setExportModalOpen(false);
+  }, [filteredInventoryItems]);
+
+  /** Export in JSON (solo dati in memoria, nessuna chiamata API). */
+  const handleExportJSON = useCallback(() => {
+    const data = {
+      exported_at: new Date().toISOString(),
+      total_items: filteredInventoryItems.length,
+      total_quantity: filteredInventoryItems.reduce((s, i) => s + (i.quantity ?? 0), 0),
+      items: filteredInventoryItems.map(itemToExportRow),
+    };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+    const filename = `collezione-ebartex-${new Date().toISOString().slice(0, 10)}.json`;
+    downloadBlob(blob, filename);
+    setExportModalOpen(false);
+  }, [filteredInventoryItems]);
+
+  const cardWord =
+    total === 1 ? t('accountPage.itemsCardOne') : t('accountPage.itemsCardMany');
+
+  if (!user || !accessToken) {
+    return (
+      <div className="text-gray-900">
+        <nav
+          className="mb-6 flex items-center gap-2 text-sm uppercase tracking-wide text-gray-700"
+          aria-label={t('accountPage.breadcrumbNav')}
+        >
+          <Link href="/account" className="hover:text-gray-900" aria-label={t('accountPage.breadcrumbHome')}>
+            <Home className="h-4 w-4" />
+          </Link>
+          <span className="text-gray-400">/</span>
+          <span>{t('sidebar.account')}</span>
+          <span className="text-gray-400">/</span>
+          <span className="text-gray-900">{t('breadcrumb.oggetti')}</span>
+        </nav>
+        <div className="mt-8 flex justify-center">
+          <div className="flex w-full max-w-3xl items-center justify-center rounded-xl border border-gray-200 bg-white p-10 shadow-sm">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-[#FF7300]" />
+              <p className="text-sm text-gray-600">{t('accountPage.itemsLoading')}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-gray-900 space-y-6">
+      <nav
+        className="mb-6 flex items-center gap-2 text-sm uppercase tracking-wide text-gray-700"
+        aria-label={t('accountPage.breadcrumbNav')}
+      >
+        <Link href="/account" className="hover:text-gray-900" aria-label={t('accountPage.breadcrumbHome')}>
+          <Home className="h-4 w-4" />
+        </Link>
+        <span className="text-gray-400">/</span>
+        <span>{t('sidebar.account')}</span>
+        <span className="text-gray-400">/</span>
+        <span className="text-gray-900">{t('breadcrumb.oggetti')}</span>
+      </nav>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+            {t('accountPage.itemsKpiUnique')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+            {loading ? '—' : totalUnique}
+          </p>
+          <p className="mt-0.5 text-xs text-gray-500">
+            {kindFilter !== 'all' || inventorySearchQuery.trim()
+              ? t('accountPage.itemsKpiUniqueSubFiltered')
+              : t('accountPage.itemsKpiUniqueSubTotal')}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+            {t('accountPage.itemsKpiTotal')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+            {loading ? '—' : totalQuantity}
+          </p>
+          <p className="mt-0.5 text-xs text-gray-500">
+            {kindFilter !== 'all' || inventorySearchQuery.trim()
+              ? t('accountPage.itemsKpiTotalSubFiltered')
+              : t('accountPage.itemsKpiTotalSubSum')}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+            {t('accountPage.itemsKpiValue')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+            {loading ? '—' : totalValueFormatted}
+          </p>
+          <p className="mt-0.5 text-xs text-gray-500">
+            {kindFilter !== 'all' || inventorySearchQuery.trim()
+              ? t('accountPage.itemsKpiValueSubFiltered')
+              : t('accountPage.itemsKpiValueSubCalc')}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+            {t('accountPage.itemsKpiCards')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+            {loading ? '—' : cardsInView}
+          </p>
+          <p className="mt-0.5 text-xs text-gray-500">
+            {kindFilter === 'singole'
+              ? t('accountPage.itemsKpiCardsSubSingles')
+              : kindFilter === 'all'
+                ? t('accountPage.itemsKpiCardsSubAll')
+                : '—'}
+          </p>
+        </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="mr-2 text-sm font-medium text-gray-700">{t('accountPage.itemsShow')}</span>
+        <div className="flex flex-wrap gap-1 rounded-full border border-gray-200 bg-white p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setKindFilter('all')}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              kindFilter === 'all'
+                ? 'bg-[#FF7300] text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            {t('accountPage.itemsFilterTabAll', { count: inventoryItems.length })}
+          </button>
+          <button
+            type="button"
+            onClick={() => setKindFilter('singole')}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              kindFilter === 'singole'
+                ? 'bg-[#FF7300] text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            {t('accountPage.itemsFilterTabSingles', { count: countsByKind.singole })}
+          </button>
+          <button
+            type="button"
+            onClick={() => setKindFilter('oggetti')}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              kindFilter === 'oggetti'
+                ? 'bg-[#FF7300] text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            {t('accountPage.itemsFilterTabSealed', { count: countsByKind.oggetti })}
+          </button>
+        </div>
+        <p className="text-xs text-gray-500">
+          {kindFilter === 'all' && t('accountPage.itemsFilterHintAll')}
+          {kindFilter === 'singole' && t('accountPage.itemsFilterHintSingles')}
+          {kindFilter === 'oggetti' && t('accountPage.itemsFilterHintSealed')}
+        </p>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900">
+            {t('accountPage.itemsHeading')}
+          </h1>
+          {!syncStatusLoading &&
+            (syncEnabled ? (
+              <span
+                className="inline-flex items-center rounded-full border border-emerald-500/50 bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-200"
+                title={t('accountPage.itemsSyncActiveTitle')}
+              >
+                {t('accountPage.itemsSyncActive')}
+              </span>
+            ) : (
+              <Link
+                href="/account/sincronizzazione"
+                className="inline-flex items-center rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:text-gray-900"
+                title={t('accountPage.itemsSyncInactiveTitle')}
+              >
+                {t('accountPage.itemsSyncInactive')}
+              </Link>
+            ))}
+          <button
+            type="button"
+            onClick={() => setExportModalOpen(true)}
+            disabled={loading || filteredInventoryItems.length === 0}
+            className="inline-flex items-center gap-2 rounded-none border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-white/20 disabled:pointer-events-none disabled:opacity-50"
+            title={t('accountPage.itemsExportTitle')}
+          >
+            <Download className="h-4 w-4" />
+            {t('accountPage.itemsExport')}
+          </button>
+        </div>
+        <div className="flex min-w-0 max-w-md flex-1 justify-center px-2">
+          <div className="relative w-full">
+            <Search
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+              aria-hidden
+            />
+            <input
+              type="search"
+              value={inventorySearchQuery}
+              onChange={(e) => setInventorySearchQuery(e.target.value)}
+              placeholder={t('accountPage.itemsSearchPlaceholder')}
+              className="w-full rounded-full border border-gray-300 bg-white py-2 pl-9 pr-9 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#FF7300] focus:outline-none focus:ring-1 focus:ring-[#FF7300]"
+              aria-label={t('accountPage.itemsSearchAria')}
+            />
+            {inventorySearchQuery.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setInventorySearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-900"
+                aria-label={t('accountPage.itemsClearSearchAria')}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="hidden items-center gap-1 rounded-full border border-gray-200 bg-white p-1 shadow-sm md:inline-flex">
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
+                viewMode === 'table'
+                  ? 'bg-gray-900 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+              aria-label={t('accountPage.itemsViewTableAria')}
+            >
+              <LayoutList className="h-3.5 w-3.5" />
+              {t('accountPage.itemsViewTable')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
+                viewMode === 'cards'
+                  ? 'bg-gray-900 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+              aria-label={t('accountPage.itemsViewCardsAria')}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              {t('accountPage.itemsViewCards')}
+            </button>
+          </div>
+          {syncEnabled && syncPending && (
+            <div
+              role="status"
+              className="rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-700 shadow-sm"
+            >
+              {t('accountPage.itemsSyncRunning')}
+            </div>
+          )}
+          {syncEnabled && syncBanner && !syncPending && (
+            <div
+              role="alert"
+              className={`rounded-full border px-4 py-2 text-sm font-medium shadow-sm ${
+                syncBanner.type === 'success'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-red-200 bg-red-50 text-red-700'
+              }`}
+            >
+              {syncBanner.type === 'success'
+                ? t('accountPage.itemsSyncOk')
+                : `${t('accountPage.itemsSyncErrorPrefix')}${syncBanner.message ? `: ${syncBanner.message}` : ''}`}
+            </div>
+          )}
+          <p className="text-sm text-gray-500">
+            {inventorySearchQuery.trim() ? (
+              t('accountPage.itemsStatsFiltered', {
+                filtered: filteredInventoryItems.length,
+                total,
+                cards: cardWord,
+              })
+            ) : (
+              t('accountPage.itemsStatsFull', { total, cards: cardWord })
+            )}
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-6 rounded-none border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="rounded-none border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex items-center justify-center gap-3 p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-[#FF7300]" />
+            <span className="text-gray-600 dark:text-gray-300">
+              {t('accountPage.itemsLoadingInventory')}
+            </span>
+          </div>
+        </div>
+      ) : inventoryItems.length === 0 ? (
+        <div className="rounded-none border border-gray-200 bg-white p-10 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <p className="text-center text-gray-600 dark:text-gray-300">
+            {t('accountPage.itemsEmptyLine1')}
+            <Link href="/account/sincronizzazione" className="font-medium text-[#FF7300] hover:underline">
+              {t('breadcrumb.sincronizzazione')}
+            </Link>
+            {t('accountPage.itemsEmptyLine2')}
+          </p>
+        </div>
+      ) : filteredInventoryItems.length === 0 ? (
+        <div className="rounded-none border border-gray-200 bg-white p-10 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <p className="text-center text-gray-600 dark:text-gray-300">
+            {t('accountPage.itemsNoResults', { query: inventorySearchQuery })}{' '}
+            <button
+              type="button"
+              onClick={() => setInventorySearchQuery('')}
+              className="font-medium text-[#FF7300] hover:underline"
+            >
+              {t('accountPage.itemsClearSearch')}
+            </button>
+            .
+          </p>
+        </div>
+      ) : (
+        <>
+          {!syncEnabled && filteredInventoryItems.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-none border border-gray-200 bg-white/5 p-3 dark:border-gray-600 dark:bg-gray-800/50">
+              <span className="text-sm font-medium text-gray-500">{t('accountPage.itemsBulkLabel')}</span>
+              <button
+                type="button"
+                onClick={onSelectAll}
+                disabled={bulkDeleting}
+                className="inline-flex items-center gap-2 rounded-none border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-gray-900 hover:bg-white/20 disabled:opacity-50"
+              >
+                <CheckSquare className="h-4 w-4" />
+                {t('accountPage.itemsSelectAll')}
+              </button>
+              <button
+                type="button"
+                onClick={onDeselectAll}
+                disabled={bulkDeleting}
+                className="inline-flex items-center gap-2 rounded-none border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-gray-900 hover:bg-white/20 disabled:opacity-50"
+              >
+                <Square className="h-4 w-4" />
+                {t('accountPage.itemsDeselectAll')}
+              </button>
+              <button
+                type="button"
+                onClick={() => onDeleteSelected(Array.from(selectedIds))}
+                disabled={bulkDeleting || selectedIds.size === 0}
+                className="inline-flex items-center gap-2 rounded-none border border-red-500/50 bg-red-500/20 px-3 py-1.5 text-sm font-medium text-red-200 hover:bg-red-500/30 disabled:opacity-50"
+              >
+                {bulkDeleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                {t('accountPage.itemsDeleteSelected')}
+                {selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+              </button>
+            </div>
+          )}
+          <OggettiTable
+            items={paginatedItems}
+            buildImageUrl={buildImageUrl}
+            defaultImage={DEFAULT_IMAGE}
+            userId={user.id}
+            accessToken={accessToken}
+            onRefresh={loadInventory}
+            onSyncResult={(result) => {
+              setSyncPending(false);
+              setSyncBanner(
+                result.success
+                  ? { type: 'success', message: '' }
+                  : { type: 'error', message: result.message ?? '' }
+              );
+            }}
+            onSyncPending={() => setSyncPending(true)}
+            syncEnabled={syncEnabled}
+            selectedIds={selectedIds}
+            onToggleSelect={onToggleSelect}
+            onSelectAll={onSelectAll}
+            onDeselectAll={onDeselectAll}
+            onSelectAllPage={onSelectAllPage}
+            onDeselectAllPage={onDeselectAllPage}
+            onDeleteSelected={(ids) => onDeleteSelected(ids)}
+            bulkDeleting={bulkDeleting}
+            viewMode={viewMode}
+          />
+          {totalPages > 1 && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-none border border-gray-200 bg-white/5 px-4 py-3 dark:border-gray-600 dark:bg-gray-800/50">
+              <p className="text-sm text-gray-500">
+                Pagina <span className="font-semibold text-gray-900">{currentPage}</span> di{' '}
+                <span className="font-semibold text-gray-900">{totalPages}</span>
+                {' · '}
+                <span className="text-gray-400">{ITEMS_PER_PAGE} per pagina</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="inline-flex items-center gap-1 rounded-none border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-white/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  aria-label="Pagina precedente"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Precedente
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+                    let pageNum: number;
+                    if (totalPages <= 7) pageNum = i + 1;
+                    else if (currentPage <= 4) pageNum = i + 1;
+                    else if (currentPage >= totalPages - 3) pageNum = totalPages - 6 + i;
+                    else pageNum = currentPage - 3 + i;
+                    return (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`min-w-[2.25rem] rounded-none border px-2 py-1.5 text-sm font-medium transition-colors ${
+                          currentPage === pageNum
+                            ? 'border-[#FF7300] bg-[#FF7300] text-white'
+                            : 'border-white/30 bg-white/10 text-gray-900 hover:bg-white/20'
+                        }`}
+                        aria-label={`Pagina ${pageNum}`}
+                        aria-current={currentPage === pageNum ? 'page' : undefined}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="inline-flex items-center gap-1 rounded-none border border-white/30 bg-white/10 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-white/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  aria-label="Pagina successiva"
+                >
+                  Successiva
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Modale Export: scelta CSV o JSON (solo client-side) */}
+      {exportModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-200"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="export-modal-title"
+          onClick={() => setExportModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-md rounded-none border border-gray-200 bg-gray-900 shadow-2xl p-6 animate-export-modal-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="absolute right-3 top-3">
+              <button
+                type="button"
+                onClick={() => setExportModalOpen(false)}
+                className="rounded-none p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                aria-label="Chiudi"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <h2 id="export-modal-title" className="pr-8 text-lg font-semibold text-gray-900 mb-1">
+              Come vuoi esportare la tua collezione?
+            </h2>
+            <p className="text-sm text-white/70 mb-6">
+              Verranno esportati i dati attualmente in vista ({filteredInventoryItems.length} oggetti). L&apos;export avviene sul tuo dispositivo, senza caricare il server.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                className="flex items-center justify-center gap-2 rounded-none border-2 border-emerald-500/50 bg-emerald-500/20 px-5 py-3 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/30 transition-colors"
+              >
+                <FileSpreadsheet className="h-5 w-5" />
+                Esporta CSV
+              </button>
+              <button
+                type="button"
+                onClick={handleExportJSON}
+                className="flex items-center justify-center gap-2 rounded-none border-2 border-amber-500/50 bg-amber-500/20 px-5 py-3 text-sm font-semibold text-amber-200 hover:bg-amber-500/30 transition-colors"
+              >
+                <FileJson className="h-5 w-5" />
+                Esporta JSON
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

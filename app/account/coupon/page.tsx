@@ -1,0 +1,16 @@
+import { CouponContent } from '@/components/feature/account/CouponContent';
+import { PrestoInArrivoBanner } from '@/components/feature/account/PrestoInArrivoBanner';
+
+export const metadata = {
+  title: 'Coupon | Ebartex',
+  description: 'Gestisci e incassa i tuoi coupon',
+};
+
+export default function CouponPage() {
+  return (
+    <>
+      <PrestoInArrivoBanner />
+      <CouponContent />
+    </>
+  );
+}
