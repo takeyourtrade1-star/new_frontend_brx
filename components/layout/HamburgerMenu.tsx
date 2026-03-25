@@ -309,6 +309,18 @@ export function HamburgerMenu() {
                   <Button
                     type="button"
                     asChild
+                    className="h-10 w-full rounded-sm border border-[#878787] bg-white text-sm font-bold uppercase tracking-wide text-[#1D3160] shadow-none hover:bg-gray-50"
+                  >
+                    <Link
+                      href="/login?accesso=1&otp=1"
+                      onClick={() => setOpen(false)}
+                    >
+                      Accedi con codice monouso
+                    </Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    asChild
                     className="h-10 w-full rounded-sm border border-[#878787] bg-[#FF7300] text-sm font-bold uppercase tracking-wide text-white shadow-none hover:opacity-95"
                   >
                     <Link href="/login" onClick={() => setOpen(false)}>

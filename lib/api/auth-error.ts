@@ -32,6 +32,14 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   'mfa verification failed.': 'Verifica MFA fallita.',
   'mfa verification required': 'Devi completare la verifica MFA.',
   'mfa verification required.': 'Devi completare la verifica MFA.',
+
+  // Email OTP / passwordless
+  'invalid code': 'Codice non valido o scaduto.',
+  'invalid code.': 'Codice non valido o scaduto.',
+  'code expired': 'Codice non valido o scaduto.',
+  'code expired.': 'Codice non valido o scaduto.',
+  'invalid or expired code': 'Codice non valido o scaduto.',
+  'invalid or expired code.': 'Codice non valido o scaduto.',
   
   // Token/Session errors
   'invalid refresh token': 'Sessione scaduta. Effettua di nuovo l\'accesso.',

@@ -9,7 +9,7 @@ import axios, {
   AxiosInstance,
   InternalAxiosRequestConfig,
 } from 'axios';
-import type { TokenResponse } from '@/types';
+import type { PreAuthTokenResponse, TokenResponse } from '@/types';
 import { config } from '../config';
 import { refreshAccessToken } from './refresh-token';
 
@@ -91,8 +91,12 @@ class AuthApiClient {
           !originalRequest.url?.includes('/api/auth/register') &&
           !originalRequest.url?.includes('/api/auth/refresh') &&
           !originalRequest.url?.includes('/api/auth/verify-mfa') &&
-          !originalRequest.url?.includes('/api/auth/password-reset/request-code') &&
-          !originalRequest.url?.includes('/api/auth/password-reset/reset-with-code')
+          !originalRequest.url?.includes('/api/auth/login/code/request') &&
+          !originalRequest.url?.includes('/api/auth/login/code/verify') &&
+          !originalRequest.url?.includes(
+            '/api/auth/password/reset/request'
+          ) &&
+          !originalRequest.url?.includes('/api/auth/password/reset/confirm')
         ) {
           originalRequest._retry = true; // Marca per evitare loop infiniti
 
@@ -281,41 +285,47 @@ class AuthApiClient {
 
   /**
    * Passwordless: richiede invio email con codice OTP a 6 cifre.
-   * POST /api/auth/login/request-code — body: { email }
+   * POST /api/auth/login/code/request — body: { email }
    */
   async requestLoginCode(email: string): Promise<OtpFlowMessageResponse> {
-    return this.post<OtpFlowMessageResponse>('/api/auth/login/request-code', {
+    return this.post<OtpFlowMessageResponse>('/api/auth/login/code/request', {
       email,
     });
   }
 
   /**
    * Passwordless: verifica codice e restituisce token di sessione.
-   * POST /api/auth/login/verify-code — body: { email, code }
+   * POST /api/auth/login/code/verify — body: { email, code }
    */
-  async verifyLoginCode(email: string, code: string): Promise<TokenResponse> {
-    return this.post<TokenResponse>('/api/auth/login/verify-code', {
+  async verifyLoginCode(
+    email: string,
+    code: string
+  ): Promise<TokenResponse | PreAuthTokenResponse> {
+    return this.post<TokenResponse | PreAuthTokenResponse>(
+      '/api/auth/login/code/verify',
+      {
       email,
       code,
-    });
+      }
+    );
   }
 
   /**
    * Reset password: richiede invio email con codice OTP.
-   * POST /api/auth/password-reset/request-code — body: { email }
+   * POST /api/auth/password/reset/request — body: { email }
    */
   async requestPasswordResetCode(
     email: string
   ): Promise<OtpFlowMessageResponse> {
     return this.post<OtpFlowMessageResponse>(
-      '/api/auth/password-reset/request-code',
+      '/api/auth/password/reset/request',
       { email }
     );
   }
 
   /**
    * Reset password: imposta nuova password con codice ricevuto via email.
-   * POST /api/auth/password-reset/reset-with-code — body: { email, code, new_password }
+   * POST /api/auth/password/reset/confirm — body: { email, code, new_password }
    */
   async resetPasswordWithCode(
     email: string,
@@ -323,7 +333,7 @@ class AuthApiClient {
     newPassword: string
   ): Promise<OtpFlowMessageResponse> {
     return this.post<OtpFlowMessageResponse>(
-      '/api/auth/password-reset/reset-with-code',
+      '/api/auth/password/reset/confirm',
       {
         email,
         code,
