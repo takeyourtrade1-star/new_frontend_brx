@@ -956,6 +956,48 @@ export function OggettiContent() {
     setSyncNowPending(true);
     setSyncBanner(null);
 
+    const applyTaskResult = async (
+      task: Awaited<ReturnType<typeof syncClient.getTaskStatus>> | null
+    ): Promise<void> => {
+      const [nextStatus] = await Promise.all([
+        syncClient.getSyncStatus(user.id, accessToken).catch(() => syncStatus),
+      ]);
+      setSyncStatus(nextStatus);
+      await loadInventory();
+
+      if (!task) return;
+
+      if (task.status === 'SUCCESS') {
+        const r = (task.result ?? {}) as {
+          processed?: number;
+          total_products?: number;
+          created?: number;
+          updated?: number;
+          skipped?: number;
+        };
+        const parts: string[] = [];
+        if (typeof r.processed === 'number') {
+          parts.push(
+            `Processati ${r.processed}${typeof r.total_products === 'number' && r.total_products > 0 ? `/${r.total_products}` : ''}`
+          );
+        }
+        if (
+          typeof r.created === 'number' ||
+          typeof r.updated === 'number' ||
+          typeof r.skipped === 'number'
+        ) {
+          parts.push(`C:${r.created ?? 0} U:${r.updated ?? 0} S:${r.skipped ?? 0}`);
+        }
+        setSyncBanner({ type: 'success', message: parts.join(' · ') });
+      } else {
+        const msg =
+          (typeof task.error === 'string' && task.error) ||
+          task.message ||
+          t('accountPage.syncErrFailed');
+        setSyncBanner({ type: 'error', message: msg });
+      }
+    };
+
     try {
       const startRes = await syncClient.startSync(user.id, accessToken);
       const taskId = startRes?.task_id;
@@ -976,41 +1018,41 @@ export function OggettiContent() {
         throw new Error(t('accountPage.syncErrTimeout'));
       }
 
-      // Aggiorna sempre stato e inventario: anche in caso di failure, così la UI riflette eventuali cambi parziali.
-      const [nextStatus] = await Promise.all([
-        syncClient.getSyncStatus(user.id, accessToken).catch(() => syncStatus),
-      ]);
-      setSyncStatus(nextStatus);
-      await loadInventory();
+      await applyTaskResult(lastTask);
+    } catch (e) {
+      const errStatus = (e as any)?.status;
+      const errMsg = e instanceof Error ? e.message : (e as any)?.message;
+      const isConflict =
+        errStatus === 409 || (typeof errMsg === 'string' && errMsg.toLowerCase().includes('conflict'));
 
-      if (lastTask.status === 'SUCCESS') {
-        const r = (lastTask.result ?? {}) as {
-          processed?: number;
-          total_products?: number;
-          created?: number;
-          updated?: number;
-          skipped?: number;
-        };
-        const parts: string[] = [];
-        if (typeof r.processed === 'number') {
-          parts.push(
-            `Processati ${r.processed}${typeof r.total_products === 'number' && r.total_products > 0 ? `/${r.total_products}` : ''}`
-          );
+      if (isConflict) {
+        // La sync completa è già in corso: non dobbiamo fallire, dobbiamo agganciarci allo stato task esistente.
+        setSyncBanner({ type: 'success', message: 'Sincronizzazione già in corso: attendiamo il completamento…' });
+        try {
+          const progressRes = await syncClient.getSyncProgress(user.id, accessToken);
+          const opId = progressRes.operation_id;
+
+          if (opId) {
+            const pollIntervalMs = 2500;
+            const maxPolls = 240;
+            let lastTask: Awaited<ReturnType<typeof syncClient.getTaskStatus>> | null = null;
+            for (let polls = 0; polls < maxPolls; polls++) {
+              lastTask = await syncClient.getTaskStatus(opId, accessToken);
+              if (lastTask.ready) break;
+              await new Promise((r) => setTimeout(r, pollIntervalMs));
+            }
+            await applyTaskResult(lastTask);
+          } else {
+            await applyTaskResult(null);
+          }
+        } catch (innerErr: any) {
+          const innerMsg = innerErr instanceof Error ? innerErr.message : t('accountPage.syncErrFailed');
+          setSyncBanner({ type: 'error', message: innerMsg });
         }
-        if (typeof r.created === 'number' || typeof r.updated === 'number' || typeof r.skipped === 'number') {
-          parts.push(`C:${r.created ?? 0} U:${r.updated ?? 0} S:${r.skipped ?? 0}`);
-        }
-        setSyncBanner({ type: 'success', message: parts.join(' · ') });
       } else {
-        const msg =
-          (typeof lastTask.error === 'string' && lastTask.error) ||
-          lastTask.message ||
-          t('accountPage.syncErrFailed');
+        const msg = e instanceof Error ? e.message : t('accountPage.syncErrFailed');
         setSyncBanner({ type: 'error', message: msg });
       }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : t('accountPage.syncErrFailed');
-      setSyncBanner({ type: 'error', message: msg });
     } finally {
       setSyncNowPending(false);
     }
