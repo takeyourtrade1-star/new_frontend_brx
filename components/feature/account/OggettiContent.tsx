@@ -789,7 +789,7 @@ export function OggettiContent() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [syncBanner, setSyncBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [syncBanner, setSyncBanner] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [syncPending, setSyncPending] = useState(false);
   const [syncNowPending, setSyncNowPending] = useState(false);
   const [inventorySearchQuery, setInventorySearchQuery] = useState('');
@@ -951,10 +951,23 @@ export function OggettiContent() {
 
   const handleSyncNow = useCallback(async () => {
     if (!user?.id || !accessToken || !syncStatus) return;
-    if (isDisconnected || syncStatus.sync_status === 'initial_sync') return;
+    if (isDisconnected) return;
 
     setSyncNowPending(true);
     setSyncBanner(null);
+
+    const pollTaskUntilReady = async (taskId: string) => {
+      const pollIntervalMs = 2500;
+      const maxPolls = 240; // ~10 min
+      let lastTask: Awaited<ReturnType<typeof syncClient.getTaskStatus>> | null = null;
+      for (let polls = 0; polls < maxPolls; polls++) {
+        lastTask = await syncClient.getTaskStatus(taskId, accessToken);
+        if (lastTask.ready) break;
+        await new Promise((r) => setTimeout(r, pollIntervalMs));
+      }
+      if (!lastTask?.ready) throw new Error(t('accountPage.syncErrTimeout'));
+      return lastTask;
+    };
 
     const applyTaskResult = async (
       task: Awaited<ReturnType<typeof syncClient.getTaskStatus>> | null
@@ -998,26 +1011,35 @@ export function OggettiContent() {
       }
     };
 
+    const attachOrRecoverRunningSync = async () => {
+      setSyncBanner({ type: 'info', message: 'Sincronizzazione già in corso: mi aggancio al task attivo…' });
+      const progressRes = await syncClient.getSyncProgress(user.id, accessToken);
+      const opId = progressRes.operation_id;
+      if (opId) {
+        const task = await pollTaskUntilReady(opId);
+        await applyTaskResult(task);
+        return;
+      }
+
+      // Stato incoerente: backend segnala sync in corso ma non espone operation_id.
+      // Proviamo un avvio forzato per riallineare lo stato.
+      const forced = await syncClient.startSync(user.id, accessToken, true);
+      if (!forced?.task_id) throw new Error(t('accountPage.syncErrStart'));
+      const forcedTask = await pollTaskUntilReady(forced.task_id);
+      await applyTaskResult(forcedTask);
+    };
+
     try {
+      if (syncStatus.sync_status === 'initial_sync') {
+        await attachOrRecoverRunningSync();
+        return;
+      }
+
       const startRes = await syncClient.startSync(user.id, accessToken);
       const taskId = startRes?.task_id;
       if (!taskId) throw new Error(t('accountPage.syncErrStart'));
 
-      const pollIntervalMs = 2500;
-      const maxPolls = 240; // ~10 min
-
-      let lastTask: Awaited<ReturnType<typeof syncClient.getTaskStatus>> | null = null;
-
-      for (let polls = 0; polls < maxPolls; polls++) {
-        lastTask = await syncClient.getTaskStatus(taskId, accessToken);
-        if (lastTask.ready) break;
-        await new Promise((r) => setTimeout(r, pollIntervalMs));
-      }
-
-      if (!lastTask?.ready) {
-        throw new Error(t('accountPage.syncErrTimeout'));
-      }
-
+      const lastTask = await pollTaskUntilReady(taskId);
       await applyTaskResult(lastTask);
     } catch (e) {
       const errStatus = (e as any)?.status;
@@ -1026,25 +1048,8 @@ export function OggettiContent() {
         errStatus === 409 || (typeof errMsg === 'string' && errMsg.toLowerCase().includes('conflict'));
 
       if (isConflict) {
-        // La sync completa è già in corso: non dobbiamo fallire, dobbiamo agganciarci allo stato task esistente.
-        setSyncBanner({ type: 'success', message: 'Sincronizzazione già in corso: attendiamo il completamento…' });
         try {
-          const progressRes = await syncClient.getSyncProgress(user.id, accessToken);
-          const opId = progressRes.operation_id;
-
-          if (opId) {
-            const pollIntervalMs = 2500;
-            const maxPolls = 240;
-            let lastTask: Awaited<ReturnType<typeof syncClient.getTaskStatus>> | null = null;
-            for (let polls = 0; polls < maxPolls; polls++) {
-              lastTask = await syncClient.getTaskStatus(opId, accessToken);
-              if (lastTask.ready) break;
-              await new Promise((r) => setTimeout(r, pollIntervalMs));
-            }
-            await applyTaskResult(lastTask);
-          } else {
-            await applyTaskResult(null);
-          }
+          await attachOrRecoverRunningSync();
         } catch (innerErr: any) {
           const innerMsg = innerErr instanceof Error ? innerErr.message : t('accountPage.syncErrFailed');
           setSyncBanner({ type: 'error', message: innerMsg });
@@ -1434,12 +1439,16 @@ export function OggettiContent() {
               className={`rounded-full border px-4 py-2 text-sm font-medium shadow-sm ${
                 syncBanner.type === 'success'
                   ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : 'border-red-200 bg-red-50 text-red-700'
+                  : syncBanner.type === 'error'
+                    ? 'border-red-200 bg-red-50 text-red-700'
+                    : 'border-sky-200 bg-sky-50 text-sky-700'
               }`}
             >
               {syncBanner.type === 'success'
                 ? `${t('accountPage.itemsSyncOk')}${syncBanner.message ? `: ${syncBanner.message}` : ''}`
-                : `${t('accountPage.itemsSyncErrorPrefix')}${syncBanner.message ? `: ${syncBanner.message}` : ''}`}
+                : syncBanner.type === 'error'
+                  ? `${t('accountPage.itemsSyncErrorPrefix')}${syncBanner.message ? `: ${syncBanner.message}` : ''}`
+                  : syncBanner.message}
             </div>
           )}
           <p className="text-sm text-gray-500">
