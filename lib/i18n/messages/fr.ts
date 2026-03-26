@@ -362,6 +362,8 @@ export const fr: Record<MessageKey, string> = {
   'accountPage.syncTokenPlaceholder': 'Jeton API CardTrader',
   'accountPage.syncSaveConnect': 'Enregistrer et connecter',
   'accountPage.syncStep2Title': 'Étape 2 — Webhook (automatisation)',
+  'accountPage.syncMagicOnlyNotice':
+    'Pour le moment, nous synchronisons uniquement l’inventaire Magic: The Gathering. Les autres jeux arrivent bientôt.',
   'accountPage.syncLoadingWebhook': 'Chargement de l’URL webhook…',
   'accountPage.syncCopied': 'Copié !',
   'accountPage.syncWebhookSecret': 'Secret webhook configuré :',

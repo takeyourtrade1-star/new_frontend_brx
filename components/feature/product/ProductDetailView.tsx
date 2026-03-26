@@ -251,6 +251,13 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         try {
           const status = await syncClient.getTaskStatus(taskId, accessToken);
           if (status.ready) {
+            if (status.error) {
+              setListingActionMessage(
+                typeof status.error === 'string'
+                  ? status.error
+                  : status.message ?? 'Sincronizzazione CardTrader fallita'
+              );
+            }
             await refreshListings();
             return;
           }
@@ -258,6 +265,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           // transient
         }
       }
+      setListingActionMessage('Timeout sincronizzazione: aggiornamento CardTrader non confermato.');
     },
     [accessToken, refreshListings]
   );
@@ -287,7 +295,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           const res = await syncClient.deleteInventoryItem(user.id, item.item_id, accessToken);
           await refreshListings();
           if (res.sync_queue_error) setListingActionMessage(res.sync_queue_error);
-          else if (res.sync_task_id) void pollSyncTaskThenRefresh(res.sync_task_id);
+          else if (res.sync_task_id) {
+            setListingActionMessage('Aggiornamento CardTrader in coda. Attendi il completamento task.');
+            void pollSyncTaskThenRefresh(res.sync_task_id);
+          }
         } else {
           const nextQty = Math.max(0, item.quantity + delta);
           if (nextQty < 1) return;
@@ -299,7 +310,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           );
           await refreshListings();
           if (res.sync_queue_error) setListingActionMessage(res.sync_queue_error);
-          else if (res.sync_task_id) void pollSyncTaskThenRefresh(res.sync_task_id);
+          else if (res.sync_task_id) {
+            setListingActionMessage('Aggiornamento CardTrader in coda. Attendi il completamento task.');
+            void pollSyncTaskThenRefresh(res.sync_task_id);
+          }
         }
       } catch (e) {
         setListingActionMessage(e instanceof Error ? e.message : 'Operazione non riuscita');
@@ -349,7 +363,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         setEditingItem(null);
         await refreshListings();
         if (res.sync_queue_error) setListingActionMessage(res.sync_queue_error);
-        else if (res.sync_task_id) void pollSyncTaskThenRefresh(res.sync_task_id);
+        else if (res.sync_task_id) {
+          setListingActionMessage('Aggiornamento CardTrader in coda. Attendi il completamento task.');
+          void pollSyncTaskThenRefresh(res.sync_task_id);
+        }
       } catch (e) {
         setListingActionMessage(e instanceof Error ? e.message : 'Salvataggio non riuscito');
       } finally {
@@ -366,7 +383,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setListingActionMessage(null);
     try {
       const res = await syncClient.purchaseInventoryItem(
-        purchaseListing.seller_id,
+        user.id,
         purchaseListing.item_id,
         { quantity: safeQty },
         accessToken

@@ -187,6 +187,7 @@ function OggettiTable({
   onSyncResult,
   onSyncPending,
   syncEnabled,
+  mutationsDisabled,
   selectedIds,
   onToggleSelect,
   onSelectAll,
@@ -206,6 +207,7 @@ function OggettiTable({
   onSyncResult: (result: { success: boolean; message?: string }) => void;
   onSyncPending?: () => void;
   syncEnabled: boolean;
+  mutationsDisabled?: boolean;
   selectedIds?: Set<number>;
   onToggleSelect?: (id: number) => void;
   onSelectAll?: () => void;
@@ -326,6 +328,7 @@ function OggettiTable({
       if (res.sync_queue_error) {
         onSyncResult({ success: false, message: res.sync_queue_error });
       } else if (res.sync_task_id) {
+        onSyncResult({ success: true, message: 'Aggiornamento CardTrader in coda. Attendi il completamento task.' });
         pollSyncTaskThenNotify(res.sync_task_id);
       } else {
         onSyncResult({ success: true });
@@ -379,6 +382,7 @@ function OggettiTable({
       if (res.sync_queue_error) {
         onSyncResult({ success: false, message: res.sync_queue_error });
       } else if (res.sync_task_id) {
+        onSyncResult({ success: true, message: 'Aggiornamento CardTrader in coda. Attendi il completamento task.' });
         pollSyncTaskThenNotify(res.sync_task_id);
       } else {
         onSyncResult({ success: true });
@@ -477,7 +481,8 @@ function OggettiTable({
                     <button
                       type="button"
                       onClick={() => setEditItem(item)}
-                      className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-2.5 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                      disabled={mutationsDisabled}
+                      className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-2.5 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Edit3 className="h-3.5 w-3.5" />
                       Modifica
@@ -486,6 +491,13 @@ function OggettiTable({
                       type="button"
                       onClick={() => openPurchaseModal(item)}
                       className="inline-flex items-center gap-1 rounded-full border border-emerald-500/60 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                      disabled={
+                        mutationsDisabled ||
+                        purchasingId === item.id ||
+                        deletingId === item.id ||
+                        !item.external_stock_id ||
+                        item.quantity < 1
+                      }
                     >
                       <ShoppingCart className="h-3.5 w-3.5" />
                       Carrello
@@ -641,7 +653,8 @@ function OggettiTable({
                       <button
                         type="button"
                         onClick={() => setEditItem(item)}
-                        className="inline-flex items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                        disabled={mutationsDisabled}
+                        className="inline-flex items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Modifica"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -651,6 +664,7 @@ function OggettiTable({
                         type="button"
                         onClick={() => openPurchaseModal(item)}
                         disabled={
+                          Boolean(mutationsDisabled) ||
                           purchasingId === item.id ||
                           deletingId === item.id ||
                           !item.external_stock_id ||
@@ -663,7 +677,7 @@ function OggettiTable({
                               ? 'Quantità insufficiente'
                               : 'Simula acquisto: verifica inventario e CardTrader poi decrementa'
                         }
-                        className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-white px-2 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:bg-gray-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-white px-2 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:bg-gray-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Carrello (simula acquisto)"
                       >
                         {purchasingId === item.id ? (
@@ -676,8 +690,8 @@ function OggettiTable({
                       <button
                         type="button"
                         onClick={() => handleDelete(item)}
-                        disabled={deletingId === item.id}
-                        className="inline-flex items-center gap-1 rounded border border-red-200 bg-white px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-800 dark:bg-gray-700 dark:text-red-300 dark:hover:bg-red-900/20 disabled:opacity-50"
+                        disabled={mutationsDisabled || deletingId === item.id}
+                        className="inline-flex items-center gap-1 rounded border border-red-200 bg-white px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-800 dark:bg-gray-700 dark:text-red-300 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Elimina"
                       >
                         {deletingId === item.id ? (
@@ -777,6 +791,7 @@ export function OggettiContent() {
   const [error, setError] = useState<string | null>(null);
   const [syncBanner, setSyncBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [syncPending, setSyncPending] = useState(false);
+  const [syncNowPending, setSyncNowPending] = useState(false);
   const [inventorySearchQuery, setInventorySearchQuery] = useState('');
   /** Filtro per tipo: tutti, solo singole (carte), solo oggetti (sealed). */
   const [kindFilter, setKindFilter] = useState<KindFilterValue>('all');
@@ -793,6 +808,10 @@ export function OggettiContent() {
   const syncEnabled =
     Boolean(syncStatus && !syncStatus.disconnected) &&
     (syncStatus?.sync_status === 'active' || syncStatus?.sync_status === 'initial_sync');
+  const isDisconnected = syncStatus?.disconnected === true;
+  const integrationConnected = Boolean(syncStatus && !isDisconnected);
+  const syncAnyPending = syncPending || syncNowPending;
+  const canSyncNow = integrationConnected && syncStatus?.sync_status !== 'initial_sync';
 
   /** Filtro per tipo (singole/oggetti) poi per ricerca testuale. */
   const filteredInventoryItems = useMemo(() => {
@@ -929,6 +948,73 @@ export function OggettiContent() {
       setTotal(0);
     }
   }, [user?.id, accessToken]);
+
+  const handleSyncNow = useCallback(async () => {
+    if (!user?.id || !accessToken || !syncStatus) return;
+    if (isDisconnected || syncStatus.sync_status === 'initial_sync') return;
+
+    setSyncNowPending(true);
+    setSyncBanner(null);
+
+    try {
+      const startRes = await syncClient.startSync(user.id, accessToken);
+      const taskId = startRes?.task_id;
+      if (!taskId) throw new Error(t('accountPage.syncErrStart'));
+
+      const pollIntervalMs = 2500;
+      const maxPolls = 240; // ~10 min
+
+      let lastTask: Awaited<ReturnType<typeof syncClient.getTaskStatus>> | null = null;
+
+      for (let polls = 0; polls < maxPolls; polls++) {
+        lastTask = await syncClient.getTaskStatus(taskId, accessToken);
+        if (lastTask.ready) break;
+        await new Promise((r) => setTimeout(r, pollIntervalMs));
+      }
+
+      if (!lastTask?.ready) {
+        throw new Error(t('accountPage.syncErrTimeout'));
+      }
+
+      // Aggiorna sempre stato e inventario: anche in caso di failure, così la UI riflette eventuali cambi parziali.
+      const [nextStatus] = await Promise.all([
+        syncClient.getSyncStatus(user.id, accessToken).catch(() => syncStatus),
+      ]);
+      setSyncStatus(nextStatus);
+      await loadInventory();
+
+      if (lastTask.status === 'SUCCESS') {
+        const r = (lastTask.result ?? {}) as {
+          processed?: number;
+          total_products?: number;
+          created?: number;
+          updated?: number;
+          skipped?: number;
+        };
+        const parts: string[] = [];
+        if (typeof r.processed === 'number') {
+          parts.push(
+            `Processati ${r.processed}${typeof r.total_products === 'number' && r.total_products > 0 ? `/${r.total_products}` : ''}`
+          );
+        }
+        if (typeof r.created === 'number' || typeof r.updated === 'number' || typeof r.skipped === 'number') {
+          parts.push(`C:${r.created ?? 0} U:${r.updated ?? 0} S:${r.skipped ?? 0}`);
+        }
+        setSyncBanner({ type: 'success', message: parts.join(' · ') });
+      } else {
+        const msg =
+          (typeof lastTask.error === 'string' && lastTask.error) ||
+          lastTask.message ||
+          t('accountPage.syncErrFailed');
+        setSyncBanner({ type: 'error', message: msg });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : t('accountPage.syncErrFailed');
+      setSyncBanner({ type: 'error', message: msg });
+    } finally {
+      setSyncNowPending(false);
+    }
+  }, [user?.id, accessToken, syncStatus, isDisconnected, loadInventory, t]);
 
   // 2) Carica inventario sempre (la collezione esiste anche senza sincronizzazione CardTrader)
   useEffect(() => {
@@ -1210,6 +1296,22 @@ export function OggettiContent() {
                 {t('accountPage.itemsSyncInactive')}
               </Link>
             ))}
+          {!syncStatusLoading && (
+            <button
+              type="button"
+              onClick={() => void handleSyncNow()}
+              disabled={!integrationConnected || !canSyncNow || syncAnyPending}
+              className="inline-flex items-center gap-2 rounded-none border border-white/30 bg-[#FF7300]/90 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#FF7300] disabled:opacity-50 disabled:cursor-not-allowed"
+              title={
+                integrationConnected
+                  ? 'Avvia un allineamento immediato con CardTrader e aggiorna l’inventario.'
+                  : t('accountPage.itemsSyncInactiveTitle')
+              }
+            >
+              {syncNowPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {syncNowPending ? 'Sincronizzazione...' : 'Sincronizza ora'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setExportModalOpen(true)}
@@ -1276,7 +1378,7 @@ export function OggettiContent() {
               {t('accountPage.itemsViewCards')}
             </button>
           </div>
-          {syncEnabled && syncPending && (
+          {integrationConnected && syncAnyPending && (
             <div
               role="status"
               className="rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-700 shadow-sm"
@@ -1284,7 +1386,7 @@ export function OggettiContent() {
               {t('accountPage.itemsSyncRunning')}
             </div>
           )}
-          {syncEnabled && syncBanner && !syncPending && (
+          {integrationConnected && syncBanner && !syncAnyPending && (
             <div
               role="alert"
               className={`rounded-full border px-4 py-2 text-sm font-medium shadow-sm ${
@@ -1294,7 +1396,7 @@ export function OggettiContent() {
               }`}
             >
               {syncBanner.type === 'success'
-                ? t('accountPage.itemsSyncOk')
+                ? `${t('accountPage.itemsSyncOk')}${syncBanner.message ? `: ${syncBanner.message}` : ''}`
                 : `${t('accountPage.itemsSyncErrorPrefix')}${syncBanner.message ? `: ${syncBanner.message}` : ''}`}
             </div>
           )}
@@ -1407,6 +1509,7 @@ export function OggettiContent() {
             }}
             onSyncPending={() => setSyncPending(true)}
             syncEnabled={syncEnabled}
+            mutationsDisabled={syncAnyPending}
             selectedIds={selectedIds}
             onToggleSelect={onToggleSelect}
             onSelectAll={onSelectAll}

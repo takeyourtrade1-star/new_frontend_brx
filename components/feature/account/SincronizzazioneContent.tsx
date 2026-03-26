@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   RefreshCw,
@@ -99,6 +99,10 @@ export function SincronizzazioneContent() {
     skipped: number;
   } | null>(null);
   const [lastSyncError, setLastSyncError] = useState<string | null>(null);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+  const [etaSeconds, setEtaSeconds] = useState<number | null>(null);
+  const pollingSessionRef = useRef(0);
+  const progressSampleRef = useRef<{ ts: number; pct: number } | null>(null);
 
   const addLog = useCallback((label: string, data: unknown, isError?: boolean) => {
     const ts = new Date().toISOString();
@@ -179,9 +183,12 @@ export function SincronizzazioneContent() {
 
   const handleStartSync = async () => {
     if (!userId || !accessToken) return;
+    pollingSessionRef.current += 1;
+    const sessionId = pollingSessionRef.current;
     setLoadingStart(true);
     setLastSyncResult(null);
     setLastSyncError(null);
+    setEtaSeconds(null);
     try {
       const res = await syncClient.startSync(userId, accessToken);
       addLog('startSync', res);
@@ -192,6 +199,7 @@ export function SincronizzazioneContent() {
         setLoadingStart(false);
         return;
       }
+      setCurrentTaskId(taskId);
 
       // Poll task status until completed (max ~10 min)
       const pollIntervalMs = 2500;
@@ -202,6 +210,9 @@ export function SincronizzazioneContent() {
         if (polls >= maxPolls) {
           setLastSyncError(t('accountPage.syncErrTimeout'));
           setLoadingStart(false);
+          if (sessionId === pollingSessionRef.current) {
+            setCurrentTaskId(null);
+          }
           return;
         }
         polls += 1;
@@ -222,15 +233,24 @@ export function SincronizzazioneContent() {
               setSyncStatus((prev) => (prev ? { ...prev, sync_status: 'active' } : null));
             } else if (taskRes.status === 'FAILURE' || taskRes.error) {
               setLastSyncError(taskRes.error || t('accountPage.syncErrFailed'));
+            } else {
+              setLastSyncError('Sincronizzazione completata ma risultato dettagliato non disponibile.');
             }
             setLoadingStart(false);
+            if (sessionId === pollingSessionRef.current) {
+              setCurrentTaskId(null);
+            }
             return;
           }
 
-          setTimeout(poll, pollIntervalMs);
+          if (sessionId === pollingSessionRef.current) {
+            setTimeout(poll, pollIntervalMs);
+          }
         } catch (err: any) {
           addLog('getTaskStatus ERROR', { message: err?.message }, true);
-          setTimeout(poll, pollIntervalMs);
+          if (sessionId === pollingSessionRef.current) {
+            setTimeout(poll, pollIntervalMs);
+          }
         }
       };
 
@@ -259,6 +279,52 @@ export function SincronizzazioneContent() {
       setLoadingRefresh(false);
     }
   };
+
+  // Poll live progress while initial sync is running.
+  useEffect(() => {
+    if (!userId || !accessToken) return;
+    if (syncStatus?.sync_status !== 'initial_sync') {
+      progressSampleRef.current = null;
+      setEtaSeconds(null);
+      return;
+    }
+
+    let stopped = false;
+    const tick = async () => {
+      if (stopped) return;
+      try {
+        const [statusRes, progressRes] = await Promise.all([
+          syncClient.getSyncStatus(userId, accessToken),
+          syncClient.getSyncProgress(userId, accessToken),
+        ]);
+        if (stopped) return;
+        setSyncStatus(statusRes);
+        setProgress(progressRes);
+
+        const pct = Number(progressRes.progress_percent ?? 0);
+        const now = Date.now();
+        const prev = progressSampleRef.current;
+        if (pct > 0 && pct < 100 && prev && pct > prev.pct) {
+          const ratePctPerMs = (pct - prev.pct) / Math.max(1, now - prev.ts);
+          const remainingPct = 100 - pct;
+          const estimateMs = remainingPct / ratePctPerMs;
+          if (Number.isFinite(estimateMs) && estimateMs > 0) {
+            setEtaSeconds(Math.round(estimateMs / 1000));
+          }
+        }
+        progressSampleRef.current = { ts: now, pct };
+      } catch (err: any) {
+        addLog('liveProgress ERROR', { message: err?.message }, true);
+      }
+    };
+
+    void tick();
+    const id = setInterval(() => void tick(), 3000);
+    return () => {
+      stopped = true;
+      clearInterval(id);
+    };
+  }, [userId, accessToken, syncStatus?.sync_status, addLog]);
 
   const handleDisconnect = async (action: 'suspend' | 'remove') => {
     if (!userId || !accessToken) return;
@@ -298,6 +364,16 @@ export function SincronizzazioneContent() {
   const showProgress = statusValue === 'initial_sync' && progress;
   const isDisconnected = syncStatus?.disconnected === true;
   const canSuspendOrRemove = Boolean(syncStatus && !isDisconnected);
+  const hasWebhookUrl = Boolean(webhookData?.webhook_url);
+  const webhookSecretReady = webhookData?.webhook_secret_configured === true;
+  const integrationReady = Boolean(syncStatus && !isDisconnected);
+  const canStartSync = integrationReady && hasWebhookUrl && webhookSecretReady && statusValue !== 'initial_sync';
+  const etaLabel =
+    etaSeconds != null
+      ? etaSeconds > 120
+        ? `${Math.ceil(etaSeconds / 60)} min`
+        : `${etaSeconds}s`
+      : null;
 
   return (
     <div className="text-gray-900">
@@ -415,18 +491,37 @@ export function SincronizzazioneContent() {
           )}
         </Card>
 
-        {/* D. Azioni manuali */}
-        <Card title={t('accountPage.syncManualTitle')}>
+        {/* D. Step 3 - Avvio sincronizzazione */}
+        <Card title="Step 3 - Avvia sincronizzazione inventario">
+          <p className="mb-3 text-sm text-gray-600">
+            {t('accountPage.syncMagicOnlyNotice')}
+          </p>
+          {!hasWebhookUrl || !webhookSecretReady ? (
+            <p className="mb-4 rounded-none border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              Completa prima Step 2 (webhook URL e secret configurato) per avviare la sincronizzazione in modo sicuro.
+            </p>
+          ) : null}
           <div className="flex flex-wrap items-center gap-4">
             <Button
               type="button"
               onClick={handleStartSync}
-              disabled={loadingStart || statusValue === 'initial_sync' || isDisconnected}
+              disabled={loadingStart || !canStartSync}
               className="bg-[#FF7300] font-semibold text-white hover:bg-[#e66a00] disabled:opacity-50"
             >
               {loadingStart ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {t('accountPage.syncStartFull')}
             </Button>
+            {!canStartSync && !loadingStart && (
+              <span className="text-sm text-gray-500">
+                Verifica token, webhook e stato integrazione prima di avviare.
+              </span>
+            )}
+          </div>
+        </Card>
+
+        {/* E. Step 4 - Monitor e controlli */}
+        <Card title="Step 4 - Monitoraggio e stato live">
+          <div className="mb-4 flex flex-wrap items-center gap-4">
             <Button
               type="button"
               onClick={handleRefreshStatus}
@@ -436,6 +531,11 @@ export function SincronizzazioneContent() {
               {loadingRefresh ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               {t('accountPage.syncRefreshProgress')}
             </Button>
+            {currentTaskId ? (
+              <span className="rounded-none border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
+                Task in corso: {currentTaskId}
+              </span>
+            ) : null}
             {canSuspendOrRemove && (
               <>
                 <Button
@@ -490,10 +590,39 @@ export function SincronizzazioneContent() {
               {t('accountPage.syncStartedWait')}
             </p>
           )}
+          {showProgress && progress && (
+            <div className="mt-2 border border-gray-200 bg-gray-50 p-4">
+              <p className="mb-2 text-sm font-medium text-gray-700">{t('accountPage.syncProgressTitle')}</p>
+              <p className="text-sm text-gray-600">
+                {t('accountPage.syncProgressLine', {
+                  pct: progress.progress_percent ?? 0,
+                  processed: progress.processed ?? 0,
+                  totalPart:
+                    progress.total_products != null
+                      ? t('accountPage.syncTotalPart', { total: progress.total_products })
+                      : '',
+                })}
+                {progress.created != null
+                  ? ` ${t('accountPage.syncProgressTail', {
+                      c: progress.created,
+                      u: progress.updated ?? 0,
+                      s: progress.skipped ?? 0,
+                    })}`
+                  : ''}
+              </p>
+              <p className="mt-2 text-xs text-gray-500">
+                Chunk: {progress.processed_chunks ?? 0}/{progress.total_chunks ?? '—'}
+                {etaLabel ? ` · ETA stimata: ${etaLabel}` : ''}
+              </p>
+            </div>
+          )}
           {lastSyncError && (
             <div className="mt-4 border border-red-200 bg-red-50 p-4">
               <p className="text-sm font-medium text-red-700">{t('accountPage.syncErrorTitle')}</p>
               <p className="text-sm text-red-600">{lastSyncError}</p>
+              <p className="mt-1 text-xs text-red-700">
+                Verifica token CardTrader, secret webhook e raggiungibilità del servizio Sync.
+              </p>
             </div>
           )}
           {lastSyncResult && (
@@ -515,31 +644,9 @@ export function SincronizzazioneContent() {
               </p>
             </div>
           )}
-          {showProgress && progress && (
-            <div className="mt-4 border border-gray-200 bg-gray-50 p-4">
-              <p className="mb-2 text-sm font-medium text-gray-700">{t('accountPage.syncProgressTitle')}</p>
-              <p className="text-sm text-gray-600">
-                {t('accountPage.syncProgressLine', {
-                  pct: progress.progress_percent ?? 0,
-                  processed: progress.processed ?? 0,
-                  totalPart:
-                    progress.total_products != null
-                      ? t('accountPage.syncTotalPart', { total: progress.total_products })
-                      : '',
-                })}
-                {progress.created != null
-                  ? ` ${t('accountPage.syncProgressTail', {
-                      c: progress.created,
-                      u: progress.updated ?? 0,
-                      s: progress.skipped ?? 0,
-                    })}`
-                  : ''}
-              </p>
-            </div>
-          )}
         </Card>
 
-        {/* E. Debug console */}
+        {/* F. Debug console */}
         <Card title={t('accountPage.syncDebugTitle')}>
           <div className="h-64 overflow-y-auto rounded-md bg-black p-4 font-mono text-sm text-green-400">
             {logs.length === 0 ? (

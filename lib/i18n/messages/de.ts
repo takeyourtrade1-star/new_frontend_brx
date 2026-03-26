@@ -362,6 +362,8 @@ export const de: Record<MessageKey, string> = {
   'accountPage.syncTokenPlaceholder': 'CardTrader-API-Token',
   'accountPage.syncSaveConnect': 'Speichern und verbinden',
   'accountPage.syncStep2Title': 'Schritt 2 — Webhook (Automatisierung)',
+  'accountPage.syncMagicOnlyNotice':
+    'Aktuell synchronisieren wir nur das Magic: The Gathering-Inventar. Weitere Spiele folgen bald.',
   'accountPage.syncLoadingWebhook': 'Webhook-URL wird geladen…',
   'accountPage.syncCopied': 'Kopiert!',
   'accountPage.syncWebhookSecret': 'Webhook-Geheimnis konfiguriert:',

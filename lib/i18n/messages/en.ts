@@ -361,6 +361,8 @@ export const en = {
   'accountPage.syncTokenPlaceholder': 'CardTrader API token',
   'accountPage.syncSaveConnect': 'Save and connect',
   'accountPage.syncStep2Title': 'Step 2 — Webhook configuration (automation)',
+  'accountPage.syncMagicOnlyNotice':
+    'For now we sync only Magic: The Gathering inventory. Other games are coming soon.',
   'accountPage.syncLoadingWebhook': 'Loading webhook URL…',
   'accountPage.syncCopied': 'Copied!',
   'accountPage.syncWebhookSecret': 'Webhook secret configured:',
