@@ -374,39 +374,48 @@ export function SincronizzazioneContent() {
         ? `${Math.ceil(etaSeconds / 60)} min`
         : `${etaSeconds}s`
       : null;
+  const syncCompleted = statusValue === 'active' || Boolean(lastSyncResult);
+  const currentStep = !integrationReady ? 1 : !webhookSecretReady ? 2 : !syncCompleted ? 3 : 4;
 
   return (
     <div className="text-gray-900">
       <AccountBreadcrumb current="sidebar.sync" />
 
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900">
-          {t('accountPage.syncTitle')}
-        </h1>
-        <div className="flex items-center gap-3">
-          {loadingStatus ? (
-            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-          ) : (
-            <StatusBadge status={statusValue} />
-          )}
+      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900">{t('accountPage.syncTitle')}</h1>
+          {loadingStatus ? <Loader2 className="h-5 w-5 animate-spin text-gray-400" /> : <StatusBadge status={statusValue} />}
+        </div>
+        <div className="grid gap-2 sm:grid-cols-4">
+          {[1, 2, 3, 4].map((s) => {
+            const done = s < currentStep || (s === 4 && syncCompleted);
+            const active = s === currentStep;
+            return (
+              <div
+                key={s}
+                className={cn(
+                  'rounded-lg border px-3 py-2 text-xs font-medium',
+                  done ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-gray-50 text-gray-600',
+                  active && 'border-[#FF7300] bg-orange-50 text-[#FF7300]'
+                )}
+              >
+                STEP {s}
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {isDisconnected && (
-        <div className="mb-6 rounded-none border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm font-medium text-amber-800">
-            {t('accountPage.syncDisconnectedBanner')}
-          </p>
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          {t('accountPage.syncDisconnectedBanner')}
         </div>
       )}
 
-      <div className="space-y-6">
-        {/* A. Header & status already above */}
-
-        {/* B. Step 1 - Configurazione API */}
-        <Card title={t('accountPage.syncStep1Title')}>
+      {currentStep === 1 && (
+        <Card title="Step 1 - Collega CardTrader">
           <p className="mb-4 text-sm text-gray-600">
-            {t('accountPage.syncStep1Text')}
+            Inserisci il token API CardTrader per attivare l’integrazione.
           </p>
           <div className="flex flex-wrap gap-3">
             <Input
@@ -422,16 +431,15 @@ export function SincronizzazioneContent() {
               disabled={loadingSetup || !cardtraderToken.trim()}
               className="bg-[#FF7300] font-semibold text-white hover:bg-[#e66a00] disabled:opacity-50"
             >
-              {loadingSetup ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
+              {loadingSetup ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {t('accountPage.syncSaveConnect')}
             </Button>
           </div>
         </Card>
+      )}
 
-        {/* C. Step 2 - Webhook */}
-        <Card title={t('accountPage.syncStep2Title')}>
+      {currentStep === 2 && (
+        <Card title="Step 2 - Configura Webhook">
           {loadingWebhook ? (
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -439,6 +447,9 @@ export function SincronizzazioneContent() {
             </div>
           ) : webhookData ? (
             <>
+              <p className="mb-3 text-sm text-gray-600">
+                Copia l’URL e inseriscilo su CardTrader. Al momento sincronizziamo solo Magic: The Gathering.
+              </p>
               <div className="mb-3 flex gap-2">
                 <Input
                   readOnly
@@ -450,17 +461,11 @@ export function SincronizzazioneContent() {
                   onClick={handleCopyWebhook}
                   className="h-10 w-10 shrink-0 rounded-none border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
                 >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-emerald-600" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
+                  {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
-              {copied && (
-                <p className="mb-3 text-xs font-medium text-emerald-600">{t('accountPage.syncCopied')}</p>
-              )}
-              <ul className="mb-4 list-inside list-decimal space-y-1 text-sm text-gray-600">
+              {copied && <p className="mb-3 text-xs font-medium text-emerald-600">{t('accountPage.syncCopied')}</p>}
+              <ol className="mb-4 list-inside list-decimal space-y-1 text-sm text-gray-600">
                 <li>
                   <a
                     href="https://www.cardtrader.com/it/full_api_app"
@@ -473,7 +478,7 @@ export function SincronizzazioneContent() {
                 </li>
                 <li>{t('accountPage.syncWebhookStep2')}</li>
                 <li>{t('accountPage.syncWebhookStep3')}</li>
-              </ul>
+              </ol>
               <p className="flex items-center gap-2 text-sm">
                 <span className="text-gray-600">{t('accountPage.syncWebhookSecret')}</span>
                 <span
@@ -485,22 +490,23 @@ export function SincronizzazioneContent() {
                   {webhookData.webhook_secret_configured ? t('accountPage.syncYes') : t('accountPage.syncNo')}
                 </span>
               </p>
+              {!webhookSecretReady && (
+                <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  Configura il secret su CardTrader per procedere allo step successivo.
+                </p>
+              )}
             </>
           ) : (
             <p className="text-sm text-gray-500">{t('accountPage.syncConfigureTokenFirst')}</p>
           )}
         </Card>
+      )}
 
-        {/* D. Step 3 - Avvio sincronizzazione */}
-        <Card title="Step 3 - Avvia sincronizzazione inventario">
-          <p className="mb-3 text-sm text-gray-600">
-            {t('accountPage.syncMagicOnlyNotice')}
+      {currentStep === 3 && (
+        <Card title="Step 3 - Avvia sincronizzazione">
+          <p className="mb-4 text-sm text-gray-600">
+            Avvia la sincronizzazione iniziale. Ti mostreremo avanzamento e risultato nel prossimo step.
           </p>
-          {!hasWebhookUrl || !webhookSecretReady ? (
-            <p className="mb-4 rounded-none border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              Completa prima Step 2 (webhook URL e secret configurato) per avviare la sincronizzazione in modo sicuro.
-            </p>
-          ) : null}
           <div className="flex flex-wrap items-center gap-4">
             <Button
               type="button"
@@ -511,17 +517,19 @@ export function SincronizzazioneContent() {
               {loadingStart ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {t('accountPage.syncStartFull')}
             </Button>
-            {!canStartSync && !loadingStart && (
-              <span className="text-sm text-gray-500">
-                Verifica token, webhook e stato integrazione prima di avviare.
-              </span>
+            {!canStartSync && (
+              <span className="text-sm text-gray-500">Verifica prima token, webhook e secret configurato.</span>
             )}
           </div>
+          {loadingStart && (
+            <p className="mt-4 text-sm text-amber-600">{t('accountPage.syncStartedWait')}</p>
+          )}
         </Card>
+      )}
 
-        {/* E. Step 4 - Monitor e controlli */}
-        <Card title="Step 4 - Monitoraggio e stato live">
-          <div className="mb-4 flex flex-wrap items-center gap-4">
+      {currentStep === 4 && (
+        <Card title="Step 4 - Stato sincronizzazione">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
             <Button
               type="button"
               onClick={handleRefreshStatus}
@@ -532,66 +540,14 @@ export function SincronizzazioneContent() {
               {t('accountPage.syncRefreshProgress')}
             </Button>
             {currentTaskId ? (
-              <span className="rounded-none border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
-                Task in corso: {currentTaskId}
+              <span className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
+                Task: {currentTaskId}
               </span>
             ) : null}
-            {canSuspendOrRemove && (
-              <>
-                <Button
-                  type="button"
-                  onClick={() => handleDisconnect('suspend')}
-                  disabled={loadingDisconnect}
-                  className="border border-amber-500 text-amber-700 hover:bg-amber-50"
-                  title={t('accountPage.syncSuspendTitle')}
-                >
-                  {loadingDisconnect && disconnectConfirm === 'suspend' ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <PauseCircle className="mr-2 h-4 w-4" />
-                  )}
-                  {t('accountPage.syncSuspend')}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() =>
-                    disconnectConfirm === 'remove'
-                      ? handleDisconnect('remove')
-                      : setDisconnectConfirm('remove')
-                  }
-                  disabled={loadingDisconnect}
-                  variant="outline"
-                  className="border-red-300 text-red-700 hover:bg-red-50"
-                  title={t('accountPage.syncRemoveTitle')}
-                >
-                  {loadingDisconnect && disconnectConfirm === 'remove' ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Unlink className="mr-2 h-4 w-4" />
-                  )}
-                  {disconnectConfirm === 'remove' ? t('accountPage.syncConfirmRemove') : t('accountPage.syncRemoveLink')}
-                </Button>
-                {disconnectConfirm === 'remove' && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDisconnectConfirm(null)}
-                    className="text-gray-600"
-                  >
-                    {t('accountPage.syncCancel')}
-                  </Button>
-                )}
-              </>
-            )}
           </div>
-          {loadingStart && statusValue === 'initial_sync' && (
-            <p className="mt-3 text-sm text-amber-600">
-              {t('accountPage.syncStartedWait')}
-            </p>
-          )}
+
           {showProgress && progress && (
-            <div className="mt-2 border border-gray-200 bg-gray-50 p-4">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
               <p className="mb-2 text-sm font-medium text-gray-700">{t('accountPage.syncProgressTitle')}</p>
               <p className="text-sm text-gray-600">
                 {t('accountPage.syncProgressLine', {
@@ -616,20 +572,17 @@ export function SincronizzazioneContent() {
               </p>
             </div>
           )}
+
           {lastSyncError && (
-            <div className="mt-4 border border-red-200 bg-red-50 p-4">
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
               <p className="text-sm font-medium text-red-700">{t('accountPage.syncErrorTitle')}</p>
               <p className="text-sm text-red-600">{lastSyncError}</p>
-              <p className="mt-1 text-xs text-red-700">
-                Verifica token CardTrader, secret webhook e raggiungibilità del servizio Sync.
-              </p>
             </div>
           )}
+
           {lastSyncResult && (
-            <div className="mt-4 border border-emerald-200 bg-emerald-50 p-4">
-              <p className="mb-1 text-sm font-semibold text-emerald-800">
-                {t('accountPage.syncCompleteTitle')}
-              </p>
+            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+              <p className="mb-1 text-sm font-semibold text-emerald-800">{t('accountPage.syncCompleteTitle')}</p>
               <p className="text-sm text-emerald-700">
                 {t('accountPage.syncProcessedLine', {
                   processed: lastSyncResult.processed,
@@ -642,29 +595,56 @@ export function SincronizzazioneContent() {
                   skipped: lastSyncResult.skipped,
                 })}
               </p>
+              <div className="mt-4">
+                <Link
+                  href="/account/oggetti"
+                  className="inline-flex items-center rounded-md bg-[#FF7300] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e66a00]"
+                >
+                  Vedi ora il mio inventario
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {canSuspendOrRemove && (
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
+              <Button
+                type="button"
+                onClick={() => handleDisconnect('suspend')}
+                disabled={loadingDisconnect}
+                className="border border-amber-500 text-amber-700 hover:bg-amber-50"
+                title={t('accountPage.syncSuspendTitle')}
+              >
+                {loadingDisconnect && disconnectConfirm === 'suspend' ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <PauseCircle className="mr-2 h-4 w-4" />
+                )}
+                {t('accountPage.syncSuspend')}
+              </Button>
+              <Button
+                type="button"
+                onClick={() =>
+                  disconnectConfirm === 'remove'
+                    ? handleDisconnect('remove')
+                    : setDisconnectConfirm('remove')
+                }
+                disabled={loadingDisconnect}
+                variant="outline"
+                className="border-red-300 text-red-700 hover:bg-red-50"
+                title={t('accountPage.syncRemoveTitle')}
+              >
+                {loadingDisconnect && disconnectConfirm === 'remove' ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Unlink className="mr-2 h-4 w-4" />
+                )}
+                {disconnectConfirm === 'remove' ? t('accountPage.syncConfirmRemove') : t('accountPage.syncRemoveLink')}
+              </Button>
             </div>
           )}
         </Card>
-
-        {/* F. Debug console */}
-        <Card title={t('accountPage.syncDebugTitle')}>
-          <div className="h-64 overflow-y-auto rounded-md bg-black p-4 font-mono text-sm text-green-400">
-            {logs.length === 0 ? (
-              <span className="text-gray-500">{t('accountPage.syncDebugEmpty')}</span>
-            ) : (
-              logs.map((entry, i) => (
-                <div key={i} className="mb-3 border-b border-gray-800 pb-2 last:border-0">
-                  <span className="text-gray-500">[{entry.ts}]</span>{' '}
-                  <span className={entry.isError ? 'text-red-400' : 'text-green-400'}>{entry.label}</span>
-                  <pre className={cn('mt-1 whitespace-pre-wrap break-all', entry.isError ? 'text-red-400' : 'text-green-400')}>
-                    {entry.data}
-                  </pre>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-      </div>
+      )}
     </div>
   );
 }
