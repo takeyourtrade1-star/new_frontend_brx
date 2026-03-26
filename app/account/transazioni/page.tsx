@@ -10,7 +10,9 @@ export default function TransazioniPage() {
   return (
     <>
       <PrestoInArrivoBanner />
-      <TransazioniContent />
+      <div className="pointer-events-none opacity-60">
+        <TransazioniContent />
+      </div>
     </>
   );
 }

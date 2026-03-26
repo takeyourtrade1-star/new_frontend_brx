@@ -12,7 +12,6 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { getCdnImageUrl } from '@/lib/config';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
-import { AccountBreadcrumb } from '@/components/feature/account/AccountBreadcrumb';
 
 const contoBancarioSchema = z.object({
   iban: z.string().min(1, 'accountPage.creditIbanErr'),
@@ -85,8 +84,6 @@ export function CreditoContent() {
 
   return (
     <div className="font-sans text-gray-900">
-      <AccountBreadcrumb current="sidebar.credit" />
-
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border border-gray-200 bg-white p-5">
         <span className="text-lg font-bold uppercase tracking-wide text-gray-900">
           {t('accountPage.creditYourBalance')}

@@ -9,7 +9,9 @@ export const metadata = {
 export default function ProfiloPage() {
   return (
     <div className="relative">
-      <ProfiloContent />
+      <div className="pointer-events-none opacity-60">
+        <ProfiloContent />
+      </div>
       <PrestoInArrivoBanner />
     </div>
   );

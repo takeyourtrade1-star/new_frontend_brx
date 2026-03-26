@@ -93,7 +93,7 @@ export default function ImpostazioniEmailPage() {
 
   return (
     <div className="font-sans text-gray-900">
-      <ImpostazioniSubBreadcrumb current="accountPage.crumbEmail" showHelpLink />
+      <ImpostazioniSubBreadcrumb current="accountPage.crumbEmail" variant="light" showHelpLink />
 
       <p className="mb-10 max-w-3xl text-lg leading-relaxed text-gray-700">{t('accountPage.emailIntro')}</p>
 

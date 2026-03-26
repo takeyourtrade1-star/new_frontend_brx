@@ -18,7 +18,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { AccountBreadcrumb } from '@/components/feature/account/AccountBreadcrumb';
 
 type LogEntry = { ts: string; label: string; data: string; isError?: boolean };
 
@@ -349,7 +348,6 @@ export function SincronizzazioneContent() {
   if (!user || !accessToken) {
     return (
       <div className="text-gray-900">
-        <AccountBreadcrumb current="sidebar.sync" />
         <div className="mt-8 flex items-center justify-center border border-gray-200 bg-white p-12">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-[#FF7300]" />
@@ -379,8 +377,6 @@ export function SincronizzazioneContent() {
 
   return (
     <div className="text-gray-900">
-      <AccountBreadcrumb current="sidebar.sync" />
-
       <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900">{t('accountPage.syncTitle')}</h1>

@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { Globe, Mail, Ban, Truck } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { AccountBreadcrumb } from '@/components/feature/account/AccountBreadcrumb';
 
 export function ImpostazioniContent() {
   const { t } = useTranslation();
@@ -37,8 +36,6 @@ export function ImpostazioniContent() {
 
   return (
     <div className="font-sans text-gray-900">
-      <AccountBreadcrumb current="sidebar.settings" size="lg" />
-
       <h1 className="mb-8 text-2xl font-bold uppercase tracking-wide text-gray-900">
         {t('sidebar.settings')}
       </h1>

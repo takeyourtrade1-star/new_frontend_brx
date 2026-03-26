@@ -457,6 +457,7 @@ export const en = {
   'accountPage.blockedManageTitle': 'Manage blocked users',
   'accountPage.blockedUsernamePh': 'Username',
   'accountPage.blockedAddBtn': 'Add to list',
+  'accountPage.blockedRemoveBtn': 'Remove',
 
   'accountPage.wantlistPurchases': 'Purchases',
   'accountPage.wantlistTitle': 'Wishlist',

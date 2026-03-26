@@ -10,7 +10,9 @@ export default function ListaDesideriPage() {
   return (
     <>
       <PrestoInArrivoBanner />
-      <ListaDesideriContent />
+      <div className="pointer-events-none opacity-60">
+        <ListaDesideriContent />
+      </div>
     </>
   );
 }

@@ -10,7 +10,9 @@ export default function CreditoPage() {
   return (
     <>
       <PrestoInArrivoBanner />
-      <CreditoContent />
+      <div className="pointer-events-none opacity-60">
+        <CreditoContent />
+      </div>
     </>
   );
 }

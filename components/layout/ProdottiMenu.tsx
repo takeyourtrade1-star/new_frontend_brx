@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { LayoutGrid, X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
-const ORANGE = '#FF7300';
-const BORDER = '#878787';
+const ORANGE_GLASS_MENU_CLASS =
+  'absolute left-0 top-full z-[110] mt-0 w-[calc(100vw-1rem)] max-w-[280px] overflow-visible rounded-2xl border border-primary/45 bg-primary/30 py-2 text-white backdrop-blur-2xl backdrop-saturate-150 shadow-2xl ring-1 ring-white/20 animate-in fade-in-0 duration-200 md:w-auto md:min-w-[240px] md:origin-left';
+const ORANGE_GLASS_DIVIDER_CLASS = 'border-b border-white/35 last:border-b-0';
 
 export function ProdottiMenu({ isSquared = false }: { isSquared?: boolean }) {
   const { t } = useTranslation();
@@ -43,10 +44,9 @@ export function ProdottiMenu({ isSquared = false }: { isSquared?: boolean }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex h-11 w-11 shrink-0 items-center justify-center gap-2 border px-0 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] font-sans md:h-auto md:min-h-11 md:w-auto md:px-5 md:py-2 ${
-          isSquared ? 'rounded-none' : 'rounded-lg'
+        className={`flex h-11 w-11 shrink-0 items-center justify-center gap-2 border border-stroke-grey bg-primary px-0 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] font-sans md:h-auto md:min-h-11 md:w-auto md:px-5 md:py-2 ${
+          isSquared ? 'rounded-none' : 'rounded-[50px]'
         }`}
-        style={{ backgroundColor: ORANGE, borderColor: BORDER }}
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={t('products.menuAria')}
@@ -63,16 +63,16 @@ export function ProdottiMenu({ isSquared = false }: { isSquared?: boolean }) {
 
       {open && (
         <div
-          className="absolute left-0 top-full z-[110] mt-0 min-w-[240px] overflow-visible rounded-none border border-gray-200 bg-white py-2 shadow-lg"
+          className={ORANGE_GLASS_MENU_CLASS}
           role="menu"
         >
           <nav>
             {menuItems.map((item) => (
-              <div key={item.id} className="border-b border-gray-100 last:border-b-0">
+              <div key={item.id} className={ORANGE_GLASS_DIVIDER_CLASS}>
                 <Link
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="prodotti-menu-item block px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-gray-900 font-sans transition-colors duration-200 focus:outline-none"
+                  className="block rounded-lg px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-white/95 font-sans transition-colors duration-200 hover:bg-white/10 focus:bg-white/10 focus:outline-none"
                   role="menuitem"
                 >
                   {item.label}

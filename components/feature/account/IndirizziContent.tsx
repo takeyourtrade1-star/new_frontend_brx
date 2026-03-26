@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { Home, Pencil, Plus } from 'lucide-react';
 import type { Address } from '@/types';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { AccountBreadcrumb } from '@/components/feature/account/AccountBreadcrumb';
 
 const MOCK_ADDRESSES: Address[] = [
   {
@@ -55,8 +54,6 @@ export function IndirizziContent() {
 
   return (
     <div className="text-gray-900">
-      <AccountBreadcrumb current="sidebar.addresses" />
-
       <h1 className="mb-8 text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">
         {t('sidebar.addresses')}
       </h1>

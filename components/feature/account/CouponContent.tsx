@@ -5,16 +5,13 @@ import { getCdnImageUrl } from '@/lib/config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { AccountBreadcrumb } from '@/components/feature/account/AccountBreadcrumb';
 
 export function CouponContent() {
   const { t } = useTranslation();
 
   return (
     <div className="text-gray-900">
-      <AccountBreadcrumb current="sidebar.coupon" />
-
-      <p className="mb-8 mt-8 text-gray-700">{t('accountPage.couponIntro')}</p>
+      <p className="mb-8 mt-2 text-gray-700">{t('accountPage.couponIntro')}</p>
 
       <div className="mb-10 flex justify-start">
         <Button

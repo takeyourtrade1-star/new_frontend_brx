@@ -7,7 +7,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LayoutGrid, LayoutList } from 'lucide-react';
+import { LayoutGrid, LayoutList, SlidersHorizontal } from 'lucide-react';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { countryFlagEmoji } from '@/lib/auction/country-flag';
 import type { MessageKey } from '@/lib/i18n/messages/en';
@@ -47,14 +47,49 @@ export type AuctionTranslate = (k: MessageKey, vars?: Record<string, string | nu
 export function AuctionViewToggle({
   viewMode,
   onViewModeChange,
-  listLabel,
-  gridLabel,
+  listLabel = 'Lista',
+  gridLabel = 'Griglia',
+  variant = 'icons-only',
 }: {
   viewMode: 'list' | 'grid';
   onViewModeChange: (v: 'list' | 'grid') => void;
-  listLabel: string;
-  gridLabel: string;
+  listLabel?: string;
+  gridLabel?: string;
+  variant?: 'icons-only' | 'with-labels';
 }) {
+  if (variant === 'icons-only') {
+    return (
+      <div className="flex h-10 overflow-hidden rounded-full bg-gray-100">
+        <button
+          type="button"
+          onClick={() => onViewModeChange('list')}
+          aria-label={listLabel}
+          title={listLabel}
+          className={`flex h-10 w-12 items-center justify-center transition-colors ${
+            viewMode === 'list'
+              ? 'bg-primary text-white'
+              : 'text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          <LayoutList className="h-4 w-4 shrink-0" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onViewModeChange('grid')}
+          aria-label={gridLabel}
+          title={gridLabel}
+          className={`flex h-10 w-12 items-center justify-center transition-colors ${
+            viewMode === 'grid'
+              ? 'bg-primary text-white'
+              : 'text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          <LayoutGrid className="h-4 w-4 shrink-0" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex overflow-hidden rounded-none border border-[#FF7300]/50">
       <button

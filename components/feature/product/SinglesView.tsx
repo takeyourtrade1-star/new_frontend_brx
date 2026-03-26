@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, ChevronDown, ChevronLeft, ChevronRight, Rows3, Grid2x2, Camera, Eye } from 'lucide-react';
+import { Search, ChevronDown, ChevronLeft, ChevronRight, Rows3, Grid2x2, Camera } from 'lucide-react';
 import { getCardImageUrl } from '@/lib/assets';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import type { SearchHit } from '@/app/api/search/route';
@@ -240,40 +240,38 @@ export function ProductCategoryView({
               </span>
             )}
           </p>
-          <div className="flex overflow-hidden rounded-md border border-gray-200">
+          <div className="flex h-10 overflow-hidden rounded-full bg-gray-100">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={cn(
-                'px-4 py-2 text-sm font-bold uppercase flex items-center gap-1.5 transition-colors',
+              aria-label="Vista lista"
+              title="Vista lista"
+              className={`flex h-10 w-12 items-center justify-center transition-colors ${
                 viewMode === 'list'
-                  ? 'text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-              )}
-              style={viewMode === 'list' ? { backgroundColor: BRAND_ORANGE } : undefined}
+                  ? 'bg-primary text-white'
+                  : 'text-gray-500 hover:bg-gray-200'
+              }`}
             >
-              <Rows3 className="w-4 h-4" />
-              Vista lista
+              <Rows3 className="h-4 w-4 shrink-0" />
             </button>
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={cn(
-                'px-4 py-2 text-sm font-bold uppercase flex items-center gap-1.5 border-l border-gray-200 transition-colors',
+              aria-label="Vista griglia"
+              title="Vista griglia"
+              className={`flex h-10 w-12 items-center justify-center transition-colors ${
                 viewMode === 'grid'
-                  ? 'text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-              )}
-              style={viewMode === 'grid' ? { backgroundColor: BRAND_ORANGE } : undefined}
+                  ? 'bg-primary text-white'
+                  : 'text-gray-500 hover:bg-gray-200'
+              }`}
             >
-              <Grid2x2 className="w-4 h-4" />
-              Vista griglia
+              <Grid2x2 className="h-4 w-4 shrink-0" />
             </button>
           </div>
         </div>
 
         {/* Contenuto: tabella lista o griglia */}
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+        <div className="border border-gray-300 bg-white overflow-hidden search-results-card">
           {error && (
             <div className="p-6 text-center text-red-600 bg-red-50">{error}</div>
           )}
@@ -287,32 +285,42 @@ export function ProductCategoryView({
           )}
 
           {!loading && !error && hits.length > 0 && viewMode === 'list' && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[800px]">
+            <div className="overflow-x-auto search-results-table-wrapper">
+              <table className="w-full min-w-[640px] border-collapse text-sm table-fixed">
+                <colgroup>
+                  <col className="min-w-0" style={{ width: 'min(9%, 6.5rem)' }} />
+                  <col className="min-w-0" style={{ width: 'min(22%, 13rem)' }} />
+                  {showCardDetails && (
+                    <>
+                      <col style={{ width: '8%' }} />
+                      <col style={{ width: '8%' }} />
+                    </>
+                  )}
+                  <col style={{ width: '8%' }} />
+                  <col style={{ width: '8%' }} />
+                </colgroup>
                 <thead>
-                  <tr
-                    className="text-left text-xs font-semibold uppercase tracking-wider text-white"
-                    style={{ backgroundColor: BRAND_ORANGE }}
-                  >
-                    <th className="p-3 w-24"></th>
-                    <th className="p-3 w-48">Nome</th>
+                  <tr className="bg-gray-100 border-b border-gray-200 text-left text-gray-600 uppercase text-xs font-semibold">
+                    <th className="pl-2 pr-0 py-2 align-bottom text-left">Edizione</th>
+                    <th className="pl-2 pr-2 py-2 align-bottom text-left">Nome</th>
                     {showCardDetails && (
                       <>
-                        <th className="p-3 text-center">Numero</th>
-                        <th className="p-3 text-center">Rarità</th>
+                        <th className="px-2 py-2 whitespace-nowrap align-bottom text-center">Numero</th>
+                        <th className="px-2 py-2 whitespace-nowrap align-bottom text-center">Rarità</th>
                       </>
                     )}
-                    <th className="p-3 text-center">Disponibile</th>
-                    <th className="p-3 text-center">Da</th>
-                    <th className="p-3 text-center">Disponibile (Foil)</th>
-                    <th className="p-3 text-center">Da (Foil)</th>
+                    <th className="px-2 py-2 whitespace-nowrap align-bottom text-center">Disponibile</th>
+                    <th className="px-2 py-2 whitespace-nowrap align-bottom text-center">Da</th>
                   </tr>
                 </thead>
                 <tbody>
                   {hits.map((hit) => {
                     const productHref = `/products/${hit.id}`;
-                    const imgUrl = getCardImageUrl(hit.image ?? null);
                     const { primary, secondary } = getDisplayNames(hit, selectedLang);
+                    const imgUrl = getCardImageUrl(hit.image ?? null);
+                    const setName = hit.set_name ?? '';
+                    const nameOriginal = secondary ?? primary;
+                    const nameTranslation = secondary ? primary : null;
                     return (
                       <tr
                         key={hit.id}
@@ -320,74 +328,84 @@ export function ProductCategoryView({
                         tabIndex={0}
                         onClick={() => router.push(productHref)}
                         onKeyDown={(e) => e.key === 'Enter' && router.push(productHref)}
-                        className="border-b border-gray-100 hover:bg-orange-50/50 cursor-pointer transition-colors"
+                        className="search-result-row border-b border-gray-100 cursor-pointer outline-none hover:bg-orange-50/50 transition-colors"
                       >
-                        <td className="p-2" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center gap-1">
+                        <td className="pl-2 pr-0 py-2 align-middle min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
                             <button
                               type="button"
-                              className="p-1.5 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                              className="relative flex h-14 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-[#f2f2f7] shadow-sm transition-shadow"
                               aria-label="Anteprima immagine"
+                              disabled={!imgUrl}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
                             >
-                              <Camera className="w-4 h-4" />
+                              {imgUrl ? (
+                                <>
+                                  <div className="absolute inset-0">
+                                    <Image
+                                      src={imgUrl}
+                                      alt={nameOriginal}
+                                      fill
+                                      sizes="40px"
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                  {/* Overlay + camera al centro */}
+                                  <span className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-hidden />
+                                  <Camera
+                                    className="absolute inset-0 m-auto h-4 w-4 text-white"
+                                    strokeWidth={1.5}
+                                    aria-hidden
+                                  />
+                                </>
+                              ) : (
+                                <>
+                                  <span className="absolute inset-0 bg-gray-100" aria-hidden />
+                                  <span className="absolute inset-0 bg-black/20" aria-hidden />
+                                  <Camera
+                                    className="absolute inset-0 m-auto h-4 w-4 text-white"
+                                    strokeWidth={1.5}
+                                    aria-hidden
+                                  />
+                                </>
+                              )}
                             </button>
-                            <button
-                              type="button"
-                              className="p-1.5 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                              aria-label="Vista rapida"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
+
+                            <span className="relative inline-flex min-w-0 max-w-[6.5rem] group">
+                              <span className="min-w-0 flex-1 text-[10px] leading-tight text-gray-600 font-medium tracking-wide truncate">
+                                {setName}
+                              </span>
+                              {/* Tooltip custom: niente delay nativo, stile Apple */}
+                              {setName && (
+                                <span className="pointer-events-none absolute left-0 top-full z-[20] mt-1 w-max max-w-[14rem] break-words rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white shadow-lg opacity-0 transition-opacity duration-75 group-hover:opacity-100">
+                                  {setName}
+                                </span>
+                              )}
+                            </span>
                           </div>
                         </td>
-                        <td className="p-3">
-                          <Link
-                            href={productHref}
-                            className="flex items-center gap-3 hover:opacity-90"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {imgUrl ? (
-                              <div className="relative w-10 h-14 flex-shrink-0 overflow-hidden rounded bg-gray-100">
-                                <Image
-                                  src={imgUrl}
-                                  alt={primary}
-                                  fill
-                                  className="object-cover"
-                                  sizes="40px"
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-10 h-14 flex-shrink-0 rounded bg-gray-200" />
+                        <td className="pl-2 pr-2 py-2 align-middle min-w-0 text-left">
+                          <div className="flex flex-col justify-center gap-0.5 min-w-0">
+                            <span className="text-sm font-semibold leading-tight text-gray-900 break-words">{nameOriginal}</span>
+                            {nameTranslation && (
+                              <p className="text-xs text-gray-500 italic font-light leading-tight break-words">{nameTranslation}</p>
                             )}
-                            <div>
-                              <span className="font-semibold text-gray-900">{primary}</span>
-                              {secondary && (
-                                <p className="text-xs text-gray-500">{secondary}</p>
-                              )}
-                              {hit.set_name && (
-                                <p className="text-xs text-gray-500">{hit.set_name}</p>
-                              )}
-                            </div>
-                          </Link>
+                          </div>
                         </td>
                         {showCardDetails && (
                           <>
-                            <td className="p-3 text-center text-gray-600">
+                            <td className="px-2 py-2 text-gray-500 whitespace-nowrap text-center">
                               {hit.collector_number ?? '–'}
                             </td>
-                            <td className="p-3 text-center text-gray-600">
+                            <td className="px-2 py-2 text-gray-500 whitespace-nowrap text-center">
                               {hit.rarity ?? '–'}
                             </td>
                           </>
                         )}
-                        <td className="p-3 text-center text-gray-600">–</td>
-                        <td className="p-3 text-center font-semibold" style={{ color: BRAND_ORANGE }}>
-                          {formatEuro(hit.market_price)}
-                        </td>
-                        <td className="p-3 text-center text-gray-600">–</td>
-                        <td className="p-3 text-center font-semibold" style={{ color: BRAND_ORANGE }}>
-                          {formatEuro(hit.foil_price)}
-                        </td>
+                        <td className="px-2 py-2 text-gray-500 whitespace-nowrap text-center">–</td>
+                        <td className="px-2 py-2 text-[#FF7300] font-semibold whitespace-nowrap text-center">–</td>
                       </tr>
                     );
                   })}

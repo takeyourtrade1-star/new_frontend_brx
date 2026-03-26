@@ -10,7 +10,9 @@ export default function StatistichePage() {
   return (
     <>
       <PrestoInArrivoBanner />
-      <StatisticheContent />
+      <div className="pointer-events-none opacity-60">
+        <StatisticheContent />
+      </div>
     </>
   );
 }

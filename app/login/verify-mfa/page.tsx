@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Shield, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Shield, AlertCircle, ArrowLeft, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useVerifyMFA } from '@/lib/hooks/use-auth';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -40,6 +41,9 @@ export default function VerifyMFAPage() {
 
   // Stato locale per errori
   const [localError, setLocalError] = useState<string | null>(null);
+
+  // Stato per "ricorda questo dispositivo"
+  const [rememberDevice, setRememberDevice] = useState(false);
 
   const {
     register,
@@ -136,6 +140,7 @@ export default function VerifyMFAPage() {
       await verifyMFAMutation.mutateAsync({
         pre_auth_token: effectiveToken || preAuthToken || 'test-token',
         mfa_code: data.mfa_code,
+        remember_device: rememberDevice,
       });
 
       // Successo: redirect a home
@@ -239,6 +244,23 @@ export default function VerifyMFAPage() {
                 {errors.mfa_code.message}
               </p>
             )}
+
+            {/* Ricorda questo dispositivo */}
+            <div className="flex items-center gap-3 pt-2">
+              <Checkbox
+                id="remember-device"
+                checked={rememberDevice}
+                onCheckedChange={setRememberDevice}
+                disabled={isLoading || verifyMFAMutation.isPending}
+              />
+              <label
+                htmlFor="remember-device"
+                className="flex items-center gap-2 text-sm text-[#86868B] cursor-pointer select-none"
+              >
+                <Monitor className="h-4 w-4" />
+                Ricorda questo dispositivo
+              </label>
+            </div>
           </div>
 
           {/* Errori inline */}

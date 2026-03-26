@@ -1,12 +1,25 @@
 'use client';
 
 import { useState } from 'react';
+import { X } from 'lucide-react';
 import { ImpostazioniSubBreadcrumb } from '@/components/feature/account/ImpostazioniSubBreadcrumb';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export function UtentiBloccatiContent() {
   const { t } = useTranslation();
   const [username, setUsername] = useState('');
+  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
+
+  const handleAdd = () => {
+    if (username.trim() && !blockedUsers.includes(username.trim())) {
+      setBlockedUsers([...blockedUsers, username.trim()]);
+      setUsername('');
+    }
+  };
+
+  const handleRemove = (user: string) => {
+    setBlockedUsers(blockedUsers.filter((u) => u !== user));
+  };
 
   return (
     <div className="font-sans text-gray-900">
@@ -38,13 +51,38 @@ export function UtentiBloccatiContent() {
           />
           <button
             type="button"
-            className="shrink-0 rounded-lg px-5 py-2.5 text-base font-semibold uppercase text-white transition-opacity hover:opacity-90"
+            onClick={handleAdd}
+            disabled={!username.trim()}
+            className="shrink-0 rounded-lg px-5 py-2.5 text-base font-semibold uppercase text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             style={{ backgroundColor: '#FF7300' }}
           >
             {t('accountPage.blockedAddBtn')}
           </button>
         </div>
       </section>
+
+      {blockedUsers.length > 0 && (
+        <section className="mt-8 max-w-4xl">
+          <ul className="space-y-3">
+            {blockedUsers.map((user) => (
+              <li
+                key={user}
+                className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+              >
+                <span className="text-base font-medium text-gray-900">{user}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemove(user)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-red-600"
+                >
+                  <X className="h-4 w-4" />
+                  {t('accountPage.blockedRemoveBtn')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

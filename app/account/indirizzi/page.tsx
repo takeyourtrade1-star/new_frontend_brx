@@ -10,7 +10,9 @@ export default function IndirizziPage() {
   return (
     <>
       <PrestoInArrivoBanner />
-      <IndirizziContent />
+      <div className="pointer-events-none opacity-60">
+        <IndirizziContent />
+      </div>
     </>
   );
 }

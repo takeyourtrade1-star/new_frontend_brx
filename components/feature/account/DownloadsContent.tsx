@@ -2,15 +2,12 @@
 
 import { Download } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { AccountBreadcrumb } from '@/components/feature/account/AccountBreadcrumb';
 
 export function DownloadsContent() {
   const { t } = useTranslation();
 
   return (
     <div className="font-sans text-gray-900">
-      <AccountBreadcrumb current="sidebar.downloads" />
-
       <h1 className="mb-8 text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">
         {t('sidebar.downloads')}
       </h1>

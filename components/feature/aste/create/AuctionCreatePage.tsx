@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { AuctionCreateWizard } from '@/components/feature/aste/create/AuctionCreateWizard';
+import { AsteFloatingNav } from '@/components/feature/aste/AsteFloatingNav';
 
 export function AuctionCreatePage() {
   const { t } = useTranslation();
@@ -45,6 +46,7 @@ export function AuctionCreatePage() {
         </div>
         <AuctionCreateWizard />
       </div>
+      <AsteFloatingNav />
     </div>
   );
 }

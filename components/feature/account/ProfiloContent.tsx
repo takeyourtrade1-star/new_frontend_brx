@@ -5,7 +5,6 @@ import { Pencil } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
-import { AccountBreadcrumb } from '@/components/feature/account/AccountBreadcrumb';
 
 function ProfiloRow({
   labelKey,
@@ -49,8 +48,6 @@ export function ProfiloContent() {
 
   return (
     <div className="text-gray-900 font-sans">
-      <AccountBreadcrumb current="sidebar.profile" />
-
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">
           {displayName}

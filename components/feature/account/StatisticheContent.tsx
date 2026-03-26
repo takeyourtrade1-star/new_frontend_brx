@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { AccountBreadcrumb } from '@/components/feature/account/AccountBreadcrumb';
 
 function FilterRow({ thirdLabelKey }: { thirdLabelKey: 'accountPage.statsPurchaseDate' | 'accountPage.statsPaymentDate' }) {
   const { t } = useTranslation();
@@ -87,8 +86,6 @@ export function StatisticheContent() {
 
   return (
     <div className="font-sans text-gray-900">
-      <AccountBreadcrumb current="sidebar.stats" />
-
       <section className="mb-12 mt-10">
         <h2 className="mb-1 text-lg font-bold uppercase tracking-wide text-gray-900">
           {t('accountPage.statsPurchaseSummary')}

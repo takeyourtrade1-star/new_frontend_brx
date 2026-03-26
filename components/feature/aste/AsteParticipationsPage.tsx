@@ -13,6 +13,7 @@ import {
 } from '@/components/feature/aste/auctions-browse-shared';
 import { MOCK_AUCTIONS } from '@/components/feature/aste/mock-auctions';
 import { PARTICIPATED_AUCTION_MOCK } from '@/components/feature/aste/mock-user-auctions';
+import { AsteFloatingNav } from '@/components/feature/aste/AsteFloatingNav';
 
 const STORAGE_KEY = 'partecipazioni';
 
@@ -128,6 +129,7 @@ export function AsteParticipationsPage() {
           )}
         </div>
       </div>
+      <AsteFloatingNav />
     </div>
   );
 }

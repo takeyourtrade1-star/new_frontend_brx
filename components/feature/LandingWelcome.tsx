@@ -10,8 +10,6 @@ import type { GameSlug } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 const BRAND_ORANGE = '#FF7300';
-/** Stesso navy dell’header di navigazione */
-const HEADER_NAVY = '#1D3160';
 const REGISTER_BTN_BORDER = '#878787';
 
 const LANDING_BG_VIDEO = 'videos/sfondo_carte.mp4';
@@ -153,11 +151,13 @@ const getGameLogos = (): {
 export function LandingWelcome() {
   const { t } = useTranslation();
   const { setSelectedGame } = useGame();
+  const [activePill, setActivePill] = React.useState<'vendere' | 'scambiare' | 'asta' | null>(null);
 
   const HOW_TO_ITEMS = React.useMemo(
     () => [
       {
         id: 'vendere' as const,
+        shortTitle: 'VENDI',
         title: t('landing.howTo.sell.title'),
         description: t('landing.howTo.sell.desc'),
         href: '/home',
@@ -166,6 +166,7 @@ export function LandingWelcome() {
       },
       {
         id: 'scambiare' as const,
+        shortTitle: 'SCAMBIA',
         title: t('landing.howTo.trade.title'),
         description: t('landing.howTo.trade.desc'),
         href: '/scambi',
@@ -174,6 +175,7 @@ export function LandingWelcome() {
       },
       {
         id: 'asta' as const,
+        shortTitle: 'ASTE',
         title: t('landing.howTo.auction.title'),
         description: t('landing.howTo.auction.desc'),
         href: '/scambi',
@@ -239,14 +241,14 @@ export function LandingWelcome() {
       />
       <div className="relative z-10 flex min-h-0 flex-col">
         {/* Hero: logo + tagline + griglia giochi, con più altezza */}
-        <header className="flex items-center justify-center px-4 pb-3 pt-14 sm:pb-4 sm:pt-16 md:pb-5 md:pt-16 lg:pt-20">
+        <header className="flex items-center justify-center px-4 pb-2 pt-4 sm:pb-3 sm:pt-6 md:pb-4 md:pt-7 lg:pt-8">
           <div className="relative flex w-full max-w-5xl items-center justify-center">
             <Image
               src={getCdnImageUrl('Logo%20Principale%20EBARTEX.png')}
               alt="Ebartex"
               width={700}
               height={263}
-              className="h-36 w-auto max-w-[90vw] object-contain object-center sm:h-40 md:h-44 lg:h-48 xl:h-52 2xl:h-56"
+              className="h-28 w-auto max-w-[90vw] object-contain object-center sm:h-32 md:h-36 lg:h-40 xl:h-44 2xl:h-48"
               sizes="(max-width: 640px) 85vw, (max-width: 1024px) 50vw, 600px"
               priority
               unoptimized
@@ -255,175 +257,164 @@ export function LandingWelcome() {
         </header>
 
         {/* Tagline: titolo in evidenza + sottotitolo curato */}
-        <div className="text-center px-3 pb-10 pt-5 sm:px-4 sm:pb-12 sm:pt-6 md:pb-14 md:pt-8">
-          <h2 className="text-xl font-semibold uppercase tracking-[0.06em] text-white drop-shadow-sm sm:text-2xl md:text-3xl md:tracking-[0.05em] lg:text-4xl">
+        <div className="px-3 pb-3 text-center sm:px-4 sm:pb-4 md:pb-5">
+          <h2 className="text-lg font-semibold uppercase tracking-[0.06em] text-white drop-shadow-sm sm:text-xl md:text-2xl md:tracking-[0.05em] lg:text-3xl">
             {t('landing.heroTitle')}
           </h2>
-          <p className="mx-auto mt-5 max-w-xl text-sm font-normal leading-relaxed tracking-wide text-white/80 sm:mt-6 sm:text-base md:mt-7">
+          <p className="mx-auto mt-3 max-w-lg text-xs font-normal leading-relaxed tracking-wide text-white/80 sm:mt-4 sm:text-sm md:mt-5">
             {t('landing.heroSubtitle')}
           </p>
         </div>
 
-        {/* Loghi giochi: griglia 2×3 / 3×2; margini ridotti, box logo più alto */}
-        <section className="px-1.5 pb-12 sm:px-3 sm:pb-14 md:px-4 md:pb-16">
-          <div className="mx-auto grid w-full max-w-5xl grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-[3px] md:gap-1">
-            {GAME_LOGOS.map((game) => (
+        {/* Loghi giochi: 3 grandi sopra + 3 piccole sotto */}
+        <section className="px-2 pb-2 sm:px-4 sm:pb-3 md:px-6 md:pb-4">
+          {/* Riga 1: 3 giochi principali centrati */}
+          <div className="mx-auto flex w-full max-w-4xl flex-row flex-wrap items-center justify-center gap-4 py-2 sm:gap-6 md:gap-8">
+            {GAME_LOGOS.slice(0, 3).map((game) => (
               <Link
                 key={game.alt}
-                href={game.comingSoon ? '#' : game.homeHref ?? '/home'}
-                className="group relative flex min-h-[10.5rem] w-full flex-col items-center justify-center gap-1.5 border border-white/15 bg-white/5 px-1 py-2 transition-all duration-200 hover:border-white/35 hover:bg-white/10 hover:backdrop-blur-md sm:min-h-[11rem] sm:gap-2 sm:px-2 sm:py-2.5 md:min-h-[11.5rem]"
-                style={{ borderRadius: 0 }}
-                aria-label={
-                  game.comingSoon
-                    ? t('landing.gameAria.soon', { name: game.alt })
-                    : t('landing.gameAria.goHome', { name: game.alt })
-                }
+                href={game.homeHref ?? '/home'}
+                className="group relative flex h-44 w-44 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/15 bg-white/5 p-7 shadow-[0_0_30px_rgba(255,255,255,0.15)] shadow-[inset_0_0_20px_rgba(255,255,255,0.1)] transition-all duration-200 hover:border-white/35 hover:bg-white/10 hover:backdrop-blur-md sm:h-48 sm:w-48 sm:p-8 md:h-52 md:w-52 md:p-9"
+                aria-label={t('landing.gameAria.goHome', { name: game.alt })}
                 onClick={() => {
-                  if (game.comingSoon) return;
                   if (game.gameSlug === 'clear') setSelectedGame(null);
                   else if (game.gameSlug) setSelectedGame(game.gameSlug);
                 }}
               >
-                {/* Area verticale maggiore per i loghi (stessa per tutti) */}
-                <div className="flex h-[5.25rem] w-full max-w-[min(100%,14rem)] items-center justify-center sm:h-28 md:h-32">
-                  <Image
-                    src={game.src}
-                    alt={game.alt}
-                    width={220}
-                    height={100}
-                    className="h-full w-full max-h-full max-w-full object-contain object-center transition-opacity group-hover:opacity-95"
-                    sizes="(max-width: 640px) 46vw, 220px"
-                    unoptimized
-                  />
-                </div>
-                {game.comingSoon ? (
-                  <span className="mt-0.5 shrink-0 rounded-full bg-white/15 px-1.5 py-0.5 text-center font-sans text-[8px] font-semibold leading-tight tracking-tight text-white backdrop-blur-md sm:px-2 sm:text-[10px]">
-                    {t('landing.comingSoon')}
-                  </span>
-                ) : null}
+                <img
+                  src={game.src}
+                  alt={game.alt}
+                  style={{ display: 'block', maxWidth: '100%', maxHeight: '135px', width: 'auto', height: 'auto', objectFit: 'contain' }}
+                />
+              </Link>
+            ))}
+          </div>
+          
+          {/* Riga 2: 3 giochi in arrivo centrati nel container */}
+          <div className="mx-auto mt-6 flex w-full max-w-md flex-row items-center justify-center gap-3 rounded-full border border-white/25 bg-white/5 px-4 py-4 backdrop-blur-sm sm:mt-8 sm:gap-4 sm:px-6 sm:py-5 md:mt-10 md:gap-5 md:px-8 md:py-6 relative">
+            {/* Badge sopra */}
+            <div className="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-4 py-1.5 text-center font-sans text-[10px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-lg backdrop-blur-sm sm:text-xs">
+              PRESTO IN ARRIVO
+            </div>
+            
+            {GAME_LOGOS.slice(3, 6).map((game) => (
+              <Link
+                key={game.alt}
+                href="#"
+                className="group relative flex h-20 w-20 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/15 bg-white/5 p-3 transition-all duration-200 hover:border-white/35 hover:bg-white/10 hover:backdrop-blur-md sm:h-24 sm:w-24 sm:p-4 md:h-28 md:w-28 md:p-5"
+                aria-label={t('landing.gameAria.soon', { name: game.alt })}
+                onClick={() => {}}
+              >
+                <img
+                  src={game.src}
+                  alt={game.alt}
+                  style={{ display: 'block', maxWidth: '100%', maxHeight: '60px', width: 'auto', height: 'auto', objectFit: 'contain' }}
+                />
               </Link>
             ))}
           </div>
         </section>
 
-        {/* Come vendere / scambiare / asta — fascia gradiente (uniforme al resto della landing) */}
-        <section
-          className="w-full px-4 py-14 sm:px-5 sm:py-16 md:py-20 bg-gradient-global"
-        >
-          <div className="mx-auto max-w-4xl">
-            <p className="text-center text-sm font-normal leading-relaxed text-white/95 sm:text-base md:text-lg">
+        {/* Come vendere / scambiare / asta — forte glass effect, video che si intravede */}
+        <section className="relative w-full overflow-hidden px-4 pt-8 pb-6 sm:px-5 sm:pt-10 sm:pb-7 md:pt-12 md:pb-8">
+          {/* Sfondo blur forte con gradiente di transizione quasi invisibile */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-header-bg/8 via-header-bg/20 via-header-bg/35 to-header-bg/70 backdrop-blur-2xl" />
+          
+          <div className="relative z-10 mx-auto max-w-4xl">
+            {/* KPI icone — rimpicciolite e integrate */}
+            <div className="mb-6 sm:mb-7" aria-labelledby="landing-features-heading">
+              <div className="mb-3 text-center sm:mb-4">
+                <p className="mb-1 text-[9px] font-medium uppercase tracking-[0.25em] text-[#FF7300]/95 sm:text-[10px]">
+                  {t('landing.feat.sectionKicker')}
+                </p>
+                <h2
+                  id="landing-features-heading"
+                  className="text-sm font-light leading-tight tracking-tight text-white sm:text-base"
+                >
+                  {t('landing.feat.sectionTitle')}
+                </h2>
+              </div>
+              <div className="grid w-full grid-cols-3 justify-items-center gap-x-2 gap-y-3 sm:gap-x-3 sm:gap-y-4">
+                {FEATURES.map((f) => {
+                  const IconComponent = FEATURE_ICONS[f.iconKey];
+                  return (
+                    <div
+                      key={f.title}
+                      className="flex w-full max-w-[5.25rem] min-w-0 flex-col items-center justify-start gap-1 text-center sm:max-w-[6rem] sm:gap-1.5"
+                    >
+                      <div className="flex h-5 w-5 shrink-0 items-center justify-center sm:h-6 sm:w-6">
+                        {IconComponent ? <IconComponent /> : null}
+                      </div>
+                      <div className="w-full min-w-0">
+                        <h3 className="text-[9px] font-medium uppercase leading-tight tracking-[0.04em] text-white/95 sm:text-[10px]">
+                          {f.title}
+                        </h3>
+                        <p className="mt-0.5 hidden text-[9px] leading-relaxed text-white/60 md:block">
+                          {f.description}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3 Pillole espandibili Accordion */}
+            <p className="text-center text-xs font-normal leading-relaxed text-white/95 sm:text-sm md:text-base">
               {t('landing.howToIntro')}
             </p>
-            <div className="mt-12 grid grid-cols-1 gap-8 sm:mt-14 sm:grid-cols-3 sm:gap-9 md:gap-10">
-              {HOW_TO_ITEMS.map((item, index) => {
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center sm:gap-3 md:mt-8">
+              {HOW_TO_ITEMS.map((item) => {
                 const Icon = item.icon;
-                const gradientClass = index === 0 ? 'bg-gradient-card1' : index === 1 ? 'bg-gradient-card2' : 'bg-gradient-card3';
+                const isActive = activePill === item.id;
+                const isCollapsed = activePill !== null && !isActive;
                 return (
-                  <Link
+                  <button
                     key={item.id}
-                    href={item.href}
-                    className={`group flex h-full min-h-[168px] flex-col rounded-xl ${gradientClass} p-6 shadow-[0_8px_28px_rgba(0,0,0,0.18),0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,0,0,0.2),0_4px_12px_rgba(0,0,0,0.08)] sm:min-h-[184px] sm:p-7`}
+                    onClick={() => setActivePill(isActive ? null : item.id)}
+                    className={`group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 ease-out cursor-pointer text-left ${
+                      isActive ? 'sm:w-64' : isCollapsed ? 'sm:w-12' : 'sm:w-auto'
+                    } ${
+                      isActive ? 'p-4' : isCollapsed ? 'p-2 items-center' : 'p-3'
+                    }`}
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center text-white" aria-hidden>
-                      <Icon className="h-6 w-6" strokeWidth={1.75} />
-                    </div>
-                    <h3 className="mt-4 text-lg font-medium leading-snug text-white">
-                      {item.title}
-                    </h3>
-                    <p className="mt-2 flex-1 text-sm leading-relaxed text-white/90">{item.description}</p>
-                    <span
-                      className="mt-5 inline-flex w-full items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-medium uppercase tracking-wide text-[#2d1810] transition-all group-hover:opacity-95 group-hover:scale-[1.02] bg-white border-white/80 hover:bg-white/95"
-                    >
-                      {item.cta}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* 6 KPI — titolo sezione + griglia centrata, più aria tra le celle */}
-        <section
-          className="mt-16 px-4 pb-14 pt-4 sm:mt-20 sm:px-6 sm:pb-16 md:mt-24 md:pb-20"
-          aria-labelledby="landing-features-heading"
-        >
-          <div className="mx-auto max-w-5xl">
-            <div className="mb-12 text-center sm:mb-14 md:mb-16">
-              <p className="mb-3 text-xs font-medium uppercase tracking-[0.38em] text-[#FF7300]/95 sm:text-sm sm:tracking-[0.32em] md:text-base md:tracking-[0.28em]">
-                {t('landing.feat.sectionKicker')}
-              </p>
-              <h2
-                id="landing-features-heading"
-                className="text-[1.375rem] font-light leading-tight tracking-tight text-white sm:text-2xl md:text-3xl"
-              >
-                {t('landing.feat.sectionTitle')}
-              </h2>
-              <div
-                className="mx-auto mt-4 h-px w-20 max-w-[5rem] bg-gradient-to-r from-transparent via-[#FF7300]/85 to-transparent sm:mt-5 sm:w-24"
-                aria-hidden
-              />
-            </div>
-            <div className="grid w-full grid-cols-2 justify-items-center gap-x-6 gap-y-14 sm:gap-x-10 sm:gap-y-16 md:gap-x-12 md:gap-y-20 lg:grid-cols-3 lg:gap-x-14 lg:gap-y-16">
-              {FEATURES.map((f) => {
-                const IconComponent = FEATURE_ICONS[f.iconKey];
-                return (
-                  <div
-                    key={f.title}
-                    className="flex w-full max-w-[10.75rem] min-w-0 flex-col items-center justify-start gap-4 text-center sm:max-w-[12rem] sm:gap-5 md:max-w-[14rem] lg:max-w-none"
-                  >
-                    <div className="flex h-[3.75rem] w-[3.75rem] shrink-0 items-center justify-center sm:h-16 sm:w-16 md:h-[4.5rem] md:w-[4.5rem]">
-                      {IconComponent ? <IconComponent /> : null}
-                    </div>
-                    <div className="w-full min-w-0">
-                      <h3 className="text-[0.8125rem] font-medium uppercase leading-snug tracking-[0.06em] text-white/95 sm:text-[0.9375rem] md:text-base lg:text-lg">
-                        {f.title}
-                      </h3>
-                      <p className="mt-2 hidden text-[13px] leading-relaxed text-white/80 md:block md:text-base">
-                        {f.description}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Barra parole: marquee orizzontale, non cliccabile, una riga anche su mobile */}
-        <div className="relative w-full pt-10 sm:pt-12 md:pt-14" aria-hidden>
-          <div
-            className="pointer-events-none select-none overflow-hidden border border-[#2c1810]"
-            style={{
-              backgroundImage: `url(${getCdnImageUrl('rectangle-30.jpg')})`,
-              backgroundRepeat: 'repeat-x',
-              backgroundSize: 'auto 100%',
-            }}
-          >
-            <div className="landing-nav-ticker-track">
-              {[0, 1].map((dup) => (
-                <div
-                  key={dup}
-                  className="flex shrink-0 items-center gap-4 py-3 pl-4 pr-10 sm:gap-8 sm:py-3.5 sm:pl-6 sm:pr-16 md:gap-12 md:pr-20"
-                  aria-hidden={dup === 1}
-                >
-                  {NAV_TICKER_WORDS.map((word, i) => (
-                    <React.Fragment key={`${dup}-${word}-${i}`}>
-                      {i > 0 ? (
-                        <span className="shrink-0 text-lg font-light text-white/45 sm:text-2xl md:text-3xl" aria-hidden>
-                          ·
-                        </span>
-                      ) : null}
-                      <span className="font-display whitespace-nowrap text-lg font-normal uppercase leading-none tracking-normal text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)] sm:text-2xl md:text-3xl lg:text-[2.25rem]">
-                        {word}
+                    {/* Header */}
+                    <div className={`flex items-center ${isActive ? 'mb-3 gap-2' : isCollapsed ? '' : 'gap-2'}`}>
+                      <div className={`flex shrink-0 items-center justify-center rounded-full bg-gray-100 ${
+                        isActive ? 'h-6 w-6' : isCollapsed ? 'h-6 w-6' : 'h-5 w-5'
+                      }`}>
+                        <Icon className="h-3 w-3 text-gray-600" strokeWidth={2} />
+                      </div>
+                      {/* Titolo visibile solo se non collassato */}
+                      <span className={`font-semibold text-[#1D3160] uppercase tracking-wide transition-all whitespace-nowrap overflow-hidden ${
+                        isCollapsed ? 'w-0 opacity-0' : 'opacity-100'
+                      } ${isActive ? 'text-sm' : 'text-xs'}`}>
+                        {item.shortTitle}
                       </span>
-                    </React.Fragment>
-                  ))}
-                </div>
-              ))}
+                    </div>
+
+                    {/* Contenuto espanso */}
+                    <div
+                      className={`flex flex-col transition-all duration-300 ${
+                        isActive ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'
+                      }`}
+                    >
+                      <p className="mb-3 text-xs leading-relaxed text-gray-600">
+                        {item.description}
+                      </p>
+                      <Link
+                        href={item.href}
+                        className="inline-flex w-full items-center justify-center rounded-lg bg-[#1D3160] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition-all hover:bg-[#243663]"
+                      >
+                        {item.cta}
+                      </Link>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
-        </div>
+        </section>
 
       </div>
     </div>

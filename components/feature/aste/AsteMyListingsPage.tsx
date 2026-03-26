@@ -13,6 +13,7 @@ import {
 } from '@/components/feature/aste/auctions-browse-shared';
 import { MOCK_AUCTIONS } from '@/components/feature/aste/mock-auctions';
 import { MY_AUCTION_LISTING_IDS } from '@/components/feature/aste/mock-user-auctions';
+import { AsteFloatingNav } from '@/components/feature/aste/AsteFloatingNav';
 
 const STORAGE_KEY = 'mie';
 
@@ -119,6 +120,7 @@ export function AsteMyListingsPage() {
           )}
         </div>
       </div>
+      <AsteFloatingNav />
     </div>
   );
 }

@@ -10,7 +10,9 @@ export default function DownloadsPage() {
   return (
     <>
       <PrestoInArrivoBanner />
-      <DownloadsContent />
+      <div className="pointer-events-none opacity-60">
+        <DownloadsContent />
+      </div>
     </>
   );
 }

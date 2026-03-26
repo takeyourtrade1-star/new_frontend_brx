@@ -10,7 +10,9 @@ export default function MessaggiPage() {
   return (
     <>
       <PrestoInArrivoBanner />
-      <MessaggiContent />
+      <div className="pointer-events-none opacity-60">
+        <MessaggiContent />
+      </div>
     </>
   );
 }

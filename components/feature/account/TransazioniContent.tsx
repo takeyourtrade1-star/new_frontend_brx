@@ -5,7 +5,6 @@ import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { AccountBreadcrumb } from '@/components/feature/account/AccountBreadcrumb';
 
 const SALDO_MOCK = '0,00';
 
@@ -14,9 +13,7 @@ export function TransazioniContent() {
 
   return (
     <div className="text-gray-900" style={{ backgroundColor: 'transparent' }}>
-      <AccountBreadcrumb current="sidebar.transactions" />
-
-      <div className="mb-6 mt-8 rounded-none bg-gray-100 px-6 py-5 shadow-md">
+      <div className="mb-6 mt-2 rounded-none bg-gray-100 px-6 py-5 shadow-md">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <span className="text-sm font-medium uppercase tracking-wide text-gray-700">
             {t('accountPage.txYourCredit')}

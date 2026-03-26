@@ -458,6 +458,7 @@ export const fr: Record<MessageKey, string> = {
   'accountPage.blockedManageTitle': 'GÉRER LES UTILISATEURS BLOQUÉS',
   'accountPage.blockedUsernamePh': 'Nom d’utilisateur',
   'accountPage.blockedAddBtn': 'AJOUTER À LA LISTE',
+  'accountPage.blockedRemoveBtn': 'Supprimer',
 
   'accountPage.wantlistPurchases': 'ACHATS',
   'accountPage.wantlistTitle': 'Liste de souhaits',

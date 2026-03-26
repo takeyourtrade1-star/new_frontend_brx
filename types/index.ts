@@ -95,6 +95,7 @@ export interface RegisterData {
 export interface VerifyMFAData {
   pre_auth_token: string;
   mfa_code: string;
+  remember_device?: boolean;
 }
 
 export interface MFAEnableResponse {

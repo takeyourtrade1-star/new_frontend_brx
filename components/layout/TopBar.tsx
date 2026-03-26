@@ -36,6 +36,12 @@ const inputBase =
   'rounded-full px-4 text-sm font-normal text-[#0F172A] placeholder:text-gray-500 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 border';
 
 const FLASH_DURATION_MS = 4500;
+const ORANGE_GLASS_MENU_CLASS =
+  'absolute left-1/2 top-full z-[110] mt-0 min-w-[200px] -translate-x-1/2 rounded-2xl border border-primary/45 bg-primary/30 px-4 py-3 text-white backdrop-blur-2xl backdrop-saturate-150 shadow-2xl ring-1 ring-white/20 animate-in fade-in-0 duration-200';
+const ORANGE_GLASS_DIVIDER_CLASS = 'my-1 h-px bg-white/45';
+const ORANGE_GLASS_COMPACT_MENU_CLASS =
+  'absolute left-1/2 top-full z-[110] mt-0 min-w-[180px] -translate-x-1/2 rounded-2xl border border-primary/45 bg-primary/30 px-2 py-2 text-white backdrop-blur-2xl backdrop-saturate-150 shadow-2xl ring-1 ring-white/20 animate-in fade-in-0 duration-200';
+const ORANGE_GLASS_SOFT_DIVIDER_CLASS = 'my-1 h-px bg-white/30';
 
 export function TopBar() {
   const { t, locale } = useTranslation();
@@ -315,7 +321,7 @@ export function TopBar() {
             </button>
             {gamesMenuOpen && (
               <div
-                className="absolute left-0 top-full z-[110] mt-0 min-w-[180px] border border-gray-200 bg-white py-2 shadow-lg"
+                className={ORANGE_GLASS_COMPACT_MENU_CLASS}
                 role="menu"
                 aria-label={t('topBar.gamesMenuAria')}
               >
@@ -328,14 +334,14 @@ export function TopBar() {
                       : getCdnImageUrl('loghi-giochi/One_Piece_Card_Game_Logo%201.png');
                   return (
                   <div key={opt.value}>
-                    {i > 0 && <div className="my-1 h-px bg-gray-100" aria-hidden />}
+                    {i > 0 && <div className={ORANGE_GLASS_SOFT_DIVIDER_CLASS} aria-hidden />}
                     <Link
                       href={GAME_HOME_PATH[opt.value]}
                       onClick={() => {
                         setSelectedGame(opt.value);
                         setGamesMenuOpen(false);
                       }}
-                      className="games-menu-item flex w-full items-center justify-center px-4 py-3 text-gray-900 transition-colors"
+                      className="flex w-full items-center justify-center rounded-lg px-4 py-3 text-white/95 transition-colors duration-200 hover:bg-white/10 focus:bg-white/10 focus:outline-none"
                       role="menuitem"
                       aria-label={opt.label}
                     >
@@ -525,8 +531,7 @@ export function TopBar() {
 
                 {accountMenuOpen && (
                   <div
-                    className="absolute left-0 top-full z-[110] mt-1 min-w-[200px] rounded-2xl px-4 py-3 shadow-xl"
-                    style={{ backgroundColor: '#FF8C00' }}
+                    className={ORANGE_GLASS_MENU_CLASS}
                     role="menu"
                     aria-label={t('account.menuAria')}
                   >
@@ -538,7 +543,7 @@ export function TopBar() {
                       >
                         {t('account.account')}
                       </Link>
-                      <div className="my-1 h-px bg-white/80" aria-hidden />
+                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                       <Link
                         href="/account/messaggi"
                         className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
@@ -546,7 +551,7 @@ export function TopBar() {
                       >
                         {t('account.messages')}
                       </Link>
-                      <div className="my-1 h-px bg-white/80" aria-hidden />
+                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                       <Link
                         href="/account/credito"
                         className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
@@ -554,7 +559,7 @@ export function TopBar() {
                       >
                         {t('account.credit')}
                       </Link>
-                      <div className="my-1 h-px bg-white/80" aria-hidden />
+                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                       <Link
                         href="/account/oggetti"
                         className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
@@ -562,7 +567,7 @@ export function TopBar() {
                       >
                         {t('account.items')}
                       </Link>
-                      <div className="my-1 h-px bg-white/80" aria-hidden />
+                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                       <Link
                         href="/account/sincronizzazione"
                         className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
@@ -640,8 +645,7 @@ export function TopBar() {
 
                 {acquistiMenuOpen && (
                   <div
-                    className="absolute left-0 top-full z-[110] mt-1 min-w-[200px] rounded-2xl px-4 py-3 shadow-xl"
-                    style={{ backgroundColor: '#FF8C00' }}
+                    className={ORANGE_GLASS_MENU_CLASS}
                     role="menu"
                   >
                     <Link
@@ -651,7 +655,7 @@ export function TopBar() {
                     >
                       {t('purchases.myPurchases')}
                     </Link>
-                    <div className="my-1 h-px bg-white/80" aria-hidden />
+                    <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                     <Link
                       href="/account/lista-desideri"
                       className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
@@ -721,18 +725,17 @@ export function TopBar() {
                 {/* Dropdown Vendi solo su mobile */}
                 {vendiMenuOpen && (
                   <div
-                    className="absolute left-0 top-full z-[110] mt-1 min-w-[200px] rounded-2xl px-4 py-3 shadow-xl md:hidden"
-                    style={{ backgroundColor: '#FF8C00' }}
+                    className={cn(ORANGE_GLASS_MENU_CLASS, 'md:hidden')}
                     role="menu"
                   >
                     <Link
-                      href="/account-business"
+                      href="/vendi"
                       className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
                       onClick={() => setVendiMenuOpen(false)}
                     >
                       {t('nav.sell')}
                     </Link>
-                    <div className="my-1 h-px bg-white/80" aria-hidden />
+                    <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                     <Link
                       href="/scambi"
                       className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
@@ -740,7 +743,7 @@ export function TopBar() {
                     >
                       {t('nav.exchanges')}
                     </Link>
-                    <div className="my-1 h-px bg-white/80" aria-hidden />
+                    <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                     <Link
                       href="/aste"
                       className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
@@ -753,7 +756,7 @@ export function TopBar() {
 
                 {/* Link Vendi visibile solo su desktop */}
                 <Link
-                  href="/account-business"
+                  href="/vendi"
                   className="hidden items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:flex"
                   aria-label={t('nav.sell')}
                 >

@@ -5,17 +5,15 @@ import Link from 'next/link';
 import { Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { AccountBreadcrumb } from '@/components/feature/account/AccountBreadcrumb';
 
 export function MessaggiContent() {
   const { t } = useTranslation();
   const [username, setUsername] = useState('');
 
   return (
-    <div className="min-h-screen w-full px-4 py-8 font-sans text-gray-900 md:px-8 md:py-10">
+    <div className="min-h-screen w-full px-4 py-2 font-sans text-gray-900 md:px-0 md:py-0">
       <div className="mb-6 flex w-full flex-wrap items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <AccountBreadcrumb current="sidebar.messages" />
         </div>
         <Link
           href="/aiuto"

@@ -10,6 +10,7 @@ import { countryFlagEmoji } from '@/lib/auction/country-flag';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { MOCK_SHIPPING_ORDERS } from '@/components/feature/aste/mock-auction-shipping';
+import { AsteFloatingNav } from '@/components/feature/aste/AsteFloatingNav';
 
 export function AsteShippingPage() {
   const { t } = useTranslation();
@@ -135,6 +136,7 @@ export function AsteShippingPage() {
           </ul>
         )}
       </div>
+      <AsteFloatingNav />
     </div>
   );
 }

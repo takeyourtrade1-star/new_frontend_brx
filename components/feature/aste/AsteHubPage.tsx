@@ -20,6 +20,7 @@ import {
   formatHMS,
   type EnrichedAuction,
 } from '@/components/feature/aste/auctions-browse-shared';
+import { AsteFloatingNav } from '@/components/feature/aste/AsteFloatingNav';
 import {
   MOCK_AUCTIONS,
   isAuctionEnded,
@@ -162,7 +163,7 @@ export function AsteHubPage() {
         style={{ background: 'linear-gradient(135deg, #1A2B45 0%, #1D3160 55%, #152238 100%)' }}
       >
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#FF7300]/10 blur-3xl" />
-        <div className="container-content relative py-6 md:py-8">
+        <div className="container-content relative py-4 md:py-5">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
               <h1 className="text-3xl font-bold uppercase tracking-tight text-white whitespace-nowrap md:text-4xl lg:text-5xl">
@@ -176,38 +177,38 @@ export function AsteHubPage() {
             <div className="flex w-full shrink-0 flex-col gap-3 sm:items-end lg:w-auto">
               {isAuthenticated && (
                 <>
-                  <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                  <div className="flex w-full flex-col gap-2 lg:w-auto">
                     <Link
                       href="/aste/nuova"
-                      className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#FF7300] px-5 py-2 text-sm font-semibold uppercase tracking-wide text-white shadow-[0_0_20px_rgba(255,115,0,0.5)] transition hover:bg-[#e86800] hover:shadow-[0_0_30px_rgba(255,115,0,0.7)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 sm:w-auto"
+                      className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#FF7300] px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-[0_0_20px_rgba(255,115,0,0.5)] transition hover:bg-[#e86800] hover:shadow-[0_0_30px_rgba(255,115,0,0.7)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                       aria-label={t('auctions.createAuctionAria')}
                     >
-                      <PlusCircle className="h-4 w-4 transition-transform group-hover:scale-110" aria-hidden />
-                      <span className="sm:hidden lg:inline">{t('auctions.createAuction')}</span>
+                      <PlusCircle className="h-3.5 w-3.5 transition-transform group-hover:scale-110" aria-hidden />
+                      <span>{t('auctions.createAuction')}</span>
                     </Link>
                     <Link
                       href="/aste/mie"
-                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20 sm:w-auto"
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/20"
                       title={t('auctions.navMyListings')}
                     >
-                      <List className="h-4 w-4" aria-hidden />
-                      <span className="sm:hidden lg:inline">{t('auctions.navMyListings')}</span>
+                      <List className="h-3.5 w-3.5" aria-hidden />
+                      <span>{t('auctions.navMyListings')}</span>
                     </Link>
                     <Link
                       href="/aste/partecipazioni"
-                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20 sm:w-auto"
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/20"
                       title={t('auctions.navParticipations')}
                     >
-                      <Users className="h-4 w-4" aria-hidden />
-                      <span className="sm:hidden lg:inline">{t('auctions.navParticipations')}</span>
+                      <Users className="h-3.5 w-3.5" aria-hidden />
+                      <span>{t('auctions.navParticipations')}</span>
                     </Link>
                     <Link
                       href="/aste/spedizioni"
-                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20 sm:w-auto"
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/20"
                       title={t('auctions.navShipping')}
                     >
-                      <Truck className="h-4 w-4" aria-hidden />
-                      <span className="sm:hidden lg:inline">{t('auctions.navShipping')}</span>
+                      <Truck className="h-3.5 w-3.5" aria-hidden />
+                      <span>{t('auctions.navShipping')}</span>
                     </Link>
                   </div>
                 </>
@@ -396,81 +397,7 @@ export function AsteHubPage() {
         </div>
       </section>
 
-      {/* Floating Action Bar - Desktop: vertical right, Mobile: bottom-center */}
-      {isAuthenticated && (
-        <>
-          {/* Mobile: bottom-center horizontal */}
-          <div
-            className={`fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#1A2B45]/95 px-3 py-2 shadow-2xl backdrop-blur-md transition-all duration-300 border border-white/10 lg:hidden ${showFloating ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'}`}
-          >
-            <Link
-              href="/aste/nuova"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-lg transition hover:scale-110 hover:bg-[#e86800]"
-              title={t('auctions.createAuction')}
-            >
-              <PlusCircle className="h-5 w-5" />
-            </Link>
-            <div className="h-6 w-px bg-white/20" />
-            <Link
-              href="/aste/mie"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:scale-110 hover:bg-white/20"
-              title={t('auctions.navMyListings')}
-            >
-              <List className="h-5 w-5" />
-            </Link>
-            <Link
-              href="/aste/partecipazioni"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:scale-110 hover:bg-white/20"
-              title={t('auctions.navParticipations')}
-            >
-              <Users className="h-5 w-5" />
-            </Link>
-            <Link
-              href="/aste/spedizioni"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:scale-110 hover:bg-white/20"
-              title={t('auctions.navShipping')}
-            >
-              <Truck className="h-5 w-5" />
-            </Link>
-          </div>
-
-          {/* Desktop: right vertical */}
-          <div
-            className={`fixed right-4 top-1/2 z-50 hidden -translate-y-1/2 flex-col items-center gap-3 rounded-full bg-[#1A2B45]/95 px-2 py-3 shadow-2xl backdrop-blur-md transition-all duration-300 border border-white/10 lg:flex ${showFloating ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0 pointer-events-none'}`}
-          >
-            <Link
-              href="/aste/nuova"
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-lg transition hover:scale-110 hover:bg-[#e86800]"
-              title={t('auctions.createAuction')}
-            >
-              <PlusCircle className="h-6 w-6" />
-            </Link>
-            <div className="h-8 w-px bg-white/20" />
-            <Link
-              href="/aste/mie"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:scale-110 hover:bg-white/20"
-              title={t('auctions.navMyListings')}
-            >
-              <List className="h-5 w-5" />
-            </Link>
-            <Link
-              href="/aste/partecipazioni"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:scale-110 hover:bg-white/20"
-              title={t('auctions.navParticipations')}
-            >
-              <Users className="h-5 w-5" />
-            </Link>
-            <Link
-              href="/aste/spedizioni"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:scale-110 hover:bg-white/20"
-              title={t('auctions.navShipping')}
-            >
-              <Truck className="h-5 w-5" />
-            </Link>
-          </div>
-        </>
-      )}
-
+      <AsteFloatingNav visible={showFloating} />
     </div>
   );
 }
