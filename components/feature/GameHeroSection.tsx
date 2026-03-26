@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCdnImageUrl } from '@/lib/config';
@@ -68,7 +69,7 @@ export function GameHeroSection({ gameSlug }: GameHeroSectionProps) {
       onFocus={() => setIsPaused(true)}
       onBlur={() => setIsPaused(false)}
     >
-      <div className="relative aspect-[1200/480] w-full max-h-[480px]">
+      <div className="relative aspect-[1200/240] w-full max-h-[240px]">
         {Array.from({ length: SLIDE_COUNT }).map((_, index) => (
           <div
             key={index}
@@ -82,7 +83,7 @@ export function GameHeroSection({ gameSlug }: GameHeroSectionProps) {
               src={HERO_SLIDES[index]}
               alt=""
               fill
-              className="object-cover"
+              className="object-cover brightness-[0.5]"
               sizes="(max-width: 1200px) 100vw, 1200px"
               priority={index === 0}
               unoptimized
@@ -133,6 +134,17 @@ export function GameHeroSection({ gameSlug }: GameHeroSectionProps) {
             />
           ))}
         </div>
+
+        {gameSlug !== 'mtg' && (
+          <div className="absolute top-4 left-1/2 z-30 -translate-x-1/2 w-[95%] max-w-xl pointer-events-auto">
+            <div className="rounded-full bg-black/60 px-5 py-2 text-center text-[10px] font-medium text-white backdrop-blur-md border border-white/20 shadow-2xl sm:text-xs md:text-sm">
+              Questi giochi sono presto in arrivo, ma intanto puoi curiosare il nostro sito oppure dare un&apos;occhiata a{' '}
+              <Link href="/home/magic" className="font-bold text-[#FF7300] hover:underline">
+                MAGIC
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

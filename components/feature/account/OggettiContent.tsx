@@ -1181,19 +1181,7 @@ export function OggettiContent() {
   if (!user || !accessToken) {
     return (
       <div className="text-gray-900">
-        <nav
-          className="mb-6 flex items-center gap-2 text-sm uppercase tracking-wide text-gray-700"
-          aria-label={t('accountPage.breadcrumbNav')}
-        >
-          <Link href="/account" className="hover:text-gray-900" aria-label={t('accountPage.breadcrumbHome')}>
-            <Home className="h-4 w-4" />
-          </Link>
-          <span className="text-gray-400">/</span>
-          <span>{t('sidebar.account')}</span>
-          <span className="text-gray-400">/</span>
-          <span className="text-gray-900">{t('breadcrumb.oggetti')}</span>
-        </nav>
-        <div className="mt-8 flex justify-center">
+      <div className="mt-8 flex justify-center">
           <div className="flex w-full max-w-3xl items-center justify-center rounded-xl border border-gray-200 bg-white p-10 shadow-sm">
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-[#FF7300]" />
@@ -1207,18 +1195,6 @@ export function OggettiContent() {
 
   return (
     <div className="text-gray-900 space-y-6">
-      <nav
-        className="mb-6 flex items-center gap-2 text-sm uppercase tracking-wide text-gray-700"
-        aria-label={t('accountPage.breadcrumbNav')}
-      >
-        <Link href="/account" className="hover:text-gray-900" aria-label={t('accountPage.breadcrumbHome')}>
-          <Home className="h-4 w-4" />
-        </Link>
-        <span className="text-gray-400">/</span>
-        <span>{t('sidebar.account')}</span>
-        <span className="text-gray-400">/</span>
-        <span className="text-gray-900">{t('breadcrumb.oggetti')}</span>
-      </nav>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -1283,7 +1259,7 @@ export function OggettiContent() {
           <button
             type="button"
             onClick={() => setKindFilter('all')}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               kindFilter === 'all'
                 ? 'bg-[#FF7300] text-white shadow-sm'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -1294,7 +1270,7 @@ export function OggettiContent() {
           <button
             type="button"
             onClick={() => setKindFilter('singole')}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               kindFilter === 'singole'
                 ? 'bg-[#FF7300] text-white shadow-sm'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -1305,7 +1281,7 @@ export function OggettiContent() {
           <button
             type="button"
             onClick={() => setKindFilter('oggetti')}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               kindFilter === 'oggetti'
                 ? 'bg-[#FF7300] text-white shadow-sm'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'

@@ -17,6 +17,8 @@ import { useGame, GAME_OPTIONS, type GameSlug } from '@/lib/contexts/GameContext
 import { MEILISEARCH } from '@/lib/config';
 import { getCardImageUrl } from '@/lib/assets';
 import { generateSlug } from '@/lib/mock-cards';
+import { PRODUCT_CATEGORIES, type ProductCategorySlug, CATEGORY_SLUGS } from '@/lib/product-categories';
+import { usePathname } from 'next/navigation';
 
 type HighlightValue = { value: string; matchLevel: string };
 type HighlightResult = Record<string, HighlightValue | HighlightValue[]>;
@@ -52,10 +54,11 @@ const FRONTEND_TO_DB_SLUG: Record<string, string> = {
 };
 
 /** Costruisce URL pagina risultati; game in query = slug DB (per /api/search e Meilisearch). */
-function buildSearchUrl(q: string, game?: GameSlug | null): string {
+function buildSearchUrl(q: string, game?: GameSlug | null, category?: string | null): string {
   const params = new URLSearchParams();
   if (q) params.set('q', q);
   if (game) params.set('game', FRONTEND_TO_DB_SLUG[game] ?? game);
+  if (category && category !== 'all') params.set('category', category);
   return `/search?${params.toString()}`;
 }
 
@@ -594,7 +597,9 @@ function SearchResultsDropdown({
                 if (!q) return;
                 const active = document.activeElement;
                 if (active instanceof HTMLElement) active.blur();
-                router.push(buildSearchUrl(q, gameSlug));
+                // Passa anche la categoria se siamo in una pagina che la prevede e se ne abbiamo una selezionata
+                const urlCategoria = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('category') : null;
+                router.push(buildSearchUrl(q, gameSlug, urlCategoria));
                 onSelect();
               }}
               className="w-full py-4 text-center text-base font-medium text-[#0f172a] bg-[#F8F8F8] rounded-none hover:bg-[#EEEEEE] transition-colors"
@@ -750,7 +755,8 @@ function SearchPanelBody({
             type="button"
             onClick={() => {
               const q = (query ?? '').trim();
-              if (q) router.push(buildSearchUrl(q, selectedGame));
+              const urlCategoria = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('category') : null;
+              if (q) router.push(buildSearchUrl(q, selectedGame, urlCategoria));
               onSelectResult();
             }}
             className="w-full py-4 text-center text-base font-medium text-white bg-white/10 hover:bg-[#ff7300]/30 transition-colors rounded-none"
@@ -803,7 +809,12 @@ function SearchSubmitButton({
     if (!searchQuery) return;
     const active = typeof document !== 'undefined' ? document.activeElement : null;
     if (active instanceof HTMLElement) active.blur();
-    router.push(buildSearchUrl(searchQuery, selectedGame));
+    
+    // Check if we have a locally selected category hook we can read, otherwise default to search params state or something contextually.
+    // However SearchSubmitButton doesn't know the selected category natively without state lifting.
+    // For now we just route standard.
+    const urlCategoria = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('category') : null;
+    router.push(buildSearchUrl(searchQuery, selectedGame, urlCategoria));
   };
 
   if (variant === 'pill') {
@@ -906,6 +917,90 @@ function CategorieButton({
   );
 }
 
+/** Bottone "Categorie Prodotto" (es. Singles, Sealed) — usa createPortal per sfuggire a overflow-hidden */
+function ProductCategoryButton({
+  selectedCategory,
+  onSelect,
+}: {
+  selectedCategory: string | null;
+  onSelect: (cat: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  // Posiziona il dropdown sotto il bottone
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    setPos({ top: rect.bottom + 4, left: rect.left });
+  }, [open]);
+
+  // Chiudi cliccando fuori
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (buttonRef.current?.contains(t)) return;
+      if (dropdownRef.current?.contains(t)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const categoryObj = PRODUCT_CATEGORIES.find((c) => c.slug === selectedCategory);
+
+  const dropdownMenu = open && pos && typeof document !== 'undefined'
+    ? createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed z-[1100] min-w-[180px] max-w-[220px] overflow-hidden shadow-xl rounded-lg bg-white border border-gray-100 py-1"
+          style={{ top: pos.top, left: pos.left }}
+        >
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onSelect(null); setOpen(false); }}
+            className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium font-sans hover:bg-gray-50 transition-colors ${!selectedCategory ? 'text-[#FF7300]' : 'text-gray-700'}`}
+          >
+            Tutte le categorie
+          </button>
+          <div className="h-px bg-gray-100 mx-2" />
+          {PRODUCT_CATEGORIES.map((opt) => (
+            <button
+              key={opt.slug}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onSelect(opt.slug); setOpen(false); }}
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium font-sans hover:bg-[#FF7300]/10 transition-colors ${selectedCategory === opt.slug ? 'text-[#FF7300] bg-orange-50/50' : 'text-gray-700'}`}
+            >
+              {opt.categoryLabel}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )
+    : null;
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+        className="flex items-center gap-1.5 rounded-[50px] border-0 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 text-sm text-[#1D3160] font-semibold font-sans transition-colors whitespace-nowrap"
+      >
+        <span>{categoryObj ? categoryObj.categoryLabel : 'Categorie'}</span>
+        <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {dropdownMenu}
+    </>
+  );
+}
+
 function SearchWithInstantSearch({
   selectedGame,
   onOpenChange,
@@ -924,6 +1019,14 @@ function SearchWithInstantSearch({
   const { query, refine } = useSearchBox();
   const [localValue, setLocalValue] = useState(query ?? '');
   const hasText = (localValue ?? '').trim().length > 0;
+  
+  const pathname = usePathname();
+  const isProductsPage = pathname.startsWith('/products') || pathname.startsWith('/search');
+  
+  // Estrarre e gestire lo slug della categoria prodotto corrente
+  const pathParts = pathname.split('/');
+  const defaultCategory = CATEGORY_SLUGS.has(pathParts[2]) ? pathParts[2] : null;
+  const [productCategory, setProductCategory] = useState<string | null>(defaultCategory);
 
   // Notifica il cambio di stato apertura/chiusura
   useEffect(() => {
@@ -944,7 +1047,7 @@ function SearchWithInstantSearch({
     refine(searchQuery);
     inputRef.current?.blur();
     closePanel();
-    router.push(buildSearchUrl(searchQuery, selectedGame));
+    router.push(buildSearchUrl(searchQuery, selectedGame, productCategory));
   };
 
   const openPanel = () => {
@@ -991,6 +1094,16 @@ function SearchWithInstantSearch({
       style={{ zIndex: 1000 }}
       onClick={() => inputRef.current?.focus()}
     >
+      {/* Menu a tendina Categorie Prodotto visibile su /products */}
+      {isProductsPage && (
+        <div className="hidden md:flex items-center justify-center pl-1.5 pr-2">
+          <ProductCategoryButton 
+            selectedCategory={productCategory} 
+            onSelect={setProductCategory} 
+          />
+        </div>
+      )}
+
       <input
         ref={inputRef}
         type="text"

@@ -40,7 +40,7 @@ const ORANGE_GLASS_MENU_CLASS =
   'absolute left-1/2 top-full z-[110] mt-1.5 min-w-[200px] -translate-x-1/2 rounded-2xl border border-primary/45 bg-primary/30 px-4 py-3 text-white backdrop-blur-2xl backdrop-saturate-150 shadow-2xl ring-1 ring-white/20 animate-orange-menu-enter';
 const ORANGE_GLASS_DIVIDER_CLASS = 'my-1 h-px bg-white/45';
 const ORANGE_GLASS_COMPACT_MENU_CLASS =
-  'absolute left-1/2 top-full z-[110] mt-1.5 min-w-[180px] -translate-x-1/2 rounded-2xl border border-primary/45 bg-primary/30 px-2 py-2 text-white backdrop-blur-2xl backdrop-saturate-150 shadow-2xl ring-1 ring-white/20 animate-orange-menu-enter';
+  'absolute left-1/2 top-full z-[110] mt-1.5 min-w-[180px] -translate-x-1/2 rounded-2xl border border-white/20 bg-white/10 px-2 py-2 text-white backdrop-blur-2xl backdrop-saturate-150 shadow-2xl ring-1 ring-white/10 animate-orange-menu-enter';
 const ORANGE_GLASS_SOFT_DIVIDER_CLASS = 'my-1 h-px bg-white/30';
 
 export function TopBar() {
@@ -722,42 +722,63 @@ export function TopBar() {
                   </span>
                 </button>
 
-                {/* Dropdown Vendi solo su mobile */}
+                {/* Dropdown Vendi - Visibile sia mobile che desktop */}
                 {vendiMenuOpen && (
                   <div
-                    className={cn(ORANGE_GLASS_MENU_CLASS, 'md:hidden')}
+                    className={ORANGE_GLASS_MENU_CLASS}
                     role="menu"
                   >
-                    <Link
-                      href="/vendi"
-                      className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                      onClick={() => setVendiMenuOpen(false)}
-                    >
-                      {t('nav.sell')}
-                    </Link>
-                    <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                    <Link
-                      href="/scambi"
-                      className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                      onClick={() => setVendiMenuOpen(false)}
-                    >
-                      {t('nav.exchanges')}
-                    </Link>
-                    <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                    <Link
-                      href="/aste"
-                      className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                      onClick={() => setVendiMenuOpen(false)}
-                    >
-                      {t('nav.auctions')}
-                    </Link>
+                    <nav className="flex flex-col">
+                      <Link
+                        href="/vendi"
+                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                        onClick={() => setVendiMenuOpen(false)}
+                      >
+                        Metti in vendita
+                      </Link>
+                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
+                      <Link
+                        href="/account/oggetti"
+                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                        onClick={() => setVendiMenuOpen(false)}
+                      >
+                        I miei oggetti
+                      </Link>
+
+                      {/* Solo su mobile, includiamo anche Scambi e Aste che su desktop hanno link diretti */}
+                      <div className="md:hidden">
+                        <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
+                        <Link
+                          href="/scambi"
+                          className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                          onClick={() => setVendiMenuOpen(false)}
+                        >
+                          {t('nav.exchanges')}
+                        </Link>
+                        <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
+                        <Link
+                          href="/aste"
+                          className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                          onClick={() => setVendiMenuOpen(false)}
+                        >
+                          {t('nav.auctions')}
+                        </Link>
+                      </div>
+                    </nav>
                   </div>
                 )}
 
-                {/* Link Vendi visibile solo su desktop */}
-                <Link
-                  href="/vendi"
-                  className="hidden items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:flex"
+                {/* Tasto Vendi visibile solo su desktop - ora apre un dropdown */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVendiMenuOpen((o) => !o);
+                    setAccountMenuOpen(false);
+                    setAcquistiMenuOpen(false);
+                  }}
+                  className="hidden items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/20 md:flex"
+                  aria-expanded={vendiMenuOpen}
+                  aria-haspopup="true"
                   aria-label={t('nav.sell')}
                 >
                   <span
@@ -783,7 +804,23 @@ export function TopBar() {
                   <span className="hidden whitespace-nowrap text-sm font-medium uppercase lg:inline">
                     {t('nav.sell')}
                   </span>
-                </Link>
+                  <span className="hidden h-4 w-4 shrink-0 items-center justify-center text-[#FF7300] lg:flex">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={cn('h-4 w-4 transition-transform', vendiMenuOpen && 'rotate-180')}
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </span>
+                </button>
               </div>
 
               {/* 4. SCAMBI - solo desktop */}

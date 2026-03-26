@@ -41,7 +41,7 @@ export function HeroCarousel() {
       onFocus={() => setIsPaused(true)}
       onBlur={() => setIsPaused(false)}
     >
-      <div className="relative aspect-[1200/480] w-full max-h-[480px]">
+      <div className="relative aspect-[1200/240] w-full max-h-[240px]">
         {Array.from({ length: SLIDE_COUNT }).map((_, index) => (
           <div
             key={index}
@@ -62,7 +62,7 @@ export function HeroCarousel() {
                 unoptimized
               />
               {/* Overlay scuro per leggibilità testo */}
-              <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+              <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
             </div>
           </div>
         ))}

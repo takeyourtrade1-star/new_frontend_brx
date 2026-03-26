@@ -228,15 +228,37 @@ export function LandingWelcome() {
         </section>
 
         {/* Come vendere / scambiare / asta — forte glass effect, video che si intravede */}
-        <section className="relative w-full overflow-hidden px-4 pt-8 pb-6 sm:px-5 sm:pt-10 sm:pb-7 md:pt-12 md:pb-8">
-          {/* Sfondo blur forte con gradiente di transizione super morbido per azzerare lo 'stacco netto' col video */}
-          <div 
-            className="absolute inset-x-0 bottom-0 top-6 sm:top-8 md:top-10 bg-gradient-to-b from-transparent via-header-bg/20 via-header-bg/40 to-header-bg/80 backdrop-blur-xl" 
-            style={{ 
-              WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 25%, black 100%)',
-              maskImage: 'linear-gradient(to bottom, transparent 0%, black 25%, black 100%)' 
-            }} 
-          />
+        {/* Sfondo blur che parte da metà "PRESTO IN ARRIVO" e sfuma dolcissimo verso il basso */}
+        {/* Sfondo glass progressivo: blur che aumenta man mano che si scende */}
+        {/* Layer 1: blur leggero, parte dall'alto */}
+        <div 
+          className="absolute inset-x-0 bottom-0 backdrop-blur-sm pointer-events-none z-[1]" 
+          style={{ 
+            top: 'calc(100% - 450px)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 15%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.5) 50%, black 70%)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 15%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.5) 50%, black 70%)'
+          }} 
+        />
+        {/* Layer 2: blur medio, parte un po' più sotto */}
+        <div 
+          className="absolute inset-x-0 bottom-0 backdrop-blur-md pointer-events-none z-[1]" 
+          style={{ 
+            top: 'calc(100% - 380px)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.4) 45%, black 70%)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.4) 45%, black 70%)'
+          }} 
+        />
+        {/* Layer 3: blur forte + tinta colore, parte dal basso */}
+        <div 
+          className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent via-header-bg/20 to-header-bg/60 backdrop-blur-xl pointer-events-none z-[1]" 
+          style={{ 
+            top: 'calc(100% - 300px)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 25%, rgba(0,0,0,0.5) 50%, black 75%)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 25%, rgba(0,0,0,0.5) 50%, black 75%)'
+          }} 
+        />
+
+        <section className="relative w-full overflow-hidden px-4 pt-8 pb-6 sm:px-5 sm:pt-10 sm:pb-7 md:pt-12 md:pb-8 z-[2]">
           
           <div className="relative z-10 mx-auto max-w-4xl">
             {/* KPI icone — rimpicciolite e integrate */}

@@ -6,6 +6,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { getCdnImageUrl } from '@/lib/config';
 import { getCardImageUrl } from '@/lib/assets';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import type { GameSlug } from '@/lib/contexts/GameContext';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { MOCK_AUCTIONS, isAuctionEnded } from '@/components/feature/aste/mock-auctions';
 import { isMyAuctionListing } from '@/components/feature/aste/mock-user-auctions';
@@ -59,9 +60,9 @@ const PLACEHOLDER_ASTA: AstaData = {
 };
 
 const NUOVE_ESPANSIONI_PLACEHOLDER: NuovaEspansioneItem[] = [
-  { id: '1', title: 'I MISTERI PASSATI', subtitle: 'DI AANG', imageUrl: getCdnImageUrl('card-3/4978fe1369c0fbf68d42ac63d0582ffc6cf67d60.png') },
-  { id: '2', title: 'SECONDA ESPANSIONE', subtitle: 'IN ARRIVO', imageUrl: getCdnImageUrl('card-3/8b5d86761fe7404aee02bee1471c3e0fc815d3bb.png') },
-  { id: '3', title: 'TERZA ESPANSIONE', subtitle: 'PROSSIMAMENTE', imageUrl: getCdnImageUrl('card-3/a8020835a8ffd96555a4b53cd6ef0d04866ca8b1.png') },
+  { id: '1', title: 'Le espansioni sono', subtitle: 'presto in arrivo', imageUrl: getCdnImageUrl('card-3/4978fe1369c0fbf68d42ac63d0582ffc6cf67d60.png') },
+  { id: '2', title: 'Nuovi set in', subtitle: 'fase di arrivo', imageUrl: getCdnImageUrl('card-3/8b5d86761fe7404aee02bee1471c3e0fc815d3bb.png') },
+  { id: '3', title: 'Prossimamente su', subtitle: 'BRX Marketplace', imageUrl: getCdnImageUrl('card-3/a8020835a8ffd96555a4b53cd6ef0d04866ca8b1.png') },
 ];
 
 const headerOrange = {
@@ -74,6 +75,20 @@ type SearchHit = {
   set_name: string;
   image?: string | null;
 };
+
+const POKEMON_HITS: SearchHit[] = Array(12).fill(null).map((_, i) => ({
+  id: `pk-${i}`,
+  name: i === 0 ? 'Pikachu EX' : 'Charizard VMAX',
+  set_name: 'Scarlet & Violet',
+  image: 'https://images.pokemontcg.io/sv1/198_hi.png'
+}));
+
+const OP_HITS: SearchHit[] = Array(12).fill(null).map((_, i) => ({
+  id: `op-${i}`,
+  name: i === 0 ? 'Monkey D. Luffy' : 'Roronoa Zoro',
+  set_name: 'Romance Dawn',
+  image: 'https://product-images.tcgplayer.com/fit-in/437x437/285149.jpg'
+}));
 
 function MagicSearchCard({ hit }: { hit: SearchHit }) {
   const { t } = useTranslation();
@@ -110,9 +125,14 @@ function NuoveEspansioniCarousel({ items }: { items: NuovaEspansioneItem[] }) {
 
   return (
     <div
-      className="flex min-h-[280px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[437px]"
-      style={{ borderRadius: SECTION_RADIUS, border: '2px solid #1e3a5f', backgroundColor: '#1e3a5f' }}
+      className="flex min-h-[280px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[380px]"
+      style={{ borderRadius: SECTION_RADIUS, border: '2px solid #ff7300', backgroundColor: '#ffffff' }}
     >
+      {/* Titolo sezione – inline, come le altre card */}
+      <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-3">
+        <div className="h-2 w-2 rounded-full bg-[#ff7300]" />
+        <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800">{t('marketplace.newExpansions')}</h2>
+      </div>
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <div className="absolute inset-0 bg-gray-700/80" aria-hidden />
         {current.imageUrl ? (
@@ -122,56 +142,34 @@ function NuoveEspansioniCarousel({ items }: { items: NuovaEspansioneItem[] }) {
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : null}
-        {/* Pillola "Nuove Espansioni" più in risalto - posizione top-left con bg solido */}
-        <div className="absolute left-0 top-0 p-3 md:p-4">
-          <span 
-            className="inline-block rounded-xl px-4 py-1.5 text-center text-xs font-bold uppercase tracking-wide text-white md:px-5 md:py-2"
-            style={{ backgroundColor: '#1e3a5f' }}
-          >
-            {t('marketplace.newExpansions')}
-          </span>
-        </div>
-        <div className="absolute inset-x-0 top-0 flex flex-col pt-16 pl-4 md:pt-20">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 flex flex-col p-5 md:p-6">
           {current.link ? (
             <Link
               href={current.link}
               className="text-left text-lg font-bold uppercase leading-tight text-white drop-shadow-md hover:underline md:text-2xl"
             >
               {current.title}
-              {current.subtitle ? (
-                <>
-                  <br />
-                  {current.subtitle}
-                </>
-              ) : null}
+              {current.subtitle ? (<><br />{current.subtitle}</>) : null}
             </Link>
           ) : (
             <p className="text-left text-lg font-bold uppercase leading-tight text-white drop-shadow-md md:text-2xl">
               {current.title}
-              {current.subtitle ? (
-                <>
-                  <br />
-                  {current.subtitle}
-                </>
-              ) : null}
+              {current.subtitle ? (<><br />{current.subtitle}</>) : null}
             </p>
           )}
+          <div className="mt-3 flex gap-1.5">
+            {items.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => goTo(i)}
+                className={`h-2 rounded-full transition-all focus:outline-none ${i === index ? 'w-5 bg-white' : 'w-2 bg-white/50 hover:bg-white/70'}`}
+                aria-label={t('gameHero.goToSlide', { n: i + 1 })}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="flex shrink-0 items-center justify-center gap-2 py-2" style={{ backgroundColor: '#1e293b' }}>
-        {items.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => goTo(i)}
-            className="h-2 w-2 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-white/50"
-            style={{
-              backgroundColor: i === index ? '#fff' : 'rgba(255,255,255,0.5)',
-              width: i === index ? '0.5rem' : '0.5rem',
-            }}
-            aria-label={t('gameHero.goToSlide', { n: i + 1 })}
-          />
-        ))}
       </div>
     </div>
   );
@@ -182,11 +180,13 @@ export function MarketplaceDashboard({
   scambia: _scambia,
   asta,
   nuoveEspansioni,
+  gameSlug = 'mtg',
 }: {
   compraVendi?: CompraVendiData;
   scambia?: ScambiaData;
   asta?: AstaData;
   nuoveEspansioni?: NuovaEspansioneItem[];
+  gameSlug?: GameSlug;
 } = {}) {
   const { t } = useTranslation();
 
@@ -222,6 +222,18 @@ export function MarketplaceDashboard({
   useEffect(() => {
     let isMounted = true;
     const loadMagicCards = async () => {
+      // Se non è Magic, usiamo i placeholder e non chiamiamo il backend
+      if (gameSlug === 'pokemon') {
+        setMagicHits(POKEMON_HITS);
+        setMagicLoading(false);
+        return;
+      }
+      if (gameSlug === 'op') {
+        setMagicHits(OP_HITS);
+        setMagicLoading(false);
+        return;
+      }
+
       try {
         const res = await fetch('/api/search?game=mtg&category_id=1&limit=30&sort=name_asc');
         if (!res.ok) return;
@@ -262,8 +274,8 @@ export function MarketplaceDashboard({
   const tradeListCards = pickThreeCards(magicOffset + 9);
 
   return (
-    <div className="w-full bg-white font-sans text-gray-900 transition-colors duration-300">
-      <div className="container-content space-y-6 pb-8 pt-6 md:space-y-14 md:pb-14 md:pt-10">
+    <div className="-mt-10 w-full bg-white font-sans text-gray-900 transition-colors duration-300">
+      <div className="container-content space-y-5 pb-6 pt-0 md:space-y-8 md:pb-10 md:pt-0">
         {/* MOBILE: Layout semplificato - 1 carta principale + 5 sotto */}
         <div className="block lg:hidden">
           <div
@@ -340,13 +352,19 @@ export function MarketplaceDashboard({
 
         {/* DESKTOP: Layout originale a due colonne */}
         <div className="hidden lg:grid lg:grid-cols-3 lg:gap-6">
-          {/* Card Compra e Vendi + Scambia */}
+          {/* ═══ Card VENDITE ═══ */}
           <div
             className="flex min-h-[437px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[483px] lg:col-span-2"
             style={{ borderRadius: SECTION_RADIUS, border: '2px solid #ff7300', backgroundColor: '#ffffff' }}
           >
+            {/* Titolo sezione VENDITE */}
+            <div className="flex items-center gap-2 border-b border-gray-100 px-6 py-3">
+              <div className="h-2 w-2 rounded-full bg-[#ff7300]" />
+              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800">Best Sellers</h2>
+            </div>
             <div className="flex min-h-0 flex-1">
-              <div className="flex min-w-0 flex-1 flex-col space-y-4 p-5 md:p-6" style={{ backgroundColor: '#ffffff' }}>
+              {/* ── Colonna sinistra ── */}
+              <div className="flex min-w-0 flex-1 flex-col p-5 md:p-6" style={{ backgroundColor: '#ffffff' }}>
                 <div className="grid grid-cols-3 gap-3">
                   {buyTopCards.length > 0
                     ? buyTopCards.map((hit) => <MagicSearchCard key={hit.id} hit={hit} />)
@@ -354,127 +372,102 @@ export function MarketplaceDashboard({
                         <div key={i} className="aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
                       ))}
                 </div>
-                <ul className="flex-1 space-y-2">
+                <ul className="mt-4 flex-1 space-y-0">
                   {(buyListCards.length > 0 ? buyListCards : []).map((hit, i) => (
-                    <li key={hit.id} className="flex items-center gap-3 text-sm text-gray-800">
-                      <span className="w-5">{i + 4}.</span>
+                    <li key={hit.id} className="group/row flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-800 transition-colors hover:bg-orange-50/60">
+                      <span className="w-5 shrink-0 text-xs font-bold text-gray-400 group-hover/row:text-[#ff7300]">{i + 4}.</span>
                       {(() => {
                         const cardSrc = getCardImageUrl(hit.image ?? null);
                         return cardSrc ? (
-                          <div className="relative h-8 w-12 shrink-0 overflow-hidden rounded">
+                          <div className="relative h-9 w-7 shrink-0 overflow-hidden rounded shadow-sm">
                             <Image src={cardSrc} alt={hit.name} fill className="object-cover" unoptimized />
                           </div>
                         ) : (
-                          <div className="h-8 w-12 shrink-0 rounded bg-gray-200" aria-hidden />
+                          <div className="h-9 w-7 shrink-0 rounded bg-gray-200" aria-hidden />
                         );
                       })()}
-                      <Link href={`/products/${hit.id}`} className="flex-1 truncate hover:text-[#ff7300] hover:underline">
+                      <Link href={`/products/${hit.id}`} className="flex-1 truncate font-medium group-hover/row:text-[#ff7300] transition-colors">
                         {hit.name}
                       </Link>
-                      <span className="truncate text-xs text-gray-500">{hit.set_name}</span>
+                      <span className="truncate text-[11px] text-gray-400">{hit.set_name}</span>
                     </li>
                   ))}
                   {!magicLoading && buyListCards.length === 0 && (
                     <li className="text-sm text-gray-500">{t('marketplace.noSingles')}</li>
                   )}
                 </ul>
-                <Link
-                  href="/search"
-                  className="block text-center text-sm font-medium text-[#ff7300] hover:underline"
-                >
-                  {t('marketplace.seeAll')}
-                </Link>
               </div>
 
-              <div className="flex shrink-0 flex-col py-4 md:py-5" aria-hidden>
-                <div className="w-px flex-1 min-h-0 bg-[#ff7300]/80" />
+              {/* Divider verticale sottile */}
+              <div className="flex shrink-0 flex-col py-6" aria-hidden>
+                <div className="w-px flex-1 min-h-0 bg-gray-200" />
               </div>
 
-              <div className="flex min-w-0 flex-1 flex-col space-y-4 p-5 md:p-6" style={{ backgroundColor: '#ffffff' }}>
+              {/* ── Colonna destra ── */}
+              <div className="flex min-w-0 flex-1 flex-col p-5 md:p-6" style={{ backgroundColor: '#ffffff' }}>
                 <div className="grid grid-cols-3 gap-3">
                   {tradeTopCards.length > 0
-                    ? tradeTopCards.map((hit) => (
-                        <Link
-                          key={hit.id}
-                          href={`/products/${hit.id}`}
-                          className="group flex flex-col items-center"
-                          aria-label={t('marketplace.tradeCard', { name: hit.name })}
-                        >
-                          {(() => {
-                            const cardSrc = getCardImageUrl(hit.image ?? null);
-                            return cardSrc ? (
-                              <div className="relative w-full aspect-[3/4] overflow-hidden rounded-lg border border-gray-200 bg-white">
-                                <Image src={cardSrc} alt={hit.name} fill className="object-cover transition-transform group-hover:scale-[1.02]" unoptimized />
-                              </div>
-                            ) : (
-                              <div className="w-full aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
-                            );
-                          })()}
-                          <p className="mt-1 line-clamp-1 text-center text-xs font-semibold text-gray-900">{hit.name}</p>
-                          <span className="mt-1 rounded px-2 py-0.5 text-[11px] font-semibold text-white" style={{ backgroundColor: '#ff7300' }}>
-                            {t('marketplace.trade')}
-                          </span>
-                        </Link>
-                      ))
+                    ? tradeTopCards.map((hit) => <MagicSearchCard key={hit.id} hit={hit} />)
                     : Array.from({ length: 3 }).map((_, i) => (
                         <div key={i} className="aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
                       ))}
                 </div>
-                <ul className="flex-1 space-y-2">
+                <ul className="mt-4 flex-1 space-y-0">
                   {(tradeListCards.length > 0 ? tradeListCards : []).map((hit, i) => (
-                    <li key={hit.id} className="flex items-center gap-3 text-sm text-gray-800">
-                      <span className="w-5">{i + 4}.</span>
+                    <li key={hit.id} className="group/row flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-800 transition-colors hover:bg-orange-50/60">
+                      <span className="w-5 shrink-0 text-xs font-bold text-gray-400 group-hover/row:text-[#ff7300]">{i + 4}.</span>
                       {(() => {
                         const cardSrc = getCardImageUrl(hit.image ?? null);
                         return cardSrc ? (
-                          <div className="relative h-8 w-12 shrink-0 overflow-hidden rounded">
+                          <div className="relative h-9 w-7 shrink-0 overflow-hidden rounded shadow-sm">
                             <Image src={cardSrc} alt={hit.name} fill className="object-cover" unoptimized />
                           </div>
                         ) : (
-                          <div className="h-8 w-12 shrink-0 rounded bg-gray-200" aria-hidden />
+                          <div className="h-9 w-7 shrink-0 rounded bg-gray-200" aria-hidden />
                         );
                       })()}
-                      <span className="flex-1 truncate">{hit.name}</span>
-                      <Link href={`/products/${hit.id}`} className="text-xs font-medium text-[#ff7300] hover:underline">
-                        {t('marketplace.trade')}
+                      <Link href={`/products/${hit.id}`} className="flex-1 truncate font-medium group-hover/row:text-[#ff7300] transition-colors">
+                        {hit.name}
                       </Link>
+                      <span className="truncate text-[11px] text-gray-400">{hit.set_name}</span>
                     </li>
                   ))}
                   {!magicLoading && tradeListCards.length === 0 && (
                     <li className="text-sm text-gray-500">{t('marketplace.noSingles')}</li>
                   )}
                 </ul>
-                <Link
-                  href="/search"
-                  className="block text-center text-sm font-medium text-[#ff7300] hover:underline"
-                >
-                  {t('marketplace.seeAll')}
-                </Link>
               </div>
+            </div>
+            {/* Link unico centrato per tutta la card */}
+            <div className="px-6 py-3 text-center">
+              <Link
+                href="/search"
+                className="inline-flex items-center gap-1 text-sm font-semibold uppercase tracking-wide text-[#ff7300] hover:text-orange-600 transition-colors"
+              >
+                {t('marketplace.seeAll')}
+              </Link>
             </div>
           </div>
 
-          {/* L'ASTA TERMINA TRA 10 MINUTI - Fix bordi barra e card combaciano perfettamente */}
+          {/* ═══ Card ASTE IN CORSO ═══ (stesso stile della card Vendite) */}
           <div
             className="flex min-h-[380px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[437px]"
-            style={{ borderRadius: SECTION_RADIUS, backgroundColor: '#ffffff' }}
+            style={{ borderRadius: SECTION_RADIUS, border: '2px solid #ff7300', backgroundColor: '#ffffff' }}
           >
-            <div
-              className="flex w-full items-center justify-center py-3 px-4"
-              style={{ ...headerOrange, borderTopLeftRadius: SECTION_RADIUS, borderTopRightRadius: SECTION_RADIUS }}
-            >
-              <span className="rounded-2xl bg-white/15 px-4 py-1.5 text-center text-white text-lg font-medium uppercase tracking-wide backdrop-blur-sm">
-                {t('marketplace.auctionEnds')}
-              </span>
+            {/* Titolo sezione – inline, come Vendite */}
+            <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-3">
+              <div className="h-2 w-2 rounded-full bg-[#ff7300] animate-pulse" />
+              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800">Aste in corso</h2>
             </div>
-            <div className="flex flex-1 flex-col justify-between space-y-4 p-5 md:p-6" style={{ backgroundColor: '#ffffff' }}>
+
+            <div className="flex flex-1 flex-col justify-between p-5 md:p-6" style={{ backgroundColor: '#ffffff' }}>
               <div className="flex justify-center">
                 {(() => {
                   if (featuredAuction) {
                     return (
                       <Link
                         href={auctionDetailPath(featuredAuction.id)}
-                        className="relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-lg border border-gray-200 bg-white"
+                        className="group relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
                       >
                         {showCreatedByYouBadge && (
                           <span className="absolute left-2 top-2 z-[1] rounded-full bg-[#1e3a5f] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-md">
@@ -485,7 +478,7 @@ export function MarketplaceDashboard({
                           src={featuredAuction.image}
                           alt={featuredAuction.title}
                           fill
-                          className="object-cover"
+                          className="object-cover transition-transform group-hover:scale-[1.02]"
                           unoptimized
                         />
                       </Link>
@@ -493,7 +486,7 @@ export function MarketplaceDashboard({
                   }
                   if (astaData.featuredImageUrl) {
                     return (
-                      <div className="relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-lg border border-gray-200 bg-white">
+                      <div className="relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                         <Image
                           src={astaData.featuredImageUrl}
                           alt=""
@@ -504,15 +497,15 @@ export function MarketplaceDashboard({
                       </div>
                     );
                   }
-                  return <div className="w-full max-w-[200px] aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />;
+                  return <div className="w-full max-w-[200px] aspect-[3/4] rounded-xl border border-gray-200 bg-gray-100" aria-hidden />;
                 })()}
               </div>
-              <div className="space-y-1 text-center">
+              <div className="mt-4 space-y-1 text-center">
                 <p className="text-sm font-semibold text-gray-900">
                   {featuredAuction?.title || astaData.featuredTitle || t('marketplace.featuredAuctions')}
                 </p>
                 {featuredAuction && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-lg font-bold text-[#ff7300]">
                     {featuredAuction.currentBidEur.toLocaleString('it-IT', {
                       style: 'currency',
                       currency: 'EUR',
@@ -521,14 +514,17 @@ export function MarketplaceDashboard({
                   </p>
                 )}
               </div>
-              <div className="flex justify-center gap-1" aria-hidden>
-                <div className="h-2 w-2 rounded-full bg-[#ff7300]" />
-                <div className="h-2 w-2 rounded-full bg-[#ff7300]/45" />
-                <div className="h-2 w-2 rounded-full bg-[#ff7300]/45" />
+              <div className="mt-3 flex justify-center gap-1.5" aria-hidden>
+                {suggestedAuctionPool.slice(0, 3).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-2 w-2 rounded-full transition-colors ${i === auctionRot % Math.min(suggestedAuctionPool.length, 3) ? 'bg-[#ff7300]' : 'bg-gray-300'}`}
+                  />
+                ))}
               </div>
               <Link
                 href={astaData.href ?? '/aste'}
-                className="block text-center text-sm font-medium text-[#ff7300] hover:underline"
+                className="mt-3 block text-center text-sm font-semibold uppercase tracking-wide text-[#ff7300] hover:underline"
               >
                 {astaData.linkText ?? t('marketplace.seeAllAuctions')}
               </Link>

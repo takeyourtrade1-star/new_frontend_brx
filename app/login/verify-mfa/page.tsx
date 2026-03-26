@@ -245,19 +245,18 @@ export default function VerifyMFAPage() {
               </p>
             )}
 
-            {/* Ricorda questo dispositivo */}
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-2 pt-1">
               <Checkbox
                 id="remember-device"
                 checked={rememberDevice}
                 onCheckedChange={setRememberDevice}
                 disabled={isLoading || verifyMFAMutation.isPending}
+                className="mt-0.5 border-[#86868B] data-[state=checked]:bg-[#FF7300] data-[state=checked]:border-[#FF7300]"
               />
               <label
                 htmlFor="remember-device"
-                className="flex items-center gap-2 text-sm text-[#86868B] cursor-pointer select-none"
+                className="text-sm text-[#86868B] cursor-pointer select-none leading-none"
               >
-                <Monitor className="h-4 w-4" />
                 Ricorda questo dispositivo
               </label>
             </div>
@@ -292,9 +291,10 @@ export default function VerifyMFAPage() {
 
             <Link
               href="/login?accesso=1"
-              className="block text-center text-sm font-medium text-[#007AFF] hover:underline"
+              className="flex items-center justify-center gap-2 text-sm font-medium text-[#86868B] transition-colors hover:text-[#FF7300] group"
             >
-              &lt;- Torna al login
+              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+              Torna al login
             </Link>
           </div>
         </form>

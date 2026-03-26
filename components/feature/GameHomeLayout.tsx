@@ -30,7 +30,7 @@ export function GameHomeLayout({ gameSlug }: GameHomeLayoutProps) {
 
       <FeaturesSection />
 
-      <MarketplaceDashboard />
+      <MarketplaceDashboard gameSlug={gameSlug} />
 
       <CategoriesGrid />
 
