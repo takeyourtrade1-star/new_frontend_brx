@@ -3,13 +3,13 @@
  * category_id si usa per filtrare sealed/boosters ecc. (se l'indice lo espone).
  */
 export const PRODUCT_CATEGORIES = [
-  { slug: 'singles', title: 'Singles', categoryLabel: 'Singles', categoryId: undefined },
-  { slug: 'boosters', title: 'Boosters', categoryLabel: 'Boosters', categoryId: undefined },
-  { slug: 'booster-boxes', title: 'Booster boxes', categoryLabel: 'Booster boxes', categoryId: undefined },
-  { slug: 'set-lotti-collezioni', title: 'Set, lotti e collezioni', categoryLabel: 'Set, lotti e collezioni', categoryId: undefined },
-  { slug: 'sigillati', title: 'Prodotti sigillati', categoryLabel: 'Prodotti sigillati', categoryId: undefined },
-  { slug: 'accessori', title: 'Accessori', categoryLabel: 'Accessori', categoryId: undefined },
-  { slug: 'boutique', title: 'Ebartex Boutique', categoryLabel: 'Ebartex Boutique', categoryId: undefined },
+  { slug: 'singles', title: 'Singles', subtitle: 'Esplora la collezione completa di carte singole Magic: The Gathering', categoryLabel: 'Singles', categoryId: undefined },
+  { slug: 'boosters', title: 'Boosters', subtitle: 'Scopri tutti i booster pack disponibili per le tue espansioni preferite', categoryLabel: 'Boosters', categoryId: undefined },
+  { slug: 'booster-boxes', title: 'Booster Boxes', subtitle: 'Box completi di buste per espandere la tua collezione al massimo', categoryLabel: 'Booster boxes', categoryId: undefined },
+  { slug: 'set-lotti-collezioni', title: 'Set, lotti e collezioni', subtitle: 'Trova set completi, lotti e collezioni curate', categoryLabel: 'Set, lotti e collezioni', categoryId: undefined },
+  { slug: 'sigillati', title: 'Prodotti sigillati', subtitle: 'Prodotti sigillati originali, pronti per essere aperti', categoryLabel: 'Prodotti sigillati', categoryId: undefined },
+  { slug: 'accessori', title: 'Accessori', subtitle: 'Proteggi e organizza le tue carte con i migliori accessori', categoryLabel: 'Accessori', categoryId: undefined },
+  { slug: 'boutique', title: 'Ebartex Boutique', subtitle: 'Prodotti esclusivi e personalizzati Ebartex', categoryLabel: 'Ebartex Boutique', categoryId: undefined },
 ] as const;
 
 export type ProductCategorySlug = (typeof PRODUCT_CATEGORIES)[number]['slug'];

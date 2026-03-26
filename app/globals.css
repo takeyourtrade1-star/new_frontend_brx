@@ -383,6 +383,21 @@
   animation: export-modal-in 0.2s ease-out forwards;
 }
 
+/* Menu dropdown arancione: fade-in + slide-down mantenendo il centraggio -translate-x-1/2 */
+@keyframes orange-menu-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+.animate-orange-menu-enter {
+  animation: orange-menu-enter 0.2s ease-out both;
+}
+
 /* Toast flash (login/error): entra da destra, esce a destra – sotto la barra di ricerca */
 @keyframes toast-slide-in-right {
   from {

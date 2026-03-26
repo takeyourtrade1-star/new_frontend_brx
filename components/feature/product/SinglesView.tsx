@@ -87,6 +87,8 @@ export interface ProductCategoryViewProps {
   game: GameSlug | null;
   /** Titolo pagina (es. "Singles", "Boosters") */
   title: string;
+  /** Sottotitolo descrittivo */
+  subtitle?: string;
   /** Slug per URL (es. "singles", "boosters") */
   categorySlug: string;
   /** Testo per il select Categoria */
@@ -100,6 +102,7 @@ export interface ProductCategoryViewProps {
 export function ProductCategoryView({
   game: gameSlug,
   title,
+  subtitle,
   categorySlug,
   categoryLabel,
   categoryId,
@@ -122,9 +125,8 @@ export function ProductCategoryView({
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [nomeInput, setNomeInput] = useState(q);
   const [edizioneInput, setEdizioneInput] = useState(setFilter);
-  const [nomeEsatto, setNomeEsatto] = useState(false);
-  const [soloDisponibile, setSoloDisponibile] = useState(false);
-  const [showExtraFilters, setShowExtraFilters] = useState(false);
+  const [raritaInput, setRaritaInput] = useState('');
+  const [isRarityOpen, setIsRarityOpen] = useState(false);
   const [data, setData] = useState<SearchApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -156,7 +158,7 @@ export function ProductCategoryView({
     // così "Alpha" o "30th" trovano i set senza richiedere il nome esatto del set.
     const queryParts: string[] = [];
     if (nomeInput.trim()) {
-      queryParts.push(nomeEsatto ? `"${nomeInput.trim()}"` : nomeInput.trim());
+      queryParts.push(nomeInput.trim());
     }
     if (edizioneInput.trim()) {
       queryParts.push(edizioneInput.trim());
@@ -181,7 +183,7 @@ export function ProductCategoryView({
     } finally {
       setLoading(false);
     }
-  }, [apiGame, nomeInput, nomeEsatto, edizioneInput, categoryId, pageParam, sortParam]);
+  }, [apiGame, nomeInput, edizioneInput, categoryId, pageParam, sortParam]);
 
   useEffect(() => {
     fetchResults();
@@ -201,34 +203,112 @@ export function ProductCategoryView({
 
   return (
     <section className="min-h-screen pb-12 bg-[#F0F0F0]">
-      <div className="container-content py-4 sm:py-6">
-        {/* Breadcrumb: Prodotti (game) / [titolo categoria] - NASCOSTO */
-        /*
-        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-          <Link href="/products" className="hover:text-gray-900">
-            Prodotti ({gameLabel})
-          </Link>
-          <span>/</span>
-          <span className="font-semibold text-gray-900">{title}</span>
-        </nav>
-        */}
+      {/* ─── Hero Header ─── */}
+      {['singles', 'boosters', 'booster-boxes'].includes(categorySlug) && (
+        <div className="bg-gradient-to-b from-[#3D65C6] to-[#1D3160] text-white">
+          <div className="container-content px-4 sm:px-6 pt-8 pb-10 sm:pt-10 sm:pb-12">
+            {/* Titolo */}
+            <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-wide mb-1">
+              {title}
+            </h1>
+            {/* Sottotitolo */}
+            {subtitle && (
+              <p className="text-xs sm:text-sm font-medium uppercase tracking-widest text-white/70 mb-6">
+                {subtitle}
+              </p>
+            )}
 
-        {/* Solo il menu Categoria - NASCOSTO */
-        /*
-        <div className="mb-4">
-          <label className="flex flex-col gap-1 text-gray-700 text-xs font-semibold uppercase w-fit">
-            Categoria
-            <select
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[140px] bg-gray-50 text-gray-900"
-              value={categorySlug}
-              disabled
-              aria-label="Categoria corrente"
-            >
-              <option value={categorySlug}>{categoryLabel}</option>
-            </select>
-          </label>
+            {/* ─── Filter Card ─── */}
+            <div className="rounded-xl bg-white/[0.08] backdrop-blur-md border border-white/[0.12] shadow-lg px-5 sm:px-6 py-5">
+              <div className="flex flex-wrap items-end gap-4 sm:gap-5">
+                {/* Edizione */}
+                <div className="flex flex-col gap-1.5 min-w-[160px] flex-1">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-white/80">Edizione</span>
+                  <input
+                    type="text"
+                    value={edizioneInput}
+                    onChange={(e) => setEdizioneInput(e.target.value)}
+                    placeholder="Tutte le edizioni"
+                    className="h-10 rounded-lg border border-white/20 bg-white/[0.06] px-3 text-sm text-white placeholder:text-white/40 outline-none focus:border-[#FF8800] focus:bg-white/[0.1] transition-all"
+                  />
+                </div>
+
+                {/* Rarità Coustom Dropdown (mostrato solo se 'singles') */}
+                {categorySlug === 'singles' && (
+                  <div className="flex flex-col gap-1.5 min-w-[130px] relative">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-white/80">Rarità</span>
+                    <div className="relative h-10 w-full">
+                      <button
+                        type="button"
+                        onClick={() => setIsRarityOpen(!isRarityOpen)}
+                        className="h-full w-full flex items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/[0.06] hover:bg-white/[0.1] px-3 text-sm text-white outline-none focus:border-[#FF8800] transition-all cursor-pointer"
+                      >
+                        {raritaInput === 'common' ? 'Common' :
+                         raritaInput === 'uncommon' ? 'Uncommon' :
+                         raritaInput === 'rare' ? 'Rare' :
+                         raritaInput === 'mythic' ? 'Mythic Rare' : 'Tutte'}
+                        <ChevronDown className="h-4 w-4 text-white/60 ml-1" />
+                      </button>
+
+                      {isRarityOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsRarityOpen(false)} />
+                          <div className="absolute top-[calc(100%+6px)] left-0 w-full rounded-lg border border-white/20 bg-[#14234b]/95 shadow-xl z-50 overflow-hidden backdrop-blur-md flex flex-col py-1">
+                            {[
+                              { v: '', l: 'Tutte' },
+                              { v: 'common', l: 'Common' },
+                              { v: 'uncommon', l: 'Uncommon' },
+                              { v: 'rare', l: 'Rare' },
+                              { v: 'mythic', l: 'Mythic Rare' },
+                            ].map(opt => (
+                              <button
+                                key={opt.v}
+                                type="button"
+                                className={`w-full text-center px-3 py-2 text-sm text-white hover:bg-[#FF8800]/20 transition-colors ${raritaInput === opt.v ? 'bg-[#FF8800] hover:bg-[#FF8800]' : ''}`}
+                                onClick={() => {
+                                  setRaritaInput(opt.v);
+                                  setIsRarityOpen(false);
+                                }}
+                              >
+                                {opt.l}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Nome */}
+                <div className="flex flex-col gap-1.5 flex-[2] min-w-[200px]">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-white/80">Nome</span>
+                  <input
+                    type="text"
+                    value={nomeInput}
+                    onChange={(e) => setNomeInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
+                    placeholder="Cerca per nome"
+                    className="h-10 rounded-lg border border-white/20 bg-white/[0.06] px-3 text-sm text-white placeholder:text-white/40 outline-none focus:border-[#FF8800] focus:bg-white/[0.1] transition-all"
+                  />
+                </div>
+
+                {/* Pulsante Cerca */}
+                <button
+                  type="button"
+                  onClick={handleCerca}
+                  className="h-10 px-6 rounded-lg bg-[#FF8800]/20 hover:bg-[#FF8800]/30 backdrop-blur-md border border-[#FF8800]/50 active:scale-[0.97] text-white text-sm font-bold flex items-center gap-2 transition-all shrink-0 shadow-[0_4_15px_rgba(255,136,0,0.25)]"
+                >
+                  <Search className="h-4 w-4 text-white" strokeWidth={2.5} />
+                  CERCA
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-        */}
+      )}
+
+      <div className="container-content py-4 sm:py-6">
 
         {/* Barra risultati + vista lista/griglia */}
         <div className="flex flex-wrap items-center justify-between gap-3 py-3 px-4 border border-gray-200 rounded-lg bg-white mb-4">
@@ -499,6 +579,7 @@ export function SinglesView({ game }: { game: GameSlug | null }) {
     <ProductCategoryView
       game={game}
       title="Singles"
+      subtitle="Esplora la collezione completa di carte singole Magic: The Gathering"
       categorySlug="singles"
       categoryLabel="Singles"
       showCardDetails={true}

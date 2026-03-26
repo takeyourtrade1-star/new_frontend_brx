@@ -36,6 +36,7 @@ export function ProductCategoryPageClient({ categorySlug }: ProductCategoryPageC
       <ProductCategoryView
         game={selectedGame}
         title={config.title}
+        subtitle={config.subtitle}
         categorySlug={config.slug as ProductCategorySlug}
         categoryLabel={config.categoryLabel}
         categoryId={config.categoryId}

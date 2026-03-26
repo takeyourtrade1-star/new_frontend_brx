@@ -18,7 +18,7 @@ export default function CartPage() {
         <h1 className="mb-6 font-display text-2xl font-bold text-gray-900 md:text-3xl">{t('cart.title')}</h1>
 
         {getItemCount() === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-white/30 bg-[#1D3160]/40 py-16 text-center backdrop-blur-xl">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-global-bg-end/30 py-16 text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.12),0_8px_32px_rgba(29,49,96,0.45)] ring-1 ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
             <ShoppingBag className="mb-4 h-16 w-16 text-gray-400" strokeWidth={1.5} />
             <p className="mb-6 text-lg text-gray-600">{t('cart.empty')}</p>
             <Button

@@ -200,10 +200,13 @@ export function HamburgerMenu() {
         aria-modal="true"
         aria-label={t('common.menuDialog')}
       >
-        {/* Header: solo chiusura a destra, logout rimosso da qui (è in fondo) */}
+        {/* Header: Titolo a sinistra e chiusura a destra */}
         <div
-          className="flex shrink-0 items-center justify-end border-b border-gray-200 px-3 py-2.5"
+          className="flex shrink-0 items-center justify-between border-b border-gray-200 pl-5 pr-3 py-2.5"
         >
+          <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#1D3160]">
+            {isAuthenticated ? t('account.menuAria') : 'Menu'}
+          </span>
           <button
             type="button"
             onClick={() => setOpen(false)}
@@ -334,10 +337,7 @@ export function HamburgerMenu() {
 
           {isAuthenticated && (
             <>
-              <div className="border-b border-gray-100">
-                <p className="px-5 pb-1.5 pt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
-                  {t('account.menuAria')}
-                </p>
+              <div className="border-b border-gray-100 pt-2">
                 <Link
                   href="/account"
                   onClick={() => setOpen(false)}

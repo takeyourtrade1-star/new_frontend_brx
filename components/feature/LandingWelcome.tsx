@@ -3,7 +3,7 @@
 import React, { useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Tag, RefreshCw, Gavel } from 'lucide-react';
+import { Tag, RefreshCw, Gavel, CircleDollarSign, ShieldCheck, ArrowRightLeft, Scale, Package, TrendingUp } from 'lucide-react';
 import { getCdnImageUrl, getCdnVideoUrl } from '@/lib/config';
 import { useGame } from '@/lib/contexts/GameContext';
 import type { GameSlug } from '@/lib/contexts/GameContext';
@@ -14,101 +14,13 @@ const REGISTER_BTN_BORDER = '#878787';
 
 const LANDING_BG_VIDEO = 'videos/sfondo_carte.mp4';
 
-const svgProps = {
-  xmlns: 'http://www.w3.org/2000/svg',
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: BRAND_ORANGE,
-  strokeWidth: 1.7,
-  strokeLinecap: 'round' as const,
-  strokeLinejoin: 'round' as const,
-  className: 'h-full w-full',
-};
-
-/** 1. Prezzi Migliori - mano con moneta */
-function IconPrezziMigliori() {
-  return (
-    <svg {...svgProps} width={48} height={48}>
-      <circle cx="12" cy="7" r="4" />
-      <line x1="12" y1="5" x2="12" y2="9" />
-      <path d="M18 16c-1.5 0-2.5-.5-4-1l-3-1H4v4h12l2 1a2 2 0 0 0 2-3z" />
-    </svg>
-  );
-}
-
-/** 2. Sistema Sicuro - lucchetto con spunta */
-function IconSistemaSicuro() {
-  return (
-    <svg {...svgProps} width={48} height={48}>
-      <rect x="4" y="11" width="16" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-      <polyline points="9 16 11 18 15 14" />
-    </svg>
-  );
-}
-
-/** 3. Gestione Semplice - frecce orizzontali */
-function IconGestioneSemplice() {
-  return (
-    <svg {...svgProps} width={48} height={48}>
-      <path d="M17 3l4 4-4 4" />
-      <path d="M3 7h18" />
-      <path d="M7 21l-4-4 4-4" />
-      <path d="M21 17H3" />
-    </svg>
-  );
-}
-
-/** 4. Grande Domanda - bilancia equilibrata */
-function IconGrandeDomanda() {
-  return (
-    <svg {...svgProps} width={48} height={48}>
-      <line x1="12" y1="3" x2="12" y2="21" />
-      <line x1="8" y1="21" x2="16" y2="21" />
-      <line x1="4" y1="6" x2="20" y2="6" />
-      <circle cx="12" cy="6" r="1" />
-      <line x1="4" y1="6" x2="1" y2="14" />
-      <line x1="4" y1="6" x2="7" y2="14" />
-      <path d="M1 14h6a3 3 0 0 1-6 0z" />
-      <line x1="20" y1="6" x2="17" y2="14" />
-      <line x1="20" y1="6" x2="23" y2="14" />
-      <path d="M17 14h6a3 3 0 0 1-6 0z" />
-    </svg>
-  );
-}
-
-/** 5. Vendite Semplici - pacco / scatola isometrica */
-function IconVenditeSemplici() {
-  return (
-    <svg {...svgProps} width={48} height={48}>
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-      <line x1="12" y1="22.08" x2="12" y2="12" />
-    </svg>
-  );
-}
-
-/** 6. Commissioni Leggere - grafico in crescita */
-function IconCommissioniLeggere() {
-  return (
-    <svg {...svgProps} width={48} height={48}>
-      <line x1="3" y1="21" x2="21" y2="21" />
-      <line x1="6" y1="21" x2="6" y2="16" />
-      <line x1="12" y1="21" x2="12" y2="12" />
-      <line x1="18" y1="21" x2="18" y2="8" />
-      <polyline points="3 16 8 11 13 14 20 6" />
-      <polyline points="15 6 20 6 20 11" />
-    </svg>
-  );
-}
-
-const FEATURE_ICONS: Record<string, React.FC> = {
-  prezzi: IconPrezziMigliori,
-  sicuro: IconSistemaSicuro,
-  gestione: IconGestioneSemplice,
-  domanda: IconGrandeDomanda,
-  vendite: IconVenditeSemplici,
-  commissioni: IconCommissioniLeggere,
+const FEATURE_ICONS: Record<string, React.FC<any>> = {
+  prezzi: CircleDollarSign,
+  sicuro: ShieldCheck,
+  gestione: ArrowRightLeft,
+  domanda: Scale,
+  vendite: Package,
+  commissioni: TrendingUp,
 };
 
 type LandingGameSlug = GameSlug | 'clear';
@@ -317,42 +229,43 @@ export function LandingWelcome() {
 
         {/* Come vendere / scambiare / asta — forte glass effect, video che si intravede */}
         <section className="relative w-full overflow-hidden px-4 pt-8 pb-6 sm:px-5 sm:pt-10 sm:pb-7 md:pt-12 md:pb-8">
-          {/* Sfondo blur forte con gradiente di transizione quasi invisibile */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-header-bg/8 via-header-bg/20 via-header-bg/35 to-header-bg/70 backdrop-blur-2xl" />
+          {/* Sfondo blur forte con gradiente di transizione super morbido per azzerare lo 'stacco netto' col video */}
+          <div 
+            className="absolute inset-x-0 bottom-0 top-6 sm:top-8 md:top-10 bg-gradient-to-b from-transparent via-header-bg/20 via-header-bg/40 to-header-bg/80 backdrop-blur-xl" 
+            style={{ 
+              WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 25%, black 100%)',
+              maskImage: 'linear-gradient(to bottom, transparent 0%, black 25%, black 100%)' 
+            }} 
+          />
           
           <div className="relative z-10 mx-auto max-w-4xl">
             {/* KPI icone — rimpicciolite e integrate */}
             <div className="mb-6 sm:mb-7" aria-labelledby="landing-features-heading">
-              <div className="mb-3 text-center sm:mb-4">
-                <p className="mb-1 text-[9px] font-medium uppercase tracking-[0.25em] text-[#FF7300]/95 sm:text-[10px]">
-                  {t('landing.feat.sectionKicker')}
-                </p>
+              <div className="mb-4 text-center sm:mb-6">
                 <h2
                   id="landing-features-heading"
-                  className="text-sm font-light leading-tight tracking-tight text-white sm:text-base"
+                  className="text-base font-normal leading-tight tracking-wide text-white sm:text-lg md:text-xl"
                 >
                   {t('landing.feat.sectionTitle')}
                 </h2>
               </div>
-              <div className="grid w-full grid-cols-3 justify-items-center gap-x-2 gap-y-3 sm:gap-x-3 sm:gap-y-4">
+              <div className="grid w-full grid-cols-2 md:grid-cols-3 justify-items-center gap-x-4 gap-y-6 sm:gap-x-6 sm:gap-y-8">
                 {FEATURES.map((f) => {
                   const IconComponent = FEATURE_ICONS[f.iconKey];
                   return (
                     <div
                       key={f.title}
-                      className="flex w-full max-w-[5.25rem] min-w-0 flex-col items-center justify-start gap-1 text-center sm:max-w-[6rem] sm:gap-1.5"
+                      className="flex flex-col items-center text-center max-w-[11rem] sm:max-w-[14rem]"
                     >
-                      <div className="flex h-5 w-5 shrink-0 items-center justify-center sm:h-6 sm:w-6">
-                        {IconComponent ? <IconComponent /> : null}
+                      <div className="mb-2 flex shrink-0 items-center justify-center">
+                        {IconComponent ? <IconComponent className="h-7 w-7 sm:h-8 sm:w-8 text-[#FF7300]" strokeWidth={1.5} /> : null}
                       </div>
-                      <div className="w-full min-w-0">
-                        <h3 className="text-[9px] font-medium uppercase leading-tight tracking-[0.04em] text-white/95 sm:text-[10px]">
-                          {f.title}
-                        </h3>
-                        <p className="mt-0.5 hidden text-[9px] leading-relaxed text-white/60 md:block">
-                          {f.description}
-                        </p>
-                      </div>
+                      <h3 className="text-[10px] font-bold uppercase leading-tight tracking-[0.06em] text-white sm:text-[11px] mb-1">
+                        {f.title}
+                      </h3>
+                      <p className="hidden md:block text-[10px] sm:text-[11px] leading-relaxed text-white/70">
+                        {f.description}
+                      </p>
                     </div>
                   );
                 })}
@@ -360,56 +273,57 @@ export function LandingWelcome() {
             </div>
 
             {/* 3 Pillole espandibili Accordion */}
-            <p className="text-center text-xs font-normal leading-relaxed text-white/95 sm:text-sm md:text-base">
+            <p className="mt-8 sm:mt-10 md:mt-12 text-center text-xs font-normal leading-relaxed text-white/95 sm:text-sm md:text-base">
               {t('landing.howToIntro')}
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center sm:items-start sm:gap-3 md:mt-8">
+            <div className="mt-3 md:mt-4 flex flex-row flex-wrap sm:flex-nowrap justify-center items-center gap-2 sm:gap-3 w-full max-w-4xl mx-auto px-2">
               {HOW_TO_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const isActive = activePill === item.id;
                 const isCollapsed = activePill !== null && !isActive;
+
                 return (
                   <button
                     key={item.id}
                     onClick={() => setActivePill(isActive ? null : item.id)}
-                    className={`group relative flex overflow-hidden border border-gray-200 bg-white shadow-sm transition-all duration-300 ease-out cursor-pointer ${
+                    className={`group relative flex overflow-hidden border border-white/20 bg-white/[0.08] backdrop-blur-md hover:bg-white/[0.15] hover:border-white/30 shadow-[0_0_20px_rgba(0,0,0,0.2)] transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] cursor-pointer h-12 sm:h-14 items-center rounded-full shrink-0 ${
                       isActive 
-                        ? 'flex-col rounded-2xl p-4 sm:w-64' 
+                        ? 'p-1.5 pl-1.5 sm:p-2 sm:pl-2 w-[340px] sm:w-[460px] justify-between bg-white/[0.12] border-white/30' 
                         : isCollapsed 
-                          ? 'items-center justify-center rounded-full p-2 sm:h-11 sm:w-11' 
-                          : 'flex-row items-center gap-2 rounded-2xl p-3 sm:w-auto sm:px-4'
+                          ? 'p-1.5 sm:p-2 w-[48px] sm:w-[56px] justify-center' 
+                          : 'p-1.5 pr-4 sm:p-2 sm:pr-5 w-[140px] sm:w-[170px] justify-start'
                     }`}
                   >
-                    {/* Icona */}
-                    <div className={`flex shrink-0 items-center justify-center rounded-full bg-gray-100 ${
-                      isActive ? 'h-6 w-6' : 'h-6 w-6'
-                    }`}>
-                      <Icon className="h-3 w-3 text-gray-600" strokeWidth={2} />
-                    </div>
-                    
-                    {/* Titolo - visibile solo se non collassato */}
-                    {!isCollapsed && (
-                      <span className={`font-semibold text-[#1D3160] uppercase tracking-wide whitespace-nowrap ${
-                        isActive ? 'text-sm mt-2 mb-1' : 'text-xs'
-                      }`}>
-                        {item.shortTitle}
-                      </span>
-                    )}
-
-                    {/* Contenuto espanso */}
-                    {isActive && (
-                      <div className="flex flex-col animate-in fade-in duration-200">
-                        <p className="mb-3 text-xs leading-relaxed text-gray-600">
-                          {item.description}
-                        </p>
-                        <Link
-                          href={item.href}
-                          className="inline-flex w-full items-center justify-center rounded-lg bg-[#1D3160] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition-all hover:bg-[#243663]"
-                        >
-                          {item.cta}
-                        </Link>
+                    {/* SINISTRA: Icona + Testi (Titolo e Descrizione) */}
+                    <div className="flex items-center gap-2 sm:gap-3 overflow-hidden whitespace-nowrap min-w-0">
+                      {/* Pallino con Icona */}
+                      <div className={`flex shrink-0 items-center justify-center rounded-full transition-colors duration-300 h-9 w-9 sm:h-10 sm:w-10 ${isActive ? 'bg-[#FF7300]/20' : 'bg-white/10 group-hover:bg-white/20'}`}>
+                        <Icon className={`h-4 w-4 sm:h-4 sm:w-4 transition-colors duration-300 ${isActive ? 'text-[#FF7300]' : 'text-white'}`} strokeWidth={2.5} />
                       </div>
-                    )}
+                      
+                      {/* Contenitore Testi */}
+                      <div className={`flex flex-col justify-center text-left transition-[max-width,opacity] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${isCollapsed ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[450px]'}`}>
+                        <span className="font-bold text-white uppercase tracking-wide text-xs sm:text-sm leading-tight">
+                          {item.shortTitle}
+                        </span>
+                        
+                        {/* Descrizione: sempre nel DOM, larghezza animata per non farla scattare */}
+                        <span className={`hidden sm:block text-[10px] sm:text-[11px] text-white/70 tracking-wide font-medium leading-tight truncate transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isActive ? 'max-h-8 opacity-100 mt-0.5 max-w-[280px] sm:max-w-[400px]' : 'max-h-0 opacity-0 mt-0 max-w-0'}`}>
+                          {item.description}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* DESTRA: Pulsante Azione (sempre nel DOM animato fluidamente) */}
+                    <div className={`shrink-0 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isActive ? 'max-w-[150px] opacity-100 pl-2' : 'max-w-0 opacity-0 pl-0'}`}>
+                      <Link
+                        href={item.href}
+                        className="inline-flex flex-nowrap h-9 sm:h-10 items-center justify-center rounded-full bg-[#FF7300] px-4 sm:px-5 py-0 text-[10px] sm:text-[11px] font-bold uppercase tracking-wide text-white transition-all hover:bg-[#e66700] shadow-[0_2px_10px_rgba(255,115,0,0.3)] hover:scale-105 active:scale-95 whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {item.cta}
+                      </Link>
+                    </div>
                   </button>
                 );
               })}

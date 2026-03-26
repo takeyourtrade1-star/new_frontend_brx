@@ -53,7 +53,7 @@ export function AccountSidebar() {
                   className={cn(
                     'mx-2 flex items-center rounded-full px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-colors',
                     isActive(href)
-                      ? 'bg-[#FF7300] text-white shadow-sm'
+                      ? 'border border-primary/45 bg-primary/60 text-white shadow-2xl backdrop-blur-2xl backdrop-saturate-150 ring-1 ring-white/20'
                       : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                   )}
                 >

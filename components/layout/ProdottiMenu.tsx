@@ -1,18 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { LayoutGrid, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-
-const ORANGE_GLASS_MENU_CLASS =
-  'absolute left-0 top-full z-[110] mt-0 w-[calc(100vw-1rem)] max-w-[280px] overflow-visible rounded-2xl border border-primary/45 bg-primary/30 py-2 text-white backdrop-blur-2xl backdrop-saturate-150 shadow-2xl ring-1 ring-white/20 animate-in fade-in-0 duration-200 md:w-auto md:min-w-[240px] md:origin-left';
-const ORANGE_GLASS_DIVIDER_CLASS = 'border-b border-white/35 last:border-b-0';
 
 export function ProdottiMenu({ isSquared = false }: { isSquared?: boolean }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [headerBottom, setHeaderBottom] = useState(0);
 
   const menuItems = useMemo(
     () =>
@@ -28,20 +26,38 @@ export function ProdottiMenu({ isSquared = false }: { isSquared?: boolean }) {
     [t]
   );
 
+  const measure = useCallback(() => {
+    const header = btnRef.current?.closest('header');
+    if (header) setHeaderBottom(header.getBoundingClientRect().bottom);
+  }, []);
+
+  useLayoutEffect(() => {
+    measure();
+    const header = btnRef.current?.closest('header');
+    if (!header) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(header);
+    return () => ro.disconnect();
+  }, [measure]);
+
   useEffect(() => {
     if (!open) return;
-    const onClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+    measure();
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
     };
-    document.addEventListener('click', onClickOutside);
-    return () => document.removeEventListener('click', onClickOutside);
-  }, [open]);
+    document.addEventListener('keydown', onEscape);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onEscape);
+      document.body.style.overflow = '';
+    };
+  }, [open, measure]);
 
   return (
-    <div className="relative shrink-0" ref={panelRef}>
+    <>
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={`flex h-11 w-11 shrink-0 items-center justify-center gap-2 border border-stroke-grey bg-primary px-0 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] font-sans md:h-auto md:min-h-11 md:w-auto md:px-5 md:py-2 ${
@@ -61,27 +77,42 @@ export function ProdottiMenu({ isSquared = false }: { isSquared?: boolean }) {
         <span className="hidden md:inline">{t('products.button')}</span>
       </button>
 
+      {/* Overlay — solo sotto l'header */}
       {open && (
         <div
-          className={ORANGE_GLASS_MENU_CLASS}
-          role="menu"
-        >
-          <nav>
-            {menuItems.map((item) => (
-              <div key={item.id} className={ORANGE_GLASS_DIVIDER_CLASS}>
-                <Link
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-white/95 font-sans transition-colors duration-200 hover:bg-white/10 focus:bg-white/10 focus:outline-none"
-                  role="menuitem"
-                >
-                  {item.label}
-                </Link>
-              </div>
-            ))}
-          </nav>
-        </div>
+          className="fixed inset-x-0 bottom-0 z-[9999] bg-black/40 transition-opacity"
+          style={{ top: headerBottom }}
+          aria-hidden
+          onClick={() => setOpen(false)}
+        />
       )}
-    </div>
+
+      {/* Drawer — parte dal bordo inferiore dell'header */}
+      <div
+        className={cn(
+          'fixed left-0 bottom-0 z-[10000] flex w-[min(100%,340px)] max-w-[92vw] flex-col bg-white shadow-[8px_0_32px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out',
+          open ? 'translate-x-0' : '-translate-x-full'
+        )}
+        style={{ top: headerBottom }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('products.menuAria')}
+      >
+        {/* Voci menu */}
+        <nav className="flex-1 overflow-y-auto">
+          {menuItems.map((item) => (
+            <Link
+              key={item.id}
+              href={item.href}
+              onClick={() => setOpen(false)}
+              className="block border-b border-gray-100 px-5 py-3.5 text-[13px] font-semibold uppercase tracking-wide text-[#1D3160] transition-colors duration-200 hover:bg-primary/30 hover:backdrop-blur-2xl hover:backdrop-saturate-150 focus:bg-primary/30 focus:outline-none"
+              role="menuitem"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </>
   );
 }
