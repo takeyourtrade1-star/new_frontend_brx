@@ -363,7 +363,7 @@ export function LandingWelcome() {
             <p className="text-center text-xs font-normal leading-relaxed text-white/95 sm:text-sm md:text-base">
               {t('landing.howToIntro')}
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center sm:gap-3 md:mt-8">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center sm:items-start sm:gap-3 md:mt-8">
               {HOW_TO_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const isActive = activePill === item.id;
@@ -372,43 +372,44 @@ export function LandingWelcome() {
                   <button
                     key={item.id}
                     onClick={() => setActivePill(isActive ? null : item.id)}
-                    className={`group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 ease-out cursor-pointer text-left ${
-                      isActive ? 'sm:w-64' : isCollapsed ? 'sm:w-12' : 'sm:w-auto'
-                    } ${
-                      isActive ? 'p-4' : isCollapsed ? 'p-2 items-center' : 'p-3'
+                    className={`group relative flex overflow-hidden border border-gray-200 bg-white shadow-sm transition-all duration-300 ease-out cursor-pointer ${
+                      isActive 
+                        ? 'flex-col rounded-2xl p-4 sm:w-64' 
+                        : isCollapsed 
+                          ? 'items-center justify-center rounded-full p-2 sm:h-11 sm:w-11' 
+                          : 'flex-row items-center gap-2 rounded-2xl p-3 sm:w-auto sm:px-4'
                     }`}
                   >
-                    {/* Header */}
-                    <div className={`flex items-center ${isActive ? 'mb-3 gap-2' : isCollapsed ? '' : 'gap-2'}`}>
-                      <div className={`flex shrink-0 items-center justify-center rounded-full bg-gray-100 ${
-                        isActive ? 'h-6 w-6' : isCollapsed ? 'h-6 w-6' : 'h-5 w-5'
+                    {/* Icona */}
+                    <div className={`flex shrink-0 items-center justify-center rounded-full bg-gray-100 ${
+                      isActive ? 'h-6 w-6' : 'h-6 w-6'
+                    }`}>
+                      <Icon className="h-3 w-3 text-gray-600" strokeWidth={2} />
+                    </div>
+                    
+                    {/* Titolo - visibile solo se non collassato */}
+                    {!isCollapsed && (
+                      <span className={`font-semibold text-[#1D3160] uppercase tracking-wide whitespace-nowrap ${
+                        isActive ? 'text-sm mt-2 mb-1' : 'text-xs'
                       }`}>
-                        <Icon className="h-3 w-3 text-gray-600" strokeWidth={2} />
-                      </div>
-                      {/* Titolo visibile solo se non collassato */}
-                      <span className={`font-semibold text-[#1D3160] uppercase tracking-wide transition-all whitespace-nowrap overflow-hidden ${
-                        isCollapsed ? 'w-0 opacity-0' : 'opacity-100'
-                      } ${isActive ? 'text-sm' : 'text-xs'}`}>
                         {item.shortTitle}
                       </span>
-                    </div>
+                    )}
 
                     {/* Contenuto espanso */}
-                    <div
-                      className={`flex flex-col transition-all duration-300 ${
-                        isActive ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'
-                      }`}
-                    >
-                      <p className="mb-3 text-xs leading-relaxed text-gray-600">
-                        {item.description}
-                      </p>
-                      <Link
-                        href={item.href}
-                        className="inline-flex w-full items-center justify-center rounded-lg bg-[#1D3160] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition-all hover:bg-[#243663]"
-                      >
-                        {item.cta}
-                      </Link>
-                    </div>
+                    {isActive && (
+                      <div className="flex flex-col animate-in fade-in duration-200">
+                        <p className="mb-3 text-xs leading-relaxed text-gray-600">
+                          {item.description}
+                        </p>
+                        <Link
+                          href={item.href}
+                          className="inline-flex w-full items-center justify-center rounded-lg bg-[#1D3160] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition-all hover:bg-[#243663]"
+                        >
+                          {item.cta}
+                        </Link>
+                      </div>
+                    )}
                   </button>
                 );
               })}
