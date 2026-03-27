@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SEARCH_CATEGORIES } from '@/lib/search-categories';
 
@@ -101,6 +101,20 @@ export function MainSearch() {
             </>
           )}
         </div>
+
+        {query && (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery('');
+              inputRef.current?.focus();
+            }}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-300/60 focus:outline-none focus:ring-0 transition-colors"
+            aria-label="Cancella ricerca"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
 
         <button
           type="submit"

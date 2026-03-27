@@ -66,7 +66,7 @@ export function Footer() {
   return (
     <footer className="w-full bg-white text-gray-900">
       <div
-        className="flex flex-col items-center justify-center gap-3 px-4 py-8 text-white md:flex-row md:gap-6 md:py-10"
+        className="flex items-center justify-center px-4 py-3 md:py-4"
         style={{ backgroundColor: FOOTER_BAND_BG }}
       >
         <Link href="/" className="flex items-center" aria-label="Ebartex Home">
@@ -75,11 +75,10 @@ export function Footer() {
             alt="Ebartex"
             width={320}
             height={128}
-            className="h-[7.5rem] w-auto drop-shadow-sm md:h-[8rem]"
+            className="h-16 w-auto drop-shadow-sm md:h-20"
             unoptimized
           />
         </Link>
-        <p className="text-center text-sm font-medium text-white/95 md:text-base">{t('footer.claim')}</p>
       </div>
 
       <div className="border-t-4 border-[#FF7300] bg-white px-4 py-10 md:px-6 md:py-14">

@@ -25,13 +25,12 @@ const FEATURE_ICONS: Record<string, React.FC<any>> = {
 
 type LandingGameSlug = GameSlug | 'clear';
 
-const getGameLogos = (): {
+/** Giochi principali: Magic e Pokemon (sfondo quadrato) */
+const getMainGames = (): {
   src: string;
   alt: string;
-  homeHref?: string;
-  comingSoon?: boolean;
-  /** Allinea subito header + ricerca al gioco scelto */
-  gameSlug?: LandingGameSlug;
+  homeHref: string;
+  gameSlug: LandingGameSlug;
 }[] => [
   {
     src: getCdnImageUrl('loghi-giochi/magic.png'),
@@ -40,16 +39,26 @@ const getGameLogos = (): {
     gameSlug: 'mtg',
   },
   {
-    src: getCdnImageUrl('loghi-giochi/yu-gi-oh.png'),
-    alt: 'Yu-Gi-Oh! Trading Card Game',
-    homeHref: '/home',
-    gameSlug: 'clear',
-  },
-  {
     src: getCdnImageUrl('loghi-giochi/pokèmon.png'),
     alt: 'Pokémon Trading Card Game',
     homeHref: '/home/pokemon',
     gameSlug: 'pokemon',
+  },
+];
+
+/** Giochi in arrivo + Yu-Gi-Oh (sfondo rotondo, riga inferiore) */
+const getComingSoonGames = (): {
+  src: string;
+  alt: string;
+  homeHref?: string;
+  comingSoon?: boolean;
+  gameSlug?: LandingGameSlug;
+}[] => [
+  {
+    src: getCdnImageUrl('loghi-giochi/yu-gi-oh.png'),
+    alt: 'Yu-Gi-Oh! Trading Card Game',
+    homeHref: '/home',
+    gameSlug: 'clear',
   },
   { src: getCdnImageUrl('loghi-giochi/One_Piece_Card_Game_Logo%201.png'), alt: 'One Piece Card Game', comingSoon: true },
   { src: getCdnImageUrl('loghi-giochi/Disney_Lorcana_480x480%201.png'), alt: 'Disney Lorcana', comingSoon: true },
@@ -122,7 +131,8 @@ export function LandingWelcome() {
     [t]
   );
 
-  const GAME_LOGOS = getGameLogos();
+  const MAIN_GAMES = getMainGames();
+  const COMING_SOON_GAMES = getComingSoonGames();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -178,15 +188,15 @@ export function LandingWelcome() {
           </p>
         </div>
 
-        {/* Loghi giochi: 3 grandi sopra + 3 piccole sotto */}
+        {/* Loghi giochi: 2 grandi quadrati sopra (Magic, Pokemon) + Yu-Gi-Oh rotondo sotto con i coming soon */}
         <section className="px-2 pb-2 sm:px-4 sm:pb-3 md:px-6 md:pb-4">
-          {/* Riga 1: 3 giochi principali centrati */}
+          {/* Riga 1: Magic e Pokemon — sfondo quadrato (rounded-2xl) */}
           <div className="mx-auto flex w-full max-w-4xl flex-row flex-wrap items-center justify-center gap-4 py-2 sm:gap-6 md:gap-8">
-            {GAME_LOGOS.slice(0, 3).map((game) => (
+            {MAIN_GAMES.map((game) => (
               <Link
                 key={game.alt}
-                href={game.homeHref ?? '/home'}
-                className="group relative flex h-44 w-44 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/15 bg-white/5 p-7 shadow-[0_0_30px_rgba(255,255,255,0.15)] shadow-[inset_0_0_20px_rgba(255,255,255,0.1)] transition-all duration-200 hover:border-white/35 hover:bg-white/10 hover:backdrop-blur-md sm:h-48 sm:w-48 sm:p-8 md:h-52 md:w-52 md:p-9"
+                href={game.homeHref}
+                className="group relative flex h-44 w-44 shrink-0 items-center justify-center overflow-visible rounded-2xl border border-white/15 bg-white/5 p-7 shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all duration-200 hover:border-white/35 hover:bg-white/10 hover:backdrop-blur-md sm:h-48 sm:w-48 sm:p-8 md:h-52 md:w-52 md:p-9"
                 aria-label={t('landing.gameAria.goHome', { name: game.alt })}
                 onClick={() => {
                   if (game.gameSlug === 'clear') setSelectedGame(null);
@@ -202,20 +212,23 @@ export function LandingWelcome() {
             ))}
           </div>
           
-          {/* Riga 2: 3 giochi in arrivo centrati nel container */}
-          <div className="mx-auto mt-6 flex w-full max-w-md flex-row items-center justify-center gap-3 rounded-full border border-white/25 bg-white/5 px-4 py-4 backdrop-blur-sm sm:mt-8 sm:gap-4 sm:px-6 sm:py-5 md:mt-10 md:gap-5 md:px-8 md:py-6 relative">
+          {/* Riga 2: Yu-Gi-Oh + giochi in arrivo — sfondo rotondo */}
+          <div className="mx-auto mt-6 flex w-full max-w-lg flex-row items-center justify-center gap-3 rounded-full border border-white/25 bg-white/5 px-4 py-4 backdrop-blur-sm sm:mt-8 sm:gap-4 sm:px-6 sm:py-5 md:mt-10 md:gap-5 md:px-8 md:py-6 relative">
             {/* Badge sopra */}
             <div className="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-4 py-1.5 text-center font-sans text-[10px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-lg backdrop-blur-sm sm:text-xs">
               PRESTO IN ARRIVO
             </div>
             
-            {GAME_LOGOS.slice(3, 6).map((game) => (
+            {COMING_SOON_GAMES.map((game) => (
               <Link
                 key={game.alt}
-                href="#"
+                href={game.homeHref ?? '#'}
                 className="group relative flex h-20 w-20 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/15 bg-white/5 p-3 transition-all duration-200 hover:border-white/35 hover:bg-white/10 hover:backdrop-blur-md sm:h-24 sm:w-24 sm:p-4 md:h-28 md:w-28 md:p-5"
-                aria-label={t('landing.gameAria.soon', { name: game.alt })}
-                onClick={() => {}}
+                aria-label={game.comingSoon ? t('landing.gameAria.soon', { name: game.alt }) : t('landing.gameAria.goHome', { name: game.alt })}
+                onClick={() => {
+                  if (game.gameSlug === 'clear') setSelectedGame(null);
+                  else if (game.gameSlug) setSelectedGame(game.gameSlug);
+                }}
               >
                 <img
                   src={game.src}

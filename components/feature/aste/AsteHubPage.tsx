@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { PlusCircle, Search, List, Users, Truck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { PlusCircle, Search, List, Users, Truck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { countryFlagEmoji } from '@/lib/auction/country-flag';
@@ -242,6 +242,16 @@ export function AsteHubPage() {
                   className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none"
                   aria-label={t('auctions.searchPlaceholder')}
                 />
+                {q && (
+                  <button
+                    type="button"
+                    onClick={() => setQ('')}
+                    className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                    aria-label="Cancella ricerca"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
               <button
                 type="button"

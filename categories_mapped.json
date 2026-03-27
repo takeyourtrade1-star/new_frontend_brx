@@ -1,0 +1,392 @@
+[
+    {
+        "id": 1,
+        "name_en": "Magic Single Card",
+        "name_it": "Magic Carta Singola"
+    },
+    {
+        "id": 2,
+        "name_en": "Magic Token/Emblem",
+        "name_it": "Magic Token/Emblem"
+    },
+    {
+        "id": 3,
+        "name_en": "Magic Oversized",
+        "name_it": "Magic Oversized"
+    },
+    {
+        "id": 4,
+        "name_en": "Magic Booster Boxes",
+        "name_it": "Booster Box"
+    },
+    {
+        "id": 5,
+        "name_en": "Magic Boosters",
+        "name_it": "Magic Boosters"
+    },
+    {
+        "id": 6,
+        "name_en": "Magic Complete Sets",
+        "name_it": "Magic Complete Sets"
+    },
+    {
+        "id": 7,
+        "name_en": "Magic Starter Decks",
+        "name_it": "Magic Starter Decks"
+    },
+    {
+        "id": 8,
+        "name_en": "Magic Empty Packaging & Storage",
+        "name_it": "Magic Empty Packaging & Storage"
+    },
+    {
+        "id": 9,
+        "name_en": "Magic Books - Comics - Guides ",
+        "name_it": "Magic Books - Comics - Guides "
+    },
+    {
+        "id": 10,
+        "name_en": "Magic Extra - Box Sets & Displays",
+        "name_it": "Magic Extra - Box Sets & Displays"
+    },
+    {
+        "id": 12,
+        "name_en": "Magic Sleeves",
+        "name_it": "Magic Sleeves"
+    },
+    {
+        "id": 13,
+        "name_en": "Magic Boxed Set",
+        "name_it": "Magic Boxed Set"
+    },
+    {
+        "id": 15,
+        "name_en": "Magic Albums",
+        "name_it": "Magic Albums"
+    },
+    {
+        "id": 16,
+        "name_en": "Magic Deck Boxes",
+        "name_it": "Magic Deck Boxes"
+    },
+    {
+        "id": 17,
+        "name_en": "Magic Preconstructed Decks",
+        "name_it": "Magic Preconstructed Decks"
+    },
+    {
+        "id": 18,
+        "name_en": "Memorabilia and Gadgets",
+        "name_it": "Memorabilia and Gadgets"
+    },
+    {
+        "id": 19,
+        "name_en": "Magic Playmats",
+        "name_it": "Magic Playmats"
+    },
+    {
+        "id": 20,
+        "name_en": "Magic Life Counter",
+        "name_it": "Magic Life Counter"
+    },
+    {
+        "id": 21,
+        "name_en": "Magic Card Storage",
+        "name_it": "Magic Card Storage"
+    },
+    {
+        "id": 22,
+        "name_en": "Magic Dice",
+        "name_it": "Magic Dice"
+    },
+    {
+        "id": 23,
+        "name_en": "Magic Bundles and Fat Packs",
+        "name_it": "Magic Bundles and Fat Packs"
+    },
+    {
+        "id": 24,
+        "name_en": "Magic Tournament Prerelease Packs",
+        "name_it": "Magic Tournament Prerelease Packs"
+    },
+    {
+        "id": 25,
+        "name_en": "Magic Dividers",
+        "name_it": "Magic Dividers"
+    },
+    {
+        "id": 26,
+        "name_en": "Magic Binder Pages",
+        "name_it": "Magic Binder Pages"
+    },
+    {
+        "id": 29,
+        "name_en": "Fow Single Card",
+        "name_it": "Fow Carta Singola"
+    },
+    {
+        "id": 43,
+        "name_en": "Uncut Sheets",
+        "name_it": "Uncut Sheets"
+    },
+    {
+        "id": 44,
+        "name_en": "Yu-Gi-Oh! Singles",
+        "name_it": "Yu-Gi-Oh! Singles"
+    },
+    {
+        "id": 45,
+        "name_en": "Yu-Gi-Oh! Sleeves",
+        "name_it": "Yu-Gi-Oh! Sleeves"
+    },
+    {
+        "id": 46,
+        "name_en": "Yu-Gi-Oh! Playmats",
+        "name_it": "Yu-Gi-Oh! Playmats"
+    },
+    {
+        "id": 47,
+        "name_en": "Yu-Gi-Oh! Starter Deck",
+        "name_it": "Yu-Gi-Oh! Starter Deck"
+    },
+    {
+        "id": 49,
+        "name_en": "Yu-Gi-Oh! Deck Boxes",
+        "name_it": "Yu-Gi-Oh! Deck Boxes"
+    },
+    {
+        "id": 50,
+        "name_en": "Yu-Gi-Oh! Albums",
+        "name_it": "Yu-Gi-Oh! Albums"
+    },
+    {
+        "id": 52,
+        "name_en": "Yu-Gi-Oh! Memorabilias",
+        "name_it": "Yu-Gi-Oh! Memorabilias"
+    },
+    {
+        "id": 53,
+        "name_en": "Yu-Gi-Oh! Boosters",
+        "name_it": "Yu-Gi-Oh! Boosters"
+    },
+    {
+        "id": 54,
+        "name_en": "Yu-Gi-Oh! Boosters Box",
+        "name_it": "Yu-Gi-Oh! Boosters Box"
+    },
+    {
+        "id": 55,
+        "name_en": "Yu-Gi-Oh! Tins",
+        "name_it": "Yu-Gi-Oh! Tins"
+    },
+    {
+        "id": 56,
+        "name_en": "Yu-Gi-Oh! Empty Tins & Storage",
+        "name_it": "Yu-Gi-Oh! Empty Tins & Storage"
+    },
+    {
+        "id": 59,
+        "name_en": "Pokémon Tins",
+        "name_it": "Pokémon Tins"
+    },
+    {
+        "id": 60,
+        "name_en": "Pokémon Box Set",
+        "name_it": "Pokémon Box Set"
+    },
+    {
+        "id": 61,
+        "name_en": "Pokémon Memorabilia",
+        "name_it": "Pokémon Memorabilia"
+    },
+    {
+        "id": 62,
+        "name_en": "Pokémon Sleeves",
+        "name_it": "Pokémon Sleeves"
+    },
+    {
+        "id": 63,
+        "name_en": "Pokémon Playmats",
+        "name_it": "Pokémon Playmats"
+    },
+    {
+        "id": 64,
+        "name_en": "Pokémon Deck Boxes",
+        "name_it": "Pokémon Deck Boxes"
+    },
+    {
+        "id": 65,
+        "name_en": "Pokémon Albums",
+        "name_it": "Pokémon Albums"
+    },
+    {
+        "id": 66,
+        "name_en": "Pokémon Booster",
+        "name_it": "Pokémon Booster"
+    },
+    {
+        "id": 67,
+        "name_en": "Pokémon Booster Box",
+        "name_it": "Booster Box"
+    },
+    {
+        "id": 68,
+        "name_en": "Pokémon Bundle ",
+        "name_it": "Pokémon Bundle "
+    },
+    {
+        "id": 69,
+        "name_en": "Pokémon Preconstructed Deck",
+        "name_it": "Pokémon Preconstructed Deck"
+    },
+    {
+        "id": 70,
+        "name_en": "Yu-Gi-Oh! Preconstructed Decks",
+        "name_it": "Yu-Gi-Oh! Preconstructed Decks"
+    },
+    {
+        "id": 72,
+        "name_en": "Yu-Gi-Oh! Bundles",
+        "name_it": "Yu-Gi-Oh! Bundles"
+    },
+    {
+        "id": 73,
+        "name_en": "Pokémon Singles",
+        "name_it": "Pokémon Singles"
+    },
+    {
+        "id": 74,
+        "name_en": "Pokémon Dividers",
+        "name_it": "Pokémon Dividers"
+    },
+    {
+        "id": 75,
+        "name_en": "Yu-Gi-Oh! Dice",
+        "name_it": "Yu-Gi-Oh! Dice"
+    },
+    {
+        "id": 76,
+        "name_en": "Yu-Gi-Oh! Oversized",
+        "name_it": "Yu-Gi-Oh! Oversized"
+    },
+    {
+        "id": 78,
+        "name_en": "Pokémon Oversized",
+        "name_it": "Pokémon Oversized"
+    },
+    {
+        "id": 86,
+        "name_en": "Pokémon Dice",
+        "name_it": "Pokémon Dice"
+    },
+    {
+        "id": 117,
+        "name_en": "Yu-Gi-Oh! Special & Deluxe Editions",
+        "name_it": "Yu-Gi-Oh! Special & Deluxe Editions"
+    },
+    {
+        "id": 118,
+        "name_en": "Pokémon Empty Boxes & Storage",
+        "name_it": "Pokémon Empty Boxes & Storage"
+    },
+    {
+        "id": 136,
+        "name_en": "Pokémon Complete Set",
+        "name_it": "Pokémon Complete Set"
+    },
+    {
+        "id": 164,
+        "name_en": "Magic Wall Scrolls",
+        "name_it": "Magic Wall Scrolls"
+    },
+    {
+        "id": 190,
+        "name_en": "Pokémon Blisters",
+        "name_it": "Pokémon Blisters"
+    },
+    {
+        "id": 193,
+        "name_en": "One Piece Booster Boxes",
+        "name_it": "Booster Box"
+    },
+    {
+        "id": 194,
+        "name_en": "One Piece Boosters",
+        "name_it": "One Piece Boosters"
+    },
+    {
+        "id": 195,
+        "name_en": "One Piece Starter Decks",
+        "name_it": "One Piece Starter Decks"
+    },
+    {
+        "id": 196,
+        "name_en": "One Piece Playmats",
+        "name_it": "One Piece Playmats"
+    },
+    {
+        "id": 197,
+        "name_en": "One Piece Sleeves",
+        "name_it": "One Piece Sleeves"
+    },
+    {
+        "id": 198,
+        "name_en": "One Piece Storage & Deck Boxes",
+        "name_it": "One Piece Storage & Deck Boxes"
+    },
+    {
+        "id": 199,
+        "name_en": "One Piece Albums",
+        "name_it": "One Piece Albums"
+    },
+    {
+        "id": 200,
+        "name_en": "One Piece Bundles & Sets",
+        "name_it": "One Piece Bundles & Sets"
+    },
+    {
+        "id": 201,
+        "name_en": "One Piece Extra - Box Sets & Displays",
+        "name_it": "One Piece Extra - Box Sets & Displays"
+    },
+    {
+        "id": 203,
+        "name_en": "All Games Binder Pages",
+        "name_it": "All Games Binder Pages"
+    },
+    {
+        "id": 205,
+        "name_en": "All Games Deck Boxes",
+        "name_it": "All Games Deck Boxes"
+    },
+    {
+        "id": 211,
+        "name_en": "All Games Sleeves",
+        "name_it": "All Games Sleeves"
+    },
+    {
+        "id": 253,
+        "name_en": "One Piece Uncut Sheets",
+        "name_it": "One Piece Uncut Sheets"
+    },
+    {
+        "id": 255,
+        "name_en": "One Piece DON Token",
+        "name_it": "One Piece DON Token"
+    },
+    {
+        "id": 256,
+        "name_en": "One Piece Tins",
+        "name_it": "One Piece Tins"
+    },
+    {
+        "id": 257,
+        "name_en": "One Piece Memorabilia",
+        "name_it": "One Piece Memorabilia"
+    },
+    {
+        "id": 271,
+        "name_en": "Magic Tins",
+        "name_it": "Magic Tins"
+    }
+]

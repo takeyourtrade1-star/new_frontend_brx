@@ -36,6 +36,19 @@ import { getMessage } from '@/lib/i18n/getMessage';
 import { DEFAULT_LOCALE } from '@/lib/i18n/locales';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { SearchHit } from '@/app/api/search/route';
+import {
+  type GameSlug,
+  type CategoryKey,
+  normalizeGameSlug,
+  getCategoryIds,
+  getCategoryKeys,
+  getCategoryLabel,
+  mapCategoryIdToKey,
+  isValidCategoryKey,
+  GAME_TO_MEILISEARCH,
+  CATEGORY_KEY_ORDER,
+  FRONTEND_TO_GAME_SLUG,
+} from '@/lib/search/category-mapping';
 
 const BACKEND_LANG_ORDER = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
 type SupportedLang = (typeof BACKEND_LANG_ORDER)[number];
@@ -61,21 +74,14 @@ function getDisplayNames(hit: SearchHit, currentLang: string): { primary: string
   return { primary, secondary };
 }
 
+/* GAME_TO_MEILISEARCH_LOCAL rimosso: usa FRONTEND_TO_GAME_SLUG da category-mapping.ts */
+
 const GAME_TO_HEADER_KEY: Record<string, MessageKey> = {
   mtg: 'games.header.mtg',
   pokemon: 'games.header.pokemon',
   pk: 'games.header.pokemon',
   op: 'games.header.op',
   'one-piece': 'games.header.op',
-};
-
-/** Slug usati nell’URL/frontend → slug in Meilisearch/DB (per filtro API). */
-const GAME_TO_MEILISEARCH: Record<string, string> = {
-  mtg: 'mtg',
-  pokemon: 'pokemon',
-  pk: 'pokemon',
-  op: 'one-piece',
-  'one-piece': 'one-piece',
 };
 
 type ViewMode = 'list' | 'grid';
@@ -104,7 +110,8 @@ const fieldClassDesktop =
 
 type SearchFiltersFieldsProps = {
   t: (k: MessageKey, vars?: Record<string, string | number>) => string;
-  categoryId: string;
+  gameSlug: GameSlug | null;
+  categoryKey: CategoryKey;
   edizioneInput: string;
   setEdizioneInput: (v: string) => void;
   nomeInput: string;
@@ -118,7 +125,8 @@ type SearchFiltersFieldsProps = {
 
 function SearchFiltersFields({
   t,
-  categoryId,
+  gameSlug,
+  categoryKey,
   edizioneInput,
   setEdizioneInput,
   nomeInput,
@@ -132,25 +140,34 @@ function SearchFiltersFields({
   const isSheet = variant === 'sheet';
   const fc = isSheet ? fieldClassSheet : fieldClassDesktop;
 
+  // Ottieni le categorie disponibili per il gioco corrente
+  const availableKeys = useMemo(() => getCategoryKeys(gameSlug), [gameSlug]);
+
   const categorySelect = (
     <select
-      className={`${fc} ${isSheet ? 'w-full' : 'min-w-[120px] flex-shrink-0'}`}
-      value={categoryId ? (categoryId === '1' ? 'carte-singole' : '') : ''}
+      className={`${fc} ${isSheet ? 'w-full' : 'min-w-[140px] flex-shrink-0'}`}
+      value={categoryKey}
       aria-label={t('search.filterCategory')}
+      disabled={!gameSlug}
       onChange={(e) => {
-        const v = e.target.value;
+        const newKey = e.target.value as CategoryKey;
         onNavigate(
           buildSearchUrl({
-            category_id: v === 'carte-singole' ? '1' : '',
+            category_key: newKey,
+            category_id: '', // Clear legacy param
             page: '1',
           })
         );
       }}
     >
-      <option value="">{t('search.catAll')}</option>
-      <option value="carte-singole">{t('search.catSingles')}</option>
-      <option value="mazzi">{t('search.catDecks')}</option>
-      <option value="boosters">{t('search.catBoosters')}</option>
+      {!gameSlug && (
+        <option value="">{t('search.catAll')}</option>
+      )}
+      {gameSlug && availableKeys.map((key) => (
+        <option key={key} value={key}>
+          {getCategoryLabel(gameSlug, key, 'it')}
+        </option>
+      ))}
     </select>
   );
 
@@ -254,9 +271,27 @@ export function SearchResults({
   const q = (searchParams.get('q') ?? initialQuery ?? '').trim();
   const game = searchParams.get('game') ?? initialGame ?? '';
   const setFilter = searchParams.get('set') ?? '';
-  const categoryId = searchParams.get('category_id') ?? '';
+  const categoryIdLegacy = searchParams.get('category_id') ?? '';
+  const categoryKeyParam = searchParams.get('category_key') ?? '';
   const pageParam = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);
   const sortParam = searchParams.get('sort') ?? 'name_asc';
+
+  // Normalizza game slug
+  const gameSlug = useMemo(() => normalizeGameSlug(game), [game]);
+
+  // Determina categoryKey (da URL o da category_id legacy)
+  const categoryKey: CategoryKey = useMemo(() => {
+    if (categoryKeyParam && isValidCategoryKey(gameSlug, categoryKeyParam)) {
+      return categoryKeyParam as CategoryKey;
+    }
+    if (categoryIdLegacy && gameSlug) {
+      return mapCategoryIdToKey(gameSlug, categoryIdLegacy);
+    }
+    return 'singles'; // Default
+  }, [categoryKeyParam, categoryIdLegacy, gameSlug]);
+
+  // Ottieni gli ID categoria per la macro-categoria selezionata
+  const categoryIds = useMemo(() => getCategoryIds(gameSlug, categoryKey), [gameSlug, categoryKey]);
 
   const sortOptions = useMemo(
     () => SORT_DEFS.map(({ value, labelKey }) => ({ value, label: t(labelKey) })),
@@ -396,9 +431,14 @@ export function SearchResults({
     // il valore di set + il testo del campo "Nome" (q) nella stessa query.
     const meiliQuery = [q, setFilter].filter(Boolean).join(' ').trim();
     if (meiliQuery) params.set('q', meiliQuery);
-    const apiGame = game ? (GAME_TO_MEILISEARCH[game] || game) : '';
+    const apiGame = game ? (FRONTEND_TO_GAME_SLUG[game] || game) : '';
     if (apiGame) params.set('game', apiGame);
-    if (categoryId) params.set('category_id', categoryId);
+    // Usa category_ids (multiplo) se disponibile, altrimenti fallback a category_id singolo
+    if (categoryIds.length > 0) {
+      params.set('category_ids', categoryIds.join(','));
+    } else if (categoryIdLegacy) {
+      params.set('category_id', categoryIdLegacy);
+    }
     params.set('page', String(pageParam));
     params.set('limit', '20');
     params.set('sort', sortParam);
@@ -420,7 +460,7 @@ export function SearchResults({
     } finally {
       setLoading(false);
     }
-  }, [q, game, setFilter, categoryId, pageParam, sortParam, t]);
+  }, [q, game, setFilter, categoryIds, categoryIdLegacy, pageParam, sortParam, t]);
 
   useEffect(() => {
     fetchResults();
@@ -592,7 +632,8 @@ export function SearchResults({
           <div className="flex flex-wrap items-center gap-2 md:gap-3">
             <SearchFiltersFields
               t={t}
-              categoryId={categoryId}
+              gameSlug={gameSlug}
+              categoryKey={categoryKey}
               edizioneInput={edizioneInput}
               setEdizioneInput={setEdizioneInput}
               nomeInput={nomeInput}
@@ -680,7 +721,8 @@ export function SearchResults({
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
                 <SearchFiltersFields
                   t={t}
-                  categoryId={categoryId}
+                  gameSlug={gameSlug}
+                  categoryKey={categoryKey}
                   edizioneInput={edizioneInput}
                   setEdizioneInput={setEdizioneInput}
                   nomeInput={nomeInput}

@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, ChevronDown, ChevronLeft, ChevronRight, Rows3, Grid2x2, Camera } from 'lucide-react';
+import { Search, ChevronDown, ChevronLeft, ChevronRight, Rows3, Grid2x2, Camera, X } from 'lucide-react';
 import { getCardImageUrl } from '@/lib/assets';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import type { SearchHit } from '@/app/api/search/route';
@@ -224,13 +224,25 @@ export function ProductCategoryView({
                 {/* Edizione */}
                 <div className="flex flex-col gap-1.5 min-w-[160px] flex-1">
                   <span className="text-[11px] font-bold uppercase tracking-widest text-white/80">Edizione</span>
-                  <input
-                    type="text"
-                    value={edizioneInput}
-                    onChange={(e) => setEdizioneInput(e.target.value)}
-                    placeholder="Tutte le edizioni"
-                    className="h-10 rounded-lg border border-white/20 bg-white/[0.06] px-3 text-sm text-white placeholder:text-white/40 outline-none focus:border-[#FF8800] focus:bg-white/[0.1] transition-all"
-                  />
+                  <div className="relative flex items-center h-10 rounded-lg border border-white/20 bg-white/[0.06] focus-within:border-[#FF8800] focus-within:bg-white/[0.1] transition-all">
+                    <input
+                      type="text"
+                      value={edizioneInput}
+                      onChange={(e) => setEdizioneInput(e.target.value)}
+                      placeholder="Tutte le edizioni"
+                      className="h-full w-full bg-transparent px-3 text-sm text-white placeholder:text-white/40 outline-none"
+                    />
+                    {edizioneInput && (
+                      <button
+                        type="button"
+                        onClick={() => setEdizioneInput('')}
+                        className="p-2 text-white/50 hover:text-white transition-colors focus:outline-none"
+                        aria-label="Cancella edizione"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Rarità Coustom Dropdown (mostrato solo se 'singles') */}
@@ -283,14 +295,26 @@ export function ProductCategoryView({
                 {/* Nome */}
                 <div className="flex flex-col gap-1.5 flex-[2] min-w-[200px]">
                   <span className="text-[11px] font-bold uppercase tracking-widest text-white/80">Nome</span>
-                  <input
-                    type="text"
-                    value={nomeInput}
-                    onChange={(e) => setNomeInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
-                    placeholder="Cerca per nome"
-                    className="h-10 rounded-lg border border-white/20 bg-white/[0.06] px-3 text-sm text-white placeholder:text-white/40 outline-none focus:border-[#FF8800] focus:bg-white/[0.1] transition-all"
-                  />
+                  <div className="relative flex items-center h-10 rounded-lg border border-white/20 bg-white/[0.06] focus-within:border-[#FF8800] focus-within:bg-white/[0.1] transition-all">
+                    <input
+                      type="text"
+                      value={nomeInput}
+                      onChange={(e) => setNomeInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
+                      placeholder="Cerca per nome"
+                      className="h-full w-full bg-transparent px-3 text-sm text-white placeholder:text-white/40 outline-none"
+                    />
+                    {nomeInput && (
+                      <button
+                        type="button"
+                        onClick={() => setNomeInput('')}
+                        className="p-2 text-white/50 hover:text-white transition-colors focus:outline-none"
+                        aria-label="Cancella nome"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Pulsante Cerca */}

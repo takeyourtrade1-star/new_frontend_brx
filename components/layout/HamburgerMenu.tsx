@@ -460,23 +460,23 @@ export function HamburgerMenu() {
           ))}
 
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
-            <span className="text-[13px] font-semibold uppercase tracking-wide text-[#1D3160]">
+            <span className="text-[13px] font-semibold uppercase tracking-wide text-gray-400">
               {t('common.darkMode')}
             </span>
             <button
               type="button"
               role="switch"
-              aria-checked={isDark}
-              onClick={toggleTheme}
+              aria-checked={false}
+              disabled
               className={cn(
-                'relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D3160]/30 focus-visible:ring-offset-2',
-                isDark ? 'bg-[#FF7300]' : 'bg-gray-300'
+                'relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 focus:outline-none cursor-not-allowed opacity-50',
+                'bg-gray-300'
               )}
             >
               <span
                 className={cn(
                   'absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow transition-[left] duration-200',
-                  isDark ? 'left-6' : 'left-1'
+                  'left-1'
                 )}
               />
             </button>

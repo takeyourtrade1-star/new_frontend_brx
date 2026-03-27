@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, ChevronDown } from 'lucide-react';
+import { Search, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SearchBarProps {
@@ -68,6 +68,17 @@ export function SearchBar({
             Categorie
             <ChevronDown className="h-4 w-4 text-gray-600" />
           </button>
+
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="p-1 text-gray-500 hover:text-gray-700 transition-colors focus:outline-none focus:ring-0"
+              aria-label="Cancella ricerca"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
 
           <button
             type="submit"

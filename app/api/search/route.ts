@@ -1,6 +1,6 @@
 /**
  * API Route: ricerca su Meilisearch (server-side, niente CORS).
- * GET /api/search?q=...&game=mtg&set=...&category_id=...&page=1&limit=20&sort=...
+ * GET /api/search?q=...&game=mtg&set=...&category_id=...&category_ids=1,2,3&page=1&limit=20&sort=...
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -37,11 +37,23 @@ export interface SearchApiResponse {
   totalPages: number;
 }
 
-function buildFilter(game?: string, set?: string, categoryId?: string): string[] {
+function buildFilter(game?: string, set?: string, categoryId?: string, categoryIds?: number[]): string[] {
   const parts: string[] = [];
   if (game?.trim()) parts.push(`game_slug = "${game.trim()}"`);
   if (set?.trim()) parts.push(`set_name = "${set.trim().replace(/"/g, '\\"')}"`);
-  if (categoryId?.trim()) parts.push(`category_id = ${categoryId.trim()}`);
+  
+  // Supporta sia category_ids (multiplo) che category_id (singolo, legacy)
+  if (categoryIds && categoryIds.length > 0) {
+    if (categoryIds.length === 1) {
+      parts.push(`category_id = ${categoryIds[0]}`);
+    } else {
+      // Meilisearch syntax: category_id IN [1, 2, 3]
+      parts.push(`category_id IN [${categoryIds.join(', ')}]`);
+    }
+  } else if (categoryId?.trim()) {
+    parts.push(`category_id = ${categoryId.trim()}`);
+  }
+  
   return parts;
 }
 
@@ -77,12 +89,18 @@ export async function GET(request: NextRequest) {
   const game = searchParams.get('game') ?? '';
   const set = searchParams.get('set') ?? '';
   const categoryId = searchParams.get('category_id') ?? '';
+  const categoryIdsParam = searchParams.get('category_ids') ?? '';
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10) || 20));
   const sortBy = searchParams.get('sort') ?? 'name_asc';
 
+  // Parse category_ids (comma-separated list of IDs)
+  const categoryIds: number[] = categoryIdsParam
+    ? categoryIdsParam.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id))
+    : [];
+
   const offset = (page - 1) * limit;
-  const filterParts = buildFilter(game, set, categoryId);
+  const filterParts = buildFilter(game, set, categoryId, categoryIds);
   const filter = filterParts.length ? filterParts.join(' AND ') : undefined;
   const sort = buildSort(sortBy);
 

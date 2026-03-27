@@ -19,6 +19,16 @@ import { getCardImageUrl } from '@/lib/assets';
 import { generateSlug } from '@/lib/mock-cards';
 import { PRODUCT_CATEGORIES, type ProductCategorySlug, CATEGORY_SLUGS } from '@/lib/product-categories';
 import { usePathname } from 'next/navigation';
+import {
+  FRONTEND_TO_GAME_SLUG,
+  type CategoryKey,
+  type GameSlug as MappingGameSlug,
+  normalizeGameSlug,
+  getCategoryIds,
+  getCategoryKeys,
+  getCategoryLabel,
+  CATEGORY_KEY_ORDER,
+} from '@/lib/search/category-mapping';
 
 type HighlightValue = { value: string; matchLevel: string };
 type HighlightResult = Record<string, HighlightValue | HighlightValue[]>;
@@ -53,23 +63,20 @@ const FRONTEND_TO_DB_SLUG: Record<string, string> = {
   op: 'one-piece',
 };
 
-/** Mapping slug categoria prodotto → valore 'type' in Meilisearch. */
-const CATEGORY_TO_MEILI_TYPE: Record<string, string> = {
-  singles: 'Singles',
-  boosters: 'Boosters',
-  'booster-boxes': 'Booster boxes',
-  'set-lotti-collezioni': 'Sets / Lots / Collections',
-  sigillati: 'Sealed Products',
-  accessori: 'Accessories',
-  boutique: 'Boutique',
-};
+/* CATEGORY_TO_MEILI_TYPE rimosso: ora usiamo category_id da CATEGORY_MAPPING */
 
 /** Costruisce URL pagina risultati; game in query = slug DB (per /api/search e Meilisearch). */
-function buildSearchUrl(q: string, game?: GameSlug | null, category?: string | null): string {
+function buildSearchUrl(q: string, game?: GameSlug | null, categoryKey?: string | null): string {
   const params = new URLSearchParams();
   if (q) params.set('q', q);
-  if (game) params.set('game', FRONTEND_TO_DB_SLUG[game] ?? game);
-  if (category && category !== 'all') params.set('category', category);
+  if (game) {
+    const dbSlug = FRONTEND_TO_GAME_SLUG[game] ?? game;
+    params.set('game', dbSlug);
+  }
+  // Usa category_key (nuovo sistema) invece di category legacy
+  if (categoryKey && categoryKey !== 'all') {
+    params.set('category_key', categoryKey);
+  }
   return `/search?${params.toString()}`;
 }
 
@@ -927,18 +934,26 @@ function CategorieButton({
   );
 }
 
-/** Bottone "Categorie Prodotto" (es. Singles, Sealed) — usa createPortal per sfuggire a overflow-hidden */
+/** Bottone "Categorie Prodotto" — usa CATEGORY_MAPPING (category_key) per filtrare correttamente */
 function ProductCategoryButton({
   selectedCategory,
   onSelect,
+  gameSlug,
 }: {
   selectedCategory: string | null;
   onSelect: (cat: string | null) => void;
+  gameSlug: MappingGameSlug | null;
 }) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  // Categorie disponibili per il gioco selezionato
+  const availableKeys = useMemo(() => {
+    if (!gameSlug) return CATEGORY_KEY_ORDER;
+    return getCategoryKeys(gameSlug);
+  }, [gameSlug]);
 
   // Posiziona il dropdown sotto il bottone
   useLayoutEffect(() => {
@@ -960,7 +975,18 @@ function ProductCategoryButton({
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  const categoryObj = PRODUCT_CATEGORIES.find((c) => c.slug === selectedCategory);
+  // Label corrente
+  const currentLabel = useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'all') return 'Tutte';
+    if (gameSlug) return getCategoryLabel(gameSlug, selectedCategory as CategoryKey, 'it') || selectedCategory;
+    // Fallback label lookup
+    const labelMap: Record<string, string> = {
+      singles: 'Carte singole', boosters: 'Booster', booster_box: 'Booster box',
+      starter_precon: 'Mazzi precostruiti', bundle_set: 'Bundle e set',
+      tins: 'Tin box', accessori: 'Accessori', collezionabili: 'Collezionabili',
+    };
+    return labelMap[selectedCategory] || selectedCategory;
+  }, [selectedCategory, gameSlug]);
 
   const dropdownMenu = open && pos && typeof document !== 'undefined'
     ? createPortal(
@@ -969,24 +995,25 @@ function ProductCategoryButton({
           className="fixed z-[1100] min-w-[180px] max-w-[220px] overflow-hidden shadow-xl rounded-lg bg-white border border-gray-100 py-1"
           style={{ top: pos.top, left: pos.left }}
         >
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onSelect(null); setOpen(false); }}
-            className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium font-sans hover:bg-gray-50 transition-colors ${!selectedCategory ? 'text-[#FF7300]' : 'text-gray-700'}`}
-          >
-            Tutte le categorie
-          </button>
-          <div className="h-px bg-gray-100 mx-2" />
-          {PRODUCT_CATEGORIES.map((opt) => (
-            <button
-              key={opt.slug}
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onSelect(opt.slug); setOpen(false); }}
-              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium font-sans hover:bg-[#FF7300]/10 transition-colors ${selectedCategory === opt.slug ? 'text-[#FF7300] bg-orange-50/50' : 'text-gray-700'}`}
-            >
-              {opt.categoryLabel}
-            </button>
-          ))}
+          {availableKeys.map((key) => {
+            const label = gameSlug
+              ? getCategoryLabel(gameSlug, key, 'it')
+              : key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onSelect(key === 'all' ? null : key); setOpen(false); }}
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium font-sans hover:bg-[#FF7300]/10 transition-colors ${
+                  (selectedCategory === key || (!selectedCategory && key === 'all'))
+                    ? 'text-[#FF7300] bg-orange-50/50'
+                    : 'text-gray-700'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>,
         document.body
       )
@@ -1003,7 +1030,7 @@ function ProductCategoryButton({
         }}
         className="flex items-center gap-1.5 rounded-[50px] border-0 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 text-sm text-[#1D3160] font-semibold font-sans transition-colors whitespace-nowrap"
       >
-        <span>{categoryObj ? categoryObj.categoryLabel : 'Categorie'}</span>
+        <span>{currentLabel}</span>
         <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {dropdownMenu}
@@ -1031,6 +1058,7 @@ function SearchWithInstantSearch({
   const { query, refine } = useSearchBox();
   const [localValue, setLocalValue] = useState(query ?? '');
   const hasText = (localValue ?? '').trim().length > 0;
+  const mappedGame = useMemo(() => normalizeGameSlug(selectedGame), [selectedGame]);
   
   const pathname = usePathname();
   const isProductsPage = pathname.startsWith('/products') || pathname.startsWith('/search') || pathname === '/';
@@ -1057,6 +1085,12 @@ function SearchWithInstantSearch({
     inputRef.current?.blur();
     closePanel();
     router.push(buildSearchUrl(searchQuery, selectedGame, productCategory));
+  };
+
+  const handleClear = () => {
+    setLocalValue('');
+    refine('');
+    inputRef.current?.focus();
   };
 
   const openPanel = () => {
@@ -1104,15 +1138,14 @@ function SearchWithInstantSearch({
       style={{ zIndex: 1000 }}
       onClick={() => inputRef.current?.focus()}
     >
-      {/* Menu a tendina Categorie Prodotto visibile su /products */}
-      {isProductsPage && (
-        <div className="hidden md:flex items-center justify-center pl-1.5 pr-2">
-          <ProductCategoryButton 
-            selectedCategory={productCategory} 
-            onSelect={setProductCategory} 
-          />
-        </div>
-      )}
+      {/* Menu a tendina Categorie Prodotto visibile sempre */}
+      <div className="flex items-center justify-center pl-1.5 pr-2">
+        <ProductCategoryButton 
+          selectedCategory={productCategory} 
+          onSelect={setProductCategory}
+          gameSlug={mappedGame}
+        />
+      </div>
 
       <input
         ref={inputRef}
@@ -1142,9 +1175,23 @@ function SearchWithInstantSearch({
         autoComplete="off"
       />
       <div
-        className="search-right flex h-full flex-shrink-0 items-center pr-1.5 md:pr-2"
+        className="search-right flex h-full flex-shrink-0 items-center gap-1 pr-1.5 md:pr-2"
         onClick={(e) => e.stopPropagation()}
       >
+        {localValue && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200 md:h-9 md:w-9 ${
+              showOpenStyle
+                ? 'text-gray-400 hover:bg-orange-50 hover:text-orange-500'
+                : 'text-white/40 hover:bg-white/10 hover:text-white'
+            }`}
+            aria-label="Cancella ricerca"
+          >
+            <X className="h-4 w-4 md:h-5 md:w-5" />
+          </button>
+        )}
         <button
           type="button"
           onClick={handleEnter}
@@ -1173,27 +1220,40 @@ export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOp
   const { selectedGame, setSelectedGame, gameDisplayName } = useGame();
   const pathname = usePathname();
 
-  // Inizializzazione categoria da URL se presente
+  // Categoria di default: 'singles' (come richiesto)
   const [productCategory, setProductCategory] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined') return 'singles';
+    const params = new URLSearchParams(window.location.search);
+    const catKey = params.get('category_key');
+    if (catKey && CATEGORY_KEY_ORDER.includes(catKey as CategoryKey)) return catKey;
     const pathParts = pathname.split('/');
-    return CATEGORY_SLUGS.has(pathParts[2]) ? pathParts[2] : null;
+    if (CATEGORY_SLUGS.has(pathParts[2])) return pathParts[2];
+    return 'singles';
   });
+
+  // Normalizza game slug per CATEGORY_MAPPING
+  const mappingGameSlug = useMemo(() => normalizeGameSlug(selectedGame), [selectedGame]);
 
   const gameFilter = useMemo(() => {
     if (!selectedGame) return undefined;
     const realSlug = FRONTEND_TO_DB_SLUG[selectedGame] ?? selectedGame;
-    return [`game_slug:${realSlug}`];
+    return [`game_slug = "${realSlug}"`];
   }, [selectedGame]);
 
+  // Filtro category_id basato su CATEGORY_MAPPING (fix: prima non filtrava per categoria)
   const categoryFilter = useMemo(() => {
-    if (!productCategory || productCategory === 'all' || productCategory === 'singles') return [];
-    const type = CATEGORY_TO_MEILI_TYPE[productCategory];
-    return type ? [`type:"${type}"`] : [];
-  }, [productCategory]);
+    if (!mappingGameSlug || !productCategory || productCategory === 'all') return [];
+    const catKey = productCategory as CategoryKey;
+    const ids = getCategoryIds(mappingGameSlug, catKey);
+    if (ids.length === 0) return [];
+    if (ids.length === 1) return [`category_id = ${ids[0]}`];
+    // Meilisearch InstantSearch: usa filter string format
+    return [`category_id IN [${ids.join(', ')}]`];
+  }, [mappingGameSlug, productCategory]);
 
   const allFilters = useMemo(() => {
-    const filters = [...(gameFilter || [])];
+    const filters: string[] = [];
+    if (gameFilter) filters.push(...gameFilter);
     if (categoryFilter.length > 0) filters.push(...categoryFilter);
     return filters.length > 0 ? filters : undefined;
   }, [gameFilter, categoryFilter]);
@@ -1216,7 +1276,7 @@ export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOp
             indexName={MEILISEARCH.indexName}
             future={{ preserveSharedStateOnUnmount: true }}
           >
-            <Configure facetFilters={allFilters} hitsPerPage={8} />
+            <Configure filters={allFilters?.join(' AND ')} hitsPerPage={8} />
             <SearchWithInstantSearch
               selectedGame={selectedGame}
               productCategory={productCategory}
