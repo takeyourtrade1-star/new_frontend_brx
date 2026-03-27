@@ -3,7 +3,7 @@
 import React, { useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Tag, RefreshCw, Gavel, CircleDollarSign, ShieldCheck, ArrowRightLeft, Scale, Package, TrendingUp } from 'lucide-react';
+import { Tag, RefreshCw, Gavel, CircleDollarSign, ShieldCheck, ArrowRightLeft, Scale, Package, TrendingUp, X, Mail, CheckCircle2 } from 'lucide-react';
 import { getCdnImageUrl, getCdnVideoUrl } from '@/lib/config';
 import { useGame } from '@/lib/contexts/GameContext';
 import type { GameSlug } from '@/lib/contexts/GameContext';
@@ -84,6 +84,23 @@ export function LandingWelcome() {
   const { t } = useTranslation();
   const { setSelectedGame } = useGame();
   const [activePill, setActivePill] = React.useState<'vendere' | 'scambiare' | 'asta' | null>(null);
+  const [notifyGame, setNotifyGame] = React.useState<{ src: string; alt: string } | null>(null);
+  const [email, setEmail] = React.useState('');
+  const [isNotifySuccess, setIsNotifySuccess] = React.useState(false);
+
+  const handleNotifySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    // Mocking an API call
+    setTimeout(() => {
+      setIsNotifySuccess(true);
+      setTimeout(() => {
+        setNotifyGame(null);
+        setIsNotifySuccess(false);
+        setEmail('');
+      }, 2000);
+    }, 800);
+  };
 
   const HOW_TO_ITEMS = React.useMemo(
     () => [
@@ -237,33 +254,94 @@ export function LandingWelcome() {
             ))}
             
             {/* Riga 2: Pokemon + Giochi in arrivo — sfondo rotondo/pillola */}
-            <div className="flex w-full flex-row flex-wrap items-center justify-center gap-3 rounded-[32px] sm:rounded-[48px] border border-white/20 bg-white/5 px-4 py-5 backdrop-blur-sm sm:gap-4 sm:px-6 sm:py-6 md:gap-5 md:px-8 md:py-8 relative">
+            <div className="flex w-full flex-row overflow-visible items-center justify-center rounded-[32px] sm:rounded-[48px] border border-white/20 bg-white/5 px-4 py-5 backdrop-blur-sm sm:gap-4 sm:px-6 sm:py-6 md:gap-5 md:px-8 md:py-8 relative">
               {/* Badge sopra */}
               <div className="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-4 py-1.5 text-center font-sans text-[10px] font-bold uppercase tracking-widest text-[#1D3160] shadow-xl backdrop-blur-sm sm:text-xs">
                 PRESTO IN ARRIVO
               </div>
               
-              {COMING_SOON_GAMES.map((game) => {
-                const isClickable = game.gameSlug === 'mtg'; // Ora solo magic è cliccabile come da richiesta
-                const content = (
-                  <div className="flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/10 bg-white/5 p-2.5 sm:p-3 transition-opacity duration-300 group-hover:opacity-100 opacity-60">
+              <div className="flex flex-row flex-nowrap items-center justify-center gap-3 sm:gap-4 md:gap-5 overflow-x-auto scrollbar-hide py-1">
+                {COMING_SOON_GAMES.map((game) => (
+                  <button
+                    key={game.alt}
+                    type="button"
+                    onClick={() => setNotifyGame({ src: game.src, alt: game.alt })}
+                    className="group relative flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/10 bg-white/5 p-2.5 sm:p-3 transition-opacity duration-300 hover:opacity-100 opacity-60"
+                  >
                     <img
                       src={game.src}
                       alt={game.alt}
                       style={{ display: 'block', maxWidth: '80%', maxHeight: '80%', width: 'auto', height: 'auto', objectFit: 'contain' }}
                     />
-                  </div>
-                );
-
-                return (
-                  <div key={game.alt} className="group relative">
-                    {content}
-                  </div>
-                );
-              })}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </section>
+
+        {/* Modal "Avvisami" stile Glass */}
+        {notifyGame && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 backdrop-blur-md bg-black/40 animate-in fade-in duration-300">
+            <div 
+              className="relative w-full max-w-sm overflow-hidden rounded-[32px] border border-white/25 bg-white/10 p-8 shadow-2xl backdrop-blur-xl animate-in zoom-in-95 duration-300"
+              style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.05)' }}
+            >
+              <button 
+                onClick={() => setNotifyGame(null)}
+                className="absolute right-6 top-6 rounded-full bg-white/5 p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              {!isNotifySuccess ? (
+                <div className="flex flex-col items-center text-center">
+                  <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#FF7300]/20 text-[#FF7300] shadow-[0_0_20px_rgba(255,115,0,0.2)]">
+                    <img src={notifyGame.src} alt="" className="h-10 w-10 object-contain" />
+                  </div>
+                  
+                  <h3 className="mb-3 text-lg font-bold uppercase tracking-tight text-white sm:text-xl">
+                    Ti interessa {notifyGame.alt}?
+                  </h3>
+                  
+                  <p className="mb-8 text-sm leading-relaxed text-white/70">
+                    Siamo quasi pronti! Inserisci la tua email e ti avviseremo appena il gioco sarà disponibile sul marketplace.
+                  </p>
+
+                  <form onSubmit={handleNotifySubmit} className="w-full space-y-4">
+                    <div className="relative group">
+                      <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-[#FF7300]" />
+                      <input 
+                        type="email" 
+                        required
+                        placeholder="La tua email..."
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 py-3.5 pl-11 pr-4 text-sm text-white placeholder:text-white/20 outline-none transition-all focus:border-[#FF7300]/50 focus:bg-white/10"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full rounded-2xl bg-[#FF7300] py-4 text-sm font-bold uppercase tracking-widest text-white shadow-[0_4px_15px_rgba(255,115,0,0.3)] transition-all hover:bg-[#e66700] hover:scale-[1.02] active:scale-95"
+                    >
+                      AVVISAMI
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center py-10 text-center animate-in zoom-in-95 duration-500">
+                  <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-500/20 text-green-500">
+                    <CheckCircle2 className="h-12 w-12" />
+                  </div>
+                  <h3 className="mb-2 text-xl font-bold text-white">GRAZIE!</h3>
+                  <p className="text-sm text-white/70">
+                    Abbiamo registrato la tua email. <br/>A presto!
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Come vendere / scambiare / asta — forte glass effect, video che si intravede */}
         {/* Sfondo blur che parte da metà "PRESTO IN ARRIVO" e sfuma dolcissimo verso il basso */}
