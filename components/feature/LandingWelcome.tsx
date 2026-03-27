@@ -25,7 +25,7 @@ const FEATURE_ICONS: Record<string, React.FC<any>> = {
 
 type LandingGameSlug = GameSlug | 'clear';
 
-/** Giochi principali: Magic e Pokemon (sfondo quadrato) */
+/** Giochi principali: Solo Magic (ora a tutta larghezza) */
 const getMainGames = (): {
   src: string;
   alt: string;
@@ -38,15 +38,9 @@ const getMainGames = (): {
     homeHref: '/home/magic',
     gameSlug: 'mtg',
   },
-  {
-    src: getCdnImageUrl('loghi-giochi/pokèmon.png'),
-    alt: 'Pokémon Trading Card Game',
-    homeHref: '/home/pokemon',
-    gameSlug: 'pokemon',
-  },
 ];
 
-/** Giochi in arrivo + Yu-Gi-Oh (sfondo rotondo, riga inferiore) */
+/** Giochi in arrivo + Pokemon + Yu-Gi-Oh (sfondo rotondo, riga inferiore) */
 const getComingSoonGames = (): {
   src: string;
   alt: string;
@@ -55,10 +49,18 @@ const getComingSoonGames = (): {
   gameSlug?: LandingGameSlug;
 }[] => [
   {
+    src: getCdnImageUrl('loghi-giochi/pokèmon.png'),
+    alt: 'Pokémon Trading Card Game',
+    homeHref: '/home/pokemon',
+    gameSlug: 'pokemon',
+    comingSoon: true,
+  },
+  {
     src: getCdnImageUrl('loghi-giochi/yu-gi-oh.png'),
     alt: 'Yu-Gi-Oh! Trading Card Game',
     homeHref: '/home',
     gameSlug: 'clear',
+    comingSoon: true,
   },
   { src: getCdnImageUrl('loghi-giochi/One_Piece_Card_Game_Logo%201.png'), alt: 'One Piece Card Game', comingSoon: true },
   { src: getCdnImageUrl('loghi-giochi/Disney_Lorcana_480x480%201.png'), alt: 'Disney Lorcana', comingSoon: true },
@@ -195,17 +197,30 @@ export function LandingWelcome() {
           <p className="mx-auto mt-3 max-w-lg text-xs font-normal leading-relaxed tracking-wide text-white/80 sm:mt-4 sm:text-sm md:mt-5">
             {t('landing.heroSubtitle')}
           </p>
+
+          {/* Pulsante CTA "INIZIA ORA" - Spostato qui sotto il sottotitolo */}
+          <div className="mt-6 flex w-full justify-center sm:mt-8">
+            <Link
+              href="/login"
+              className="group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 px-8 py-3.5 sm:px-10 sm:py-4 text-xs sm:text-sm font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95"
+            >
+              <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
+                <div className="relative h-full w-8 bg-white/20" />
+              </div>
+              <span>INIZIA ORA</span>
+            </Link>
+          </div>
         </div>
 
-        {/* Loghi giochi: 2 grandi quadrati sopra (Magic, Pokemon) + Yu-Gi-Oh rotondo sotto con i coming soon */}
+        {/* Loghi giochi: Magic grande a tutta larghezza + Altri sotto nel PRESTO IN ARRIVO */}
         <section className="px-2 pb-2 sm:px-4 sm:pb-3 md:px-6 md:pb-4">
-          {/* Riga 1: Magic e Pokemon — sfondo quadrato (rounded-2xl) */}
-          <div className="mx-auto flex w-full max-w-4xl flex-row flex-wrap items-center justify-center gap-4 py-2 sm:gap-6 md:gap-8">
+          <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-6">
+            {/* Riga 1: Magic — sfondo rettangolare/"allungato" (rounded-2xl) a tutta larghezza (max-w-lg) */}
             {MAIN_GAMES.map((game) => (
               <Link
                 key={game.alt}
                 href={game.homeHref}
-                className="group relative flex h-44 w-44 shrink-0 items-center justify-center overflow-visible rounded-2xl border border-white/15 bg-white/5 p-7 shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all duration-200 hover:border-white/35 hover:bg-white/10 hover:backdrop-blur-md sm:h-48 sm:w-48 sm:p-8 md:h-52 md:w-52 md:p-9"
+                className="group relative flex w-full h-32 sm:h-40 md:h-48 items-center justify-center overflow-visible rounded-3xl border border-white/20 bg-white/10 p-8 shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all duration-300 hover:border-white/40 hover:bg-white/15 hover:backdrop-blur-md hover:scale-[1.02]"
                 aria-label={t('landing.gameAria.goHome', { name: game.alt })}
                 onClick={() => {
                   if (game.gameSlug === 'clear') setSelectedGame(null);
@@ -215,37 +230,38 @@ export function LandingWelcome() {
                 <img
                   src={game.src}
                   alt={game.alt}
-                  style={{ display: 'block', maxWidth: '100%', maxHeight: '135px', width: 'auto', height: 'auto', objectFit: 'contain' }}
+                  className="transition-transform duration-500 group-hover:scale-110"
+                  style={{ display: 'block', maxWidth: '85%', maxHeight: '75%', width: 'auto', height: 'auto', objectFit: 'contain' }}
                 />
               </Link>
             ))}
-          </div>
-          
-          {/* Riga 2: Yu-Gi-Oh + giochi in arrivo — sfondo rotondo */}
-          <div className="mx-auto mt-6 flex w-full max-w-lg flex-row items-center justify-center gap-3 rounded-full border border-white/25 bg-white/5 px-4 py-4 backdrop-blur-sm sm:mt-8 sm:gap-4 sm:px-6 sm:py-5 md:mt-10 md:gap-5 md:px-8 md:py-6 relative">
-            {/* Badge sopra */}
-            <div className="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-4 py-1.5 text-center font-sans text-[10px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-lg backdrop-blur-sm sm:text-xs">
-              PRESTO IN ARRIVO
-            </div>
             
-            {COMING_SOON_GAMES.map((game) => (
-              <Link
-                key={game.alt}
-                href={game.homeHref ?? '#'}
-                className="group relative flex h-20 w-20 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/15 bg-white/5 p-3 transition-all duration-200 hover:border-white/35 hover:bg-white/10 hover:backdrop-blur-md sm:h-24 sm:w-24 sm:p-4 md:h-28 md:w-28 md:p-5"
-                aria-label={game.comingSoon ? t('landing.gameAria.soon', { name: game.alt }) : t('landing.gameAria.goHome', { name: game.alt })}
-                onClick={() => {
-                  if (game.gameSlug === 'clear') setSelectedGame(null);
-                  else if (game.gameSlug) setSelectedGame(game.gameSlug);
-                }}
-              >
-                <img
-                  src={game.src}
-                  alt={game.alt}
-                  style={{ display: 'block', maxWidth: '100%', maxHeight: '60px', width: 'auto', height: 'auto', objectFit: 'contain' }}
-                />
-              </Link>
-            ))}
+            {/* Riga 2: Pokemon + Giochi in arrivo — sfondo rotondo/pillola */}
+            <div className="flex w-full flex-row flex-wrap items-center justify-center gap-3 rounded-[32px] sm:rounded-[48px] border border-white/20 bg-white/5 px-4 py-5 backdrop-blur-sm sm:gap-4 sm:px-6 sm:py-6 md:gap-5 md:px-8 md:py-8 relative">
+              {/* Badge sopra */}
+              <div className="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-4 py-1.5 text-center font-sans text-[10px] font-bold uppercase tracking-widest text-[#1D3160] shadow-xl backdrop-blur-sm sm:text-xs">
+                PRESTO IN ARRIVO
+              </div>
+              
+              {COMING_SOON_GAMES.map((game) => {
+                const isClickable = game.gameSlug === 'mtg'; // Ora solo magic è cliccabile come da richiesta
+                const content = (
+                  <div className="flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/10 bg-white/5 p-2.5 sm:p-3 transition-opacity duration-300 group-hover:opacity-100 opacity-60">
+                    <img
+                      src={game.src}
+                      alt={game.alt}
+                      style={{ display: 'block', maxWidth: '80%', maxHeight: '80%', width: 'auto', height: 'auto', objectFit: 'contain' }}
+                    />
+                  </div>
+                );
+
+                return (
+                  <div key={game.alt} className="group relative">
+                    {content}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
 
@@ -371,19 +387,6 @@ export function LandingWelcome() {
                   </button>
                 );
               })}
-            </div>
-
-            {/* Pulsante CTA "INIZIA ORA" */}
-            <div className="mt-8 sm:mt-10 flex w-full justify-center">
-              <Link
-                href="/login"
-                className="group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 px-8 py-3.5 sm:px-10 sm:py-4 text-xs sm:text-sm font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95"
-              >
-                <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
-                  <div className="relative h-full w-8 bg-white/20" />
-                </div>
-                <span>INIZIA ORA</span>
-              </Link>
             </div>
 
             {/* Boutique Cards Piu Piccole */}

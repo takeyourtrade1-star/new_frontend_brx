@@ -1028,10 +1028,10 @@ function ProductCategoryButton({
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className="flex items-center gap-1.5 rounded-[50px] border-0 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 text-sm text-[#1D3160] font-semibold font-sans transition-colors whitespace-nowrap"
+        className="flex items-center gap-1 rounded-[50px] border-0 bg-gray-100 hover:bg-gray-200 px-2 py-1 md:px-3 md:py-1.5 text-[10px] md:text-sm text-[#1D3160] font-semibold font-sans transition-colors whitespace-nowrap"
       >
         <span>{currentLabel}</span>
-        <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-3 w-3 md:h-4 md:w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {dropdownMenu}
     </>
