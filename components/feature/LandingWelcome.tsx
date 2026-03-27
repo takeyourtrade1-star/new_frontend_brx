@@ -69,6 +69,15 @@ const getComingSoonGames = (): {
   },
 ];
 
+const BOUTIQUE_CATEGORIES = [
+  { id: 'dadi', label: 'Dadi', href: '/products?category=dadi', imageUrl: getCdnImageUrl('card-3/4978fe1369c0fbf68d42ac63d0582ffc6cf67d60.png') },
+  { id: 'buste', label: 'Buste', href: '/products?category=buste', imageUrl: getCdnImageUrl('card-3/8b5d86761fe7404aee02bee1471c3e0fc815d3bb.png') },
+  { id: 'tappetini', label: 'Tappetini', href: '/products?category=tappetini', imageUrl: getCdnImageUrl('card-3/a8020835a8ffd96555a4b53cd6ef0d04866ca8b1.png') },
+  { id: 'memorabilia', label: 'Memorabilia', href: '/products?category=memorabilia', imageUrl: getCdnImageUrl('acquisti-frames/Frame%20334.jpg') },
+  { id: 'albums', label: 'Albums', href: '/products?category=albums', imageUrl: getCdnImageUrl('acquisti-frames/Frame%20335.jpg') },
+  { id: 'game-kits', label: 'Game kits', href: '/products?category=game-kits', imageUrl: getCdnImageUrl('acquisti-frames/Frame%20336.jpg') },
+];
+
 export function LandingWelcome() {
   const { t } = useTranslation();
   const { setSelectedGame } = useGame();
@@ -311,7 +320,7 @@ export function LandingWelcome() {
             <p className="mt-8 sm:mt-10 md:mt-12 text-center text-xs font-normal leading-relaxed text-white/95 sm:text-sm md:text-base">
               {t('landing.howToIntro')}
             </p>
-            <div className="mt-3 md:mt-4 flex flex-row flex-wrap sm:flex-nowrap justify-center items-center gap-2 sm:gap-3 w-full max-w-4xl mx-auto px-2">
+            <div className="mt-3 md:mt-4 flex flex-row flex-nowrap justify-center items-center gap-1 sm:gap-2 md:gap-3 w-full max-w-4xl mx-auto px-1 sm:px-2">
               {HOW_TO_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const isActive = activePill === item.id;
@@ -323,14 +332,14 @@ export function LandingWelcome() {
                     onClick={() => setActivePill(isActive ? null : item.id)}
                     className={`group relative flex overflow-hidden border border-white/20 bg-white/[0.08] backdrop-blur-md hover:bg-white/[0.15] hover:border-white/30 shadow-[0_0_20px_rgba(0,0,0,0.2)] transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] cursor-pointer h-12 sm:h-14 items-center rounded-full shrink-0 ${
                       isActive 
-                        ? 'p-1.5 pl-1.5 sm:p-2 sm:pl-2 w-[340px] sm:w-[460px] justify-between bg-white/[0.12] border-white/30' 
+                        ? 'p-1.5 pl-1.5 sm:p-2 sm:pl-2 w-[220px] sm:w-[340px] md:w-[460px] justify-between bg-white/[0.12] border-white/30' 
                         : isCollapsed 
-                          ? 'p-1.5 sm:p-2 w-[48px] sm:w-[56px] justify-center' 
-                          : 'p-1.5 pr-4 sm:p-2 sm:pr-5 w-[140px] sm:w-[170px] justify-start'
+                          ? 'p-1.5 sm:p-2 w-[44px] sm:w-[48px] md:w-[56px] justify-center' 
+                          : 'p-1.5 pr-1 sm:p-2 sm:pr-4 md:pr-5 w-[100px] sm:w-[140px] md:w-[170px] justify-start text-center'
                     }`}
                   >
                     {/* SINISTRA: Icona + Testi (Titolo e Descrizione) */}
-                    <div className="flex items-center gap-2 sm:gap-3 overflow-hidden whitespace-nowrap min-w-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 overflow-hidden whitespace-nowrap min-w-0">
                       {/* Pallino con Icona */}
                       <div className={`flex shrink-0 items-center justify-center rounded-full transition-colors duration-300 h-9 w-9 sm:h-10 sm:w-10 ${isActive ? 'bg-[#FF7300]/20' : 'bg-white/10 group-hover:bg-white/20'}`}>
                         <Icon className={`h-4 w-4 sm:h-4 sm:w-4 transition-colors duration-300 ${isActive ? 'text-[#FF7300]' : 'text-white'}`} strokeWidth={2.5} />
@@ -338,7 +347,7 @@ export function LandingWelcome() {
                       
                       {/* Contenitore Testi */}
                       <div className={`flex flex-col justify-center text-left transition-[max-width,opacity] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${isCollapsed ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[450px]'}`}>
-                        <span className="font-bold text-white uppercase tracking-wide text-xs sm:text-sm leading-tight">
+                        <span className="font-bold text-white uppercase tracking-wide text-[9px] sm:text-xs md:text-sm leading-tight truncate">
                           {item.shortTitle}
                         </span>
                         
@@ -350,10 +359,10 @@ export function LandingWelcome() {
                     </div>
 
                     {/* DESTRA: Pulsante Azione (sempre nel DOM animato fluidamente) */}
-                    <div className={`shrink-0 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isActive ? 'max-w-[150px] opacity-100 pl-2' : 'max-w-0 opacity-0 pl-0'}`}>
+                    <div className={`shrink-0 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isActive ? 'max-w-[150px] opacity-100 pl-1 md:pl-2' : 'max-w-0 opacity-0 pl-0'}`}>
                       <Link
                         href={item.href}
-                        className="inline-flex flex-nowrap h-9 sm:h-10 items-center justify-center rounded-full bg-[#FF7300] px-4 sm:px-5 py-0 text-[10px] sm:text-[11px] font-bold uppercase tracking-wide text-white transition-all hover:bg-[#e66700] shadow-[0_2px_10px_rgba(255,115,0,0.3)] hover:scale-105 active:scale-95 whitespace-nowrap"
+                        className="inline-flex h-8 sm:h-9 md:h-10 items-center justify-center rounded-full bg-[#FF7300] px-3 sm:px-4 md:px-5 text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-wide text-white transition-all hover:bg-[#e66700] shadow-[0_2px_10px_rgba(255,115,0,0.3)] hover:scale-105 active:scale-95 whitespace-nowrap"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {item.cta}
@@ -362,6 +371,55 @@ export function LandingWelcome() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Pulsante CTA "INIZIA ORA" */}
+            <div className="mt-8 sm:mt-10 flex w-full justify-center">
+              <Link
+                href="/login"
+                className="group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 px-8 py-3.5 sm:px-10 sm:py-4 text-xs sm:text-sm font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95"
+              >
+                <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
+                  <div className="relative h-full w-8 bg-white/20" />
+                </div>
+                <span>INIZIA ORA</span>
+              </Link>
+            </div>
+
+            {/* Boutique Cards Piu Piccole */}
+            <div className="mt-12 sm:mt-16 text-center">
+              <h3 className="mb-4 sm:mb-6 text-xs sm:text-sm font-semibold uppercase tracking-widest text-white/90">
+                La Nostra Boutique
+              </h3>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4 max-w-4xl mx-auto px-2">
+                {BOUTIQUE_CATEGORIES.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    href={cat.href}
+                    className="group flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-2 transition-all duration-300 hover:border-white/30 hover:bg-white/10 shadow-[0_4px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.4)]"
+                  >
+                    <div className="relative w-full aspect-[4/3] overflow-hidden rounded bg-white/10">
+                      {cat.imageUrl ? (
+                        <Image
+                          src={cat.imageUrl}
+                          alt={cat.label}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-110"
+                          sizes="(max-width: 640px) 30vw, 15vw"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Package className="h-6 w-6 text-white/40" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white/70 transition-colors group-hover:text-white text-center">
+                      {cat.label}
+                    </span>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </section>
