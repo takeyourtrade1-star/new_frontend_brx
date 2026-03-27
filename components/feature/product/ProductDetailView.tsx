@@ -159,9 +159,23 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [extraSigned, setExtraSigned] = useState(false);
   const [extraAltered, setExtraAltered] = useState(false);
 
+  /* Modal Condizione */
+  const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
+  const [modalCondition, setModalCondition] = useState(condizioneVendi);
+
   const CONDIZIONE_OPTIONS = ['HT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'] as const;
   const [condizioneMinima, setCondizioneMinima] = useState<string>('HT');
   const [linguaCarta, setLinguaCarta] = useState<string | null>(null);
+
+  const CONDITION_OPTIONS_MAP: { value: string; label: string }[] = [
+    { value: 'near_mint', label: 'Near Mint' },
+    { value: 'mint', label: 'Mint' },
+    { value: 'ex', label: 'Excellent' },
+    { value: 'gd', label: 'Good' },
+    { value: 'lp', label: 'Light Played' },
+    { value: 'pl', label: 'Played' },
+    { value: 'po', label: 'Poor' },
+  ];
 
   const LINGUA_CARTA = [
     { code: 'IT', label: 'Italia' },
@@ -633,17 +647,32 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">
-                          Condizione <span className="text-gray-400" title="Info">ⓘ</span>
+                          Condizione{' '}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setModalCondition(condizioneVendi);
+                              setIsConditionModalOpen(true);
+                            }}
+                            className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                            title="Info"
+                          >
+                            ⓘ
+                          </button>
                         </label>
-                        <select value={condizioneVendi} onChange={(e) => setCondizioneVendi(e.target.value)} className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm bg-white">
-                          <option value="near_mint">Near Mint</option>
-                          <option value="mint">Mint</option>
-                          <option value="ex">Excellent</option>
-                          <option value="gd">Good</option>
-                          <option value="lp">Light Played</option>
-                          <option value="pl">Played</option>
-                          <option value="po">Poor</option>
-                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalCondition(condizioneVendi);
+                            setIsConditionModalOpen(true);
+                          }}
+                          className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm bg-white text-left flex items-center justify-between hover:border-gray-400"
+                        >
+                          <span>{CONDITION_OPTIONS_MAP.find((opt) => opt.value === condizioneVendi)?.label}</span>
+                          <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
                       </div>
                       <div>
                         <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Prezzo (€)</label>
@@ -1170,6 +1199,77 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 {purchaseSubmitting ? <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> : null}
                 Conferma
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Condizione */}
+      {isConditionModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="condition-modal-title"
+        >
+          <div className="w-full max-w-2xl rounded-xl bg-white/85 backdrop-blur-2xl backdrop-saturate-150 border border-white/40 shadow-2xl shadow-black/20 overflow-hidden">
+            <div className="p-6 sm:p-8">
+              <h2 id="condition-modal-title" className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                Per garantire al meglio un servizio efficiente, scegli bene la condizione della carta:
+              </h2>
+
+              <div className="mt-6">
+                <select
+                  value={modalCondition}
+                  onChange={(e) => setModalCondition(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300/80 bg-white/70 backdrop-blur-sm px-3 py-2.5 text-sm focus:border-[#FF8800] focus:outline-none focus:ring-2 focus:ring-[#FF8800]/25"
+                >
+                  {CONDITION_OPTIONS_MAP.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Immagini placeholder per la condizione selezionata */}
+              <div className="mt-6 grid grid-cols-2 gap-4">
+                <div className="aspect-[4/3] rounded-lg border border-gray-200/60 bg-gradient-to-br from-gray-50/80 to-gray-100/80 backdrop-blur-sm flex items-center justify-center overflow-hidden shadow-inner">
+                  <div className="text-center p-4">
+                    <svg className="h-12 w-12 text-gray-300/80 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-xs text-gray-500">Esempio condizione - Vista 1</p>
+                    <p className="text-sm font-medium text-gray-700 mt-1">
+                      {CONDITION_OPTIONS_MAP.find((opt) => opt.value === modalCondition)?.label}
+                    </p>
+                  </div>
+                </div>
+                <div className="aspect-[4/3] rounded-lg border border-gray-200/60 bg-gradient-to-br from-gray-50/80 to-gray-100/80 backdrop-blur-sm flex items-center justify-center overflow-hidden shadow-inner">
+                  <div className="text-center p-4">
+                    <svg className="h-12 w-12 text-gray-300/80 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-xs text-gray-500">Esempio condizione - Vista 2</p>
+                    <p className="text-sm font-medium text-gray-700 mt-1">
+                      {CONDITION_OPTIONS_MAP.find((opt) => opt.value === modalCondition)?.label}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCondizioneVendi(modalCondition);
+                    setIsConditionModalOpen(false);
+                  }}
+                  className="rounded-lg px-6 py-3 text-sm font-bold uppercase text-white transition-all hover:opacity-95 bg-[#FF8800]/85 backdrop-blur-sm border border-white/30 shadow-lg shadow-[#FF8800]/20 hover:shadow-[#FF8800]/40 hover:bg-[#FF8800]/90"
+                >
+                  Ho compreso, dichiaro che la condizione della carta è reale
+                </button>
+              </div>
             </div>
           </div>
         </div>
