@@ -40,8 +40,8 @@ export function AccountSidebar() {
   }
 
   return (
-    <aside className="w-56 shrink-0 border-r border-gray-300">
-      <nav className="flex flex-col" aria-label={t('account.menuAria')}>
+    <aside className="sticky top-20 h-fit max-h-[calc(100vh-5rem)] w-56 shrink-0 overflow-y-auto border-r border-gray-300">
+      <nav className="flex flex-col py-2" aria-label={t('account.menuAria')}>
         {sections.map((section, sectionIndex) => (
           <div key={sectionIndex}>
             {sectionIndex > 0 && <div className="my-1 h-px bg-gray-200" aria-hidden />}

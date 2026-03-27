@@ -726,6 +726,33 @@
   }
 }
 
+/* Landing: giochi "Presto in Arrivo" — scorrimento infinito orizzontale */
+@keyframes games-marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.games-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: games-marquee 50s linear infinite;
+  will-change: transform;
+}
+
+.games-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .games-marquee-track {
+    animation-duration: 50s;
+  }
+}
+
 /*
  * iOS Safari (e alcuni browser mobile): zoom automatico al focus se font-size < 16px.
  * Imposta 16px sui campi modulo su viewport stretti così lo zoom non si attiva (niente scroll “saltato”).

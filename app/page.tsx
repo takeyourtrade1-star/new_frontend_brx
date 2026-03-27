@@ -1,5 +1,6 @@
 import { Header } from '@/components/layout/Header';
 import { LandingWelcome } from '@/components/feature/LandingWelcome';
+import { CookieBanner } from '@/components/layout/CookieBanner';
 
 export const metadata = {
   title: 'Ebartex | Compra, Vendi e Scambia',
@@ -12,6 +13,7 @@ export default function LandingPage() {
     <>
       <Header />
       <LandingWelcome />
+      <CookieBanner />
     </>
   );
 }

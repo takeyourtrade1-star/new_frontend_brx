@@ -1,8 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AccountSidebar } from './AccountSidebar';
 import { AccountBreadcrumb } from './AccountBreadcrumb';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import { cn } from '@/lib/utils';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 
 /** Path segment → i18n key per la breadcrumb */
@@ -38,10 +41,56 @@ const NO_SIDEBAR_PATHS = [
 /** Estrae la chiave i18n dal pathname per la breadcrumb */
 function getBreadcrumbKey(pathname: string): MessageKey | undefined {
   const segments = pathname.split('/').filter(Boolean);
-  // Rimuovi 'account' dal primo segmento e prendi l'ultimo
   const relevantSegments = segments.filter(s => s !== 'account');
   const lastSegment = relevantSegments[relevantSegments.length - 1];
   return lastSegment ? PATH_TO_KEY[lastSegment] : undefined;
+}
+
+/** Navigazione account orizzontale scrollabile: solo mobile (nascosta su md+) */
+function MobileAccountNav() {
+  const { t } = useTranslation();
+  const pathname = usePathname();
+
+  const links = [
+    { href: '/account', label: t('sidebar.account') },
+    { href: '/account/profilo', label: t('sidebar.profile') },
+    { href: '/account/indirizzi', label: t('sidebar.addresses') },
+    { href: '/account/messaggi', label: t('sidebar.messages') },
+    { href: '/account/credito', label: t('sidebar.credit') },
+    { href: '/account/coupon', label: t('sidebar.coupon') },
+    { href: '/account/transazioni', label: t('sidebar.transactions') },
+    { href: '/account/statistiche', label: t('sidebar.stats') },
+    { href: '/account/sicurezza', label: t('sidebar.security') },
+    { href: '/account/sincronizzazione', label: t('sidebar.sync') },
+    { href: '/account/impostazioni', label: t('sidebar.settings') },
+    { href: '/account/downloads', label: t('sidebar.downloads') },
+  ];
+
+  function isActive(href: string) {
+    return href === '/account' ? pathname === '/account' : pathname.startsWith(href);
+  }
+
+  return (
+    <nav
+      className="scrollbar-hide mb-4 flex gap-2 overflow-x-auto pb-1 md:hidden"
+      aria-label={t('account.menuAria')}
+    >
+      {links.map(({ href, label }) => (
+        <Link
+          key={href}
+          href={href}
+          className={cn(
+            'shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
+            isActive(href)
+              ? 'bg-primary text-white shadow-sm'
+              : 'border border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:text-gray-900'
+          )}
+        >
+          {label}
+        </Link>
+      ))}
+    </nav>
+  );
 }
 
 /** Shell account: sidebar visibile a sinistra tranne per le pagine in NO_SIDEBAR_PATHS */
@@ -58,8 +107,9 @@ export function AccountShell({ children }: { children: React.ReactNode }) {
 
   if (hideSidebar) {
     return (
-      <div className="container-content mx-auto min-h-[calc(100vh-80px)] py-8">
+      <div className="container-content mx-auto min-h-[calc(100vh-80px)] py-4 md:py-8">
         <main>
+          <MobileAccountNav />
           {breadcrumbSection}
           {children}
         </main>
@@ -68,12 +118,17 @@ export function AccountShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="container-content mx-auto flex min-h-[calc(100vh-80px)] gap-0 py-8">
-      <AccountSidebar />
-      <main className="min-w-0 flex-1 pl-8">
-        {breadcrumbSection}
-        {children}
-      </main>
+    <div className="container-content mx-auto min-h-[calc(100vh-80px)] py-4 md:py-8">
+      <MobileAccountNav />
+      <div className="flex gap-0">
+        <div className="hidden md:block">
+          <AccountSidebar />
+        </div>
+        <main className="min-w-0 flex-1 md:pl-8">
+          {breadcrumbSection}
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

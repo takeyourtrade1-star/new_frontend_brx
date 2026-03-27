@@ -177,18 +177,16 @@ export function SicurezzaContent() {
 
   if (isLoadingUser) {
     return (
-      <div className="min-h-screen bg-[#F5F5F7] px-4 py-10">
-        <div className="flex items-center justify-center py-12">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-gray-200 border-t-[#FF7300]" />
-        </div>
+      <div className="flex items-center justify-center py-12">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-gray-200 border-t-[#FF7300]" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] px-4 py-10">
+    <div className="w-full">
       <div className="mx-auto w-full max-w-3xl">
-        <div className="mt-4 bg-white rounded-[24px] border border-black/5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] px-6 sm:px-8 py-10">
+        <div className="mt-4 rounded-[24px] border border-black/5 bg-white px-4 py-6 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:px-8 sm:py-10">
           <h1 className="mb-8 text-2xl font-bold text-[#1D1D1F]">
             {t('sidebar.security')}
           </h1>

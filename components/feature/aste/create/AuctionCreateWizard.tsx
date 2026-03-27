@@ -1052,64 +1052,115 @@ export function AuctionCreateWizard({
     </div>
 
     {showStickyNav && (
-      <div
-        className={cn(
-          'pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-1',
-          isEmbedded && 'px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]'
-        )}
-        role="presentation"
-      >
-        <footer
+      <>
+        {/* Mobile: pillola fissa in basso */}
+        <div
           className={cn(
-            'pointer-events-auto inline-flex max-w-full items-center gap-1.5 rounded-[1.35rem] border border-white/55 bg-white/40 px-1.5 py-1 shadow-[0_8px_32px_-4px_rgba(29,49,96,0.18),inset_0_1px_0_rgba(255,255,255,0.65)] backdrop-blur-2xl backdrop-saturate-150 sm:gap-2 sm:rounded-[1.5rem] sm:px-2 sm:py-1.5 sm:shadow-[0_12px_40px_-6px_rgba(29,49,96,0.2),inset_0_1px_0_rgba(255,255,255,0.7)]',
-            isEmbedded && 'gap-1 py-0.5 sm:py-1'
+            'pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-1 sm:hidden',
+            isEmbedded && 'px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]'
           )}
-          style={{ WebkitBackdropFilter: 'blur(20px) saturate(180%)' }}
+          role="presentation"
         >
-          <button
-            type="button"
-            onClick={goBack}
+          <footer
             className={cn(
-              'inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160]/85 transition hover:bg-white/50 active:scale-[0.98] sm:min-h-[38px] sm:rounded-2xl sm:px-3.5 sm:text-xs',
-              isEmbedded && 'min-h-[32px] px-2.5 py-1 sm:min-h-[34px]'
+              'pointer-events-auto inline-flex max-w-full items-center gap-1.5 rounded-[1.35rem] border border-white/55 bg-white/40 px-1.5 py-1 shadow-[0_8px_32px_-4px_rgba(29,49,96,0.18),inset_0_1px_0_rgba(255,255,255,0.65)] backdrop-blur-2xl backdrop-saturate-150',
+              isEmbedded && 'gap-1 py-0.5'
             )}
+            style={{ WebkitBackdropFilter: 'blur(20px) saturate(180%)' }}
           >
-            <ChevronLeft className="h-3.5 w-3.5 shrink-0 opacity-80 sm:h-4 sm:w-4" aria-hidden />
-            {t('auctions.createBack')}
-          </button>
-          <span className="h-5 w-px shrink-0 bg-[#1D3160]/10" aria-hidden />
-          {!isLastStep ? (
             <button
               type="button"
-              disabled={continueDisabled}
-              title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
-              onClick={goNext}
+              onClick={goBack}
               className={cn(
-                'inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-xl px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition active:scale-[0.98] sm:min-h-[38px] sm:rounded-2xl sm:px-4 sm:text-xs',
-                isEmbedded && 'min-h-[32px] px-3 py-1 sm:min-h-[34px]',
-                continueDisabled
-                  ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
-                  : 'bg-[#FF7300] hover:bg-[#e86800]'
+                'inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160]/85 transition hover:bg-white/50 active:scale-[0.98]',
+                isEmbedded && 'min-h-[32px] px-2.5 py-1'
               )}
             >
-              {t('auctions.createContinue')}
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+              <ChevronLeft className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+              {t('auctions.createBack')}
             </button>
-          ) : (
+            <span className="h-5 w-px shrink-0 bg-[#1D3160]/10" aria-hidden />
+            {!isLastStep ? (
+              <button
+                type="button"
+                disabled={continueDisabled}
+                title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
+                onClick={goNext}
+                className={cn(
+                  'inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-xl px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition active:scale-[0.98]',
+                  isEmbedded && 'min-h-[32px] px-3 py-1',
+                  continueDisabled
+                    ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
+                    : 'bg-[#FF7300] hover:bg-[#e86800]'
+                )}
+              >
+                {t('auctions.createContinue')}
+                <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={publish}
+                className={cn(
+                  'inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-xl bg-[#FF7300] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition hover:bg-[#e86800] active:scale-[0.98]',
+                  isEmbedded && 'min-h-[32px] px-3 py-1'
+                )}
+              >
+                <Gavel className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {t('auctions.createSubmit')}
+              </button>
+            )}
+          </footer>
+        </div>
+
+        {/* Desktop: frecce fisse ai lati */}
+        <div className="pointer-events-none fixed inset-y-0 left-0 right-0 z-30 hidden sm:block">
+          <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4">
             <button
               type="button"
-              onClick={publish}
+              onClick={goBack}
               className={cn(
-                'inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-xl bg-[#FF7300] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition hover:bg-[#e86800] active:scale-[0.98] sm:min-h-[38px] sm:rounded-2xl sm:px-4 sm:text-xs',
-                isEmbedded && 'min-h-[32px] px-3 py-1 sm:min-h-[34px]'
+                'pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/60 bg-white/80 text-[#1D3160] shadow-[0_4px_20px_-2px_rgba(29,49,96,0.15)] backdrop-blur-md transition hover:bg-white hover:shadow-[0_6px_24px_-2px_rgba(29,49,96,0.2)] active:scale-95 lg:h-14 lg:w-14',
+                isEmbedded && 'h-10 w-10 lg:h-12 lg:w-12'
               )}
+              aria-label={t('auctions.createBack')}
             >
-              <Gavel className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-              {t('auctions.createSubmit')}
+              <ChevronLeft className="h-6 w-6 lg:h-7 lg:w-7" aria-hidden />
             </button>
-          )}
-        </footer>
-      </div>
+
+            {!isLastStep ? (
+              <button
+                type="button"
+                disabled={continueDisabled}
+                title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
+                onClick={goNext}
+                className={cn(
+                  'pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/60 text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition active:scale-95 lg:h-14 lg:w-14',
+                  isEmbedded && 'h-10 w-10 lg:h-12 lg:w-12',
+                  continueDisabled
+                    ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
+                    : 'bg-[#FF7300] hover:bg-[#e86800] hover:shadow-[0_6px_24px_-2px_rgba(255,115,0,0.4)]'
+                )}
+                aria-label={t('auctions.createContinue')}
+              >
+                <ChevronRight className="h-6 w-6 lg:h-7 lg:w-7" aria-hidden />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={publish}
+                className={cn(
+                  'pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/60 bg-[#FF7300] text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition hover:bg-[#e86800] hover:shadow-[0_6px_24px_-2px_rgba(255,115,0,0.4)] active:scale-95 lg:h-14 lg:w-14',
+                  isEmbedded && 'h-10 w-10 lg:h-12 lg:w-12'
+                )}
+                aria-label={t('auctions.createSubmit')}
+              >
+                <Gavel className="h-5 w-5 lg:h-6 lg:w-6" aria-hidden />
+              </button>
+            )}
+          </div>
+        </div>
+      </>
     )}
     </>
   );

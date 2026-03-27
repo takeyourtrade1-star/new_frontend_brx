@@ -118,7 +118,7 @@ export function LandingWelcome() {
         shortTitle: 'SCAMBIA',
         title: t('landing.howTo.trade.title'),
         description: t('landing.howTo.trade.desc'),
-        href: '/scambi',
+        href: '/scambi?video=1',
         cta: t('landing.howTo.trade.cta'),
         icon: RefreshCw,
       },
@@ -190,36 +190,33 @@ export function LandingWelcome() {
         }}
       />
       <div className="relative z-10 flex min-h-0 flex-col">
-        {/* Hero: logo + tagline + griglia giochi, con più altezza */}
-        <header className="flex items-center justify-center px-4 pb-2 pt-4 sm:pb-3 sm:pt-6 md:pb-4 md:pt-7 lg:pt-8">
+        {/* Hero: logo + tagline + griglia giochi, più compatto in alto */}
+        <header className="flex items-center justify-center px-4 pb-1 pt-0 sm:pb-2 sm:pt-1 md:pb-2 md:pt-2">
           <div className="relative flex w-full max-w-5xl items-center justify-center">
             <Image
               src={getCdnImageUrl('Logo%20Principale%20EBARTEX.png')}
               alt="Ebartex"
               width={700}
               height={263}
-              className="h-28 w-auto max-w-[90vw] object-contain object-center sm:h-32 md:h-36 lg:h-40 xl:h-44 2xl:h-48"
-              sizes="(max-width: 640px) 85vw, (max-width: 1024px) 50vw, 600px"
+              className="h-36 w-auto max-w-[95vw] object-contain object-center sm:h-44 md:h-52 lg:h-56 xl:h-64 2xl:h-72"
+              sizes="(max-width: 640px) 95vw, (max-width: 1024px) 60vw, 800px"
               priority
               unoptimized
             />
           </div>
         </header>
 
-        {/* Tagline: titolo in evidenza + sottotitolo curato */}
-        <div className="px-3 pb-3 text-center sm:px-4 sm:pb-4 md:pb-5">
-          <h2 className="text-lg font-semibold uppercase tracking-[0.06em] text-white drop-shadow-sm sm:text-xl md:text-2xl md:tracking-[0.05em] lg:text-3xl">
-            {t('landing.heroTitle')}
-          </h2>
-          <p className="mx-auto mt-3 max-w-lg text-xs font-normal leading-relaxed tracking-wide text-white/80 sm:mt-4 sm:text-sm md:mt-5">
-            {t('landing.heroSubtitle')}
-          </p>
-
-          {/* Pulsante CTA "INIZIA ORA" - Spostato qui sotto il sottotitolo */}
-          <div className="mt-6 flex w-full justify-center sm:mt-8">
+        {/* Tagline: titolo + CTA su stessa riga */}
+        <div className="px-3 pb-3 sm:px-4 sm:pb-4 md:pb-5">
+          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:items-center sm:justify-center sm:gap-6 md:gap-8">
+            <h2 className="text-lg font-semibold uppercase tracking-[0.06em] text-white drop-shadow-sm sm:text-xl md:text-2xl md:tracking-[0.05em] lg:text-3xl">
+              {t('landing.heroTitle')}
+            </h2>
+            
+            {/* Pulsante CTA "INIZIA ORA" - Accanto al titolo - Ridotto del 30% */}
             <Link
               href="/login"
-              className="group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 px-8 py-3.5 sm:px-10 sm:py-4 text-xs sm:text-sm font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95"
+              className="group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 px-5.5 py-2.5 sm:px-7 sm:py-3 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95"
             >
               <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
                 <div className="relative h-full w-8 bg-white/20" />
@@ -227,10 +224,14 @@ export function LandingWelcome() {
               <span>INIZIA ORA</span>
             </Link>
           </div>
+          
+          <p className="mx-auto mt-6 max-w-lg text-center text-xs font-normal leading-relaxed tracking-wide text-white/80 sm:mt-8 md:mt-10 sm:text-sm">
+            {t('landing.heroSubtitle')}
+          </p>
         </div>
 
         {/* Loghi giochi: Magic grande a tutta larghezza + Altri sotto nel PRESTO IN ARRIVO */}
-        <section className="px-2 pb-2 sm:px-4 sm:pb-3 md:px-6 md:pb-4">
+        <section className="px-2 pt-6 pb-2 sm:px-4 sm:pt-8 sm:pb-3 md:px-6 md:pt-10 md:pb-4">
           <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-6">
             {/* Riga 1: Magic — sfondo rettangolare/"allungato" (rounded-2xl) a tutta larghezza (max-w-lg) */}
             {MAIN_GAMES.map((game) => (
@@ -244,6 +245,13 @@ export function LandingWelcome() {
                   else if (game.gameSlug) setSelectedGame(game.gameSlug);
                 }}
               >
+                {/* Banner glass sopra - Citazione Magic centrata + Disponibile a destra */}
+                <div className="absolute -top-3 left-0 right-0 z-10 flex items-center justify-center">
+                  <div className="whitespace-nowrap text-center font-sans text-[11px] sm:text-sm font-medium italic tracking-wide text-white drop-shadow-md">
+                    <span className="text-[#FF7300] not-italic">"</span>La battaglia non ha bisogno di uno scopo<span className="text-[#FF7300] not-italic">"</span>
+                  </div>
+                </div>
+                <span className="absolute -top-3 right-0 translate-x-1/2 z-10 whitespace-nowrap rounded-full bg-[#FF7300] px-2 py-1 sm:px-3 sm:py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile da ora!</span>
                 <img
                   src={game.src}
                   alt={game.alt}
@@ -253,29 +261,35 @@ export function LandingWelcome() {
               </Link>
             ))}
             
-            {/* Riga 2: Pokemon + Giochi in arrivo — sfondo rotondo/pillola */}
-            <div className="flex w-full flex-row overflow-visible items-center justify-center rounded-[32px] sm:rounded-[48px] border border-white/20 bg-white/5 px-4 py-5 backdrop-blur-sm sm:gap-4 sm:px-6 sm:py-6 md:gap-5 md:px-8 md:py-8 relative">
-              {/* Badge sopra */}
-              <div className="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-4 py-1.5 text-center font-sans text-[10px] font-bold uppercase tracking-widest text-[#1D3160] shadow-xl backdrop-blur-sm sm:text-xs">
-                PRESTO IN ARRIVO
+            {/* Spacer per distanziare dalla sezione giochi */}
+            <div className="h-4 sm:h-6" />
+            
+            {/* Giochi in arrivo — scorrimento libero senza container */}
+            {/* Banner glass "PRESTO IN ARRIVO" - posizionato vicino ai giochi */}
+            <div className="relative w-full mb-4 sm:mb-5">
+              <div className="absolute top-2 sm:top-3 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#8B5CF6]/20 px-[1.15rem] sm:px-7 py-2.5 sm:py-3 text-center font-sans text-xs sm:text-sm font-bold uppercase tracking-widest text-white shadow-[0_0_25px_rgba(139,92,246,0.5)] backdrop-blur-md">
+                Presto in Arrivo
               </div>
-              
-              <div className="flex flex-row flex-nowrap items-center justify-center gap-3 sm:gap-4 md:gap-5 overflow-x-auto scrollbar-hide py-1">
-                {COMING_SOON_GAMES.map((game) => (
+            </div>
+            
+            <div className="games-marquee-track items-center gap-5 sm:gap-6 md:gap-8 py-6 w-full">
+              {/* 10 copie dei giochi per loop infinito fluido */}
+              {[...Array(10)].map((_, i) => (
+                COMING_SOON_GAMES.map((game) => (
                   <button
-                    key={game.alt}
+                    key={`${i}-${game.alt}`}
                     type="button"
                     onClick={() => setNotifyGame({ src: game.src, alt: game.alt })}
-                    className="group relative flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/10 bg-white/5 p-2.5 sm:p-3 transition-opacity duration-300 hover:opacity-100 opacity-60"
+                    className="group relative flex h-24 w-24 sm:h-28 sm:w-28 md:h-36 md:w-36 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/10 bg-white/5 p-3.5 sm:p-4 transition-opacity duration-300 hover:opacity-100 opacity-60"
                   >
                     <img
                       src={game.src}
                       alt={game.alt}
-                      style={{ display: 'block', maxWidth: '80%', maxHeight: '80%', width: 'auto', height: 'auto', objectFit: 'contain' }}
+                      style={{ display: 'block', maxWidth: '90%', maxHeight: '90%', width: 'auto', height: 'auto', objectFit: 'contain' }}
                     />
                   </button>
-                ))}
-              </div>
+                ))
+              ))}
             </div>
           </div>
         </section>
@@ -346,31 +360,31 @@ export function LandingWelcome() {
         {/* Come vendere / scambiare / asta — forte glass effect, video che si intravede */}
         {/* Sfondo blur che parte da metà "PRESTO IN ARRIVO" e sfuma dolcissimo verso il basso */}
         {/* Sfondo glass progressivo: blur che aumenta man mano che si scende */}
-        {/* Layer 1: blur leggero, parte dall'alto */}
-        <div 
-          className="absolute inset-x-0 bottom-0 backdrop-blur-sm pointer-events-none z-[1]" 
-          style={{ 
-            top: 'calc(100% - 450px)',
-            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 15%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.5) 50%, black 70%)',
-            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 15%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.5) 50%, black 70%)'
-          }} 
-        />
-        {/* Layer 2: blur medio, parte un po' più sotto */}
+        {/* Layer 1: blur leggero, parte più in alto dai punti di forza */}
         <div 
           className="absolute inset-x-0 bottom-0 backdrop-blur-md pointer-events-none z-[1]" 
           style={{ 
-            top: 'calc(100% - 380px)',
-            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.4) 45%, black 70%)',
-            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.4) 45%, black 70%)'
+            top: 'calc(100% - 520px)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 10%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.55) 45%, black 65%)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 10%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.55) 45%, black 65%)'
           }} 
         />
-        {/* Layer 3: blur forte + tinta colore, parte dal basso */}
+        {/* Layer 2: blur medio, transizione più visibile */}
         <div 
-          className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent via-header-bg/20 to-header-bg/60 backdrop-blur-xl pointer-events-none z-[1]" 
+          className="absolute inset-x-0 bottom-0 backdrop-blur-xl pointer-events-none z-[1]" 
           style={{ 
-            top: 'calc(100% - 300px)',
-            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 25%, rgba(0,0,0,0.5) 50%, black 75%)',
-            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 25%, rgba(0,0,0,0.5) 50%, black 75%)'
+            top: 'calc(100% - 420px)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0.5) 40%, black 65%)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0.5) 40%, black 65%)'
+          }} 
+        />
+        {/* Layer 3: blur forte + tinta colore più intensa */}
+        <div 
+          className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent via-header-bg/35 to-header-bg/80 backdrop-blur-2xl pointer-events-none z-[1]" 
+          style={{ 
+            top: 'calc(100% - 320px)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.6) 45%, black 70%)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.6) 45%, black 70%)'
           }} 
         />
 
@@ -409,6 +423,9 @@ export function LandingWelcome() {
                 })}
               </div>
             </div>
+
+            {/* Divisore linea tra sezioni */}
+            <div className="mx-auto my-6 sm:my-8 h-px w-2/3 max-w-lg bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
             {/* 3 Pillole espandibili Accordion */}
             <p className="mt-8 sm:mt-10 md:mt-12 text-center text-xs font-normal leading-relaxed text-white/95 sm:text-sm md:text-base">
@@ -466,6 +483,9 @@ export function LandingWelcome() {
                 );
               })}
             </div>
+
+            {/* Divisore linea tra sezioni */}
+            <div className="mx-auto my-8 sm:my-10 h-px w-2/3 max-w-lg bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
             {/* Boutique Cards Piu Piccole */}
             <div className="mt-12 sm:mt-16 text-center">

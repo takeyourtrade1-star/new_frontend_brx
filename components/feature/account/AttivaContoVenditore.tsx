@@ -55,13 +55,13 @@ export function AttivaContoVenditore() {
           <Input
             value="IT +39"
             readOnly
-            className="h-12 w-24 rounded-none border-gray-300 bg-white text-gray-900"
+            className="h-12 w-24 shrink-0 rounded-none border-gray-300 bg-white text-gray-900"
           />
           <Input
             placeholder={t('accountPage.sellerPhonePlaceholder')}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="h-12 w-64 rounded-none border-gray-300 bg-white text-gray-900 placeholder:text-gray-500"
+            className="h-12 min-w-0 flex-1 rounded-none border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 sm:flex-none sm:w-64"
           />
         </div>
       </section>

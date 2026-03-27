@@ -127,46 +127,48 @@ export function ListaDesideriContent() {
           <p className="mt-1 text-xs text-gray-400">{t('accountPage.wantlistEmptyHint')}</p>
         </div>
       ) : (
-        <div className="border border-gray-200 bg-white">
-          <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 border-b border-gray-100 bg-gray-50 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-500">
-            <button type="button" className="flex items-center gap-1 hover:text-gray-700">
-              {t('accountPage.wantlistColName')} <ArrowUpDown className="h-3 w-3" />
-            </button>
-            <span className="text-right">{t('accountPage.wantlistColCards')}</span>
-            <span className="text-right">{t('accountPage.wantlistColCreated')}</span>
-            <span />
-          </div>
-
-          {lists.map((list, i) => (
-            <div
-              key={list.id}
-              className={cn(
-                'grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-5 py-3.5 text-sm transition-colors hover:bg-gray-50',
-                i > 0 && 'border-t border-gray-100'
-              )}
-            >
-              <Link
-                href={`/account/lista-desideri/${list.id}`}
-                className="flex items-center gap-2 font-medium text-gray-900 hover:text-[#FF7300]"
-              >
-                <List className="h-4 w-4 shrink-0 text-gray-400" />
-                {list.name}
-                <ChevronRight className="ml-1 h-3.5 w-3.5 text-gray-400" />
-              </Link>
-              <span className="text-right tabular-nums text-gray-500">
-                {t('accountPage.wantlistCardsCount', { count: list.cardCount })}
-              </span>
-              <span className="text-right font-mono text-xs tabular-nums text-gray-400">{list.createdAt}</span>
-              <button
-                type="button"
-                onClick={() => handleDelete(list.id)}
-                className="flex h-7 w-7 items-center justify-center text-gray-400 transition-colors hover:text-red-500"
-                aria-label={t('accountPage.wantlistDeleteAria', { name: list.name })}
-              >
-                <Trash2 className="h-4 w-4" />
+        <div className="overflow-x-auto border border-gray-200 bg-white">
+          <div className="min-w-[380px]">
+            <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 border-b border-gray-100 bg-gray-50 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-500">
+              <button type="button" className="flex items-center gap-1 hover:text-gray-700">
+                {t('accountPage.wantlistColName')} <ArrowUpDown className="h-3 w-3" />
               </button>
+              <span className="text-right">{t('accountPage.wantlistColCards')}</span>
+              <span className="text-right">{t('accountPage.wantlistColCreated')}</span>
+              <span />
             </div>
-          ))}
+
+            {lists.map((list, i) => (
+              <div
+                key={list.id}
+                className={cn(
+                  'grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-5 py-3.5 text-sm transition-colors hover:bg-gray-50',
+                  i > 0 && 'border-t border-gray-100'
+                )}
+              >
+                <Link
+                  href={`/account/lista-desideri/${list.id}`}
+                  className="flex items-center gap-2 font-medium text-gray-900 hover:text-[#FF7300]"
+                >
+                  <List className="h-4 w-4 shrink-0 text-gray-400" />
+                  {list.name}
+                  <ChevronRight className="ml-1 h-3.5 w-3.5 text-gray-400" />
+                </Link>
+                <span className="text-right tabular-nums text-gray-500">
+                  {t('accountPage.wantlistCardsCount', { count: list.cardCount })}
+                </span>
+                <span className="text-right font-mono text-xs tabular-nums text-gray-400">{list.createdAt}</span>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(list.id)}
+                  className="flex h-7 w-7 items-center justify-center text-gray-400 transition-colors hover:text-red-500"
+                  aria-label={t('accountPage.wantlistDeleteAria', { name: list.name })}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

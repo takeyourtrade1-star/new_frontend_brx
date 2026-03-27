@@ -8,9 +8,9 @@ function FilterRow({ thirdLabelKey }: { thirdLabelKey: 'accountPage.statsPurchas
   const { t } = useTranslation();
   const third = t(thirdLabelKey);
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 py-3">
-      <div className="flex flex-wrap items-end gap-4">
-        <span className="text-sm font-medium uppercase text-gray-900">
+    <div className="flex flex-col gap-3 py-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
+        <span className="col-span-2 text-sm font-medium uppercase text-gray-900 sm:col-span-1">
           {t('accountPage.statsOrdersSold')}
         </span>
         <div className="relative flex h-10 items-center rounded-none bg-white px-4 py-2 shadow-sm">
@@ -41,7 +41,7 @@ function FilterRow({ thirdLabelKey }: { thirdLabelKey: 'accountPage.statsPurchas
             aria-hidden
           />
         </div>
-        <div className="relative flex h-10 w-40 items-center rounded-none bg-white px-4 py-2 shadow-sm">
+        <div className="relative flex h-10 items-center rounded-none bg-white px-4 py-2 shadow-sm sm:w-40">
           <select
             className="h-full w-full appearance-none border-0 bg-transparent pr-8 text-sm font-medium uppercase text-gray-900 focus:outline-none focus:ring-0"
             defaultValue={third}
@@ -57,14 +57,14 @@ function FilterRow({ thirdLabelKey }: { thirdLabelKey: 'accountPage.statsPurchas
       <div className="flex items-center gap-6">
         <Link
           href="#"
-          className="text-sm font-semibold uppercase text-gray-900 hover:underline"
+          className="text-sm font-semibold uppercase hover:underline"
           style={{ color: '#ff7f00' }}
         >
           {t('accountPage.statsExportCsv')}
         </Link>
         <Link
           href="#"
-          className="text-sm font-semibold uppercase text-gray-900 hover:underline"
+          className="text-sm font-semibold uppercase hover:underline"
           style={{ color: '#ff7f00' }}
         >
           {t('accountPage.statsExportXls')}

@@ -156,8 +156,6 @@ export default function ImpostazioniLinguaPage() {
   const { t } = useTranslation();
   const { selectedLang, setSelectedLang } = useLanguage();
   const [emailLang, setEmailLang] = useState(selectedLang);
-  const [showNamesEn, setShowNamesEn] = useState(false);
-  const [useProductLang, setUseProductLang] = useState(false);
 
   return (
     <div className="font-sans text-gray-900">
@@ -184,36 +182,6 @@ export default function ImpostazioniLinguaPage() {
             onChange={setEmailLang}
             label={t('accountPage.langEmail')}
           />
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <label className="text-lg font-medium text-gray-900">{t('accountPage.langShowNameEn')}</label>
-          <button
-            type="button"
-            onClick={() => setShowNamesEn(!showNamesEn)}
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 transition-colors ${
-              showNamesEn ? 'border-[#FF7300] bg-[#FF7300]' : 'border-gray-300 bg-white'
-            }`}
-            aria-checked={showNamesEn}
-            role="checkbox"
-          >
-            {showNamesEn && <Check className="h-4 w-4 text-white" />}
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <label className="text-lg font-medium text-gray-900">{t('accountPage.langUseProduct')}</label>
-          <button
-            type="button"
-            onClick={() => setUseProductLang(!useProductLang)}
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 transition-colors ${
-              useProductLang ? 'border-[#FF7300] bg-[#FF7300]' : 'border-gray-300 bg-white'
-            }`}
-            aria-checked={useProductLang}
-            role="checkbox"
-          >
-            {useProductLang && <Check className="h-4 w-4 text-white" />}
-          </button>
         </div>
       </form>
 

@@ -62,8 +62,8 @@ export function HamburgerMenu() {
   const menuItems = useMemo(
     () =>
       [
-        { label: t('nav.userSearch'), href: '/search' },
-        { label: t('nav.advancedSinglesSearch'), href: '/search?advanced=1' },
+        { label: t('nav.advancedSinglesSearch') ?? 'Ricerca avanzata singole', href: '/search/advanced' },
+        { label: t('nav.userSearch'), href: '/search/user' },
         { label: t('nav.legalNorms'), href: '/legal/norme' },
         { label: t('nav.legalTerms'), href: '/legal/condizioni' },
       ] as const,
@@ -337,7 +337,7 @@ export function HamburgerMenu() {
 
           {isAuthenticated && (
             <>
-              <div className="border-b border-gray-100 pt-2">
+              <div className="border-b border-gray-100 pt-2 md:hidden">
                 <Link
                   href="/account"
                   onClick={() => setOpen(false)}

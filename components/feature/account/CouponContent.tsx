@@ -27,8 +27,8 @@ export function CouponContent() {
         className="rounded-none bg-cover bg-center bg-no-repeat p-6 shadow-md"
         style={{ backgroundImage: `url(${getCdnImageUrl('rectangle-97.png')})` }}
       >
-        <div className="mx-auto flex max-w-3xl flex-wrap items-end justify-center gap-20">
-          <div className="w-36 shrink-0">
+        <div className="mx-auto grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
+          <div>
             <label
               htmlFor="coupon-stato"
               className="mb-2 block text-sm font-medium uppercase text-gray-900"
@@ -48,7 +48,7 @@ export function CouponContent() {
               <ChevronDown className="pointer-events-none absolute right-3 h-4 w-4 shrink-0 text-gray-900" aria-hidden />
             </div>
           </div>
-          <div className="w-36 shrink-0">
+          <div>
             <label
               htmlFor="coupon-data-inizio"
               className="mb-2 block text-sm font-medium uppercase text-gray-900"
@@ -65,7 +65,7 @@ export function CouponContent() {
               <ChevronDown className="pointer-events-none absolute right-3 h-4 w-4 shrink-0 text-gray-900" aria-hidden />
             </div>
           </div>
-          <div className="w-36 shrink-0">
+          <div>
             <label
               htmlFor="coupon-data-fine"
               className="mb-2 block text-sm font-medium uppercase text-gray-900"
@@ -84,7 +84,7 @@ export function CouponContent() {
           </div>
           <Button
             type="button"
-            className="h-10 shrink-0 rounded-none px-6 font-semibold uppercase text-gray-900 shadow-md transition-opacity hover:opacity-90"
+            className="h-10 w-full shrink-0 rounded-none px-6 font-semibold uppercase text-gray-900 shadow-md transition-opacity hover:opacity-90 lg:w-auto"
             style={{ backgroundColor: '#FF8C00' }}
           >
             {t('search.searchBtn')}

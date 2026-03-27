@@ -338,11 +338,6 @@ export function ProductCategoryView({
         <div className="flex flex-wrap items-center justify-between gap-3 py-3 px-4 border border-gray-200 rounded-lg bg-white mb-4">
           <p className="text-gray-700 text-sm">
             <strong>{total}</strong> Risultati
-            {total > 0 && (
-              <span className="ml-2 text-gray-500">
-                – Ricerca avanzata
-              </span>
-            )}
           </p>
           <div className="flex h-10 overflow-hidden rounded-full bg-gray-100">
             <button

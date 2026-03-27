@@ -555,7 +555,7 @@ export function SearchResults({
             {gameLabel || tHydrationSafe('search.breadcrumbGames')}
           </Link>
           <span>/</span>
-          <span>{tHydrationSafe('search.singles')}</span>
+          <span>{getCategoryLabel(gameSlug, categoryKey, selectedLang === 'en' ? 'en' : 'it')}</span>
           {setFilter && (
             <>
               <span>/</span>
@@ -939,7 +939,7 @@ export function SearchResults({
                           <div className="flex items-center gap-2 min-w-0">
                             <button
                               type="button"
-                              className="relative flex h-14 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-[#f2f2f7] shadow-sm transition-shadow"
+                              className="relative flex h-14 w-9 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-gray-200 bg-[#f2f2f7] shadow-sm transition-shadow"
                               aria-label={t('search.previewCardImage')}
                               disabled={!imgUrl}
                               onClick={(e) => handleListCameraClick(e, imgUrl, nameOriginal)}
@@ -958,7 +958,7 @@ export function SearchResults({
                                     />
                                   </div>
                                   {/* Overlay + camera al centro */}
-                                  <span className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-hidden />
+                                  <span className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" aria-hidden />
                               <Camera
                                     className="absolute inset-0 m-auto h-4 w-4 text-white"
                                     strokeWidth={1.5}
@@ -1089,7 +1089,7 @@ export function SearchResults({
             onMouseEnter={cancelHideHoverPreview}
             onMouseLeave={scheduleHideHoverPreview}
           >
-            <div className="relative w-[220px] sm:w-[260px] border-[3px] border-[#1a365d] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+            <div className="relative w-[220px] sm:w-[260px] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
               <div className="relative aspect-[63/88] w-full bg-gray-100">
                 <Image
                   src={listHoverPreview.url}
@@ -1126,7 +1126,7 @@ export function SearchResults({
               <X className="h-6 w-6 text-gray-800" aria-hidden />
             </button>
             <div
-              className="relative max-h-[85vh] w-full max-w-[min(92vw,320px)] border-[3px] border-[#1a365d] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+              className="relative max-h-[85vh] w-full max-w-[min(92vw,320px)] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative aspect-[63/88] w-full bg-gray-100">

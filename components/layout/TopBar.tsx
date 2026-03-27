@@ -325,7 +325,7 @@ export function TopBar() {
                 role="menu"
                 aria-label={t('topBar.gamesMenuAria')}
               >
-                {GAME_OPTIONS.map((opt, i) => {
+                {GAME_OPTIONS.filter(opt => opt.value === 'mtg').map((opt, i) => {
                   const logoSrc =
                     opt.value === 'mtg'
                       ? getCdnImageUrl('loghi-giochi/magic.png')
@@ -350,7 +350,7 @@ export function TopBar() {
                         alt={opt.label}
                         width={160}
                         height={48}
-                        className="h-10 w-auto max-w-[9rem] object-contain sm:h-12 sm:max-w-[10rem]"
+                        className="mx-auto h-10 w-auto max-w-[9rem] object-contain sm:h-12 sm:max-w-[10rem]"
                         sizes="160px"
                         unoptimized
                       />
@@ -558,14 +558,6 @@ export function TopBar() {
                         onClick={() => setAccountMenuOpen(false)}
                       >
                         {t('account.credit')}
-                      </Link>
-                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                      <Link
-                        href="/account/oggetti"
-                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                        onClick={() => setAccountMenuOpen(false)}
-                      >
-                        {t('account.items')}
                       </Link>
                       <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                       <Link

@@ -81,36 +81,38 @@ export function ListaDesideriDetailContent({ listId }: { listId: string }) {
           <p className="mt-1 text-xs text-gray-400">{t('accountPage.wantlistDetailEmptyHint')}</p>
         </div>
       ) : (
-        <div className="border border-gray-200 bg-white">
-          <div className="grid grid-cols-[2fr_1fr_auto_auto_auto_auto] items-center gap-4 border-b border-gray-100 bg-gray-50 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-500">
-            <button type="button" className="flex items-center gap-1 hover:text-gray-700">
-              {t('accountPage.wantlistDetailColCard')} <ArrowUpDown className="h-3 w-3" />
-            </button>
-            <span>{t('accountPage.wantlistDetailColSet')}</span>
-            <span>{t('accountPage.wantlistDetailColQty')}</span>
-            <span>{t('accountPage.wantlistDetailColLang')}</span>
-            <span>{t('accountPage.wantlistDetailColCond')}</span>
-            <span />
-          </div>
-          {cards.map((card, i) => (
-            <div
-              key={card.id}
-              className={`grid grid-cols-[2fr_1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3 text-sm hover:bg-gray-50 ${i > 0 ? 'border-t border-gray-100' : ''}`}
-            >
-              <span className="font-medium text-gray-900">{card.name}</span>
-              <span className="text-gray-500">{card.set}</span>
-              <span className="tabular-nums text-gray-700">{card.quantity}</span>
-              <span className="text-gray-500">{card.language}</span>
-              <span className="text-gray-500">{card.condition}</span>
-              <button
-                type="button"
-                className="flex h-7 w-7 items-center justify-center text-gray-400 transition-colors hover:text-red-500"
-                aria-label={t('accountPage.wantlistDetailRemoveAria', { name: card.name })}
-              >
-                <Trash2 className="h-4 w-4" />
+        <div className="overflow-x-auto border border-gray-200 bg-white">
+          <div className="min-w-[480px]">
+            <div className="grid grid-cols-[2fr_1fr_auto_auto_auto_auto] items-center gap-4 border-b border-gray-100 bg-gray-50 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-500">
+              <button type="button" className="flex items-center gap-1 hover:text-gray-700">
+                {t('accountPage.wantlistDetailColCard')} <ArrowUpDown className="h-3 w-3" />
               </button>
+              <span>{t('accountPage.wantlistDetailColSet')}</span>
+              <span>{t('accountPage.wantlistDetailColQty')}</span>
+              <span>{t('accountPage.wantlistDetailColLang')}</span>
+              <span>{t('accountPage.wantlistDetailColCond')}</span>
+              <span />
             </div>
-          ))}
+            {cards.map((card, i) => (
+              <div
+                key={card.id}
+                className={`grid grid-cols-[2fr_1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3 text-sm hover:bg-gray-50 ${i > 0 ? 'border-t border-gray-100' : ''}`}
+              >
+                <span className="font-medium text-gray-900">{card.name}</span>
+                <span className="text-gray-500">{card.set}</span>
+                <span className="tabular-nums text-gray-700">{card.quantity}</span>
+                <span className="text-gray-500">{card.language}</span>
+                <span className="text-gray-500">{card.condition}</span>
+                <button
+                  type="button"
+                  className="flex h-7 w-7 items-center justify-center text-gray-400 transition-colors hover:text-red-500"
+                  aria-label={t('accountPage.wantlistDetailRemoveAria', { name: card.name })}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
