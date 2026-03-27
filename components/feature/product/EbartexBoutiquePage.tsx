@@ -125,7 +125,7 @@ export function EbartexBoutiquePage() {
 
         {/* Titolo sezione */}
         <h2 className="text-2xl font-bold text-gray-900 uppercase tracking-tight mb-6">
-          Categorie
+          La nostra Boutique
         </h2>
 
         {/* Griglia categorie */}
@@ -166,26 +166,49 @@ export function EbartexBoutiquePage() {
         </section>
 
         {/* Stampa 3D in arrivo */}
-        <section className="rounded-2xl border-2 border-dashed border-[#FF8800]/40 bg-white p-6 md:p-10 mb-10">
-          <div className="flex flex-col md:flex-row md:items-center gap-6">
-            <div
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-white"
-              style={{ backgroundColor: BRAND_ORANGE }}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+          {/* Card Info */}
+          <div className="rounded-2xl border-2 border-dashed border-[#FF8800]/40 bg-white p-6 md:p-10 flex flex-col justify-center">
+            <div className="flex flex-col md:flex-row md:items-center gap-6">
+              <div
+                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg"
+                style={{ backgroundColor: BRAND_ORANGE }}
+              >
+                <Printer className="h-8 w-8" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 uppercase tracking-tight">
+                  Stampa 3D in arrivo
+                </h3>
+                <p className="mt-3 text-sm font-semibold uppercase tracking-wider" style={{ color: BRAND_ORANGE }}>
+                  Coming soon
+                </p>
+              </div>
+            </div>
+            <p className="mt-6 text-gray-600 leading-relaxed">
+              Stiamo lavorando per portarti accessori e personalizzazioni in stampa 3D: portacarte,
+              supporti, token e molto altro. Resta sintonizzato per le novità.
+            </p>
+          </div>
+
+          {/* Video Promo */}
+          <div className="relative aspect-video md:aspect-auto overflow-hidden rounded-2xl bg-black shadow-xl border border-gray-200">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-full w-full object-cover opacity-90"
             >
-              <Printer className="h-8 w-8" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 uppercase tracking-tight">
-                Stampa 3D in arrivo
-              </h3>
-              <p className="mt-2 text-gray-600 max-w-2xl">
-                Stiamo lavorando per portarti accessori e personalizzazioni in stampa 3D: portacarte,
-                supporti, token e molto altro. Resta sintonizzato per le novità.
-              </p>
-              <p className="mt-3 text-sm font-semibold uppercase tracking-wider" style={{ color: BRAND_ORANGE }}>
-                Coming soon
-              </p>
-            </div>
+              <source 
+                src="https://player.vimeo.com/external/494252666.sd.mp4?s=7243b698246a4e79780590378bb1ee5b&profile_id=165" 
+                type="video/mp4" 
+              />
+              {/* Fallback local path if CDN fails or user wants to replace */}
+              <source src="/videos/3d-printer.mp4" type="video/mp4" />
+            </video>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+            <div className="absolute top-4 right-4 h-2 w-2 rounded-full bg-[#FF8800] animate-pulse" />
           </div>
         </section>
 

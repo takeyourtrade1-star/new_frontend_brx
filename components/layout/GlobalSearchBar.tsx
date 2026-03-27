@@ -53,6 +53,17 @@ const FRONTEND_TO_DB_SLUG: Record<string, string> = {
   op: 'one-piece',
 };
 
+/** Mapping slug categoria prodotto → valore 'type' in Meilisearch. */
+const CATEGORY_TO_MEILI_TYPE: Record<string, string> = {
+  singles: 'Singles',
+  boosters: 'Boosters',
+  'booster-boxes': 'Booster boxes',
+  'set-lotti-collezioni': 'Sets / Lots / Collections',
+  sigillati: 'Sealed Products',
+  accessori: 'Accessories',
+  boutique: 'Boutique',
+};
+
 /** Costruisce URL pagina risultati; game in query = slug DB (per /api/search e Meilisearch). */
 function buildSearchUrl(q: string, game?: GameSlug | null, category?: string | null): string {
   const params = new URLSearchParams();
@@ -482,6 +493,7 @@ function SearchResultsDropdown({
   containerRef,
   anchorRef,
   inputValue,
+  productCategory,
 }: {
   gameSlug: GameSlug;
   onSelect: () => void;
@@ -489,6 +501,7 @@ function SearchResultsDropdown({
   anchorRef: React.RefObject<HTMLDivElement | null>;
   /** Valore attuale dell'input (per mostrare suggerimenti subito mentre digiti, prima che query InstantSearch si aggiorni) */
   inputValue?: string;
+  productCategory: string | null;
 }) {
   const router = useRouter();
   const { query, isSearchStalled } = useSearchBox();
@@ -597,9 +610,7 @@ function SearchResultsDropdown({
                 if (!q) return;
                 const active = document.activeElement;
                 if (active instanceof HTMLElement) active.blur();
-                // Passa anche la categoria se siamo in una pagina che la prevede e se ne abbiamo una selezionata
-                const urlCategoria = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('category') : null;
-                router.push(buildSearchUrl(q, gameSlug, urlCategoria));
+                router.push(buildSearchUrl(q, gameSlug, productCategory));
                 onSelect();
               }}
               className="w-full py-4 text-center text-base font-medium text-[#0f172a] bg-[#F8F8F8] rounded-none hover:bg-[#EEEEEE] transition-colors"
@@ -649,12 +660,14 @@ function SearchPanelBody({
   onEnter,
   onSelectResult,
   selectedGame,
+  productCategory,
   hideInput = false,
 }: {
   inputRef: React.RefObject<HTMLInputElement | null>;
   onEnter: () => void;
   onSelectResult: () => void;
   selectedGame: GameSlug | null;
+  productCategory: string | null;
   /** Se true, non mostrare l'input nel pannello (si scrive nella barra) */
   hideInput?: boolean;
 }) {
@@ -755,8 +768,7 @@ function SearchPanelBody({
             type="button"
             onClick={() => {
               const q = (query ?? '').trim();
-              const urlCategoria = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('category') : null;
-              if (q) router.push(buildSearchUrl(q, selectedGame, urlCategoria));
+              if (q) router.push(buildSearchUrl(q, selectedGame, productCategory));
               onSelectResult();
             }}
             className="w-full py-4 text-center text-base font-medium text-white bg-white/10 hover:bg-[#ff7300]/30 transition-colors rounded-none"
@@ -796,9 +808,11 @@ function SearchPanelBody({
 
 function SearchSubmitButton({
   selectedGame,
+  productCategory,
   variant = 'default',
 }: {
   selectedGame: GameSlug | null;
+  productCategory?: string | null;
   variant?: 'default' | 'pill' | 'panel';
 }) {
   const router = useRouter();
@@ -810,11 +824,7 @@ function SearchSubmitButton({
     const active = typeof document !== 'undefined' ? document.activeElement : null;
     if (active instanceof HTMLElement) active.blur();
     
-    // Check if we have a locally selected category hook we can read, otherwise default to search params state or something contextually.
-    // However SearchSubmitButton doesn't know the selected category natively without state lifting.
-    // For now we just route standard.
-    const urlCategoria = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('category') : null;
-    router.push(buildSearchUrl(searchQuery, selectedGame, urlCategoria));
+    router.push(buildSearchUrl(searchQuery, selectedGame, productCategory));
   };
 
   if (variant === 'pill') {
@@ -1003,11 +1013,13 @@ function ProductCategoryButton({
 
 function SearchWithInstantSearch({
   selectedGame,
+  productCategory,
+  setProductCategory,
   onOpenChange,
 }: {
   selectedGame: GameSlug | null;
-  setSelectedGame: (g: GameSlug | null) => void;
-  gameDisplayName: (slug: GameSlug | null) => string;
+  productCategory: string | null;
+  setProductCategory: (c: string | null) => void;
   onOpenChange?: (isOpen: boolean) => void;
 }) {
   const router = useRouter();
@@ -1021,12 +1033,9 @@ function SearchWithInstantSearch({
   const hasText = (localValue ?? '').trim().length > 0;
   
   const pathname = usePathname();
-  const isProductsPage = pathname.startsWith('/products') || pathname.startsWith('/search');
+  const isProductsPage = pathname.startsWith('/products') || pathname.startsWith('/search') || pathname === '/';
   
-  // Estrarre e gestire lo slug della categoria prodotto corrente
-  const pathParts = pathname.split('/');
-  const defaultCategory = CATEGORY_SLUGS.has(pathParts[2]) ? pathParts[2] : null;
-  const [productCategory, setProductCategory] = useState<string | null>(defaultCategory);
+  // Notifica il cambio di stato apertura/chiusura
 
   // Notifica il cambio di stato apertura/chiusura
   useEffect(() => {
@@ -1078,6 +1087,7 @@ function SearchWithInstantSearch({
       containerRef={dropdownContainerRef}
       anchorRef={triggerRef}
       inputValue={localValue}
+      productCategory={productCategory}
     />
   ) : null;
 
@@ -1161,13 +1171,32 @@ function SearchWithInstantSearch({
 
 export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOpen: boolean) => void }) {
   const { selectedGame, setSelectedGame, gameDisplayName } = useGame();
+  const pathname = usePathname();
+
+  // Inizializzazione categoria da URL se presente
+  const [productCategory, setProductCategory] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const pathParts = pathname.split('/');
+    return CATEGORY_SLUGS.has(pathParts[2]) ? pathParts[2] : null;
+  });
 
   const gameFilter = useMemo(() => {
     if (!selectedGame) return undefined;
-    // Filtro Meilisearch: game_slug = slug della tabella games (mtg, pokemon, one-piece).
     const realSlug = FRONTEND_TO_DB_SLUG[selectedGame] ?? selectedGame;
     return [`game_slug:${realSlug}`];
   }, [selectedGame]);
+
+  const categoryFilter = useMemo(() => {
+    if (!productCategory || productCategory === 'all' || productCategory === 'singles') return [];
+    const type = CATEGORY_TO_MEILI_TYPE[productCategory];
+    return type ? [`type:"${type}"`] : [];
+  }, [productCategory]);
+
+  const allFilters = useMemo(() => {
+    const filters = [...(gameFilter || [])];
+    if (categoryFilter.length > 0) filters.push(...categoryFilter);
+    return filters.length > 0 ? filters : undefined;
+  }, [gameFilter, categoryFilter]);
 
   return (
     <div
@@ -1187,11 +1216,11 @@ export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOp
             indexName={MEILISEARCH.indexName}
             future={{ preserveSharedStateOnUnmount: true }}
           >
-            <Configure facetFilters={gameFilter} hitsPerPage={8} />
+            <Configure facetFilters={allFilters} hitsPerPage={8} />
             <SearchWithInstantSearch
               selectedGame={selectedGame}
-              setSelectedGame={setSelectedGame}
-              gameDisplayName={gameDisplayName}
+              productCategory={productCategory}
+              setProductCategory={setProductCategory}
               onOpenChange={onOpenChange}
             />
           </InstantSearch>
