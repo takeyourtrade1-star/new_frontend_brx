@@ -520,7 +520,7 @@ export function AuctionCreateWizard({
         </div>
       </div>
 
-      <div className={cn('rounded-2xl border border-gray-200 bg-white shadow-sm', isEmbedded && 'rounded-lg shadow-sm')}>
+      <div className={cn('relative rounded-2xl border border-gray-200 bg-white shadow-sm', isEmbedded && 'rounded-lg shadow-sm')}>
         <div
           className={cn(
             'border-b border-gray-100 px-5 py-4 sm:px-8 sm:py-5',
@@ -1048,6 +1048,54 @@ export function AuctionCreateWizard({
             </dl>
           )}
         </div>
+
+        {/* Desktop: frecce ai lati dentro la card */}
+        {showStickyNav && (
+          <>
+            <button
+              type="button"
+              onClick={goBack}
+              className={cn(
+                'absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-white/80 text-[#1D3160] shadow-[0_4px_20px_-2px_rgba(29,49,96,0.15)] backdrop-blur-md transition hover:bg-white hover:shadow-[0_6px_24px_-2px_rgba(29,49,96,0.2)] active:scale-95 sm:left-3 lg:h-12 lg:w-12',
+                isEmbedded && 'h-8 w-8 lg:h-10 lg:w-10'
+              )}
+              aria-label={t('auctions.createBack')}
+            >
+              <ChevronLeft className="h-5 w-5 lg:h-6 lg:w-6" aria-hidden />
+            </button>
+
+            {!isLastStep ? (
+              <button
+                type="button"
+                disabled={continueDisabled}
+                title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
+                onClick={goNext}
+                className={cn(
+                  'absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition active:scale-95 sm:right-3 lg:h-12 lg:w-12',
+                  isEmbedded && 'h-8 w-8 lg:h-10 lg:w-10',
+                  continueDisabled
+                    ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
+                    : 'bg-[#FF7300] hover:bg-[#e86800] hover:shadow-[0_6px_24px_-2px_rgba(255,115,0,0.4)]'
+                )}
+                aria-label={t('auctions.createContinue')}
+              >
+                <ChevronRight className="h-5 w-5 lg:h-6 lg:w-6" aria-hidden />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={publish}
+                className={cn(
+                  'absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-[#FF7300] text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition hover:bg-[#e86800] hover:shadow-[0_6px_24px_-2px_rgba(255,115,0,0.4)] active:scale-95 sm:right-3 lg:h-12 lg:w-12',
+                  isEmbedded && 'h-8 w-8 lg:h-10 lg:w-10'
+                )}
+                aria-label={t('auctions.createSubmit')}
+              >
+                <Gavel className="h-4 w-4 lg:h-5 lg:w-5" aria-hidden />
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
 
@@ -1111,54 +1159,6 @@ export function AuctionCreateWizard({
               </button>
             )}
           </footer>
-        </div>
-
-        {/* Desktop: frecce fisse ai lati */}
-        <div className="pointer-events-none fixed inset-y-0 left-0 right-0 z-30 hidden sm:block">
-          <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4">
-            <button
-              type="button"
-              onClick={goBack}
-              className={cn(
-                'pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/60 bg-white/80 text-[#1D3160] shadow-[0_4px_20px_-2px_rgba(29,49,96,0.15)] backdrop-blur-md transition hover:bg-white hover:shadow-[0_6px_24px_-2px_rgba(29,49,96,0.2)] active:scale-95 lg:h-14 lg:w-14',
-                isEmbedded && 'h-10 w-10 lg:h-12 lg:w-12'
-              )}
-              aria-label={t('auctions.createBack')}
-            >
-              <ChevronLeft className="h-6 w-6 lg:h-7 lg:w-7" aria-hidden />
-            </button>
-
-            {!isLastStep ? (
-              <button
-                type="button"
-                disabled={continueDisabled}
-                title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
-                onClick={goNext}
-                className={cn(
-                  'pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/60 text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition active:scale-95 lg:h-14 lg:w-14',
-                  isEmbedded && 'h-10 w-10 lg:h-12 lg:w-12',
-                  continueDisabled
-                    ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
-                    : 'bg-[#FF7300] hover:bg-[#e86800] hover:shadow-[0_6px_24px_-2px_rgba(255,115,0,0.4)]'
-                )}
-                aria-label={t('auctions.createContinue')}
-              >
-                <ChevronRight className="h-6 w-6 lg:h-7 lg:w-7" aria-hidden />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={publish}
-                className={cn(
-                  'pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/60 bg-[#FF7300] text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition hover:bg-[#e86800] hover:shadow-[0_6px_24px_-2px_rgba(255,115,0,0.4)] active:scale-95 lg:h-14 lg:w-14',
-                  isEmbedded && 'h-10 w-10 lg:h-12 lg:w-12'
-                )}
-                aria-label={t('auctions.createSubmit')}
-              >
-                <Gavel className="h-5 w-5 lg:h-6 lg:w-6" aria-hidden />
-              </button>
-            )}
-          </div>
         </div>
       </>
     )}
