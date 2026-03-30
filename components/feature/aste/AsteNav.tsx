@@ -71,16 +71,37 @@ export function AsteNav() {
     });
   }, []);
 
-  const links: { href: string; label: string; Icon: LucideIcon }[] = isAuthenticated
-    ? [
-        { href: '/aste/nuova', label: t('auctions.createAuction'), Icon: PlusCircle },
-        { href: '/aste/mie', label: t('auctions.navMyListings'), Icon: List },
-        { href: '/aste/partecipazioni', label: t('auctions.navParticipations'), Icon: Users },
-        { href: '/aste/spedizioni', label: t('auctions.navShipping'), Icon: Truck },
-      ]
-    : [];
+  const isCreateAuction = (index: number) => index === 0;
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated) {
+    // Non loggato: mostra solo pulsante "Crea asta" che porta a login
+    return (
+      <div className="sticky z-40 bg-white" style={{ top: stickyTop }}>
+        <div className="container-content relative">
+          <nav
+            ref={navRef}
+            className="scrollbar-hide flex justify-center gap-2 overflow-x-auto border-b border-gray-200 px-4 py-3"
+            aria-label="Menu aste"
+          >
+            <Link
+              href="/login?redirect=/aste/nuova"
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-md ring-1 ring-primary/20 transition-all hover:shadow-lg hover:scale-105 hover:ring-primary/40"
+            >
+              <PlusCircle className="h-4 w-4" aria-hidden />
+              <span className="inline">{t('auctions.createAuction')}</span>
+            </Link>
+          </nav>
+        </div>
+      </div>
+    );
+  }
+
+  const links: { href: string; label: string; Icon: LucideIcon }[] = [
+    { href: '/aste/nuova', label: t('auctions.createAuction'), Icon: PlusCircle },
+    { href: '/aste/mie', label: t('auctions.navMyListings'), Icon: List },
+    { href: '/aste/partecipazioni', label: t('auctions.navParticipations'), Icon: Users },
+    { href: '/aste/spedizioni', label: t('auctions.navShipping'), Icon: Truck },
+  ];
 
   function isActive(href: string) {
     return pathname?.startsWith(href) ?? false;

@@ -16,6 +16,7 @@ import {
   Sparkles,
   Mail
 } from 'lucide-react';
+import { FakeSearchBar } from './FakeSearchBar';
 
 // Animation utility components using Tailwind
 function FadeIn({ 
@@ -283,6 +284,11 @@ export function VendiLandingPage() {
                     <span className="rounded-lg bg-gray-100 px-2 py-1">Prezzo</span>
                   </div>
                 </FloatingCard>
+
+                {/* Fake Search Bar - Gamefication element */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+                  <FakeSearchBar delay={700} />
+                </div>
 
                 <FloatingCard delay={800} className="absolute left-8 bottom-0 w-64 p-5 bg-white">
                   <div className="mb-3 flex items-center gap-2">

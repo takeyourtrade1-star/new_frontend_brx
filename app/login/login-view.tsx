@@ -122,7 +122,21 @@ export function LoginView() {
                   >
                     <div className="flex items-start gap-4">
                       <div className="flex h-9 w-9 items-center justify-center rounded-full border border-orange-100/60 bg-orange-50/70 text-[#FF7300]">
-                        <span className="text-base font-bold">&gt;</span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <polyline points="4 17 10 11 4 5" />
+                          <line x1="12" y1="19" x2="20" y2="19" />
+                        </svg>
                       </div>
                       <div>
                         <p className="mt-1.5 text-lg font-semibold text-gray-900">

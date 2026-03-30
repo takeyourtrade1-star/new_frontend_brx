@@ -117,31 +117,31 @@
     @apply transition-colors duration-300 min-h-screen font-medium;
     /* Sfondo: gradiente palette + pattern BRX (da CDN se NEXT_PUBLIC_CDN_URL impostato) */
     background-image:
-      linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)),
+      linear-gradient(rgba(61, 101, 198, 0.65), rgba(29, 49, 96, 0.65)),
       var(--brx-bg-url, url("/brx_bg.png")),
       linear-gradient(180deg, #3D65C6 0%, #1D3160 100%);
     background-repeat: no-repeat, repeat, no-repeat;
-    background-size: cover, auto, cover;
+    background-size: cover, 80px 80px, cover;
     background-attachment: fixed;
     color: #fff;
   }
   html:not(.dark) body {
     background-image:
-      linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)),
+      linear-gradient(rgba(61, 101, 198, 0.65), rgba(29, 49, 96, 0.65)),
       var(--brx-bg-url, url("/brx_bg.png")),
       linear-gradient(180deg, #3D65C6 0%, #1D3160 100%);
     background-repeat: no-repeat, repeat, no-repeat;
-    background-size: cover, auto, cover;
+    background-size: cover, 80px 80px, cover;
     background-attachment: fixed;
     color: #fff;
   }
   html.dark body {
     background-image:
-      linear-gradient(rgba(61, 101, 198, 0.85), rgba(29, 49, 96, 0.85)),
+      linear-gradient(rgba(61, 101, 198, 0.65), rgba(29, 49, 96, 0.65)),
       var(--brx-bg-url, url("/brx_bg.png")),
       linear-gradient(180deg, #3D65C6 0%, #1D3160 100%);
     background-repeat: no-repeat, repeat, no-repeat;
-    background-size: cover, auto, cover;
+    background-size: cover, 80px 80px, cover;
     background-attachment: fixed;
     color: #fff;
   }

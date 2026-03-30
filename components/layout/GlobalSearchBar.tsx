@@ -9,7 +9,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Loader2, X, ChevronDown, Camera } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { InstantSearch, Configure, Highlight, useSearchBox, useHits } from 'react-instantsearch';
 import { searchClient } from '@/lib/meilisearchClient';
 import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
@@ -18,7 +18,6 @@ import { MEILISEARCH } from '@/lib/config';
 import { getCardImageUrl } from '@/lib/assets';
 import { generateSlug } from '@/lib/mock-cards';
 import { PRODUCT_CATEGORIES, type ProductCategorySlug, CATEGORY_SLUGS } from '@/lib/product-categories';
-import { usePathname } from 'next/navigation';
 import {
   FRONTEND_TO_GAME_SLUG,
   type CategoryKey,
@@ -265,8 +264,16 @@ function SearchInput({
   const { query, refine, isSearchStalled } = useSearchBox();
   const [localValue, setLocalValue] = useState(query ?? '');
   const [isFocused, setIsFocused] = useState(false);
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
+    // On initial mount, don't overwrite localValue with empty query
+    // to avoid race condition where user types before InstantSearch initializes
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    // Only sync from InstantSearch when not focused to avoid overwriting user input
     if (!isFocused) setLocalValue(query ?? '');
   }, [query, isFocused]);
 
@@ -1068,6 +1075,9 @@ function SearchWithInstantSearch({
   const triggerRef = useRef<HTMLDivElement>(null);
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
   const { query, refine } = useSearchBox();
+  const refineRef = useRef(refine);
+  const searchParams = useSearchParams();
+  const urlQueryParam = (searchParams.get('q') ?? '').trim();
   const [localValue, setLocalValue] = useState(query ?? '');
   const hasText = (localValue ?? '').trim().length > 0;
   const mappedGame = useMemo(() => normalizeGameSlug(selectedGame), [selectedGame]);
@@ -1085,6 +1095,16 @@ function SearchWithInstantSearch({
   useEffect(() => {
     setLocalValue(query ?? '');
   }, [query]);
+
+  useEffect(() => {
+    refineRef.current = refine;
+  }, [refine]);
+
+  useEffect(() => {
+    if (!pathname.startsWith('/search')) return;
+    setLocalValue((prev) => (prev === urlQueryParam ? prev : urlQueryParam));
+    refineRef.current(urlQueryParam);
+  }, [pathname, urlQueryParam]);
 
   useEffect(() => {
     if (hasText) setDropdownDismissed(false);
