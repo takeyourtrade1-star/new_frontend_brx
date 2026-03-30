@@ -286,7 +286,7 @@ export function AuctionListTable({
                 )}
                 <td className="p-3 font-semibold text-gray-800">{a.bidCount}</td>
                 <td className="p-3">
-                  <span className="inline-block min-w-[7rem] rounded-md bg-[#8B5CF6]/30 px-2 py-1 text-center font-mono text-sm font-bold tabular-nums text-[#FF7300] shadow-[0_0_15px_rgba(139,92,246,0.4)] backdrop-blur-md">
+                  <span className="inline-block min-w-[7rem] rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-center font-mono text-sm font-bold tabular-nums text-primary shadow-lg backdrop-blur-md" suppressHydrationWarning>
                     {ended ? t('auctions.ended') : formatHMS(ms)}
                   </span>
                 </td>
@@ -295,9 +295,9 @@ export function AuctionListTable({
                     href={auctionDetailPath(a.id)}
                     scroll
                     prefetch
-                    className="inline-flex rounded-lg bg-[#FF7300] px-3 py-2 text-xs font-bold uppercase text-white hover:bg-[#e86800]"
+                    className="inline-flex rounded-lg px-3 py-2 text-xs font-bold uppercase text-header-bg hover:underline"
                   >
-                    {ended ? t('auctions.viewClosedAuction') : t('auctions.participate')}
+                    {ended ? t('auctions.viewClosedAuction') : 'Fai la tua offerta'}
                   </Link>
                 </td>
               </tr>

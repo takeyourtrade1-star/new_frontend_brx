@@ -299,7 +299,7 @@ export function AsteHubPage() {
           </div>
 
           {/* Risultati aste */}
-          <div className="overflow-hidden border border-gray-300 bg-white">
+          <div className="overflow-hidden border border-gray-300 bg-gray-50">
             {filtered.length === 0 ? (
               <div className="p-16 text-center text-gray-500">{t('auctions.noResults')}</div>
             ) : viewMode === 'grid' ? (
