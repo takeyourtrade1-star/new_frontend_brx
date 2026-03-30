@@ -19,8 +19,8 @@ export function SimpleSecureTuoSection() {
   );
 
   return (
-    <section className="flex flex-col rounded-2xl bg-white p-6 text-gray-900 md:p-8">
-      <h2 className="mb-6 text-xl font-bold uppercase tracking-wide text-gray-900 md:text-2xl">
+    <section className="flex flex-col rounded-2xl bg-white bg-[url('/brx-sfondo-logo-tile.svg')] bg-[length:162px_162px] bg-repeat p-6 text-gray-900 md:p-8">
+      <h2 className="mb-6 text-xl font-black uppercase tracking-wide text-gray-900 md:text-2xl">
         {t('simpleSecure.title')}
       </h2>
       <ul className="space-y-4">
@@ -33,7 +33,7 @@ export function SimpleSecureTuoSection() {
             >
               <Plus className="h-3.5 w-3.5 text-white" strokeWidth={3} />
             </span>
-            <span className="text-sm leading-relaxed text-gray-800 md:text-base">{text}</span>
+            <span className="text-sm leading-relaxed text-gray-800 md:text-base font-normal">{text}</span>
           </li>
         ))}
       </ul>

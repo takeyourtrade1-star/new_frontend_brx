@@ -17,7 +17,7 @@ import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
 
 /** Input: bordo grigio, focus arancione Ebartex */
 const loginInputClass =
-  'h-16 w-full rounded-xl border border-gray-100/30 bg-white/60 pt-7 pb-2 px-3 text-lg text-[#0F172A] focus-visible:outline-none focus-visible:border-[#FF7300] focus-visible:ring-2 focus-visible:ring-[#FF7300]/35 transition-colors disabled:cursor-not-allowed disabled:opacity-50';
+  'h-16 w-full rounded-xl border border-gray-100/30 bg-white pt-7 pb-2 px-3 text-lg text-[#0F172A] focus-visible:outline-none focus-visible:border-[#FF7300] focus-visible:ring-2 focus-visible:ring-[#FF7300]/35 transition-colors disabled:cursor-not-allowed disabled:opacity-50';
 
 export function LoginForm() {
   const { t } = useTranslation();

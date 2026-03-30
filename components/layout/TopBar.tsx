@@ -33,7 +33,7 @@ const GAME_HOME_PATH: Record<GameSlug, string> = {
 const AUTH_INPUT_HEIGHT = 'h-9';
 const AUTH_INPUT_WIDTH = 'w-36';
 const inputBase =
-  'rounded-full px-4 text-sm font-normal text-[#0F172A] placeholder:text-gray-500 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 border';
+  'rounded-full px-4 text-sm font-normal font-sans text-[#0F172A] placeholder:text-gray-500 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 border';
 
 const FLASH_DURATION_MS = 4500;
 const ORANGE_GLASS_MENU_CLASS =
@@ -466,7 +466,7 @@ export function TopBar() {
           {isAuthenticated && user ? (
             <>
               {/* Menu centrale: desktop = Account + Acquisti + Vendi + Scambi + Aste + Carrello. Mobile = solo 5 icone (senza profilo), ordine: Acquisti → Vendi → Aste → Scambi → Carrello */}
-              <div className="mx-auto flex max-w-4xl flex-1 items-center justify-evenly gap-0.5 md:gap-4">
+              <div className="mx-auto flex max-w-4xl flex-1 items-center justify-evenly gap-2 md:gap-4">
               {/* 1. Nome utente + icona — solo da tablet in su; su mobile è nel menu hamburger */}
               <div className="relative hidden items-center gap-2 md:flex" ref={accountMenuRef}>
                 <button

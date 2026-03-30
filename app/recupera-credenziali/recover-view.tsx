@@ -39,12 +39,6 @@ export function RecoverView() {
           </Link>
         </div>
 
-        <div className="absolute right-4 top-8 text-right">
-          <Link href="/account-business" className="text-sm text-white hover:underline">
-            {t('pages.auth.businessCta')}
-          </Link>
-        </div>
-
         <div className="mx-auto mt-8 w-full max-w-xl flex-1 px-4 pb-12">
           <h1 className="mb-6 text-center text-3xl font-bold uppercase tracking-wide text-white">
             {t('pages.recover.title')}

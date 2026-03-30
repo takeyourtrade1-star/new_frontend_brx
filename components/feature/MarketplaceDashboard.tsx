@@ -109,8 +109,8 @@ function MagicSearchCard({ hit }: { hit: SearchHit }) {
       ) : (
         <div className="w-full aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
       )}
-      <p className="mt-1 line-clamp-1 text-center text-xs font-semibold text-gray-900">{hit.name}</p>
-      <p className="line-clamp-1 text-center text-[11px] text-gray-500">{hit.set_name}</p>
+      <p className="mt-1 line-clamp-1 text-center text-xs font-medium text-gray-900">{hit.name}</p>
+      <p className="line-clamp-1 text-center text-[11px] font-normal text-gray-500">{hit.set_name}</p>
     </Link>
   );
 }
@@ -132,21 +132,40 @@ function NuoveEspansioniCarousel({ items }: { items: NuovaEspansioneItem[] }) {
 
   return (
     <div
-      className="flex min-h-[280px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[380px]"
-      style={{ borderRadius: SECTION_RADIUS, border: '2px solid #ff7300', backgroundColor: '#ffffff' }}
+      className="relative flex min-h-[280px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[380px]"
+      style={{ borderRadius: SECTION_RADIUS }}
     >
-      {/* Titolo sezione – inline, come le altre card */}
-      <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-3">
-        <div className="h-2 w-2 rounded-full bg-[#ff7300]" />
-        <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800">{t('marketplace.newExpansions')}</h2>
+      {/* Blue beam border layer - matches header gradient */}
+      <div
+        className="absolute -inset-[1px] rounded-2xl"
+        style={{
+          background: 'linear-gradient(90deg, #3d65c6, #0f172a, #3d65c6, #5a7fd4, #3d65c6)',
+          backgroundSize: '200% 100%',
+          animation: 'flowBeam 4s linear infinite',
+          zIndex: -1,
+        }}
+      />
+      {/* Inner white card */}
+      <div
+        className="relative flex min-h-[280px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[380px]"
+        style={{
+          borderRadius: SECTION_RADIUS,
+          backgroundColor: '#ffffff',
+          margin: '1px',
+          boxShadow: '0 0 25px rgba(61, 101, 198, 0.12), 0 4px 20px rgba(0,0,0,0.08)',
+        }}
+      >
+      {/* Titolo sezione – glass effect overlay */}
+      <div className="absolute top-0 left-0 right-0 z-10 flex items-center px-5 py-3 bg-white/20 backdrop-blur-md border-b border-white/30">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-gray-900 drop-shadow-sm font-display">{t('marketplace.newExpansions')}</h2>
       </div>
-      <div className="relative min-h-0 flex-1 overflow-hidden">
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl">
         <div className="absolute inset-0 bg-gray-700/80" aria-hidden />
         {current.imageUrl ? (
           <img
             src={current.imageUrl}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-contain bg-gray-100"
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -178,6 +197,7 @@ function NuoveEspansioniCarousel({ items }: { items: NuovaEspansioneItem[] }) {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
@@ -284,13 +304,13 @@ export function MarketplaceDashboard({
   const tradeListCards = pickThreeCards(magicOffset + 9);
 
   return (
-    <div className="w-full bg-white font-sans text-gray-900 transition-colors duration-300">
+    <div className="w-full bg-white bg-[url('/brx-sfondo-logo-tile.svg')] bg-[length:162px_162px] bg-repeat font-sans text-gray-900 transition-colors duration-300">
       <div className="container-content space-y-5 pb-6 pt-4 md:space-y-8 md:pb-10 md:pt-6">
         {/* MOBILE: Layout semplificato - 1 carta principale + 5 sotto */}
         <div className="block lg:hidden">
           <div
-            className="flex flex-col overflow-hidden rounded-2xl shadow-lg"
-            style={{ borderRadius: SECTION_RADIUS, border: '2px solid #ff7300', backgroundColor: '#ffffff' }}
+            className="flex flex-col overflow-hidden rounded-2xl shadow-lg border border-primary/40 ring-1 ring-primary/30"
+            style={{ borderRadius: SECTION_RADIUS, backgroundColor: '#ffffff', boxShadow: '0 0 25px rgba(255, 115, 0, 0.12), 0 4px 20px rgba(0,0,0,0.08)' }}
           >
             {/* Card principale */}
             <div className="p-4">
@@ -365,18 +385,14 @@ export function MarketplaceDashboard({
         {/* DESKTOP: Layout originale a due colonne */}
         <div className="hidden lg:grid lg:grid-cols-3 lg:gap-6">
           {/* ═══ Card VENDITE ═══ */}
-          <div
-            className="flex min-h-[437px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[483px] lg:col-span-2"
-            style={{ borderRadius: SECTION_RADIUS, border: '2px solid #ff7300', backgroundColor: '#ffffff' }}
-          >
+          <div className="flex min-h-[437px] flex-col overflow-hidden lg:col-span-2 backdrop-blur-[1px] rounded-2xl">
             {/* Titolo sezione VENDITE */}
-            <div className="flex items-center gap-2 border-b border-gray-100 px-6 py-3">
-              <div className="h-2 w-2 rounded-full bg-[#ff7300]" />
-              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800">Best Sellers</h2>
+            <div className="flex items-center px-6 py-3">
+              <h2 className="text-4xl font-bold uppercase tracking-wider text-gray-800 font-display">Best Sellers</h2>
             </div>
             <div className="flex min-h-0 flex-1">
               {/* ── Colonna sinistra ── */}
-              <div className="flex min-w-0 flex-1 flex-col p-5 md:p-6" style={{ backgroundColor: '#ffffff' }}>
+              <div className="flex min-w-0 flex-1 flex-col p-5 md:p-6">
                 <div className="grid grid-cols-3 gap-3">
                   {buyTopCards.length > 0
                     ? buyTopCards.map((hit) => <MagicSearchCard key={hit.id} hit={hit} />)
@@ -416,7 +432,7 @@ export function MarketplaceDashboard({
               </div>
 
               {/* ── Colonna destra ── */}
-              <div className="flex min-w-0 flex-1 flex-col p-5 md:p-6" style={{ backgroundColor: '#ffffff' }}>
+              <div className="flex min-w-0 flex-1 flex-col p-5 md:p-6">
                 <div className="grid grid-cols-3 gap-3">
                   {tradeTopCards.length > 0
                     ? tradeTopCards.map((hit) => <MagicSearchCard key={hit.id} hit={hit} />)
@@ -461,94 +477,93 @@ export function MarketplaceDashboard({
             </div>
           </div>
 
-          {/* ═══ Card ASTE IN CORSO ═══ (stesso stile della card Vendite) */}
-          <div
-            className="flex min-h-[380px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[437px]"
-            style={{ borderRadius: SECTION_RADIUS, border: '2px solid #ff7300', backgroundColor: '#ffffff' }}
-          >
-            {/* Titolo sezione – inline, come Vendite */}
-            <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-3">
-              <div className="h-2 w-2 rounded-full bg-[#ff7300] animate-pulse" />
-              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-800">Aste in corso</h2>
-            </div>
+          {/* ═══ Card ASTE IN CORSO ═══ */}
+          <div className="relative backdrop-blur-[1px] rounded-2xl">
+            <div className="relative flex min-h-[380px] flex-col overflow-hidden md:min-h-[437px]">
+              {/* Titolo sezione */}
+              <div className="flex items-center px-6 py-3">
+                <h2 className="text-4xl font-bold uppercase tracking-wider text-gray-800 font-display">Aste in corso</h2>
+              </div>
 
-            <div className="flex flex-1 flex-col justify-between p-5 md:p-6" style={{ backgroundColor: '#ffffff' }}>
-              <div className="flex justify-center">
-                {(() => {
-                  if (featuredAuction) {
-                    return (
-                      <Link
-                        href={auctionDetailPath(featuredAuction.id)}
-                        className="group relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
-                      >
-                        {showCreatedByYouBadge && (
-                          <span className="absolute left-2 top-2 z-[1] rounded-full bg-[#1e3a5f] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-md">
-                            {t('marketplace.auctionCreatedByYou')}
-                          </span>
-                        )}
-                        <Image
-                          src={featuredAuction.image}
-                          alt={featuredAuction.title}
-                          fill
-                          className="object-cover transition-transform group-hover:scale-[1.02]"
-                          unoptimized
-                        />
-                      </Link>
-                    );
-                  }
-                  if (astaData.featuredImageUrl) {
-                    return (
-                      <div className="relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        <Image
-                          src={astaData.featuredImageUrl}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </div>
-                    );
-                  }
-                  return <div className="w-full max-w-[200px] aspect-[3/4] rounded-xl border border-gray-200 bg-gray-100" aria-hidden />;
-                })()}
-              </div>
-              <div className="mt-4 space-y-1 text-center">
-                <p className="text-sm font-semibold text-gray-900">
-                  {featuredAuction?.title || astaData.featuredTitle || t('marketplace.featuredAuctions')}
-                </p>
-                {featuredAuction && (
-                  <p className="text-lg font-bold text-[#ff7300]">
-                    {featuredAuction.currentBidEur.toLocaleString('it-IT', {
-                      style: 'currency',
-                      currency: 'EUR',
-                      maximumFractionDigits: 0,
-                    })}
+              <div className="flex flex-1 flex-col justify-between p-5 md:p-6">
+                <div className="flex justify-center">
+                  {(() => {
+                    if (featuredAuction) {
+                      return (
+                        <Link
+                          href={auctionDetailPath(featuredAuction.id)}
+                          className="group relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                        >
+                          {showCreatedByYouBadge && (
+                            <span className="absolute left-2 top-2 z-[1] rounded-full bg-[#1e3a5f] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-md">
+                              {t('marketplace.auctionCreatedByYou')}
+                            </span>
+                          )}
+                          <Image
+                            src={featuredAuction.image}
+                            alt={featuredAuction.title}
+                            fill
+                            className="object-cover transition-transform group-hover:scale-[1.02]"
+                            unoptimized
+                          />
+                        </Link>
+                      );
+                    }
+                    if (astaData.featuredImageUrl) {
+                      return (
+                        <div className="relative aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                          <Image
+                            src={astaData.featuredImageUrl}
+                            alt=""
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        </div>
+                      );
+                    }
+                    return <div className="w-full max-w-[200px] aspect-[3/4] rounded-xl border border-gray-200 bg-gray-100" aria-hidden />;
+                  })()}
+                </div>
+                <div className="mt-4 space-y-1 text-center">
+                  <p className="text-sm font-semibold text-gray-900">
+                    {featuredAuction?.title || astaData.featuredTitle || t('marketplace.featuredAuctions')}
                   </p>
-                )}
+                  {featuredAuction && (
+                    <p className="text-lg font-bold text-[#ff7300]">
+                      {featuredAuction.currentBidEur.toLocaleString('it-IT', {
+                        style: 'currency',
+                        currency: 'EUR',
+                        maximumFractionDigits: 0,
+                      })}
+                    </p>
+                  )}
+                </div>
+                <div className="mt-3 flex justify-center gap-1.5" aria-hidden>
+                  {suggestedAuctionPool.slice(0, 3).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`h-2 w-2 rounded-full transition-colors ${i === auctionRot % Math.min(suggestedAuctionPool.length, 3) ? 'bg-[#ff7300]' : 'bg-gray-300'}`}
+                    />
+                  ))}
+                </div>
+                <Link
+                  href={astaData.href ?? '/aste'}
+                  className="mt-3 block text-center text-sm font-semibold uppercase tracking-wide text-[#ff7300] hover:underline"
+                >
+                  {astaData.linkText ?? t('marketplace.seeAllAuctions')}
+                </Link>
               </div>
-              <div className="mt-3 flex justify-center gap-1.5" aria-hidden>
-                {suggestedAuctionPool.slice(0, 3).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`h-2 w-2 rounded-full transition-colors ${i === auctionRot % Math.min(suggestedAuctionPool.length, 3) ? 'bg-[#ff7300]' : 'bg-gray-300'}`}
-                  />
-                ))}
-              </div>
-              <Link
-                href={astaData.href ?? '/aste'}
-                className="mt-3 block text-center text-sm font-semibold uppercase tracking-wide text-[#ff7300] hover:underline"
-              >
-                {astaData.linkText ?? t('marketplace.seeAllAuctions')}
-              </Link>
             </div>
           </div>
+
+          {/* Row 2: NUOVE ESPANSIONI (carousel) | SEMPLICE. SICURO. TUO. */}
         </div>
 
-        {/* Row 2: NUOVE ESPANSIONI (carousel) | SEMPLICE. SICURO. TUO. */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
           <NuoveEspansioniCarousel items={espansioniItems} />
 
-          <div className="flex flex-col overflow-hidden rounded-2xl bg-white">
+          <div className="flex flex-col overflow-hidden rounded-2xl backdrop-blur-[1px]">
             <SimpleSecureTuoSection />
           </div>
         </div>

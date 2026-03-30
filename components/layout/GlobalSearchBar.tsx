@@ -988,6 +988,17 @@ function ProductCategoryButton({
     return labelMap[selectedCategory] || selectedCategory;
   }, [selectedCategory, gameSlug]);
 
+  // Label breve per mobile (parole singole complete, composite troncate)
+  const mobileLabel = useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'all') return 'Tutte';
+    const shortMap: Record<string, string> = {
+      singles: 'Carte', boosters: 'Booster', booster_box: 'Box',
+      starter_precon: 'Mazzi', bundle_set: 'Bundle', tins: 'Tin box',
+      accessori: 'Accessori', collezionabili: 'Collezionabili',
+    };
+    return shortMap[selectedCategory] || currentLabel.slice(0, 6);
+  }, [selectedCategory, currentLabel]);
+
   const dropdownMenu = open && pos && typeof document !== 'undefined'
     ? createPortal(
         <div
@@ -1028,9 +1039,10 @@ function ProductCategoryButton({
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className="flex items-center gap-1 rounded-[50px] border-0 bg-gray-100 hover:bg-gray-200 px-2 py-1 md:px-3 md:py-1.5 text-[10px] md:text-sm text-[#1D3160] font-semibold font-sans transition-colors whitespace-nowrap"
+        className="flex items-center gap-0.5 md:gap-1 rounded-[50px] border-0 bg-gray-100 hover:bg-gray-200 px-2 py-1.5 md:px-3 md:py-1.5 text-[11px] md:text-sm text-[#1D3160] font-semibold font-sans transition-colors whitespace-nowrap"
       >
-        <span>{currentLabel}</span>
+        <span className="hidden md:inline">{currentLabel}</span>
+        <span className="md:hidden">{mobileLabel}</span>
         <ChevronDown className={`h-3 w-3 md:h-4 md:w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {dropdownMenu}

@@ -192,6 +192,21 @@ export const MOCK_AUCTIONS: AuctionMock[] = [
     startingBidEur: 5,
     reservePriceEur: 12,
   },
+  {
+    id: 'a11',
+    title: 'Snapcaster Mage — Innistrad',
+    image: 'https://picsum.photos/seed/brxaste11/400/560',
+    hoursFromNow: 44,
+    currentBidEur: 85,
+    bidCount: 21,
+    seller: 'MTGDeals',
+    sellerCountry: 'IT',
+    sellerRating: 97,
+    sellerReviewCount: 156,
+    game: 'mtg',
+    startingBidEur: 30,
+    reservePriceEur: 60,
+  },
   /** Asta chiusa con vendita (mock) — utente mock è venditore su c1. */
   {
     id: 'c1',

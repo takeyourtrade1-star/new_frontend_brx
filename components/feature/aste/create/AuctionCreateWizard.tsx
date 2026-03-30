@@ -1049,15 +1049,15 @@ export function AuctionCreateWizard({
           )}
         </div>
 
-        {/* Desktop: frecce ai lati dentro la card */}
+        {/* Desktop: frecce ai lati fuori dalla card */}
         {showStickyNav && (
           <>
             <button
               type="button"
               onClick={goBack}
               className={cn(
-                'absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-white/80 text-[#1D3160] shadow-[0_4px_20px_-2px_rgba(29,49,96,0.15)] backdrop-blur-md transition hover:bg-white hover:shadow-[0_6px_24px_-2px_rgba(29,49,96,0.2)] active:scale-95 sm:left-3 lg:h-12 lg:w-12',
-                isEmbedded && 'h-8 w-8 lg:h-10 lg:w-10'
+                'absolute -left-4 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-white/80 text-[#1D3160] shadow-[0_4px_20px_-2px_rgba(29,49,96,0.15)] backdrop-blur-md transition hover:bg-white hover:shadow-[0_6px_24px_-2px_rgba(29,49,96,0.2)] active:scale-95 sm:flex sm:-left-5 lg:-left-14 lg:h-12 lg:w-12',
+                isEmbedded && 'h-8 w-8 lg:-left-12 lg:h-10 lg:w-10'
               )}
               aria-label={t('auctions.createBack')}
             >
@@ -1071,8 +1071,8 @@ export function AuctionCreateWizard({
                 title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
                 onClick={goNext}
                 className={cn(
-                  'absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition active:scale-95 sm:right-3 lg:h-12 lg:w-12',
-                  isEmbedded && 'h-8 w-8 lg:h-10 lg:w-10',
+                  'absolute -right-4 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition active:scale-95 sm:flex sm:-right-5 lg:-right-14 lg:h-12 lg:w-12',
+                  isEmbedded && 'h-8 w-8 lg:-right-12 lg:h-10 lg:w-10',
                   continueDisabled
                     ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
                     : 'bg-[#FF7300] hover:bg-[#e86800] hover:shadow-[0_6px_24px_-2px_rgba(255,115,0,0.4)]'
@@ -1086,8 +1086,8 @@ export function AuctionCreateWizard({
                 type="button"
                 onClick={publish}
                 className={cn(
-                  'absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-[#FF7300] text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition hover:bg-[#e86800] hover:shadow-[0_6px_24px_-2px_rgba(255,115,0,0.4)] active:scale-95 sm:right-3 lg:h-12 lg:w-12',
-                  isEmbedded && 'h-8 w-8 lg:h-10 lg:w-10'
+                  'absolute -right-4 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-[#FF7300] text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition hover:bg-[#e86800] hover:shadow-[0_6px_24px_-2px_rgba(255,115,0,0.4)] active:scale-95 sm:flex sm:-right-5 lg:-right-14 lg:h-12 lg:w-12',
+                  isEmbedded && 'h-8 w-8 lg:-right-12 lg:h-10 lg:w-10'
                 )}
                 aria-label={t('auctions.createSubmit')}
               >
@@ -1135,7 +1135,7 @@ export function AuctionCreateWizard({
                 title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
                 onClick={goNext}
                 className={cn(
-                  'inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-xl px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition active:scale-[0.98]',
+                  'inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-[1.1rem] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition active:scale-[0.98]',
                   isEmbedded && 'min-h-[32px] px-3 py-1',
                   continueDisabled
                     ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
@@ -1150,7 +1150,7 @@ export function AuctionCreateWizard({
                 type="button"
                 onClick={publish}
                 className={cn(
-                  'inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-xl bg-[#FF7300] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition hover:bg-[#e86800] active:scale-[0.98]',
+                  'inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-[1.1rem] bg-[#FF7300] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition hover:bg-[#e86800] active:scale-[0.98]',
                   isEmbedded && 'min-h-[32px] px-3 py-1'
                 )}
               >

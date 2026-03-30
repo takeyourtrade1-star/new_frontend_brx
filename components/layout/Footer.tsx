@@ -28,11 +28,11 @@ export function Footer() {
     {
       titleKey: 'footer.col.features' as const,
       links: [
-        { label: t('footer.link.buy'), href: '/products' },
-        { label: t('footer.link.sell'), href: '/account-business' },
+        { label: t('footer.link.buy'), href: '/search' },
+        { label: t('footer.link.sell'), href: '/vendi' },
         { label: t('footer.link.swap'), href: '/scambi' },
         { label: t('footer.link.auctions'), href: '/aste' },
-        { label: t('footer.link.sync'), href: '/sincronizza' },
+        { label: t('footer.link.sync'), href: '/account/sincronizzazione' },
       ],
     },
     {
@@ -57,8 +57,8 @@ export function Footer() {
       titleKey: 'footer.col.games' as const,
       links: [
         { label: t('footer.link.mtg'), href: '/products?game=magic' },
-        { label: t('footer.link.pokemon'), href: '/products?game=pokemon' },
-        { label: t('footer.link.yugioh'), href: '/products?game=yugioh' },
+        { label: t('footer.link.pokemon'), href: '#', disabled: true },
+        { label: t('footer.link.yugioh'), href: '#', disabled: true },
       ],
     },
   ];
@@ -92,13 +92,19 @@ export function Footer() {
                 <ul className="space-y-2.5">
                   {col.links.map((link) => (
                     <li key={link.label + link.href}>
-                      <Link
-                        href={link.href}
-                        onClick={'onClick' in link ? link.onClick : undefined}
-                        className="text-sm text-gray-600 transition-colors hover:text-[#FF7300]"
-                      >
-                        {link.label}
-                      </Link>
+                      {'disabled' in link && link.disabled ? (
+                        <span className="text-sm text-gray-400 cursor-default">
+                          {link.label}
+                        </span>
+                      ) : (
+                        <Link
+                          href={link.href}
+                          onClick={'onClick' in link ? link.onClick : undefined}
+                          className="text-sm text-gray-600 transition-colors hover:text-[#FF7300]"
+                        >
+                          {link.label}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>

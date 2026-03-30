@@ -382,7 +382,7 @@ export function SincronizzazioneContent() {
           <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900">{t('accountPage.syncTitle')}</h1>
           {loadingStatus ? <Loader2 className="h-5 w-5 animate-spin text-gray-400" /> : <StatusBadge status={statusValue} />}
         </div>
-        <div className="grid gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-4 gap-2">
           {[1, 2, 3, 4].map((s) => {
             const done = s < currentStep || (s === 4 && syncCompleted);
             const active = s === currentStep;

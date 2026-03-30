@@ -136,54 +136,71 @@ export function AuctionGridCard({
       href={auctionDetailPath(auction.id)}
       scroll
       prefetch
-      className="group flex flex-col border border-gray-200 bg-white p-3 transition-all hover:border-[#FF7300] hover:shadow-sm"
+      className="group flex flex-col overflow-hidden rounded-xl border border-white/40 bg-white/70 shadow-md backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 hover:border-primary/40 hover:bg-white/85 hover:shadow-lg"
     >
-      <div className="relative mb-2 aspect-[63/88] overflow-hidden bg-gray-100">
+      {/* Image container - full bleed */}
+      <div className="relative aspect-[63/88] overflow-hidden bg-gray-100">
         <Image
           src={auction.image}
           alt=""
           fill
-          className="object-contain transition-transform group-hover:scale-[1.02]"
+          className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           sizes="(max-width:640px) 50vw, 20vw"
           unoptimized
         />
-        <div className="absolute left-2 top-2 rounded-full bg-[#1A2B45]/90 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+        {/* Dark gradient overlay for timer readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        
+        {/* Game badge - glass, positioned top right */}
+        <div className="absolute right-2 top-2 rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-lg backdrop-blur-md">
           {auctionGameLabel(t, auction.game)}
         </div>
-      </div>
-      <p className="line-clamp-2 min-h-[2.5rem] text-sm font-medium text-gray-900">{auction.title}</p>
-      <div className="mt-2 flex items-center gap-2 text-xs text-gray-600">
-        <span className="text-base leading-none">{countryFlagEmoji(auction.sellerCountry)}</span>
-        <span className="truncate font-medium">{auction.seller}</span>
-      </div>
-      <p className="mt-0.5 text-xs text-amber-700">
-        ★ {auction.sellerRating}% · ({auction.sellerReviewCount})
-      </p>
-      <div className="mt-2 rounded-lg bg-[#1A2B45] px-2 py-1.5 text-center">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[#FF7300]/90">
-          {ended ? t('auctions.ended') : t('auctions.countdownTitle')}
-        </p>
-        <p className="font-mono text-lg font-bold tabular-nums text-[#FF7300]" suppressHydrationWarning>
-          {ended ? '—' : formatHMS(ms)}
-        </p>
-      </div>
-      <div className="mt-2 flex items-end justify-between gap-2 border-t border-gray-100 pt-2">
-        <div>
-          <p className="text-[10px] font-semibold uppercase text-gray-400">
-            {ended ? t('auctions.finalPriceLabel') : t('auctions.currentBid')}
-          </p>
-          <p className="text-base font-bold text-[#FF7300]">
-            {auction.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+        
+        {/* Timer - glass style like game badge, white text for readability */}
+        <div className="absolute bottom-2 left-2 right-2 rounded-full border border-white/30 bg-white/20 p-1.5 text-center backdrop-blur-md shadow-lg">
+          <p className="font-mono text-sm font-bold tabular-nums text-white" suppressHydrationWarning>
+            {ended ? '—' : formatHMS(ms)}
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-[10px] font-semibold uppercase text-gray-400">{t('auctions.colBids')}</p>
-          <p className="text-base font-bold text-gray-900">{auction.bidCount}</p>
+      </div>
+
+      {/* Content */}
+      <div className="flex flex-1 flex-col p-2">
+        {/* Title */}
+        <p className="line-clamp-2 min-h-[2rem] text-[13px] font-semibold leading-tight text-gray-900">
+          {auction.title}
+        </p>
+
+        {/* Seller info */}
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <span className="text-sm leading-none">{countryFlagEmoji(auction.sellerCountry)}</span>
+          <span className="truncate text-[11px] font-medium text-gray-600">{auction.seller}</span>
+        </div>
+        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-amber-600">
+          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+          <span className="font-medium">{auction.sellerRating}%</span>
+          <span className="text-gray-400">·</span>
+          <span className="text-gray-500">({auction.sellerReviewCount})</span>
+        </div>
+
+        {/* Price & Bids row */}
+        <div className="mt-2 flex items-end justify-between gap-2">
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-gray-500">
+              {ended ? t('auctions.finalPriceLabel') : t('auctions.currentBid')}
+            </p>
+            <p className="text-base font-bold text-primary">
+              {auction.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-gray-500">{t('auctions.colBids')}</p>
+            <p className="text-base font-bold text-gray-800">{auction.bidCount}</p>
+          </div>
         </div>
       </div>
-      <span className="mt-3 w-full rounded-full bg-[#FF7300] py-2 text-center text-xs font-bold uppercase text-white group-hover:bg-[#e86800]">
-        {ended ? t('auctions.viewClosedAuction') : t('auctions.participate')}
-      </span>
     </Link>
   );
 }
@@ -269,7 +286,7 @@ export function AuctionListTable({
                 )}
                 <td className="p-3 font-semibold text-gray-800">{a.bidCount}</td>
                 <td className="p-3">
-                  <span className="inline-block min-w-[7rem] rounded-md bg-[#1A2B45] px-2 py-1 text-center font-mono text-sm font-bold tabular-nums text-[#FF7300]">
+                  <span className="inline-block min-w-[7rem] rounded-md bg-[#8B5CF6]/30 px-2 py-1 text-center font-mono text-sm font-bold tabular-nums text-[#FF7300] shadow-[0_0_15px_rgba(139,92,246,0.4)] backdrop-blur-md">
                     {ended ? t('auctions.ended') : formatHMS(ms)}
                   </span>
                 </td>
@@ -302,7 +319,7 @@ export function AuctionResultsGrid({
   t: AuctionTranslate;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {auctions.map((a) => (
         <AuctionGridCard key={a.id} auction={a} now={now} t={t} />
       ))}

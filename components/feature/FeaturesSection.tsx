@@ -21,7 +21,7 @@ export function FeaturesSection() {
   );
 
   return (
-    <section className="w-full bg-white py-3 font-sans text-gray-900 md:py-4">
+    <section className="w-full bg-white bg-[url('/brx-sfondo-logo-tile.svg')] bg-[length:162px_162px] bg-repeat py-3 font-sans text-gray-900 md:py-4">
       <div className="container-content px-4 sm:px-6">
         <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:gap-4 lg:grid-cols-4 lg:gap-6">
           {features.map(({ titleKey, Icon }) => (
@@ -35,7 +35,7 @@ export function FeaturesSection() {
               >
                 <Icon className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: ORANGE }} strokeWidth={2} />
               </div>
-              <span className="text-[11px] font-bold uppercase tracking-tight text-gray-800 leading-tight sm:text-[13px] lg:text-sm">
+              <span className="text-[11px] font-medium uppercase tracking-tight text-gray-800 leading-tight sm:text-[13px] lg:text-sm">
                 {t(titleKey)}
               </span>
             </div>

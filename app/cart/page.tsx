@@ -7,10 +7,24 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Header } from '@/components/layout/Header';
 import { ShoppingBag } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useGame } from '@/lib/contexts/GameContext';
 
 export default function CartPage() {
   const { t } = useTranslation();
   const { items, removeItem, clearCart, getItemCount } = useCartStore();
+  const { selectedGame } = useGame();
+
+  // Costruisci il link alla home del gioco selezionato
+  const getGameHomeLink = () => {
+    switch (selectedGame) {
+      case 'mtg':
+        return '/home/magic';
+      case 'pokemon':
+        return '/home/pokemon';
+      default:
+        return '/home';
+    }
+  };
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
       <Header />
@@ -18,7 +32,7 @@ export default function CartPage() {
         <h1 className="mb-6 font-display text-2xl font-bold text-gray-900 md:text-3xl">{t('cart.title')}</h1>
 
         {getItemCount() === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-global-bg-end/30 py-16 text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.12),0_8px_32px_rgba(29,49,96,0.45)] ring-1 ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-primary/30 py-16 text-center shadow-[0_4px_16px_rgba(255,115,0,0.25)] ring-1 ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
             <ShoppingBag className="mb-4 h-16 w-16 text-gray-400" strokeWidth={1.5} />
             <p className="mb-6 text-lg text-gray-600">{t('cart.empty')}</p>
             <Button
@@ -26,7 +40,7 @@ export default function CartPage() {
               className="rounded-full border px-6 py-2.5 text-sm font-semibold text-white hover:opacity-90"
               style={{ backgroundColor: '#FF7300', borderColor: '#878787' }}
             >
-              <Link href="/products">{t('cart.browse')}</Link>
+              <Link href={getGameHomeLink()}>{t('cart.browse')}</Link>
             </Button>
           </div>
         ) : (

@@ -2,11 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Comodo Regular: font display/tab (fallback a font di sistema se i file non sono in public/fonts) */
+/* Comodo Regular: font display/tab */
 @font-face {
   font-family: 'Comodo Regular';
-  src: local('Segoe UI'), local('Arial Rounded MT Bold'), local('Arial');
+  src: url('/fonts/Comodo Regular Free.woff2') format('woff2'),
+       url('/fonts/Comodo Regular Free.otf') format('opentype'),
+       url('/fonts/Comodo Regular Free.ttf') format('truetype');
   font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* SF Compact Rounded: font principale */
+@font-face {
+  font-family: 'SF Compact Rounded';
+  src: url('/fonts/SF-Compact-Rounded-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SF Compact Rounded';
+  src: url('/fonts/SF-Compact-Rounded-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SF Compact Rounded';
+  src: url('/fonts/SF-Compact-Rounded-Heavy.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SF Compact Rounded';
+  src: url('/fonts/SF-Compact-Rounded-Heavy.ttf') format('truetype');
+  font-weight: 900;
   font-style: normal;
   font-display: swap;
 }
@@ -120,6 +155,16 @@
   }
   50% {
     box-shadow: 0 0 0 1px rgba(255, 115, 0, 0.48);
+  }
+}
+
+/* Auction card: fascio luminoso multicolore in movimento */
+@keyframes flowBeam {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
   }
 }
 

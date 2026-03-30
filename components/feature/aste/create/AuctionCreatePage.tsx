@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { AuctionCreateWizard } from '@/components/feature/aste/create/AuctionCreateWizard';
-import { AsteFloatingNav } from '@/components/feature/aste/AsteFloatingNav';
+import { AsteNav } from '@/components/feature/aste/AsteNav';
 
 export function AuctionCreatePage() {
   const { t } = useTranslation();
@@ -29,6 +29,7 @@ export function AuctionCreatePage() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] pb-4 pt-6">
+      <AsteNav />
       <div className="container-content">
         <nav className="mb-6 flex flex-wrap gap-2 text-sm text-gray-500">
           <Link href="/" className="hover:text-gray-900">
@@ -46,7 +47,6 @@ export function AuctionCreatePage() {
         </div>
         <AuctionCreateWizard />
       </div>
-      <AsteFloatingNav />
     </div>
   );
 }

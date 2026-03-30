@@ -13,7 +13,7 @@ import {
 } from '@/components/feature/aste/auctions-browse-shared';
 import { MOCK_AUCTIONS } from '@/components/feature/aste/mock-auctions';
 import { PARTICIPATED_AUCTION_MOCK } from '@/components/feature/aste/mock-user-auctions';
-import { AsteFloatingNav } from '@/components/feature/aste/AsteFloatingNav';
+import { AsteNav } from '@/components/feature/aste/AsteNav';
 
 const STORAGE_KEY = 'partecipazioni';
 
@@ -89,6 +89,7 @@ export function AsteParticipationsPage() {
 
   return (
     <div className="min-h-screen bg-white pb-16 pt-6">
+      <AsteNav />
       <div className="container-content">
         <nav className="mb-4 flex flex-wrap gap-2 text-sm text-gray-500">
           <Link href="/" className="hover:text-gray-900">
@@ -129,7 +130,6 @@ export function AsteParticipationsPage() {
           )}
         </div>
       </div>
-      <AsteFloatingNav />
     </div>
   );
 }

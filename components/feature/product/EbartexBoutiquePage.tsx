@@ -23,12 +23,12 @@ const CAROUSEL_SLIDES = [
 ];
 
 const BOUTIQUE_CATEGORIES = [
-  { id: 'dadi', label: 'Dadi', href: '/products?category=dadi', imageUrl: getCdnImageUrl('card-3/4978fe1369c0fbf68d42ac63d0582ffc6cf67d60.png') },
-  { id: 'buste', label: 'Buste', href: '/products?category=buste', imageUrl: getCdnImageUrl('card-3/8b5d86761fe7404aee02bee1471c3e0fc815d3bb.png') },
-  { id: 'tappetini', label: 'Tappetini', href: '/products?category=tappetini', imageUrl: getCdnImageUrl('card-3/a8020835a8ffd96555a4b53cd6ef0d04866ca8b1.png') },
-  { id: 'memorabilia', label: 'Memorabilia', href: '/products?category=memorabilia', imageUrl: getCdnImageUrl('acquisti-frames/Frame%20334.jpg') },
-  { id: 'albums', label: 'Albums', href: '/products?category=albums', imageUrl: getCdnImageUrl('acquisti-frames/Frame%20335.jpg') },
-  { id: 'game-kits', label: 'Game kits', href: '/products?category=game-kits', imageUrl: getCdnImageUrl('acquisti-frames/Frame%20336.jpg') },
+  { id: 'dadi', label: 'Dadi', href: '/products?category=dadi', imageUrl: getCdnImageUrl('dadi-boutique.png') },
+  { id: 'buste', label: 'Buste', href: '/products?category=buste', imageUrl: getCdnImageUrl('buste-boutique.png') },
+  { id: 'tappetini', label: 'Tappetini', href: '/products?category=tappetini', imageUrl: getCdnImageUrl('tappetini-boutique.png') },
+  { id: 'memorabilia', label: 'Memorabilia', href: '/products?category=memorabilia', imageUrl: getCdnImageUrl('memorabilia-boutique.png') },
+  { id: 'albums', label: 'Albums', href: '/products?category=albums', imageUrl: getCdnImageUrl('albums-boutique.png') },
+  { id: 'game-kits', label: 'Game kits', href: '/products?category=game-kits', imageUrl: getCdnImageUrl('gamekits-boutique.png') },
 ];
 
 export function EbartexBoutiquePage() {
@@ -136,21 +136,11 @@ export function EbartexBoutiquePage() {
               href={cat.href}
               className="group flex flex-col rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm hover:shadow-md hover:border-[#FF8800] transition-all"
             >
-              <div className="relative aspect-square bg-gray-100">
-                {cat.imageUrl ? (
-                  <Image
-                    src={cat.imageUrl}
-                    alt=""
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    sizes="(max-width:640px) 50vw, 16vw"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                    <Package className="w-12 h-12" />
-                  </div>
-                )}
+              <div 
+                className="relative aspect-square bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
+                style={{ backgroundImage: `url(${cat.imageUrl})` }}
+              >
+                <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
               </div>
               <div className="p-3 text-center">
                 <span className="text-sm font-bold text-gray-900 uppercase">{cat.label}</span>

@@ -28,7 +28,7 @@ export function Header({ transparent = false }: { transparent?: boolean }) {
         ref={(n) => {
           headerRef.current = n;
         }}
-        className={`fixed top-0 left-0 right-0 z-[100] w-full font-sans text-white ${transparent ? 'bg-transparent' : 'bg-[#1D3160]'}`}
+        className={`fixed top-0 left-0 right-0 z-[100] w-full font-display text-white ${transparent ? 'bg-transparent' : 'bg-[#1D3160]'}`}
       >
       {/* Top bar */}
       <div className={`relative z-20 w-full pb-0 ${transparent ? 'bg-transparent' : ''}`} style={transparent ? {} : { backgroundColor: '#1D3160' }}>
@@ -40,7 +40,7 @@ export function Header({ transparent = false }: { transparent?: boolean }) {
       {/* Barra ricerca: stessa fascia, minimo spazio rispetto alla riga logo/menu */}
       <div className={`relative z-10 w-full overflow-visible pt-0 ${transparent ? 'bg-transparent' : ''}`} style={transparent ? {} : { backgroundColor: '#1D3160' }}>
         <div className="container-content container-header overflow-visible">
-          <div className="middle-bar flex flex-row items-stretch gap-2 overflow-visible py-0 pb-1.5 md:gap-3 md:py-1">
+          <div className="middle-bar flex flex-row items-stretch gap-3 overflow-visible py-0 pb-1.5 md:gap-3 md:py-1">
             <div className="flex shrink-0 items-stretch md:min-h-11">
               <ProdottiMenu isSquared={searchOpen} />
             </div>

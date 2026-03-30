@@ -72,12 +72,12 @@ const getComingSoonGames = (): {
 ];
 
 const BOUTIQUE_CATEGORIES = [
-  { id: 'dadi', label: 'Dadi', href: '/products?category=dadi', imageUrl: getCdnImageUrl('card-3/4978fe1369c0fbf68d42ac63d0582ffc6cf67d60.png') },
-  { id: 'buste', label: 'Buste', href: '/products?category=buste', imageUrl: getCdnImageUrl('card-3/8b5d86761fe7404aee02bee1471c3e0fc815d3bb.png') },
-  { id: 'tappetini', label: 'Tappetini', href: '/products?category=tappetini', imageUrl: getCdnImageUrl('card-3/a8020835a8ffd96555a4b53cd6ef0d04866ca8b1.png') },
-  { id: 'memorabilia', label: 'Memorabilia', href: '/products?category=memorabilia', imageUrl: getCdnImageUrl('acquisti-frames/Frame%20334.jpg') },
-  { id: 'albums', label: 'Albums', href: '/products?category=albums', imageUrl: getCdnImageUrl('acquisti-frames/Frame%20335.jpg') },
-  { id: 'game-kits', label: 'Game kits', href: '/products?category=game-kits', imageUrl: getCdnImageUrl('acquisti-frames/Frame%20336.jpg') },
+  { id: 'dadi', label: 'Dadi', href: '/products?category=dadi', imageUrl: getCdnImageUrl('dadi-boutique.png') },
+  { id: 'buste', label: 'Buste', href: '/products?category=buste', imageUrl: getCdnImageUrl('buste-boutique.png') },
+  { id: 'tappetini', label: 'Tappetini', href: '/products?category=tappetini', imageUrl: getCdnImageUrl('tappetini-boutique.png') },
+  { id: 'memorabilia', label: 'Memorabilia', href: '/products?category=memorabilia', imageUrl: getCdnImageUrl('memorabilia-boutique.png') },
+  { id: 'albums', label: 'Albums', href: '/products?category=albums', imageUrl: getCdnImageUrl('albums-boutique.png') },
+  { id: 'game-kits', label: 'Game kits', href: '/products?category=game-kits', imageUrl: getCdnImageUrl('gamekits-boutique.png') },
 ];
 
 export function LandingWelcome() {
@@ -213,10 +213,10 @@ export function LandingWelcome() {
               {t('landing.heroTitle')}
             </h2>
             
-            {/* Pulsante CTA "INIZIA ORA" - Accanto al titolo - Ridotto del 30% */}
+            {/* Pulsante CTA "INIZIA ORA" - Ridotto per mobile */}
             <Link
               href="/login"
-              className="group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 px-5.5 py-2.5 sm:px-7 sm:py-3 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95"
+              className="group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 px-4 py-2 sm:px-7 sm:py-3 text-[11px] sm:text-xs font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95"
             >
               <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
                 <div className="relative h-full w-8 bg-white/20" />
@@ -231,7 +231,7 @@ export function LandingWelcome() {
         </div>
 
         {/* Loghi giochi: Magic grande a tutta larghezza + Altri sotto nel PRESTO IN ARRIVO */}
-        <section className="px-2 pt-6 pb-2 sm:px-4 sm:pt-8 sm:pb-3 md:px-6 md:pt-10 md:pb-4">
+        <section className="px-2 pt-14 pb-10 sm:px-4 sm:pt-8 sm:pb-3 md:px-6 md:pt-10 md:pb-4">
           <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-6">
             {/* Riga 1: Magic — sfondo rettangolare/"allungato" (rounded-2xl) a tutta larghezza (max-w-lg) */}
             {MAIN_GAMES.map((game) => (
@@ -245,13 +245,16 @@ export function LandingWelcome() {
                   else if (game.gameSlug) setSelectedGame(game.gameSlug);
                 }}
               >
-                {/* Banner glass sopra - Citazione Magic centrata + Disponibile a destra */}
-                <div className="absolute -top-3 left-0 right-0 z-10 flex items-center justify-center">
-                  <div className="whitespace-nowrap text-center font-sans text-[11px] sm:text-sm font-medium italic tracking-wide text-white drop-shadow-md">
+                {/* Banner glass sopra - Citazione Magic centrata - DESKTOP */}
+                <div className="hidden sm:flex absolute -top-3 left-0 right-0 z-10 items-center justify-center px-2">
+                  <div className="text-center font-sans text-sm font-medium italic tracking-wide text-white drop-shadow-md truncate">
                     <span className="text-[#FF7300] not-italic">"</span>La battaglia non ha bisogno di uno scopo<span className="text-[#FF7300] not-italic">"</span>
                   </div>
                 </div>
-                <span className="absolute -top-3 right-0 translate-x-1/2 z-10 whitespace-nowrap rounded-full bg-[#FF7300] px-2 py-1 sm:px-3 sm:py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile da ora!</span>
+                {/* Badge Disponibile DESKTOP - in alto a destra mezzo fuori */}
+                <span className="hidden sm:block absolute -top-3 right-0 z-10 translate-x-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile da ora!</span>
+                {/* Badge Disponibile MOBILE - in basso centrato mezzo fuori */}
+                <span className="sm:hidden absolute bottom-0 left-1/2 z-10 -translate-x-1/2 translate-y-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile da ora!</span>
                 <img
                   src={game.src}
                   alt={game.alt}
@@ -266,8 +269,8 @@ export function LandingWelcome() {
             
             {/* Giochi in arrivo — scorrimento libero senza container */}
             {/* Banner glass "PRESTO IN ARRIVO" - posizionato vicino ai giochi */}
-            <div className="relative w-full mb-4 sm:mb-5">
-              <div className="absolute top-2 sm:top-3 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#8B5CF6]/20 px-[1.15rem] sm:px-7 py-2.5 sm:py-3 text-center font-sans text-xs sm:text-sm font-bold uppercase tracking-widest text-white shadow-[0_0_25px_rgba(139,92,246,0.5)] backdrop-blur-md">
+            <div className="relative w-full mb-8 sm:mb-10">
+              <div className="absolute top-2 sm:top-4 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#8B5CF6]/20 px-[1.15rem] sm:px-8 py-2.5 sm:py-3.5 text-center font-sans text-xs sm:text-sm font-bold uppercase tracking-widest text-white shadow-[0_0_25px_rgba(139,92,246,0.5)] backdrop-blur-md">
                 Presto in Arrivo
               </div>
             </div>
@@ -280,7 +283,7 @@ export function LandingWelcome() {
                     key={`${i}-${game.alt}`}
                     type="button"
                     onClick={() => setNotifyGame({ src: game.src, alt: game.alt })}
-                    className="group relative flex h-24 w-24 sm:h-28 sm:w-28 md:h-36 md:w-36 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/10 bg-white/5 p-3.5 sm:p-4 transition-opacity duration-300 hover:opacity-100 opacity-60"
+                    className="group relative flex h-32 w-32 sm:h-28 sm:w-28 md:h-36 md:w-36 lg:h-36 lg:w-36 xl:h-36 xl:w-36 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/10 bg-white/5 p-2 sm:p-4 transition-opacity duration-300 hover:opacity-100 opacity-60"
                   >
                     <img
                       src={game.src}
@@ -401,7 +404,7 @@ export function LandingWelcome() {
                   {t('landing.feat.sectionTitle')}
                 </h2>
               </div>
-              <div className="grid w-full grid-cols-2 md:grid-cols-3 justify-items-center gap-x-4 gap-y-6 sm:gap-x-6 sm:gap-y-8">
+              <div className="grid w-full grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-4 sm:gap-x-6 sm:gap-y-8">
                 {FEATURES.map((f) => {
                   const IconComponent = FEATURE_ICONS[f.iconKey];
                   return (
@@ -443,10 +446,10 @@ export function LandingWelcome() {
                     onClick={() => setActivePill(isActive ? null : item.id)}
                     className={`group relative flex overflow-hidden border border-white/20 bg-white/[0.08] backdrop-blur-md hover:bg-white/[0.15] hover:border-white/30 shadow-[0_0_20px_rgba(0,0,0,0.2)] transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] cursor-pointer h-12 sm:h-14 items-center rounded-full shrink-0 ${
                       isActive 
-                        ? 'p-1.5 pl-1.5 sm:p-2 sm:pl-2 w-[220px] sm:w-[340px] md:w-[460px] justify-between bg-white/[0.12] border-white/30' 
+                        ? 'p-1.5 pl-1.5 sm:p-2 sm:pl-2 w-auto justify-between bg-white/[0.12] border-white/30 transition-[width] duration-300 ease-out' 
                         : isCollapsed 
-                          ? 'p-1.5 sm:p-2 w-[44px] sm:w-[48px] md:w-[56px] justify-center' 
-                          : 'p-1.5 pr-1 sm:p-2 sm:pr-4 md:pr-5 w-[100px] sm:w-[140px] md:w-[170px] justify-start text-center'
+                          ? 'p-1.5 sm:p-2 w-[44px] sm:w-[48px] md:w-[56px] justify-center transition-[width] duration-500 delay-75' 
+                          : 'p-1.5 pr-1 sm:p-2 sm:pr-4 md:pr-5 w-[100px] sm:w-[140px] md:w-[170px] justify-start text-center transition-[width] duration-500 delay-75'
                     }`}
                   >
                     {/* SINISTRA: Icona + Testi (Titolo e Descrizione) */}
@@ -497,23 +500,13 @@ export function LandingWelcome() {
                   <Link
                     key={cat.id}
                     href={cat.href}
-                    className="group flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-2 transition-all duration-300 hover:border-white/30 hover:bg-white/10 shadow-[0_4px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.4)]"
+                    className="group flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-2 transition-all duration-300 hover:border-white/30 hover:bg-white/10 shadow-[0_4px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.4)] overflow-hidden"
                   >
-                    <div className="relative w-full aspect-[4/3] overflow-hidden rounded bg-white/10">
-                      {cat.imageUrl ? (
-                        <Image
-                          src={cat.imageUrl}
-                          alt={cat.label}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-110"
-                          sizes="(max-width: 640px) 30vw, 15vw"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Package className="h-6 w-6 text-white/40" />
-                        </div>
-                      )}
+                    <div 
+                      className="relative w-full aspect-[4/3] overflow-hidden rounded bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+                      style={{ backgroundImage: `url(${cat.imageUrl})` }}
+                    >
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                     </div>
                     <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white/70 transition-colors group-hover:text-white text-center">
                       {cat.label}
