@@ -21,7 +21,7 @@ export function FeaturesSection() {
   );
 
   return (
-    <section className="w-full bg-white bg-[url('/brx-sfondo-logo-tile.svg')] bg-[length:162px_162px] bg-repeat py-3 font-sans text-gray-900 md:py-4">
+    <section className="w-full bg-[#F1F5F9] bg-[linear-gradient(rgba(241,245,249,0.8),rgba(241,245,249,0.8)),url('/brx-sfondo-logo-tile.svg')] bg-[length:100%_100%,162px_162px] bg-repeat py-3 font-sans text-gray-900 md:py-4">
       <div className="container-content px-4 sm:px-6">
         <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:gap-4 lg:grid-cols-4 lg:gap-6">
           {features.map(({ titleKey, Icon }) => (

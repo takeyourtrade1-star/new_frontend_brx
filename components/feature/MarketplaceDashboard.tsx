@@ -155,10 +155,6 @@ function NuoveEspansioniCarousel({ items }: { items: NuovaEspansioneItem[] }) {
           boxShadow: '0 0 25px rgba(61, 101, 198, 0.12), 0 4px 20px rgba(0,0,0,0.08)',
         }}
       >
-      {/* Titolo sezione – glass effect overlay */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex items-center px-5 py-3 bg-white/20 backdrop-blur-md border-b border-white/30">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-gray-900 drop-shadow-sm font-display">{t('marketplace.newExpansions')}</h2>
-      </div>
       <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl">
         <div className="absolute inset-0 bg-gray-700/80" aria-hidden />
         {current.imageUrl ? (
@@ -304,10 +300,17 @@ export function MarketplaceDashboard({
   const tradeListCards = pickThreeCards(magicOffset + 9);
 
   return (
-    <div className="w-full bg-white bg-[url('/brx-sfondo-logo-tile.svg')] bg-[length:162px_162px] bg-repeat font-sans text-gray-900 transition-colors duration-300">
+    <div className="w-full bg-[#F1F5F9] bg-[linear-gradient(rgba(241,245,249,0.8),rgba(241,245,249,0.8)),url('/brx-sfondo-logo-tile.svg')] bg-[length:100%_100%,162px_162px] bg-repeat font-sans text-gray-900 transition-colors duration-300">
       <div className="container-content space-y-5 pb-6 pt-4 md:space-y-8 md:pb-10 md:pt-6">
         {/* MOBILE: Layout semplificato - 1 carta principale + 5 sotto */}
         <div className="block lg:hidden">
+          {/* Titolo sezione Best Sellers - Mobile */}
+          <div className="flex items-center px-4 py-2 mb-3">
+            <div className="flex flex-col">
+              <h2 className="text-xl font-bold uppercase tracking-wider text-gray-800 font-display">Best Sellers</h2>
+              <div className="mt-1.5 h-1 w-16 rounded-full bg-gradient-to-r from-[#ff7300] to-[#ff9900]" />
+            </div>
+          </div>
           <div
             className="flex flex-col overflow-hidden rounded-2xl shadow-lg border border-primary/40 ring-1 ring-primary/30"
             style={{ borderRadius: SECTION_RADIUS, backgroundColor: '#ffffff', boxShadow: '0 0 25px rgba(255, 115, 0, 0.12), 0 4px 20px rgba(0,0,0,0.08)' }}
@@ -385,10 +388,13 @@ export function MarketplaceDashboard({
         {/* DESKTOP: Layout originale a due colonne */}
         <div className="hidden lg:grid lg:grid-cols-3 lg:gap-6">
           {/* ═══ Card VENDITE ═══ */}
-          <div className="flex min-h-[437px] flex-col overflow-hidden lg:col-span-2 backdrop-blur-[1px] rounded-2xl">
+          <div className="flex min-h-[437px] flex-col justify-between overflow-hidden lg:col-span-2 backdrop-blur-[1px] rounded-2xl">
             {/* Titolo sezione VENDITE */}
             <div className="flex items-center px-6 py-3">
-              <h2 className="text-4xl font-bold uppercase tracking-wider text-gray-800 font-display">Best Sellers</h2>
+              <div className="flex flex-col">
+                <h2 className="text-3xl font-bold uppercase tracking-wider text-gray-800 font-display">Best Sellers</h2>
+                <div className="mt-2 h-1 w-20 rounded-full bg-gradient-to-r from-[#ff7300] to-[#ff9900]" />
+              </div>
             </div>
             <div className="flex min-h-0 flex-1">
               {/* ── Colonna sinistra ── */}
@@ -482,10 +488,13 @@ export function MarketplaceDashboard({
             <div className="relative flex min-h-[380px] flex-col overflow-hidden md:min-h-[437px]">
               {/* Titolo sezione */}
               <div className="flex items-center px-6 py-3">
-                <h2 className="text-4xl font-bold uppercase tracking-wider text-gray-800 font-display">Aste in corso</h2>
+                <div className="flex flex-col">
+                  <h2 className="text-3xl font-bold uppercase tracking-wider text-gray-800 font-display">Aste in corso</h2>
+                  <div className="mt-2 h-1 w-20 rounded-full bg-gradient-to-r from-[#ff7300] to-[#ff9900]" />
+                </div>
               </div>
 
-              <div className="flex flex-1 flex-col justify-between p-5 md:p-6">
+              <div className="flex flex-1 flex-col p-5 md:p-6">
                 <div className="flex justify-center">
                   {(() => {
                     if (featuredAuction) {
@@ -549,15 +558,24 @@ export function MarketplaceDashboard({
                 </div>
                 <Link
                   href={astaData.href ?? '/aste'}
-                  className="mt-3 block text-center text-sm font-semibold uppercase tracking-wide text-[#ff7300] hover:underline"
+                  className="mt-auto block text-center text-sm font-semibold uppercase tracking-wide text-[#ff7300] hover:underline pt-3"
                 >
                   {astaData.linkText ?? t('marketplace.seeAllAuctions')}
                 </Link>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Row 2: NUOVE ESPANSIONI (carousel) | SEMPLICE. SICURO. TUO. */}
+        {/* Row 2: NUOVE ESPANSIONI (carousel) | SEMPLICE. SICURO. TUO. */}
+        <div className="hidden lg:block">
+          {/* Titolo sezione Nuove Espansioni */}
+          <div className="flex items-center px-6 py-3">
+            <div className="flex flex-col">
+              <h2 className="text-3xl font-bold uppercase tracking-wider text-gray-800 font-display">{t('marketplace.newExpansions')}</h2>
+              <div className="mt-2 h-1 w-20 rounded-full bg-gradient-to-r from-[#ff7300] to-[#ff9900]" />
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
