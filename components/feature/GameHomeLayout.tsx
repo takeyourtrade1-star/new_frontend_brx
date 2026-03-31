@@ -6,16 +6,14 @@ import { FeaturesSection } from '@/components/feature/FeaturesSection';
 import { MarketplaceDashboard } from '@/components/feature/MarketplaceDashboard';
 import { CategoriesGrid } from '@/components/feature/CategoriesGrid';
 import { EbartexProductsSection } from '@/components/feature/EbartexProductsSection';
-import { DevMockCardSection } from '@/components/feature/dev/DevMockCardSection';
 import type { GameSlug } from '@/lib/contexts/GameContext';
 
 interface GameHomeLayoutProps {
   gameSlug: GameSlug;
-  showDevMock?: boolean;
 }
 
 /** Layout condiviso per le 3 home dedicate (Magic, Pokémon, One Piece): stessa struttura, hero con logo del gioco. */
-export function GameHomeLayout({ gameSlug, showDevMock }: GameHomeLayoutProps) {
+export function GameHomeLayout({ gameSlug }: GameHomeLayoutProps) {
   return (
     <main
       className="min-h-screen font-sans text-white transition-colors duration-300"
@@ -31,8 +29,6 @@ export function GameHomeLayout({ gameSlug, showDevMock }: GameHomeLayoutProps) {
       </section>
 
       <FeaturesSection />
-
-      {showDevMock && <DevMockCardSection />}
 
       <MarketplaceDashboard gameSlug={gameSlug} />
 
