@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Home, Plus, Trash2, Search, ArrowUpDown } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 type WantCard = {
   id: string;
@@ -22,27 +23,28 @@ export function ListaDesideriDetailContent({ listId }: { listId: string }) {
   const [search, setSearch] = useState('');
 
   const listName = `${t('accountPage.wantlistTitle')} ${listId}`;
+  const breadcrumbItems: AppBreadcrumbItem[] = [
+    {
+      href: '/',
+      label: t('breadcrumb.home'),
+      ariaLabel: t('breadcrumb.home'),
+      icon: <Home className="h-4 w-4" />,
+      iconOnly: true,
+      isCurrent: false,
+    },
+    { href: '/ordini/acquisti', label: t('breadcrumb.acquisti'), isCurrent: false },
+    { href: '/account/lista-desideri', label: t('accountPage.wantlistTitle'), isCurrent: false },
+    { label: listName.toUpperCase(), isCurrent: true },
+  ];
 
   return (
     <div className="font-sans text-gray-900">
-      <nav
-        className="mb-6 flex items-center gap-2 text-sm uppercase tracking-wide text-gray-500"
-        aria-label={t('accountPage.breadcrumbNav')}
-      >
-        <Link href="/" className="hover:text-gray-900" aria-label={t('breadcrumb.home')}>
-          <Home className="h-4 w-4" />
-        </Link>
-        <span>/</span>
-        <Link href="/ordini/acquisti" className="hover:text-gray-900">
-          {t('breadcrumb.acquisti')}
-        </Link>
-        <span>/</span>
-        <Link href="/account/lista-desideri" className="hover:text-gray-900">
-          {t('accountPage.wantlistTitle')}
-        </Link>
-        <span>/</span>
-        <span className="font-medium text-gray-900">{listName.toUpperCase()}</span>
-      </nav>
+      <AppBreadcrumb
+        items={breadcrumbItems}
+        ariaLabel={t('accountPage.breadcrumbNav')}
+        variant="default"
+        className="mb-6 w-auto text-sm uppercase tracking-wide"
+      />
 
       <h1 className="mb-6 text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">
         {listName}

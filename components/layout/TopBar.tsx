@@ -572,18 +572,50 @@ export function TopBar() {
                 )}
               </div>
 
-              {/* 2. ACQUISTI */}
+              {/* 2. ACQUISTI - Su mobile diventa link diretto a "I miei oggetti", su desktop dropdown */}
               <div
                 className="relative order-1 flex items-center gap-2 md:order-2"
                 ref={acquistiMenuRef}
               >
+                {/* Mobile: Link diretto a I miei oggetti (sostituisce il dropdown) */}
+                <Link
+                  href="/account/oggetti"
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:hidden"
+                  aria-label={t('account.items')}
+                >
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
+                    aria-hidden
+                  >
+                    {/* Icona OGGETTI: package/box */}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#FF7300"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5"
+                    >
+                      <path d="m7.5 4.27 9 5.15"></path>
+                      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+                      <path d="m3.3 7 8.7 5 8.7-5"></path>
+                      <path d="M12 22V12"></path>
+                    </svg>
+                  </span>
+                </Link>
+
+                {/* Desktop: Dropdown Acquisti con I miei acquisti e Lista desideri */}
                 <button
                   type="button"
                   onClick={() => {
                     setAcquistiMenuOpen((o) => !o);
                     setAccountMenuOpen(false);
                   }}
-                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
+                  className="hidden items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:flex"
                   aria-expanded={acquistiMenuOpen}
                   aria-haspopup="true"
                   aria-label={t('purchases.menuAria')}
@@ -617,7 +649,7 @@ export function TopBar() {
                     className="ml-0.5 flex h-4 w-4 shrink-0 items-center justify-center text-[#FF7300]"
                     aria-hidden
                   >
-                    {/* Freccia dropdown minimal, senza “bottone nel bottone” */}
+                    {/* Freccia dropdown minimal, senza "bottone nel bottone" */}
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="16"
@@ -728,14 +760,18 @@ export function TopBar() {
                       >
                         Metti in vendita
                       </Link>
-                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                      <Link
-                        href="/account/oggetti"
-                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                        onClick={() => setVendiMenuOpen(false)}
-                      >
-                        I miei oggetti
-                      </Link>
+
+                      {/* Solo su desktop: "I miei oggetti" (su mobile ha il pulsante dedicato) */}
+                      <div className="hidden md:block">
+                        <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
+                        <Link
+                          href="/account/oggetti"
+                          className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                          onClick={() => setVendiMenuOpen(false)}
+                        >
+                          I miei oggetti
+                        </Link>
+                      </div>
 
                       {/* Solo su mobile, includiamo anche Scambi e Aste che su desktop hanno link diretti */}
                       <div className="md:hidden">

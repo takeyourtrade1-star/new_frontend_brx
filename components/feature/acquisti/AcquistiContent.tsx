@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Home, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 const TABS_LEFT = [
   { id: 'da-pagare', label: 'DA PAGARE' },
@@ -62,23 +63,26 @@ export function AcquistiContent() {
   const emptyState = EMPTY_STATE_BY_TAB[activeTab] ?? {
     message: 'SPIACENTE, NON HAI NESSUN ACQUISTO',
   };
+  const breadcrumbItems: AppBreadcrumbItem[] = [
+    {
+      href: '/',
+      label: 'Home',
+      ariaLabel: 'Home',
+      icon: <Home className="h-4 w-4" />,
+      iconOnly: true,
+      isCurrent: false,
+    },
+    { label: 'ORDINI', isCurrent: false },
+    { href: '/ordini/acquisti', label: 'I MIEI ACQUISTI', isCurrent: false },
+    { label: activeLabel, isCurrent: true },
+  ];
 
   return (
     <div className="min-h-screen w-full font-sans" style={{ backgroundColor: '#F5F4F0' }}>
       <div className="container-content mx-auto py-8 md:py-10">
         {/* Breadcrumb + aiuto */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <nav className="flex items-center gap-2 text-sm text-gray-500" aria-label="Breadcrumb">
-            <Link href="/" className="hover:text-gray-900" aria-label="Home">
-              <Home className="h-4 w-4" />
-            </Link>
-            <span>/</span>
-            <span>ORDINI</span>
-            <span>/</span>
-            <Link href="/ordini/acquisti" className="hover:text-gray-900">I MIEI ACQUISTI</Link>
-            <span>/</span>
-            <span className="font-medium text-gray-900">{activeLabel}</span>
-          </nav>
+          <AppBreadcrumb items={breadcrumbItems} ariaLabel="Breadcrumb" variant="default" className="w-auto text-sm" />
           <Link
             href="/aiuto"
             className="text-sm font-medium text-[#FF7300] hover:underline"

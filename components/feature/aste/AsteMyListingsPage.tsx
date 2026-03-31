@@ -14,6 +14,7 @@ import {
 import { MOCK_AUCTIONS } from '@/components/feature/aste/mock-auctions';
 import { MY_AUCTION_LISTING_IDS } from '@/components/feature/aste/mock-user-auctions';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
+import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 const STORAGE_KEY = 'mie';
 
@@ -60,6 +61,11 @@ export function AsteMyListingsPage() {
   }, [enriched]);
 
   const displayName = user?.name ?? user?.email?.split('@')[0] ?? '';
+  const breadcrumbItems: AppBreadcrumbItem[] = [
+    { href: '/', label: t('auctions.breadcrumbHome'), isCurrent: false },
+    { href: '/aste', label: t('pages.auctions.title'), isCurrent: false },
+    { label: t('auctions.myListingsTitle'), isCurrent: true },
+  ];
 
   if (!isAuthenticated) {
     return (
@@ -82,17 +88,12 @@ export function AsteMyListingsPage() {
     <div className="min-h-screen bg-white pb-16 pt-6">
       <AsteNav />
       <div className="container-content">
-        <nav className="mb-4 flex flex-wrap gap-2 text-sm text-gray-500">
-          <Link href="/" className="hover:text-gray-900">
-            {t('auctions.breadcrumbHome')}
-          </Link>
-          <span>/</span>
-          <Link href="/aste" className="hover:text-gray-900">
-            {t('pages.auctions.title')}
-          </Link>
-          <span>/</span>
-          <span className="text-gray-900">{t('auctions.myListingsTitle')}</span>
-        </nav>
+        <AppBreadcrumb
+          items={breadcrumbItems}
+          ariaLabel="Breadcrumb"
+          variant="default"
+          className="mb-4 w-auto text-sm"
+        />
 
         <header className="mb-8 border-b border-gray-200 pb-6">
           <h1 className="text-2xl font-bold uppercase tracking-tight text-gray-900 md:text-3xl">{t('auctions.myListingsTitle')}</h1>

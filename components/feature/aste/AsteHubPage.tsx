@@ -28,6 +28,7 @@ import {
   isEndingSoon,
   type AuctionGame,
 } from '@/components/feature/aste/mock-auctions';
+import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 type SortMode = 'ending' | 'new' | 'bid';
 
@@ -59,6 +60,10 @@ export function AsteHubPage() {
   const now = useNowTick();
   const enriched = useEnrichedAuctions();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const breadcrumbItems: AppBreadcrumbItem[] = [
+    { href: '/', label: t('auctions.breadcrumbHome'), isCurrent: false },
+    { label: t('pages.auctions.title'), isCurrent: true },
+  ];
 
   const [viewMode, setViewMode] = useState<AsteViewMode>('grid');
   const [sort, setSort] = useState<SortMode>('ending');
@@ -155,13 +160,12 @@ export function AsteHubPage() {
             </div>
           )}
 
-          <nav className="mb-4 flex flex-wrap gap-2 text-sm text-gray-500">
-            <Link href="/" className="hover:text-gray-900">
-              {t('auctions.breadcrumbHome')}
-            </Link>
-            <span>/</span>
-            <span className="text-gray-900">{t('pages.auctions.title')}</span>
-          </nav>
+          <AppBreadcrumb
+            items={breadcrumbItems}
+            ariaLabel="Breadcrumb"
+            variant="default"
+            className="mb-4 w-auto text-sm"
+          />
 
           {/* Sezione filtri unificata */}
           <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">

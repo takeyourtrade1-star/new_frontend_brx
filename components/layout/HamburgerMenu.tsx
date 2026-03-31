@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme-context';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -38,8 +38,7 @@ const LANG_TO_COUNTRY: Record<string, string> = {
   pt: 'pt',
 };
 
-const navLinkClass =
-  'block px-5 py-3.5 text-[13px] font-semibold uppercase tracking-wide text-[#1D3160] transition-colors hover:bg-gray-50';
+const navLinkClass = 'flex items-center gap-3 px-5 py-3.5 text-[13px] font-semibold uppercase tracking-wide text-[#1D3160] transition-colors hover:bg-gray-50';
 
 export function HamburgerMenu() {
   const { t } = useTranslation();
@@ -51,8 +50,10 @@ export function HamburgerMenu() {
   const { selectedLang, setSelectedLang, availableLangs } = useLanguage();
   const [linguaDropdownOpen, setLinguaDropdownOpen] = useState(false);
   const [gameDropdownOpen, setGameDropdownOpen] = useState(false);
+  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
   const linguaDropdownRef = useRef<HTMLDivElement>(null);
   const gameMenuRef = useRef<HTMLDivElement>(null);
+  const accountDropdownRef = useRef<HTMLDivElement>(null);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const setFlashMessage = useAuthStore((s) => s.setFlashMessage);
   const logoutMutation = useLogout();
@@ -62,10 +63,10 @@ export function HamburgerMenu() {
   const menuItems = useMemo(
     () =>
       [
-        { label: t('nav.advancedSinglesSearch') ?? 'Ricerca avanzata singole', href: '/search/advanced' },
-        { label: t('nav.userSearch'), href: '/search/user' },
-        { label: t('nav.legalNorms'), href: '/legal/norme' },
-        { label: t('nav.legalTerms'), href: '/legal/condizioni' },
+        { label: t('nav.advancedSinglesSearch') ?? 'Ricerca avanzata singole', href: '/search/advanced', icon: Search },
+        { label: t('nav.userSearch'), href: '/search/user', icon: Users },
+        { label: t('nav.legalNorms'), href: '/legal/norme', icon: Scale },
+        { label: t('nav.legalTerms'), href: '/legal/condizioni', icon: FileText },
       ] as const,
     [t]
   );
@@ -149,7 +150,21 @@ export function HamburgerMenu() {
   }, [gameDropdownOpen]);
 
   useEffect(() => {
-    if (!open) setGameDropdownOpen(false);
+    if (!accountDropdownOpen) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (accountDropdownRef.current && !accountDropdownRef.current.contains(e.target as Node)) {
+        setAccountDropdownOpen(false);
+      }
+    };
+    document.addEventListener('click', onClickOutside);
+    return () => document.removeEventListener('click', onClickOutside);
+  }, [accountDropdownOpen]);
+
+  useEffect(() => {
+    if (!open) {
+      setGameDropdownOpen(false);
+      setAccountDropdownOpen(false);
+    }
   }, [open]);
 
   useEffect(() => {
@@ -200,13 +215,10 @@ export function HamburgerMenu() {
         aria-modal="true"
         aria-label={t('common.menuDialog')}
       >
-        {/* Header: Titolo a sinistra e chiusura a destra */}
+        {/* Header: solo chiusura a destra */}
         <div
-          className="flex shrink-0 items-center justify-between border-b border-gray-200 pl-5 pr-3 py-2.5"
+          className="flex shrink-0 items-center justify-end border-b border-gray-200 px-3 py-2.5"
         >
-          <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#1D3160]">
-            {isAuthenticated ? t('account.menuAria') : 'Menu'}
-          </span>
           <button
             type="button"
             onClick={() => setOpen(false)}
@@ -219,6 +231,72 @@ export function HamburgerMenu() {
 
         <nav className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 overflow-y-auto pb-2">
+          {/* GIOCHI: sempre in cima, solo MTG (come desktop) */}
+          <div className="relative border-b border-gray-100 md:hidden" ref={gameMenuRef}>
+            <p className="px-5 pb-1.5 pt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+              {t('game.label')}
+            </p>
+            <div className="px-5 pb-4">
+              <button
+                type="button"
+                onClick={() => setGameDropdownOpen((v) => !v)}
+                className="flex w-full items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2.5 text-left shadow-sm transition-colors hover:border-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D3160]/25"
+                aria-expanded={gameDropdownOpen}
+                aria-haspopup="listbox"
+                aria-label={t('game.selectGameAria')}
+              >
+                <span className="min-w-0 flex-1 truncate text-[12px] font-semibold uppercase leading-snug tracking-wide text-[#1D3160]">
+                  {selectedGame ? gameDisplayName(selectedGame) : t('game.selectGame')}
+                </span>
+                <ChevronDown
+                  className={cn('h-5 w-5 shrink-0 text-[#1D3160] transition-transform', gameDropdownOpen && 'rotate-180')}
+                  aria-hidden
+                />
+              </button>
+              {gameDropdownOpen && (
+                <ul
+                  className="mt-1 max-h-56 overflow-auto rounded border border-gray-200 bg-white py-1 shadow-md"
+                  role="listbox"
+                  aria-label={t('game.gamesListAria')}
+                >
+                  {GAME_OPTIONS.filter(opt => opt.value === 'mtg').map((opt) => {
+                    const logoSrc = getCdnImageUrl('loghi-giochi/magic.png');
+                    const active = selectedGame === opt.value;
+                    return (
+                      <li key={opt.value} role="option" aria-selected={active}>
+                        <button
+                          type="button"
+                          className={cn(
+                            'flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-gray-50',
+                            active && 'bg-orange-50/80'
+                          )}
+                          onClick={() => {
+                            setSelectedGame(opt.value);
+                            setGameDropdownOpen(false);
+                            router.push(GAME_HOME_PATH[opt.value]);
+                            setOpen(false);
+                          }}
+                        >
+                          <Image
+                            src={logoSrc}
+                            alt={opt.label}
+                            width={88}
+                            height={28}
+                            className="h-6 w-14 shrink-0 object-contain object-left"
+                            unoptimized
+                          />
+                          <span className="min-w-0 flex-1 text-[11px] font-semibold uppercase leading-tight tracking-wide text-[#1D3160]">
+                            {gameDisplayName(opt.value)}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+
           {!isAuthenticated && (
             <div className="border-b border-gray-100 px-5 py-5">
               <form onSubmit={handleSubmit(onDrawerLogin)} className="space-y-5" noValidate>
@@ -336,128 +414,108 @@ export function HamburgerMenu() {
           )}
 
           {isAuthenticated && (
-            <>
-              <div className="border-b border-gray-100 pt-2 md:hidden">
-                <Link
-                  href="/account"
-                  onClick={() => setOpen(false)}
-                  className={cn(navLinkClass, 'border-b border-gray-100')}
-                >
-                  {t('account.account')}
-                </Link>
-                <Link
-                  href="/account/messaggi"
-                  onClick={() => setOpen(false)}
-                  className={cn(navLinkClass, 'border-b border-gray-100')}
-                >
-                  {t('account.messages')}
-                </Link>
-                <Link
-                  href="/account/credito"
-                  onClick={() => setOpen(false)}
-                  className={cn(navLinkClass, 'border-b border-gray-100')}
-                >
-                  {t('account.credit')}
-                </Link>
-                <Link
-                  href="/account/oggetti"
-                  onClick={() => setOpen(false)}
-                  className={cn(navLinkClass, 'border-b border-gray-100')}
-                >
-                  {t('account.items')}
-                </Link>
-                <Link
-                  href="/account/sincronizzazione"
-                  onClick={() => setOpen(false)}
-                  className={cn(navLinkClass, 'border-b border-gray-100')}
-                >
-                  {t('account.sync')}
-                </Link>
-              </div>
-            </>
-          )}
-
-          {/* Gioco: menu a tendina, sotto login (o logout) — solo mobile */}
-          <div className="relative border-b border-gray-100 md:hidden" ref={gameMenuRef}>
-            <p className="px-5 pb-1.5 pt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
-              {t('game.label')}
-            </p>
-            <div className="px-5 pb-4">
+            <div className="relative border-b border-gray-100 md:hidden" ref={accountDropdownRef}>
+              {/* Account Dropdown Trigger */}
               <button
                 type="button"
-                onClick={() => setGameDropdownOpen((v) => !v)}
-                className="flex w-full items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2.5 text-left shadow-sm transition-colors hover:border-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D3160]/25"
-                aria-expanded={gameDropdownOpen}
-                aria-haspopup="listbox"
-                aria-label={t('game.selectGameAria')}
+                onClick={() => setAccountDropdownOpen((v) => !v)}
+                className="flex w-full items-center justify-between px-5 py-3.5 text-left text-[13px] font-semibold uppercase tracking-wide text-[#1D3160] transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1D3160]/20"
+                aria-expanded={accountDropdownOpen}
+                aria-haspopup="true"
               >
-                <span className="min-w-0 flex-1 truncate text-[12px] font-semibold uppercase leading-snug tracking-wide text-[#1D3160]">
-                  {selectedGame ? gameDisplayName(selectedGame) : t('game.selectGame')}
-                </span>
+                <div className="flex items-center gap-3">
+                  <UserCircle className="h-5 w-5 shrink-0 text-[#1D3160]" strokeWidth={2} aria-hidden />
+                  <span>{t('account.account')}</span>
+                </div>
                 <ChevronDown
-                  className={cn('h-5 w-5 shrink-0 text-[#1D3160] transition-transform', gameDropdownOpen && 'rotate-180')}
+                  className={cn('h-5 w-5 shrink-0 text-[#1D3160] transition-transform', accountDropdownOpen && 'rotate-180')}
                   aria-hidden
                 />
               </button>
-              {gameDropdownOpen && (
-                <ul
-                  className="mt-1 max-h-56 overflow-auto rounded border border-gray-200 bg-white py-1 shadow-md"
-                  role="listbox"
-                  aria-label={t('game.gamesListAria')}
-                >
-                  {GAME_OPTIONS.map((opt) => {
-                    const logoSrc =
-                      opt.value === 'mtg'
-                        ? getCdnImageUrl('loghi-giochi/magic.png')
-                        : opt.value === 'pokemon'
-                          ? getCdnImageUrl('loghi-giochi/pokèmon.png')
-                          : getCdnImageUrl('loghi-giochi/One_Piece_Card_Game_Logo%201.png');
-                    const active = selectedGame === opt.value;
-                    return (
-                      <li key={opt.value} role="option" aria-selected={active}>
-                        <button
-                          type="button"
-                          className={cn(
-                            'flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-gray-50',
-                            active && 'bg-orange-50/80'
-                          )}
-                          onClick={() => {
-                            setSelectedGame(opt.value);
-                            setGameDropdownOpen(false);
-                            router.push(GAME_HOME_PATH[opt.value]);
-                            setOpen(false);
-                          }}
-                        >
-                          <Image
-                            src={logoSrc}
-                            alt={opt.label}
-                            width={88}
-                            height={28}
-                            className="h-6 w-14 shrink-0 object-contain object-left"
-                            unoptimized
-                          />
-                          <span className="min-w-0 flex-1 text-[11px] font-semibold uppercase leading-tight tracking-wide text-[#1D3160]">
-                            {gameDisplayName(opt.value)}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          </div>
 
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={cn(navLinkClass, 'border-b border-gray-100')}
-            >
-              {item.label}
-            </Link>
-          ))}
+              {/* Account Dropdown Menu */}
+              <div
+                className={cn(
+                  'border-t border-gray-100 bg-gray-50/50 overflow-hidden transition-all duration-300 ease-out',
+                  accountDropdownOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                )}
+              >
+                <div className="py-1">
+                  <Link
+                    href="/account"
+                    onClick={() => setOpen(false)}
+                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
+                  >
+                    <UserCircle className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
+                    {t('account.account')}
+                  </Link>
+                  <Link
+                    href="/account/messaggi"
+                    onClick={() => setOpen(false)}
+                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
+                  >
+                    <MessageSquare className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
+                    {t('account.messages')}
+                  </Link>
+                  <Link
+                    href="/account/credito"
+                    onClick={() => setOpen(false)}
+                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
+                  >
+                    <Wallet className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
+                    {t('account.credit')}
+                  </Link>
+                  <Link
+                    href="/account/oggetti"
+                    onClick={() => setOpen(false)}
+                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
+                  >
+                    <Package className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
+                    {t('account.items')}
+                  </Link>
+                  <Link
+                    href="/ordini/acquisti"
+                    onClick={() => setOpen(false)}
+                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
+                  >
+                    <ShoppingBag className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
+                    {t('purchases.myPurchases')}
+                  </Link>
+                  <Link
+                    href="/account/lista-desideri"
+                    onClick={() => setOpen(false)}
+                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
+                  >
+                    <Heart className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
+                    {t('purchases.wishlist')}
+                  </Link>
+                  <Link
+                    href="/account/sincronizzazione"
+                    onClick={() => setOpen(false)}
+                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
+                  >
+                    <RefreshCw className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
+                    {t('account.sync')}
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {menuItems.map((item) => {
+            const IconComponent = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className={cn(navLinkClass, 'border-b border-gray-100')}
+              >
+                <IconComponent className="h-5 w-5 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
+                {item.label}
+              </Link>
+            );
+          })}
 
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
             <span className="text-[13px] font-semibold uppercase tracking-wide text-gray-400">
@@ -483,6 +541,7 @@ export function HamburgerMenu() {
           </div>
 
           <Link href="/aiuto" onClick={() => setOpen(false)} className={cn(navLinkClass, 'border-b border-gray-100')}>
+            <HelpCircle className="h-5 w-5 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
             {t('common.help')}
           </Link>
 

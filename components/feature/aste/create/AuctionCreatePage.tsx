@@ -5,10 +5,16 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { AuctionCreateWizard } from '@/components/feature/aste/create/AuctionCreateWizard';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
+import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 export function AuctionCreatePage() {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const breadcrumbItems: AppBreadcrumbItem[] = [
+    { href: '/', label: t('auctions.breadcrumbHome'), isCurrent: false },
+    { href: '/aste', label: t('pages.auctions.title'), isCurrent: false },
+    { label: t('auctions.createPageTitle'), isCurrent: true },
+  ];
 
   if (!isAuthenticated) {
     return (
@@ -31,17 +37,12 @@ export function AuctionCreatePage() {
     <div className="min-h-screen bg-[#f5f5f5] pb-4 pt-6">
       <AsteNav />
       <div className="container-content">
-        <nav className="mb-6 flex flex-wrap gap-2 text-sm text-gray-500">
-          <Link href="/" className="hover:text-gray-900">
-            {t('auctions.breadcrumbHome')}
-          </Link>
-          <span aria-hidden>/</span>
-          <Link href="/aste" className="hover:text-gray-900">
-            {t('pages.auctions.title')}
-          </Link>
-          <span aria-hidden>/</span>
-          <span className="text-gray-900">{t('auctions.createPageTitle')}</span>
-        </nav>
+        <AppBreadcrumb
+          items={breadcrumbItems}
+          ariaLabel="Breadcrumb"
+          variant="default"
+          className="mb-6 w-auto text-sm"
+        />
         <div className="mb-8 max-w-3xl">
           <h1 className="text-2xl font-bold uppercase tracking-tight text-[#1D3160] md:text-3xl">{t('auctions.createPageTitle')}</h1>
         </div>

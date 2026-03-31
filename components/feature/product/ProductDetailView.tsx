@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Loader2, Minus, Pencil, Plus } from 'lucide-react';
+import { Loader2, Minus, Pencil, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 import { getCardImageUrl } from '@/lib/assets';
@@ -22,6 +22,7 @@ import { getCdnImageUrl } from '@/lib/config';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { COUNTRIES } from '@/lib/registrati/schema';
 import { ProductPriceChart } from '@/components/feature/product/ProductPriceChart';
+import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 const PRIMARY_BLUE = '#1D3160';
 
@@ -57,12 +58,21 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       : card
         ? card.set_name
         : "SUSSURRI NEL POZZO - MOWGLI - MAN CUB - SINGLES");
-  const breadcrumbs = props.breadcrumbs ?? (card ? buildBreadcrumbsFromCard(card) : [
-    { label: 'MAGIC: THE GATHERING', href: '#' },
-    { label: 'SINGLES', href: '#' },
-    { label: 'ECLISSI DI QUALCOSA', href: '#' },
-    { label: 'STORMO DELLA SCISSIONE', href: '#' },
-  ]);
+  const breadcrumbs =
+    props.breadcrumbs ??
+    (card
+      ? buildBreadcrumbsFromCard(card)
+      : [
+          { label: 'MAGIC: THE GATHERING', href: '#' },
+          { label: 'SINGLES', href: '#' },
+          { label: 'ECLISSI DI QUALCOSA', href: '#' },
+          { label: 'STORMO DELLA SCISSIONE', href: '#' },
+        ]);
+  const breadcrumbItems: AppBreadcrumbItem[] = breadcrumbs.map((item, index) => ({
+    href: item.href,
+    label: item.label,
+    isCurrent: index === breadcrumbs.length - 1,
+  }));
   const imageSrc = props.imageSrc ?? (card?.image != null ? getCardImageUrl(card.image) : null) ?? getCdnImageUrl('kyurem.png');
   const [activeTab, setActiveTab] = useState<'INFO' | 'VENDI' | 'SCAMBIA' | 'ASTA'>('INFO');
   const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'SCAMBIO' | 'ASTA'>('VENDITORI');
@@ -140,6 +150,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [listings, setListings] = useState<ListingItem[]>([]);
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listingsError, setListingsError] = useState<string | null>(null);
+  const [listingsSort, setListingsSort] = useState<'price_asc' | 'price_desc' | 'seller' | 'condition'>('price_asc');
   const [editingItem, setEditingItem] = useState<InventoryItemWithCatalog | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [rowBusyId, setRowBusyId] = useState<number | null>(null);
@@ -166,6 +177,16 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const CONDIZIONE_OPTIONS = ['HT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'] as const;
   const [condizioneMinima, setCondizioneMinima] = useState<string>('HT');
   const [linguaCarta, setLinguaCarta] = useState<string | null>(null);
+
+  /* Lightbox per immagine carta fullscreen */
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchEndX, setTouchEndX] = useState<number | null>(null);
+  const lightboxRef = useRef<HTMLDivElement>(null);
+
+  /* Espansione grafico su mobile */
+  const [showChartMobile, setShowChartMobile] = useState(false);
 
   const CONDITION_OPTIONS_MAP: { value: string; label: string }[] = [
     { value: 'near_mint', label: 'Near Mint' },
@@ -416,8 +437,101 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
   const EBARTEX_LOGO_PLACEHOLDER = '/images/Logo%20Principale%20EBARTEX.png';
 
+  const sortedListings = useMemo(() => {
+    if (!listings.length) return listings;
+    const sorted = [...listings];
+    switch (listingsSort) {
+      case 'price_asc':
+        sorted.sort((a, b) => a.price_cents - b.price_cents);
+        break;
+      case 'price_desc':
+        sorted.sort((a, b) => b.price_cents - a.price_cents);
+        break;
+      case 'seller':
+        sorted.sort((a, b) => a.seller_display_name.localeCompare(b.seller_display_name));
+        break;
+      case 'condition':
+        const condOrder = ['MINT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'];
+        sorted.sort((a, b) => {
+          const idxA = condOrder.indexOf(a.condition ?? '');
+          const idxB = condOrder.indexOf(b.condition ?? '');
+          return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+        });
+        break;
+    }
+    return sorted;
+  }, [listings, listingsSort]);
+
   const formatEuro = (n: number) =>
     new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(n);
+
+  // Mock multiple images for swipe demo (front/back of card)
+  const cardImages = useMemo(() => {
+    const images = [effectiveImageSrc];
+    // If card has back image or alternate views, add them here
+    // For now, single image
+    return images;
+  }, [effectiveImageSrc]);
+
+  const handleLightboxOpen = () => setIsLightboxOpen(true);
+  const handleLightboxClose = () => setIsLightboxOpen(false);
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev: number) => (prev === 0 ? cardImages.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev: number) => (prev === cardImages.length - 1 ? 0 : prev + 1));
+  };
+
+  // Web Share API handler
+  const handleShare = async () => {
+    const shareData = {
+      title: title,
+      text: `Check out ${title} on Ebartex!`,
+      url: typeof window !== 'undefined' ? window.location.href : '',
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // User cancelled or share failed
+      }
+    } else if (navigator.clipboard) {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+        alert('Link copiato negli appunti!');
+      } catch (err) {
+        // Clipboard failed
+      }
+    }
+  };
+
+  // Swipe handlers for lightbox
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.targetTouches[0].clientX);
+    setTouchEndX(null);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX || !touchEndX) return;
+    const distance = touchStartX - touchEndX;
+    const minSwipeDistance = 50;
+
+    if (distance > minSwipeDistance) {
+      handleNextImage();
+    } else if (distance < -minSwipeDistance) {
+      handlePrevImage();
+    }
+    setTouchStartX(null);
+    setTouchEndX(null);
+  };
 
   const tabs = [
     { id: 'INFO' as const, label: 'INFO' },
@@ -430,29 +544,35 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     <div className="min-h-screen font-sans bg-[#F0F0F0] text-gray-900">
       <Header />
 
-      {/* Sezione titolo: sfondo grigio come il resto della pagina; titolo e sottotitolo allineati a sinistra */}
+      {/* Sezione titolo: MOBILE - titolo più grande, edizione sotto, aiuto in fondo; DESKTOP - layout originale */}
       <section className="w-full bg-[#F0F0F0] border-b border-gray-300">
-        <div className="container-content py-2 sm:py-2.5 lg:py-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-            <nav aria-label="Breadcrumb" className="text-xs font-medium text-gray-600 sm:text-sm min-w-0">
-              {breadcrumbs.map((b, i) => (
-                <span key={b.label}>
-                  {b.href ? (
-                    <Link href={b.href} className="hover:text-gray-900 hover:underline">
-                      {b.label}
-                    </Link>
-                  ) : (
-                    <span className="text-gray-900">{b.label}</span>
-                  )}
-                  {i < breadcrumbs.length - 1 && <span className="mx-1">/</span>}
-                </span>
-              ))}
-            </nav>
-            <Link href="#" className="text-xs font-medium text-gray-600 hover:text-gray-900 sm:text-sm shrink-0">
+        <div className="container-content py-3 sm:py-2.5 lg:py-3">
+          {/* MOBILE: Titolo grande, edizione sotto, aiuto in fondo - in colonna */}
+          <div className="flex flex-col gap-2 sm:hidden">
+            <h1 className="text-xl font-extrabold uppercase tracking-tight text-gray-900 break-words leading-tight">
+              {title}
+            </h1>
+            <p className="text-sm font-bold uppercase tracking-tight text-gray-700 break-words">
+              {card?.set_name ?? subtitle.split(' – ').pop()?.split(' - ').pop() ?? 'SUSSURRI NEL POZZO'}
+            </p>
+            <Link href="/aiuto" className="text-xs font-medium text-gray-500 hover:text-[#FF8800] mt-1">
               HAI BISOGNO DI AIUTO?
             </Link>
           </div>
-          <div className="text-left">
+
+          {/* DESKTOP: Layout originale */}
+          <div className="hidden sm:flex flex-wrap items-center justify-between gap-2 mb-1.5">
+            <AppBreadcrumb
+              items={breadcrumbItems}
+              ariaLabel="Breadcrumb"
+              variant="default"
+              className="w-auto text-xs font-medium sm:text-sm min-w-0"
+            />
+            <Link href="/aiuto" className="text-xs font-medium text-gray-600 hover:text-gray-900 sm:text-sm shrink-0">
+              HAI BISOGNO DI AIUTO?
+            </Link>
+          </div>
+          <div className="hidden sm:block text-left">
             <h1 className="text-lg font-bold uppercase tracking-tight text-gray-900 sm:text-xl md:text-2xl lg:text-3xl break-words">
               {title}
             </h1>
@@ -470,8 +590,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             {/* Colonna sinistra: immagine carta più piccola per adattarsi all'altezza del contenuto INFO */}
             <aside className="flex flex-col w-full md:w-[min(280px,26vw)] lg:min-w-[260px] flex-shrink-0 items-center p-3 sm:p-4 lg:p-4 bg-white border-b md:border-b-0 md:border-r border-gray-200">
               <div
-                className="relative w-full overflow-hidden rounded-md shrink-0 border border-gray-800 max-w-[260px] flex flex-col items-center justify-center bg-gray-100"
+                className="relative w-full overflow-hidden rounded-md shrink-0 border border-gray-800 max-w-[260px] flex flex-col items-center justify-center bg-gray-100 cursor-pointer hover:opacity-95 transition-opacity"
                 style={{ aspectRatio: '63/88' }}
+                onClick={handleLightboxOpen}
+                role="button"
+                aria-label="Clicca per ingrandire l'immagine"
               >
               {showImagePlaceholder ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
@@ -504,12 +627,41 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 />
               )}
             </div>
+            {/* MOBILE: Preferiti + Condividi affiancati, più piccoli */}
+            <div className="flex gap-2 w-full max-w-[260px] sm:hidden">
+              <button
+                type="button"
+                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:border-[#FF8800] hover:text-[#FF8800] transition-colors"
+                aria-label="Aggiungi ai preferiti"
+              >
+                <svg width="16" height="14" viewBox="0 0 32 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true">
+                  <path d="M16 26s-14-8-14-15a6.5 6.5 0 0 1 13-2.5 6.5 6.5 0 0 1 13 2.5C28 18 16 26 16 26z" />
+                </svg>
+                <span className="text-[11px] font-bold uppercase tracking-wide">Preferiti</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleShare}
+                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:border-[#FF8800] hover:text-[#FF8800] transition-colors"
+                aria-label="Condividi"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true">
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                <span className="text-[11px] font-bold uppercase tracking-wide">Condividi</span>
+              </button>
+            </div>
+            {/* DESKTOP: Preferiti originale */}
             <button
               type="button"
-              className="mt-2 w-full max-w-[240px] sm:max-w-[260px] flex items-center justify-center gap-2 py-1.5 px-3 rounded-md border border-gray-300 bg-white text-gray-700 hover:border-[#FF8800] hover:text-[#FF8800] transition-colors"
+              className="hidden sm:flex mt-2 w-full max-w-[240px] sm:max-w-[260px] items-center justify-center gap-2 py-1.5 px-3 rounded-md border border-gray-300 bg-white text-gray-700 hover:border-[#FF8800] hover:text-[#FF8800] transition-colors"
               aria-label="Aggiungi ai preferiti"
             >
-              <svg width="20" height="18" viewBox="0 0 32 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden>
+              <svg width="20" height="18" viewBox="0 0 32 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true">
                 <path d="M16 26s-14-8-14-15a6.5 6.5 0 0 1 13-2.5 6.5 6.5 0 0 1 13 2.5C28 18 16 26 16 26z" />
               </svg>
               <span className="text-xs sm:text-sm font-bold uppercase tracking-wide">PREFERITI</span>
@@ -538,86 +690,176 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               ))}
             </div>
 
-            {/* Contenuto tab INFO: box info (sinistra) e grafico/prezzi (destra) – occupano bene lo spazio come screenshot */}
+            {/* Contenuto tab INFO: MOBILE compatta con espansione grafico; DESKTOP layout completo */}
             {activeTab === 'INFO' && (
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-3 sm:gap-4 lg:gap-4 p-3 sm:p-4 lg:p-4 min-w-0 w-full">
-                {/* Box info carta: RARITÀ, NUMERO, STAMPATA IN, DISPONIBILI */}
-                <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
-                  <div className="flex items-stretch border-b border-gray-200 pb-2 sm:pb-3">
-                    <div className="flex flex-col items-center pr-3 sm:pr-4 border-r border-gray-200">
-                      <span className="text-[10px] font-bold uppercase text-black">RARITÀ</span>
-                      <div className="mt-1">
-                        {card?.rarity ? (
-                          <span className="text-sm font-bold text-black">{card.rarity}</span>
-                        ) : (
-                          <Image src={getCdnImageUrl('stellina.png')} alt="" width={28} height={28} className="h-6 w-6 sm:h-7 sm:w-7 object-contain" aria-hidden unoptimized />
-                        )}
+              <>
+                {/* MOBILE: Layout compatta - solo info + tendenza, grafico espandibile */}
+                <div className="sm:hidden flex flex-col gap-2 p-2 min-w-0 w-full">
+                  {/* Box info carta: RARITÀ, NUMERO, STAMPATA IN, DISPONIBILI */}
+                  <div className="flex flex-col bg-white rounded-lg p-2.5 border border-gray-200 shadow-sm">
+                    <div className="flex items-stretch border-b border-gray-200 pb-2">
+                      <div className="flex flex-col items-center pr-2 border-r border-gray-200">
+                        <span className="text-[9px] font-bold uppercase text-black">RARITÀ</span>
+                        <div className="mt-0.5">
+                          {card?.rarity ? (
+                            <span className="text-xs font-bold text-black">{card.rarity}</span>
+                          ) : (
+                            <Image src={getCdnImageUrl('stellina.png')} alt="" width={20} height={20} className="h-5 w-5 object-contain" aria-hidden unoptimized />
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-center pl-2 flex-1">
+                        <span className="text-[9px] font-bold uppercase text-black">NUMERO</span>
+                        <span className="mt-0.5 text-sm font-bold text-black">{card?.collector_number ?? '015'}</span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-center pl-3 sm:pl-4 flex-1">
-                      <span className="text-[10px] font-bold uppercase text-black">NUMERO</span>
-                      <span className="mt-1 text-base sm:text-lg font-bold text-black">{card?.collector_number ?? '015'}</span>
-                    </div>
-                  </div>
-                  <div className="mt-2 sm:mt-3">
-                    <span className="text-[10px] font-bold uppercase text-black">STAMPATA IN</span>
-                    <p className="mt-0.5 text-xs sm:text-sm font-bold uppercase text-black">
-                      {card?.set_name ?? 'SUSSURRI NEL POZZO'}
-                    </p>
-                    {card && (
-                      <div className="mt-1 flex flex-col gap-0.5">
-                        <Link
-                          href={{
-                            pathname: '/set',
-                            query: {
-                              set: card.set_name,
-                              game: card.game_slug,
-                            },
-                          }}
-                          className="inline-block text-xs font-medium text-[#FF8800] hover:underline uppercase"
-                        >
-                          MOSTRA IL SET
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                  {card?.game_slug === 'mtg' && card?.available_languages && card.available_languages.length > 0 && (
-                    <div className="mt-2 sm:mt-3">
-                      <span className="text-[10px] font-bold uppercase text-black">LINGUE DISPONIBILI</span>
-                      <p className="mt-0.5 text-xs sm:text-sm font-bold uppercase text-black">
-                        {card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ')}
+                    <div className="mt-1.5">
+                      <span className="text-[9px] font-bold uppercase text-black">STAMPATA IN</span>
+                      <p className="text-xs font-bold uppercase text-black">
+                        {card?.set_name ?? 'SUSSURRI NEL POZZO'}
                       </p>
                     </div>
+                    {card?.game_slug === 'mtg' && card?.available_languages && card.available_languages.length > 0 && (
+                      <div className="mt-1.5">
+                        <span className="text-[9px] font-bold uppercase text-black">LINGUE</span>
+                        <p className="text-xs font-bold uppercase text-black">
+                          {card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ')}
+                        </p>
+                      </div>
+                    )}
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <div>
+                        <span className="text-[9px] font-bold uppercase text-black">DISPONIBILI</span>
+                        <p className="text-base font-bold text-black">1148</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[9px] font-bold uppercase text-gray-600">TENDENZA</span>
+                        <p className="text-sm font-bold text-[#FF8800]">1,46 €</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Toggle per espandere grafico */}
+                  {!showChartMobile ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowChartMobile(true)}
+                      className="w-full py-2.5 px-3 rounded-lg border border-[#FF8800] bg-white text-[#FF8800] text-xs font-bold uppercase tracking-wide hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                      </svg>
+                      Vedi grafico e prezzi medi
+                    </button>
+                  ) : (
+                    <div className="flex flex-col bg-white rounded-lg p-2.5 border border-gray-200 shadow-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold uppercase text-gray-700">Grafico prezzi</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowChartMobile(false)}
+                          className="text-[10px] text-gray-500 hover:text-gray-700 underline"
+                        >
+                          Nascondi
+                        </button>
+                      </div>
+                      <div className="min-h-[200px]">
+                        <ProductPriceChart slug={slug} />
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <p className="text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
+                        <ul className="mt-1 list-none space-y-0.5 text-xs">
+                          <li className="flex justify-between gap-3"><span className="text-gray-600">30 gg</span><span className="font-bold text-gray-900">1,35 €</span></li>
+                          <li className="flex justify-between gap-3"><span className="text-gray-600">7 gg</span><span className="font-bold text-gray-900">1,48 €</span></li>
+                          <li className="flex justify-between gap-3"><span className="text-gray-600">1 gg</span><span className="font-bold text-gray-900">1,05 €</span></li>
+                        </ul>
+                      </div>
+                    </div>
                   )}
-                  <div className="mt-2 sm:mt-3">
-                    <span className="text-[10px] font-bold uppercase text-black">DISPONIBILI</span>
-                    <p className="mt-0.5 text-lg sm:text-xl font-bold text-black">1148</p>
-                  </div>
-                  <Link href="#" className="mt-2 sm:mt-3 inline-block text-[10px] font-medium text-[#FF8800] hover:underline">
-                    Informazioni sull&apos;RSGP / Produttore
-                  </Link>
                 </div>
-                {/* Box grafico e prezzi: occupa il resto della riga */}
-                <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
-                  <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-3 sm:gap-4">
-                    {/* Grafico prezzo stile Cardmarket: 6 mesi, frecce, arancione brand */}
-                    <div className="flex flex-[1.5] min-w-0 flex-col min-h-[280px]">
-                      <ProductPriceChart slug={slug} />
+
+                {/* DESKTOP: Layout completo originale */}
+                <div className="hidden sm:grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-3 sm:gap-4 lg:gap-4 p-3 sm:p-4 lg:p-4 min-w-0 w-full">
+                  {/* Box info carta: RARITÀ, NUMERO, STAMPATA IN, DISPONIBILI */}
+                  <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
+                    <div className="flex items-stretch border-b border-gray-200 pb-2 sm:pb-3">
+                      <div className="flex flex-col items-center pr-3 sm:pr-4 border-r border-gray-200">
+                        <span className="text-[10px] font-bold uppercase text-black">RARITÀ</span>
+                        <div className="mt-1">
+                          {card?.rarity ? (
+                            <span className="text-sm font-bold text-black">{card.rarity}</span>
+                          ) : (
+                            <Image src={getCdnImageUrl('stellina.png')} alt="" width={28} height={28} className="h-6 w-6 sm:h-7 sm:w-7 object-contain" aria-hidden unoptimized />
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-center pl-3 sm:pl-4 flex-1">
+                        <span className="text-[10px] font-bold uppercase text-black">NUMERO</span>
+                        <span className="mt-1 text-base sm:text-lg font-bold text-black">{card?.collector_number ?? '015'}</span>
+                      </div>
                     </div>
-                    {/* Valore tendenza + Prezzo medio */}
-                    <div className="flex flex-col justify-start sm:justify-center flex-shrink-0 sm:w-[120px] lg:w-[140px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-3">
-                      <p className="text-xs sm:text-sm text-gray-700">Tendenza di prezzo</p>
-                      <p className="mt-0.5 text-base sm:text-lg font-bold text-[#FF8800] underline">1,46 €</p>
-                      <p className="mt-2 text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
-                      <ul className="mt-1 list-none space-y-0.5 text-xs sm:text-sm">
-                        <li className="flex justify-between gap-3"><span className="text-gray-600">30 gg</span><span className="font-bold text-gray-900">1,35 €</span></li>
-                        <li className="flex justify-between gap-3"><span className="text-gray-600">7 gg</span><span className="font-bold text-gray-900">1,48 €</span></li>
-                        <li className="flex justify-between gap-3"><span className="text-gray-600">1 gg</span><span className="font-bold text-gray-900">1,05 €</span></li>
-                      </ul>
+                    <div className="mt-2 sm:mt-3">
+                      <span className="text-[10px] font-bold uppercase text-black">STAMPATA IN</span>
+                      <p className="mt-0.5 text-xs sm:text-sm font-bold uppercase text-black">
+                        {card?.set_name ?? 'SUSSURRI NEL POZZO'}
+                      </p>
+                      {card && (
+                        <div className="mt-1 flex flex-col gap-0.5">
+                          <Link
+                            href={{
+                              pathname: '/set',
+                              query: {
+                                set: card.set_name,
+                                game: card.game_slug,
+                              },
+                            }}
+                            className="inline-block text-xs font-medium text-[#FF8800] hover:underline uppercase"
+                          >
+                            MOSTRA IL SET
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                    {card?.game_slug === 'mtg' && card?.available_languages && card.available_languages.length > 0 && (
+                      <div className="mt-2 sm:mt-3">
+                        <span className="text-[10px] font-bold uppercase text-black">LINGUE DISPONIBILI</span>
+                        <p className="mt-0.5 text-xs sm:text-sm font-bold uppercase text-black">
+                          {card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ')}
+                        </p>
+                      </div>
+                    )}
+                    <div className="mt-2 sm:mt-3">
+                      <span className="text-[10px] font-bold uppercase text-black">DISPONIBILI</span>
+                      <p className="mt-0.5 text-lg sm:text-xl font-bold text-black">1148</p>
+                    </div>
+                    <Link href="#" className="mt-2 sm:mt-3 inline-block text-[10px] font-medium text-[#FF8800] hover:underline">
+                      Informazioni sull&apos;RSGP / Produttore
+                    </Link>
+                  </div>
+                  {/* Box grafico e prezzi: occupa il resto della riga */}
+                  <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
+                    <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-3 sm:gap-4">
+                      {/* Grafico prezzo stile Cardmarket: 6 mesi, frecce, arancione brand */}
+                      <div className="flex flex-[1.5] min-w-0 flex-col min-h-[280px]">
+                        <ProductPriceChart slug={slug} />
+                      </div>
+                      {/* Valore tendenza + Prezzo medio */}
+                      <div className="flex flex-col justify-start sm:justify-center flex-shrink-0 sm:w-[120px] lg:w-[140px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-3">
+                        <p className="text-xs sm:text-sm text-gray-700">Tendenza di prezzo</p>
+                        <p className="mt-0.5 text-base sm:text-lg font-bold text-[#FF8800] underline">1,46 €</p>
+                        <p className="mt-2 text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
+                        <ul className="mt-1 list-none space-y-0.5 text-xs sm:text-sm">
+                          <li className="flex justify-between gap-3"><span className="text-gray-600">30 gg</span><span className="font-bold text-gray-900">1,35 €</span></li>
+                          <li className="flex justify-between gap-3"><span className="text-gray-600">7 gg</span><span className="font-bold text-gray-900">1,48 €</span></li>
+                          <li className="flex justify-between gap-3"><span className="text-gray-600">1 gg</span><span className="font-bold text-gray-900">1,05 €</span></li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
 
             {/* Tab VENDI: form compatto stile CardMarket (sinistra) + grafico (destra) */}
@@ -827,13 +1069,18 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 <button
                   type="button"
                   onClick={() => setFiltersOpen(true)}
-                  className="w-full h-full min-h-[120px] lg:min-h-[200px] flex flex-col items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white p-2 shadow-sm hover:bg-gray-50 transition-colors"
+                  className="w-full lg:h-full lg:min-h-[200px] flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white p-2 shadow-sm hover:bg-gray-50 transition-colors"
                   aria-label="Apri filtri"
                 >
-                  <svg className="h-5 w-5 text-gray-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                  {/* MOBILE: Layout orizzontale compatto */}
+                  <svg className="h-4 w-4 text-gray-600 shrink-0 lg:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
                   <span className="text-xs font-bold uppercase text-gray-600 lg:hidden">Filtri</span>
+                  {/* DESKTOP: Layout verticale originale */}
+                  <svg className="h-5 w-5 text-gray-600 shrink-0 hidden lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
                   <span className="text-[10px] font-bold uppercase text-gray-600 hidden lg:inline" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>Filtri</span>
                 </button>
               ) : (
@@ -971,9 +1218,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
             {/* Tabella Venditori / Scambio / Asta – subito a destra dei filtri */}
             <div className="flex-1 min-w-0 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-              <div className="flex border-b border-gray-200 bg-[#E5E7EB]">
+              <div className="flex border-b border-gray-200 bg-[#E5E7EB] overflow-x-auto scrollbar-hide">
                 {(['VENDITORI', 'SCAMBIO', 'ASTA'] as const).map((tab) => {
-                  const tabLabel = tab === 'VENDITORI' ? 'IN VENDITA' : tab === 'SCAMBIO' ? 'DISPONIBILI ALLO SCAMBIO' : "DISPONIBILI ALL'ASTA";
+                  const tabLabelDesktop = tab === 'VENDITORI' ? 'IN VENDITA' : tab === 'SCAMBIO' ? 'DISPONIBILI ALLO SCAMBIO' : "DISPONIBILI ALL'ASTA";
+                  const tabLabelMobile = tab === 'VENDITORI' ? 'IN VENDITA' : tab === 'SCAMBIO' ? 'SCAMBIO' : 'ASTA';
+                  const tabLabel = typeof window !== 'undefined' && window.innerWidth < 640 ? tabLabelMobile : tabLabelDesktop;
                   const iconClass = 'h-5 w-5 shrink-0';
                   return (
                   <button
@@ -981,7 +1230,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     type="button"
                     onClick={() => setSellerSubTab(tab)}
                     className={cn(
-                      'flex flex-1 min-w-0 min-h-[48px] items-center justify-center gap-2 px-4 py-3 text-sm font-bold uppercase transition-colors',
+                      'flex flex-1 min-w-[120px] sm:min-w-0 min-h-[48px] items-center justify-center gap-2 px-3 sm:px-4 py-3 text-xs sm:text-sm font-bold uppercase transition-colors whitespace-nowrap',
                       sellerSubTab === tab ? 'bg-[#FF8800] text-white' : 'bg-transparent text-gray-600 hover:bg-gray-100'
                     )}
                   >
@@ -1018,7 +1267,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   {listingActionMessage && (
                     <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">{listingActionMessage}</div>
                   )}
-                  <table className="w-full min-w-[640px] table-fixed text-left text-xs sm:text-sm">
+                  {/* Desktop Table */}
+                  <table className="hidden sm:table w-full table-fixed text-left text-sm">
                     <colgroup>
                       <col style={{ width: '33.33%' }} />
                       <col style={{ width: '33.33%' }} />
@@ -1026,43 +1276,43 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     </colgroup>
                     <thead>
                       <tr className="text-xs font-medium uppercase tracking-wide text-gray-500 bg-gray-50 border-b border-gray-200">
-                        <th className="px-3 py-2 sm:px-4 sm:py-2.5 text-center">Venditore</th>
-                        <th className="px-3 py-2 sm:px-4 sm:py-2.5 text-center">Informazioni prodotto</th>
-                        <th className="px-3 py-2 sm:px-4 sm:py-2.5 text-center">Offerta</th>
+                        <th className="px-4 py-2.5 text-center">Venditore</th>
+                        <th className="px-4 py-2.5 text-center">Informazioni prodotto</th>
+                        <th className="px-4 py-2.5 text-center">Offerta</th>
                       </tr>
                     </thead>
                     <tbody>
                       {listingsLoading && (
                         <tr>
-                          <td colSpan={3} className="px-3 py-6 sm:px-4 text-center text-sm text-gray-500">
+                          <td colSpan={3} className="px-4 py-6 text-center text-sm text-gray-500">
                             Caricamento venditori…
                           </td>
                         </tr>
                       )}
                       {!listingsLoading && listingsError && (
                         <tr>
-                          <td colSpan={3} className="px-3 py-6 sm:px-4 text-center text-sm text-amber-600">
+                          <td colSpan={3} className="px-4 py-6 text-center text-sm text-amber-600">
                             {listingsError}
                           </td>
                         </tr>
                       )}
                       {!listingsLoading && !listingsError && listings.length === 0 && (
                         <tr>
-                          <td colSpan={3} className="px-3 py-8 sm:px-4 text-center text-sm text-gray-600">
+                          <td colSpan={3} className="px-4 py-8 text-center text-sm text-gray-600">
                             Presto ci saranno articoli in vendita disponibili.
                           </td>
                         </tr>
                       )}
                       {!listingsLoading && !listingsError && listings.map((item, i) => (
                         <tr key={item.item_id} className={cn('align-middle', i % 2 === 0 ? 'bg-gray-50' : 'bg-white')}>
-                          <td className="px-3 py-3 sm:px-4 sm:py-3.5">
+                          <td className="px-4 py-3.5">
                             <div className="flex items-center gap-2">
                               <span className="min-w-0 truncate text-sm font-medium uppercase text-gray-900">{item.seller_display_name}</span>
                               <span className="text-sm text-gray-600">{item.country ?? '—'}</span>
                               <Image src={getCdnImageUrl('medal.png')} alt="" width={24} height={24} className="h-6 w-6 shrink-0 object-contain" aria-hidden unoptimized />
                             </div>
                           </td>
-                          <td className="px-3 py-3 sm:px-4 sm:py-3.5">
+                          <td className="px-4 py-3.5">
                             <div className="flex items-center gap-2">
                               <span className="inline-flex h-[22px] min-w-[44px] items-center justify-center rounded-full px-2.5 text-xs font-bold text-white" style={{ backgroundColor: '#1D3160' }}>MT</span>
                               <Image src={getCdnImageUrl('star.png')} alt="" width={24} height={24} className="h-6 w-6 shrink-0 object-contain" aria-hidden unoptimized />
@@ -1070,7 +1320,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                               {item.mtg_language && <span className="text-xs text-gray-500">({item.mtg_language})</span>}
                             </div>
                           </td>
-                          <td className="px-3 py-3 sm:px-4 sm:py-3.5">
+                          <td className="px-4 py-3.5">
                             <div className="flex items-center gap-2 justify-end flex-wrap">
                               <span className="text-sm font-semibold text-blue-600 tabular-nums">{formatEuro(item.price_cents / 100)}</span>
                               <span className="text-sm text-gray-600 tabular-nums">{item.quantity}</span>
@@ -1134,6 +1384,137 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       ))}
                     </tbody>
                   </table>
+                  {/* Mobile Cards */}
+                  <div className="sm:hidden">
+                    {/* Mobile Sorting Controls */}
+                    <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-gray-50">
+                      <span className="text-xs font-medium text-gray-500 shrink-0">Ordina:</span>
+                      <select
+                        value={listingsSort}
+                        onChange={(e) => setListingsSort(e.target.value as typeof listingsSort)}
+                        className="flex-1 min-w-0 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700"
+                      >
+                        <option value="price_asc">Prezzo: più basso</option>
+                        <option value="price_desc">Prezzo: più alto</option>
+                        <option value="seller">Venditore: A-Z</option>
+                        <option value="condition">Condizione: migliore</option>
+                      </select>
+                    </div>
+
+                    {listingsLoading && (
+                      <div className="divide-y divide-gray-200">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className={cn('px-4 py-4', i % 2 === 0 ? 'bg-gray-50' : 'bg-white')}>
+                            {/* Skeleton Header */}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                                <div className="h-5 w-5 bg-gray-200 rounded animate-pulse" />
+                              </div>
+                              <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
+                            </div>
+                            {/* Skeleton Info Row */}
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="h-5 w-10 bg-gray-200 rounded-full animate-pulse" />
+                              <div className="h-5 w-5 bg-gray-200 rounded animate-pulse" />
+                              <div className="h-4 w-12 bg-gray-200 rounded animate-pulse" />
+                              <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" />
+                            </div>
+                            {/* Skeleton Action Row */}
+                            <div className="flex items-center justify-between">
+                              <div className="h-4 w-12 bg-gray-200 rounded animate-pulse" />
+                              <div className="h-9 w-9 bg-gray-200 rounded-full animate-pulse" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!listingsLoading && listingsError && (
+                      <div className="px-4 py-6 text-center text-sm text-amber-600">
+                        {listingsError}
+                      </div>
+                    )}
+                    {!listingsLoading && !listingsError && sortedListings.length === 0 && (
+                      <div className="px-4 py-8 text-center text-sm text-gray-600">
+                        Presto ci saranno articoli in vendita disponibili.
+                      </div>
+                    )}
+                    {!listingsLoading && !listingsError && sortedListings.map((item, i) => (
+                      <div key={item.item_id} className={cn('px-4 py-4 border-b border-gray-200', i % 2 === 0 ? 'bg-gray-50' : 'bg-white')}>
+                        {/* Header: Venditore + Badge + Price */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-sm font-medium uppercase text-gray-900 truncate">{item.seller_display_name}</span>
+                            <Image src={getCdnImageUrl('medal.png')} alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" aria-hidden unoptimized />
+                          </div>
+                          <span className="text-sm font-semibold text-blue-600 tabular-nums shrink-0">{formatEuro(item.price_cents / 100)}</span>
+                        </div>
+                        {/* Info Row */}
+                        <div className="flex items-center gap-2 mb-3 flex-wrap">
+                          <span className="inline-flex h-[20px] min-w-[40px] items-center justify-center rounded-full px-2 text-xs font-bold text-white" style={{ backgroundColor: '#1D3160' }}>MT</span>
+                          <Image src={getCdnImageUrl('star.png')} alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" aria-hidden unoptimized />
+                          <span className="text-sm text-gray-700">{item.condition ?? '—'}</span>
+                          {item.mtg_language && <span className="text-xs text-gray-500">({item.mtg_language})</span>}
+                          <span className="text-xs text-gray-400">• {item.country ?? '—'}</span>
+                        </div>
+                        {/* Action Row */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Qty: {item.quantity}</span>
+                          {isOwnListing(item) ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                disabled={rowBusyId === item.item_id}
+                                onClick={() => void handleOwnerQtyDelta(item, -1)}
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-500 text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50"
+                                aria-label="Diminuisci quantità o rimuovi"
+                              >
+                                {rowBusyId === item.item_id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Minus className="h-4 w-4" strokeWidth={2.5} />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={rowBusyId === item.item_id || item.quantity >= 999}
+                                onClick={() => void handleOwnerQtyDelta(item, 1)}
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                                aria-label="Aumenta quantità"
+                              >
+                                <Plus className="h-4 w-4" strokeWidth={2.5} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingItem(listingToInventoryEditItem(item, card ?? null))}
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-400 text-gray-900 shadow-sm transition hover:bg-amber-500"
+                                aria-label="Modifica inserzione"
+                              >
+                                <Pencil className="h-4 w-4" strokeWidth={2.5} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!user || !accessToken) {
+                                  setListingActionMessage('Accedi per aggiungere al carrello.');
+                                  return;
+                                }
+                                setPurchaseListing(item);
+                                setPurchaseQty(1);
+                              }}
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#FF8800]/40 bg-white shadow-sm transition hover:bg-orange-50"
+                              aria-label="Aggiungi al carrello"
+                              style={{ color: ACCENT_ORANGE }}
+                            >
+                              <Image src={getCdnImageUrl('cart-icon.png')} alt="" width={22} height={22} className="h-5 w-5 object-contain" unoptimized />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               {sellerSubTab === 'SCAMBIO' && <div className="p-8 text-center text-sm text-gray-500">Contenuto in preparazione per Scambio.</div>}
@@ -1271,6 +1652,84 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Lightbox Modal per immagine carta fullscreen */}
+      {isLightboxOpen && (
+        <div
+          ref={lightboxRef}
+          className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center"
+          onClick={handleLightboxClose}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Header con chiusura e indicatore */}
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 z-10">
+            <span className="text-white/70 text-sm font-medium">
+              {cardImages.length > 1 ? `${currentImageIndex + 1} / ${cardImages.length}` : ''}
+            </span>
+            <button
+              onClick={handleLightboxClose}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+              aria-label="Chiudi"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          {/* Immagine */}
+          <div
+            className="relative w-full h-full flex items-center justify-center p-4 sm:p-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {!showImagePlaceholder && cardImages[currentImageIndex] && (
+              <Image
+                src={cardImages[currentImageIndex]}
+                alt={card?.name ?? title}
+                fill
+                className="object-contain"
+                sizes="100vw"
+                unoptimized
+                priority
+              />
+            )}
+            {showImagePlaceholder && (
+              <div className="flex flex-col items-center justify-center text-white/70">
+                <img
+                  src={EBARTEX_LOGO_PLACEHOLDER}
+                  alt="Ebartex"
+                  className="w-24 h-24 object-contain opacity-50"
+                />
+                <p className="mt-4 text-sm">Immagine non disponibile</p>
+              </div>
+            )}
+          </div>
+
+          {/* Controlli navigazione (visibili solo se più immagini) */}
+          {cardImages.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); handlePrevImage(); }}
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                aria-label="Immagine precedente"
+              >
+                <ChevronLeft className="h-8 w-8" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleNextImage(); }}
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                aria-label="Immagine successiva"
+              >
+                <ChevronRight className="h-8 w-8" />
+              </button>
+            </>
+          )}
+
+          {/* Istruzione swipe */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-xs">
+            {cardImages.length > 1 ? 'Swipe per cambiare immagine' : 'Tocca per chiudere'}
           </div>
         </div>
       )}

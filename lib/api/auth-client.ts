@@ -13,6 +13,11 @@ import type { PreAuthTokenResponse, TokenResponse } from '@/types';
 import { config } from '../config';
 import { refreshAccessToken } from './refresh-token';
 
+const DEVICE_TRUST_CRITICAL_PATHS = new Set([
+  '/api/auth/login',
+  '/api/auth/verify-mfa',
+]);
+
 /** Risposta tipica per richieste che inviano solo email / messaggio generico (OTP, reset). */
 export interface OtpFlowMessageResponse {
   message?: string;
@@ -52,6 +57,44 @@ class AuthApiClient {
     });
 
     this.setupInterceptors();
+  }
+
+  private shouldTryDirectCredentialedCall(normalizedUrl: string): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      !!config.api.baseURL &&
+      DEVICE_TRUST_CRITICAL_PATHS.has(normalizedUrl)
+    );
+  }
+
+  private async tryDirectCredentialedPost<T = any>(
+    normalizedUrl: string,
+    data?: any
+  ): Promise<T | undefined> {
+    if (!this.shouldTryDirectCredentialedCall(normalizedUrl)) {
+      return undefined;
+    }
+
+    try {
+      const response = await axios.post<T>(
+        `${config.api.baseURL}${normalizedUrl}`,
+        data,
+        {
+          timeout: config.api.timeout,
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          withCredentials: true,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw error;
+      }
+      return undefined;
+    }
   }
 
   private setupInterceptors() {
@@ -246,6 +289,12 @@ class AuthApiClient {
   async post<T = any>(url: string, data?: any): Promise<T> {
     // Normalizza l'URL per evitare slash doppi
     const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
+
+    const directCredentialedResponse =
+      await this.tryDirectCredentialedPost<T>(normalizedUrl, data);
+    if (directCredentialedResponse !== undefined) {
+      return directCredentialedResponse;
+    }
 
     const response = await this.instance.post<T>(normalizedUrl, data);
     return response.data;

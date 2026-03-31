@@ -27,3 +27,6 @@
 1. **Verify:** Silently confirm no backend files are targeted.
 2. **UX Rationale:** Briefly state *why* your UI choices improve the user experience before writing code.
 3. **Execute:** Output the precise, modular React/Tailwind code.
+
+
+Dopo ogni task completato, suggeriscimi sempre 3 possibili miglioramenti inerenti sul lavoro appena svolto oppure i prossimi passi logici per il progetto. 

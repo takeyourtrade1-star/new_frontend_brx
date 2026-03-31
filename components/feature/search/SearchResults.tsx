@@ -36,6 +36,7 @@ import { getMessage } from '@/lib/i18n/getMessage';
 import { DEFAULT_LOCALE } from '@/lib/i18n/locales';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { SearchHit } from '@/app/api/search/route';
+import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import {
   type GameSlug,
   type CategoryKey,
@@ -476,6 +477,26 @@ export function SearchResults({
       ? t(GAME_TO_HEADER_KEY[game])
       : game.toUpperCase()
     : '';
+  const categoryLabel = getCategoryLabel(gameSlug, categoryKey, selectedLang === 'en' ? 'en' : 'it');
+  const breadcrumbItems: AppBreadcrumbItem[] = [
+    {
+      href: '/',
+      label: gameLabel || tHydrationSafe('search.breadcrumbGames'),
+      isCurrent: false,
+    },
+    {
+      label: categoryLabel,
+      isCurrent: !setFilter,
+    },
+    ...(setFilter
+      ? [
+          {
+            label: setFilter,
+            isCurrent: true,
+          },
+        ]
+      : []),
+  ];
 
   const buildSearchUrl = (updates: Record<string, string>) => {
     const p = new URLSearchParams(searchParams.toString());
@@ -550,19 +571,12 @@ export function SearchResults({
     <section className="pb-12" style={{ backgroundColor: '#F5F4F0' }}>
       <div className="container-content py-6">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-gray-500 text-sm mb-2">
-          <Link href="/" className="hover:text-gray-900">
-            {gameLabel || tHydrationSafe('search.breadcrumbGames')}
-          </Link>
-          <span>/</span>
-          <span>{getCategoryLabel(gameSlug, categoryKey, selectedLang === 'en' ? 'en' : 'it')}</span>
-          {setFilter && (
-            <>
-              <span>/</span>
-              <span className="text-gray-900">{setFilter}</span>
-            </>
-          )}
-        </nav>
+        <AppBreadcrumb
+          items={breadcrumbItems}
+          ariaLabel="Breadcrumb"
+          variant="default"
+          className="mb-2 w-auto text-sm"
+        />
 
         {/* <h1 className="text-3xl md:text-4xl font-bold text-gray-900 uppercase tracking-wide mb-1">
           {tHydrationSafe('search.singles')}

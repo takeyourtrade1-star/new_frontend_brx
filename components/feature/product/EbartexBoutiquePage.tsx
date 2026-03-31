@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight, Printer, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCdnImageUrl } from '@/lib/config';
 import { Header } from '@/components/layout/Header';
+import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 const BRAND_ORANGE = '#FF8800';
 const BRAND_BLUE = '#1D3160';
@@ -33,6 +34,10 @@ const BOUTIQUE_CATEGORIES = [
 
 export function EbartexBoutiquePage() {
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const breadcrumbItems: AppBreadcrumbItem[] = [
+    { href: '/products', label: 'Prodotti', isCurrent: false },
+    { label: 'Ebartex Boutique', isCurrent: true },
+  ];
 
   const goNext = useCallback(() => {
     setCarouselIndex((prev) => (prev + 1) % CAROUSEL_SLIDES.length);
@@ -53,13 +58,12 @@ export function EbartexBoutiquePage() {
 
       <div className="container-content py-4">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-          <Link href="/products" className="hover:text-gray-900">
-            Prodotti
-          </Link>
-          <span>/</span>
-          <span className="font-semibold text-gray-900">Ebartex Boutique</span>
-        </nav>
+        <AppBreadcrumb
+          items={breadcrumbItems}
+          ariaLabel="Breadcrumb"
+          variant="default"
+          className="mb-4 w-auto text-sm text-gray-600"
+        />
 
         {/* Carousel hero */}
         <section className="relative w-full overflow-hidden rounded-xl mb-10 shadow-lg">

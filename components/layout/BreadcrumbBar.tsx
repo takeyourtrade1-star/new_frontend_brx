@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
+import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 /** Path segment → i18n key (extend when adding new top-level routes). */
 const SEGMENT_TO_KEY: Record<string, MessageKey> = {
@@ -51,29 +51,24 @@ export function BreadcrumbBar() {
   const { t } = useTranslation();
   const segments = pathname.split('/').filter(Boolean);
 
-  const items: { href: string; label: string; isLast: boolean }[] = [
-    { href: '/', label: t('breadcrumb.home'), isLast: segments.length === 0 },
+  const items: AppBreadcrumbItem[] = [
+    { href: '/', label: t('breadcrumb.home'), isCurrent: segments.length === 0 },
   ];
 
   let href = '';
   segments.forEach((seg, i) => {
     href += `/${seg}`;
-    const isLast = i === segments.length - 1;
     const key = SEGMENT_TO_KEY[seg];
     const label = key ? t(key) : formatSegmentFallback(seg);
-    items.push({ href, label, isLast });
+    items.push({ href, label, isCurrent: i === segments.length - 1 });
   });
 
   return (
-    <nav
-      className="flex w-full items-center gap-1.5 border-t border-white/15 px-2 py-2 text-sm text-white/95 sm:px-3"
-      style={{ backgroundColor: '#1D3160' }}
-      aria-label={t('accountPage.breadcrumbNav')}
-    >
-      <span
-        className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-white/20"
-        aria-hidden
-      >
+    <AppBreadcrumb
+      items={items}
+      ariaLabel={t('accountPage.breadcrumbNav')}
+      variant="topbarBlue"
+      prefix={(
         <svg
           width="12"
           height="12"
@@ -88,32 +83,8 @@ export function BreadcrumbBar() {
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
           <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
-      </span>
-
-      <ol className="flex min-w-0 flex-wrap items-center gap-1.5">
-        {items.map((item, i) => (
-          <li key={`${item.href}-${i}`} className="flex items-center gap-1.5">
-            {i > 0 && (
-              <span className="text-white/50 select-none" aria-hidden>
-                /
-              </span>
-            )}
-            {item.isLast ? (
-              <span className="truncate font-medium text-white" aria-current="page">
-                {item.label}
-              </span>
-            ) : (
-              <Link
-                href={item.href}
-                className="truncate text-white/90 transition-colors hover:text-white hover:underline"
-              >
-                {item.label}
-              </Link>
-            )}
-          </li>
-        ))}
-      </ol>
-    </nav>
+      )}
+    />
   );
 }
 

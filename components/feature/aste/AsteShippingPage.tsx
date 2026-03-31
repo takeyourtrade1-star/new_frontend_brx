@@ -11,12 +11,18 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { MOCK_SHIPPING_ORDERS } from '@/components/feature/aste/mock-auction-shipping';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
+import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 export function AsteShippingPage() {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const searchParams = useSearchParams();
   const highlightOrderId = searchParams.get('order');
+  const breadcrumbItems: AppBreadcrumbItem[] = [
+    { href: '/', label: t('auctions.breadcrumbHome'), isCurrent: false },
+    { href: '/aste', label: t('pages.auctions.title'), isCurrent: false },
+    { label: t('auctions.shippingPageTitle'), isCurrent: true },
+  ];
 
   useEffect(() => {
     if (!highlightOrderId || typeof document === 'undefined') return;
@@ -49,17 +55,12 @@ export function AsteShippingPage() {
     <div className="min-h-screen bg-white pb-16 pt-6">
       <AsteNav />
       <div className="container-content">
-        <nav className="mb-4 flex flex-wrap gap-2 text-sm text-gray-500">
-          <Link href="/" className="hover:text-gray-900">
-            {t('auctions.breadcrumbHome')}
-          </Link>
-          <span>/</span>
-          <Link href="/aste" className="hover:text-gray-900">
-            {t('pages.auctions.title')}
-          </Link>
-          <span>/</span>
-          <span className="text-gray-900">{t('auctions.shippingPageTitle')}</span>
-        </nav>
+        <AppBreadcrumb
+          items={breadcrumbItems}
+          ariaLabel="Breadcrumb"
+          variant="default"
+          className="mb-4 w-auto text-sm"
+        />
 
         <header className="mb-8 border-b border-gray-200 pb-6">
           <h1 className="text-2xl font-bold uppercase tracking-tight text-gray-900 md:text-3xl">

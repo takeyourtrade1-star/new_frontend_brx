@@ -14,6 +14,7 @@ import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { roundMoney, minNextBidEur } from '@/lib/auction/bid-math';
 import { AuctionBidModal } from '@/components/feature/aste/AuctionBidModal';
 import { AuctionShareButton } from '@/components/feature/aste/AuctionShareButton';
+import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import {
   getAuctionDetailMock,
   SIMILAR_MOCK_IDS,
@@ -199,23 +200,24 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     []
   );
 
+  const breadcrumbItems: AppBreadcrumbItem[] = [
+    { href: '/', label: t('auctions.breadcrumbHome'), isCurrent: false },
+    { href: '/aste', label: t('auctions.detailBreadcrumb'), isCurrent: false },
+    { label: detail.title.toUpperCase(), isCurrent: true },
+  ];
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
       {/* Hero — Priorità al nome prodotto */}
       <section className="w-full border-b border-gray-200 bg-white">
         <div className="container-content py-3 sm:py-4 lg:py-5">
           {/* Breadcrumb */}
-          <nav className="mb-3 min-w-0 text-xs font-medium text-gray-500 sm:text-sm" aria-label="Breadcrumb">
-            <Link href="/" className="hover:text-gray-900 hover:underline">
-              {t('auctions.breadcrumbHome')}
-            </Link>
-            <span className="mx-1 text-gray-400">/</span>
-            <Link href="/aste" className="hover:text-gray-900 hover:underline">
-              {t('auctions.detailBreadcrumb')}
-            </Link>
-            <span className="mx-1 text-gray-400">/</span>
-            <span className="text-gray-900">{detail.title.toUpperCase()}</span>
-          </nav>
+          <AppBreadcrumb
+            items={breadcrumbItems}
+            ariaLabel="Breadcrumb"
+            variant="default"
+            className="mb-3 min-w-0 text-xs font-medium sm:text-sm"
+          />
 
           {/* Titolo prodotto + azioni a destra */}
           <div ref={heroTitleRef} className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">

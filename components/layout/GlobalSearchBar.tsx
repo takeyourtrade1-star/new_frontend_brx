@@ -1046,7 +1046,7 @@ function ProductCategoryButton({
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className="flex items-center gap-0.5 md:gap-1 rounded-[50px] border-0 bg-gray-100 hover:bg-gray-200 px-2 py-1.5 md:px-3 md:py-1.5 text-[11px] md:text-sm text-[#1D3160] font-semibold font-sans transition-colors whitespace-nowrap"
+        className="flex items-center justify-center gap-1 md:gap-1.5 h-full rounded-full border border-white/20 bg-white/10 backdrop-blur-sm pl-2.5 pr-2.5 md:pl-3 md:pr-4 text-xs md:text-sm text-white font-medium font-sans transition-all duration-200 ease-out hover:bg-white/15 hover:border-white/30 active:scale-[0.98] whitespace-nowrap min-w-[5.5rem] md:min-w-0"
       >
         <span className="hidden md:inline">{currentLabel}</span>
         <span className="md:hidden">{mobileLabel}</span>
@@ -1171,7 +1171,7 @@ function SearchWithInstantSearch({
       onClick={() => inputRef.current?.focus()}
     >
       {/* Menu a tendina Categorie Prodotto visibile sempre */}
-      <div className="flex items-center justify-center pl-1.5 pr-2">
+      <div className="flex items-center justify-center pl-0 pr-2">
         <ProductCategoryButton 
           selectedCategory={productCategory} 
           onSelect={setProductCategory}
