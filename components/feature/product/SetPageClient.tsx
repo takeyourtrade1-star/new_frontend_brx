@@ -118,27 +118,6 @@ export function SetPageClient({ game, setName }: SetPageClientProps) {
         const firstParams = new URLSearchParams(baseParams);
         firstParams.set('page', '1');
 
-        // #region agent log
-        fetch('http://127.0.0.1:7914/ingest/b3dc7a30-bfb3-4ec5-9f3c-5d0fe42ea826', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9195b6' },
-          body: JSON.stringify({
-            sessionId: '9195b6',
-            runId: 'setPageSearch_pre',
-            hypothesisId: 'H1_debouncedSearchTriggersFetch',
-            location: 'components/feature/product/SetPageClient.tsx:fetch_start',
-            message: 'set page search request started',
-            data: {
-              qSource: debouncedSearch ? 'userQuery' : 'setName',
-              qLen: q.length,
-              game: apiGame,
-              setNameLen: safeSetName.length,
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
-
         const firstRes = await fetch(`/api/search?${firstParams.toString()}`);
         if (!firstRes.ok) {
           const j = await firstRes.json().catch(() => ({}));
@@ -169,27 +148,6 @@ export function SetPageClient({ game, setName }: SetPageClientProps) {
         }
 
         if (cancelled) return;
-
-        // #region agent log
-        fetch('http://127.0.0.1:7914/ingest/b3dc7a30-bfb3-4ec5-9f3c-5d0fe42ea826', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9195b6' },
-          body: JSON.stringify({
-            sessionId: '9195b6',
-            runId: 'setPageSearch_post',
-            hypothesisId: 'H2_apiReturnsHits',
-            location: 'components/feature/product/SetPageClient.tsx:fetch_end',
-            message: 'set page search request finished',
-            data: {
-              pagesToLoad,
-              firstTotalPages: totalPages,
-              hitCount: all.length,
-              qSource: debouncedSearch ? 'userQuery' : 'setName',
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
 
         setHits(all);
       } catch (e) {
