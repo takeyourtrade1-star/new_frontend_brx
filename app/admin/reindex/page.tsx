@@ -2,12 +2,12 @@
 
 /**
  * Pagina admin per avviare il reindex Meilisearch.
- * Chiama il Search Engine direttamente dal browser (come la barra di ricerca con Meilisearch).
+ * Protetta: richiede autenticazione (middleware.ts redirige a /login se non loggato).
  * Richiede l'header X-Admin-API-Key (chiave inserita nel campo).
- * Sul Search Engine (AWS) deve essere impostato CORS_ORIGINS con l'origine del frontend (es. http://localhost:3000).
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/lib/hooks/use-auth';
 import { SEARCH_ADMIN_API_URL } from '@/lib/config';
 
 function getReindexUrl(): string {
@@ -51,9 +51,29 @@ async function handleReindex(adminKey: string): Promise<{ ok: boolean; message: 
 }
 
 export default function AdminReindexPage() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [adminKey, setAdminKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  if (authLoading) {
+    return (
+      <main className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-gray-200 border-t-orange-500" />
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <main className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+        <div className="text-center space-y-3">
+          <p className="text-gray-600 text-sm">Accesso richiesto per questa sezione.</p>
+          <a href="/login?accesso=1&redirect=/admin/reindex" className="text-orange-500 hover:underline text-sm font-medium">Vai al login</a>
+        </div>
+      </main>
+    );
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +98,6 @@ export default function AdminReindexPage() {
         <h1 className="text-xl font-semibold text-gray-800 mb-2">Reindicizzazione catalogo</h1>
         <p className="text-sm text-gray-600 mb-4">
           Avvia il reindex totale su Meilisearch. Richiede la chiave admin (header X-Admin-API-Key).
-          Nessun login: inserisci la chiave e clicca &quot;Indica&quot;.
         </p>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
@@ -114,9 +133,9 @@ export default function AdminReindexPage() {
           </div>
         )}
         <p className="mt-4 text-gray-500 text-xs">
-          La richiesta va direttamente al Search Engine (come la barra di ricerca). Nel .env serve{' '}
-          <code className="bg-gray-100 px-1 rounded">NEXT_PUBLIC_SEARCH_API_URL</code> (es. http://35.152.141.53:8001). Sul server Search (AWS) imposta{' '}
-          <code className="bg-gray-100 px-1 rounded">CORS_ORIGINS</code>=http://localhost:3000 (o l’URL del frontend).
+          Nel .env serve{' '}
+          <code className="bg-gray-100 px-1 rounded">NEXT_PUBLIC_SEARCH_API_URL</code>. Sul server Search imposta{' '}
+          <code className="bg-gray-100 px-1 rounded">CORS_ORIGINS</code> con l&apos;URL del frontend.
         </p>
       </div>
     </main>
