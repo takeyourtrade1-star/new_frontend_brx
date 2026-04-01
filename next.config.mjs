@@ -5,8 +5,9 @@ const nextConfig = {
   typescript: { ignoreBuildErrors: false },
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: '**', pathname: '/**' },
-      { protocol: 'http', hostname: '**', pathname: '/**' },
+      { protocol: 'https', hostname: '*.cloudfront.net', pathname: '/**' },
+      { protocol: 'https', hostname: '*.ebartex.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'ebartex.com', pathname: '/**' },
     ],
   },
   // Usa le stesse variabili del frontend Vite: mappa VITE_* su NEXT_PUBLIC_* per il client
@@ -23,6 +24,37 @@ const nextConfig = {
     NEXT_PUBLIC_SEARCH_API_URL: process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL,
     NEXT_PUBLIC_SYNC_API_URL:
       process.env.NEXT_PUBLIC_SYNC_API_URL || process.env.VITE_SYNC_API_URL,
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()' },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https://*.cloudfront.net https://*.ebartex.com",
+              "font-src 'self' data:",
+              "connect-src 'self' https://*.ebartex.com https://*.cloudfront.net https://*.meilisearch.com wss://*.ebartex.com",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join('; '),
+          },
+        ],
+      },
+    ];
   },
   // Rewrites: proxy verso servizi esterni (stesso origin per il browser, niente CORS)
   async rewrites() {
