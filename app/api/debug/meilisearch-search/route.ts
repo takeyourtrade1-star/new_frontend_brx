@@ -18,6 +18,10 @@ const MEILI_KEY =
 const INDEX = process.env.NEXT_PUBLIC_MEILISEARCH_INDEX || 'cards';
 
 export async function GET(request: NextRequest) {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   const q = request.nextUrl.searchParams.get('q') ?? '';
   const limit = Math.min(20, Math.max(1, parseInt(request.nextUrl.searchParams.get('limit') ?? '5', 10) || 5));
 
