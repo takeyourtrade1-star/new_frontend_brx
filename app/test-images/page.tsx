@@ -25,6 +25,7 @@ function buildImageUrl(base: string, filename: string): string {
 }
 
 export default function TestImagesPage() {
+  const isDev = process.env.NODE_ENV === 'development';
   const [baseUrl, setBaseUrl] = useState(DEFAULT_BASE_URL);
   const [filename, setFilename] = useState('black-lotus.webp');
   const [testUrl, setTestUrl] = useState<string | null>(null);
@@ -32,6 +33,14 @@ export default function TestImagesPage() {
   const [httpStatus, setHttpStatus] = useState<number | null>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  if (!isDev) {
+    return (
+      <main className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <p className="text-gray-500 text-sm">Pagina non disponibile.</p>
+      </main>
+    );
+  }
 
   const checkImage = useCallback((url: string) => {
     const img = new Image();

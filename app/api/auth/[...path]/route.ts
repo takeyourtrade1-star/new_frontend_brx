@@ -17,11 +17,41 @@ const AUTH_API_URL = (
   ''
 ).replace(/\/+$/, '');
 
+const ALLOWED_AUTH_PATHS = [
+  'login',
+  'register',
+  'refresh',
+  'me',
+  'logout',
+  'mfa/enable',
+  'mfa/verify',
+  'mfa/disable',
+  'mfa/status',
+  'password/reset',
+  'password/reset/confirm',
+  'verify-email',
+  'resend-verification',
+];
+
+function isAllowedPath(segments: string[]): boolean {
+  const joined = segments.join('/');
+  return ALLOWED_AUTH_PATHS.some(
+    (allowed) => joined === allowed || joined.startsWith(`${allowed}/`) || joined.startsWith(`${allowed}?`)
+  );
+}
+
 async function proxy(request: NextRequest, pathSegments: string[]) {
   if (!AUTH_API_URL) {
     return NextResponse.json(
       { detail: 'NEXT_PUBLIC_AUTH_API_URL is not configured' },
       { status: 503 }
+    );
+  }
+
+  if (!isAllowedPath(pathSegments)) {
+    return NextResponse.json(
+      { detail: 'Not found' },
+      { status: 404 }
     );
   }
 
