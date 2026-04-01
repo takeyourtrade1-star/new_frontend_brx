@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
-import { ChevronLeft, ChevronDown, Bug, Mail, MessageSquare, HelpCircle, Package, CreditCard, ShieldCheck, Truck } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Bug, Mail, MessageSquare, HelpCircle, Package, CreditCard, ShieldCheck, Truck, Camera, ImageIcon, X, FileText, Terminal } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import html2canvas from 'html2canvas';
 
 interface FAQItemProps {
   question: string;
@@ -41,6 +43,33 @@ function FAQItem({ question, answer, isOpen, onToggle }: FAQItemProps) {
   );
 }
 
+interface ConsoleLog {
+  type: 'log' | 'error' | 'warn';
+  message: string;
+  timestamp: number;
+}
+
+// Storage keys (must match BugReportButton.tsx)
+const BUG_REPORT_STORAGE = {
+  SCREENSHOT: 'brx_bug_screenshot',
+  CONSOLE_LOGS: 'brx_bug_console_logs',
+  CATEGORY: 'brx_bug_category',
+  TIMESTAMP: 'brx_bug_timestamp',
+};
+
+// Category mapping
+const CATEGORY_MAP: Record<string, string> = {
+  account: 'account',
+  search: 'functional',
+  payment: 'payment',
+  auction: 'functional',
+  orders: 'functional',
+  selling: 'functional',
+  messaging: 'functional',
+  games: 'functional',
+  functional: 'functional',
+};
+
 interface FormData {
   name: string;
   email: string;
@@ -48,19 +77,68 @@ interface FormData {
   message: string;
   bugType?: string;
   priority?: string;
+  url?: string;
 }
 
-export function AiutoContent() {
+// Componente interno che usa useSearchParams
+function AiutoContentInner() {
   const { t } = useTranslation();
+  const searchParams = useSearchParams();
   const [openFAQ, setOpenFAQ] = useState<number | null>(0);
   const [activeTab, setActiveTab] = useState<'faq' | 'bug' | 'contact'>('faq');
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [consoleLogs, setConsoleLogs] = useState<ConsoleLog[]>([]);
+  const [showLogs, setShowLogs] = useState(false);
+  
+  const urlFromParams = searchParams.get('url') || '';
+  const categoryFromParams = searchParams.get('category') || '';
+  
+  // Load stored data from localStorage on mount
+  useEffect(() => {
+    const isBugTab = searchParams.get('tab') === 'bug';
+    if (!isBugTab) return;
+    
+    try {
+      // Check timestamp - only load if recent (within 2 minutes)
+      const timestamp = localStorage.getItem(BUG_REPORT_STORAGE.TIMESTAMP);
+      if (timestamp) {
+        const age = Date.now() - parseInt(timestamp, 10);
+        if (age > 2 * 60 * 1000) { // 2 minutes
+          // Clear old data
+          localStorage.removeItem(BUG_REPORT_STORAGE.SCREENSHOT);
+          localStorage.removeItem(BUG_REPORT_STORAGE.CONSOLE_LOGS);
+          localStorage.removeItem(BUG_REPORT_STORAGE.CATEGORY);
+          localStorage.removeItem(BUG_REPORT_STORAGE.TIMESTAMP);
+          return;
+        }
+      }
+      
+      // Load screenshot
+      const storedScreenshot = localStorage.getItem(BUG_REPORT_STORAGE.SCREENSHOT);
+      if (storedScreenshot) {
+        setScreenshot(storedScreenshot);
+      }
+      
+      // Load console logs
+      const storedLogs = localStorage.getItem(BUG_REPORT_STORAGE.CONSOLE_LOGS);
+      if (storedLogs) {
+        const logs = JSON.parse(storedLogs) as ConsoleLog[];
+        setConsoleLogs(logs);
+      }
+    } catch (e) {
+      console.error('Failed to load bug report data:', e);
+    }
+  }, [searchParams]);
+  
   const [bugForm, setBugForm] = useState<FormData>({
     name: '',
     email: '',
     subject: '',
     message: '',
-    bugType: 'functional',
+    bugType: categoryFromParams ? (CATEGORY_MAP[categoryFromParams] || 'functional') : 'functional',
     priority: 'medium',
+    url: urlFromParams,
   });
   const [contactForm, setContactForm] = useState<FormData>({
     name: '',
@@ -72,6 +150,50 @@ export function AiutoContent() {
     type: 'success' | 'error' | null;
     message: string;
   }>({ type: null, message: '' });
+
+  // Apri automaticamente la tab bug se il query param è presente
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'bug') {
+      setActiveTab('bug');
+    }
+  }, [searchParams]);
+
+  // Clear localStorage after successful submit
+  const clearStoredBugData = () => {
+    localStorage.removeItem(BUG_REPORT_STORAGE.SCREENSHOT);
+    localStorage.removeItem(BUG_REPORT_STORAGE.CONSOLE_LOGS);
+    localStorage.removeItem(BUG_REPORT_STORAGE.CATEGORY);
+    localStorage.removeItem(BUG_REPORT_STORAGE.TIMESTAMP);
+  };
+
+  const captureScreenshot = async () => {
+    if (isCapturing) return;
+    setIsCapturing(true);
+    
+    try {
+      const canvas = await html2canvas(document.body, {
+        useCORS: true,
+        allowTaint: true,
+        scrollY: -window.scrollY,
+        windowHeight: document.documentElement.scrollHeight,
+        height: document.documentElement.scrollHeight,
+        backgroundColor: null,
+        scale: window.devicePixelRatio > 1 ? 1 : 1,
+      });
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      setScreenshot(dataUrl);
+    } catch (err) {
+      console.error('Screenshot failed:', err);
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const removeScreenshot = () => {
+    setScreenshot(null);
+  };
 
   const faqs = [
     {
@@ -108,10 +230,25 @@ export function AiutoContent() {
 
   const handleBugSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Include console logs in submission
+    const submissionData = {
+      ...bugForm,
+      screenshot,
+      consoleLogs: consoleLogs.length > 0 ? consoleLogs : undefined,
+    };
+    
+    console.log('Bug report submitted:', submissionData);
+    
     setSubmitStatus({
       type: 'success',
       message: 'Grazie! La segnalazione è stata inviata. Il nostro team la esaminerà al più presto.',
     });
+    
+    clearStoredBugData();
+    setScreenshot(null);
+    setConsoleLogs([]);
+    
     setBugForm({
       name: '',
       email: '',
@@ -363,6 +500,89 @@ export function AiutoContent() {
                   />
                 </div>
 
+                {/* URL della pagina */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-white">URL della pagina</label>
+                  <Input
+                    type="url"
+                    value={bugForm.url}
+                    onChange={(e) => setBugForm({ ...bugForm, url: e.target.value })}
+                    placeholder="https://..."
+                    className="border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:border-primary focus:ring-primary"
+                  />
+                  <p className="text-xs text-white/50">
+                    L'URL ci aiuta a identificare esattamente dove si è verificato il problema.
+                  </p>
+                </div>
+
+                {/* Screenshot */}
+                {screenshot ? (
+                  <div className="rounded-xl border border-white/20 bg-white/10 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium text-white">Screenshot allegato</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeScreenshot}
+                        className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <img src={screenshot} alt="Screenshot" className="max-h-48 rounded-lg object-contain" />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={captureScreenshot}
+                    disabled={isCapturing}
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/20 disabled:opacity-50"
+                  >
+                    <Camera className="h-4 w-4" />
+                    {isCapturing ? 'Catturando...' : 'Allega screenshot della pagina'}
+                  </button>
+                )}
+
+                {/* Console Logs from localStorage */}
+                {consoleLogs.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-white flex items-center gap-2">
+                        <Terminal className="h-4 w-4" />
+                        Log Console ({consoleLogs.length} voci - ultimi 30s)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowLogs(!showLogs)}
+                        className="text-xs text-white/60 hover:text-white"
+                      >
+                        {showLogs ? 'Nascondi' : 'Mostra'}
+                      </button>
+                    </div>
+                    {showLogs && (
+                      <div className="max-h-40 overflow-y-auto rounded-lg border border-white/20 bg-black/30 p-3 font-mono text-xs">
+                        {consoleLogs.map((log, i) => (
+                          <div
+                            key={i}
+                            className={`mb-1 last:mb-0 ${
+                              log.type === 'error' ? 'text-red-400' : 
+                              log.type === 'warn' ? 'text-yellow-400' : 'text-green-400'
+                            }`}
+                          >
+                            <span className="text-white/40">[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
+                            {log.message}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-white/50">
+                      I log aiutano gli sviluppatori a identificare errori JavaScript.
+                    </p>
+                  </div>
+                )}
+
                 <Button
                   type="submit"
                   className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
@@ -511,5 +731,23 @@ export function AiutoContent() {
         )}
       </main>
     </div>
+  );
+}
+
+// Wrapper con Suspense per useSearchParams
+export function AiutoContent() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen font-sans text-white" style={{ backgroundColor: '#3D65C6' }}>
+        <Header />
+        <main className="mx-auto max-w-4xl px-4 py-10 md:py-14">
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          </div>
+        </main>
+      </div>
+    }>
+      <AiutoContentInner />
+    </Suspense>
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { Footer } from '@/components/layout/Footer';
+import { BugReportButton } from '@/components/dev/BugReportButton';
 
 export const metadata: Metadata = {
   title: 'Ebartex | Enterprise E-Commerce',
@@ -42,6 +43,7 @@ export default function RootLayout({
             {children}
             <Footer />
           </div>
+          <BugReportButton />
         </Providers>
       </body>
     </html>
