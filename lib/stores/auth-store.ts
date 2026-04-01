@@ -657,6 +657,8 @@ export const useAuthStore = create<AuthState>()(
 
       // Mock login for UI development without backend
       mockLogin: () => {
+        if (process.env.NODE_ENV !== 'development') return;
+
         const mockUser: User = {
           id: 'mock-user-001',
           email: 'dev@ebartex.com',

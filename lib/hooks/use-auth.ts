@@ -101,16 +101,9 @@ export function useVerifyMFASetup() {
     mutationFn: async (data: MFAVerifySetupData): Promise<void> => {
       // L'API FastAPI espone mfa_code come query param, non come JSON body (vedi verify_mfa_setup_endpoint).
       const qs = new URLSearchParams({ mfa_code: data.mfa_code });
-      console.log('[useVerifyMFASetup] Payload inviato:', data);
-      console.log('[useVerifyMFASetup] Endpoint:', '/api/auth/mfa/verify');
-
       try {
         await authApi.post(`/api/auth/mfa/verify?${qs.toString()}`, {});
       } catch (err: any) {
-        // DEBUG: Log errore completo
-        console.error('[useVerifyMFASetup] Errore completo:', err);
-        console.error('[useVerifyMFASetup] Response data:', err?.response?.data);
-        console.error('[useVerifyMFASetup] Status:', err?.response?.status);
         throw err;
       }
     },
