@@ -13,7 +13,9 @@ export default function Error({
   const { t } = useTranslation();
 
   useEffect(() => {
-    console.error(error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error(error);
+    }
   }, [error]);
 
   return (
@@ -22,7 +24,7 @@ export default function Error({
         {t('pages.error.title')}
       </h2>
       <p className="max-w-md text-center text-muted-foreground">
-        {error.message || t('pages.error.generic')}
+        {process.env.NODE_ENV === 'development' ? (error.message || t('pages.error.generic')) : t('pages.error.generic')}
       </p>
       <button
         type="button"

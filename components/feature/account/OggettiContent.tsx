@@ -1464,7 +1464,7 @@ export function OggettiContent() {
       setError(null);
     } catch (e) {
       // Use mock data on API error
-      console.log('API failed, using mock data:', e);
+      // Fallback to mock data on API error
       setInventoryItems(MOCK_INVENTORY_ITEMS);
       setTotal(MOCK_INVENTORY_ITEMS.length);
       setError(null);

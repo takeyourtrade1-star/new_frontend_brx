@@ -108,7 +108,6 @@ export function AiutoContent() {
 
   const handleBugSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Bug report:', bugForm);
     setSubmitStatus({
       type: 'success',
       message: 'Grazie! La segnalazione è stata inviata. Il nostro team la esaminerà al più presto.',
@@ -126,7 +125,6 @@ export function AiutoContent() {
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Contact form:', contactForm);
     setSubmitStatus({
       type: 'success',
       message: 'Messaggio inviato con successo! Ti risponderemo entro 24-48 ore lavorative.',
