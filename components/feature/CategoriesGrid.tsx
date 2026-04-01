@@ -32,7 +32,7 @@ function CategoryTitle({
 }) {
   return (
     <span
-      className={`relative z-10 text-center font-sans text-3xl font-bold uppercase leading-none tracking-[0.04em] text-white transition-all duration-200 ease-out md:text-5xl ${className}`}
+      className={`relative z-10 text-center font-display text-lg font-bold uppercase leading-none tracking-[0.04em] text-white transition-all duration-200 ease-out md:text-2xl ${className}`}
       style={{ textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}
     >
       <span className="inline-block px-4 py-2 transition-colors duration-200 group-hover:text-[#FF7300]">
@@ -49,7 +49,7 @@ function CategoryTitle({
   );
 }
 
-const CARD_MIN_HEIGHT = 'min-h-[200px] md:min-h-[230px]';
+const CARD_MIN_HEIGHT = 'min-h-[135px] md:min-h-[155px]';
 
 export function CategoriesGrid({ categories }: { categories?: CategoryItem[] } = {}) {
   const items = categories?.length ? categories : DEFAULT_CATEGORIES;
@@ -73,19 +73,24 @@ export function CategoriesGrid({ categories }: { categories?: CategoryItem[] } =
             className="absolute inset-0 bg-black/30"
             aria-hidden
           />
-          {/* Griglia 2x3 per linee divisorie perfette */}
-          <div className="relative z-10 grid w-full grid-cols-2">
-            {[first, second, rest[0], rest[1], rest[2], rest[3]].filter(Boolean).map((cat, index) => {
+          {/* Griglia 3x2 con layout responsive sm:2x3, md+:3x2 */}
+          <div className="relative z-10 grid w-full grid-cols-2 sm:grid-cols-3">
+            {[first, second, rest[0], rest[1], rest[2], rest[3]].filter(Boolean).map((cat, index, arr) => {
               if (!cat) return null;
-              const isLeftColumn = index % 2 === 0;
-              const isLastRow = index >= 4;
+              const totalCols = 3;
+              const isMiddleColumn = index % totalCols === 1;
+              const isLastColumn = index % totalCols === 2;
+              const rowCount = Math.ceil(arr.length / totalCols);
+              const currentRow = Math.floor(index / totalCols);
+              const isLastRow = currentRow === rowCount - 1;
               return (
                 <Link
                   key={cat.id}
                   href={`/products?category=${cat.id}`}
-                  className={`group relative flex items-center justify-center transition-colors hover:bg-black/10 min-h-[200px] md:min-h-[230px] ${
-                    isLeftColumn ? 'border-r border-white/70' : ''
+                  className={`group relative flex items-center justify-center transition-colors hover:bg-black/10 min-h-[100px] sm:min-h-[135px] md:min-h-[155px] animate-in fade-in slide-in-from-bottom-4 duration-500 ${
+                    !isLastColumn ? 'border-r border-white/70' : ''
                   } ${!isLastRow ? 'border-b border-white/80' : ''}`}
+                  style={{ animationDelay: `${index * 75}ms`, animationFillMode: 'both' }}
                 >
                   <CategoryTitle label={cat.label} labelLine2={cat.labelLine2} />
                 </Link>

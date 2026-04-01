@@ -31,7 +31,7 @@ export function ScrollMarquee({ label }: { label: string }) {
       style={{ background: MARQUEE_BG }}
     >
       <div
-        className="flex w-max shrink-0 items-center gap-10 whitespace-nowrap text-lg font-bold uppercase tracking-wide md:gap-12 md:text-xl"
+        className="flex w-max shrink-0 items-center gap-12 whitespace-nowrap text-lg font-bold uppercase tracking-wide md:gap-14 md:text-xl"
         style={{
           transform: `translateX(calc(-50% + ${offsetX}px))`,
           color: '#1a1a1a',
