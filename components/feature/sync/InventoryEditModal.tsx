@@ -23,7 +23,7 @@ export const INVENTORY_LANG_OPTIONS_EDIT = [
 ];
 
 const fieldClass =
-  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25 dark:border-gray-300 dark:bg-white dark:text-gray-900';
+  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25';
 
 export function InventoryEditModal({
   item,
@@ -83,8 +83,8 @@ export function InventoryEditModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-200 bg-white text-gray-900 shadow-xl dark:border-gray-200 dark:bg-white">
-        <div className="sticky top-0 z-[1] rounded-t-2xl border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-200 dark:bg-white">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-200 bg-white text-gray-900 shadow-xl">
+        <div className="sticky top-0 z-[1] rounded-t-2xl border-b border-gray-200 bg-white px-4 py-3">
           <h2 id="edit-modal-title" className="text-lg font-semibold text-gray-900">
             Modifica oggetto
           </h2>
@@ -151,7 +151,7 @@ export function InventoryEditModal({
                 type="checkbox"
                 checked={graded}
                 onChange={(e) => setGraded(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-[#FF7300] focus:ring-[#FF7300]/30"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/30"
               />
               <span className="text-sm text-gray-700">Graded</span>
             </label>
@@ -160,7 +160,7 @@ export function InventoryEditModal({
                 type="checkbox"
                 checked={mtgFoil}
                 onChange={(e) => setMtgFoil(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-[#FF7300] focus:ring-[#FF7300]/30"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/30"
               />
               <span className="text-sm text-gray-700">Foil</span>
             </label>
@@ -169,7 +169,7 @@ export function InventoryEditModal({
                 type="checkbox"
                 checked={signed}
                 onChange={(e) => setSigned(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-[#FF7300] focus:ring-[#FF7300]/30"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/30"
               />
               <span className="text-sm text-gray-700">Firmata</span>
             </label>
@@ -178,23 +178,23 @@ export function InventoryEditModal({
                 type="checkbox"
                 checked={altered}
                 onChange={(e) => setAltered(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-[#FF7300] focus:ring-[#FF7300]/30"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/30"
               />
               <span className="text-sm text-gray-700">Alterata</span>
             </label>
           </div>
-          <div className="flex justify-end gap-2 border-t border-gray-200 pt-4 dark:border-gray-200">
+          <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-300 dark:bg-white dark:text-gray-700 dark:hover:bg-gray-50"
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
             >
               Annulla
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#FF7300] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#e66a00] disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
               {saving ? 'Salvataggio...' : 'Salva'}

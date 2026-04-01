@@ -196,3 +196,12 @@ export function useAuth() {
     setFlashMessage,
   };
 }
+
+/**
+ * Hook per attivare il mock login (utile per sviluppo UI con backend offline)
+ * Attiva lo stato loggato senza chiamare il backend
+ */
+export function useMockLogin() {
+  const mockLogin = useAuthStore((s) => s.mockLogin);
+  return mockLogin;
+}

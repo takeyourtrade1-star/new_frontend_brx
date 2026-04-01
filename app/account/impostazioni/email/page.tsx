@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { ImpostazioniSubBreadcrumb } from '@/components/feature/account/ImpostazioniSubBreadcrumb';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 
@@ -93,8 +92,6 @@ export default function ImpostazioniEmailPage() {
 
   return (
     <div className="font-sans text-gray-900">
-      <ImpostazioniSubBreadcrumb current="accountPage.crumbEmail" variant="light" showHelpLink />
-
       <p className="mb-10 max-w-3xl text-lg leading-relaxed text-gray-700">{t('accountPage.emailIntro')}</p>
 
       <div className="space-y-8">

@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { PlusCircle, Search, List, Users, Truck, ChevronDown, ChevronUp, X, LucideIcon } from 'lucide-react';
+import { PlusCircle, Search, List, Users, Truck, ChevronDown, ChevronUp, X, LucideIcon, Filter, SlidersHorizontal } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
@@ -75,6 +75,10 @@ export function AsteHubPage() {
   const [filterMinBids, setFilterMinBids] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
+  // Sticky bottom bar states
+  const [showStickyBar, setShowStickyBar] = useState(false);
+  const [bottomBarExpanded, setBottomBarExpanded] = useState(false);
+
   useEffect(() => {
     setViewMode(getStoredAsteViewMode(VIEW_STORAGE_KEY));
   }, []);
@@ -82,6 +86,19 @@ export function AsteHubPage() {
   useEffect(() => {
     setStoredAsteViewMode(VIEW_STORAGE_KEY, viewMode);
   }, [viewMode]);
+
+  // Detect scroll to show sticky bar
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      // Show sticky bar after scrolling past the filter section (approx 300px)
+      setShowStickyBar(scrollY > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Check initial position
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const endingSoon = useMemo(() => {
     return enriched
@@ -224,32 +241,8 @@ export function AsteHubPage() {
             <div
               className={`overflow-hidden transition-all duration-300 ${showFilters ? 'mt-4 max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
             >
-              {/* Riga risultati: conteggio + ordinamento + vista */}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-4 mb-4">
-                <p className="text-sm text-gray-700">{t('auctions.resultsCount', { count: filtered.length })}</p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <label className="flex items-center gap-2 text-sm text-gray-600">
-                    <span className="whitespace-nowrap">{t('search.sortBy')}</span>
-                    <select
-                      value={sort}
-                      onChange={(e) => setSort(e.target.value as SortMode)}
-                      className="min-w-[11rem] rounded-none border border-gray-300 px-3 py-2 text-sm font-medium bg-white text-gray-900 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40"
-                    >
-                      <option value="ending">{t('auctions.sortEndingSoon')}</option>
-                      <option value="new">{t('auctions.sortNewest')}</option>
-                      <option value="bid">{t('auctions.sortHighestBid')}</option>
-                    </select>
-                  </label>
-                  <AuctionViewToggle
-                    viewMode={viewMode}
-                    onViewModeChange={setViewMode}
-                    listLabel={t('auctions.viewList')}
-                    gridLabel={t('auctions.viewGrid')}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              {/* Riga unica: filtri + ordinamento + vista */}
+              <div className="flex flex-wrap items-end gap-3 border-b border-gray-200 pb-4 mb-4">
                 <label className="flex flex-col gap-1 w-full sm:w-auto">
                   <span className="text-xs font-semibold uppercase text-gray-600">{t('auctions.filterGame')}</span>
                   <select
@@ -289,7 +282,7 @@ export function AsteHubPage() {
                     className="w-full sm:w-[120px] rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
                   />
                 </label>
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-800 w-full sm:w-auto">
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-800 w-full sm:w-auto h-[38px]">
                   <input
                     type="checkbox"
                     checked={filterEndingOnly}
@@ -298,11 +291,37 @@ export function AsteHubPage() {
                   />
                   {t('auctions.filterEndingOnly')}
                 </label>
+                
+                {/* Spacer per spingere Ordina per e vista a destra */}
+                <div className="hidden lg:block flex-1" />
+                
+                {/* Ordina per + vista */}
+                <label className="flex items-center gap-2 text-sm text-gray-600 w-full sm:w-auto">
+                  <span className="whitespace-nowrap text-xs font-semibold uppercase text-gray-600">{t('search.sortBy')}</span>
+                  <select
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value as SortMode)}
+                    className="min-w-[11rem] rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium bg-white text-gray-900 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40"
+                  >
+                    <option value="ending">{t('auctions.sortEndingSoon')}</option>
+                    <option value="new">{t('auctions.sortNewest')}</option>
+                    <option value="bid">{t('auctions.sortHighestBid')}</option>
+                  </select>
+                </label>
+                <AuctionViewToggle
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                  listLabel={t('auctions.viewList')}
+                  gridLabel={t('auctions.viewGrid')}
+                />
               </div>
             </div>
           </div>
 
           {/* Risultati aste */}
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-medium text-gray-700">{t('auctions.resultsCount', { count: filtered.length })}</p>
+          </div>
           <div className="overflow-hidden border border-gray-300 bg-gray-50">
             {filtered.length === 0 ? (
               <div className="p-16 text-center text-gray-500">{t('auctions.noResults')}</div>
@@ -314,6 +333,135 @@ export function AsteHubPage() {
           </div>
         </div>
       </section>
+
+      {/* Sticky Bottom Bar - Search + Expandable Filters */}
+      {showStickyBar && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-4 fade-in duration-300">
+          {/* Collapsed State - Solo ricerca visibile */}
+          <div className="flex items-center gap-3 px-4 py-3">
+            {/* Search Compact */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={t('auctions.searchPlaceholder')}
+                className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-8 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+              {q.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setQ('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Toggle Expand Button */}
+            <button
+              type="button"
+              onClick={() => setBottomBarExpanded(!bottomBarExpanded)}
+              className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition-all hover:bg-gray-50"
+              title={bottomBarExpanded ? 'Comprimi' : 'Espandi filtri'}
+            >
+              {bottomBarExpanded ? (
+                <ChevronDown className="h-5 w-5" />
+              ) : (
+                <SlidersHorizontal className="h-5 w-5" />
+              )}
+            </button>
+
+            {/* Quick View Toggle */}
+            <AuctionViewToggle
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              listLabel={t('auctions.viewList')}
+              gridLabel={t('auctions.viewGrid')}
+            />
+          </div>
+
+          {/* Expanded State - Filtri */}
+          {bottomBarExpanded && (
+            <div className="border-t border-gray-100 px-4 py-3">
+              {/* Filters Row */}
+              <div className="mb-3 flex flex-wrap items-end gap-2">
+                <span className="text-xs font-medium text-gray-500">Filtri:</span>
+                
+                {/* Game Filter */}
+                <select
+                  value={filterGame}
+                  onChange={(e) => setFilterGame(e.target.value as 'all' | AuctionGame)}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 [color-scheme:light]"
+                >
+                  <option value="all">{t('auctions.gameAll')}</option>
+                  <option value="mtg">{t('auctions.gameMtg')}</option>
+                  <option value="lorcana">{t('auctions.gameLorcana')}</option>
+                  <option value="pokemon">{t('auctions.gamePokemon')}</option>
+                  <option value="op">{t('auctions.gameOp')}</option>
+                  <option value="ygo">{t('auctions.gameYgo')}</option>
+                </select>
+
+                {/* Price Max */}
+                <input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  placeholder="€ max"
+                  value={filterPriceMax}
+                  onChange={(e) => setFilterPriceMax(e.target.value)}
+                  className="w-[100px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900"
+                />
+
+                {/* Min Bids */}
+                <input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  placeholder="Min offerte"
+                  value={filterMinBids}
+                  onChange={(e) => setFilterMinBids(e.target.value)}
+                  className="w-[110px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900"
+                />
+
+                {/* Ending Only Checkbox */}
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={filterEndingOnly}
+                    onChange={(e) => setFilterEndingOnly(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-400 text-primary focus:ring-primary"
+                  />
+                  {t('auctions.filterEndingOnly')}
+                </label>
+              </div>
+
+              {/* Sort Row */}
+              <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Ordina:</span>
+                  <select
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value as SortMode)}
+                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium bg-white text-gray-900 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    <option value="ending">{t('auctions.sortEndingSoon')}</option>
+                    <option value="new">{t('auctions.sortNewest')}</option>
+                    <option value="bid">{t('auctions.sortHighestBid')}</option>
+                  </select>
+                </div>
+
+                {/* Results Count */}
+                <span className="text-xs text-gray-500">
+                  {filtered.length} {filtered.length === 1 ? 'asta' : 'aste'}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
-import { ImpostazioniSubBreadcrumb } from '@/components/feature/account/ImpostazioniSubBreadcrumb';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 
@@ -159,8 +158,6 @@ export default function ImpostazioniLinguaPage() {
 
   return (
     <div className="font-sans text-gray-900">
-      <ImpostazioniSubBreadcrumb current="accountPage.crumbLanguage" variant="light" />
-
       <p className="mb-10 max-w-2xl text-lg leading-relaxed text-gray-700">
         {t('accountPage.langSettingsIntro')}
       </p>

@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Home, Plus, List, Trash2, ChevronRight, ArrowUpDown } from 'lucide-react';
+import { Plus, List, Trash2, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 type Wantlist = {
   id: string;
@@ -21,18 +20,6 @@ export function ListaDesideriContent() {
   const [lists, setLists] = useState<Wantlist[]>(MOCK_LISTS);
   const [newListName, setNewListName] = useState('');
   const [nameError, setNameError] = useState('');
-  const breadcrumbItems: AppBreadcrumbItem[] = [
-    {
-      href: '/',
-      label: t('breadcrumb.home'),
-      ariaLabel: t('breadcrumb.home'),
-      icon: <Home className="h-4 w-4" />,
-      iconOnly: true,
-      isCurrent: false,
-    },
-    { href: '/ordini/acquisti', label: t('breadcrumb.acquisti'), isCurrent: false },
-    { label: t('accountPage.wantlistTitle'), isCurrent: true },
-  ];
 
   function handleAddList(e: React.FormEvent) {
     e.preventDefault();
@@ -72,13 +59,6 @@ export function ListaDesideriContent() {
 
   return (
     <div className="font-sans text-gray-900">
-      <AppBreadcrumb
-        items={breadcrumbItems}
-        ariaLabel={t('accountPage.breadcrumbNav')}
-        variant="default"
-        className="mb-6 w-auto text-sm uppercase tracking-wide"
-      />
-
       <h1 className="mb-6 text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">
         {t('accountPage.wantlistTitle')}
       </h1>

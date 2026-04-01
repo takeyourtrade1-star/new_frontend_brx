@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { ImpostazioniSubBreadcrumb } from '@/components/feature/account/ImpostazioniSubBreadcrumb';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export function UtentiBloccatiContent() {
@@ -23,8 +22,6 @@ export function UtentiBloccatiContent() {
 
   return (
     <div className="font-sans text-gray-900">
-      <ImpostazioniSubBreadcrumb current="accountPage.crumbBlocked" variant="light" showHelpLink />
-
       <section className="mb-10 mt-8 max-w-3xl space-y-4 text-base leading-relaxed text-gray-900">
         <p className="uppercase">{t('accountPage.blockedIntro')}</p>
         <ul className="list-inside list-disc space-y-2 uppercase">
