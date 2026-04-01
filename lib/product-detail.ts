@@ -10,9 +10,7 @@ const MEILI_URL_RAW = (
   process.env.VITE_MEILISEARCH_HOST ||
   ''
 ).replace(/\/+$/, '');
-const MEILI_URL =
-  MEILI_URL_RAW ||
-  (process.env.NODE_ENV === 'development' ? 'http://35.152.143.30:7700' : '');
+const MEILI_URL = MEILI_URL_RAW;
 const MEILI_KEY =
   process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ||
   process.env.VITE_MEILISEARCH_API_KEY ||

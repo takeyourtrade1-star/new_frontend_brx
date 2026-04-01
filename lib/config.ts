@@ -27,8 +27,8 @@ const getAuthApiURL = (): string => {
     if (!isDevelopment) {
       throw new Error('NEXT_PUBLIC_AUTH_API_URL non è configurato. Configura la variabile d\'ambiente con l\'URL AWS.');
     }
-    console.warn('NEXT_PUBLIC_AUTH_API_URL non configurato. Usa URL AWS di default.');
-    return 'http://35.152.143.30:8000';
+    console.warn('[Config] NEXT_PUBLIC_AUTH_API_URL non configurato. Imposta la variabile nel .env.local.');
+    return '';
   }
 
   return normalizeURL(envUrl);
@@ -43,12 +43,12 @@ const getMeilisearchHost = (): string => {
     process.env.NEXT_PUBLIC_MEILISEARCH_URL || process.env.NEXT_PUBLIC_MEILISEARCH_HOST;
   if (url) return normalizeURL(url);
   if (isDevelopment) {
-    return 'http://35.152.143.30:7700';
+    console.warn('[Config] NEXT_PUBLIC_MEILISEARCH_URL non configurato. Imposta la variabile nel .env.local.');
   }
   return '';
 };
 
-/** Chiave API Meilisearch: deve essere quella dell'istanza attuale (es. 35.152.143.30). Se l'istanza accetta ricerca senza chiave, lasciare vuoto. */
+/** Chiave API Meilisearch: deve essere quella dell'istanza attuale. Se l'istanza accetta ricerca senza chiave, lasciare vuoto. */
 const getMeilisearchApiKey = (): string => {
   return process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ?? '';
 };

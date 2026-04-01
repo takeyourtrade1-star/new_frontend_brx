@@ -10,11 +10,7 @@ import { instantMeiliSearch } from '@meilisearch/instant-meilisearch';
 import { MEILISEARCH } from '@/lib/config';
 
 function getMeiliUrl(): string {
-  if (MEILISEARCH.host) return MEILISEARCH.host;
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:7700';
-  }
-  return '';
+  return MEILISEARCH.host || '';
 }
 
 const MEILI_URL = getMeiliUrl();
