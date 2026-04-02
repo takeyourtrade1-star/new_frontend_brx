@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { z } from 'zod';
+import { Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelField } from '@/components/ui/floating-label-field';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -43,7 +44,10 @@ export function RecuperaCredenzialiForm() {
   if (isSubmitSuccessful) {
     return (
       <div className="space-y-6 text-center">
-        <p className="text-gray-700">{t('recoverForm.success')}</p>
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#FF7300]/10">
+          <Mail className="h-8 w-8 text-[#FF7300]" />
+        </div>
+        <p className="text-gray-800 font-medium">{t('recoverForm.success')}</p>
         <Link
           href="/login"
           className="inline-block text-[#FF7300] font-medium hover:underline"
@@ -71,7 +75,7 @@ export function RecuperaCredenzialiForm() {
           <p className="mt-1 text-sm text-red-500">{translateZodMessage(errors.email.message, t)}</p>
         )}
       </div>
-      <p className="text-sm text-gray-600">{t('recoverForm.hint')}</p>
+      <p className="text-sm text-gray-700 font-medium leading-relaxed">{t('recoverForm.hint')}</p>
       <div className="pt-3">
         <Button
           type="submit"

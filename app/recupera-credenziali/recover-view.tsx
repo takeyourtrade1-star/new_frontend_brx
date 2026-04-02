@@ -46,9 +46,9 @@ export function RecoverView() {
           <div
             className="overflow-hidden rounded-3xl border-2 border-white"
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              backdropFilter: 'blur(4px)',
-              WebkitBackdropFilter: 'blur(4px)',
+              background: 'rgba(255, 255, 255, 0.35)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
               boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
             }}
           >
@@ -57,7 +57,7 @@ export function RecoverView() {
             </div>
           </div>
           <div className="mt-4 text-center">
-            <Link href="/registrati" className="text-sm text-white hover:underline">
+            <Link href="/registrati" className="text-base text-[#FF7300] font-medium hover:underline">
               {t('pages.login.noAccount')}
             </Link>
           </div>

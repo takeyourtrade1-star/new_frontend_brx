@@ -957,6 +957,12 @@ export const pt: Record<MessageKey, string> = {
   'auctions.shippingViewAuction': 'Ver leilão',
   'auctions.shippingAddTracking': 'Adicionar tracking',
   'auctions.shippingMockHint': 'Integração com transportadoras em breve.',
+  'auctions.liveAuctionsTitle': 'Leilões em curso',
+  'auctions.scrollLeft': 'Rolar para a esquerda',
+  'auctions.scrollRight': 'Rolar para a direita',
+  'auctions.discoverAll': 'Descubra os leilões',
+  'auctions.auctionAriaLabel': 'Leilão: {title}',
+  'auctions.endingSoonBadge': 'Termina em breve',
 
   'legal.lastUpdated': 'Última atualização:',
   'legal.cookie.title': 'Política de cookies',

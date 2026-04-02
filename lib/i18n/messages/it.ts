@@ -958,6 +958,12 @@ export const it: Record<MessageKey, string> = {
   'auctions.shippingViewAuction': 'Vedi asta',
   'auctions.shippingAddTracking': 'Aggiungi tracking',
   'auctions.shippingMockHint': 'Tracking e corrieri si collegheranno al backend quando sarà disponibile.',
+  'auctions.liveAuctionsTitle': 'Aste in corso',
+  'auctions.scrollLeft': 'Scorri a sinistra',
+  'auctions.scrollRight': 'Scorri a destra',
+  'auctions.discoverAll': 'Scopri le aste',
+  'auctions.auctionAriaLabel': 'Asta: {title}',
+  'auctions.endingSoonBadge': 'Scade a breve',
 
   'legal.lastUpdated': 'Ultimo aggiornamento:',
   'legal.cookie.title': 'Cookie Policy',

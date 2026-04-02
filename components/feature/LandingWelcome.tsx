@@ -72,12 +72,54 @@ const getComingSoonGames = (): {
 ];
 
 const BOUTIQUE_CATEGORIES = [
-  { id: 'dadi', label: 'Dadi', href: '/products?category=dadi', imageUrl: getCdnImageUrl('dadi-boutique.png') },
-  { id: 'buste', label: 'Buste', href: '/products?category=buste', imageUrl: getCdnImageUrl('buste-boutique.png') },
-  { id: 'tappetini', label: 'Tappetini', href: '/products?category=tappetini', imageUrl: getCdnImageUrl('tappetini-boutique.png') },
-  { id: 'memorabilia', label: 'Memorabilia', href: '/products?category=memorabilia', imageUrl: getCdnImageUrl('memorabilia-boutique.png') },
-  { id: 'albums', label: 'Albums', href: '/products?category=albums', imageUrl: getCdnImageUrl('albums-boutique.png') },
-  { id: 'game-kits', label: 'Game kits', href: '/products?category=game-kits', imageUrl: getCdnImageUrl('gamekits-boutique.png') },
+  { id: 'dadi', label: 'Dadi', href: '/products?category=dadi', 
+    imageUrl: '/ebartex-boutique/dadi-boutique.webp',
+    imageSet: {
+      sm: '/ebartex-boutique/dadi-boutique-sm.webp',
+      md: '/ebartex-boutique/dadi-boutique-md.webp',
+      lg: '/ebartex-boutique/dadi-boutique-lg.webp'
+    }
+  },
+  { id: 'buste', label: 'Buste', href: '/products?category=buste',
+    imageUrl: '/ebartex-boutique/buste-boutique.webp',
+    imageSet: {
+      sm: '/ebartex-boutique/buste-boutique-sm.webp',
+      md: '/ebartex-boutique/buste-boutique-md.webp',
+      lg: '/ebartex-boutique/buste-boutique-lg.webp'
+    }
+  },
+  { id: 'tappetini', label: 'Tappetini', href: '/products?category=tappetini',
+    imageUrl: '/ebartex-boutique/tappetini-boutique.webp',
+    imageSet: {
+      sm: '/ebartex-boutique/tappetini-boutique-sm.webp',
+      md: '/ebartex-boutique/tappetini-boutique-md.webp',
+      lg: '/ebartex-boutique/tappetini-boutique-lg.webp'
+    }
+  },
+  { id: 'memorabilia', label: 'Memorabilia', href: '/products?category=memorabilia',
+    imageUrl: '/ebartex-boutique/memorabilia-boutique.webp',
+    imageSet: {
+      sm: '/ebartex-boutique/memorabilia-boutique-sm.webp',
+      md: '/ebartex-boutique/memorabilia-boutique-md.webp',
+      lg: '/ebartex-boutique/memorabilia-boutique-lg.webp'
+    }
+  },
+  { id: 'albums', label: 'Albums', href: '/products?category=albums',
+    imageUrl: '/ebartex-boutique/albums-boutique.webp',
+    imageSet: {
+      sm: '/ebartex-boutique/albums-boutique-sm.webp',
+      md: '/ebartex-boutique/albums-boutique-md.webp',
+      lg: '/ebartex-boutique/albums-boutique-lg.webp'
+    }
+  },
+  { id: 'game-kits', label: 'Game kits', href: '/products?category=game-kits',
+    imageUrl: '/ebartex-boutique/gamekits-boutique.webp',
+    imageSet: {
+      sm: '/ebartex-boutique/gamekits-boutique-sm.webp',
+      md: '/ebartex-boutique/gamekits-boutique-md.webp',
+      lg: '/ebartex-boutique/gamekits-boutique-lg.webp'
+    }
+  },
 ];
 
 export function LandingWelcome() {
@@ -270,7 +312,7 @@ export function LandingWelcome() {
             {/* Giochi in arrivo — scorrimento libero senza container */}
             {/* Banner glass "PRESTO IN ARRIVO" - posizionato vicino ai giochi */}
             <div className="relative w-full mb-8 sm:mb-10">
-              <div className="absolute top-2 sm:top-4 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#8B5CF6]/20 px-[1.15rem] sm:px-8 py-2.5 sm:py-3.5 text-center font-sans text-xs sm:text-sm font-bold uppercase tracking-widest text-white shadow-[0_0_25px_rgba(139,92,246,0.5)] backdrop-blur-md">
+              <div className="absolute top-2 sm:top-4 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap text-center font-sans text-xs sm:text-sm font-bold uppercase tracking-widest text-white drop-shadow-md animate-in fade-in slide-in-from-top-2 duration-700">
                 Presto in Arrivo
               </div>
             </div>
@@ -490,25 +532,34 @@ export function LandingWelcome() {
             {/* Divisore linea tra sezioni */}
             <div className="mx-auto my-8 sm:my-10 h-px w-2/3 max-w-lg bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
-            {/* Boutique Cards Piu Piccole */}
+            {/* Boutique Cards Full Image */}
             <div className="mt-12 sm:mt-16 text-center">
               <h3 className="mb-4 sm:mb-6 text-xs sm:text-sm font-semibold uppercase tracking-widest text-white/90">
                 La Nostra Boutique
               </h3>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4 max-w-4xl mx-auto px-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4 max-w-5xl mx-auto px-2">
                 {BOUTIQUE_CATEGORIES.map((cat) => (
                   <Link
                     key={cat.id}
                     href={cat.href}
-                    className="group flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-2 transition-all duration-300 hover:border-white/30 hover:bg-white/10 shadow-[0_4px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.4)] overflow-hidden"
+                    className="group relative aspect-[3/4] overflow-hidden rounded-xl border border-white/10 transition-all duration-300 hover:border-white/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)]"
                   >
-                    <div 
-                      className="relative w-full aspect-[4/3] overflow-hidden rounded bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-                      style={{ backgroundImage: `url(${cat.imageUrl})` }}
-                    >
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                    </div>
-                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white/70 transition-colors group-hover:text-white text-center">
+                    {/* Full card background image */}
+                    <div
+                      className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                      style={{
+                        backgroundImage: `image-set(
+                          url(${cat.imageSet?.sm || cat.imageUrl}) 1x,
+                          url(${cat.imageSet?.md || cat.imageUrl}) 2x,
+                          url(${cat.imageSet?.lg || cat.imageUrl}) 3x
+                        )`,
+                      }}
+                      aria-hidden
+                    />
+                    {/* Gradient overlay for text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent group-hover:from-black/60 transition-colors" aria-hidden />
+                    {/* Label at bottom */}
+                    <span className="absolute bottom-3 left-0 right-0 text-center text-[11px] sm:text-sm font-bold uppercase tracking-wider text-white drop-shadow-lg">
                       {cat.label}
                     </span>
                   </Link>

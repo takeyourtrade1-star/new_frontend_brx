@@ -957,6 +957,12 @@ export const es: Record<MessageKey, string> = {
   'auctions.shippingViewAuction': 'Ver subasta',
   'auctions.shippingAddTracking': 'Añadir seguimiento',
   'auctions.shippingMockHint': 'Integración con transportistas en desarrollo.',
+  'auctions.liveAuctionsTitle': 'Subastas en curso',
+  'auctions.scrollLeft': 'Desplazar a la izquierda',
+  'auctions.scrollRight': 'Desplazar a la derecha',
+  'auctions.discoverAll': 'Descubre las subastas',
+  'auctions.auctionAriaLabel': 'Subasta: {title}',
+  'auctions.endingSoonBadge': 'Finaliza pronto',
 
   'legal.lastUpdated': 'Última actualización:',
   'legal.cookie.title': 'Política de cookies',

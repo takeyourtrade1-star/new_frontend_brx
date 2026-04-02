@@ -15,26 +15,22 @@ interface GameHomeLayoutProps {
 /** Layout condiviso per le 3 home dedicate (Magic, Pokémon, One Piece): stessa struttura, hero con logo del gioco. */
 export function GameHomeLayout({ gameSlug }: GameHomeLayoutProps) {
   return (
-    <main
-      className="min-h-screen font-sans text-white transition-colors duration-300"
-      style={{
-        background: 'linear-gradient(to top, #0f172a 0%, #3d65c6 100%)',
-        backgroundAttachment: 'fixed',
-      }}
-    >
+    <main className="relative min-h-screen overflow-hidden bg-slate-100 font-sans text-white transition-colors duration-300">
       <Header />
 
       <section className="w-full transition-colors duration-300">
         <GameHeroSection gameSlug={gameSlug} />
       </section>
 
-      <FeaturesSection />
+      <div className="relative z-10 -mt-[62vh]">
+        <FeaturesSection useUnifiedBackground />
 
-      <MarketplaceDashboard gameSlug={gameSlug} />
+        <MarketplaceDashboard gameSlug={gameSlug} useUnifiedBackground />
 
-      <CategoriesGrid />
+        <CategoriesGrid useUnifiedBackground />
 
-      <EbartexProductsSection />
+        <EbartexProductsSection useUnifiedBackground />
+      </div>
     </main>
   );
 }

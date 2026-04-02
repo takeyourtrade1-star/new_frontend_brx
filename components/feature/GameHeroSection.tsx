@@ -1,22 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { getCdnImageUrl } from '@/lib/config';
 import type { GameSlug } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
-const SLIDE_COUNT = 3;
-const AUTO_PLAY_INTERVAL_MS = 4500;
-
-const HERO_SLIDES = [
-  getCdnImageUrl('carousel/slide1.jpg'),
-  getCdnImageUrl('carousel/slide2.jpg'),
-  getCdnImageUrl('carousel/slide3.jpg'),
-];
+const HERO_STATIC_BACKGROUND = getCdnImageUrl('carousel/slide1.jpg');
 
 const GAME_LOGO: Record<GameSlug, string> = {
   mtg: getCdnImageUrl('loghi-giochi/magic.png'),
@@ -36,116 +26,58 @@ interface GameHeroSectionProps {
 
 export function GameHeroSection({ gameSlug }: GameHeroSectionProps) {
   const { t } = useTranslation();
-  const [current, setCurrent] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-
-  const goNext = useCallback(() => {
-    setCurrent((prev) => (prev + 1) % SLIDE_COUNT);
-  }, []);
-
-  const goPrev = useCallback(() => {
-    setCurrent((prev) => (prev - 1 + SLIDE_COUNT) % SLIDE_COUNT);
-  }, []);
-
-  useEffect(() => {
-    if (isPaused) return;
-    const timer = setInterval(goNext, AUTO_PLAY_INTERVAL_MS);
-    return () => clearInterval(timer);
-  }, [goNext, isPaused]);
 
   const logoSrc = GAME_LOGO[gameSlug];
   const alt = t(GAME_ALT_KEY[gameSlug]);
 
-  const dotLabels = useMemo(
-    () => Array.from({ length: SLIDE_COUNT }, (_, i) => t('gameHero.goToSlide', { n: i + 1 })),
-    [t]
-  );
-
   return (
-    <section
-      className="relative w-full overflow-hidden"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      onFocus={() => setIsPaused(true)}
-      onBlur={() => setIsPaused(false)}
-    >
-      <div className="relative aspect-[1200/240] w-full max-h-[240px]">
-        {Array.from({ length: SLIDE_COUNT }).map((_, index) => (
-          <div
-            key={index}
-            className={cn(
-              'absolute inset-0 transition-opacity duration-500 ease-out',
-              index === current ? 'opacity-100 z-0' : 'opacity-0 z-0'
-            )}
-            aria-hidden={index !== current}
-          >
-            <Image
-              src={HERO_SLIDES[index]}
-              alt=""
-              fill
-              className="object-cover brightness-[0.5]"
-              sizes="(max-width: 1200px) 100vw, 1200px"
-              priority={index === 0}
-              unoptimized
-            />
-          </div>
-        ))}
+    <section className="relative h-screen min-h-[680px] w-full overflow-hidden">
+      <Image
+        src={HERO_STATIC_BACKGROUND}
+        alt=""
+        fill
+        className="object-cover object-center"
+        sizes="100vw"
+        priority
+        unoptimized
+      />
 
-        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none" aria-hidden>
-          <Image
-            src={logoSrc}
-            alt={alt}
-            width={320}
-            height={160}
-            className="max-h-[100px] w-auto object-contain drop-shadow-lg sm:max-h-[140px] md:max-h-[180px]"
-            sizes="(max-width: 640px) 180px, (max-width: 1024px) 240px, 320px"
-            unoptimized
-          />
-        </div>
+      {/* Overlay scuro 50% per scurire l'immagine hero */}
+      <div className="absolute inset-0 bg-black/50" aria-hidden />
 
-        <button
-          type="button"
-          onClick={goPrev}
-          className="absolute left-2 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white transition hover:bg-black/60 md:left-4"
-          aria-label={t('gameHero.slidePrev')}
-        >
-          <ChevronLeft className="h-6 w-6 md:h-8 md:w-8" />
-        </button>
-        <button
-          type="button"
-          onClick={goNext}
-          className="absolute right-2 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white transition hover:bg-black/60 md:right-4"
-          aria-label={t('gameHero.slideNext')}
-        >
-          <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
-        </button>
+      {/* Gradient vignetta cinematografica — scurisce i bordi, centro luminoso */}
+      <div
+        className="absolute inset-0 animate-in fade-in duration-1000 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.6)_100%)]"
+        aria-hidden
+      />
 
-        <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
-          {Array.from({ length: SLIDE_COUNT }).map((_, index) => (
-            <button
-              key={index}
-              type="button"
-              onClick={() => setCurrent(index)}
-              className={cn(
-                'h-2 w-2 rounded-full transition-all md:h-2.5 md:w-2.5',
-                index === current ? 'bg-white scale-110' : 'bg-white/60 hover:bg-white/80'
-              )}
-              aria-label={dotLabels[index]}
-            />
-          ))}
-        </div>
+      <div
+        className="absolute inset-x-0 bottom-0 h-[6%] bg-gradient-to-b from-transparent from-0% via-slate-100/[0.02] via-[8%] via-slate-100/[0.04] via-[16%] via-slate-100/[0.07] via-[24%] via-slate-100/[0.11] via-[30%] via-slate-100/[0.16] via-[36%] via-slate-100/[0.22] via-[42%] via-slate-100/[0.30] via-[48%] via-slate-100/[0.40] via-[54%] via-slate-100/[0.52] via-[60%] via-slate-100/[0.65] via-[66%] via-slate-100/[0.78] via-[72%] via-slate-100/[0.88] via-[78%] via-slate-100/[0.94] via-[84%] via-slate-100/[0.97] via-[90%] via-slate-100/[0.99] via-[96%] to-slate-100 to-100% backdrop-blur-[1px] animate-in fade-in duration-1000"
+        aria-hidden
+      />
 
-        {gameSlug !== 'mtg' && (
-          <div className="absolute top-4 left-1/2 z-30 -translate-x-1/2 w-[95%] max-w-xl pointer-events-auto">
-            <div className="rounded-full bg-black/60 px-5 py-2 text-center text-[10px] font-medium text-white backdrop-blur-md border border-white/20 shadow-2xl sm:text-xs md:text-sm">
-              Questi giochi sono presto in arrivo, ma intanto puoi curiosare il nostro sito oppure dare un&apos;occhiata a{' '}
-              <Link href="/home/magic" className="font-bold text-[#FF7300] hover:underline">
-                MAGIC
-              </Link>
-            </div>
-          </div>
-        )}
+      <div className="absolute inset-x-0 top-0 z-10 flex justify-center pt-20 sm:pt-24 md:pt-28 lg:pt-32 3xl:pt-36" aria-hidden>
+        <Image
+          src={logoSrc}
+          alt={alt}
+          width={380}
+          height={190}
+          className="h-auto w-44 object-contain drop-shadow-lg sm:w-56 md:w-72 lg:w-80"
+          sizes="(max-width: 640px) 176px, (max-width: 768px) 224px, (max-width: 1024px) 288px, 320px"
+          unoptimized
+        />
       </div>
+
+      {gameSlug !== 'mtg' && (
+        <div className="absolute inset-x-0 top-40 z-20 flex justify-center px-4 sm:top-44 md:top-48 lg:top-52">
+          <div className="max-w-xl rounded-full border border-white/20 bg-black/60 px-5 py-2 text-center text-[10px] font-medium text-white shadow-2xl backdrop-blur-md sm:text-xs md:text-sm">
+            Questi giochi sono presto in arrivo, ma intanto puoi curiosare il nostro sito oppure dare un&apos;occhiata a{' '}
+            <Link href="/home/magic" className="font-bold text-primary hover:underline">
+              MAGIC
+            </Link>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

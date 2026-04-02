@@ -955,6 +955,12 @@ export const en = {
   'auctions.shippingViewAuction': 'View auction',
   'auctions.shippingAddTracking': 'Add tracking',
   'auctions.shippingMockHint': 'Tracking and carrier integration will connect here when the backend is ready.',
+  'auctions.liveAuctionsTitle': 'Live auctions',
+  'auctions.scrollLeft': 'Scroll left',
+  'auctions.scrollRight': 'Scroll right',
+  'auctions.discoverAll': 'Discover all auctions',
+  'auctions.auctionAriaLabel': 'Auction: {title}',
+  'auctions.endingSoonBadge': 'Ending soon',
 
   'legal.lastUpdated': 'Last updated:',
   'legal.cookie.title': 'Cookie policy',

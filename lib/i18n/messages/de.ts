@@ -957,6 +957,12 @@ export const de: Record<MessageKey, string> = {
   'auctions.shippingViewAuction': 'Auktion ansehen',
   'auctions.shippingAddTracking': 'Sendungscode',
   'auctions.shippingMockHint': 'Anbindung an Versanddienste folgt.',
+  'auctions.liveAuctionsTitle': 'Laufende Auktionen',
+  'auctions.scrollLeft': 'Nach links scrollen',
+  'auctions.scrollRight': 'Nach rechts scrollen',
+  'auctions.discoverAll': 'Auktionen entdecken',
+  'auctions.auctionAriaLabel': 'Auktion: {title}',
+  'auctions.endingSoonBadge': 'Endet bald',
 
   'legal.lastUpdated': 'Zuletzt aktualisiert:',
   'legal.cookie.title': 'Cookie-Richtlinie',
