@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { getCdnImageUrl } from '@/lib/config';
 import type { GameSlug } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -26,6 +27,15 @@ interface GameHeroSectionProps {
 
 export function GameHeroSection({ gameSlug }: GameHeroSectionProps) {
   const { t } = useTranslation();
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const logoSrc = GAME_LOGO[gameSlug];
   const alt = t(GAME_ALT_KEY[gameSlug]);
@@ -37,6 +47,7 @@ export function GameHeroSection({ gameSlug }: GameHeroSectionProps) {
         alt=""
         fill
         className="object-cover object-center"
+        style={{ transform: `translateY(${scrollY * 0.3}px)` }}
         sizes="100vw"
         priority
         unoptimized
@@ -56,14 +67,14 @@ export function GameHeroSection({ gameSlug }: GameHeroSectionProps) {
         aria-hidden
       />
 
-      <div className="absolute inset-x-0 top-0 z-10 flex justify-center pt-20 sm:pt-24 md:pt-28 lg:pt-32 3xl:pt-36" aria-hidden>
+      <div className="absolute inset-x-0 top-0 z-10 flex justify-center pt-28 sm:pt-32 md:pt-28 lg:pt-32 3xl:pt-36" aria-hidden>
         <Image
           src={logoSrc}
           alt={alt}
-          width={380}
-          height={190}
-          className="h-auto w-44 object-contain drop-shadow-lg sm:w-56 md:w-72 lg:w-80"
-          sizes="(max-width: 640px) 176px, (max-width: 768px) 224px, (max-width: 1024px) 288px, 320px"
+          width={420}
+          height={210}
+          className="h-auto w-60 object-contain drop-shadow-lg sm:w-64 md:w-72 lg:w-80"
+          sizes="(max-width: 640px) 240px, (max-width: 768px) 256px, (max-width: 1024px) 288px, 320px"
           unoptimized
         />
       </div>

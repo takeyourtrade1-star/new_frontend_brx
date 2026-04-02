@@ -101,9 +101,12 @@ export function CategoriesGrid({
           <div className="relative z-10 grid w-full grid-cols-2 sm:grid-cols-3">
             {[first, second, rest[0], rest[1], rest[2], rest[3]].filter(Boolean).map((cat, index, arr) => {
               if (!cat) return null;
-              const totalCols = 3;
-              const isMiddleColumn = index % totalCols === 1;
-              const isLastColumn = index % totalCols === 2;
+              // Responsive columns: 2 on mobile, 3 on sm+
+              const isMobileCols = typeof window !== 'undefined' && window.innerWidth < 640;
+              const totalCols = 3; // default for calculations, will be overridden by CSS
+              const currentCol = index % totalCols;
+              const isLastColumn = currentCol === totalCols - 1;
+              const isSecondColumn = currentCol === 1;
               const rowCount = Math.ceil(arr.length / totalCols);
               const currentRow = Math.floor(index / totalCols);
               const isLastRow = currentRow === rowCount - 1;
@@ -112,8 +115,14 @@ export function CategoriesGrid({
                   key={cat.id}
                   href={`/products?category=${cat.id}`}
                   className={`group relative flex items-center justify-center overflow-hidden transition-all duration-300 min-h-[100px] sm:min-h-[135px] md:min-h-[155px] ${
-                    !isLastColumn ? 'border-r-2 border-white/90' : ''
-                  } ${!isLastRow ? 'border-b-2 border-white' : ''}`}
+                    // Mobile: border-r on first column (indices 0, 2, 4)
+                    // Desktop: border-r on first and second columns
+                    isLastColumn 
+                      ? '' 
+                      : 'border-r-2 border-white/90'
+                  } ${
+                    !isLastRow ? 'border-b-2 border-white' : ''
+                  }`}
                   style={{ 
                     background: CATEGORY_BACKGROUNDS[cat.id] || CATEGORY_BACKGROUNDS.singles,
                     animation: `categoryEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${index * 120}ms both`,

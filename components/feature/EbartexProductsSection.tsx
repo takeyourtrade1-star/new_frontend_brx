@@ -94,18 +94,33 @@ export function EbartexProductsSection({
         <div className="relative z-10 grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
           {[first, second, rest[0], rest[1], rest[2], rest[3]].filter(Boolean).map((item, index, arr) => {
             if (!item) return null;
-            const totalCols = 6;
-            const isLastColumn = index === arr.length - 1;
-            const rowCount = Math.ceil(arr.length / totalCols);
-            const currentRow = Math.floor(index / totalCols);
-            const isLastRow = currentRow === rowCount - 1;
+            // Responsive columns: 2 on mobile, 3 on sm, 6 on lg+
+            // For border calculation, we need to know position within each breakpoint
+            const totalColsLg = 6;
+            const currentColLg = index % totalColsLg;
+            const isLastColumnLg = currentColLg === totalColsLg - 1;
+            const isSecondColumn = index % 2 === 1; // for mobile 2-col
+            const isThirdColumn = index % 3 === 2; // for sm 3-col
+            const rowCountLg = Math.ceil(arr.length / totalColsLg);
+            const currentRowLg = Math.floor(index / totalColsLg);
+            const isLastRowLg = currentRowLg === rowCountLg - 1;
             return (
               <Link
                 key={item.id}
                 href={item.href}
-                className={`group relative flex min-h-[100px] sm:min-h-[135px] lg:min-h-[155px] items-center justify-center overflow-hidden transition-all duration-300 ${
-                  !isLastColumn ? 'border-r-2 border-white/90' : ''
-                } ${!isLastRow ? 'border-b-2 border-white' : ''}`}
+                className={`group relative flex min-h-[100px] sm:min-h-[135px] lg:min-h-[155px] items-center justify-center overflow-hidden transition-all duration-300
+                  /* Mobile: border-r on first column (even indices: 0,2,4) */
+                  /* sm: border-r on first two columns */
+                  /* lg: border-r on all except last column */
+                  ${isLastColumnLg ? '' : 'lg:border-r-2 lg:border-white/90'}
+                  ${isThirdColumn ? '' : 'sm:border-r-2 sm:border-white/90'}
+                  ${isSecondColumn ? '' : 'border-r-2 border-white/90'}
+                  /* Horizontal borders - visible on all breakpoints except last row */
+                  ${!isLastRowLg ? 'border-b-2 border-white' : ''}
+                  /* Override: remove right border on last item of each row per breakpoint */
+                  ${index % 2 === 1 ? 'max-sm:border-r-0' : ''}
+                  ${index % 3 === 2 ? 'max-lg:sm:border-r-0' : ''}
+                `}
                 style={{ 
                   animation: `categoryEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${index * 120}ms both`,
                 }}
