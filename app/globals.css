@@ -147,6 +147,18 @@
   }
 }
 
+/* Grid Card Title: animazione stagger (fade in + slide up) */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Aste / creazione: primo risultato ricerca catalogo — lampeggio leggero sul bordo arancione (#FF7300) */
 @keyframes auction-search-top-hit-border {
   0%,
@@ -795,6 +807,216 @@
 @media (prefers-reduced-motion: reduce) {
   .games-marquee-track {
     animation-duration: 50s;
+  }
+}
+
+/* ========== LANDING FULLSCREEN GAME ANIMATIONS ========== */
+/* Background zoom + fade in (smooth entrance) */
+@keyframes landing-bg-enter {
+  0% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Simple fade in */
+@keyframes landing-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Slide down from top */
+@keyframes landing-slide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Content slide up with fade */
+@keyframes landing-content-up {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Success bounce effect */
+@keyframes landing-success-bounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Animation classes with optimized timing */
+.animate-landing-bg {
+  animation: landing-bg-enter 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-landing-fade {
+  animation: landing-fade-in 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-landing-slide-down {
+  animation: landing-slide-down 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-landing-content-up {
+  animation: landing-content-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-landing-fade-in {
+  opacity: 0;
+  animation: landing-fade-in 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-landing-success-bounce {
+  animation: landing-success-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-landing-bg,
+  .animate-landing-fade,
+  .animate-landing-slide-down,
+  .animate-landing-content-up,
+  .animate-landing-fade-in,
+  .animate-landing-success-bounce {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ========== LANDING FULLSCREEN EXIT ANIMATIONS ========== */
+/* Exit animations - smooth fade out and scale down */
+@keyframes landing-exit {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes landing-bg-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes landing-fade-exit {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes landing-slide-up-exit {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes landing-content-down-exit {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(25px);
+  }
+}
+
+@keyframes landing-scale-down-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+/* Exit animation classes */
+.animate-landing-exit {
+  animation: landing-exit 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-landing-bg-exit {
+  animation: landing-bg-exit 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-landing-fade-exit {
+  animation: landing-fade-exit 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-landing-slide-up-exit {
+  animation: landing-slide-up-exit 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-landing-content-down-exit {
+  animation: landing-content-down-exit 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-landing-scale-down-exit {
+  animation: landing-scale-down-exit 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Reduced motion support for exit animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-landing-exit,
+  .animate-landing-bg-exit,
+  .animate-landing-fade-exit,
+  .animate-landing-slide-up-exit,
+  .animate-landing-content-down-exit,
+  .animate-landing-scale-down-exit {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    opacity: 0 !important;
+    transform: none !important;
   }
 }
 

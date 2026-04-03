@@ -1,8 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
 import { ScrollMarquee } from './ScrollMarquee';
+import { ResponsiveGrid, type GridItem } from './ResponsiveGrid';
+import { GridCardTitle } from './GridCardTitle';
 import { getCdnImageUrl } from '@/lib/config';
 
 /** Voce categoria Emporio – dati da backend */
@@ -22,33 +23,14 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
 ];
 
 /** Titolo categoria con background superstondato (spezza la grafica dalle altre card) */
-function CategoryTitle({
-  label,
-  labelLine2,
-  className = '',
-}: {
-  label: string;
-  labelLine2?: string;
-  className?: string;
-}) {
-  return (
-    <span
-      className={`relative z-10 text-center font-display text-lg font-bold uppercase leading-none tracking-[0.04em] text-white transition-all duration-200 ease-out md:text-2xl ${className}`}
-      style={{ textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}
-    >
-      <span className="inline-block px-4 py-2 transition-colors duration-200 group-hover:text-[#FF7300]">
-        {labelLine2 ? (
-          <>
-            <span className="block">{label}</span>
-            <span className="block">{labelLine2}</span>
-          </>
-        ) : (
-          label
-        )}
-      </span>
-    </span>
-  );
-}
+const CATEGORY_GLOW_COLORS: Record<string, string> = {
+  singles: '255, 115, 0',
+  boosters: '167, 139, 250',
+  'booster-box': '56, 189, 248',
+  'set-lotti': '251, 146, 60',
+  accessori: '251, 191, 36',
+  sigillati: '251, 113, 133',
+};
 
 const CATEGORY_IMAGES: Record<string, string> = {
   singles: '/emporio-collezionista/singles.png',
@@ -76,14 +58,36 @@ export function CategoriesGrid({
   useUnifiedBackground?: boolean;
 } = {}) {
   const items = categories?.length ? categories : DEFAULT_CATEGORIES;
-  const [first, second, ...rest] = items;
   const heroBg = getCdnImageUrl('carousel/slide1.jpg');
 
+  const gridItems: GridItem[] = items.map((cat, index) => ({
+    id: cat.id,
+    href: `/products?category=${cat.id}`,
+    style: {
+      background: CATEGORY_BACKGROUNDS[cat.id] || CATEGORY_BACKGROUNDS.singles,
+    },
+    children: (
+      <>
+        <Image
+          src={CATEGORY_IMAGES[cat.id] || '/emporio-collezionista/singles.png'}
+          alt={cat.label}
+          fill
+          className="object-contain p-3"
+          sizes="(max-width: 640px) 50vw, 33vw"
+        />
+        <div className="absolute inset-0 bg-black/40 transition-all duration-300 group-hover:bg-black/10 group-hover:backdrop-blur-[2px]" />
+        <GridCardTitle 
+          label={cat.label} 
+          labelLine2={cat.labelLine2} 
+          glowColor={CATEGORY_GLOW_COLORS[cat.id]}
+          staggerDelay={index * 0.08}
+        />
+      </>
+    ),
+  }));
+
   return (
-    <section
-      className="w-full py-0 bg-transparent text-white transition-colors duration-300"
-    >
-      {/* Barra full width senza margini laterali */}
+    <section className="w-full py-0 bg-transparent text-white transition-colors duration-300">
       <ScrollMarquee label="L'EMPORIO DEL COLLEZIONISTA" />
       <div>
         <div className="relative mt-0 overflow-hidden rounded-none">
@@ -97,70 +101,14 @@ export function CategoriesGrid({
               <div className="absolute inset-0 bg-black/30" aria-hidden />
             </>
           )}
-          {/* Griglia 3x2 con layout responsive sm:2x3, md+:3x2 */}
-          <div className="relative z-10 grid w-full grid-cols-2 sm:grid-cols-3">
-            {[first, second, rest[0], rest[1], rest[2], rest[3]].filter(Boolean).map((cat, index, arr) => {
-              if (!cat) return null;
-              // Responsive columns: 2 on mobile, 3 on sm+
-              const isMobileCols = typeof window !== 'undefined' && window.innerWidth < 640;
-              const totalCols = 3; // default for calculations, will be overridden by CSS
-              const currentCol = index % totalCols;
-              const isLastColumn = currentCol === totalCols - 1;
-              const isSecondColumn = currentCol === 1;
-              const rowCount = Math.ceil(arr.length / totalCols);
-              const currentRow = Math.floor(index / totalCols);
-              const isLastRow = currentRow === rowCount - 1;
-              return (
-                <Link
-                  key={cat.id}
-                  href={`/products?category=${cat.id}`}
-                  className={`group relative flex items-center justify-center overflow-hidden transition-all duration-300 min-h-[100px] sm:min-h-[135px] md:min-h-[155px] ${
-                    // Mobile: border-r on first column (indices 0, 2, 4)
-                    // Desktop: border-r on first and second columns
-                    isLastColumn 
-                      ? '' 
-                      : 'border-r-2 border-white/90'
-                  } ${
-                    !isLastRow ? 'border-b-2 border-white' : ''
-                  }`}
-                  style={{ 
-                    background: CATEGORY_BACKGROUNDS[cat.id] || CATEGORY_BACKGROUNDS.singles,
-                    animation: `categoryEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${index * 120}ms both`,
-                  }}
-                >
-                  {/* Immagine contenuta nella card (letterbox) */}
-                  <Image
-                    src={CATEGORY_IMAGES[cat.id] || '/emporio-collezionista/singles.png'}
-                    alt={cat.label}
-                    fill
-                    className="object-contain p-3"
-                    sizes="(max-width: 640px) 50vw, 33vw"
-                  />
-                  {/* Overlay scuro per leggibilità testo - si riduce al hover per reveal immagine */}
-                  <div className="absolute inset-0 bg-black/40 transition-all duration-300 group-hover:bg-black/10 group-hover:backdrop-blur-[2px]" />
-                  <CategoryTitle label={cat.label} labelLine2={cat.labelLine2} />
-                </Link>
-              );
-            })}
-          </div>
+          <ResponsiveGrid
+            items={gridItems}
+            cols={{ mobile: 2, sm: 3 }}
+            itemClassName="min-h-[100px] sm:min-h-[135px] md:min-h-[155px]"
+            className="relative z-10"
+          />
         </div>
       </div>
-      <style jsx>{`
-        @keyframes categoryEnter {
-          0% {
-            opacity: 0;
-            transform: translateY(30px) scale(0.95);
-          }
-          60% {
-            opacity: 0.8;
-            transform: translateY(-5px) scale(1.02);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-      `}</style>
     </section>
   );
 }

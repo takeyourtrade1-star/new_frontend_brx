@@ -8,61 +8,69 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Search, Filter, X, ChevronDown, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PrestoInArrivoBanner } from '@/components/feature/account/PrestoInArrivoBanner';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import type { MessageKey } from '@/lib/i18n/messages/en';
 
 // Opzioni per i filtri
 const RARITIES = [
-  { value: 'common', label: 'Common', color: '#1a1a1a' },
-  { value: 'uncommon', label: 'Uncommon', color: '#707883' },
-  { value: 'rare', label: 'Rare', color: '#d7b03e' },
-  { value: 'mythic', label: 'Mythic Rare', color: '#e85f1c' },
-  { value: 'special', label: 'Special', color: '#c25ae6' },
+  { value: 'common', labelKey: 'searchAdvanced.rarity.common', color: '#1a1a1a' },
+  { value: 'uncommon', labelKey: 'searchAdvanced.rarity.uncommon', color: '#707883' },
+  { value: 'rare', labelKey: 'searchAdvanced.rarity.rare', color: '#d7b03e' },
+  { value: 'mythic', labelKey: 'searchAdvanced.rarity.mythic', color: '#e85f1c' },
+  { value: 'special', labelKey: 'searchAdvanced.rarity.special', color: '#c25ae6' },
 ];
 
 const CONDITIONS = [
-  { value: 'mt', label: 'Mint (MT)' },
-  { value: 'nm', label: 'Near Mint (NM)' },
-  { value: 'ex', label: 'Excellent (EX)' },
-  { value: 'gd', label: 'Good (GD)' },
-  { value: 'lp', label: 'Light Played (LP)' },
-  { value: 'pl', label: 'Played (PL)' },
-  { value: 'po', label: 'Poor (PO)' },
+  { value: 'mt', labelKey: 'searchAdvanced.condition.mt' },
+  { value: 'nm', labelKey: 'searchAdvanced.condition.nm' },
+  { value: 'ex', labelKey: 'searchAdvanced.condition.ex' },
+  { value: 'gd', labelKey: 'searchAdvanced.condition.gd' },
+  { value: 'lp', labelKey: 'searchAdvanced.condition.lp' },
+  { value: 'pl', labelKey: 'searchAdvanced.condition.pl' },
+  { value: 'po', labelKey: 'searchAdvanced.condition.po' },
 ];
 
 const COLORS = [
-  { value: 'white', label: 'Bianco', mana: 'W', bg: '#f9f7eb', border: '#e6d788' },
-  { value: 'blue', label: 'Blu', mana: 'U', bg: '#d4e4f4', border: '#7eb8e6' },
-  { value: 'black', label: 'Nero', mana: 'B', bg: '#d6d3d3', border: '#8a8a8a' },
-  { value: 'red', label: 'Rosso', mana: 'R', bg: '#f4d4d4', border: '#e67e7e' },
-  { value: 'green', label: 'Verde', mana: 'G', bg: '#d4f4d4', border: '#7ee67e' },
-  { value: 'colorless', label: 'Incolore', mana: 'C', bg: '#e8e8e8', border: '#b8b8b8' },
-  { value: 'multicolor', label: 'Multicolore', mana: 'M', bg: 'linear-gradient(135deg, #d4e4f4 25%, #f4d4d4 50%, #d4f4d4 75%)', border: '#d7b03e' },
+  { value: 'white', labelKey: 'searchAdvanced.color.white', mana: 'W', bg: '#f9f7eb', border: '#e6d788' },
+  { value: 'blue', labelKey: 'searchAdvanced.color.blue', mana: 'U', bg: '#d4e4f4', border: '#7eb8e6' },
+  { value: 'black', labelKey: 'searchAdvanced.color.black', mana: 'B', bg: '#d6d3d3', border: '#8a8a8a' },
+  { value: 'red', labelKey: 'searchAdvanced.color.red', mana: 'R', bg: '#f4d4d4', border: '#e67e7e' },
+  { value: 'green', labelKey: 'searchAdvanced.color.green', mana: 'G', bg: '#d4f4d4', border: '#7ee67e' },
+  { value: 'colorless', labelKey: 'searchAdvanced.color.colorless', mana: 'C', bg: '#e8e8e8', border: '#b8b8b8' },
+  {
+    value: 'multicolor',
+    labelKey: 'searchAdvanced.color.multicolor',
+    mana: 'M',
+    bg: 'linear-gradient(135deg, #d4e4f4 25%, #f4d4d4 50%, #d4f4d4 75%)',
+    border: '#d7b03e',
+  },
 ];
 
 const CARD_TYPES = [
-  { value: 'creature', label: 'Creatura' },
-  { value: 'instant', label: 'Istantaneo' },
-  { value: 'sorcery', label: 'Stregoneria' },
-  { value: 'enchantment', label: 'Incantesimo' },
-  { value: 'artifact', label: 'Artefatto' },
-  { value: 'planeswalker', label: 'Planeswalker' },
-  { value: 'land', label: 'Terra' },
-  { value: 'battle', label: 'Battaglia' },
+  { value: 'creature', labelKey: 'searchAdvanced.type.creature' },
+  { value: 'instant', labelKey: 'searchAdvanced.type.instant' },
+  { value: 'sorcery', labelKey: 'searchAdvanced.type.sorcery' },
+  { value: 'enchantment', labelKey: 'searchAdvanced.type.enchantment' },
+  { value: 'artifact', labelKey: 'searchAdvanced.type.artifact' },
+  { value: 'planeswalker', labelKey: 'searchAdvanced.type.planeswalker' },
+  { value: 'land', labelKey: 'searchAdvanced.type.land' },
+  { value: 'battle', labelKey: 'searchAdvanced.type.battle' },
 ];
 
 const LANGUAGES = [
-  { value: 'en', label: 'Inglese' },
-  { value: 'de', label: 'Tedesco' },
-  { value: 'es', label: 'Spagnolo' },
-  { value: 'fr', label: 'Francese' },
-  { value: 'it', label: 'Italiano' },
-  { value: 'pt', label: 'Portoghese' },
+  { value: 'en', labelKey: 'searchAdvanced.language.en' },
+  { value: 'de', labelKey: 'searchAdvanced.language.de' },
+  { value: 'es', labelKey: 'searchAdvanced.language.es' },
+  { value: 'fr', labelKey: 'searchAdvanced.language.fr' },
+  { value: 'it', labelKey: 'searchAdvanced.language.it' },
+  { value: 'pt', labelKey: 'searchAdvanced.language.pt' },
 ];
 
 const PRINTINGS = [
-  { value: 'foil', label: 'Foil' },
-  { value: 'nonfoil', label: 'Non-Foil' },
-  { value: 'etched', label: 'Foil Etched' },
-  { value: 'glossy', label: 'Glossy' },
+  { value: 'foil', labelKey: 'searchAdvanced.printing.foil' },
+  { value: 'nonfoil', labelKey: 'searchAdvanced.printing.nonfoil' },
+  { value: 'etched', labelKey: 'searchAdvanced.printing.etched' },
+  { value: 'glossy', labelKey: 'searchAdvanced.printing.glossy' },
 ];
 
 interface FilterSectionProps {
@@ -101,6 +109,7 @@ function FilterSection({ title, children, defaultOpen = true }: FilterSectionPro
 }
 
 export default function AdvancedSearchPage() {
+  const { t } = useTranslation();
   const [selectedRarities, setSelectedRarities] = useState<string[]>([]);
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
@@ -146,10 +155,10 @@ export default function AdvancedSearchPage() {
         {/* Header pagina */}
         <div className="mb-8 text-center lg:mb-10">
           <h1 className="text-2xl font-bold text-[#1D3160] lg:text-4xl">
-            Ricerca Avanzata <span className="text-[#FF7300]">Singole</span>
+            {t('searchAdvanced.titlePrefix')} <span className="text-[#FF7300]">{t('searchAdvanced.titleAccent')}</span>
           </h1>
           <p className="mx-auto mt-2 max-w-lg text-sm text-gray-500 lg:text-base">
-            Trova carte singole precise con filtri dettagliati per espansione, rarità, condizione e altro.
+            {t('searchAdvanced.subtitle')}
           </p>
         </div>
 
@@ -163,7 +172,7 @@ export default function AdvancedSearchPage() {
                   <div className="flex items-center gap-2">
                     <Filter className="h-4 w-4 text-[#FF7300]" />
                     <h2 className="text-sm font-bold uppercase tracking-wide text-[#1D3160]">
-                      Filtri
+                      {t('searchAdvanced.filtersTitle')}
                     </h2>
                   </div>
                   {hasActiveFilters && (
@@ -173,32 +182,32 @@ export default function AdvancedSearchPage() {
                       className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-600"
                     >
                       <X className="h-3 w-3" />
-                      Azzera
+                      {t('searchAdvanced.clearFilters')}
                     </button>
                   )}
                 </div>
 
                 <div className="p-4">
                   {/* Ricerca testuale */}
-                  <FilterSection title="Nome carta" defaultOpen={true}>
+                  <FilterSection title={t('searchAdvanced.cardName')} defaultOpen={true}>
                     <Input
                       type="text"
-                      placeholder="Cerca per nome..."
+                      placeholder={t('searchAdvanced.cardNamePlaceholder')}
                       className="h-10 rounded-xl border-gray-200 bg-white text-sm placeholder:text-gray-400 focus-visible:ring-[#FF7300]"
                     />
                   </FilterSection>
 
                   {/* Espansione */}
-                  <FilterSection title="Espansione" defaultOpen={true}>
+                  <FilterSection title={t('searchAdvanced.expansion')} defaultOpen={true}>
                     <Input
                       type="text"
-                      placeholder="Cerca espansione..."
+                      placeholder={t('searchAdvanced.expansionPlaceholder')}
                       className="h-10 rounded-xl border-gray-200 bg-white text-sm placeholder:text-gray-400 focus-visible:ring-[#FF7300]"
                     />
                   </FilterSection>
 
                   {/* Rarità */}
-                  <FilterSection title="Rarità" defaultOpen={true}>
+                  <FilterSection title={t('searchAdvanced.rarity')} defaultOpen={true}>
                     <div className="space-y-2">
                       {RARITIES.map((rarity) => (
                         <label
@@ -214,7 +223,7 @@ export default function AdvancedSearchPage() {
                               className="h-3 w-3 rounded-full"
                               style={{ backgroundColor: rarity.color }}
                             />
-                            <span className="text-sm text-gray-700">{rarity.label}</span>
+                            <span className="text-sm text-gray-700">{t(rarity.labelKey as MessageKey)}</span>
                           </div>
                         </label>
                       ))}
@@ -222,7 +231,7 @@ export default function AdvancedSearchPage() {
                   </FilterSection>
 
                   {/* Condizione */}
-                  <FilterSection title="Condizione" defaultOpen={false}>
+                  <FilterSection title={t('searchAdvanced.condition')} defaultOpen={false}>
                     <div className="space-y-2">
                       {CONDITIONS.map((condition) => (
                         <label
@@ -233,19 +242,19 @@ export default function AdvancedSearchPage() {
                             checked={selectedConditions.includes(condition.value)}
                             onCheckedChange={() => toggleSelection(condition.value, selectedConditions, setSelectedConditions)}
                           />
-                          <span className="text-sm text-gray-700">{condition.label}</span>
+                          <span className="text-sm text-gray-700">{t(condition.labelKey as MessageKey)}</span>
                         </label>
                       ))}
                     </div>
                   </FilterSection>
 
                   {/* Colore */}
-                  <FilterSection title="Colore" defaultOpen={false}>
+                  <FilterSection title={t('searchAdvanced.color')} defaultOpen={false}>
                     <div className="mb-3 flex gap-1 rounded-lg bg-gray-50 p-1">
                       {[
-                        { value: 'including', label: 'Inclusi' },
-                        { value: 'exactly', label: 'Esatti' },
-                        { value: 'at-most', label: 'Max' },
+                        { value: 'including', label: t('searchAdvanced.colorMode.including') },
+                        { value: 'exactly', label: t('searchAdvanced.colorMode.exactly') },
+                        { value: 'at-most', label: t('searchAdvanced.colorMode.atMost') },
                       ].map((mode) => (
                         <button
                           key={mode.value}
@@ -285,14 +294,14 @@ export default function AdvancedSearchPage() {
                           >
                             {color.mana}
                           </span>
-                          <span className="text-xs font-medium text-gray-700">{color.label}</span>
+                          <span className="text-xs font-medium text-gray-700">{t(color.labelKey as MessageKey)}</span>
                         </button>
                       ))}
                     </div>
                   </FilterSection>
 
                   {/* Tipo */}
-                  <FilterSection title="Tipo carta" defaultOpen={false}>
+                  <FilterSection title={t('searchAdvanced.cardType')} defaultOpen={false}>
                     <div className="space-y-2">
                       {CARD_TYPES.map((type) => (
                         <label
@@ -303,14 +312,14 @@ export default function AdvancedSearchPage() {
                             checked={selectedTypes.includes(type.value)}
                             onCheckedChange={() => toggleSelection(type.value, selectedTypes, setSelectedTypes)}
                           />
-                          <span className="text-sm text-gray-700">{type.label}</span>
+                          <span className="text-sm text-gray-700">{t(type.labelKey as MessageKey)}</span>
                         </label>
                       ))}
                     </div>
                   </FilterSection>
 
                   {/* Lingua */}
-                  <FilterSection title="Lingua" defaultOpen={false}>
+                  <FilterSection title={t('searchAdvanced.language')} defaultOpen={false}>
                     <div className="grid grid-cols-2 gap-2">
                       {LANGUAGES.map((lang) => (
                         <button
@@ -324,14 +333,14 @@ export default function AdvancedSearchPage() {
                               : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
                           )}
                         >
-                          {lang.label}
+                          {t(lang.labelKey as MessageKey)}
                         </button>
                       ))}
                     </div>
                   </FilterSection>
 
                   {/* Finitura */}
-                  <FilterSection title="Finitura" defaultOpen={false}>
+                  <FilterSection title={t('searchAdvanced.finishing')} defaultOpen={false}>
                     <div className="space-y-2">
                       {PRINTINGS.map((printing) => (
                         <label
@@ -342,20 +351,20 @@ export default function AdvancedSearchPage() {
                             checked={selectedPrintings.includes(printing.value)}
                             onCheckedChange={() => toggleSelection(printing.value, selectedPrintings, setSelectedPrintings)}
                           />
-                          <span className="text-sm text-gray-700">{printing.label}</span>
+                          <span className="text-sm text-gray-700">{t(printing.labelKey as MessageKey)}</span>
                         </label>
                       ))}
                     </div>
                   </FilterSection>
 
                   {/* Prezzo */}
-                  <FilterSection title="Prezzo" defaultOpen={false}>
+                  <FilterSection title={t('searchAdvanced.price')} defaultOpen={false}>
                     <div className="flex items-center gap-2">
                       <div className="relative flex-1">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">€</span>
                         <Input
                           type="number"
-                          placeholder="Min"
+                          placeholder={t('searchAdvanced.priceMin')}
                           className="h-10 pl-7 rounded-xl border-gray-200 bg-white text-sm focus-visible:ring-[#FF7300]"
                         />
                       </div>
@@ -364,7 +373,7 @@ export default function AdvancedSearchPage() {
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">€</span>
                         <Input
                           type="number"
-                          placeholder="Max"
+                          placeholder={t('searchAdvanced.priceMax')}
                           className="h-10 pl-7 rounded-xl border-gray-200 bg-white text-sm focus-visible:ring-[#FF7300]"
                         />
                       </div>
@@ -372,14 +381,14 @@ export default function AdvancedSearchPage() {
                   </FilterSection>
 
                   {/* Disponibilità */}
-                  <FilterSection title="Disponibilità" defaultOpen={false}>
+                  <FilterSection title={t('searchAdvanced.availability')} defaultOpen={false}>
                     <label className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50">
                       <Checkbox />
-                      <span className="text-sm text-gray-700">Solo carte disponibili</span>
+                      <span className="text-sm text-gray-700">{t('searchAdvanced.availableOnly')}</span>
                     </label>
                     <label className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50">
                       <Checkbox />
-                      <span className="text-sm text-gray-700">Solo con foto</span>
+                      <span className="text-sm text-gray-700">{t('searchAdvanced.withPhotoOnly')}</span>
                     </label>
                   </FilterSection>
                 </div>
@@ -391,7 +400,7 @@ export default function AdvancedSearchPage() {
                 size="lg"
               >
                 <Search className="mr-2 h-4 w-4" />
-                Cerca carte
+                {t('searchAdvanced.searchCards')}
               </Button>
             </div>
           </div>
@@ -402,14 +411,14 @@ export default function AdvancedSearchPage() {
             <div className="mb-4 hidden items-center justify-between lg:flex">
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <Package className="h-4 w-4" />
-                <span>Inserisci i filtri e clicca Cerca per vedere i risultati</span>
+                <span>{t('searchAdvanced.resultsHint')}</span>
               </div>
               <Button
                 className="bg-[#FF7300] font-bold uppercase tracking-wide text-white shadow-lg shadow-[#FF7300]/20 hover:bg-[#FF7300]/90"
                 size="lg"
               >
                 <Search className="mr-2 h-4 w-4" />
-                Cerca carte
+                {t('searchAdvanced.searchCards')}
               </Button>
             </div>
 
@@ -419,10 +428,10 @@ export default function AdvancedSearchPage() {
                 <Search className="h-8 w-8 text-gray-400" />
               </div>
               <h3 className="mb-2 text-lg font-semibold text-[#1D3160]">
-                Inizia la ricerca
+                {t('searchAdvanced.startSearchTitle')}
               </h3>
               <p className="mx-auto max-w-sm text-sm text-gray-500">
-                Usa i filtri a sinistra per definire i criteri di ricerca, poi clicca "Cerca carte" per trovare le singole che fanno al caso tuo.
+                {t('searchAdvanced.startSearchBody')}
               </p>
             </div>
 
@@ -436,7 +445,7 @@ export default function AdvancedSearchPage() {
                       key={r}
                       className="inline-flex items-center gap-1 rounded-full bg-[#FF7300]/10 px-3 py-1 text-xs font-medium text-[#FF7300]"
                     >
-                      {rarity?.label}
+                      {rarity ? t(rarity.labelKey as MessageKey) : r}
                       <button
                         type="button"
                         onClick={() => toggleSelection(r, selectedRarities, setSelectedRarities)}
@@ -454,7 +463,7 @@ export default function AdvancedSearchPage() {
                       key={c}
                       className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-600"
                     >
-                      {cond?.label}
+                      {cond ? t(cond.labelKey as MessageKey) : c}
                       <button
                         type="button"
                         onClick={() => toggleSelection(c, selectedConditions, setSelectedConditions)}
@@ -472,7 +481,7 @@ export default function AdvancedSearchPage() {
                       key={c}
                       className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700"
                     >
-                      {color?.label}
+                      {color ? t(color.labelKey as MessageKey) : c}
                       <button
                         type="button"
                         onClick={() => toggleSelection(c, selectedColors, setSelectedColors)}

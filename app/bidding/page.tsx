@@ -1,18 +1,15 @@
+"use client";
+
 import { Header } from '@/components/layout/Header';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
-export const metadata = {
-  title: 'Offerta Massima | Ebartex',
-  description: 'Configura la tua offerta massima automatica',
-};
-
-type Props = {
-  searchParams: Promise<{ auctionId?: string }>;
-};
-
-export default async function BiddingPage({ searchParams }: Props) {
-  const { auctionId } = await searchParams;
+export default function BiddingPage() {
+  const searchParams = useSearchParams();
+  const auctionId = searchParams.get('auctionId') ?? undefined;
+  const { t } = useTranslation();
 
   return (
     <main className="min-h-screen bg-white">
@@ -24,15 +21,15 @@ export default async function BiddingPage({ searchParams }: Props) {
           className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#FF7300] transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Torna all&apos;asta
+          {t('bidding.backToAuction')}
         </Link>
 
         <div className="mt-8 rounded-2xl border border-gray-200/60 bg-white/80 backdrop-blur-[1px] p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
           <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900">
-            Offerta Massima
+            {t('bidding.title')}
           </h1>
           <p className="mt-2 text-sm text-gray-600">
-            Questa funzione sarà disponibile prossimamente.
+            {t('bidding.subtitle')}
           </p>
           
           <div className="mt-8 flex items-center justify-center py-16">
@@ -41,10 +38,10 @@ export default async function BiddingPage({ searchParams }: Props) {
                 <span className="text-2xl">🎯</span>
               </div>
               <p className="mt-4 text-sm font-medium text-gray-500 uppercase tracking-wide">
-                Coming Soon
+                {t('bidding.comingSoonLabel')}
               </p>
               <p className="mt-2 text-xs text-gray-400 max-w-xs">
-                L&apos;offerta massima automatica ti permetterà di impostare un limite superiore e farebbero offerte automatiche fino a quel importo.
+                {t('bidding.helpText')}
               </p>
             </div>
           </div>

@@ -63,7 +63,12 @@ export function GameHeroSection({ gameSlug }: GameHeroSectionProps) {
       />
 
       <div
-        className="absolute inset-x-0 bottom-0 h-[6%] bg-gradient-to-b from-transparent from-0% via-slate-100/[0.02] via-[8%] via-slate-100/[0.04] via-[16%] via-slate-100/[0.07] via-[24%] via-slate-100/[0.11] via-[30%] via-slate-100/[0.16] via-[36%] via-slate-100/[0.22] via-[42%] via-slate-100/[0.30] via-[48%] via-slate-100/[0.40] via-[54%] via-slate-100/[0.52] via-[60%] via-slate-100/[0.65] via-[66%] via-slate-100/[0.78] via-[72%] via-slate-100/[0.88] via-[78%] via-slate-100/[0.94] via-[84%] via-slate-100/[0.97] via-[90%] via-slate-100/[0.99] via-[96%] to-slate-100 to-100% backdrop-blur-[1px] animate-in fade-in duration-1000"
+        className="absolute inset-x-0 bottom-0 h-[22%] bg-gradient-to-b from-slate-100/0 via-slate-100/10 via-55% to-slate-100/28 backdrop-blur-[1px] animate-in fade-in duration-1000"
+        aria-hidden
+      />
+
+      <div
+        className="absolute inset-x-0 bottom-0 h-[14%] bg-[linear-gradient(to_bottom,transparent_0%,rgb(241_245_249_/_0.01)_16%,rgb(241_245_249_/_0.03)_30%,rgb(241_245_249_/_0.07)_44%,rgb(241_245_249_/_0.13)_56%,rgb(241_245_249_/_0.22)_68%,rgb(241_245_249_/_0.36)_78%,rgb(241_245_249_/_0.54)_86%,rgb(241_245_249_/_0.72)_92%,rgb(241_245_249_/_0.87)_96%,rgb(241_245_249_/_0.95)_98%,rgb(241_245_249)_100%)] backdrop-blur-[2px] animate-in fade-in duration-1000"
         aria-hidden
       />
 

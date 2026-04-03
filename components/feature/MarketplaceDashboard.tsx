@@ -364,7 +364,7 @@ export function MarketplaceDashboard({
           <div
             className={`flex min-h-[437px] flex-col justify-between overflow-hidden rounded-2xl lg:col-span-2 ${
               useUnifiedBackground
-                ? 'bg-header-bg/24 backdrop-blur-[2px] backdrop-saturate-110 shadow-[0_6px_20px_rgba(15,23,42,0.08)]'
+                ? 'border border-white/65 bg-white/72 backdrop-blur-[3px] backdrop-saturate-115 shadow-[0_10px_28px_rgba(15,23,42,0.12)]'
                 : 'backdrop-blur-[1px]'
             }`}
           >
@@ -416,7 +416,7 @@ export function MarketplaceDashboard({
 
               {/* Divider verticale sottile */}
               <div className="flex shrink-0 flex-col py-6" aria-hidden>
-                <div className={`w-px flex-1 min-h-0 ${useUnifiedBackground ? 'bg-white/25' : 'bg-gray-200'}`} />
+                <div className={`w-px flex-1 min-h-0 ${useUnifiedBackground ? 'bg-header-bg/20' : 'bg-gray-200'}`} />
               </div>
 
               {/* ── Colonna destra ── */}
@@ -472,7 +472,7 @@ export function MarketplaceDashboard({
           <div
             className={`relative flex flex-col justify-between rounded-2xl ${
               useUnifiedBackground
-                ? 'bg-header-bg/28 backdrop-blur-[3px] backdrop-saturate-115 shadow-[0_8px_24px_rgba(15,23,42,0.10)]'
+                ? 'border border-white/65 bg-white/72 backdrop-blur-[3px] backdrop-saturate-115 shadow-[0_10px_28px_rgba(15,23,42,0.12)]'
                 : 'border border-gray-200/60 backdrop-blur-[1px]'
             }`}
           >

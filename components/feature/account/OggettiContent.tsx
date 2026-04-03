@@ -475,6 +475,7 @@ function OggettiTable({
   bulkDeleting,
   viewMode = 'table',
   salesData,
+  t,
 }: {
   items: InventoryItemWithCatalog[];
   buildImageUrl: (raw: string | null | undefined) => string | null;
@@ -496,6 +497,7 @@ function OggettiTable({
   bulkDeleting?: boolean;
   viewMode?: OggettiViewMode;
   salesData?: Map<number, { lastSold: Date; salesCount: number; views: number }>;
+  t: (key: import('@/lib/i18n/messages/en').MessageKey, vars?: Record<string, string | number>) => string;
 }) {
   const { selectedLang } = useLanguage();
   const [editItem, setEditItem] = useState<InventoryItemWithCatalog | null>(null);
@@ -757,19 +759,19 @@ function OggettiTable({
                     {isPopular && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-primary/20 backdrop-blur-sm px-2.5 py-1 text-xs font-bold text-primary border border-primary/30 shadow-sm">
                         <Flame className="h-3 w-3" />
-                        Hot
+                        {t('accountPage.itemsBadgeHot')}
                       </span>
                     )}
                     {isTrending && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 backdrop-blur-sm px-2.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-500/30 shadow-sm">
                         <TrendingUp className="h-3 w-3" />
-                        Top
+                        {t('accountPage.itemsBadgeTop')}
                       </span>
                     )}
                     {isStagnant && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-500/20 backdrop-blur-sm px-2.5 py-1 text-xs font-bold text-slate-700 border border-slate-500/30 shadow-sm">
                         <Timer className="h-3 w-3" />
-                        {daysUnsold}g
+                        {daysUnsold}{t('accountPage.itemsDaysUnsold')}
                       </span>
                     )}
                   </div>
@@ -778,17 +780,17 @@ function OggettiTable({
                   <div className="absolute left-3 bottom-3 z-10 flex flex-wrap gap-1.5">
                     {hasFoil && (
                       <span className="rounded-full bg-amber-500/20 backdrop-blur-sm px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 border border-amber-500/30 shadow-sm">
-                        ✨ Foil
+                        ✨ {t('accountPage.itemsBadgeFoil')}
                       </span>
                     )}
                     {isSigned && (
                       <span className="rounded-full bg-purple-500/20 backdrop-blur-sm px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-purple-700 border border-purple-500/30 shadow-sm">
-                        ✍️ Signed
+                        ✍️ {t('accountPage.itemsBadgeSigned')}
                       </span>
                     )}
                     {isGraded && (
                       <span className="rounded-full bg-blue-500/20 backdrop-blur-sm px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-700 border border-blue-500/30 shadow-sm">
-                        📋 Graded
+                        📋 {t('accountPage.itemsBadgeGraded')}
                       </span>
                     )}
                   </div>
@@ -802,7 +804,7 @@ function OggettiTable({
                       className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/90 backdrop-blur-sm px-3 py-2 text-xs font-semibold text-gray-800 shadow-lg border border-white/50 transition-all hover:bg-primary hover:text-white hover:border-primary/30 active:scale-95 disabled:opacity-50"
                     >
                       <Edit3 className="h-3.5 w-3.5" />
-                      Modifica
+                      {t('accountPage.itemsEdit')}
                     </button>
                     <button
                       type="button"
@@ -811,7 +813,7 @@ function OggettiTable({
                       className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-primary to-primary/80 backdrop-blur-sm px-3 py-2 text-xs font-semibold text-white shadow-lg border border-white/30 transition-all hover:from-primary/90 hover:to-primary/70 active:scale-95 disabled:opacity-50"
                     >
                       {purchasingId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShoppingCart className="h-3.5 w-3.5" />}
-                      Carrello
+                      {t('accountPage.itemsCart')}
                     </button>
                   </div>
                 </div>
@@ -868,13 +870,13 @@ function OggettiTable({
                 {/* Price & Quantity Footer */}
                 <div className="mt-auto flex items-center justify-between border-t border-gray-100 pt-3">
                   <div className="flex flex-col">
-                    <span className="text-xs text-gray-400">Prezzo</span>
+                    <span className="text-xs text-gray-400">{t('accountPage.itemsTablePrice')}</span>
                     <span className="text-lg font-bold text-primary tabular-nums">
                       {(item.price_cents / 100).toFixed(2)}€
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Qtà</span>
+                    <span className="text-xs text-gray-400">{t('accountPage.itemsTableQty')}</span>
                     <span className="inline-flex items-center gap-1 rounded-full bg-white/70 backdrop-blur-sm px-2.5 py-1 text-sm font-bold text-gray-700 border border-gray-200/60 shadow-sm">
                       <Package className="h-3.5 w-3.5 text-gray-500" />
                       {item.quantity}
@@ -889,7 +891,7 @@ function OggettiTable({
                 onClick={() => handleDelete(item)}
                 disabled={mutationsDisabled || deletingId === item.id}
                 className="absolute right-3 top-[50%] translate-y-[-50%] rounded-full bg-white/80 backdrop-blur-sm p-2 text-gray-400 shadow-md border border-gray-200/50 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 hover:border-red-200 group-hover:opacity-100"
-                title="Elimina"
+                title={t('accountPage.itemsDelete')}
               >
                 {deletingId === item.id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -927,12 +929,12 @@ function OggettiTable({
                   </button>
                 </th>
               )}
-              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Carta</th>
-              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Set</th>
-              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Dettagli</th>
-              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Qtà</th>
-              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Prezzo</th>
-              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500 text-right">Azioni</th>
+              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">{t('accountPage.itemsTableCard')}</th>
+              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">{t('accountPage.itemsTableSet')}</th>
+              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">{t('accountPage.itemsTableDetails')}</th>
+              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">{t('accountPage.itemsTableQty')}</th>
+              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">{t('accountPage.itemsTablePrice')}</th>
+              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500 text-right">{t('accountPage.itemsTableActions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-stroke-grey">
@@ -1098,8 +1100,8 @@ function OggettiTable({
                         onClick={() => setEditItem(item)}
                         disabled={mutationsDisabled}
                         className="inline-flex items-center justify-center rounded-lg p-2 text-gray-500 transition-all hover:bg-primary/10 hover:text-primary disabled:opacity-50"
-                        title="Modifica"
-                        aria-label="Modifica"
+                        title={t('accountPage.itemsEdit')}
+                        aria-label={t('accountPage.itemsEdit')}
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
@@ -1108,8 +1110,8 @@ function OggettiTable({
                         onClick={() => openPurchaseModal(item)}
                         disabled={Boolean(mutationsDisabled) || purchasingId === item.id || deletingId === item.id || !item.external_stock_id || item.quantity < 1}
                         className="inline-flex items-center justify-center rounded-lg p-2 text-emerald-600 transition-all hover:bg-emerald-50 disabled:opacity-50"
-                        title="Carrello"
-                        aria-label="Carrello"
+                        title={t('accountPage.itemsCart')}
+                        aria-label={t('accountPage.itemsCart')}
                       >
                         {purchasingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
                       </button>
@@ -1118,8 +1120,8 @@ function OggettiTable({
                         onClick={() => handleDelete(item)}
                         disabled={mutationsDisabled || deletingId === item.id}
                         className="inline-flex items-center justify-center rounded-lg p-2 text-red-400 transition-all hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                        title="Elimina"
-                        aria-label="Elimina"
+                        title={t('accountPage.itemsDelete')}
+                        aria-label={t('accountPage.itemsDelete')}
                       >
                         {deletingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </button>
@@ -1151,7 +1153,7 @@ function OggettiTable({
               </div>
               <div>
                 <h2 id="purchase-modal-title" className="text-lg font-bold text-gray-900">
-                  Simula acquisto
+                  {t('accountPage.itemsCart')}
                 </h2>
                 <p className="text-xs text-gray-500">CardTrader sync</p>
               </div>
@@ -1160,12 +1162,12 @@ function OggettiTable({
             {/* Product */}
             <div className="mb-4 rounded-xl bg-gray-50 p-3">
               <p className="font-medium text-gray-900">{purchaseItem.card?.name ?? `Carta #${purchaseItem.blueprint_id}`}</p>
-              <p className="text-xs text-gray-500">Disponibili: <span className="font-semibold">{purchaseItem.quantity}</span></p>
+              <p className="text-xs text-gray-500">{t('accountPage.itemsTableQty')}: <span className="font-semibold">{purchaseItem.quantity}</span></p>
             </div>
 
             {/* Quantity Input */}
             <label className="mb-2 block text-sm font-medium text-gray-700">
-              Quantità da acquistare
+              {t('accountPage.itemsTableQty')}
             </label>
             <div className="mb-6 flex items-center gap-3">
               <button
@@ -1202,7 +1204,7 @@ function OggettiTable({
                 className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
                 disabled={purchaseSubmitting}
               >
-                Annulla
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -1211,7 +1213,7 @@ function OggettiTable({
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-emerald-500/20 transition-all hover:bg-emerald-600 hover:shadow-md disabled:opacity-50"
               >
                 {purchaseSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
-                {purchaseSubmitting ? 'Caricamento...' : 'Conferma'}
+                {purchaseSubmitting ? t('accountPage.itemsLoadingInventoryShort') : t('accountPage.itemsPriceApply')}
               </button>
             </div>
           </div>
@@ -2009,7 +2011,7 @@ export function OggettiContent() {
               syncEnabled ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-600">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Sync attivo
+                  {t('accountPage.itemsSyncActive')}
                 </span>
               ) : (
                 <Link
@@ -2017,19 +2019,19 @@ export function OggettiContent() {
                   className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-600 hover:bg-amber-100 transition-colors"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                  Sync non attivo
+                  {t('accountPage.itemsSyncInactive')}
                 </Link>
               )
             )}
             {integrationConnected && syncAnyPending && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 font-medium text-sky-600">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                In corso...
+                {t('accountPage.itemsSyncRunningShort')}
               </span>
             )}
           </div>
           <p className="text-gray-500">
-            {filteredInventoryItems.length.toLocaleString('it-IT')} di {total.toLocaleString('it-IT')} {cardWord}
+            {filteredInventoryItems.length.toLocaleString()} {t('accountPage.itemsOf')} {total.toLocaleString()} {cardWord}
             {inventorySearchQuery.trim() && (
               <span className="ml-1 text-gray-400">(filtro: "{inventorySearchQuery}")</span>
             )}
@@ -2089,7 +2091,7 @@ export function OggettiContent() {
                       <CheckSquare className="h-4 w-4 text-gray-500" />
                     </span>
                     <div className="flex flex-col">
-                      <span className="text-xs text-gray-500">Selezionati</span>
+                      <span className="text-xs text-gray-500">{t('accountPage.itemsSelected')}</span>
                       <span className="text-sm font-bold text-gray-900">
                         {selectedIds.size} <span className="text-xs font-normal text-gray-400">/ {filteredInventoryItems.length}</span>
                       </span>
@@ -2103,7 +2105,7 @@ export function OggettiContent() {
                       disabled={bulkDeleting}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-primary hover:text-primary disabled:opacity-50"
                     >
-                      Tutti
+                      {t('accountPage.itemsSelectAll')}
                     </button>
                     <button
                       type="button"
@@ -2111,7 +2113,7 @@ export function OggettiContent() {
                       disabled={bulkDeleting}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-red-400 hover:text-red-500 disabled:opacity-50"
                     >
-                      Nessuno
+                      {t('accountPage.itemsSelectNone')}
                     </button>
                   </div>
                 </div>
@@ -2127,7 +2129,7 @@ export function OggettiContent() {
                         className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-primary/90 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:shadow-md hover:shadow-primary/20 active:scale-95 disabled:opacity-50"
                       >
                         <Edit3 className="h-3.5 w-3.5" />
-                        Cambia prezzo
+                        {t('accountPage.itemsPriceChange')}
                       </button>
                       <button
                         type="button"
@@ -2136,7 +2138,7 @@ export function OggettiContent() {
                         className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:shadow-md hover:shadow-emerald-500/20 active:scale-95 disabled:opacity-50"
                       >
                         <Download className="h-3.5 w-3.5" />
-                        Esporta
+                        {t('accountPage.itemsExport')}
                       </button>
                       <button
                         type="button"
@@ -2149,13 +2151,13 @@ export function OggettiContent() {
                         ) : (
                           <Trash2 className="h-3.5 w-3.5" />
                         )}
-                        Elimina
+                        {t('accountPage.itemsDeleteSelected')}
                       </button>
                     </>
                   )}
                   {selectedIds.size === 0 && (
                     <span className="text-xs text-gray-400 italic">
-                      Seleziona item per azioni bulk
+                      {t('accountPage.itemsSelectItemsForBulk')}
                     </span>
                   )}
                 </div>
@@ -2190,16 +2192,17 @@ export function OggettiContent() {
             bulkDeleting={bulkDeleting}
             viewMode={viewMode}
             salesData={salesData}
+            t={t}
           />
           {totalPages > 1 && (
             <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white p-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
               <div className="flex items-center gap-3 text-sm">
                 <span className="text-gray-500">
-                  Pagina <span className="font-semibold text-gray-900">{currentPage}</span> di{' '}
-                  <span className="font-semibold text-gray-900">{totalPages.toLocaleString('it-IT')}</span>
+                  {t('accountPage.itemsPage')} <span className="font-semibold text-gray-900">{currentPage}</span> {t('accountPage.itemsOf')}{' '}
+                  <span className="font-semibold text-gray-900">{totalPages.toLocaleString()}</span>
                 </span>
                 <span className="text-gray-300">·</span>
-                <span className="text-xs text-gray-400">{ITEMS_PER_PAGE} per pagina</span>
+                <span className="text-xs text-gray-400">{ITEMS_PER_PAGE} {t('accountPage.itemsPerPage')}</span>
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -2207,7 +2210,7 @@ export function OggettiContent() {
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-40"
-                  aria-label="Pagina precedente"
+                  aria-label={t('accountPage.itemsPrevPage')}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -2241,7 +2244,7 @@ export function OggettiContent() {
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-40"
-                  aria-label="Pagina successiva"
+                  aria-label={t('accountPage.itemsNextPage')}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -2263,7 +2266,7 @@ export function OggettiContent() {
                 type="search"
                 value={inventorySearchQuery}
                 onChange={(e) => setInventorySearchQuery(e.target.value)}
-                placeholder="Cerca..."
+                placeholder={t('accountPage.itemsSearchPlaceholder')}
                 className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-8 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
               {inventorySearchQuery.length > 0 && (
@@ -2282,7 +2285,7 @@ export function OggettiContent() {
               type="button"
               onClick={() => setBottomBarExpanded(!bottomBarExpanded)}
               className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition-all hover:bg-gray-50"
-              title={bottomBarExpanded ? 'Comprimi' : 'Espandi filtri e selezione'}
+              title={bottomBarExpanded ? t('accountPage.itemsCollapse') : t('accountPage.itemsExpand')}
             >
               {bottomBarExpanded ? (
                 <ChevronDown className="h-5 w-5" />
@@ -2305,7 +2308,7 @@ export function OggettiContent() {
             <div className="border-t border-gray-100 px-4 py-3">
               {/* Filters Row */}
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-gray-500">Filtri:</span>
+                <span className="text-xs font-medium text-gray-500">{t('accountPage.itemsFilters')}</span>
                 {/* Kind Filters */}
                 <button
                   type="button"
@@ -2316,7 +2319,7 @@ export function OggettiContent() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  Tutti
+                  {t('accountPage.itemsFilterAll')}
                 </button>
                 <button
                   type="button"
@@ -2327,7 +2330,7 @@ export function OggettiContent() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  Singole
+                  {t('accountPage.itemsFilterSingles')}
                 </button>
                 <button
                   type="button"
@@ -2338,7 +2341,7 @@ export function OggettiContent() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  Oggetti
+                  {t('accountPage.itemsFilterSealed')}
                 </button>
 
                 {/* Smart Filters */}
@@ -2351,7 +2354,7 @@ export function OggettiContent() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  Non venduti
+                  {t('accountPage.itemsFilterUnsold')}
                 </button>
                 <button
                   type="button"
@@ -2362,7 +2365,7 @@ export function OggettiContent() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  Duplicati
+                  {t('accountPage.itemsFilterDuplicates')}
                 </button>
                 <button
                   type="button"
@@ -2373,7 +2376,7 @@ export function OggettiContent() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  Sotto mercato
+                  {t('accountPage.itemsFilterUnderMarket')}
                 </button>
                 {smartFilter !== 'all' && (
                   <button
@@ -2390,7 +2393,7 @@ export function OggettiContent() {
               {!syncEnabled && filteredInventoryItems.length > 0 && (
                 <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">Selezionati:</span>
+                    <span className="text-xs text-gray-500">{t('accountPage.itemsSelected')}:</span>
                     <span className="text-sm font-bold text-gray-900">
                       {selectedIds.size} / {filteredInventoryItems.length}
                     </span>
@@ -2401,7 +2404,7 @@ export function OggettiContent() {
                         disabled={bulkDeleting}
                         className="inline-flex items-center rounded border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:border-primary hover:text-primary"
                       >
-                        Tutti
+                        {t('accountPage.itemsSelectAll')}
                       </button>
                       <button
                         type="button"
@@ -2409,7 +2412,7 @@ export function OggettiContent() {
                         disabled={bulkDeleting}
                         className="inline-flex items-center rounded border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:border-red-400 hover:text-red-500"
                       >
-                        Nessuno
+                        {t('accountPage.itemsSelectNone')}
                       </button>
                     </div>
                   </div>
@@ -2424,7 +2427,7 @@ export function OggettiContent() {
                         className="inline-flex items-center gap-1 rounded bg-primary px-2.5 py-1.5 text-xs font-medium text-white"
                       >
                         <Edit3 className="h-3 w-3" />
-                        Prezzo
+                        {t('accountPage.itemsTablePrice')}
                       </button>
                       <button
                         type="button"
@@ -2462,17 +2465,17 @@ export function OggettiContent() {
                   <Edit3 className="h-5 w-5" />
                 </div>
                 <h2 id="bulk-price-modal-title" className="text-lg font-bold text-gray-900">
-                  Cambia prezzo
+                  {t('accountPage.itemsPriceChange')}
                 </h2>
                 <p className="text-sm text-gray-500">
-                  {selectedIds.size} oggetti selezionati
+                  {selectedIds.size} {t('accountPage.itemsBulkNounMany')}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setBulkPriceModalOpen(false)}
                 className="rounded-lg p-2 text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-600"
-                aria-label="Chiudi"
+                aria-label={t('accountPage.itemsClose')}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -2481,7 +2484,7 @@ export function OggettiContent() {
             {/* Percentage Selector */}
             <div className="mb-6">
               <label className="mb-3 block text-sm font-medium text-gray-700">
-                Variazione percentuale
+                {t('accountPage.itemsPriceChangePercent')}
               </label>
               <div className="flex items-center gap-3">
                 <button
@@ -2514,7 +2517,7 @@ export function OggettiContent() {
                 </button>
               </div>
               <p className="mt-2 text-xs text-gray-500 text-center">
-                {bulkPriceChangePercent > 0 ? 'Aumenta' : 'Riduci'} il prezzo di tutti gli oggetti selezionati
+                {bulkPriceChangePercent > 0 ? t('accountPage.itemsPriceIncrease') : t('accountPage.itemsPriceDecrease')}
               </p>
             </div>
 
@@ -2525,19 +2528,19 @@ export function OggettiContent() {
                 onClick={() => setBulkPriceModalOpen(false)}
                 className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
               >
-                Annulla
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
                 onClick={() => {
                   // TODO: Implementare API per cambio prezzo bulk
-                  alert(`Cambio prezzo del ${bulkPriceChangePercent}% su ${selectedIds.size} oggetti`);
+                  alert(`Cambio prezzo del ${bulkPriceChangePercent}% su ${selectedIds.size} ${t('accountPage.itemsBulkNounMany')}`);
                   setBulkPriceModalOpen(false);
                 }}
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md"
               >
                 <Edit3 className="h-4 w-4" />
-                Applica
+                {t('accountPage.itemsPriceApply')}
               </button>
             </div>
           </div>
@@ -2562,17 +2565,17 @@ export function OggettiContent() {
                   <Download className="h-5 w-5" />
                 </div>
                 <h2 id="export-modal-title" className="text-lg font-bold text-gray-900">
-                  Esporta collezione
+                  {t('accountPage.itemsExport')}
                 </h2>
                 <p className="text-sm text-gray-500">
-                  {filteredInventoryItems.length.toLocaleString('it-IT')} oggetti in vista
+                  {filteredInventoryItems.length.toLocaleString()} {t('accountPage.itemsItemsInView')}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setExportModalOpen(false)}
                 className="rounded-lg p-2 text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-600"
-                aria-label="Chiudi"
+                aria-label={t('accountPage.itemsClose')}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -2589,8 +2592,8 @@ export function OggettiContent() {
                   <FileSpreadsheet className="h-6 w-6" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-gray-900">Esporta CSV</p>
-                  <p className="text-xs text-gray-500">Formato tabellare per Excel</p>
+                  <p className="font-semibold text-gray-900">{t('accountPage.itemsExportCSV')}</p>
+                  <p className="text-xs text-gray-500">{t('accountPage.itemsExportCSVDesc')}</p>
                 </div>
                 <ChevronRight className="h-5 w-5 text-gray-400" />
               </button>
@@ -2603,15 +2606,15 @@ export function OggettiContent() {
                   <FileJson className="h-6 w-6" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-gray-900">Esporta JSON</p>
-                  <p className="text-xs text-gray-500">Formato dati per sviluppatori</p>
+                  <p className="font-semibold text-gray-900">{t('accountPage.itemsExportJSON')}</p>
+                  <p className="text-xs text-gray-500">{t('accountPage.itemsExportJSONDesc')}</p>
                 </div>
                 <ChevronRight className="h-5 w-5 text-gray-400" />
               </button>
             </div>
 
             <p className="text-xs text-center text-gray-400">
-              L'export avviene sul tuo dispositivo, senza caricare il server.
+              {t('accountPage.itemsExportHint')}
             </p>
           </div>
         </div>
