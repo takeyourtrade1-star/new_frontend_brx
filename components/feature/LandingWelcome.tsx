@@ -88,6 +88,8 @@ const GAME_FULLSCREEN_IMAGES: Record<string, string> = {
   'Pokémon Trading Card Game': '/landing-giochi-bg/pokemon.png',
   "Yu-Gi-Oh! Trading Card Game": '/landing-giochi-bg/yugioh.png',
   'One Piece Card Game': '/landing-giochi-bg/one-piece.png',
+  'Disney Lorcana': '/landing-giochi-bg/disney.png',
+  'Star Wars: Unlimited': '/landing-giochi-bg/starwars.png',
 };
 
 const getComingSoonGames = (): {

@@ -11,7 +11,7 @@ import type { GameSlug } from '@/lib/contexts/GameContext';
 import { SimpleSecureTuoSection } from './SimpleSecureTuoSection';
 import { AsteInCorsoCarousel } from './aste/AsteInCorsoCarousel';
 
-const SECTION_RADIUS = '1rem';
+const SECTION_RADIUS = '0.625rem';
 
 /** Singola voce card (immagine + label + prezzo) – dati da backend */
 export type HomeCardItem = {
@@ -122,7 +122,7 @@ function NuoveEspansioniCarousel({ items }: { items: NuovaEspansioneItem[] }) {
     >
       {/* Blue beam border layer - matches header gradient */}
       <div
-        className="absolute -inset-[1px] rounded-2xl"
+        className="absolute -inset-[1px] rounded-[10px]"
         style={{
           background: 'linear-gradient(90deg, #3d65c6, #0f172a, #3d65c6, #5a7fd4, #3d65c6)',
           backgroundSize: '200% 100%',
@@ -492,11 +492,16 @@ export function MarketplaceDashboard({
         </div>
 
         {/* Row 2: NUOVE ESPANSIONI (carousel) | SEMPLICE. SICURO. TUO. */}
-        <div className="hidden lg:block">
-          {/* Titolo sezione Nuove Espansioni */}
+        <div className="hidden lg:grid lg:grid-cols-2 lg:gap-6">
           <div className="flex items-center px-6 py-3">
             <div className="flex flex-col">
               <h2 className="text-3xl font-bold uppercase tracking-wider text-gray-800 font-display">{t('marketplace.newExpansions')}</h2>
+              <div className="mt-2 h-1 w-20 rounded-full bg-gradient-to-r from-[#ff7300] to-[#ff9900]" />
+            </div>
+          </div>
+          <div className="flex items-center px-6 py-3">
+            <div className="flex flex-col">
+              <h2 className="text-3xl font-bold uppercase tracking-wider text-gray-800 font-display">{t('simpleSecure.title')}</h2>
               <div className="mt-2 h-1 w-20 rounded-full bg-gradient-to-r from-[#ff7300] to-[#ff9900]" />
             </div>
           </div>
@@ -505,8 +510,10 @@ export function MarketplaceDashboard({
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
           <NuoveEspansioniCarousel items={espansioniItems} />
 
-          <div className="flex flex-col overflow-hidden rounded-2xl backdrop-blur-[1px]">
-            <SimpleSecureTuoSection />
+          <div className="flex flex-col lg:min-h-[380px] lg:justify-center lg:px-6">
+            <div className="mx-auto w-full max-w-[560px]">
+              <SimpleSecureTuoSection hideTitleOnDesktop noCard />
+            </div>
           </div>
         </div>
       </div>
