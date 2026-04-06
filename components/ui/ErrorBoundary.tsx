@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600">
             <AlertTriangle className="h-7 w-7" aria-hidden />
           </div>
-          <h2 className="text-lg font-semibold text-[#1D3160]">
+          <h2 className="text-lg font-semibold text-global-bg-end">
             Qualcosa è andato storto
           </h2>
           <p className="max-w-sm text-sm text-gray-600">
@@ -56,7 +56,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <button
             type="button"
             onClick={this.handleReset}
-            className="mt-2 rounded-full bg-[#FF7300] px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-[#FF7300]/20 transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300] focus-visible:ring-offset-2"
+            className="mt-2 rounded-full bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             Riprova
           </button>
