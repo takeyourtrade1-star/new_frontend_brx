@@ -1022,7 +1022,7 @@
 
 /*
  * iOS Safari (e alcuni browser mobile): zoom automatico al focus se font-size < 16px.
- * Imposta 16px sui campi modulo su viewport stretti così lo zoom non si attiva (niente scroll “saltato”).
+ * Imposta 16px sui campi modulo su viewport stretti così lo zoom non si attiva (niente scroll "saltato").
  * Esclusi checkbox/radio/file/bottoni che non hanno questo comportamento.
  */
 @media (max-width: 1023px) {
@@ -1032,3 +1032,73 @@
     font-size: 16px !important;
   }
 }
+
+/* ========== MASCOTTE ANIMATIONS ========== */
+/* Float animation for the mascotte card */
+@keyframes mascotteFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Icon bounce animation - appears next to mascotte */
+@keyframes iconBounce {
+  0% {
+    opacity: 0;
+    transform: translate(-20px, -50%) scale(0.5);
+  }
+  60% {
+    transform: translate(4px, -50%) scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, -50%) scale(1);
+  }
+}
+
+/* Flash fade for screenshot capture */
+@keyframes flashFade {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Screenshot preview slide in/out */
+@keyframes previewSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes previewFadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Tooltip fade in */
+@keyframes tooltipFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

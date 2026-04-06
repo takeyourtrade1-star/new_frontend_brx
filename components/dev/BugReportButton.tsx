@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Bug, X, Send, ExternalLink, Camera, ImageIcon, FileText } from 'lucide-react';
+import { Bug, X, Send, ExternalLink, Camera, ImageIcon, FileText, Pencil } from 'lucide-react';
 import html2canvas from 'html2canvas';
+import { ScreenshotAnnotator } from './ScreenshotAnnotator';
 
 // Storage keys for bug report data
 const BUG_REPORT_STORAGE = {
@@ -90,6 +91,8 @@ export function BugReportButton() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [hasConsoleLogs, setHasConsoleLogs] = useState(false);
+  const [isAnnotating, setIsAnnotating] = useState(false);
+  const [annotatedScreenshot, setAnnotatedScreenshot] = useState<string | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Start console capture on mount
@@ -148,53 +151,84 @@ export function BugReportButton() {
   const captureScreenshot = async () => {
     if (isCapturing) return;
     setIsCapturing(true);
-    
-    // Nascondi il modal temporaneamente per catturare la pagina sotto
-    setIsOpen(false);
-    
-    // Aspetta che il modal si chiuda e il browser renderizzi
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     try {
-      // Nascondi anche il pulsante fisso
-      if (buttonRef.current) {
-        buttonRef.current.style.opacity = '0';
+      // Temporarily hide the modal
+      setIsOpen(false);
+
+      // Hide the button
+      const buttonEl = buttonRef.current;
+      if (buttonEl) {
+        buttonEl.style.visibility = 'hidden';
+        buttonEl.style.opacity = '0';
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+
+      // Wait for UI to update
+      await new Promise(resolve => setTimeout(resolve, 400));
+
+      // Capture screenshot
       const canvas = await html2canvas(document.body, {
         useCORS: true,
         allowTaint: true,
         scrollY: -window.scrollY,
-        windowHeight: document.documentElement.scrollHeight,
-        height: document.documentElement.scrollHeight,
+        windowHeight: window.innerHeight,
+        height: window.innerHeight,
         backgroundColor: null,
-        scale: window.devicePixelRatio > 1 ? 1 : 1,
+        scale: Math.min(window.devicePixelRatio || 1, 2),
+        logging: false,
+        onclone: (clonedDoc) => {
+          // Ensure button is hidden in the clone too
+          const clonedButton = clonedDoc.querySelector('[aria-label="Segnala un bug"]');
+          if (clonedButton) {
+            (clonedButton as HTMLElement).style.display = 'none';
+          }
+        },
       });
-      
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
       setScreenshot(dataUrl);
-      
+
       // Check for console logs
-      const logs = getRecentLogs(30);
+      const logs = getRecentLogs(60);
       setHasConsoleLogs(logs.length > 0);
+
+      // Reopen modal
+      setIsOpen(true);
     } catch (err) {
       console.error('Screenshot failed:', err);
-    } finally {
-      // Ripristina il pulsante
-      if (buttonRef.current) {
-        buttonRef.current.style.opacity = '1';
-      }
-      
-      // Riapri il modal con lo screenshot
+      // Reopen modal even on error
       setIsOpen(true);
+    } finally {
+      // Always restore button visibility
+      if (buttonRef.current) {
+        buttonRef.current.style.visibility = '';
+        buttonRef.current.style.opacity = '';
+      }
       setIsCapturing(false);
     }
   };
 
+  const handleSaveAnnotated = (annotatedImages: string[]) => {
+    if (annotatedImages.length > 0) {
+      setAnnotatedScreenshot(annotatedImages[0]);
+      setScreenshot(annotatedImages[0]);
+    }
+    setIsAnnotating(false);
+  };
+
   const removeScreenshot = () => {
     setScreenshot(null);
+    setAnnotatedScreenshot(null);
+  };
+
+  const startAnnotating = () => {
+    if (screenshot) {
+      setIsAnnotating(true);
+    }
+  };
+
+  const handleCancelAnnotate = () => {
+    setIsAnnotating(false);
   };
 
   return (
@@ -210,7 +244,14 @@ export function BugReportButton() {
         <Bug className="h-6 w-6" />
       </button>
 
-      {/* Modal per il feedback */}
+      {/* Screenshot Annotator */}
+      {isAnnotating && screenshot && (
+        <ScreenshotAnnotator
+          screenshots={[screenshot]}
+          onSave={handleSaveAnnotated}
+          onCancel={handleCancelAnnotate}
+        />
+      )}
       {isOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-gray-200/60 bg-white/95 p-6 shadow-2xl backdrop-blur-xl">
@@ -256,13 +297,23 @@ export function BugReportButton() {
                         <ImageIcon className="h-4 w-4 text-primary" />
                         <span className="text-xs font-medium text-gray-600">Screenshot allegato</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={removeScreenshot}
-                        className="text-xs text-red-500 hover:text-red-600"
-                      >
-                        Rimuovi
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={startAnnotating}
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Annota
+                        </button>
+                        <button
+                          type="button"
+                          onClick={removeScreenshot}
+                          className="text-xs text-red-500 hover:text-red-600"
+                        >
+                          Rimuovi
+                        </button>
+                      </div>
                     </div>
                     <img src={screenshot} alt="Screenshot" className="max-h-32 rounded-lg object-contain" />
                   </div>

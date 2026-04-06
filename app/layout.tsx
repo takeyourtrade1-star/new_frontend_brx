@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { Footer } from '@/components/layout/Footer';
-import { BugReportButton } from '@/components/dev/BugReportButton';
+import { CardMascotte } from '@/components/dev/CardMascotte';
 
 export const metadata: Metadata = {
   title: {
@@ -103,7 +103,7 @@ export default function RootLayout({
             {children}
             <Footer />
           </div>
-          <BugReportButton />
+          <CardMascotte />
         </Providers>
       </body>
     </html>

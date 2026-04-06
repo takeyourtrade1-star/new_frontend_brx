@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
-import { ChevronLeft, ChevronDown, Bug, Mail, MessageSquare, HelpCircle, Package, CreditCard, ShieldCheck, Truck, Camera, ImageIcon, X, FileText, Terminal } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Mail, MessageSquare, HelpCircle, Package, CreditCard, ShieldCheck, Truck, Camera, ImageIcon, X, FileText } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -287,7 +287,7 @@ function AiutoContentInner() {
             Hai bisogno di aiuto?
           </h1>
           <p className="mx-auto max-w-2xl text-white/80">
-            Trova risposte alle domande frequenti, segnala un problema o contatta il nostro team di supporto.
+            Trova risposte alle domande frequenti o contatta il nostro team di supporto.
             Siamo qui per aiutarti a ottenere il massimo da Ebartex.
           </p>
         </div>
@@ -303,17 +303,6 @@ function AiutoContentInner() {
           >
             <HelpCircle className="h-4 w-4" />
             FAQ
-          </button>
-          <button
-            onClick={() => setActiveTab('bug')}
-            className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
-              activeTab === 'bug'
-                ? 'bg-primary text-white shadow-lg'
-                : 'bg-white/10 text-white/90 hover:bg-white/20'
-            }`}
-          >
-            <Bug className="h-4 w-4" />
-            Segnala Bug
           </button>
           <button
             onClick={() => setActiveTab('contact')}
@@ -407,192 +396,6 @@ function AiutoContentInner() {
               </Card>
             </div>
           </div>
-        )}
-
-        {activeTab === 'bug' && (
-          <Card className="border-white/20 bg-white/10 backdrop-blur-sm">
-            <CardHeader className="border-b border-white/20">
-              <CardTitle className="flex items-center gap-2 text-xl text-white">
-                <Bug className="h-5 w-5 text-primary" />
-                Segnala un Bug
-              </CardTitle>
-              <CardDescription className="text-white/70">
-                Aiutaci a migliorare segnalando problemi tecnici o malfunzionamenti
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <form onSubmit={handleBugSubmit} className="space-y-5">
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-white">Il tuo nome</label>
-                    <Input
-                      type="text"
-                      required
-                      value={bugForm.name}
-                      onChange={(e) => setBugForm({ ...bugForm, name: e.target.value })}
-                      placeholder="Mario Rossi"
-                      className="border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:border-primary focus:ring-primary"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-white">Email</label>
-                    <Input
-                      type="email"
-                      required
-                      value={bugForm.email}
-                      onChange={(e) => setBugForm({ ...bugForm, email: e.target.value })}
-                      placeholder="tua@email.com"
-                      className="border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:border-primary focus:ring-primary"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-white">Tipo di problema</label>
-                    <select
-                      value={bugForm.bugType}
-                      onChange={(e) => setBugForm({ ...bugForm, bugType: e.target.value })}
-                      className="flex h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                    >
-                      <option value="functional" className="bg-[#3D65C6]">Malfunzionamento</option>
-                      <option value="visual" className="bg-[#3D65C6]">Problema visivo/UI</option>
-                      <option value="performance" className="bg-[#3D65C6]">Performance lente</option>
-                      <option value="payment" className="bg-[#3D65C6]">Problema pagamento</option>
-                      <option value="other" className="bg-[#3D65C6]">Altro</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-white">Priorità</label>
-                    <select
-                      value={bugForm.priority}
-                      onChange={(e) => setBugForm({ ...bugForm, priority: e.target.value })}
-                      className="flex h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                    >
-                      <option value="low" className="bg-[#3D65C6]">Bassa - Miglioramento</option>
-                      <option value="medium" className="bg-[#3D65C6]">Media - Funzionalità limitata</option>
-                      <option value="high" className="bg-[#3D65C6]">Alta - Bloccante</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-white">Oggetto</label>
-                  <Input
-                    type="text"
-                    required
-                    value={bugForm.subject}
-                    onChange={(e) => setBugForm({ ...bugForm, subject: e.target.value })}
-                    placeholder="Descrivi brevemente il problema"
-                    className="border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:border-primary focus:ring-primary"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-white">Descrizione dettagliata</label>
-                  <textarea
-                    required
-                    rows={5}
-                    value={bugForm.message}
-                    onChange={(e) => setBugForm({ ...bugForm, message: e.target.value })}
-                    placeholder="Descrivi il problema in dettaglio: cosa stavi facendo, cosa ti aspettavi, cosa è successo invece..."
-                    className="flex w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none"
-                  />
-                </div>
-
-                {/* URL della pagina */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-white">URL della pagina</label>
-                  <Input
-                    type="url"
-                    value={bugForm.url}
-                    onChange={(e) => setBugForm({ ...bugForm, url: e.target.value })}
-                    placeholder="https://..."
-                    className="border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:border-primary focus:ring-primary"
-                  />
-                  <p className="text-xs text-white/50">
-                    L'URL ci aiuta a identificare esattamente dove si è verificato il problema.
-                  </p>
-                </div>
-
-                {/* Screenshot */}
-                {screenshot ? (
-                  <div className="rounded-xl border border-white/20 bg-white/10 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium text-white">Screenshot allegato</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={removeScreenshot}
-                        className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    <img src={screenshot} alt="Screenshot" className="max-h-48 rounded-lg object-contain" />
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={captureScreenshot}
-                    disabled={isCapturing}
-                    className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/20 disabled:opacity-50"
-                  >
-                    <Camera className="h-4 w-4" />
-                    {isCapturing ? 'Catturando...' : 'Allega screenshot della pagina'}
-                  </button>
-                )}
-
-                {/* Console Logs from localStorage */}
-                {consoleLogs.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-white flex items-center gap-2">
-                        <Terminal className="h-4 w-4" />
-                        Log Console ({consoleLogs.length} voci - ultimi 30s)
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowLogs(!showLogs)}
-                        className="text-xs text-white/60 hover:text-white"
-                      >
-                        {showLogs ? 'Nascondi' : 'Mostra'}
-                      </button>
-                    </div>
-                    {showLogs && (
-                      <div className="max-h-40 overflow-y-auto rounded-lg border border-white/20 bg-black/30 p-3 font-mono text-xs">
-                        {consoleLogs.map((log, i) => (
-                          <div
-                            key={i}
-                            className={`mb-1 last:mb-0 ${
-                              log.type === 'error' ? 'text-red-400' : 
-                              log.type === 'warn' ? 'text-yellow-400' : 'text-green-400'
-                            }`}
-                          >
-                            <span className="text-white/40">[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
-                            {log.message}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <p className="text-xs text-white/50">
-                      I log aiutano gli sviluppatori a identificare errori JavaScript.
-                    </p>
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
-                >
-                  <Bug className="mr-2 h-4 w-4" />
-                  Invia segnalazione
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
         )}
 
         {activeTab === 'contact' && (
