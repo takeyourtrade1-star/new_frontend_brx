@@ -45,6 +45,7 @@ next-env.d.ts
 
 # IDE (optional: remove .vscode if you want to share workspace settings)
 .idea
+.qwen/
 *.swp
 *.swo
 *~
