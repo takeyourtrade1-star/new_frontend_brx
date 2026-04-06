@@ -754,7 +754,7 @@ export function CardMascotte() {
         ref={cardRef}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
-        className={`fixed cursor-pointer select-none ${showCodingCompanion ? (codingStatus === 'received' ? 'sip-sync-received' : 'sip-sync-compiling') : ''}`}
+        className="fixed cursor-pointer select-none"
         style={{
           zIndex: isOverlayVisible ? Z_INDEX.mascotteOverlay : Z_INDEX.mascotteBase,
           bottom: '20px',
@@ -867,32 +867,6 @@ export function CardMascotte() {
               </div>
 
               <div className="mx-auto mt-1.5 h-1.5 w-14 rounded-full bg-zinc-500/35" />
-            </div>
-
-            <div className="coding-drink absolute -right-1 -bottom-0.5 z-[12] origin-bottom-right scale-[0.62] sm:-right-4 sm:bottom-1 sm:scale-[0.82]">
-              <div className={`relative h-14 w-9 rounded-b-[10px] rounded-t-[8px] border p-1 shadow-lg ${codingStatus === 'received' ? 'border-emerald-300/70 bg-zinc-900/85 shadow-emerald-500/25' : 'border-marquee/70 bg-zinc-900/80 shadow-primary/20'}`}>
-                <div className={`absolute -top-1 left-1/2 h-1.5 w-10 -translate-x-1/2 rounded-full border ${codingStatus === 'received' ? 'border-emerald-200/70 bg-zinc-800/95' : 'border-marquee/60 bg-zinc-800/90'}`} />
-                <div className={`drink-straw absolute -top-6 left-[74%] h-6 w-1.5 rounded-full ${codingStatus === 'received' ? 'drink-straw-received bg-emerald-300' : 'drink-straw-compiling bg-marquee'}`}>
-                  <span className={`drink-straw-tip absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full border ${codingStatus === 'received' ? 'border-emerald-100/95 bg-emerald-200/65' : 'border-marquee/90 bg-marquee/60'}`} />
-                </div>
-                <div className={`drink-liquid absolute bottom-1 left-1 right-1 h-7 rounded-b-[7px] rounded-t-sm ${codingStatus === 'received' ? 'drink-liquid-received bg-emerald-400/55' : 'drink-liquid-compiling bg-primary/55'}`}>
-                  <span className={`drink-bubble drink-bubble-1 absolute bottom-1 left-1.5 h-1.5 w-1.5 rounded-full ${codingStatus === 'received' ? 'drink-bubble-received bg-emerald-100/75' : 'drink-bubble-compiling bg-zinc-100/70'}`} />
-                  <span className={`drink-bubble drink-bubble-2 absolute bottom-2 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${codingStatus === 'received' ? 'drink-bubble-received bg-emerald-100/70' : 'drink-bubble-compiling bg-zinc-100/65'}`} />
-                  <span className={`drink-bubble drink-bubble-3 absolute bottom-1.5 right-1.5 h-1.5 w-1.5 rounded-full ${codingStatus === 'received' ? 'drink-bubble-received bg-emerald-100/75' : 'drink-bubble-compiling bg-zinc-100/70'}`} />
-                </div>
-                <span className={`absolute bottom-6 left-2 h-1.5 w-1.5 rounded-sm ${codingStatus === 'received' ? 'bg-emerald-100/80' : 'bg-zinc-100/75'}`} />
-                <span className={`absolute bottom-5 right-2 h-1.5 w-1.5 rounded-sm ${codingStatus === 'received' ? 'bg-emerald-100/75' : 'bg-zinc-100/70'}`} />
-              </div>
-
-              <span className={`drink-sip-wave drink-sip-wave-1 absolute -left-1 -top-4 h-1.5 w-1.5 rounded-full border sm:-left-2 sm:-top-5 sm:h-2 sm:w-2 ${codingStatus === 'received' ? 'drink-sip-wave-received border-emerald-200/90' : 'drink-sip-wave-compiling border-marquee/80'}`} />
-              <span className={`drink-sip-wave drink-sip-wave-2 absolute -left-2 -top-5 h-2 w-2 rounded-full border sm:-left-4 sm:-top-7 sm:h-2.5 sm:w-2.5 ${codingStatus === 'received' ? 'drink-sip-wave-received border-emerald-300/75' : 'drink-sip-wave-compiling border-primary/70'}`} />
-
-              {codingStatus === 'received' && (
-                <>
-                  <span className="drink-clink drink-clink-1 absolute -right-1 -top-2 h-2 w-2 rounded-full border border-emerald-200/90" />
-                  <span className="drink-clink drink-clink-2 absolute -right-3 -top-1 h-1.5 w-1.5 rounded-full border border-emerald-100/85" />
-                </>
-              )}
             </div>
           </div>
         )}
@@ -1363,42 +1337,6 @@ export function CardMascotte() {
           from { opacity: 0; transform: translateY(4px) scale(0.96); }
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
-        @keyframes codingDrinkBob {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-1.5px); }
-        }
-        @keyframes drinkStrawSip {
-          0%, 100% { transform: translateX(-50%) rotate(24deg) scaleY(1); }
-          45% { transform: translateX(-50%) rotate(30deg) scaleY(0.95); }
-        }
-        @keyframes drinkSipWave {
-          0% { opacity: 0; transform: scale(0.5) translateX(0); }
-          35% { opacity: 0.9; }
-          100% { opacity: 0; transform: scale(1.3) translateX(-4px); }
-        }
-        @keyframes drinkLiquidPulse {
-          0%, 100% { transform: scaleY(1); }
-          50% { transform: scaleY(0.92); }
-        }
-        @keyframes drinkBubbleRise {
-          0% { opacity: 0.15; transform: translateY(0) scale(0.75); }
-          30% { opacity: 0.8; }
-          100% { opacity: 0; transform: translateY(-10px) scale(1); }
-        }
-        @keyframes drinkClink {
-          0% { opacity: 0; transform: scale(0.5); }
-          40% { opacity: 1; }
-          100% { opacity: 0; transform: scale(1.25); }
-        }
-        @keyframes drinkSipWaveMobile {
-          0% { opacity: 0; transform: scale(0.55) translateX(0); }
-          35% { opacity: 0.7; }
-          100% { opacity: 0; transform: scale(1.05) translateX(-2px); }
-        }
-        @keyframes drinkStrawTipGlow {
-          0%, 100% { opacity: 0.65; transform: translateX(-50%) scale(1); }
-          45% { opacity: 1; transform: translateX(-50%) scale(1.18); }
-        }
         @keyframes bugGlintSweep {
           0% { opacity: 0; transform: translateX(-3px); }
           45% { opacity: 0.9; }
@@ -1412,78 +1350,8 @@ export function CardMascotte() {
           0%, 100% { transform: translateY(0) scale(1, 1); opacity: 0.92; }
           45% { transform: translateY(-0.4px) scale(0.9, 1.12); opacity: 1; }
         }
-        @keyframes bugMouthReceivedSip {
-          0%, 100% { transform: translateY(0) scale(0.82, 1.26); opacity: 0.95; }
-          45% { transform: translateY(-0.45px) scale(0.72, 1.4); opacity: 1; }
-        }
-        .sip-sync-compiling {
-          --sip-cycle: 0.92s;
-        }
-        .sip-sync-received {
-          --sip-cycle: 1.35s;
-        }
         .coding-companion {
           animation: codingCompanionIn 280ms ease-out;
-        }
-        .coding-drink {
-          animation: codingDrinkBob 1.6s ease-in-out infinite;
-        }
-        .drink-straw {
-          transform-origin: bottom center;
-          animation: drinkStrawSip var(--sip-cycle, 1.05s) ease-in-out infinite;
-        }
-        .drink-straw-tip {
-          animation: drinkStrawTipGlow var(--sip-cycle, 1.05s) ease-in-out infinite;
-        }
-        .drink-liquid {
-          transform-origin: bottom center;
-          animation: drinkLiquidPulse 1.45s ease-in-out infinite;
-          overflow: hidden;
-        }
-        .drink-liquid-compiling {
-          animation-duration: 1.25s;
-        }
-        .drink-liquid-received {
-          animation-duration: 1.8s;
-        }
-        .drink-bubble {
-          animation: drinkBubbleRise 1.35s ease-out infinite;
-        }
-        .drink-bubble-compiling {
-          animation-duration: 1.15s;
-        }
-        .drink-bubble-received {
-          animation-duration: 1.75s;
-        }
-        .drink-bubble-2 {
-          animation-delay: 260ms;
-        }
-        .drink-bubble-3 {
-          animation-delay: 520ms;
-        }
-        .drink-sip-wave {
-          animation: drinkSipWave 1s ease-out infinite;
-        }
-        .drink-sip-wave-compiling {
-          animation-duration: 0.95s;
-        }
-        .drink-sip-wave-received {
-          animation-duration: 1.25s;
-        }
-        .drink-sip-wave-2 {
-          animation-delay: 260ms;
-        }
-        .drink-clink {
-          opacity: 0;
-          animation: drinkClink 420ms ease-out 1 both;
-        }
-        .drink-clink-2 {
-          animation-delay: 120ms;
-        }
-        @media (max-width: 639px) {
-          .drink-sip-wave {
-            animation-name: drinkSipWaveMobile;
-          }
         }
         .coding-line {
           height: 4px;
@@ -1521,15 +1389,12 @@ export function CardMascotte() {
         .coding-mouth {
           transform-box: fill-box;
           transform-origin: center;
-          animation: codingMouthPulse var(--sip-cycle, 1.1s) ease-in-out infinite;
+          animation: codingMouthPulse 1.1s ease-in-out infinite;
         }
         .bug-mouth {
           transform-box: fill-box;
           transform-origin: center;
-          animation: bugMouthSip var(--sip-cycle, 1.05s) ease-in-out infinite;
-        }
-        .sip-sync-received .bug-mouth {
-          animation-name: bugMouthReceivedSip;
+          animation: bugMouthSip 1.05s ease-in-out infinite;
         }
       `}} />
     </>
