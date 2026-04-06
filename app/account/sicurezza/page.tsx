@@ -1,4 +1,17 @@
-import { SicurezzaContent } from '@/components/feature/account/SicurezzaContent';
+import dynamic from 'next/dynamic';
+
+const SicurezzaContent = dynamic(
+  () => import('@/components/feature/account/SicurezzaContent'),
+  {
+    loading: () => (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="text-lg font-medium text-gray-500 animate-pulse">
+          Caricamento impostazioni sicurezza...
+        </div>
+      </div>
+    ),
+  }
+);
 
 export const metadata = {
   title: 'Sicurezza | Ebartex',

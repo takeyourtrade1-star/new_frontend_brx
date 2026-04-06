@@ -4,6 +4,13 @@ import { FeaturesSection } from '@/components/feature/FeaturesSection';
 import { MarketplaceDashboard } from '@/components/feature/MarketplaceDashboard';
 import { CategoriesGrid } from '@/components/feature/CategoriesGrid';
 import { EbartexProductsSection } from '@/components/feature/EbartexProductsSection';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Home | Ebartex — Marketplace Multi-Gioco',
+  description:
+    'Esplora il marketplace Ebartex: carte collezionabili di Magic, Pokémon e One Piece. Dashboard, categorie, prodotti in evidenza e boutique ufficiale.',
+};
 
 export default function HomePage() {
   return (

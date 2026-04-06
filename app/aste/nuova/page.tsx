@@ -1,5 +1,20 @@
 import { Header } from '@/components/layout/Header';
-import { AuctionCreatePage } from '@/components/feature/aste/create/AuctionCreatePage';
+import dynamic from 'next/dynamic';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+
+const AuctionCreatePage = dynamic(
+  () => import('@/components/feature/aste/create/AuctionCreatePage'),
+  {
+    loading: () => (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="text-lg font-medium text-gray-500 animate-pulse">
+          Caricamento creazione asta...
+        </div>
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 export const metadata = {
   title: 'Nuova asta | Ebartex',
@@ -10,7 +25,9 @@ export default function AsteNuovaPage() {
   return (
     <main className="min-h-screen bg-white">
       <Header />
-      <AuctionCreatePage />
+      <ErrorBoundary>
+        <AuctionCreatePage />
+      </ErrorBoundary>
     </main>
   );
 }

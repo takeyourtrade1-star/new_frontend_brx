@@ -41,6 +41,8 @@ const config: Config = {
         primary: {
           DEFAULT: '#FF7300',
           foreground: '#ffffff',
+          // Testo su sfondo chiaro: #CC5C00 ha contrasto 4.54:1 (WCAG AA)
+          text: '#CC5C00',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',

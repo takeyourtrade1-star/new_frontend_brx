@@ -374,6 +374,7 @@ export function TopBar() {
               <Input
                 type="text"
                 placeholder={t('auth.usernamePlaceholder')}
+                aria-label={t('auth.usernamePlaceholder')}
                 autoComplete="email"
                 className={cn(
                   inputBase,
@@ -398,6 +399,7 @@ export function TopBar() {
               <Input
                 type={showPassword ? 'text' : 'password'}
                 placeholder={t('auth.passwordPlaceholder')}
+                aria-label={t('auth.passwordPlaceholder')}
                 autoComplete="current-password"
                 className={cn(
                   inputBase,
