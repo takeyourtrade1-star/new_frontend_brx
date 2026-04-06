@@ -1,7 +1,7 @@
 import dynamic from 'next/dynamic';
 
 const SicurezzaContent = dynamic(
-  () => import('@/components/feature/account/SicurezzaContent'),
+  () => import('@/components/feature/account/SicurezzaContent').then((mod) => ({ default: mod.SicurezzaContent })),
   {
     loading: () => (
       <div className="flex min-h-[60vh] items-center justify-center">

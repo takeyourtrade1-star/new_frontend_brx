@@ -3,7 +3,7 @@ import { Header } from '@/components/layout/Header';
 import { Suspense } from 'react';
 
 const ScambiLandingPage = dynamic(
-  () => import('@/components/feature/scambi/ScambiLandingPage'),
+  () => import('@/components/feature/scambi/ScambiLandingPage').then((mod) => ({ default: mod.ScambiLandingPage })),
   {
     loading: () => (
       <div className="flex min-h-[60vh] items-center justify-center">

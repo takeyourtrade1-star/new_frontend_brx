@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 const AuctionCreatePage = dynamic(
-  () => import('@/components/feature/aste/create/AuctionCreatePage'),
+  () => import('@/components/feature/aste/create/AuctionCreatePage').then((mod) => ({ default: mod.AuctionCreatePage })),
   {
     loading: () => (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -12,7 +12,6 @@ const AuctionCreatePage = dynamic(
         </div>
       </div>
     ),
-    ssr: false,
   }
 );
 

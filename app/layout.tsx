@@ -71,7 +71,7 @@ export default function RootLayout({
 }>) {
   const brxBgUrl = getBrxBgCssUrl();
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="it" suppressHydrationWarning>
       <head>
         <link
           rel="preload"

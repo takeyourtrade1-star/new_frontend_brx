@@ -1,7 +1,7 @@
 import dynamic from 'next/dynamic';
 
 const SincronizzazioneContent = dynamic(
-  () => import('@/components/feature/account/SincronizzazioneContent'),
+  () => import('@/components/feature/account/SincronizzazioneContent').then((mod) => ({ default: mod.SincronizzazioneContent })),
   {
     loading: () => (
       <div className="flex min-h-[60vh] items-center justify-center">
