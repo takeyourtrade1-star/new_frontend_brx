@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Read(C:\\Users\\xheta\\Desktop/**)"
-    ]
-  },
-  "$version": 3
-}
