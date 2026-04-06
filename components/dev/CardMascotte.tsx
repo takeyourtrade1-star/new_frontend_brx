@@ -1318,16 +1318,16 @@ export function CardMascotte() {
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes codingLine1 {
-          0%, 100% { width: 48%; opacity: 0.5; }
-          50% { width: 86%; opacity: 1; }
+          0%, 100% { width: 56%; opacity: 0.55; }
+          50% { width: 74%; opacity: 0.9; }
         }
         @keyframes codingLine2 {
-          0%, 100% { width: 78%; opacity: 0.45; }
-          50% { width: 42%; opacity: 0.95; }
+          0%, 100% { width: 72%; opacity: 0.5; }
+          50% { width: 52%; opacity: 0.9; }
         }
         @keyframes codingLine3 {
-          0%, 100% { width: 34%; opacity: 0.4; }
-          50% { width: 74%; opacity: 0.95; }
+          0%, 100% { width: 42%; opacity: 0.45; }
+          50% { width: 62%; opacity: 0.88; }
         }
         @keyframes codingCursor {
           0%, 45% { opacity: 1; }
@@ -1360,17 +1360,17 @@ export function CardMascotte() {
           background: linear-gradient(90deg, rgba(255, 115, 0, 0.92), rgba(243, 199, 106, 0.9));
         }
         .coding-line-1 {
-          animation: codingLine1 700ms ease-in-out infinite;
+          animation: codingLine1 1800ms ease-in-out infinite;
         }
         .coding-line-2 {
-          animation: codingLine2 640ms ease-in-out infinite;
+          animation: codingLine2 1700ms ease-in-out infinite;
         }
         .coding-line-3 {
           margin-bottom: 0;
-          animation: codingLine3 760ms ease-in-out infinite;
+          animation: codingLine3 1900ms ease-in-out infinite;
         }
         .coding-cursor {
-          animation: codingCursor 620ms step-end infinite;
+          animation: codingCursor 1200ms step-end infinite;
         }
         .coding-received {
           animation: codingReceivedIn 220ms ease-out;
