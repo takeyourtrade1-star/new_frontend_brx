@@ -7,6 +7,7 @@ import {
 export type BidRow = {
   username: string;
   amountEur: number;
+  countryCode?: string;
   /** Etichetta tempo relativo (solo vista venditore, mock). */
   atLabel?: string;
 };
@@ -62,11 +63,11 @@ function buildBids(base: AuctionMock, ended: boolean): BidRow[] {
   const cur = base.currentBidEur;
   const start = base.startingBidEur;
   const rows: BidRow[] = [
-    { username: 'GiacomoAlberto', amountEur: Math.max(22, Math.round(cur * 0.92)), atLabel: '2 h fa' },
-    { username: 'CardHunter_92', amountEur: Math.max(20, Math.round(cur * 0.85)), atLabel: '5 h fa' },
-    { username: 'MartaK', amountEur: Math.max(18, Math.round(cur * 0.78)), atLabel: 'ieri' },
-    { username: 'Leo', amountEur: Math.max(16, Math.round(cur * 0.7)), atLabel: '2 g fa' },
-    { username: 'InkFan', amountEur: Math.max(15, Math.round(start)), atLabel: '3 g fa' },
+    { username: 'GiacomoAlberto', amountEur: Math.max(22, Math.round(cur * 0.92)), countryCode: 'IT', atLabel: '2 h fa' },
+    { username: 'CardHunter_92', amountEur: Math.max(20, Math.round(cur * 0.85)), countryCode: 'ES', atLabel: '5 h fa' },
+    { username: 'MartaK', amountEur: Math.max(18, Math.round(cur * 0.78)), countryCode: 'FR', atLabel: 'ieri' },
+    { username: 'Leo', amountEur: Math.max(16, Math.round(cur * 0.7)), countryCode: 'DE', atLabel: '2 g fa' },
+    { username: 'InkFan', amountEur: Math.max(15, Math.round(start)), countryCode: 'IT', atLabel: '3 g fa' },
   ];
   if (ended) {
     return rows.map((r, i) => ({ ...r, atLabel: r.atLabel ?? `${i + 1}° giorno` }));

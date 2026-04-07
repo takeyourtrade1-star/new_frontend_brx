@@ -1,28 +1,15 @@
 'use client';
 
-
-
 /**
-
- * Modal "Fai un'offerta" — light mode (Figma): bordo arancione, sfondo bianco.
-
+ * Modal "Fai un'offerta" — Enhanced UI con design moderno e coerente
  * Regole: fino a 100 € ultima offerta → min +1 €; oltre 100 € → min +2,5 %.
-
  */
 
-
-
 import { useEffect, useMemo, useState } from 'react';
-
-import { X, ChevronDown } from 'lucide-react';
-
+import { X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-
 import type { MessageKey } from '@/lib/i18n/messages/en';
-
 import { minNextBidEur, roundMoney } from '@/lib/auction/bid-math';
-
-
 
 const ORANGE = '#FF7300';
 
@@ -47,6 +34,8 @@ type Props = {
   myLastOfferEur: number | null;
 
   onSubmitOffer: (amountEur: number) => void;
+
+  onSubmitMaxBid?: (amountEur: number) => void;
 
 };
 
@@ -85,6 +74,8 @@ export function AuctionBidModal({
   myLastOfferEur,
 
   onSubmitOffer,
+
+  onSubmitMaxBid,
 
 }: Props) {
 
@@ -170,6 +161,29 @@ export function AuctionBidModal({
 
 
 
+  // Hide mascot when modal is open - use specific class name
+  useEffect(() => {
+
+    if (open) {
+
+      document.body.classList.add('auction-bid-modal-open');
+
+    } else {
+
+      document.body.classList.remove('auction-bid-modal-open');
+
+    }
+
+    return () => {
+
+      document.body.classList.remove('auction-bid-modal-open');
+
+    };
+
+  }, [open]);
+
+
+
   if (!open) return null;
 
 
@@ -234,6 +248,38 @@ export function AuctionBidModal({
 
   };
 
+  const handleMaxBid = () => {
+
+    const raw = input.replace(',', '.').trim();
+
+    const parsed = parseFloat(raw);
+
+    const amount = Number.isFinite(parsed) ? roundMoney(parsed) : NaN;
+
+    if (!Number.isFinite(amount)) {
+
+      setError(t('auctions.bidErrorInvalid'));
+
+      return;
+
+    }
+
+    const min = minNextBidEur(effectiveCurrentBidEur);
+
+    if (amount < min) {
+
+      setError(t('auctions.bidErrorTooLow', { min: fmtEur(min) }));
+
+      return;
+
+    }
+
+    setError(null);
+
+    onSubmitMaxBid?.(roundMoney(amount));
+
+  };
+
 
 
   const reserveKey: MessageKey = reserveMet ? 'auctions.detailReserveYes' : 'auctions.detailReserveNo';
@@ -241,282 +287,184 @@ export function AuctionBidModal({
 
 
   return (
-
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-
+    <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center sm:p-4">
+      {/* Backdrop with blur */}
       <button
-
         type="button"
-
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
-
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         aria-label={t('auctions.bidModalAriaClose')}
-
         onClick={onClose}
-
       />
 
+      {/* Modal Content */}
       <div
-
         role="dialog"
-
         aria-modal="true"
-
         aria-labelledby="bid-modal-title"
-
-        className="relative z-[201] w-full max-w-2xl rounded border-[3px] bg-white px-8 py-7 shadow-2xl sm:px-10 sm:py-8"
-
-        style={{ borderColor: ORANGE }}
-
+        className="relative z-[201] w-full max-w-lg overflow-hidden rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl sm:rounded-2xl sm:border"
       >
+        {/* Safe area for mobile - top */}
+        <div className="h-safe-area-inset-top sm:h-0" />
 
-        {/* X button - absolute top right */}
-
-        <button
-
-          type="button"
-
-          onClick={onClose}
-
-          className="absolute right-4 top-4 rounded p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-
-          aria-label={t('auctions.bidModalAriaClose')}
-
-        >
-
-          <X className="h-4 w-4" />
-
-        </button>
-
-
-
-        {/* Header - title and reserve status */}
-
-        <div className="mb-4 pr-10">
-
-          <h2 id="bid-modal-title" className="text-xl font-bold uppercase tracking-wide text-gray-900">
-
-            {t('auctions.bidModalTitle')}
-
-          </h2>
-
-          <p className="mt-1 text-xs font-medium text-gray-400">{t(reserveKey)}</p>
-
+        {/* Mobile drag handle */}
+        <div className="flex justify-center pt-3 sm:hidden">
+          <div className="h-1 w-12 rounded-full bg-gray-300" />
         </div>
 
-
-
-        {/* Offerta attuale - IN EVIDENZA */}
-
-        <div className="mb-6 text-center">
-
-          <p className="text-xs text-gray-400">{t('auctions.bidModalCurrentOffer')}</p>
-
-          <p className="text-2xl font-extrabold text-gray-900">{fmtEur(effectiveCurrentBidEur)}</p>
-
-        </div>
-
-
-
-        {/* CAMPO INSERIMENTO - CENTRALE */}
-
-        <div className="mb-5 flex items-center justify-center gap-4">
-
-          <div className="flex max-w-sm items-center gap-2 rounded-full border border-gray-200 bg-gray-50 p-1.5 pr-4 shadow-lg">
-
-            <button
-
-              type="button"
-
-              onClick={handleConfirm}
-
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-lg font-medium text-white bg-gray-400"
-
-              aria-label={t('auctions.bidModalConfirm')}
-
-            >
-
-              €
-
-            </button>
-
-            <input
-
-              type="text"
-
-              inputMode="decimal"
-
-              value={input}
-
-              onChange={(e) => {
-
-                setInput(e.target.value);
-
-                setError(null);
-
-              }}
-
-              placeholder="Inserisci offerta"
-
-              className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none"
-
-            />
-
-          </div>
-
-        </div>
-
-
-
-        {/* 3 OFFERTE CONSIGLIATE */}
-
-        <div className="mb-5 flex items-start justify-center gap-3">
-
-          {quickAmounts.map((amt, idx) => {
-
-            const isMiddle = idx === 1;
-
-            // Calcola percentuale reale rispetto all'offerta attuale
-
-            const pct = ((amt - effectiveCurrentBidEur) / effectiveCurrentBidEur) * 100;
-
-            const pctStr = pct < 1 ? pct.toFixed(1) : Math.round(pct).toString();
-
-            return (
-
-              <div key={amt} className="flex flex-col items-center">
-
-                <button
-
-                  type="button"
-
-                  onClick={() => {
-
-                    setInput(amt.toString());
-
-                    setError(null);
-
-                  }}
-
-                  className={`relative rounded px-2.5 py-2 text-center text-xs font-bold uppercase tracking-wide transition hover:bg-gray-50 ${
-
-                    isMiddle
-
-                      ? 'min-w-[5.5rem] scale-105 bg-orange-100/80 border border-orange-300 text-[#FF7300] shadow-lg backdrop-blur-sm'
-
-                      : 'min-w-[4.5rem] border border-gray-200 text-gray-700'
-
-                  }`}
-
-                >
-
-                  {isMiddle && (
-
-                    <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 rounded border border-orange-300 bg-orange-50 px-1 py-0 text-[6px] font-semibold shadow-sm text-[#FF7300]">
-
-                      Consigliato
-
-                    </span>
-
-                  )}
-
-                  <span className={`block text-[9px] ${isMiddle ? 'text-orange-600/70' : 'text-gray-500'}`}>OFFRI</span>
-
-                  <span className={`block text-xs ${isMiddle ? 'text-gray-900' : 'text-gray-800'}`}>{fmtEur(amt)}</span>
-
-                  <span className={`block text-[8px] font-medium ${isMiddle ? 'text-orange-500' : 'text-gray-400'}`}>
-
-                    +{pctStr}%
-
-                  </span>
-
-                </button>
-
+        {/* Header with gradient */}
+        <div className="relative overflow-hidden border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white px-5 py-4 sm:px-8 sm:py-6">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#FF7300]/5 via-transparent to-[#FF7300]/5" />
+          
+          <div className="relative">
+            {/* Header row */}
+            <div className="flex items-start justify-between">
+              <div className="flex-1 pr-8">
+                <h2 id="bid-modal-title" className="text-base font-bold uppercase tracking-wide text-gray-900 sm:text-lg">
+                  {t('auctions.bidModalTitle')}
+                </h2>
+                <p className="mt-0.5 text-xs font-medium text-gray-500">{t(reserveKey)}</p>
               </div>
 
-            );
+              <button
+                type="button"
+                onClick={onClose}
+                className="shrink-0 rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                aria-label={t('auctions.bidModalAriaClose')}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-          })}
-
+            {/* Current offer - compact inline display */}
+            <div className="mt-3 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm sm:mt-4 sm:px-4 sm:py-2.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 sm:text-xs">
+                {t('auctions.bidModalCurrentOffer')}
+              </span>
+              <span className="text-xl font-bold text-gray-900 sm:text-2xl">
+                {fmtEur(effectiveCurrentBidEur)}
+              </span>
+            </div>
+          </div>
         </div>
 
+        {/* Body - scrollable on mobile */}
+        <div className="max-h-[65vh] overflow-y-auto px-5 py-5 sm:max-h-none sm:px-8 sm:py-6">
+          {/* CAMPO INSERIMENTO */}
+          <div className="mb-5 sm:mb-6">
+            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-gray-700 sm:mb-2 sm:text-xs">
+              {t('auctions.bidInput')}
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  setError(null);
+                }}
+                placeholder="0,00"
+                className="w-full rounded-xl border-2 border-gray-300 bg-white px-4 py-3 pr-12 text-lg font-bold text-gray-900 placeholder:text-gray-400 transition-colors focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20 sm:px-5 sm:py-4 sm:pr-14 sm:text-xl"
+              />
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-lg font-bold text-gray-400 sm:right-5 sm:text-xl">
+                €
+              </span>
+            </div>
+          </div>
 
+          {/* 3 OFFERTE CONSIGLIATE */}
+          <div className="mb-5 sm:mb-7">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-600 sm:mb-3 sm:text-xs">
+              {t('auctions.suggestedBids')}
+            </p>
+            <div className="flex items-center justify-center gap-2 sm:gap-3">
+              {quickAmounts.map((amt, idx) => {
+                const isRecommended = idx === 1;
+                const pct = ((amt - effectiveCurrentBidEur) / effectiveCurrentBidEur) * 100;
+                const pctStr = pct < 1 ? pct.toFixed(1) : Math.round(pct).toString();
 
-        {/* BOTTONI OFFRI E OFFERTA MAX */}
+                return (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => {
+                      setInput(amt.toString());
+                      setError(null);
+                    }}
+                    className={`group relative flex-1 rounded-xl border-2 p-2.5 text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 sm:p-4 ${
+                      isRecommended
+                        ? 'border-[#FF7300] bg-gradient-to-b from-orange-50 to-white shadow-md'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    {isRecommended && (
+                      <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                        <span className="inline-flex items-center rounded-full bg-[#FF7300] px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-sm whitespace-nowrap sm:px-2.5 sm:text-[9px]">
+                          {t('auctions.suggestedBid')}
+                        </span>
+                      </div>
+                    )}
 
-        <div className="mb-4 flex items-center justify-center gap-4">
+                    <span className={`block text-[9px] font-medium uppercase tracking-wide ${isRecommended ? 'text-[#FF7300]' : 'text-gray-500'} sm:text-[10px]`}>
+                      {t('auctions.bidButtonChoose')}
+                    </span>
+                    <span className={`mt-0.5 block text-base font-bold ${isRecommended ? 'text-[#FF7300]' : 'text-gray-900'} sm:mt-1 sm:text-lg`}>
+                      {fmtEur(amt)}
+                    </span>
+                    <span className={`mt-0.5 block text-[9px] font-semibold ${isRecommended ? 'text-orange-600' : 'text-gray-400'} sm:text-[10px]`}>
+                      +{pctStr}%
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-          <button
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-700 sm:mb-5 sm:px-5 sm:py-3.5 sm:text-sm" role="alert">
+              {error}
+            </div>
+          )}
 
-            type="button"
+          {/* BOTTONI AZIONE */}
+          <div className="flex items-stretch gap-2.5 sm:gap-3">
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="flex-[0.7] rounded-xl border-2 border-gray-300 bg-white px-3 py-3.5 text-[10px] font-bold uppercase tracking-wide text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 hover:shadow-sm active:scale-[0.98] sm:px-4 sm:py-3.5 sm:text-xs"
+            >
+              {t('auctions.bidButtonMain', { amount: fmtEur(minBid) })}
+            </button>
+            <button
+              type="button"
+              onClick={handleMaxBid}
+              className="flex-1 rounded-xl border-2 border-[#FF7300] bg-gradient-to-r from-[#FF8A3D] to-[#FF7300] px-4 py-3.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md shadow-orange-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98] sm:px-6 sm:py-3.5 sm:text-xs"
+            >
+              {t('auctions.bidButtonMax')}
+            </button>
+          </div>
 
-            onClick={handleConfirm}
-
-            className="rounded border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-
-          >
-
-            OFFRI
-
-          </button>
-
-          <button
-
-            type="button"
-
-            onClick={handleConfirm}
-
-            className="rounded border border-orange-300 bg-orange-100/80 px-8 py-3 text-base font-bold uppercase tracking-wide text-[#FF7300] shadow-lg backdrop-blur-sm transition hover:bg-orange-200/80"
-
-          >
-
-            OFFERTA MAX
-
-          </button>
-
-        </div>
-
-
-
-        {/* TESTO OFFERTA MASSIMA */}
-
-        <p className="mb-4 text-center text-xs font-medium text-gray-400">
-
-          Quale offerta massima vuoi impostare? <span className="text-gray-300">Al resto ci pensiamo noi.</span>
-
-        </p>
-
-
-
-        {error && (
-
-          <p className="mb-3 text-sm font-medium text-red-600 text-center" role="alert">
-
-            {error}
-
+          {/* Info text */}
+          <p className="mt-4 text-center text-[10px] text-gray-500 sm:mt-5 sm:text-xs">
+            {t('auctions.bidMaxHint')}
           </p>
 
-        )}
+          {/* Footer info */}
+          <div className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 sm:mt-6 sm:px-5 sm:py-4">
+            <p className="text-center text-[10px] text-gray-600 sm:text-xs">
+              <span className="font-medium">{t('auctions.bidModalEndsPrefix')} </span>
+              <span suppressHydrationWarning className="font-semibold text-gray-900">
+                {formatEndsRelative(msLeft)}, {dateLine}
+              </span>
+            </p>
+          </div>
+        </div>
 
-
-
-        <p className="text-center text-xs text-gray-400">
-
-          <span className="font-medium">{t('auctions.bidModalEndsPrefix')} </span>
-
-          <span suppressHydrationWarning>
-
-            {formatEndsRelative(msLeft)}, {dateLine}
-
-          </span>
-
-        </p>
-
+        {/* Safe area for mobile - bottom */}
+        <div className="h-safe-area-inset-bottom pb-2 sm:hidden" />
       </div>
-
     </div>
-
   );
-
 }
 

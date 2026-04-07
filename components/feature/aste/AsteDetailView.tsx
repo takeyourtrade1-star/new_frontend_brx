@@ -7,7 +7,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark } from 'lucide-react';
+import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { countryFlagEmoji } from '@/lib/auction/country-flag';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
@@ -27,8 +27,15 @@ import type { MessageKey } from '@/lib/i18n/messages/en';
 import { MOCK_AUCTIONS, type AuctionMock } from '@/components/feature/aste/mock-auctions';
 import { isMyAuctionListing } from '@/components/feature/aste/mock-user-auctions';
 
+const PASTEL_GRADIENTS = [
+  { gradient: 'from-rose-300/20 via-rose-200/10 to-transparent', border: 'border-rose-300/60', shadow: 'shadow-rose-200/30' },
+  { gradient: 'from-sky-300/20 via-sky-200/10 to-transparent', border: 'border-sky-300/60', shadow: 'shadow-sky-200/30' },
+  { gradient: 'from-violet-300/20 via-violet-200/10 to-transparent', border: 'border-violet-300/60', shadow: 'shadow-violet-200/30' },
+  { gradient: 'from-emerald-300/20 via-emerald-200/10 to-transparent', border: 'border-emerald-300/60', shadow: 'shadow-emerald-200/30' },
+  { gradient: 'from-amber-300/20 via-amber-200/10 to-transparent', border: 'border-amber-300/60', shadow: 'shadow-amber-200/30' },
+] as const;
 const ORANGE = '#FF7300';
-const HEADER_OFFSET = 80; // Altezza approssimativa header in px
+const HEADER_OFFSET = 80;
 
 function formatHMS(ms: number): string {
   if (ms <= 0) return '00:00:00';
@@ -114,6 +121,9 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const [imgIdx, setImgIdx] = useState(0);
   const [bidModalOpen, setBidModalOpen] = useState(false);
   const [myLastOfferEur, setMyLastOfferEur] = useState<number | null>(null);
+  const [myMaxBidEur, setMyMaxBidEur] = useState<number | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showMaxBidRemovedToast, setShowMaxBidRemovedToast] = useState(false);
   const [bidToastAmount, setBidToastAmount] = useState<number | null>(null);
   const mainImg = detail.images[imgIdx] ?? detail.images[0];
   const [stickyTop, setStickyTop] = useState(HEADER_OFFSET);
@@ -147,6 +157,12 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     const id = window.setTimeout(() => setBidToastAmount(null), 12000);
     return () => window.clearTimeout(id);
   }, [bidToastAmount]);
+
+  useEffect(() => {
+    if (!showMaxBidRemovedToast) return;
+    const id = window.setTimeout(() => setShowMaxBidRemovedToast(false), 8000);
+    return () => window.clearTimeout(id);
+  }, [showMaxBidRemovedToast]);
 
   // Intersection Observer per mostrare lo sticky header solo quando il titolo principale non è visibile
   useEffect(() => {
@@ -190,7 +206,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
   const tradeRows = useMemo(
     () =>
-      MOCK_AUCTIONS.slice(0, 3).map((a) => ({
+      MOCK_AUCTIONS.slice(0, 5).map((a) => ({
         seller: a.seller,
         country: a.sellerCountry,
         title: a.title,
@@ -301,6 +317,111 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               <p className="mt-1 text-xs leading-relaxed text-emerald-900">{t('auctions.bidRulesReminder')}</p>
             </div>
           )}
+
+          {showMaxBidRemovedToast && !isOwner && (
+            <div
+              className="mb-6 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-950 shadow-sm animate-[fadeInDown_0.4s_ease-out]"
+              role="status"
+            >
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-[#FF7300]" />
+                <p className="font-semibold">{t('auctions.maxBidRemovedToast')}</p>
+              </div>
+              <p className="mt-1 text-xs text-orange-700">{t('auctions.maxBidRemovedToastBody')}</p>
+            </div>
+          )}
+
+          {/* Banner Offerta Massima Attiva */}
+          {!isOwner && !isEnded && myMaxBidEur != null && (
+            <div
+              className="mb-6 rounded-xl border border-amber-300/60 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 px-4 py-4 shadow-md shadow-orange-500/10 animate-[fadeInDown_0.5s_ease-out]"
+              role="status"
+            >
+              <div className="flex items-start gap-3 sm:items-center">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FF7300] shadow-lg shadow-orange-500/30">
+                  <Zap className="h-5 w-5 text-white" fill="currentColor" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-bold text-gray-900">
+                      {t('auctions.maxBidActiveBannerTitle')}
+                    </p>
+                    {myMaxBidEur >= detail.currentBidEur && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                        <Crown className="h-3 w-3" />
+                        {t('auctions.maxBidWinningBadge')}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-sm text-gray-600">
+                    {t('auctions.maxBidActiveBannerBody', { amount: fmtEur(myMaxBidEur) })}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right hidden sm:block">
+                  <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                    {t('auctions.maxBidAmountLabel')}
+                  </span>
+                  <p className="text-lg font-bold text-[#FF7300]">
+                    {fmtEur(myMaxBidEur)}
+                  </p>
+                </div>
+              </div>
+              {/* Azioni Modifica/Annulla */}
+              <div className="mt-3 flex items-center gap-2 border-t border-amber-200/50 pt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCancelConfirm(false);
+                    setBidModalOpen(true);
+                  }}
+                  className="text-xs font-semibold text-gray-600 underline decoration-gray-400 underline-offset-2 transition hover:text-[#FF7300]"
+                >
+                  {t('auctions.maxBidEdit')}
+                </button>
+                <span className="text-gray-300">|</span>
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(true)}
+                  className="text-xs font-semibold text-gray-500 transition hover:text-red-600"
+                >
+                  {t('auctions.maxBidCancel')}
+                </button>
+              </div>
+
+              {/* Banner di conferma eliminazione */}
+              {showCancelConfirm && (
+                <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 animate-[fadeInDown_0.3s_ease-out]">
+                  <p className="text-xs font-medium text-red-800">
+                    {t('auctions.maxBidCancelConfirmTitle')}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-red-600">
+                    {t('auctions.maxBidCancelConfirmBody')}
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMyMaxBidEur(null);
+                        setShowCancelConfirm(false);
+                        setShowMaxBidRemovedToast(true);
+                      }}
+                      className="rounded-md bg-red-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-red-700"
+                    >
+                      {t('auctions.maxBidCancelConfirmYes')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCancelConfirm(false)}
+                      className="rounded-md border border-red-300 bg-white px-2.5 py-1 text-[10px] font-semibold text-red-700 transition hover:bg-red-50"
+                    >
+                      {t('auctions.maxBidCancelConfirmNo')}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Blocco principale — glass effect container come Best Sellers */}
           <div className="overflow-hidden rounded-2xl border border-gray-200/60 bg-white/80 backdrop-blur-[1px] shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
             <div className="grid gap-6 p-4 sm:gap-8 sm:p-6 lg:grid-cols-12 lg:p-8">
@@ -477,22 +598,57 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                 )}
 
                 {showBuyerBid && (
-                  <button
-                    type="button"
-                    onClick={() => setBidModalOpen(true)}
-                    className="group relative w-full overflow-hidden rounded-xl py-4 text-center transition-all duration-300 hover:shadow-lg"
-                    style={{ backgroundColor: ORANGE }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] opacity-100 transition-opacity group-hover:opacity-90" />
-                    <div className="relative flex items-center justify-center gap-2">
-                      <span className="text-sm font-semibold uppercase tracking-wider text-white/90">
-                        Offri
-                      </span>
-                      <span className="text-lg font-bold text-white">
-                        {fmtEur(minNextBidEur(effectiveCurrentBidEur))}
-                      </span>
+                  <div className="space-y-3 sm:space-y-4">
+                    {/* Prezzo attuale + CTA bid */}
+                    <div className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm sm:p-5">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500 sm:text-xs">
+                        {t('auctions.currentBid')}
+                      </p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
+                        {fmtEur(effectiveCurrentBidEur)}
+                      </p>
                     </div>
-                  </button>
+
+                    {/* CTA Principale - Scegli Offerta */}
+                    <button
+                      type="button"
+                      onClick={() => setBidModalOpen(true)}
+                      className="group relative w-full overflow-hidden rounded-xl border-2 border-[#FF7300] bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] py-3.5 text-center font-bold uppercase tracking-wide text-white shadow-lg shadow-orange-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:translate-y-0 sm:py-4"
+                    >
+                      {/* Animated gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#FF9A5C] via-[#FF8A3D] to-[#FF7300] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                      <div className="relative flex items-center justify-between gap-2 px-4 sm:px-6">
+                        {/* Left - Label */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold sm:text-sm">
+                            {t('auctions.bidButtonChoose')}
+                          </span>
+                        </div>
+
+                        {/* Right - Amount + Arrow */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-extrabold sm:text-lg">
+                            {fmtEur(minNextBidEur(effectiveCurrentBidEur))}
+                          </span>
+                          <svg
+                            className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 sm:h-5 sm:w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2.5}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Helper text */}
+                    <p className="text-center text-[10px] leading-relaxed text-gray-500 sm:text-[11px]">
+                      {t('auctions.bidRulesReminder').split('.')[0]}.
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -548,43 +704,65 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   )}
                 </div>
 
-                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                  <p className="mb-3 border-b border-gray-100 pb-2 text-xs font-bold uppercase tracking-wide text-gray-500">
-                    {isOwner ? t('auctions.sellerBidHistoryTitle') : t('auctions.detailBidHistory')}
-                  </p>
-                  <ul className="max-h-56 space-y-0 overflow-y-auto text-sm">
+                {/* Ultime Offerte — Minimal con Crown, evidenza You, animazione */}
+                <div className="rounded-xl border border-gray-200/60 bg-white/90 shadow-sm">
+                  <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
+                    <TrendingUp className="h-4 w-4 text-[#FF7300]" aria-hidden />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600">
+                      {isOwner ? t('auctions.sellerBidHistoryTitle') : t('auctions.detailBidHistory')}
+                    </h3>
+                    <span className="ml-auto rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-[#FF7300]">
+                      {detail.bids.length}
+                    </span>
+                  </div>
+
+                  <div className="max-h-72 overflow-y-auto py-1">
+                    {/* Current User's Bid */}
                     {!isOwner && myLastOfferEur != null && (
-                      <li className="flex flex-col gap-0.5 border-b border-orange-200 bg-orange-50/90 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <span className="font-semibold text-gray-900">{t('auctions.bidderYou')}</span>
-                          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#c2410c]">
-                            {t('auctions.myLastOfferBadge')}
-                          </p>
-                        </div>
-                        <span className="text-xs text-gray-600 sm:text-right">
-                          <span className="uppercase tracking-wide text-gray-400">{t('auctions.detailBidProposed')} </span>
-                          <span className="text-base font-bold text-[#FF7300]">{fmtEur(myLastOfferEur)}</span>
-                        </span>
-                      </li>
-                    )}
-                    {detail.bids.map((b, i) => (
-                      <li
-                        key={`${b.username}-${i}`}
-                        className="flex flex-col gap-0.5 border-b border-gray-100 py-2.5 last:border-0 sm:flex-row sm:items-center sm:justify-between"
+                      <div 
+                        className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-orange-50 to-amber-50/50 px-4 py-2.5 animate-[fadeIn_0.4s_ease-out]"
                       >
-                        <div>
-                          <span className="font-semibold text-gray-900">{b.username}</span>
-                          {isOwner && b.atLabel && (
-                            <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">{b.atLabel}</p>
-                          )}
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FF7300] text-[10px] text-white">
+                            <span>👤</span>
+                          </div>
+                          <span className="text-sm font-bold text-[#FF7300]">{t('auctions.bidderYou')}</span>
+                          <span className="rounded bg-orange-200 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-800">
+                            Tu
+                          </span>
                         </div>
-                        <span className="text-xs text-gray-600 sm:text-right">
-                          <span className="uppercase tracking-wide text-gray-400">{t('auctions.detailBidProposed')} </span>
-                          <span className="text-base font-bold text-[#FF7300]">{fmtEur(b.amountEur)}</span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                        <span className="text-sm font-bold text-[#FF7300]">{fmtEur(myLastOfferEur)}</span>
+                      </div>
+                    )}
+
+                    {/* Bids List */}
+                    {detail.bids.map((b, i) => {
+                      const isFirst = i === 0;
+                      const countryEmoji = countryFlagEmoji(b.countryCode || 'IT');
+                      const animationDelay = `${i * 0.05}s`;
+
+                      return (
+                        <div
+                          key={`${b.username}-${i}`}
+                          style={{ animationDelay }}
+                          className={`flex items-center justify-between px-4 py-2.5 animate-[fadeInUp_0.4s_ease-out_both] ${i !== detail.bids.length - 1 ? 'border-b border-gray-50' : ''} ${isFirst ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/20' : ''}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-base" aria-hidden>{countryEmoji}</span>
+                            <span className={`text-sm ${isFirst ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                              {b.username}
+                            </span>
+                            {isFirst && (
+                              <Crown className="h-3.5 w-3.5 text-amber-500" aria-label="Primo posto" />
+                            )}
+                          </div>
+                          <span className={`text-sm font-semibold ${isFirst ? 'text-emerald-600' : 'text-gray-600'}`}>
+                            {fmtEur(b.amountEur)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -651,31 +829,40 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             <h2 className="mb-5 text-lg font-bold uppercase tracking-wide text-gray-900 sm:text-xl">
               {t('auctions.tableExchangeTitle')}
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {tradeRows.map((row, i) => (
                 <div
                   key={i}
-                  className="group flex h-[140px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md transition hover:border-[#FF7300] hover:shadow-lg"
+                  className={`group relative isolate flex h-[110px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].border} hover:${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].shadow} hover:shadow-md`}
                 >
+                  {/* Gradient background on hover */}
+                  <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <div className={`absolute inset-0 bg-gradient-to-r ${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].gradient}`} />
+                    {/* Animated shimmer sweep */}
+                    <div className="absolute inset-y-0 -left-full w-full -skew-x-12 bg-gradient-to-r from-transparent via-white/50 to-transparent transition-all duration-700 ease-out group-hover:left-full" />
+                    {/* Secondary subtle pulse */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 animate-pulse" />
+                  </div>
+
                   {/* Immagine — altezza totale, spazio a sinistra */}
-                  <div className="relative h-full w-[35%] shrink-0 overflow-hidden">
+                  <div className="relative h-full w-1/6 shrink-0 overflow-hidden">
                     <Image
                       src={row.image}
                       alt=""
                       fill
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      sizes="(max-width: 1024px) 35vw, 120px"
+                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      sizes="(max-width: 1024px) 16vw, 72px"
                       unoptimized
                     />
                   </div>
 
                   {/* Info — a destra */}
-                  <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
+                  <div className="relative z-[1] flex min-w-0 flex-1 flex-col justify-between p-3">
                     <div>
-                      <p className="line-clamp-2 text-sm font-bold uppercase leading-tight text-gray-900">
+                      <p className="line-clamp-2 text-xs font-bold uppercase leading-tight text-gray-900 sm:text-sm">
                         {row.title}
                       </p>
-                      <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-500">
+                      <p className="mt-1 flex items-center gap-1.5 text-[11px] text-gray-500 sm:text-xs">
                         <span>{countryFlagEmoji(row.country)}</span>
                         <span className="font-medium text-gray-700">{row.seller}</span>
                         <span className="text-amber-500">★</span>
@@ -684,7 +871,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     </div>
                     <button
                       type="button"
-                      className="self-start text-xs font-bold uppercase tracking-wide text-gray-800 underline decoration-gray-300 underline-offset-2 hover:text-[#FF7300] sm:text-sm"
+                      className="self-start text-[11px] font-bold uppercase tracking-wide text-gray-800 underline decoration-gray-300 underline-offset-2 hover:text-primary sm:text-xs"
                     >
                       {t('auctions.exchangeRequestCta')}
                     </button>
@@ -708,6 +895,11 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
           myLastOfferEur={myLastOfferEur}
           onSubmitOffer={(amountEur) => {
             setMyLastOfferEur(roundMoney(amountEur));
+            setBidModalOpen(false);
+            setBidToastAmount(roundMoney(amountEur));
+          }}
+          onSubmitMaxBid={(amountEur) => {
+            setMyMaxBidEur(roundMoney(amountEur));
             setBidModalOpen(false);
             setBidToastAmount(roundMoney(amountEur));
           }}

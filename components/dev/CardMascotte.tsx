@@ -191,10 +191,6 @@ export function CardMascotte() {
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [hasConsoleLogs, setHasConsoleLogs] = useState(false);
   
-  // Tooltip visibility state
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [tooltipDismissed, setTooltipDismissed] = useState(false);
-  
   // Flash animation state for screenshot
   const [showFlash, setShowFlash] = useState(false);
   
@@ -205,10 +201,14 @@ export function CardMascotte() {
   const [chatStep, setChatStep] = useState<'greeting' | 'menu' | 'bug' | 'contact'>('greeting');
   const [chatMessages, setChatMessages] = useState<Array<{type: 'ciro' | 'user', text: string}>>([]);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [isCodingTransition, setIsCodingTransition] = useState(false);
   const [showCodingCompanion, setShowCodingCompanion] = useState(false);
   const [codingStatus, setCodingStatus] = useState<'compiling' | 'received'>('compiling');
   const [isBugFormFocused, setIsBugFormFocused] = useState(false);
+
+  // Hint bubble visibility state
+  const [showHint, setShowHint] = useState(false);
 
   // Mascotte expression state
   const [mascotteExpression, setMascotteExpression] = useState<'normal' | 'bugReport' | 'bugFocus' | 'wink' | 'coding'>('normal');
@@ -233,15 +233,18 @@ export function CardMascotte() {
 
   const handleClick = () => {
     playOpenSound();
-    setShowTooltip(false);
-    setTooltipDismissed(true);
     setIsCodingTransition(false);
     setShowCodingCompanion(false);
     setCodingStatus('compiling');
     setShowChatModal(true);
     setChatStep('greeting');
+    // Reset messages immediately to prevent showing stale messages from previous session
+    setChatMessages([]);
+    // Show typing indicator while waiting for greeting
+    setIsTyping(true);
     // Initialize greeting message
     setTimeout(() => {
+      setIsTyping(false);
       setChatMessages([{ type: 'ciro', text: "Ciao! Sono Ciro, la mascotte di Ebartex. Come posso aiutarti oggi?" }]);
       setTimeout(() => setChatStep('menu'), 1500);
     }, 500);
@@ -452,8 +455,6 @@ export function CardMascotte() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      setShowTooltip(false);
-      setTooltipDismissed(true);
       handleClick();
     }
   };
@@ -462,19 +463,6 @@ export function CardMascotte() {
   useEffect(() => {
     startConsoleCapture();
   }, []);
-
-  // Tooltip timer - show after 5 seconds, hide on first interaction
-  useEffect(() => {
-    if (!isMounted || tooltipDismissed) return;
-    
-    const timer = setTimeout(() => {
-      if (!isModalOpen && !tooltipDismissed) {
-        setShowTooltip(true);
-      }
-    }, 5000);
-
-    return () => clearTimeout(timer);
-  }, [isMounted, isModalOpen, tooltipDismissed]);
 
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
   const bugCategory = inferBugCategory(currentUrl);
@@ -697,7 +685,56 @@ export function CardMascotte() {
     }
   }, [isModalOpen]);
 
-  const isOverlayVisible = showChatModal || isModalOpen || isCodingTransition || showCodingCompanion;
+  // Watch for external modals (from AuctionBidModal) to hide mascot
+  const [isExternalModalOpen, setIsExternalModalOpen] = useState(false);
+  // Track when modal just closed for re-entry animation
+  const [justReappeared, setJustReappeared] = useState(false);
+  const reappearTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const checkExternalModalClass = () => {
+      const wasOpen = isExternalModalOpen;
+      const isOpen = document.body.classList.contains('auction-bid-modal-open');
+      setIsExternalModalOpen(isOpen);
+      
+      // Trigger reappear animation when modal closes
+      if (wasOpen && !isOpen) {
+        setJustReappeared(true);
+        if (reappearTimeoutRef.current !== null) {
+          window.clearTimeout(reappearTimeoutRef.current);
+        }
+        reappearTimeoutRef.current = window.setTimeout(() => {
+          setJustReappeared(false);
+          reappearTimeoutRef.current = null;
+        }, 600);
+      }
+    };
+
+    checkExternalModalClass();
+
+    const observer = new MutationObserver(checkExternalModalClass);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => {
+      observer.disconnect();
+      if (reappearTimeoutRef.current !== null) {
+        window.clearTimeout(reappearTimeoutRef.current);
+      }
+    };
+  }, [isExternalModalOpen]);
+
+  // Show hint bubble after delay on mount
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShowHint(true);
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const isOverlayVisible = showChatModal || isModalOpen || isCodingTransition || showCodingCompanion || isExternalModalOpen;
 
   // Safe render - don't render if not mounted (hydration mismatch protection)
   if (!isMounted) {
@@ -749,12 +786,32 @@ export function CardMascotte() {
         </div>
       )}
 
+      {/* Hint Bubble - Outside card so it stays visible when mascot is hidden */}
+      {showHint && (
+        <div
+          className="fixed pointer-events-none"
+          style={{
+            zIndex: Z_INDEX.tooltip,
+            bottom: '155px',
+            right: '96px',
+            transform: isModalOpen ? 'translateX(50%) scale(0.9)' : 'translateX(50%) scale(1)',
+            opacity: isModalOpen ? 0 : 1,
+            transition: 'opacity 300ms ease-in-out, transform 300ms ease-in-out',
+          }}
+        >
+          <div className="relative rounded-xl border border-primary/60 bg-primary/70 px-3 py-2 text-center text-xs font-semibold text-white shadow-lg shadow-primary/30 backdrop-blur-md backdrop-saturate-150">
+            Vuoi segnalare un bug?
+            <span className="absolute left-1/2 top-full h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-primary/60 bg-primary/70 backdrop-blur-md" />
+          </div>
+        </div>
+      )}
+
       {/* Card Mascotte */}
       <div
         ref={cardRef}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
-        className="fixed cursor-pointer select-none"
+        className={`fixed cursor-pointer select-none transition-all duration-300 ${justReappeared ? 'mascotte-reappear' : ''}`}
         style={{
           zIndex: isOverlayVisible ? Z_INDEX.mascotteOverlay : Z_INDEX.mascotteBase,
           bottom: '20px',
@@ -762,13 +819,28 @@ export function CardMascotte() {
           width: '96px',
           height: '128px',
           filter: 'drop-shadow(0 8px 24px rgba(0, 0, 0, 0.3))',
-          animation: 'mascotteFloat 3s ease-in-out infinite',
+          animation: justReappeared 
+            ? 'mascotteReappear 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards, mascotteFloat 3s ease-in-out infinite 500ms'
+            : 'mascotteFloat 3s ease-in-out infinite',
+          // Hide mascot when external modal is open (AuctionBidModal)
+          opacity: isExternalModalOpen ? 0 : 1,
+          pointerEvents: isExternalModalOpen ? 'none' : 'auto',
+          transform: isExternalModalOpen ? 'scale(0.8)' : 'scale(1)',
         }}
         role="button"
         tabIndex={0}
         aria-label="Segnala un bug"
         title="Segnala un bug"
       >
+        {/* Active auction indicator badge */}
+        {!isExternalModalOpen && !isModalOpen && (
+          <div 
+            className="absolute -top-1 -right-1 z-[10] flex h-5 w-5 items-center justify-center rounded-full bg-primary shadow-md"
+            title="Asta in corso"
+          >
+            <span className="text-[8px] font-bold text-white">A</span>
+          </div>
+        )}
         {/* Card container */}
         <div className="relative h-full w-full overflow-visible rounded-xl">
           {/* Color aura for card contour */}
@@ -867,32 +939,6 @@ export function CardMascotte() {
               </div>
 
               <div className="mx-auto mt-1.5 h-1.5 w-14 rounded-full bg-zinc-500/35" />
-            </div>
-          </div>
-        )}
-
-        {/* Tooltip - appears after 5 seconds */}
-        {showTooltip && (
-          <div
-            className="absolute bottom-full left-1/2 mb-3 -translate-x-1/2 whitespace-nowrap"
-            style={{
-              zIndex: Z_INDEX.tooltip,
-              animation: 'tooltipFadeIn 0.3s ease-out',
-            }}
-          >
-            <div className="relative rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white shadow-lg">
-              <span>Clicca per segnalare un bug</span>
-              {/* Tooltip arrow */}
-              <div
-                className="absolute left-1/2 top-full -translate-x-1/2"
-                style={{
-                  width: 0,
-                  height: 0,
-                  borderLeft: '6px solid transparent',
-                  borderRight: '6px solid transparent',
-                  borderTop: '6px solid rgb(24 24 27)',
-                }}
-              />
             </div>
           </div>
         )}
@@ -1178,12 +1224,13 @@ export function CardMascotte() {
               </button>
             </div>
 
-            {/* Chat Messages - Clean styling, no animations */}
+            {/* Chat Messages - Clean styling with fade-in animations */}
             <div className="max-h-[360px] min-h-[320px] overflow-y-auto bg-zinc-50 p-4">
               {chatMessages.map((msg, idx) => (
                 <div
                   key={idx}
-                  className={`mb-3 flex ${msg.type === 'ciro' ? 'justify-start' : 'justify-end'}`}
+                  className={`mb-3 flex chat-message-in ${msg.type === 'ciro' ? 'justify-start' : 'justify-end'}`}
+                  style={{ animationDelay: `${idx * 80}ms` }}
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
@@ -1197,7 +1244,20 @@ export function CardMascotte() {
                 </div>
               ))}
               
-              {/* Menu Options - Clean, no hover animations */}
+              {/* Typing Indicator - shows when Ciro is typing */}
+              {isTyping && (
+                <div className="mb-3 flex justify-start chat-message-in">
+                  <div className="max-w-[85%] rounded-2xl rounded-tl-none bg-white border border-zinc-200 px-4 py-3">
+                    <div className="typing-indicator">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Menu Options - Animated staggered entrance */}
               {chatStep === 'menu' && (
                 <div className="mt-4 space-y-2">
                   <button
@@ -1208,7 +1268,8 @@ export function CardMascotte() {
                         window.location.href = '/aiuto';
                       }, 300);
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50"
+                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50 menu-option-in"
+                    style={{ animationDelay: '0ms' }}
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                       <HelpCircle className="h-5 w-5" />
@@ -1238,7 +1299,8 @@ export function CardMascotte() {
                         codingTransitionTimeoutRef.current = null;
                       }, CODING_PREVIEW_MS);
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50"
+                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50 menu-option-in"
+                    style={{ animationDelay: '80ms' }}
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
                       <Bug className="h-5 w-5" />
@@ -1258,7 +1320,8 @@ export function CardMascotte() {
                         window.location.href = '/aiuto?tab=contact';
                       }, 300);
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50"
+                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50 menu-option-in"
+                    style={{ animationDelay: '160ms' }}
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-600">
                       <MessageSquare className="h-5 w-5" />
@@ -1289,9 +1352,11 @@ export function CardMascotte() {
           25% { transform: translateY(-4px) rotate(1deg); }
           75% { transform: translateY(-2px) rotate(-1deg); }
         }
-        @keyframes tooltipFadeIn {
-          from { opacity: 0; transform: translateX(-50%) translateY(8px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        @keyframes mascotteReappear {
+          0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+          50% { opacity: 1; transform: scale(1.15) translateY(-8px); }
+          70% { transform: scale(0.95) translateY(2px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
         }
         @keyframes flashFade {
           0% { opacity: 1; }
@@ -1395,6 +1460,50 @@ export function CardMascotte() {
           transform-box: fill-box;
           transform-origin: center;
           animation: bugMouthSip 1.05s ease-in-out infinite;
+        }
+        @keyframes chatMessageIn {
+          from { opacity: 0; transform: translateY(10px) scale(0.96); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes typingBounce {
+          0%, 60%, 100% { transform: translateY(0); }
+          30% { transform: translateY(-4px); }
+        }
+        .chat-message-in {
+          animation: chatMessageIn 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          opacity: 0;
+        }
+        .typing-indicator {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          height: 16px;
+        }
+        .typing-indicator span {
+          width: 6px;
+          height: 6px;
+          background: #a1a1aa;
+          border-radius: 50%;
+          animation: typingBounce 1.1s ease-in-out infinite;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: 0ms; }
+        .typing-indicator span:nth-child(2) { animation-delay: 150ms; }
+        .typing-indicator span:nth-child(3) { animation-delay: 300ms; }
+        @keyframes menuOptionIn {
+          from { opacity: 0; transform: translateX(-16px) scale(0.96); }
+          to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        .menu-option-in {
+          animation: menuOptionIn 350ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          opacity: 0;
+        }
+        @keyframes hintPopIn {
+          0% { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.92); }
+          70% { opacity: 1; transform: translateX(-50%) translateY(-3px) scale(1.02); }
+          100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+        }
+        .hint-bubble {
+          animation: hintPopIn 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
       `}} />
     </>
