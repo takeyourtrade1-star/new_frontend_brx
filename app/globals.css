@@ -810,6 +810,19 @@
   }
 }
 
+/* ========== LANDING CTA GLOW PULSE ANIMATION ========== */
+/* Subtle glow pulse behind the "Register" button - activates after 2s delay */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
 /* ========== LANDING FULLSCREEN GAME ANIMATIONS ========== */
 /* Background zoom + fade in (smooth entrance) */
 @keyframes landing-bg-enter {
@@ -1121,5 +1134,231 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ========== CARD LOADER ANIMATIONS ========== */
+@keyframes cardLoaderFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cardLoaderSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Shuffle phase - 5-card 3D riffle with organic scale pulsation + motion blur */
+@keyframes cardShuffle1 {
+  0%   { transform: translate(-50%, -50%) translateX(-35px) translateY(4px) rotate(-7deg) rotateY(0deg) scale(1); filter: blur(0px); }
+  10%  { filter: blur(0.5px); }
+  16%  { transform: translate(-50%, -50%) translateX(8px) translateY(-30px) rotate(3deg) rotateY(16deg) scale(1.03); filter: blur(0.4px); }
+  24%  { filter: blur(0.3px); }
+  33%  { transform: translate(-50%, -50%) translateX(30px) translateY(0px) rotate(8deg) rotateY(-6deg) scale(0.98); filter: blur(0px); }
+  42%  { filter: blur(0.5px); }
+  50%  { transform: translate(-50%, -50%) translateX(5px) translateY(22px) rotate(-4deg) rotateY(-14deg) scale(1.03); filter: blur(0.4px); }
+  58%  { filter: blur(0.3px); }
+  66%  { transform: translate(-50%, -50%) translateX(-28px) translateY(-24px) rotate(-8deg) rotateY(10deg) scale(0.98); filter: blur(0px); }
+  75%  { filter: blur(0.4px); }
+  83%  { transform: translate(-50%, -50%) translateX(-38px) translateY(12px) rotate(2deg) rotateY(-5deg) scale(1.02); filter: blur(0.3px); }
+  92%  { filter: blur(0.2px); }
+  100% { transform: translate(-50%, -50%) translateX(-35px) translateY(4px) rotate(-7deg) rotateY(0deg) scale(1); filter: blur(0px); }
+}
+@keyframes cardShuffle2 {
+  0%   { transform: translate(-50%, -50%) translateX(-18px) translateY(-3px) rotate(-3deg) rotateY(0deg) scale(1); filter: blur(0px); }
+  10%  { filter: blur(0.5px); }
+  16%  { transform: translate(-50%, -50%) translateX(22px) translateY(-22px) rotate(5deg) rotateY(-14deg) scale(1.03); filter: blur(0.4px); }
+  24%  { filter: blur(0.3px); }
+  33%  { transform: translate(-50%, -50%) translateX(-10px) translateY(20px) rotate(-6deg) rotateY(10deg) scale(0.98); filter: blur(0px); }
+  42%  { filter: blur(0.5px); }
+  50%  { transform: translate(-50%, -50%) translateX(-30px) translateY(-18px) rotate(4deg) rotateY(16deg) scale(1.03); filter: blur(0.4px); }
+  58%  { filter: blur(0.3px); }
+  66%  { transform: translate(-50%, -50%) translateX(14px) translateY(25px) rotate(-5deg) rotateY(-10deg) scale(0.98); filter: blur(0px); }
+  75%  { filter: blur(0.4px); }
+  83%  { transform: translate(-50%, -50%) translateX(28px) translateY(-6px) rotate(2deg) rotateY(5deg) scale(1.02); filter: blur(0.3px); }
+  92%  { filter: blur(0.2px); }
+  100% { transform: translate(-50%, -50%) translateX(-18px) translateY(-3px) rotate(-3deg) rotateY(0deg) scale(1); filter: blur(0px); }
+}
+@keyframes cardShuffle3 {
+  0%   { transform: translate(-50%, -50%) translateX(0px) translateY(0px) rotate(0deg) rotateY(0deg) scale(1); filter: blur(0px); }
+  10%  { filter: blur(0.5px); }
+  16%  { transform: translate(-50%, -50%) translateX(-28px) translateY(-20px) rotate(-7deg) rotateY(-12deg) scale(1.03); filter: blur(0.4px); }
+  24%  { filter: blur(0.3px); }
+  33%  { transform: translate(-50%, -50%) translateX(-14px) translateY(26px) rotate(5deg) rotateY(8deg) scale(0.98); filter: blur(0px); }
+  42%  { filter: blur(0.5px); }
+  50%  { transform: translate(-50%, -50%) translateX(30px) translateY(-12px) rotate(7deg) rotateY(16deg) scale(1.03); filter: blur(0.4px); }
+  58%  { filter: blur(0.3px); }
+  66%  { transform: translate(-50%, -50%) translateX(6px) translateY(18px) rotate(-3deg) rotateY(-8deg) scale(0.98); filter: blur(0px); }
+  75%  { filter: blur(0.4px); }
+  83%  { transform: translate(-50%, -50%) translateX(-12px) translateY(-10px) rotate(3deg) rotateY(5deg) scale(1.02); filter: blur(0.3px); }
+  92%  { filter: blur(0.2px); }
+  100% { transform: translate(-50%, -50%) translateX(0px) translateY(0px) rotate(0deg) rotateY(0deg) scale(1); filter: blur(0px); }
+}
+@keyframes cardShuffle4 {
+  0%   { transform: translate(-50%, -50%) translateX(18px) translateY(3px) rotate(3deg) rotateY(0deg) scale(1); filter: blur(0px); }
+  10%  { filter: blur(0.5px); }
+  16%  { transform: translate(-50%, -50%) translateX(-22px) translateY(24px) rotate(-6deg) rotateY(14deg) scale(1.03); filter: blur(0.4px); }
+  24%  { filter: blur(0.3px); }
+  33%  { transform: translate(-50%, -50%) translateX(32px) translateY(-20px) rotate(6deg) rotateY(-10deg) scale(0.98); filter: blur(0px); }
+  42%  { filter: blur(0.5px); }
+  50%  { transform: translate(-50%, -50%) translateX(-14px) translateY(-24px) rotate(-4deg) rotateY(-15deg) scale(1.03); filter: blur(0.4px); }
+  58%  { filter: blur(0.3px); }
+  66%  { transform: translate(-50%, -50%) translateX(-30px) translateY(14px) rotate(5deg) rotateY(8deg) scale(0.98); filter: blur(0px); }
+  75%  { filter: blur(0.4px); }
+  83%  { transform: translate(-50%, -50%) translateX(10px) translateY(20px) rotate(-2deg) rotateY(-5deg) scale(1.02); filter: blur(0.3px); }
+  92%  { filter: blur(0.2px); }
+  100% { transform: translate(-50%, -50%) translateX(18px) translateY(3px) rotate(3deg) rotateY(0deg) scale(1); filter: blur(0px); }
+}
+@keyframes cardShuffle5 {
+  0%   { transform: translate(-50%, -50%) translateX(35px) translateY(-4px) rotate(7deg) rotateY(0deg) scale(1); filter: blur(0px); }
+  10%  { filter: blur(0.5px); }
+  16%  { transform: translate(-50%, -50%) translateX(-6px) translateY(28px) rotate(-3deg) rotateY(-16deg) scale(1.03); filter: blur(0.4px); }
+  24%  { filter: blur(0.3px); }
+  33%  { transform: translate(-50%, -50%) translateX(-30px) translateY(-12px) rotate(-8deg) rotateY(6deg) scale(0.98); filter: blur(0px); }
+  42%  { filter: blur(0.5px); }
+  50%  { transform: translate(-50%, -50%) translateX(18px) translateY(26px) rotate(5deg) rotateY(14deg) scale(1.03); filter: blur(0.4px); }
+  58%  { filter: blur(0.3px); }
+  66%  { transform: translate(-50%, -50%) translateX(38px) translateY(-20px) rotate(8deg) rotateY(-10deg) scale(0.98); filter: blur(0px); }
+  75%  { filter: blur(0.4px); }
+  83%  { transform: translate(-50%, -50%) translateX(-4px) translateY(-26px) rotate(-4deg) rotateY(6deg) scale(1.02); filter: blur(0.3px); }
+  92%  { filter: blur(0.2px); }
+  100% { transform: translate(-50%, -50%) translateX(35px) translateY(-4px) rotate(7deg) rotateY(0deg) scale(1); filter: blur(0px); }
+}
+
+/* Holographic shine sweep on cards */
+@keyframes cardShine {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Sparkle pulse for particles */
+@keyframes sparklePulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.7); }
+  50%      { opacity: 1; transform: scale(1.3); }
+}
+
+/* Fan out phase - 5 card hand spread with bounce settle */
+@keyframes cardFan1 {
+  0%   { transform: translate(-50%, -50%) translateX(-35px) translateY(4px) rotate(-7deg) rotateY(0deg); }
+  55%  { transform: translate(-50%, -50%) translateX(-148px) translateY(-10px) rotate(-34deg) rotateY(5deg) scale(1.02); }
+  100% { transform: translate(-50%, -50%) translateX(-142px) translateY(-8px) rotate(-32deg) rotateY(0deg) scale(1); }
+}
+@keyframes cardFan2 {
+  0%   { transform: translate(-50%, -50%) translateX(-18px) translateY(-3px) rotate(-3deg) rotateY(0deg); }
+  55%  { transform: translate(-50%, -50%) translateX(-74px) translateY(-22px) rotate(-18deg) rotateY(3deg) scale(1.02); }
+  100% { transform: translate(-50%, -50%) translateX(-70px) translateY(-20px) rotate(-16deg) rotateY(0deg) scale(1); }
+}
+@keyframes cardFan3 {
+  0%   { transform: translate(-50%, -50%) translateX(0px) translateY(0px) rotate(0deg) rotateY(0deg); }
+  55%  { transform: translate(-50%, -50%) translateX(0px) translateY(-34px) rotate(0deg) rotateY(0deg) scale(1.05); }
+  100% { transform: translate(-50%, -50%) translateX(0px) translateY(-30px) rotate(0deg) rotateY(0deg) scale(1); }
+}
+@keyframes cardFan4 {
+  0%   { transform: translate(-50%, -50%) translateX(18px) translateY(3px) rotate(3deg) rotateY(0deg); }
+  55%  { transform: translate(-50%, -50%) translateX(74px) translateY(-22px) rotate(18deg) rotateY(-3deg) scale(1.02); }
+  100% { transform: translate(-50%, -50%) translateX(70px) translateY(-20px) rotate(16deg) rotateY(0deg) scale(1); }
+}
+@keyframes cardFan5 {
+  0%   { transform: translate(-50%, -50%) translateX(35px) translateY(-4px) rotate(7deg) rotateY(0deg); }
+  55%  { transform: translate(-50%, -50%) translateX(148px) translateY(-10px) rotate(34deg) rotateY(-5deg) scale(1.02); }
+  100% { transform: translate(-50%, -50%) translateX(142px) translateY(-8px) rotate(32deg) rotateY(0deg) scale(1); }
+}
+
+/* Exit phase - 5 cards fly out with staggered 3D flips */
+@keyframes cardExit1 {
+  0%   { transform: translate(-50%, -50%) translateX(-142px) translateY(-8px) rotate(-32deg) rotateY(0deg) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) translateX(-260px) translateY(-90px) rotate(-60deg) rotateY(70deg) scale(0.5); opacity: 0; }
+}
+@keyframes cardExit2 {
+  0%   { transform: translate(-50%, -50%) translateX(-70px) translateY(-20px) rotate(-16deg) rotateY(0deg) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) translateX(-180px) translateY(-110px) rotate(-40deg) rotateY(55deg) scale(0.5); opacity: 0; }
+}
+@keyframes cardExit3 {
+  0%   { transform: translate(-50%, -50%) translateX(0px) translateY(-30px) rotate(0deg) rotateY(0deg) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) translateX(0px) translateY(-160px) rotate(10deg) rotateY(90deg) scale(0.5); opacity: 0; }
+}
+@keyframes cardExit4 {
+  0%   { transform: translate(-50%, -50%) translateX(70px) translateY(-20px) rotate(16deg) rotateY(0deg) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) translateX(180px) translateY(-110px) rotate(40deg) rotateY(-55deg) scale(0.5); opacity: 0; }
+}
+@keyframes cardExit5 {
+  0%   { transform: translate(-50%, -50%) translateX(142px) translateY(-8px) rotate(32deg) rotateY(0deg) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) translateX(260px) translateY(-90px) rotate(60deg) rotateY(-70deg) scale(0.5); opacity: 0; }
+}
+
+/* Apply animation classes - 5-card organic riffle shuffle */
+.card-shuffle-1 { animation: cardShuffle1 2400ms cubic-bezier(0.25, 0.1, 0.25, 1) infinite; transform-style: preserve-3d; }
+.card-shuffle-2 { animation: cardShuffle2 2400ms cubic-bezier(0.25, 0.1, 0.25, 1) infinite; animation-delay: -240ms; transform-style: preserve-3d; }
+.card-shuffle-3 { animation: cardShuffle3 2400ms cubic-bezier(0.25, 0.1, 0.25, 1) infinite; animation-delay: -480ms; transform-style: preserve-3d; }
+.card-shuffle-4 { animation: cardShuffle4 2400ms cubic-bezier(0.25, 0.1, 0.25, 1) infinite; animation-delay: -720ms; transform-style: preserve-3d; }
+.card-shuffle-5 { animation: cardShuffle5 2400ms cubic-bezier(0.25, 0.1, 0.25, 1) infinite; animation-delay: -960ms; transform-style: preserve-3d; }
+
+.card-fan-1 { animation: cardFan1 420ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; transform-style: preserve-3d; }
+.card-fan-2 { animation: cardFan2 420ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; animation-delay: 30ms; transform-style: preserve-3d; }
+.card-fan-3 { animation: cardFan3 420ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; animation-delay: 60ms; transform-style: preserve-3d; }
+.card-fan-4 { animation: cardFan4 420ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; animation-delay: 30ms; transform-style: preserve-3d; }
+.card-fan-5 { animation: cardFan5 420ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; transform-style: preserve-3d; }
+
+.card-exit-1 { animation: cardExit1 320ms cubic-bezier(0.4, 0, 0.2, 1) forwards; transform-style: preserve-3d; }
+.card-exit-2 { animation: cardExit2 320ms cubic-bezier(0.4, 0, 0.2, 1) forwards; animation-delay: 50ms; transform-style: preserve-3d; }
+.card-exit-3 { animation: cardExit3 320ms cubic-bezier(0.4, 0, 0.2, 1) forwards; animation-delay: 100ms; transform-style: preserve-3d; }
+.card-exit-4 { animation: cardExit4 320ms cubic-bezier(0.4, 0, 0.2, 1) forwards; animation-delay: 50ms; transform-style: preserve-3d; }
+.card-exit-5 { animation: cardExit5 320ms cubic-bezier(0.4, 0, 0.2, 1) forwards; transform-style: preserve-3d; }
+
+/* Holographic shine overlay for shuffle cards */
+.card-shuffle-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent 25%,
+    rgba(255, 185, 100, 0.12) 42%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 185, 100, 0.12) 58%,
+    transparent 75%
+  );
+  background-size: 200% 100%;
+  animation: cardShine 1000ms ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Sticky bottom bar slide-up animation with bounce + border glow */
+@keyframes slideUpBounce {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+    border-top-color: rgba(255, 115, 0, 0.8);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1), 0 -4px 24px rgba(255, 115, 0, 0.4);
+  }
+  60% {
+    transform: translateY(-8px);
+    opacity: 1;
+    border-top-color: rgba(255, 115, 0, 0.6);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1), 0 -4px 20px rgba(255, 115, 0, 0.3);
+  }
+  80% {
+    transform: translateY(3px);
+    border-top-color: rgba(255, 115, 0, 0.3);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1), 0 -4px 12px rgba(255, 115, 0, 0.15);
+  }
+  100% {
+    transform: translateY(0);
+    border-top-color: rgba(255, 115, 0, 0.8);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1), 0 -2px 8px rgba(255, 115, 0, 0.1);
+  }
+}
+
+.animate-slide-up-bounce {
+  animation: slideUpBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
