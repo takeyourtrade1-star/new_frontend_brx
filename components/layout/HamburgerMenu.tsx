@@ -51,19 +51,11 @@ export function HamburgerMenu() {
   const [linguaDropdownOpen, setLinguaDropdownOpen] = useState(false);
   const [gameDropdownOpen, setGameDropdownOpen] = useState(false);
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
-  const [devMode, setDevMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('dev-mode') === 'true';
-    }
-    return false;
-  });
   const linguaDropdownRef = useRef<HTMLDivElement>(null);
   const gameMenuRef = useRef<HTMLDivElement>(null);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated) || devMode;
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const setFlashMessage = useAuthStore((s) => s.setFlashMessage);
-  const mockLogin = useAuthStore((s) => s.mockLogin);
-  const logout = useAuthStore((s) => s.logout);
   const logoutMutation = useLogout();
   const loginMutation = useLogin();
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -128,33 +120,11 @@ export function HamburgerMenu() {
 
   const handleLogout = async () => {
     try {
-      if (devMode) {
-        // If in dev mode, just turn it off
-        setDevMode(false);
-        localStorage.removeItem('dev-mode');
-        setOpen(false);
-      } else {
-        await logoutMutation.mutateAsync();
-        setOpen(false);
-      }
+      await logoutMutation.mutateAsync();
+      setOpen(false);
     } catch (error) {
       console.error('Errore durante il logout:', error);
     }
-  };
-
-  const toggleDevMode = () => {
-    const newDevMode = !devMode;
-    setDevMode(newDevMode);
-    localStorage.setItem('dev-mode', String(newDevMode));
-    
-    if (newDevMode) {
-      // Activate dev mode with mock user
-      mockLogin();
-    } else {
-      // Deactivate dev mode - logout
-      logout();
-    }
-    setOpen(false);
   };
 
   useEffect(() => {
@@ -258,18 +228,6 @@ export function HamburgerMenu() {
             <X className="h-7 w-7" strokeWidth={2} />
           </button>
         </div>
-
-        {/* Dev Mode Banner */}
-        {devMode && (
-          <div className="shrink-0 bg-yellow-400 px-4 py-2 text-center">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-yellow-900">
-              ⚠️ Dev Mode Active
-            </p>
-            <p className="text-[10px] text-yellow-800">
-              Viewing as authenticated
-            </p>
-          </div>
-        )}
 
         <nav className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 overflow-y-auto pb-2">
@@ -582,41 +540,6 @@ export function HamburgerMenu() {
             </button>
           </div>
 
-          {/* Dev Mode Toggle */}
-          <div className={cn(
-            'flex items-center justify-between border-b border-gray-100 px-5 py-3.5',
-            devMode && 'bg-yellow-50 border-yellow-200'
-          )}>
-            <div className="flex flex-col">
-              <span className={cn(
-                'text-[13px] font-semibold uppercase tracking-wide',
-                devMode ? 'text-yellow-700' : 'text-gray-600'
-              )}>
-                Dev Mode
-              </span>
-              <span className="text-[10px] text-gray-500 normal-case tracking-wide">
-                {devMode ? 'Simulating logged-in state' : 'View site as authenticated'}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={toggleDevMode}
-              role="switch"
-              aria-checked={devMode}
-              className={cn(
-                'relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 focus:outline-none',
-                devMode ? 'bg-yellow-500' : 'bg-gray-300'
-              )}
-            >
-              <span
-                className={cn(
-                  'absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow transition-[left] duration-200',
-                  devMode ? 'left-6' : 'left-1'
-                )}
-              />
-            </button>
-          </div>
-
           <Link href="/aiuto" onClick={() => setOpen(false)} className={cn(navLinkClass, 'border-b border-gray-100')}>
             <HelpCircle className="h-5 w-5 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
             {t('common.help')}
@@ -688,15 +611,10 @@ export function HamburgerMenu() {
                 type="button"
                 onClick={handleLogout}
                 disabled={logoutMutation.isPending}
-                className={cn(
-                  'flex w-full items-center justify-center gap-3 px-5 py-4 text-left text-[13px] font-semibold uppercase tracking-wide transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-                  devMode 
-                    ? 'text-yellow-700 hover:bg-yellow-100' 
-                    : 'text-red-600 hover:bg-red-50'
-                )}
+                className="flex w-full items-center justify-center gap-3 px-5 py-4 text-left text-[13px] font-semibold uppercase tracking-wide text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <LogOut className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
-                <span>{devMode ? 'Exit Dev Mode' : (logoutMutation.isPending ? t('auth.logoutPending') : t('auth.logout'))}</span>
+                <span>{logoutMutation.isPending ? t('auth.logoutPending') : t('auth.logout')}</span>
               </button>
             </div>
           )}

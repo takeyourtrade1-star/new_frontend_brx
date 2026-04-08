@@ -92,8 +92,6 @@ interface AuthState {
   fetchUser: () => Promise<User | null>;
   handleSessionExpired: () => void;
   setSessionExpired: (value: boolean) => void;
-  /** Mock login for UI development without backend */
-  mockLogin: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -655,51 +653,6 @@ export const useAuthStore = create<AuthState>()(
         set({ sessionExpired: value });
       },
 
-      // Mock login for UI development without backend
-      mockLogin: () => {
-        // Allow in both development and when dev-mode is explicitly set
-        const devModeEnabled = typeof window !== 'undefined' && localStorage.getItem('dev-mode') === 'true';
-        if (process.env.NODE_ENV !== 'development' && !devModeEnabled) return;
-
-        const mockUser: User = {
-          id: 'mock-user-001',
-          email: 'dev@ebartex.com',
-          name: 'Developer Mock',
-          image: null,
-          account_status: 'active',
-          mfa_enabled: false,
-          created_at: new Date().toISOString(),
-          country: 'IT',
-          preferences: {
-            theme: 'system',
-            language: 'it',
-            is_onboarding_completed: true,
-          },
-        };
-
-        const mockToken = 'mock-access-token-for-dev-ui';
-        const mockRefreshToken = 'mock-refresh-token-for-dev-ui';
-
-        // Salva in localStorage come farebbe un vero login
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(config.auth.tokenKey, mockToken);
-          localStorage.setItem(config.auth.refreshTokenKey, mockRefreshToken);
-          localStorage.setItem(config.auth.userKey, JSON.stringify(mockUser));
-        }
-
-        // Imposta nello store
-        authApi.setToken(mockToken, mockRefreshToken);
-        set({
-          user: mockUser,
-          accessToken: mockToken,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-          mfaRequired: false,
-          preAuthToken: null,
-          flashMessage: 'Mock login attivo - Backend offline',
-        });
-      },
     }),
     {
       name: 'ebartex-auth',
