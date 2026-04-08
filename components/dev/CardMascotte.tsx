@@ -225,8 +225,9 @@ export function CardMascotte() {
   const [codingStatus, setCodingStatus] = useState<'compiling' | 'received'>('compiling');
   const [isBugFormFocused, setIsBugFormFocused] = useState(false);
 
-  // Hint bubble visibility state
+  // Hint bubble visibility + message rotation
   const [showHint, setShowHint] = useState(false);
+  const [hintIndex, setHintIndex] = useState(0);
 
   // Mascotte expression state
   const [mascotteExpression, setMascotteExpression] = useState<'normal' | 'bugReport' | 'bugFocus' | 'wink' | 'coding'>('normal');
@@ -1278,13 +1279,41 @@ export function CardMascotte() {
     };
   }, [isExternalModalOpen]);
 
-  // Show hint bubble after delay on mount
+  const hintMessages = useMemo(() => [
+    'Visto un bug? Dimmelo',
+    'Qualcosa non va? 🐛',
+    'Cliccami per segnalare',
+    'Serve aiuto?',
+  ], []);
+
+  // Cycle hint bubble: show briefly, hide, repeat with rotating messages
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    const INITIAL_DELAY = 3000;
+    const SHOW_DURATION = 4000;
+    const HIDE_DURATION = 25000;
+    let showTimer: number;
+    let hideTimer: number;
+    const show = () => {
+      setHintIndex(prev => (prev + 1) % hintMessages.length);
       setShowHint(true);
-    }, 2500);
-    return () => window.clearTimeout(timer);
-  }, []);
+      hideTimer = window.setTimeout(() => {
+        setShowHint(false);
+        showTimer = window.setTimeout(show, HIDE_DURATION);
+      }, SHOW_DURATION);
+    };
+    const initialTimer = window.setTimeout(() => {
+      setShowHint(true);
+      hideTimer = window.setTimeout(() => {
+        setShowHint(false);
+        showTimer = window.setTimeout(show, HIDE_DURATION);
+      }, SHOW_DURATION);
+    }, INITIAL_DELAY);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearTimeout(showTimer);
+      window.clearTimeout(hideTimer);
+    };
+  }, [hintMessages.length]);
 
   // Listen for sticky bar visibility changes
   useEffect(() => {
@@ -1353,25 +1382,44 @@ export function CardMascotte() {
         </div>
       )}
 
-      {/* Hint Bubble - Outside card so it stays visible when mascot is hidden */}
-      {showHint && (
+      {/* Hint Bubble — minimal, periodic, centered on mascot, hidden on mobile */}
+      <div
+        className="fixed pointer-events-none hidden sm:flex justify-center"
+        style={{
+          zIndex: Z_INDEX.tooltip,
+          bottom: isStickyBarVisible ? '210px' : '154px',
+          right: '48px',
+          width: '96px',
+          opacity: showHint && !isModalOpen ? 1 : 0,
+          transform: showHint && !isModalOpen ? 'translateY(0) scale(1)' : 'translateY(4px) scale(0.92)',
+          transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease, transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+        }}
+      >
         <div
-          className="fixed pointer-events-none"
+          className="relative whitespace-nowrap rounded-md px-2 py-1 text-center backdrop-blur-sm"
           style={{
-            zIndex: Z_INDEX.tooltip,
-            bottom: isStickyBarVisible ? '210px' : '155px',
-            right: '96px',
-            transform: isModalOpen ? 'translateX(50%) scale(0.9)' : 'translateX(50%) scale(1)',
-            opacity: isModalOpen ? 0 : 1,
-            transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-in-out, transform 300ms ease-in-out',
+            fontSize: '9.5px',
+            fontWeight: 500,
+            letterSpacing: '0.01em',
+            color: 'rgba(255,255,255,0.9)',
+            background: 'rgba(30,20,10,0.65)',
+            border: '1px solid rgba(255,180,100,0.15)',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
           }}
         >
-          <div className="relative rounded-xl border border-primary/60 bg-primary/70 px-3 py-2 text-center text-xs font-semibold text-white shadow-lg shadow-primary/30 backdrop-blur-md backdrop-saturate-150">
-            Vuoi segnalare un bug?
-            <span className="absolute left-1/2 top-full h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-primary/60 bg-primary/70 backdrop-blur-md" />
-          </div>
+          {hintMessages[hintIndex]}
+          <span
+            className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
+            style={{
+              width: '6px',
+              height: '6px',
+              background: 'rgba(30,20,10,0.65)',
+              borderBottom: '1px solid rgba(255,180,100,0.15)',
+              borderRight: '1px solid rgba(255,180,100,0.15)',
+            }}
+          />
         </div>
-      )}
+      </div>
 
       {/* Unlock Notification */}
       {newUnlock && (
@@ -1598,22 +1646,20 @@ export function CardMascotte() {
           className="mascotte-flip-face absolute inset-0"
           style={{ backfaceVisibility: 'hidden', pointerEvents: isFlipped ? 'none' : 'auto' }}
         >
-        {/* Card container - truly transparent with premium border */}
+        {/* Card container — soft charm style */}
         <div
           className="relative h-full w-full overflow-visible rounded-2xl"
-          style={{
-            background: 'transparent',
-          }}
+          style={{ background: 'transparent' }}
         >
-          {/* Outer glow/aura - premium orange shadow */}
+          {/* Soft warm glow */}
           <div
             className="pointer-events-none absolute rounded-2xl"
             style={{
-              inset: '0px',
+              inset: '-3px',
               zIndex: 0,
               boxShadow: isShiny
-                ? '0 0 30px rgba(168,85,247,0.5), 0 0 60px rgba(59,130,246,0.3), 0 0 90px rgba(236,72,153,0.2)'
-                : '0 0 24px rgba(255, 115, 0, 0.3), 0 0 48px rgba(255, 115, 0, 0.15)',
+                ? '0 0 28px rgba(168,85,247,0.5), 0 0 56px rgba(59,130,246,0.3), 0 0 84px rgba(236,72,153,0.2)'
+                : '0 6px 24px rgba(255,120,20,0.25), 0 2px 8px rgba(0,0,0,0.15)',
               transition: 'box-shadow 300ms ease',
             }}
           />
@@ -1621,12 +1667,12 @@ export function CardMascotte() {
           {/* Shiny rainbow border overlay */}
           {isShiny && (
             <div
-              className="pointer-events-none absolute rounded-2xl shiny-border-anim"
+              className="pointer-events-none absolute shiny-border-anim"
               style={{
-                inset: '-2px',
-                zIndex: 10,
+                inset: '-3px',
+                zIndex: 12,
                 borderRadius: '18px',
-                padding: '2px',
+                padding: '2.5px',
                 background: 'conic-gradient(from var(--shiny-angle, 0deg), #f43f5e, #f59e0b, #22c55e, #3b82f6, #a855f7, #ec4899, #f43f5e)',
                 WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                 WebkitMaskComposite: 'xor',
@@ -1635,90 +1681,90 @@ export function CardMascotte() {
             />
           )}
 
-          {/* Glass effect layer - Apple-style frosted glass (MUST be behind borders but visible) */}
-          <div
-            className="absolute rounded-2xl"
-            style={{
-              inset: '3px',
-              zIndex: 1,
-              background: 'rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-              boxShadow: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.3), inset 0 -1px 0 0 rgba(0, 0, 0, 0.05)',
-            }}
-          />
-
-          {/* Premium gradient border - multi-layer for depth */}
-          {/* Outer glow border */}
-          <div
-            className="pointer-events-none absolute rounded-2xl"
-            style={{
-              inset: '-1px',
-              zIndex: 2,
-              background: 'linear-gradient(135deg, #FF7300 0%, #FF9A40 25%, #FFB366 50%, #FF9A40 75%, #FF7300 100%)',
-              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-              WebkitMaskComposite: 'xor',
-              maskComposite: 'exclude',
-              padding: '3.5px',
-              opacity: 0.6,
-              filter: 'blur(1px)',
-            }}
-          />
-
-          {/* Main sharp border */}
+          {/* Thin soft border */}
           <div
             className="pointer-events-none absolute rounded-2xl"
             style={{
               inset: '0px',
-              zIndex: 3,
-              background: 'linear-gradient(135deg, #FF8533 0%, #FF7300 15%, #FFA055 30%, #FFB366 50%, #FFA055 70%, #FF7300 85%, #FF8533 100%)',
+              zIndex: 2,
+              padding: '1.5px',
+              background: 'linear-gradient(160deg, rgba(255,180,100,0.6) 0%, rgba(255,120,30,0.5) 50%, rgba(255,180,100,0.6) 100%)',
               WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
               WebkitMaskComposite: 'xor',
               maskComposite: 'exclude',
-              padding: '2.5px',
             }}
           />
 
-          {/* Inner highlight border */}
+          {/* Top pill badge — BRX */}
           <div
-            className="pointer-events-none absolute rounded-2xl"
-            style={{
-              inset: '2px',
-              zIndex: 4,
-              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.2) 100%)',
-              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-              WebkitMaskComposite: 'xor',
-              maskComposite: 'exclude',
-              padding: '1px',
-            }}
-          />
-
-          {/* Premium corner accents - refined */}
-          <div className="absolute left-[5px] top-[5px] z-[5] h-2.5 w-2.5">
-            <div className="absolute left-0 top-0 h-[1px] w-2 rounded-full bg-gradient-to-r from-primary to-primary/50" />
-            <div className="absolute left-0 top-0 h-2 w-[1px] rounded-full bg-gradient-to-b from-primary to-primary/50" />
-          </div>
-          <div className="absolute right-[5px] top-[5px] z-[5] h-2.5 w-2.5">
-            <div className="absolute right-0 top-0 h-[1px] w-2 rounded-full bg-gradient-to-l from-primary to-primary/50" />
-            <div className="absolute right-0 top-0 h-2 w-[1px] rounded-full bg-gradient-to-b from-primary to-primary/50" />
-          </div>
-          <div className="absolute bottom-[5px] left-[5px] z-[5] h-2.5 w-2.5">
-            <div className="absolute bottom-0 left-0 h-[1px] w-2 rounded-full bg-gradient-to-r from-primary/50 to-primary" />
-            <div className="absolute bottom-0 left-0 h-2 w-[1px] rounded-full bg-gradient-to-t from-primary/50 to-primary" />
-          </div>
-          <div className="absolute bottom-[5px] right-[5px] z-[5] h-2.5 w-2.5">
-            <div className="absolute bottom-0 right-0 h-[1px] w-2 rounded-full bg-gradient-to-l from-primary/50 to-primary" />
-            <div className="absolute bottom-0 right-0 h-2 w-[1px] rounded-full bg-gradient-to-t from-primary/50 to-primary" />
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+            style={{ top: '5px', zIndex: 8 }}
+          >
+            <div
+              className="relative flex items-center justify-center overflow-hidden rounded-full"
+              style={{
+                height: '14px',
+                paddingInline: '10px',
+                background: 'linear-gradient(180deg, #FF9A40 0%, #FF7300 100%)',
+                boxShadow: '0 1px 4px rgba(255,100,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)',
+              }}
+            >
+              <span
+                className="font-comodo text-[8px] font-bold leading-none"
+                style={{
+                  color: '#fff',
+                  textShadow: '0 1px 1px rgba(100,30,0,0.45)',
+                  letterSpacing: '0.25em',
+                  marginLeft: '0.12em',
+                }}
+              >
+                BRX
+              </span>
+            </div>
           </div>
 
-          {/* Card face - visible on top */}
+          {/* Bottom pill badge — ASSO */}
+          <div
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+            style={{ bottom: '5px', zIndex: 8 }}
+          >
+            <div
+              className="relative flex items-center justify-center overflow-hidden rounded-full"
+              style={{
+                height: '14px',
+                paddingInline: '8px',
+                background: 'linear-gradient(180deg, #FF7300 0%, #FF9A40 100%)',
+                boxShadow: '0 -1px 4px rgba(255,100,0,0.2), inset 0 -1px 0 rgba(255,255,255,0.25)',
+              }}
+            >
+              <span
+                className="font-comodo text-[7.5px] font-bold leading-none"
+                style={{
+                  color: '#fff',
+                  textShadow: '0 1px 1px rgba(100,30,0,0.45)',
+                  letterSpacing: '0.2em',
+                  marginLeft: '0.1em',
+                }}
+              >
+                ASSO
+              </span>
+            </div>
+          </div>
+
+          {/* Face SVG — parallax offset on hover */}
           <div
             ref={faceContainerRef}
-            className={`absolute flex items-center justify-center transition-all duration-300 ${isModalOpen ? 'face-glint-active' : ''}`}
+            className={`absolute flex items-center justify-center ${isModalOpen ? 'face-glint-active' : ''}`}
             style={{
-              inset: '12px',
-              zIndex: 10,
-              transform: mascotteExpression === 'wink' ? 'translateY(-2px) rotate(-2deg)' : 'translateY(-1px)',
+              top: '4px',
+              bottom: '4px',
+              left: '3px',
+              right: '3px',
+              zIndex: 5,
+              transition: 'transform 120ms ease-out',
+              transform: mascotteExpression === 'wink'
+                ? `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2 - 2}px) rotate(-2deg)`
+                : `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2}px)`,
             }}
             dangerouslySetInnerHTML={{
               __html: mascotteExpression === 'bugFocus' ? faceBugFocusSVG :
@@ -1728,16 +1774,17 @@ export function CardMascotte() {
                       faceSVG
             }}
           />
-          {/* Desktop flip button - appears on hover */}
+
+          {/* Desktop flip button — appears on hover */}
           {isCardHovered && !isFlipped && (
             <button
               onClick={handleFlipButtonClick}
-              className="mascotte-flip-btn absolute z-[11] flex h-6 w-6 items-center justify-center rounded-full border border-white/30 bg-zinc-900/70 text-white/80 shadow-lg backdrop-blur-sm transition-all hover:scale-110 hover:bg-zinc-800/90 hover:text-white"
-              style={{ bottom: '4px', left: '4px' }}
+              className="mascotte-flip-btn absolute z-[11] flex h-5 w-5 items-center justify-center rounded-full border border-white/20 bg-zinc-900/60 text-white/70 shadow-md backdrop-blur-sm transition-all hover:scale-110 hover:bg-zinc-800/80 hover:text-white"
+              style={{ bottom: '3px', left: '3px' }}
               title="Gira la carta"
               aria-label="Gira la carta"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" />
               </svg>
             </button>
@@ -2563,6 +2610,19 @@ export function CardMascotte() {
         }
         .mascotte-shiny {
           filter: drop-shadow(0 12px 32px rgba(168,85,247,0.4)) drop-shadow(0 0 20px rgba(236,72,153,0.3)) drop-shadow(0 4px 12px rgba(59,130,246,0.3)) !important;
+        }
+        @keyframes bandSheenSweep {
+          0% { transform: translateX(-120%); opacity: 0; }
+          30% { opacity: 1; }
+          100% { transform: translateX(120%); opacity: 0; }
+        }
+        .mascotte-band-sheen {
+          background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.45) 46%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0.45) 54%, transparent 70%);
+          opacity: 0;
+          transform: translateX(-120%);
+        }
+        [aria-label="Segnala un bug"]:hover .mascotte-band-sheen {
+          animation: bandSheenSweep 700ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
       `}} />
     </>
