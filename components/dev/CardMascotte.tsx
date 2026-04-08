@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare } from 'lucide-react';
 import html2canvas from 'html2canvas';
+import { CardLoader } from '@/components/dev/CardLoader';
 
 // Storage keys for bug report data
 const BUG_REPORT_STORAGE = {
@@ -114,63 +115,64 @@ function inferBugCategory(url: string): string {
 }
 
 const faceSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="35" cy="39" r="11" stroke-width="2.6"/>
-  <circle class="pupil" cx="35" cy="39" r="6" fill="#4a5548" stroke="none"/>
-  <circle cx="32" cy="36" r="2" fill="#faf9f6" stroke="none"/>
-  <circle cx="65" cy="39" r="11" stroke-width="2.6"/>
-  <circle class="pupil" cx="65" cy="39" r="6" fill="#4a5548" stroke="none"/>
-  <circle cx="62" cy="36" r="2" fill="#faf9f6" stroke="none"/>
-  <path d="M 33 63 Q 50 79 67 63" stroke-width="3.4" fill="none"/>
+  <circle cx="35" cy="39" r="11.5" stroke-width="2.5"/>
+  <circle class="pupil" cx="35" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
+  <circle cx="32.3" cy="36.4" r="2.2" fill="#faf9f6" stroke="none"/>
+  <circle cx="65" cy="39" r="11.5" stroke-width="2.5"/>
+  <circle class="pupil" cx="65" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
+  <circle cx="62.3" cy="36.4" r="2.2" fill="#faf9f6" stroke="none"/>
+  <path d="M 34 63 Q 50 77 66 63" stroke-width="3.2" fill="none"/>
 </svg>`;
 
 const faceBugReportSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <circle cx="34" cy="40" r="10" stroke-width="2.2"/>
-  <circle class="pupil" cx="34" cy="40" r="4.2" fill="#4a5548" stroke="none"/>
-  <circle cx="31.5" cy="37" r="1.4" fill="#faf9f6" stroke="none"/>
+  <circle class="pupil" cx="34" cy="41" r="4" fill="#4a5548" stroke="none"/>
+  <circle cx="31.6" cy="37.2" r="1.5" fill="#faf9f6" stroke="none"/>
   <circle cx="66" cy="40" r="10" stroke-width="2.2"/>
-  <circle class="pupil" cx="66" cy="40" r="4.2" fill="#4a5548" stroke="none"/>
-  <circle cx="63.5" cy="37" r="1.4" fill="#faf9f6" stroke="none"/>
+  <circle class="pupil" cx="66" cy="41" r="4" fill="#4a5548" stroke="none"/>
+  <circle cx="63.6" cy="37.2" r="1.5" fill="#faf9f6" stroke="none"/>
   <rect x="20" y="29" width="60" height="23" rx="4.5" stroke-width="2.1" fill="none" stroke="#4a5548"/>
   <line x1="50" y1="33" x2="50" y2="48" stroke-width="1.7" stroke="#4a5548"/>
   <line x1="20" y1="41" x2="16" y2="39" stroke-width="1.8" stroke="#4a5548"/>
   <line x1="80" y1="41" x2="84" y2="39" stroke-width="1.8" stroke="#4a5548"/>
   <path class="bug-glint bug-glint-1" d="M 28 34 L 34 31" stroke="#faf9f6" stroke-width="1.4"/>
   <path class="bug-glint bug-glint-2" d="M 62 35 L 68 32" stroke="#faf9f6" stroke-width="1.4"/>
-  <ellipse class="bug-mouth" cx="50" cy="65" rx="6.2" ry="2.6" stroke-width="2.8" fill="none"/>
+  <path class="bug-mouth" d="M 44 65 Q 50 69 56 65" stroke-width="2.8" fill="none"/>
 </svg>`;
 
 const faceBugFocusSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M 24 30 Q 32 24 40 28" stroke-width="2.2"/>
   <path d="M 60 28 Q 68 24 76 30" stroke-width="2.2"/>
-  <circle cx="34" cy="40" r="10" stroke-width="2.2"/>
-  <circle cx="34" cy="40" r="3.8" fill="#4a5548" stroke="none"/>
-  <circle cx="31.5" cy="37" r="1.3" fill="#faf9f6" stroke="none"/>
-  <circle cx="66" cy="40" r="10" stroke-width="2.2"/>
-  <circle cx="66" cy="40" r="3.8" fill="#4a5548" stroke="none"/>
-  <circle cx="63.5" cy="37" r="1.3" fill="#faf9f6" stroke="none"/>
+  <!-- Narrowed (squint) eye outlines -->
+  <ellipse cx="34" cy="40" rx="10" ry="6.2" stroke-width="2.2"/>
+  <circle class="pupil" cx="34" cy="40.2" r="3.4" fill="#4a5548" stroke="none"/>
+  <circle cx="31.9" cy="37.7" r="1.2" fill="#faf9f6" stroke="none"/>
+  <ellipse cx="66" cy="40" rx="10" ry="6.2" stroke-width="2.2"/>
+  <circle class="pupil" cx="66" cy="40.2" r="3.4" fill="#4a5548" stroke="none"/>
+  <circle cx="63.9" cy="37.7" r="1.2" fill="#faf9f6" stroke="none"/>
   <rect x="20" y="29" width="60" height="23" rx="4.5" stroke-width="2.1" fill="none" stroke="#4a5548"/>
   <line x1="50" y1="33" x2="50" y2="48" stroke-width="1.7" stroke="#4a5548"/>
   <line x1="20" y1="41" x2="16" y2="39" stroke-width="1.8" stroke="#4a5548"/>
   <line x1="80" y1="41" x2="84" y2="39" stroke-width="1.8" stroke="#4a5548"/>
   <path class="bug-glint bug-glint-1" d="M 28 34 L 34 31" stroke="#faf9f6" stroke-width="1.4"/>
   <path class="bug-glint bug-glint-2" d="M 62 35 L 68 32" stroke="#faf9f6" stroke-width="1.4"/>
-  <ellipse class="bug-mouth" cx="50" cy="65" rx="5.7" ry="2.3" stroke-width="2.7" fill="none"/>
+  <path class="bug-mouth" d="M 45 65 Q 50 67.5 55 65" stroke-width="2.7" fill="none"/>
 </svg>`;
 
 const faceWinkSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M 24 40 Q 34 31 44 40" stroke-width="3.6"/>
-  <circle cx="67" cy="39" r="11" stroke-width="2.6"/>
-  <circle class="pupil" cx="67" cy="39" r="6" fill="#4a5548" stroke="none"/>
-  <circle cx="64" cy="36" r="2" fill="#faf9f6" stroke="none"/>
-  <path d="M 38 63 Q 54 74 69 61" stroke-width="3.4" fill="none"/>
+  <path d="M 24 40 Q 34 32 44 40" stroke-width="3.4"/>
+  <circle cx="67" cy="39" r="11.2" stroke-width="2.5"/>
+  <circle class="pupil" cx="67" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
+  <circle cx="64.4" cy="36.4" r="2.1" fill="#faf9f6" stroke="none"/>
+  <path d="M 39 63 Q 54 72 68 62" stroke-width="3.2" fill="none"/>
 </svg>`;
 
 const faceCodingSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <circle cx="35" cy="38" r="14" stroke-width="2.5"/>
-  <circle class="pupil" cx="35" cy="38" r="4" fill="#4a5548" stroke="none"/>
+  <circle class="pupil" cx="35" cy="38.6" r="3.6" fill="#4a5548" stroke="none"/>
   <circle cx="65" cy="38" r="14" stroke-width="2.5"/>
-  <circle class="pupil" cx="65" cy="38" r="4" fill="#4a5548" stroke="none"/>
-  <path class="coding-mouth" d="M 35 66 L 65 66" stroke-width="3" fill="none"/>
+  <circle class="pupil" cx="65" cy="38.6" r="3.6" fill="#4a5548" stroke="none"/>
+  <path class="coding-mouth" d="M 36 66 Q 50 63.8 64 66" stroke-width="3" fill="none"/>
   <!-- Glasses/monitor frame -->
   <rect x="20" y="24" width="60" height="28" rx="3" stroke-width="2.5" fill="none" stroke="#4a5548"/>
   <line x1="50" y1="24" x2="50" y2="52" stroke-width="2" stroke="#4a5548"/>
@@ -183,6 +185,14 @@ export function CardMascotte() {
   
   useEffect(() => {
     setIsMounted(true);
+    
+    // Check if user has interacted with Asso before
+    try {
+      const hasSeenBefore = localStorage.getItem('brx_asso_interacted');
+      setHasInteractedBefore(!!hasSeenBefore);
+    } catch {
+      // localStorage not available
+    }
   }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -199,9 +209,17 @@ export function CardMascotte() {
 
   // Chat flow state
   const [chatStep, setChatStep] = useState<'greeting' | 'menu' | 'bug' | 'contact'>('greeting');
-  const [chatMessages, setChatMessages] = useState<Array<{type: 'ciro' | 'user', text: string}>>([]);
+  const [chatMessages, setChatMessages] = useState<Array<{type: 'asso' | 'user', text: string}>>([]);
   const [showChatModal, setShowChatModal] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  
+  // First interaction tracking for personalized greetings
+  const [hasInteractedBefore, setHasInteractedBefore] = useState(false);
+  
+  // Typewriter effect state
+  const [typewriterText, setTypewriterText] = useState('');
+  const [isTypewriting, setIsTypewriting] = useState(false);
+  const typewriterTimeoutRef = useRef<number | null>(null);
   const [isCodingTransition, setIsCodingTransition] = useState(false);
   const [showCodingCompanion, setShowCodingCompanion] = useState(false);
   const [codingStatus, setCodingStatus] = useState<'compiling' | 'received'>('compiling');
@@ -231,8 +249,508 @@ export function CardMascotte() {
   const codingTransitionTimeoutRef = useRef<number | null>(null);
   const submitFeedbackTimeoutRef = useRef<number | null>(null);
 
-  const handleClick = () => {
+  // ── Card flip (swipe gamification) ──
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [flipCount, setFlipCount] = useState(0);
+  const [showAchievement, setShowAchievement] = useState<string | null>(null);
+  const [flipParticles, setFlipParticles] = useState<Array<{ id: number; x: number; y: number; dx: number; dy: number; size: number; color: string }>>([]);
+  const [backVariant, setBackVariant] = useState(0);
+  const [comboCount, setComboCount] = useState(0);
+  const [showCombo, setShowCombo] = useState(false);
+  const [isCardHovered, setIsCardHovered] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
+  const [newUnlock, setNewUnlock] = useState<string | null>(null);
+  const [showAlbum, setShowAlbum] = useState(false);
+  const [holoPos, setHoloPos] = useState({ x: 50, y: 50 });
+  const [easterEggActive, setEasterEggActive] = useState(false);
+  const [goldenConfetti, setGoldenConfetti] = useState<Array<{ id: number; x: number; delay: number; size: number; rotation: number; duration: number; color: string }>>([]);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [isShiny, setIsShiny] = useState(false);
+  const [isFlipping, setIsFlipping] = useState(false);
+  const shinyTimeoutRef = useRef<number | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const achievementTimeoutRef = useRef<number | null>(null);
+  const comboTimeoutRef = useRef<number | null>(null);
+  const unlockTimeoutRef = useRef<number | null>(null);
+  const particleIdRef = useRef(0);
+  const lastFlipTimeRef = useRef(0);
+  const backFaceRef = useRef<HTMLDivElement>(null);
+
+  const vibrate = useCallback((pattern: number | number[]) => {
+    try { navigator?.vibrate?.(pattern); } catch {}
+  }, []);
+
+  const FLIP_STORAGE_KEY = 'brx_mascotte_flips';
+  const FLIP_UNLOCKS_KEY = 'brx_mascotte_unlocked';
+  const COMBO_WINDOW_MS = 1200;
+
+  // Back face variants with unlock thresholds
+  const BACK_VARIANTS = useMemo(() => [
+    { gradient: 'linear-gradient(145deg, #FF7300 0%, #FF9A40 50%, #FFB366 100%)', pattern: '45deg', label: 'ASSO', sub: 'Ebartex', unlock: 0 },
+    { gradient: 'linear-gradient(145deg, #6366F1 0%, #818CF8 50%, #A5B4FC 100%)', pattern: '-45deg', label: 'RARO', sub: 'Collezionista', unlock: 5 },
+    { gradient: 'linear-gradient(145deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)', pattern: '60deg', label: 'EPICO', sub: 'Leggendario', unlock: 15 },
+    { gradient: 'linear-gradient(145deg, #F43F5E 0%, #FB7185 50%, #FDA4AF 100%)', pattern: '30deg', label: 'FOIL', sub: 'Edizione Speciale', unlock: 30 },
+    { gradient: 'linear-gradient(145deg, #F59E0B 0%, #FBBF24 50%, #FDE68A 100%)', pattern: '135deg', label: 'GOLD', sub: 'Ultra Raro', unlock: 50 },
+  ], []);
+
+  // Achievement thresholds
+  const ACHIEVEMENTS: Record<number, string> = {
+    1: 'Primo flip!',
+    5: 'Curioso!',
+    10: 'Collezionista',
+    25: 'Esperto di carte',
+    50: 'Maestro del flip',
+    100: 'Leggenda BRX',
+  };
+
+  // Get current achievement title based on flip count
+  const getCurrentTitle = useCallback((count: number): string => {
+    const thresholds = [100, 50, 25, 10, 5, 1];
+    for (const t of thresholds) {
+      if (count >= t) return ACHIEVEMENTS[t];
+    }
+    return 'Principiante';
+  }, []);
+
+  // Load flip count from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(FLIP_STORAGE_KEY);
+      if (stored) setFlipCount(parseInt(stored, 10) || 0);
+    } catch {}
+  }, []);
+
+  const playFlipSound = useCallback((combo: number) => {
+    try {
+      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const now = ctx.currentTime;
+      const basePitch = 800 + combo * 100;
+
+      // Layer 1: Swoosh (noise-like sweep)
+      const swoosh = ctx.createOscillator();
+      const swooshG = ctx.createGain();
+      swoosh.connect(swooshG); swooshG.connect(ctx.destination);
+      swoosh.type = 'sawtooth';
+      swoosh.frequency.setValueAtTime(basePitch * 2, now);
+      swoosh.frequency.exponentialRampToValueAtTime(basePitch * 0.3, now + 0.1);
+      swooshG.gain.setValueAtTime(0, now);
+      swooshG.gain.linearRampToValueAtTime(0.06, now + 0.01);
+      swooshG.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      swoosh.start(now); swoosh.stop(now + 0.14);
+
+      // Layer 2: Snap (short percussive click)
+      const snap = ctx.createOscillator();
+      const snapG = ctx.createGain();
+      snap.connect(snapG); snapG.connect(ctx.destination);
+      snap.type = 'square';
+      snap.frequency.setValueAtTime(basePitch * 3, now + 0.02);
+      snap.frequency.exponentialRampToValueAtTime(basePitch, now + 0.05);
+      snapG.gain.setValueAtTime(0, now + 0.02);
+      snapG.gain.linearRampToValueAtTime(0.08, now + 0.025);
+      snapG.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      snap.start(now + 0.02); snap.stop(now + 0.07);
+
+      // Layer 3: Chime (melodic ring)
+      const chime = ctx.createOscillator();
+      const chimeG = ctx.createGain();
+      chime.connect(chimeG); chimeG.connect(ctx.destination);
+      chime.type = 'triangle';
+      chime.frequency.setValueAtTime(basePitch, now + 0.04);
+      chime.frequency.exponentialRampToValueAtTime(basePitch * 1.5, now + 0.12);
+      chime.frequency.exponentialRampToValueAtTime(basePitch * 0.8, now + 0.22);
+      chimeG.gain.setValueAtTime(0, now + 0.04);
+      chimeG.gain.linearRampToValueAtTime(0.14, now + 0.06);
+      chimeG.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      chime.start(now + 0.04); chime.stop(now + 0.28);
+
+      // Layer 4 (combo >= 2): Harmonic overtone
+      if (combo >= 2) {
+        const harm = ctx.createOscillator();
+        const harmG = ctx.createGain();
+        harm.connect(harmG); harmG.connect(ctx.destination);
+        harm.type = 'sine';
+        harm.frequency.setValueAtTime(basePitch * 2, now + 0.06);
+        harm.frequency.exponentialRampToValueAtTime(basePitch * 1.2, now + 0.2);
+        harmG.gain.setValueAtTime(0, now + 0.06);
+        harmG.gain.linearRampToValueAtTime(0.07, now + 0.08);
+        harmG.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        harm.start(now + 0.06); harm.stop(now + 0.32);
+      }
+    } catch {}
+  }, []);
+
+  const playAchievementSound = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const now = ctx.currentTime;
+      [523.25, 659.25, 783.99].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.1);
+        g.gain.setValueAtTime(0, now + i * 0.1);
+        g.gain.linearRampToValueAtTime(0.15, now + i * 0.1 + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
+        osc.start(now + i * 0.1); osc.stop(now + i * 0.1 + 0.35);
+      });
+    } catch {}
+  }, []);
+
+  const playUnlockSound = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const now = ctx.currentTime;
+      [392, 523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.type = i < 3 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.08);
+        g.gain.setValueAtTime(0, now + i * 0.08);
+        g.gain.linearRampToValueAtTime(0.12, now + i * 0.08 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.4);
+        osc.start(now + i * 0.08); osc.stop(now + i * 0.08 + 0.45);
+      });
+    } catch {}
+  }, []);
+
+  const playFanfareSound = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const now = ctx.currentTime;
+      const notes = [523.25, 587.33, 659.25, 698.46, 783.99, 880, 987.77, 1046.5];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.type = i < 4 ? 'sine' : 'triangle';
+        const t = now + i * 0.1;
+        osc.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.15, t + 0.03);
+        g.gain.setValueAtTime(0.15, t + 0.15);
+        g.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+        osc.start(t); osc.stop(t + 0.55);
+      });
+      // Final chord
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.type = 'sine';
+        const t = now + 0.85;
+        osc.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.1, t + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.01, t + 1.2);
+        osc.start(t); osc.stop(t + 1.3);
+      });
+    } catch {}
+  }, []);
+
+  const spawnGoldenConfetti = useCallback(() => {
+    const colors = ['#FFD700', '#FFC107', '#FBBF24', '#F59E0B', '#D4AF37', '#FFE082', '#FFF8E1', '#FF7300'];
+    const pieces = Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 140 - 22,
+      delay: Math.random() * 0.6,
+      size: 4 + Math.random() * 6,
+      rotation: Math.random() * 360,
+      duration: 1.5 + Math.random() * 1.5,
+      color: colors[Math.floor(Math.random() * colors.length)],
+    }));
+    setGoldenConfetti(pieces);
+    setTimeout(() => setGoldenConfetti([]), 3500);
+  }, []);
+
+  const triggerEasterEgg = useCallback(() => {
+    setEasterEggActive(true);
+    playFanfareSound();
+    spawnGoldenConfetti();
+    setTimeout(() => setEasterEggActive(false), 2000);
+  }, [playFanfareSound, spawnGoldenConfetti]);
+
+  const playShinySound = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const now = ctx.currentTime;
+      // Crystalline shimmer: descending then ascending harmonics
+      [1318.5, 1174.7, 1046.5, 1174.7, 1318.5, 1568, 2093].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.type = 'sine';
+        const t = now + i * 0.06;
+        osc.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.1, t + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
+        osc.start(t); osc.stop(t + 0.4);
+      });
+    } catch {}
+  }, []);
+
+  // Spawn particles — more particles for higher combos
+  const spawnFlipParticles = useCallback((combo: number) => {
+    const colors = ['#FF7300', '#FFB366', '#FDE68A', '#FF9A40', '#FBBF24', '#F43F5E', '#6366F1', '#10B981'];
+    const count = Math.min(8 + combo * 3, 20);
+    const newParticles = Array.from({ length: count }, (_, i) => {
+      particleIdRef.current += 1;
+      const rad = ((360 / count) * i + Math.random() * 30) * (Math.PI / 180);
+      const dist = (40 + Math.random() * 20) * (1 + combo * 0.15);
+      return {
+        id: particleIdRef.current,
+        x: 48 + (Math.random() - 0.5) * 20,
+        y: 64 + (Math.random() - 0.5) * 20,
+        dx: Math.cos(rad) * dist,
+        dy: Math.sin(rad) * dist,
+        size: combo >= 3 ? 8 : 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+      };
+    });
+    setFlipParticles(newParticles);
+    setTimeout(() => setFlipParticles([]), 700);
+  }, []);
+
+  const doFlip = useCallback(() => {
+    const now = Date.now();
+    // Streak/combo detection
+    let newCombo = 0;
+    if (now - lastFlipTimeRef.current < COMBO_WINDOW_MS) {
+      newCombo = comboCount + 1;
+    }
+    lastFlipTimeRef.current = now;
+    setComboCount(newCombo);
+
+    // Show combo badge if >= 2
+    if (newCombo >= 2) {
+      setShowCombo(true);
+      if (comboTimeoutRef.current) window.clearTimeout(comboTimeoutRef.current);
+      comboTimeoutRef.current = window.setTimeout(() => {
+        setShowCombo(false);
+        setComboCount(0);
+        comboTimeoutRef.current = null;
+      }, COMBO_WINDOW_MS + 300);
+    }
+
+    // Shiny roll: 5% chance
+    const rolledShiny = Math.random() < 0.05;
+    if (rolledShiny) {
+      playShinySound();
+      setIsShiny(true);
+      if (shinyTimeoutRef.current) window.clearTimeout(shinyTimeoutRef.current);
+      shinyTimeoutRef.current = window.setTimeout(() => {
+        setIsShiny(false);
+        shinyTimeoutRef.current = null;
+      }, 3500);
+    }
+
+    playFlipSound(newCombo);
+    vibrate(rolledShiny ? [50, 30, 50] : newCombo >= 2 ? [30, 15, 30] : 25);
+    spawnFlipParticles(rolledShiny ? Math.max(newCombo, 4) : newCombo);
+
+    const newCount = flipCount + 1;
+    setFlipCount(newCount);
+    try { localStorage.setItem(FLIP_STORAGE_KEY, String(newCount)); } catch {}
+
+    // Pick random unlocked variant
+    const available = BACK_VARIANTS.filter(v => newCount >= v.unlock);
+    setBackVariant(BACK_VARIANTS.indexOf(available[Math.floor(Math.random() * available.length)]));
+    setIsFlipping(true);
+    setIsFlipped(prev => !prev);
+    setTimeout(() => setIsFlipping(false), 650);
+
+    // Check for newly unlocked variant
+    const justUnlocked = BACK_VARIANTS.find(v => v.unlock === newCount);
+    if (justUnlocked) {
+      try {
+        const prev = JSON.parse(localStorage.getItem(FLIP_UNLOCKS_KEY) || '[]') as number[];
+        if (!prev.includes(justUnlocked.unlock)) {
+          localStorage.setItem(FLIP_UNLOCKS_KEY, JSON.stringify([...prev, justUnlocked.unlock]));
+          if (unlockTimeoutRef.current) window.clearTimeout(unlockTimeoutRef.current);
+          playUnlockSound();
+          setNewUnlock(justUnlocked.label);
+          setBackVariant(BACK_VARIANTS.indexOf(justUnlocked));
+          unlockTimeoutRef.current = window.setTimeout(() => {
+            setNewUnlock(null);
+            unlockTimeoutRef.current = null;
+          }, 3000);
+        }
+      } catch {}
+    }
+
+    // Check achievements
+    if (ACHIEVEMENTS[newCount]) {
+      if (achievementTimeoutRef.current) window.clearTimeout(achievementTimeoutRef.current);
+      playAchievementSound();
+      setShowAchievement(ACHIEVEMENTS[newCount]);
+      achievementTimeoutRef.current = window.setTimeout(() => {
+        setShowAchievement(null);
+        achievementTimeoutRef.current = null;
+      }, 2500);
+    }
+
+    // Easter egg at 100 flips
+    if (newCount === 100) {
+      triggerEasterEgg();
+    }
+  }, [flipCount, comboCount, vibrate, spawnFlipParticles, playFlipSound, playShinySound, playAchievementSound, playUnlockSound, triggerEasterEgg, BACK_VARIANTS]);
+
+  // Share achievement
+  const handleShare = useCallback(async () => {
+    vibrate(15);
+    const title = getCurrentTitle(flipCount);
+    const text = `Ho raggiunto "${title}" con ${flipCount} flip su Ebartex! 🃏✨`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Ebartex Card Flip', text, url: window.location.origin });
+      } else {
+        await navigator.clipboard.writeText(text);
+        setCopiedShare(true);
+        setTimeout(() => setCopiedShare(false), 1800);
+      }
+    } catch {}
+  }, [flipCount, getCurrentTitle, vibrate]);
+
+  // ── Touch swipe (mobile) ──
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartRef.current.x;
+    const dy = Math.abs(t.clientY - touchStartRef.current.y);
+    const elapsed = Date.now() - touchStartRef.current.time;
+    touchStartRef.current = null;
+    if (Math.abs(dx) > 30 && dy < 60 && elapsed < 400) {
+      doFlip();
+    }
+  };
+
+  // ── Desktop flip: dedicated button (no more drag conflicts) ──
+  const handleFlipButtonClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    doFlip();
+  }, [doFlip]);
+
+  // 3D Tilt parallax: track mouse relative to card center
+  const handleCardMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current || easterEggActive) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) / (rect.width / 2);
+    const dy = (e.clientY - cy) / (rect.height / 2);
+    setTilt({ x: dy * -12, y: dx * 12 });
+
+    // Also update holo pos for GOLD variant
+    if (backFaceRef.current) {
+      const br = backFaceRef.current.getBoundingClientRect();
+      setHoloPos({
+        x: ((e.clientX - br.left) / br.width) * 100,
+        y: ((e.clientY - br.top) / br.height) * 100,
+      });
+    }
+  }, [easterEggActive]);
+
+  const handleCardMouseLeave = useCallback(() => {
+    setIsCardHovered(false);
+    setTilt({ x: 0, y: 0 });
+  }, []);
+
+  // Toggle album
+  const handleAlbumToggle = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    vibrate(15);
+    setShowAlbum(prev => !prev);
+  }, [vibrate]);
+
+  // Cleanup timeouts
+  useEffect(() => {
+    return () => {
+      if (achievementTimeoutRef.current) window.clearTimeout(achievementTimeoutRef.current);
+      if (comboTimeoutRef.current) window.clearTimeout(comboTimeoutRef.current);
+      if (unlockTimeoutRef.current) window.clearTimeout(unlockTimeoutRef.current);
+      if (shinyTimeoutRef.current) window.clearTimeout(shinyTimeoutRef.current);
+    };
+  }, []);
+
+  // Card loader state
+  const [showCardLoader, setShowCardLoader] = useState(false);
+
+  // Sticky bar offset state (when sticky bar appears, mascot moves up)
+  const [isStickyBarVisible, setIsStickyBarVisible] = useState(false);
+
+  // Welcome message variants based on interaction history
+  const welcomeMessages = useMemo(() => {
+    if (!hasInteractedBefore) {
+      // First time - warm introduction
+      return [
+        "Ciao! Sono Asso, l'assistente di Ebartex. Come posso aiutarti oggi?",
+        "Benvenuto su Ebartex! Sono Asso, il tuo assistente personale. Cosa posso fare per te?",
+        "Ciao! Asso al tuo servizio. Pronto per aiutarti a navigare su Ebartex!"
+      ];
+    }
+    // Returning user - familiar, shorter greetings
+    return [
+      "Bentornato! Asso è qui. Cosa ti serve oggi?",
+      "Ciao di nuovo! Pronto ad aiutarti.",
+      "Asso al tuo servizio! Come posso esserti utile?",
+      "Eccomi! Cosa posso fare per te questa volta?"
+    ];
+  }, [hasInteractedBefore]);
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Ignore clicks on buttons inside the card (share, album, flip)
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) return;
+
+    // If card is flipped, flip it back instead of opening chat
+    if (isFlipped) {
+      setShowAlbum(false);
+      doFlip();
+      return;
+    }
     playOpenSound();
+    // Show card loader animation first
+    setShowCardLoader(true);
+  };
+
+  // Typewriter effect function
+  const startTypewriterEffect = useCallback((fullText: string, onComplete: () => void) => {
+    setIsTypewriting(true);
+    setTypewriterText('');
+    
+    let currentIndex = 0;
+    const chars = fullText.split('');
+    
+    const typeNextChar = () => {
+      if (currentIndex < chars.length) {
+        setTypewriterText(prev => prev + chars[currentIndex]);
+        currentIndex++;
+        
+        // Variable typing speed for natural feel (faster for spaces, slower for punctuation)
+        const char = chars[currentIndex - 1];
+        const delay = char === ' ' ? 20 : char === '.' || char === '!' || char === '?' ? 120 : 35;
+        
+        typewriterTimeoutRef.current = window.setTimeout(typeNextChar, delay);
+      } else {
+        setIsTypewriting(false);
+        onComplete();
+      }
+    };
+    
+    typewriterTimeoutRef.current = window.setTimeout(typeNextChar, 150);
+  }, []);
+
+  // Callback when card loader animation completes
+  const handleCardLoaderComplete = useCallback(() => {
+    setShowCardLoader(false);
     setIsCodingTransition(false);
     setShowCodingCompanion(false);
     setCodingStatus('compiling');
@@ -240,19 +758,43 @@ export function CardMascotte() {
     setChatStep('greeting');
     // Reset messages immediately to prevent showing stale messages from previous session
     setChatMessages([]);
-    // Show typing indicator while waiting for greeting
+    
+    // Select random welcome message
+    const selectedMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+    
+    // Show typing indicator briefly, then start typewriter
     setIsTyping(true);
-    // Initialize greeting message
+    
     setTimeout(() => {
       setIsTyping(false);
-      setChatMessages([{ type: 'ciro', text: "Ciao! Sono Ciro, la mascotte di Ebartex. Come posso aiutarti oggi?" }]);
-      setTimeout(() => setChatStep('menu'), 1500);
-    }, 500);
-  };
+      
+      // Start typewriter effect
+      startTypewriterEffect(selectedMessage, () => {
+        // After typewriter completes, show the full message in chat and proceed to menu
+        setChatMessages([{ type: 'asso', text: selectedMessage }]);
+        setTimeout(() => setChatStep('menu'), 600);
+      });
+      
+      // Mark as interacted for future visits
+      try {
+        localStorage.setItem('brx_asso_interacted', 'true');
+        setHasInteractedBefore(true);
+      } catch {
+        // localStorage not available
+      }
+    }, 400);
+  }, [welcomeMessages, startTypewriterEffect]);
 
   // Handle chat modal close
   const handleChatModalClose = () => {
     setShowChatModal(false);
+    // Cancel any ongoing typewriter effect
+    if (typewriterTimeoutRef.current !== null) {
+      window.clearTimeout(typewriterTimeoutRef.current);
+      typewriterTimeoutRef.current = null;
+    }
+    setIsTypewriting(false);
+    setTypewriterText('');
   };
 
   const resetCodingCompanion = () => {
@@ -455,7 +997,14 @@ export function CardMascotte() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      handleClick();
+      // Keyboard activation: flip back if flipped, otherwise open chat
+      if (isFlipped) {
+        setShowAlbum(false);
+        doFlip();
+      } else {
+        playOpenSound();
+        setShowCardLoader(true);
+      }
     }
   };
 
@@ -650,6 +1199,9 @@ export function CardMascotte() {
       if (submitFeedbackTimeoutRef.current !== null) {
         window.clearTimeout(submitFeedbackTimeoutRef.current);
       }
+      if (typewriterTimeoutRef.current !== null) {
+        window.clearTimeout(typewriterTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -734,6 +1286,16 @@ export function CardMascotte() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  // Listen for sticky bar visibility changes
+  useEffect(() => {
+    const handleStickyBarShow = (e: CustomEvent) => {
+      setIsStickyBarVisible(e.detail.visible);
+    };
+
+    window.addEventListener('stickyBarVisibilityChange' as any, handleStickyBarShow as any);
+    return () => window.removeEventListener('stickyBarVisibilityChange' as any, handleStickyBarShow as any);
+  }, []);
+
   const isOverlayVisible = showChatModal || isModalOpen || isCodingTransition || showCodingCompanion || isExternalModalOpen;
 
   // Safe render - don't render if not mounted (hydration mismatch protection)
@@ -749,6 +1311,11 @@ export function CardMascotte() {
 
   return (
     <>
+      {/* Card Loader - Shows when mascot is clicked */}
+      {showCardLoader && (
+        <CardLoader onComplete={handleCardLoaderComplete} duration={3900} />
+      )}
+
       {/* Flash overlay for screenshot capture */}
       {showFlash && (
         <div
@@ -792,11 +1359,11 @@ export function CardMascotte() {
           className="fixed pointer-events-none"
           style={{
             zIndex: Z_INDEX.tooltip,
-            bottom: '155px',
+            bottom: isStickyBarVisible ? '210px' : '155px',
             right: '96px',
             transform: isModalOpen ? 'translateX(50%) scale(0.9)' : 'translateX(50%) scale(1)',
             opacity: isModalOpen ? 0 : 1,
-            transition: 'opacity 300ms ease-in-out, transform 300ms ease-in-out',
+            transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-in-out, transform 300ms ease-in-out',
           }}
         >
           <div className="relative rounded-xl border border-primary/60 bg-primary/70 px-3 py-2 text-center text-xs font-semibold text-white shadow-lg shadow-primary/30 backdrop-blur-md backdrop-saturate-150">
@@ -806,96 +1373,472 @@ export function CardMascotte() {
         </div>
       )}
 
+      {/* Unlock Notification */}
+      {newUnlock && (
+        <div
+          className="fixed pointer-events-none"
+          style={{
+            zIndex: Z_INDEX.tooltip + 2,
+            bottom: isStickyBarVisible ? '220px' : '160px',
+            right: '10px',
+            animation: 'unlockFlash 3s ease-out forwards',
+          }}
+        >
+          <div className="unlock-badge flex items-center gap-2 rounded-xl border border-amber-300/60 bg-gradient-to-r from-amber-500/95 to-yellow-400/95 px-3 py-2 shadow-xl shadow-amber-400/40">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" fill="white" /></svg>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wide text-white">Sbloccato!</p>
+              <p className="text-[8px] font-bold text-white/80">{newUnlock}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mini Album Panel */}
+      {showAlbum && isFlipped && (
+        <div
+          className="fixed"
+          style={{
+            zIndex: Z_INDEX.tooltip + 3,
+            bottom: isStickyBarVisible ? '215px' : '155px',
+            right: '16px',
+            animation: 'albumSlideIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+          }}
+        >
+          <div className="w-[140px] rounded-xl border border-zinc-700/60 bg-zinc-900/95 p-2.5 shadow-2xl backdrop-blur-md">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-400">Collezione</span>
+              <span className="text-[8px] font-bold text-primary">{BACK_VARIANTS.filter(v => flipCount >= v.unlock).length}/{BACK_VARIANTS.length}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              {BACK_VARIANTS.map((v, i) => {
+                const unlocked = flipCount >= v.unlock;
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 transition-colors"
+                    style={{ background: unlocked ? 'rgba(255,255,255,0.06)' : 'transparent' }}
+                  >
+                    <div
+                      className="h-3 w-3 flex-shrink-0 rounded"
+                      style={{
+                        background: unlocked ? v.gradient : 'rgba(255,255,255,0.08)',
+                        border: unlocked ? 'none' : '1px dashed rgba(255,255,255,0.15)',
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className={`truncate text-[8px] font-bold ${unlocked ? 'text-white' : 'text-zinc-600'}`}>
+                        {unlocked ? v.label : '???'}
+                      </p>
+                      <p className="text-[6px] text-zinc-500">
+                        {unlocked ? v.sub : `${v.unlock} flip`}
+                      </p>
+                    </div>
+                    {unlocked ? (
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                    ) : (
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#52525b" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Achievement Badge */}
+      {showAchievement && (
+        <div
+          className="fixed pointer-events-none"
+          style={{
+            zIndex: Z_INDEX.tooltip + 1,
+            bottom: isStickyBarVisible ? '220px' : '160px',
+            right: '20px',
+            animation: 'achievementIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards, achievementOut 400ms ease-in 2s forwards',
+          }}
+        >
+          <div className="flex items-center gap-2 rounded-xl border border-primary/40 bg-zinc-900/90 px-3 py-2 shadow-xl shadow-primary/25 backdrop-blur-md">
+            <span className="text-base">&#11088;</span>
+            <div>
+              <p className="text-[10px] font-bold text-primary">{showAchievement}</p>
+              <p className="text-[8px] text-zinc-400">{flipCount} flip totali</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Combo Badge */}
+      {showCombo && comboCount >= 2 && (
+        <div
+          className="fixed pointer-events-none"
+          style={{
+            zIndex: Z_INDEX.tooltip + 1,
+            bottom: isStickyBarVisible ? '155px' : '95px',
+            right: '30px',
+            animation: 'comboPopIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+          }}
+        >
+          <div className="flex items-center gap-1.5 rounded-lg border border-amber-400/50 bg-amber-500/90 px-2.5 py-1 shadow-lg shadow-amber-500/30">
+            <span className="text-[10px] font-black text-white">{comboCount}x</span>
+            <span className="text-[8px] font-bold uppercase tracking-wider text-white/80">COMBO</span>
+          </div>
+        </div>
+      )}
+
+      {/* Flip Particles */}
+      {flipParticles.length > 0 && (
+        <div
+          className="fixed pointer-events-none"
+          style={{
+            zIndex: Z_INDEX.tooltip,
+            bottom: isStickyBarVisible ? '80px' : '20px',
+            right: '48px',
+            width: '96px',
+            height: '128px',
+          }}
+        >
+          {flipParticles.map((p) => (
+            <div
+              key={p.id}
+              className="flip-particle absolute"
+              style={{
+                left: `${p.x}px`,
+                top: `${p.y}px`,
+                width: `${p.size}px`,
+                height: `${p.size}px`,
+                '--particle-dx': `${p.dx}px`,
+                '--particle-dy': `${p.dy}px`,
+                backgroundColor: p.color,
+              } as React.CSSProperties}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Golden Confetti — Easter Egg at 100 flips */}
+      {goldenConfetti.length > 0 && (
+        <div
+          className="fixed pointer-events-none"
+          style={{
+            zIndex: Z_INDEX.tooltip + 5,
+            bottom: isStickyBarVisible ? '80px' : '20px',
+            right: '48px',
+            width: '96px',
+            height: '200px',
+          }}
+        >
+          {goldenConfetti.map((c) => (
+            <div
+              key={c.id}
+              className="golden-confetti absolute"
+              style={{
+                left: `${c.x}px`,
+                top: '100%',
+                width: `${c.size}px`,
+                height: `${c.size * 0.6}px`,
+                backgroundColor: c.color,
+                borderRadius: c.size > 7 ? '1px' : '50%',
+                transform: `rotate(${c.rotation}deg)`,
+                animationDelay: `${c.delay}s`,
+                animationDuration: `${c.duration}s`,
+                boxShadow: `0 0 ${c.size}px ${c.color}60`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Card Mascotte */}
       <div
         ref={cardRef}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
-        className={`fixed cursor-pointer select-none transition-all duration-300 ${justReappeared ? 'mascotte-reappear' : ''}`}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseEnter={() => setIsCardHovered(true)}
+        onMouseMove={handleCardMouseMove}
+        onMouseLeave={handleCardMouseLeave}
+        className={`fixed cursor-pointer select-none transition-all duration-300 ${justReappeared ? 'mascotte-reappear' : ''} ${easterEggActive ? 'mascotte-backflip' : ''} ${isShiny ? 'mascotte-shiny' : ''}`}
         style={{
           zIndex: isOverlayVisible ? Z_INDEX.mascotteOverlay : Z_INDEX.mascotteBase,
-          bottom: '20px',
+          bottom: isStickyBarVisible ? '80px' : '20px',
           right: '48px',
           width: '96px',
           height: '128px',
-          filter: 'drop-shadow(0 8px 24px rgba(0, 0, 0, 0.3))',
-          animation: justReappeared 
+          perspective: '600px',
+          filter: 'drop-shadow(0 12px 32px rgba(255, 115, 0, 0.35)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4))',
+          animation: justReappeared
             ? 'mascotteReappear 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards, mascotteFloat 3s ease-in-out infinite 500ms'
             : 'mascotteFloat 3s ease-in-out infinite',
+          transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-in-out',
           // Hide mascot when external modal is open (AuctionBidModal)
           opacity: isExternalModalOpen ? 0 : 1,
           pointerEvents: isExternalModalOpen ? 'none' : 'auto',
-          transform: isExternalModalOpen ? 'scale(0.8)' : 'scale(1)',
         }}
         role="button"
         tabIndex={0}
         aria-label="Segnala un bug"
         title="Segnala un bug"
       >
-        {/* Active auction indicator badge */}
-        {!isExternalModalOpen && !isModalOpen && (
-          <div 
-            className="absolute -top-1 -right-1 z-[10] flex h-5 w-5 items-center justify-center rounded-full bg-primary shadow-md"
-            title="Asta in corso"
-          >
-            <span className="text-[8px] font-bold text-white">A</span>
-          </div>
-        )}
-        {/* Card container */}
-        <div className="relative h-full w-full overflow-visible rounded-xl">
-          {/* Color aura for card contour */}
+        {/* 3D flip inner */}
+        <div
+          className="mascotte-flip-inner relative h-full w-full"
+          style={{
+            transformStyle: 'preserve-3d',
+            transition: isFlipping || easterEggActive
+              ? 'transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+              : 'transform 150ms ease-out',
+            transform: `rotateX(${tilt.x}deg) rotateY(${isFlipped ? 180 + tilt.y : tilt.y}deg)`,
+          }}
+        >
+
+        {/* ── FRONT FACE ── */}
+        <div
+          className="mascotte-flip-face absolute inset-0"
+          style={{ backfaceVisibility: 'hidden', pointerEvents: isFlipped ? 'none' : 'auto' }}
+        >
+        {/* Card container - truly transparent with premium border */}
+        <div
+          className="relative h-full w-full overflow-visible rounded-2xl"
+          style={{
+            background: 'transparent',
+          }}
+        >
+          {/* Outer glow/aura - premium orange shadow */}
           <div
-            className="pointer-events-none absolute rounded-xl border border-primary/35 shadow-lg shadow-primary/35"
-            style={{ inset: '4px', zIndex: 0 }}
+            className="pointer-events-none absolute rounded-2xl"
+            style={{
+              inset: '0px',
+              zIndex: 0,
+              boxShadow: isShiny
+                ? '0 0 30px rgba(168,85,247,0.5), 0 0 60px rgba(59,130,246,0.3), 0 0 90px rgba(236,72,153,0.2)'
+                : '0 0 24px rgba(255, 115, 0, 0.3), 0 0 48px rgba(255, 115, 0, 0.15)',
+              transition: 'box-shadow 300ms ease',
+            }}
           />
 
-          {/* Card border */}
-          <div
-            className="pointer-events-none absolute rounded-lg border-2 border-primary/90 shadow-lg shadow-primary/30"
-            style={{ inset: '6px', zIndex: 2 }}
-          >
+          {/* Shiny rainbow border overlay */}
+          {isShiny && (
             <div
-              className="absolute rounded-md border border-marquee/55"
-              style={{ inset: '3px' }}
+              className="pointer-events-none absolute rounded-2xl shiny-border-anim"
+              style={{
+                inset: '-2px',
+                zIndex: 10,
+                borderRadius: '18px',
+                padding: '2px',
+                background: 'conic-gradient(from var(--shiny-angle, 0deg), #f43f5e, #f59e0b, #22c55e, #3b82f6, #a855f7, #ec4899, #f43f5e)',
+                WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                WebkitMaskComposite: 'xor',
+                maskComposite: 'exclude',
+              }}
             />
+          )}
+
+          {/* Glass effect layer - Apple-style frosted glass (MUST be behind borders but visible) */}
+          <div
+            className="absolute rounded-2xl"
+            style={{
+              inset: '3px',
+              zIndex: 1,
+              background: 'rgba(255, 255, 255, 0.15)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              boxShadow: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.3), inset 0 -1px 0 0 rgba(0, 0, 0, 0.05)',
+            }}
+          />
+
+          {/* Premium gradient border - multi-layer for depth */}
+          {/* Outer glow border */}
+          <div
+            className="pointer-events-none absolute rounded-2xl"
+            style={{
+              inset: '-1px',
+              zIndex: 2,
+              background: 'linear-gradient(135deg, #FF7300 0%, #FF9A40 25%, #FFB366 50%, #FF9A40 75%, #FF7300 100%)',
+              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+              padding: '3.5px',
+              opacity: 0.6,
+              filter: 'blur(1px)',
+            }}
+          />
+
+          {/* Main sharp border */}
+          <div
+            className="pointer-events-none absolute rounded-2xl"
+            style={{
+              inset: '0px',
+              zIndex: 3,
+              background: 'linear-gradient(135deg, #FF8533 0%, #FF7300 15%, #FFA055 30%, #FFB366 50%, #FFA055 70%, #FF7300 85%, #FF8533 100%)',
+              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+              padding: '2.5px',
+            }}
+          />
+
+          {/* Inner highlight border */}
+          <div
+            className="pointer-events-none absolute rounded-2xl"
+            style={{
+              inset: '2px',
+              zIndex: 4,
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.2) 100%)',
+              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+              padding: '1px',
+            }}
+          />
+
+          {/* Premium corner accents - refined */}
+          <div className="absolute left-[5px] top-[5px] z-[5] h-2.5 w-2.5">
+            <div className="absolute left-0 top-0 h-[1px] w-2 rounded-full bg-gradient-to-r from-primary to-primary/50" />
+            <div className="absolute left-0 top-0 h-2 w-[1px] rounded-full bg-gradient-to-b from-primary to-primary/50" />
+          </div>
+          <div className="absolute right-[5px] top-[5px] z-[5] h-2.5 w-2.5">
+            <div className="absolute right-0 top-0 h-[1px] w-2 rounded-full bg-gradient-to-l from-primary to-primary/50" />
+            <div className="absolute right-0 top-0 h-2 w-[1px] rounded-full bg-gradient-to-b from-primary to-primary/50" />
+          </div>
+          <div className="absolute bottom-[5px] left-[5px] z-[5] h-2.5 w-2.5">
+            <div className="absolute bottom-0 left-0 h-[1px] w-2 rounded-full bg-gradient-to-r from-primary/50 to-primary" />
+            <div className="absolute bottom-0 left-0 h-2 w-[1px] rounded-full bg-gradient-to-t from-primary/50 to-primary" />
+          </div>
+          <div className="absolute bottom-[5px] right-[5px] z-[5] h-2.5 w-2.5">
+            <div className="absolute bottom-0 right-0 h-[1px] w-2 rounded-full bg-gradient-to-l from-primary/50 to-primary" />
+            <div className="absolute bottom-0 right-0 h-2 w-[1px] rounded-full bg-gradient-to-t from-primary/50 to-primary" />
           </div>
 
-          {/* Corner decorations */}
-          <div className="absolute left-[8px] top-[8px] z-[3] h-4 w-4">
-            <div className="absolute left-0 top-0 h-0.5 w-2.5 bg-marquee" />
-            <div className="absolute left-0 top-0 h-2.5 w-0.5 bg-marquee" />
-          </div>
-          <div className="absolute right-[8px] top-[8px] z-[3] h-4 w-4">
-            <div className="absolute right-0 top-0 h-0.5 w-2.5 bg-marquee" />
-            <div className="absolute right-0 top-0 h-2.5 w-0.5 bg-marquee" />
-          </div>
-          <div className="absolute bottom-[8px] left-[8px] z-[3] h-4 w-4">
-            <div className="absolute bottom-0 left-0 h-0.5 w-2.5 bg-marquee" />
-            <div className="absolute bottom-0 left-0 h-2.5 w-0.5 bg-marquee" />
-          </div>
-          <div className="absolute bottom-[8px] right-[8px] z-[3] h-4 w-4">
-            <div className="absolute bottom-0 right-0 h-0.5 w-2.5 bg-marquee" />
-            <div className="absolute bottom-0 right-0 h-2.5 w-0.5 bg-marquee" />
-          </div>
-
-          {/* Card face */}
+          {/* Card face - visible on top */}
           <div
             ref={faceContainerRef}
             className={`absolute flex items-center justify-center transition-all duration-300 ${isModalOpen ? 'face-glint-active' : ''}`}
             style={{
-              inset: '14px',
-              zIndex: 1,
+              inset: '12px',
+              zIndex: 10,
               transform: mascotteExpression === 'wink' ? 'translateY(-2px) rotate(-2deg)' : 'translateY(-1px)',
             }}
-            dangerouslySetInnerHTML={{ 
+            dangerouslySetInnerHTML={{
               __html: mascotteExpression === 'bugFocus' ? faceBugFocusSVG :
-                      mascotteExpression === 'bugReport' ? faceBugReportSVG : 
-                      mascotteExpression === 'wink' ? faceWinkSVG : 
-                      mascotteExpression === 'coding' ? faceCodingSVG : 
-                      faceSVG 
+                      mascotteExpression === 'bugReport' ? faceBugReportSVG :
+                      mascotteExpression === 'wink' ? faceWinkSVG :
+                      mascotteExpression === 'coding' ? faceCodingSVG :
+                      faceSVG
             }}
           />
+          {/* Desktop flip button - appears on hover */}
+          {isCardHovered && !isFlipped && (
+            <button
+              onClick={handleFlipButtonClick}
+              className="mascotte-flip-btn absolute z-[11] flex h-6 w-6 items-center justify-center rounded-full border border-white/30 bg-zinc-900/70 text-white/80 shadow-lg backdrop-blur-sm transition-all hover:scale-110 hover:bg-zinc-800/90 hover:text-white"
+              style={{ bottom: '4px', left: '4px' }}
+              title="Gira la carta"
+              aria-label="Gira la carta"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" />
+              </svg>
+            </button>
+          )}
         </div>
+        </div>{/* end front face */}
+
+        {/* ── BACK FACE ── */}
+        <div
+          ref={backFaceRef}
+          className="mascotte-flip-face absolute inset-0"
+          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', pointerEvents: isFlipped ? 'auto' : 'none' }}
+        >
+          <div
+            className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-2xl"
+            style={{ background: BACK_VARIANTS[backVariant].gradient }}
+          >
+            {/* Decorative pattern */}
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.08]"
+              style={{
+                backgroundImage: `repeating-linear-gradient(${BACK_VARIANTS[backVariant].pattern}, transparent, transparent 8px, rgba(255,255,255,0.5) 8px, rgba(255,255,255,0.5) 9px)`,
+                backgroundSize: '12px 12px',
+              }}
+            />
+            {/* Holographic overlay — GOLD only */}
+            {BACK_VARIANTS[backVariant].label === 'GOLD' && (
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl holo-overlay"
+                style={{
+                  background: `radial-gradient(circle at ${holoPos.x}% ${holoPos.y}%, rgba(255,255,255,0.35) 0%, rgba(168,85,247,0.2) 20%, rgba(59,130,246,0.2) 40%, rgba(16,185,129,0.15) 60%, rgba(245,158,11,0.1) 80%, transparent 100%)`,
+                  mixBlendMode: 'overlay',
+                  transition: 'background 150ms ease-out',
+                }}
+              />
+            )}
+            {/* Inner border */}
+            <div
+              className="pointer-events-none absolute rounded-2xl"
+              style={{ inset: '3px', border: '1.5px solid rgba(255,255,255,0.35)', borderRadius: '14px' }}
+            />
+
+            {/* Flip counter badge (top-right) */}
+            <div className="absolute top-2.5 right-2.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white/25 px-1.5 backdrop-blur-sm">
+              <span className="text-[8px] font-bold text-white">{flipCount}</span>
+            </div>
+
+            {/* Top-left: share + album buttons */}
+            <div className="absolute top-2 left-2 flex items-center gap-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                className="flex h-5 w-5 items-center justify-center rounded-full bg-white/25 backdrop-blur-sm transition-transform hover:scale-110"
+                title={copiedShare ? 'Copiato!' : 'Condividi'}
+              >
+                {copiedShare ? (
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                ) : (
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                )}
+              </button>
+              <button
+                onClick={handleAlbumToggle}
+                className={`flex h-5 w-5 items-center justify-center rounded-full backdrop-blur-sm transition-all hover:scale-110 ${showAlbum ? 'bg-white/40' : 'bg-white/25'}`}
+                title="Collezione"
+              >
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+              </button>
+            </div>
+
+            {/* Star sparkle SVG */}
+            <svg className="mascotte-back-sparkle mb-0.5" width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" fill="white" fillOpacity="0.9" />
+            </svg>
+            <span className="font-comodo text-[11px] font-bold tracking-wide text-white/95">
+              {BACK_VARIANTS[backVariant].label}
+            </span>
+            <span className="mt-0.5 text-[7px] font-medium uppercase tracking-widest text-white/60">
+              {BACK_VARIANTS[backVariant].sub}
+            </span>
+
+            {/* Unlock progress dots */}
+            <div className="absolute bottom-3 flex items-center gap-1">
+              {BACK_VARIANTS.map((v, i) => (
+                <div
+                  key={i}
+                  className="rounded-full transition-all"
+                  style={{
+                    width: i === backVariant ? '10px' : '5px',
+                    height: '5px',
+                    background: flipCount >= v.unlock
+                      ? (i === backVariant ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)')
+                      : 'rgba(255,255,255,0.15)',
+                  }}
+                  title={flipCount >= v.unlock ? v.label : `Sblocca a ${v.unlock} flip`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>{/* end back face */}
+
+        </div>{/* end flip inner */}
 
         {/* PC Icon - appears when coding mode */}
         {showCodingCompanion && (
@@ -1199,7 +2142,7 @@ export function CardMascotte() {
         </div>
       )}
 
-      {/* Chat Modal - Ciro Assistant */}
+      {/* Chat Modal - Asso Assistant */}
       {showChatModal && (
         <div className="fixed inset-0 flex items-end justify-end p-4 sm:items-center sm:justify-center" style={{ zIndex: Z_INDEX.modal }}>
           <div
@@ -1212,7 +2155,7 @@ export function CardMascotte() {
               <div className="flex items-center gap-3">
                 <div className="h-8 w-1 rounded-full bg-primary" />
                 <div>
-                  <h3 className="font-comodo text-base font-medium text-zinc-900">Ciro</h3>
+                  <h3 className="font-comodo text-base font-medium text-zinc-900">Asso</h3>
                   <p className="text-xs text-zinc-500">Assistente Ebartex</p>
                 </div>
               </div>
@@ -1229,12 +2172,12 @@ export function CardMascotte() {
               {chatMessages.map((msg, idx) => (
                 <div
                   key={idx}
-                  className={`mb-3 flex chat-message-in ${msg.type === 'ciro' ? 'justify-start' : 'justify-end'}`}
+                  className={`mb-3 flex chat-message-in ${msg.type === 'asso' ? 'justify-start' : 'justify-end'}`}
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                      msg.type === 'ciro'
+                      msg.type === 'asso'
                         ? 'rounded-tl-none bg-white text-zinc-800 border border-zinc-200'
                         : 'rounded-tr-none bg-primary text-white'
                     }`}
@@ -1244,7 +2187,7 @@ export function CardMascotte() {
                 </div>
               ))}
               
-              {/* Typing Indicator - shows when Ciro is typing */}
+              {/* Typing Indicator - shows when Asso is typing */}
               {isTyping && (
                 <div className="mb-3 flex justify-start chat-message-in">
                   <div className="max-w-[85%] rounded-2xl rounded-tl-none bg-white border border-zinc-200 px-4 py-3">
@@ -1253,6 +2196,16 @@ export function CardMascotte() {
                       <span></span>
                       <span></span>
                     </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Typewriter effect - live text being typed */}
+              {isTypewriting && typewriterText && (
+                <div className="mb-3 flex justify-start chat-message-in">
+                  <div className="max-w-[85%] rounded-2xl rounded-tl-none bg-white text-zinc-800 border border-zinc-200 px-4 py-2.5 text-sm">
+                    {typewriterText}
+                    <span className="typing-cursor inline-block w-0.5 h-4 bg-primary ml-0.5 animate-pulse" />
                   </div>
                 </div>
               )}
@@ -1338,7 +2291,7 @@ export function CardMascotte() {
             {/* Footer - Clean */}
             <div className="border-t border-zinc-200 bg-white px-4 py-3">
               <p className="text-center text-xs text-zinc-400">
-                Ciro è qui per aiutarti. Scegli un'opzione sopra.
+                Asso è qui per aiutarti. Scegli un'opzione sopra.
               </p>
             </div>
           </div>
@@ -1504,6 +2457,112 @@ export function CardMascotte() {
         }
         .hint-bubble {
           animation: hintPopIn 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        @keyframes backSparkleRotate {
+          0% { transform: rotate(0deg) scale(1); }
+          50% { transform: rotate(180deg) scale(1.15); }
+          100% { transform: rotate(360deg) scale(1); }
+        }
+        .mascotte-back-sparkle {
+          animation: backSparkleRotate 4s ease-in-out infinite;
+          filter: drop-shadow(0 0 6px rgba(255,255,255,0.5));
+        }
+        .mascotte-flip-face {
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
+        }
+        @keyframes flipParticleBurst {
+          0% {
+            opacity: 1;
+            transform: translate(0, 0) scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(var(--particle-dx), var(--particle-dy)) scale(0);
+          }
+        }
+        .flip-particle {
+          border-radius: 50%;
+          animation: flipParticleBurst 600ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          filter: blur(0.5px);
+          box-shadow: 0 0 4px currentColor;
+        }
+        @keyframes achievementIn {
+          0% { opacity: 0; transform: translateY(12px) scale(0.9); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes achievementOut {
+          0% { opacity: 1; transform: translateY(0) scale(1); }
+          100% { opacity: 0; transform: translateY(-8px) scale(0.95); }
+        }
+        @keyframes comboPopIn {
+          0% { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+          60% { opacity: 1; transform: scale(1.15) rotate(3deg); }
+          100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+        @keyframes flipBtnIn {
+          0% { opacity: 0; transform: scale(0.6); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        .mascotte-flip-btn {
+          animation: flipBtnIn 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes unlockFlash {
+          0% { opacity: 0; transform: scale(0.7) translateY(10px); filter: brightness(2); }
+          15% { opacity: 1; transform: scale(1.08) translateY(-2px); filter: brightness(1.5); }
+          30% { opacity: 1; transform: scale(1) translateY(0); filter: brightness(1); }
+          80% { opacity: 1; transform: scale(1) translateY(0); }
+          100% { opacity: 0; transform: scale(0.95) translateY(-12px); }
+        }
+        .unlock-badge {
+          box-shadow: 0 0 20px rgba(251,191,36,0.5), 0 0 40px rgba(251,191,36,0.2);
+        }
+        @keyframes albumSlideIn {
+          0% { opacity: 0; transform: translateY(12px) scale(0.92); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .holo-overlay {
+          animation: holoShimmer 3s ease-in-out infinite;
+        }
+        @keyframes holoShimmer {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 1; }
+        }
+        @keyframes mascotteBackflip {
+          0% { transform: rotateY(0deg) scale(1); filter: drop-shadow(0 12px 32px rgba(255,115,0,0.35)); }
+          20% { transform: rotateY(0deg) translateY(-30px) scale(1.1); filter: drop-shadow(0 20px 40px rgba(255,215,0,0.6)); }
+          50% { transform: rotateY(180deg) translateY(-40px) scale(1.15); filter: drop-shadow(0 24px 48px rgba(255,215,0,0.8)); }
+          80% { transform: rotateY(360deg) translateY(-15px) scale(1.05); filter: drop-shadow(0 16px 36px rgba(255,215,0,0.5)); }
+          100% { transform: rotateY(360deg) translateY(0) scale(1); filter: drop-shadow(0 12px 32px rgba(255,115,0,0.35)); }
+        }
+        .mascotte-backflip {
+          animation: mascotteBackflip 1.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+        }
+        @keyframes goldenConfettiFall {
+          0% { opacity: 0; transform: translateY(0) rotate(0deg) scale(0.5); }
+          10% { opacity: 1; transform: translateY(-20px) rotate(40deg) scale(1); }
+          100% { opacity: 0; transform: translateY(-220px) rotate(720deg) scale(0.3); }
+        }
+        .golden-confetti {
+          animation: goldenConfettiFall 2s ease-out forwards;
+        }
+        @property --shiny-angle {
+          syntax: '<angle>';
+          initial-value: 0deg;
+          inherits: false;
+        }
+        @keyframes shinyBorderSpin {
+          to { --shiny-angle: 360deg; }
+        }
+        .shiny-border-anim {
+          animation: shinyBorderSpin 1.5s linear infinite, shinyPulse 0.8s ease-in-out infinite alternate;
+        }
+        @keyframes shinyPulse {
+          0% { opacity: 0.7; }
+          100% { opacity: 1; }
+        }
+        .mascotte-shiny {
+          filter: drop-shadow(0 12px 32px rgba(168,85,247,0.4)) drop-shadow(0 0 20px rgba(236,72,153,0.3)) drop-shadow(0 4px 12px rgba(59,130,246,0.3)) !important;
         }
       `}} />
     </>
