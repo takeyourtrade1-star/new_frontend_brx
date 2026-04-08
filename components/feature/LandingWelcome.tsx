@@ -273,14 +273,6 @@ export function LandingWelcome() {
 
   const [isNotifySuccess, setIsNotifySuccess] = React.useState(false);
 
-  // Track CTA visibility for progressive animation trigger
-
-  const [isCtaVisible, setIsCtaVisible] = React.useState(false);
-
-  const ctaRef = React.useRef<HTMLDivElement>(null);
-
-
-
   const handleCloseFullscreen = React.useCallback(() => {
     setIsFullscreenClosing(true);
     setTimeout(() => {
@@ -445,46 +437,6 @@ export function LandingWelcome() {
 
   }, []);
 
-
-
-  // Intersection Observer to trigger glow animation when CTA enters viewport
-
-  useEffect(() => {
-
-    if (!ctaRef.current) return;
-
-    
-
-    const observer = new IntersectionObserver(
-
-      ([entry]) => {
-
-        if (entry.isIntersecting) {
-
-          setIsCtaVisible(true);
-
-          observer.disconnect(); // Trigger once, then cleanup
-
-        }
-
-      },
-
-      { threshold: 0.5 } // Trigger when 50% visible
-
-    );
-
-    
-
-    observer.observe(ctaRef.current);
-
-    
-
-    return () => observer.disconnect();
-
-  }, []);
-
-
-
   return (
 
     <div className="relative w-full overflow-x-hidden overflow-y-visible text-white">
@@ -563,11 +515,11 @@ export function LandingWelcome() {
 
 
 
-        {/* Tagline: titolo + CTA su stessa riga */}
+        {/* Tagline: titolo + CTA arancione sotto */}
 
         <div className="px-3 pb-3 sm:px-4 sm:pb-4 md:pb-5">
 
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:items-center sm:justify-center sm:gap-6 md:gap-8">
+          <div className="flex flex-col items-center justify-center">
 
             <h2 className="text-lg font-semibold uppercase tracking-[0.06em] text-white drop-shadow-sm sm:text-xl md:text-2xl md:tracking-[0.05em] lg:text-3xl">
 
@@ -575,59 +527,17 @@ export function LandingWelcome() {
 
             </h2>
 
-            
-
-            {/* Pulsante CTA - Con effetto glow pulse */}
-
-            <div ref={ctaRef} className="relative">
-
-              {/* Glow pulse effect - si attiva solo quando in viewport + delay 2s */}
-
-              {isCtaVisible && (
-
-                <div
-
-                  className="absolute -inset-1 -z-10 rounded-full bg-gradient-to-r from-[#FF7300]/40 to-[#FF9A44]/40 blur-lg opacity-0 animate-[pulse-glow_3s_ease-in-out_infinite_2s]"
-
-                  style={{
-
-                    animation: 'pulse-glow 3s ease-in-out infinite 2s',
-
-                  }}
-
-                />
-
-              )}
-
-              <Link
-
-                href="/login"
-
-                className="group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 px-4 py-2 sm:px-7 sm:py-3 text-[11px] sm:text-xs font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95"
-
-              >
-
-                <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
-
-                  <div className="relative h-full w-8 bg-white/20" />
-
-                </div>
-
-                <span>{t('landing.cta.register')}</span>
-
-              </Link>
-
-            </div>
-
           </div>
 
-          
-
-          <p className="mx-auto mt-6 max-w-lg text-center text-xs font-normal leading-relaxed tracking-wide text-white/80 sm:mt-8 md:mt-10 sm:text-sm">
-
-            {t('landing.heroSubtitle')}
-
-          </p>
+          {/* CTA Arancione sotto il titolo */}
+          <div className="mx-auto mt-6 flex justify-center sm:mt-8 md:mt-10">
+            <Link
+              href="/login"
+              className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-[#FF7300] px-8 py-3 sm:px-10 sm:py-4 text-sm sm:text-base font-bold uppercase tracking-widest text-white shadow-[0_4px_20px_rgba(255,115,0,0.4)] transition-all duration-300 hover:scale-[1.33] hover:bg-[#e66700] hover:shadow-[0_6px_30px_rgba(255,115,0,0.6)] active:scale-110"
+            >
+              <span>{t('landing.cta.register')}</span>
+            </Link>
+          </div>
 
         </div>
 
@@ -677,11 +587,11 @@ export function LandingWelcome() {
 
                 {/* Badge Disponibile DESKTOP - in alto a destra mezzo fuori */}
 
-                <span className="hidden sm:block absolute -top-3 right-0 z-10 translate-x-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile da ora!</span>
+                <span className="hidden sm:block absolute -top-3 right-0 z-10 translate-x-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile subito!</span>
 
                 {/* Badge Disponibile MOBILE - in basso centrato mezzo fuori */}
 
-                <span className="sm:hidden absolute bottom-0 left-1/2 z-10 -translate-x-1/2 translate-y-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile da ora!</span>
+                <span className="sm:hidden absolute bottom-0 left-1/2 z-10 -translate-x-1/2 translate-y-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile subito!</span>
 
                 <img
 
