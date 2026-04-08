@@ -657,7 +657,9 @@ export const useAuthStore = create<AuthState>()(
 
       // Mock login for UI development without backend
       mockLogin: () => {
-        if (process.env.NODE_ENV !== 'development') return;
+        // Allow in both development and when dev-mode is explicitly set
+        const devModeEnabled = typeof window !== 'undefined' && localStorage.getItem('dev-mode') === 'true';
+        if (process.env.NODE_ENV !== 'development' && !devModeEnabled) return;
 
         const mockUser: User = {
           id: 'mock-user-001',
