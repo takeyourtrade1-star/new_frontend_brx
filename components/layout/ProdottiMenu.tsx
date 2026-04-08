@@ -40,16 +40,32 @@ export function ProdottiMenu({ isSquared = false }: { isSquared?: boolean }) {
     return () => ro.disconnect();
   }, [measure]);
 
+  const drawerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) return;
     measure();
     const onEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
     };
+    const onClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      // Chiudi se il click è fuori dal drawer E fuori dal bottone trigger
+      if (
+        drawerRef.current &&
+        !drawerRef.current.contains(target) &&
+        btnRef.current &&
+        !btnRef.current.contains(target)
+      ) {
+        setOpen(false);
+      }
+    };
     document.addEventListener('keydown', onEscape);
+    document.addEventListener('mousedown', onClickOutside);
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', onEscape);
+      document.removeEventListener('mousedown', onClickOutside);
       document.body.style.overflow = '';
     };
   }, [open, measure]);
@@ -89,6 +105,7 @@ export function ProdottiMenu({ isSquared = false }: { isSquared?: boolean }) {
 
       {/* Drawer — parte dal bordo inferiore dell'header */}
       <div
+        ref={drawerRef}
         className={cn(
           'fixed left-0 bottom-0 z-[10000] flex w-[min(100%,340px)] max-w-[92vw] flex-col bg-white shadow-[8px_0_32px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out',
           open ? 'translate-x-0' : '-translate-x-full'
