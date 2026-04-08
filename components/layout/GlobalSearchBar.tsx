@@ -320,8 +320,8 @@ function SearchInput({
         placeholder={placeholder}
         className={
           isPill
-            ? 'w-full min-w-0 px-5 py-2.5 pr-12 text-base border-0 bg-transparent rounded-l-[50px] outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus:ring-0 focus:ring-offset-0 placeholder:text-[rgba(3,3,3,0.7)] text-[rgba(3,3,3,0.9)]'
-            : 'w-full px-4 py-2 pr-16 text-[16px] md:text-[14px] border border-gray-200 rounded-lg outline-none transition-all duration-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:ring-opacity-30 placeholder-gray-400 bg-gray-50 focus:bg-white disabled:opacity-60 disabled:cursor-not-allowed text-gray-900'
+            ? 'w-full min-w-0 px-5 py-2.5 pr-12 text-base border-0 bg-transparent rounded-l-[50px] outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus:ring-0 focus:ring-offset-0 search-input-orange-placeholder text-[rgba(3,3,3,0.9)]'
+            : 'w-full px-4 py-2 pr-16 text-[16px] md:text-[14px] border border-gray-200 rounded-lg outline-none transition-all duration-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:ring-opacity-30 search-input-orange-placeholder bg-gray-50 focus:bg-white disabled:opacity-60 disabled:cursor-not-allowed text-gray-900'
         }
         style={
           isPill
@@ -747,7 +747,7 @@ function SearchPanelBody({
               }
             }}
             placeholder="Digita per cercare carte"
-            className="w-full border-0 bg-transparent py-2 pl-1 text-base outline-none"
+            className="w-full border-0 bg-transparent py-2 pl-1 text-base outline-none search-input-orange-placeholder"
             aria-label="Cerca carte"
             autoComplete="off"
           />
