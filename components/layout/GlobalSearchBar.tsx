@@ -508,6 +508,7 @@ function SearchResultsDropdown({
   anchorRef,
   inputValue,
   productCategory,
+  position: dropdownPosition = 'bottom',
 }: {
   gameSlug: GameSlug;
   onSelect: () => void;
@@ -516,6 +517,7 @@ function SearchResultsDropdown({
   /** Valore attuale dell'input (per mostrare suggerimenti subito mentre digiti, prima che query InstantSearch si aggiorni) */
   inputValue?: string;
   productCategory: string | null;
+  position?: 'top' | 'bottom';
 }) {
   const router = useRouter();
   const { query, isSearchStalled } = useSearchBox();
@@ -533,7 +535,13 @@ function SearchResultsDropdown({
     const update = () => {
       if (anchorRef.current) {
         const rect = anchorRef.current.getBoundingClientRect();
-        setPosition({ top: rect.bottom, left: rect.left, width: rect.width });
+        if (dropdownPosition === 'top') {
+          // Dropdown sopra la barra
+          setPosition({ top: rect.top, left: rect.left, width: rect.width });
+        } else {
+          // Dropdown sotto la barra (default)
+          setPosition({ top: rect.bottom, left: rect.left, width: rect.width });
+        }
       }
     };
     update();
@@ -543,7 +551,7 @@ function SearchResultsDropdown({
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
-  }, [anchorRef, query]);
+  }, [anchorRef, query, dropdownPosition]);
 
   const showInlinePreview = (url: string, name: string, buttonRect: DOMRect) => {
     if (closeTimeoutRef.current) {
@@ -576,7 +584,11 @@ function SearchResultsDropdown({
     <>
       <div
         ref={containerRef as React.Ref<HTMLDivElement>}
-        className="bg-white rounded-none border border-gray-200 border-t-0 max-h-[400px] overflow-hidden min-h-[80px] flex flex-col shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+        className={`bg-white rounded-none border border-gray-200 max-h-[400px] overflow-hidden min-h-[80px] flex flex-col ${
+          dropdownPosition === 'top'
+            ? 'border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.12)]'
+            : 'border-t-0 shadow-[0_4px_12px_rgba(0,0,0,0.12)]'
+        }`}
         style={{
           position: 'fixed',
           top: position.top,
@@ -946,10 +958,12 @@ function ProductCategoryButton({
   selectedCategory,
   onSelect,
   gameSlug,
+  isBarOpen = false,
 }: {
   selectedCategory: string | null;
   onSelect: (cat: string | null) => void;
   gameSlug: MappingGameSlug | null;
+  isBarOpen?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -962,12 +976,18 @@ function ProductCategoryButton({
     return getCategoryKeys(gameSlug);
   }, [gameSlug]);
 
-  // Posiziona il dropdown sotto il bottone
+  // Posiziona il dropdown sopra o sotto il bottone in base al contesto
   useLayoutEffect(() => {
     if (!open || !buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
-    setPos({ top: rect.bottom + 4, left: rect.left });
-  }, [open]);
+    if (isBarOpen) {
+      // Barra sticky in basso: dropdown sopra il bottone
+      setPos({ top: rect.top - 4, left: rect.left });
+    } else {
+      // Barra normale: dropdown sotto il bottone
+      setPos({ top: rect.bottom + 4, left: rect.left });
+    }
+  }, [open, isBarOpen]);
 
   // Chiudi cliccando fuori
   useEffect(() => {
@@ -1010,7 +1030,9 @@ function ProductCategoryButton({
     ? createPortal(
         <div
           ref={dropdownRef}
-          className="fixed z-[1100] min-w-[180px] max-w-[220px] overflow-hidden shadow-xl rounded-lg bg-white border border-gray-100 py-1"
+          className={`fixed z-[1100] min-w-[180px] max-w-[220px] overflow-hidden shadow-xl rounded-lg bg-white border border-gray-100 py-1 ${
+            isBarOpen ? 'border-b-0' : 'border-t-0'
+          }`}
           style={{ top: pos.top, left: pos.left }}
         >
           {availableKeys.map((key) => {
@@ -1046,11 +1068,21 @@ function ProductCategoryButton({
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className="flex items-center justify-center gap-1 md:gap-1.5 h-full rounded-full border border-white/20 bg-white/10 backdrop-blur-sm pl-2.5 pr-2.5 md:pl-3 md:pr-4 text-xs md:text-sm text-white font-medium font-sans transition-all duration-200 ease-out hover:bg-white/15 hover:border-white/30 active:scale-[0.98] whitespace-nowrap min-w-[5.5rem] md:min-w-0"
+        className={`flex items-center justify-center gap-1 md:gap-1.5 h-full rounded-full border backdrop-blur-sm pl-2.5 pr-2.5 md:pl-3 md:pr-4 text-xs md:text-sm font-medium font-sans transition-all duration-200 ease-out active:scale-[0.98] whitespace-nowrap min-w-[5.5rem] md:min-w-0 ${
+          isBarOpen
+            ? 'border-gray-300 bg-gray-100 text-gray-800 hover:bg-gray-200 hover:border-gray-400'
+            : 'border-white/20 bg-white/10 text-white hover:bg-white/15 hover:border-white/30'
+        }`}
       >
         <span className="hidden md:inline">{currentLabel}</span>
         <span className="md:hidden">{mobileLabel}</span>
-        <ChevronDown className={`h-3 w-3 md:h-4 md:w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`h-3 w-3 md:h-4 md:w-4 transition-transform ${
+            isBarOpen
+              ? (open ? 'rotate-0' : 'rotate-180')   // Barra in basso: chiuso=su, aperto=giù (verso dropdown sopra)
+              : (open ? 'rotate-180' : 'rotate-0')   // Barra in alto: chiuso=giù, aperto=su (verso dropdown sotto)
+          }`}
+        />
       </button>
       {dropdownMenu}
     </>
@@ -1172,10 +1204,11 @@ function SearchWithInstantSearch({
     >
       {/* Menu a tendina Categorie Prodotto visibile sempre */}
       <div className="flex items-center justify-center pl-0 pr-2">
-        <ProductCategoryButton 
-          selectedCategory={productCategory} 
+        <ProductCategoryButton
+          selectedCategory={productCategory}
           onSelect={setProductCategory}
           gameSlug={mappedGame}
+          isBarOpen={showOpenStyle}
         />
       </div>
 

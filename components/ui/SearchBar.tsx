@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, ChevronDown, X } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SearchBarProps {
@@ -66,7 +66,11 @@ export function SearchBar({
             aria-label="Categorie"
           >
             Categorie
-            <ChevronDown className="h-4 w-4 text-gray-600" />
+            {categoriesOpen ? (
+              <ChevronUp className="h-4 w-4 text-gray-600" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-gray-600" />
+            )}
           </button>
 
           {query && (
