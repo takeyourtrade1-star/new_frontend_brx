@@ -134,6 +134,7 @@ export const en = {
   'landing.feat.vendite.desc': 'Sell in a few clicks with our always-updated database on cards and shipping costs.',
   'landing.feat.commissioni.title': 'Low fees',
   'landing.feat.commissioni.desc': 'No time limits — only 5% when you sell.',
+  'landing.cta.register': 'Register for free',
   'landing.nav.main': 'Main menu',
   'landing.nav.sell': 'Sell',
   'landing.nav.earn': 'Earn',

@@ -133,6 +133,7 @@ export const it: Record<MessageKey, string> = {
   'landing.feat.vendite.desc': 'Vendi in pochi click, grazie al nostro database sempre aggiornato su carte e spese di spedizione.',
   'landing.feat.commissioni.title': 'Commissioni Leggere',
   'landing.feat.commissioni.desc': 'Nessun limite di tempo, solo il 5% quando vendi.',
+  'landing.cta.register': 'Registrati gratis',
   'landing.nav.main': 'Menu principale',
   'landing.nav.sell': 'VENDI',
   'landing.nav.earn': 'GUADAGNA',
