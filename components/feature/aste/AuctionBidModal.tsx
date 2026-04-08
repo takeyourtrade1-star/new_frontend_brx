@@ -312,7 +312,7 @@ export function AuctionBidModal({
         </div>
 
         {/* Header with gradient */}
-        <div className="relative overflow-hidden border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white px-5 py-4 sm:px-8 sm:py-6">
+        <div className="relative overflow-hidden border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white px-5 pt-4 pb-3 sm:px-8 sm:pt-5 sm:pb-4">
           <div className="absolute inset-0 bg-gradient-to-r from-[#FF7300]/5 via-transparent to-[#FF7300]/5" />
           
           <div className="relative">
@@ -335,12 +335,12 @@ export function AuctionBidModal({
               </button>
             </div>
 
-            {/* Current offer - compact inline display */}
-            <div className="mt-3 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm sm:mt-4 sm:px-4 sm:py-2.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 sm:text-xs">
+            {/* Current offer - ultra compact inline display */}
+            <div className="mt-2 flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-1.5 shadow-sm sm:mt-3 sm:px-3.5 sm:py-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                 {t('auctions.bidModalCurrentOffer')}
               </span>
-              <span className="text-xl font-bold text-gray-900 sm:text-2xl">
+              <span className="text-lg font-bold text-gray-900 sm:text-xl">
                 {fmtEur(effectiveCurrentBidEur)}
               </span>
             </div>
@@ -348,10 +348,10 @@ export function AuctionBidModal({
         </div>
 
         {/* Body - scrollable on mobile */}
-        <div className="max-h-[65vh] overflow-y-auto px-5 py-5 sm:max-h-none sm:px-8 sm:py-6">
+        <div className="max-h-[65vh] overflow-y-auto px-5 py-4 sm:max-h-none sm:px-8 sm:py-5">
           {/* CAMPO INSERIMENTO */}
-          <div className="mb-5 sm:mb-6">
-            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-gray-700 sm:mb-2 sm:text-xs">
+          <div className="mb-4 sm:mb-5">
+            <label className="mb-2 block text-[10px] font-semibold uppercase tracking-wide text-gray-700 sm:text-xs">
               {t('auctions.bidInput')}
             </label>
             <div className="relative">
@@ -364,7 +364,7 @@ export function AuctionBidModal({
                   setError(null);
                 }}
                 placeholder="0,00"
-                className="w-full rounded-xl border-2 border-gray-300 bg-white px-4 py-3 pr-12 text-lg font-bold text-gray-900 placeholder:text-gray-400 transition-colors focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20 sm:px-5 sm:py-4 sm:pr-14 sm:text-xl"
+                className="w-full rounded-xl border-2 border-gray-300 bg-white px-4 py-3.5 pr-12 text-xl font-bold text-gray-900 placeholder:text-gray-400 transition-colors focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20 sm:px-5 sm:py-4 sm:pr-14 sm:text-2xl"
               />
               <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-lg font-bold text-gray-400 sm:right-5 sm:text-xl">
                 €
@@ -373,11 +373,11 @@ export function AuctionBidModal({
           </div>
 
           {/* 3 OFFERTE CONSIGLIATE */}
-          <div className="mb-5 sm:mb-7">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-600 sm:mb-3 sm:text-xs">
+          <div className="mb-5 sm:mb-6">
+            <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 sm:mb-3 sm:text-xs">
               {t('auctions.suggestedBids')}
             </p>
-            <div className="flex items-center justify-center gap-2 sm:gap-3">
+            <div className="flex items-stretch justify-center gap-2 sm:gap-3">
               {quickAmounts.map((amt, idx) => {
                 const isRecommended = idx === 1;
                 const pct = ((amt - effectiveCurrentBidEur) / effectiveCurrentBidEur) * 100;
@@ -391,14 +391,14 @@ export function AuctionBidModal({
                       setInput(amt.toString());
                       setError(null);
                     }}
-                    className={`group relative flex-1 rounded-xl border-2 p-2.5 text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 sm:p-4 ${
+                    className={`group relative flex-1 rounded-xl border-2 p-3 text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 sm:p-4 ${
                       isRecommended
                         ? 'border-[#FF7300] bg-gradient-to-b from-orange-50 to-white shadow-md'
                         : 'border-gray-200 bg-white hover:border-gray-300'
                     }`}
                   >
                     {isRecommended && (
-                      <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
                         <span className="inline-flex items-center rounded-full bg-[#FF7300] px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-sm whitespace-nowrap sm:px-2.5 sm:text-[9px]">
                           {t('auctions.suggestedBid')}
                         </span>
@@ -408,7 +408,7 @@ export function AuctionBidModal({
                     <span className={`block text-[9px] font-medium uppercase tracking-wide ${isRecommended ? 'text-[#FF7300]' : 'text-gray-500'} sm:text-[10px]`}>
                       {t('auctions.bidButtonChoose')}
                     </span>
-                    <span className={`mt-0.5 block text-base font-bold ${isRecommended ? 'text-[#FF7300]' : 'text-gray-900'} sm:mt-1 sm:text-lg`}>
+                    <span className={`mt-1 block text-sm font-bold ${isRecommended ? 'text-[#FF7300]' : 'text-gray-900'} sm:mt-1.5 sm:text-base`}>
                       {fmtEur(amt)}
                     </span>
                     <span className={`mt-0.5 block text-[9px] font-semibold ${isRecommended ? 'text-orange-600' : 'text-gray-400'} sm:text-[10px]`}>
@@ -428,30 +428,30 @@ export function AuctionBidModal({
           )}
 
           {/* BOTTONI AZIONE */}
-          <div className="flex items-stretch gap-2.5 sm:gap-3">
+          <div className="flex items-stretch gap-3 sm:gap-4">
             <button
               type="button"
               onClick={handleConfirm}
-              className="flex-[0.7] rounded-xl border-2 border-gray-300 bg-white px-3 py-3.5 text-[10px] font-bold uppercase tracking-wide text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 hover:shadow-sm active:scale-[0.98] sm:px-4 sm:py-3.5 sm:text-xs"
+              className="flex-[0.65] rounded-xl border-2 border-gray-300 bg-white px-3 py-3.5 text-[10px] font-bold uppercase tracking-wide text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 hover:shadow-sm active:scale-[0.98] sm:flex-[0.7] sm:px-4 sm:py-4 sm:text-xs"
             >
               {t('auctions.bidButtonMain', { amount: fmtEur(minBid) })}
             </button>
             <button
               type="button"
               onClick={handleMaxBid}
-              className="flex-1 rounded-xl border-2 border-[#FF7300] bg-gradient-to-r from-[#FF8A3D] to-[#FF7300] px-4 py-3.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md shadow-orange-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98] sm:px-6 sm:py-3.5 sm:text-xs"
+              className="flex-1 rounded-xl border-2 border-[#FF7300] bg-gradient-to-r from-[#FF8A3D] to-[#FF7300] px-4 py-3.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md shadow-orange-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98] sm:px-6 sm:py-4 sm:text-xs"
             >
               {t('auctions.bidButtonMax')}
             </button>
           </div>
 
           {/* Info text */}
-          <p className="mt-4 text-center text-[10px] text-gray-500 sm:mt-5 sm:text-xs">
+          <p className="mt-3 text-center text-[10px] text-gray-500 sm:mt-4 sm:text-xs">
             {t('auctions.bidMaxHint')}
           </p>
 
           {/* Footer info */}
-          <div className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 sm:mt-6 sm:px-5 sm:py-4">
+          <div className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 sm:mt-5 sm:px-5 sm:py-3.5">
             <p className="text-center text-[10px] text-gray-600 sm:text-xs">
               <span className="font-medium">{t('auctions.bidModalEndsPrefix')} </span>
               <span suppressHydrationWarning className="font-semibold text-gray-900">

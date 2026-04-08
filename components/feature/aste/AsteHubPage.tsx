@@ -91,13 +91,21 @@ export function AsteHubPage() {
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY || document.documentElement.scrollTop;
+      const isVisible = scrollY > 300;
       // Show sticky bar after scrolling past the filter section (approx 300px)
-      setShowStickyBar(scrollY > 300);
+      setShowStickyBar(isVisible);
+      // Notify mascotte to move up
+      window.dispatchEvent(new CustomEvent('stickyBarVisibilityChange', { detail: { visible: isVisible } }));
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll(); // Check initial position
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    // Cleanup: reset mascot position when leaving page
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.dispatchEvent(new CustomEvent('stickyBarVisibilityChange', { detail: { visible: false } }));
+    };
   }, []);
 
   const endingSoon = useMemo(() => {
@@ -143,10 +151,12 @@ export function AsteHubPage() {
       <AsteNav />
 
       <section className="pb-16 pt-6">
-        <div className="container-content">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
           {endingSoon.length > 0 && (
             <div className="mb-8">
-              <div className="flex items-stretch gap-6">
+              {/* Mobile: stack verticale, Desktop: flex orizzontale */}
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
                 {/* Sezione In evidenza - 3 card */}
                 <div className="flex-1">
                   <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-700">
@@ -154,13 +164,13 @@ export function AsteHubPage() {
                   </h3>
                   <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                     {endingSoon.slice(0, 3).map((a) => (
-                      <EndingSoonCard key={a.id} auction={a} now={now} />
+                      <EndingSoonCard key={a.id} auction={a} now={now} featured />
                     ))}
                   </div>
                 </div>
 
-                {/* Separatore verticale */}
-                <div className="w-px self-stretch bg-gray-300" />
+                {/* Separatore verticale - solo desktop */}
+                <div className="hidden w-px self-stretch bg-gray-300 sm:block" />
 
                 {/* Sezione Terminano presto - 3 card */}
                 <div className="flex-1">
@@ -187,7 +197,7 @@ export function AsteHubPage() {
           {/* Sezione filtri unificata */}
           <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             {/* Riga superiore: ricerca + toggle filtri */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               {/* Search bar */}
               <div className="flex flex-1 items-center rounded-full bg-gray-100 px-2 py-1.5">
                 <div className="flex flex-1 items-center gap-3 px-3">
@@ -214,7 +224,7 @@ export function AsteHubPage() {
                 </div>
                 <button
                   type="button"
-                  className="shrink-0 rounded-full bg-[#FF7300] px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-[#e86800]"
+                  className="shrink-0 rounded-full bg-[#FF7300] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#e86800] sm:px-4 sm:text-sm"
                 >
                   Cerca
                 </button>
@@ -242,7 +252,7 @@ export function AsteHubPage() {
               className={`overflow-hidden transition-all duration-300 ${showFilters ? 'mt-4 max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
             >
               {/* Riga unica: filtri + ordinamento + vista */}
-              <div className="flex flex-wrap items-end gap-3 border-b border-gray-200 pb-4 mb-4">
+              <div className="flex flex-wrap items-end gap-3 border-b border-gray-200 pb-4">
                 <label className="flex flex-col gap-1 w-full sm:w-auto">
                   <span className="text-xs font-semibold uppercase text-gray-600">{t('auctions.filterGame')}</span>
                   <select
@@ -324,142 +334,163 @@ export function AsteHubPage() {
           </div>
           <div className="overflow-hidden border border-gray-300 bg-gray-50">
             {filtered.length === 0 ? (
-              <div className="p-16 text-center text-gray-500">{t('auctions.noResults')}</div>
+              <div className="p-8 text-center text-gray-500 sm:p-16">{t('auctions.noResults')}</div>
             ) : viewMode === 'grid' ? (
               <AuctionResultsGrid auctions={filtered} now={now} t={t} />
             ) : (
-              <AuctionListTable auctions={filtered} now={now} t={t} />
+              <div className="overflow-x-auto">
+                <AuctionListTable auctions={filtered} now={now} t={t} />
+              </div>
             )}
           </div>
+        </div>
         </div>
       </section>
 
       {/* Sticky Bottom Bar - Search + Expandable Filters */}
       {showStickyBar && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-4 fade-in duration-300">
-          {/* Collapsed State - Solo ricerca visibile */}
-          <div className="flex items-center gap-3 px-4 py-3">
-            {/* Search Compact */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                type="search"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={t('auctions.searchPlaceholder')}
-                className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-8 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-              {q.length > 0 && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md animate-slide-up-bounce"
+        >
+          <div className="px-4 py-3">
+            {/* Stessa UI della search bar originale */}
+            <div className="flex items-center gap-2">
+              {/* Search bar pillola */}
+              <div className="flex flex-1 items-center rounded-full bg-gray-100 px-2 py-1.5">
+                <div className="flex flex-1 items-center gap-3 px-3">
+                  <Search className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
+                  <input
+                    type="search"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder={t('auctions.searchPlaceholder')}
+                    className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none"
+                    aria-label={t('auctions.searchPlaceholder')}
+                  />
+                  {q && (
+                    <button
+                      type="button"
+                      onClick={() => setQ('')}
+                      className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                      aria-label="Cancella ricerca"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
                 <button
                   type="button"
-                  onClick={() => setQ('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  className="shrink-0 rounded-full bg-[#FF7300] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#e86800] sm:px-4 sm:text-sm"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  Cerca
                 </button>
-              )}
+              </div>
+              {/* Toggle filtri */}
+              <button
+                type="button"
+                onClick={() => setBottomBarExpanded(!bottomBarExpanded)}
+                className={cn(
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/50 text-white shadow ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 transition-all hover:scale-105 hover:bg-primary/60 active:scale-95',
+                  bottomBarExpanded && 'bg-primary/70 ring-white/20'
+                )}
+                aria-label={bottomBarExpanded ? 'Comprimi filtri' : 'Espandi filtri'}
+              >
+                {bottomBarExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronUp className="h-4 w-4" />
+                )}
+              </button>
             </div>
 
-            {/* Toggle Expand Button */}
-            <button
-              type="button"
-              onClick={() => setBottomBarExpanded(!bottomBarExpanded)}
-              className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition-all hover:bg-gray-50"
-              title={bottomBarExpanded ? 'Comprimi' : 'Espandi filtri'}
-            >
-              {bottomBarExpanded ? (
-                <ChevronDown className="h-5 w-5" />
-              ) : (
-                <SlidersHorizontal className="h-5 w-5" />
-              )}
-            </button>
+            {/* Filtri espandibili */}
+            {bottomBarExpanded && (
+              <div className="mt-3 overflow-hidden transition-all duration-300">
+                <div className="flex flex-wrap items-end gap-3 border-b border-gray-200 pb-3">
+                  {/* Game Filter */}
+                  <label className="flex flex-col gap-1 w-full sm:w-auto">
+                    <span className="text-xs font-semibold uppercase text-gray-600">{t('auctions.filterGame')}</span>
+                    <select
+                      value={filterGame}
+                      onChange={(e) => setFilterGame(e.target.value as 'all' | AuctionGame)}
+                      className="w-full sm:min-w-[140px] sm:w-auto rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 [color-scheme:light]"
+                    >
+                      <option value="all">{t('auctions.gameAll')}</option>
+                      <option value="mtg">{t('auctions.gameMtg')}</option>
+                      <option value="lorcana">{t('auctions.gameLorcana')}</option>
+                      <option value="pokemon">{t('auctions.gamePokemon')}</option>
+                      <option value="op">{t('auctions.gameOp')}</option>
+                      <option value="ygo">{t('auctions.gameYgo')}</option>
+                    </select>
+                  </label>
 
-            {/* Quick View Toggle */}
-            <AuctionViewToggle
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              listLabel={t('auctions.viewList')}
-              gridLabel={t('auctions.viewGrid')}
-            />
-          </div>
+                  {/* Price Max */}
+                  <label className="flex flex-col gap-1 w-full sm:w-auto">
+                    <span className="text-xs font-semibold uppercase text-gray-600">{t('auctions.filterPriceMax')}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      placeholder="€ max"
+                      value={filterPriceMax}
+                      onChange={(e) => setFilterPriceMax(e.target.value)}
+                      className="w-full sm:w-[120px] rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                    />
+                  </label>
 
-          {/* Expanded State - Filtri */}
-          {bottomBarExpanded && (
-            <div className="border-t border-gray-100 px-4 py-3">
-              {/* Filters Row */}
-              <div className="mb-3 flex flex-wrap items-end gap-2">
-                <span className="text-xs font-medium text-gray-500">Filtri:</span>
-                
-                {/* Game Filter */}
-                <select
-                  value={filterGame}
-                  onChange={(e) => setFilterGame(e.target.value as 'all' | AuctionGame)}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 [color-scheme:light]"
-                >
-                  <option value="all">{t('auctions.gameAll')}</option>
-                  <option value="mtg">{t('auctions.gameMtg')}</option>
-                  <option value="lorcana">{t('auctions.gameLorcana')}</option>
-                  <option value="pokemon">{t('auctions.gamePokemon')}</option>
-                  <option value="op">{t('auctions.gameOp')}</option>
-                  <option value="ygo">{t('auctions.gameYgo')}</option>
-                </select>
+                  {/* Min Bids */}
+                  <label className="flex flex-col gap-1 w-full sm:w-auto">
+                    <span className="text-xs font-semibold uppercase text-gray-600">{t('auctions.filterMinBids')}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      placeholder="Min offerte"
+                      value={filterMinBids}
+                      onChange={(e) => setFilterMinBids(e.target.value)}
+                      className="w-full sm:w-[120px] rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                    />
+                  </label>
 
-                {/* Price Max */}
-                <input
-                  type="number"
-                  min={0}
-                  inputMode="numeric"
-                  placeholder="€ max"
-                  value={filterPriceMax}
-                  onChange={(e) => setFilterPriceMax(e.target.value)}
-                  className="w-[100px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900"
-                />
+                  {/* Ending Only */}
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-800 w-full sm:w-auto h-[38px]">
+                    <input
+                      type="checkbox"
+                      checked={filterEndingOnly}
+                      onChange={(e) => setFilterEndingOnly(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-400 text-[#FF7300] focus:ring-[#FF7300]"
+                    />
+                    {t('auctions.filterEndingOnly')}
+                  </label>
 
-                {/* Min Bids */}
-                <input
-                  type="number"
-                  min={0}
-                  inputMode="numeric"
-                  placeholder="Min offerte"
-                  value={filterMinBids}
-                  onChange={(e) => setFilterMinBids(e.target.value)}
-                  className="w-[110px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900"
-                />
+                  {/* Spacer */}
+                  <div className="hidden lg:block flex-1" />
 
-                {/* Ending Only Checkbox */}
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={filterEndingOnly}
-                    onChange={(e) => setFilterEndingOnly(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-400 text-primary focus:ring-primary"
+                  {/* Sort */}
+                  <label className="flex items-center gap-2 text-sm text-gray-600 w-full sm:w-auto">
+                    <span className="whitespace-nowrap text-xs font-semibold uppercase text-gray-600">{t('search.sortBy')}</span>
+                    <select
+                      value={sort}
+                      onChange={(e) => setSort(e.target.value as SortMode)}
+                      className="min-w-[11rem] rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium bg-white text-gray-900 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40"
+                    >
+                      <option value="ending">{t('auctions.sortEndingSoon')}</option>
+                      <option value="new">{t('auctions.sortNewest')}</option>
+                      <option value="bid">{t('auctions.sortHighestBid')}</option>
+                    </select>
+                  </label>
+
+                  {/* View Toggle */}
+                  <AuctionViewToggle
+                    viewMode={viewMode}
+                    onViewModeChange={setViewMode}
+                    listLabel={t('auctions.viewList')}
+                    gridLabel={t('auctions.viewGrid')}
                   />
-                  {t('auctions.filterEndingOnly')}
-                </label>
-              </div>
-
-              {/* Sort Row */}
-              <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Ordina:</span>
-                  <select
-                    value={sort}
-                    onChange={(e) => setSort(e.target.value as SortMode)}
-                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium bg-white text-gray-900 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  >
-                    <option value="ending">{t('auctions.sortEndingSoon')}</option>
-                    <option value="new">{t('auctions.sortNewest')}</option>
-                    <option value="bid">{t('auctions.sortHighestBid')}</option>
-                  </select>
                 </div>
-
-                {/* Results Count */}
-                <span className="text-xs text-gray-500">
-                  {filtered.length} {filtered.length === 1 ? 'asta' : 'aste'}
-                </span>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -469,9 +500,11 @@ export function AsteHubPage() {
 function EndingSoonCard({
   auction,
   now,
+  featured = false,
 }: {
   auction: EnrichedAuction;
   now: number;
+  featured?: boolean;
 }) {
   const ms = new Date(auction.endsAt).getTime() - now;
   return (
@@ -479,7 +512,7 @@ function EndingSoonCard({
       href={auctionDetailPath(auction.id)}
       scroll
       prefetch
-      className="group relative flex h-[200px] w-[200px] shrink-0 flex-col overflow-hidden rounded-[16px] border border-gray-200 bg-white shadow-md transition hover:border-[#FF7300] hover:shadow-lg"
+      className={`group relative flex h-[180px] w-[160px] shrink-0 flex-col overflow-hidden rounded-[16px] border bg-white shadow-md transition hover:shadow-lg sm:h-[200px] sm:w-[200px] ${featured ? 'border-amber-400/60 hover:border-amber-500' : 'border-gray-200 hover:border-[#FF7300]'}`}
     >
       {/* Card image with overlay */}
       <div className="relative h-full w-full">
@@ -496,9 +529,9 @@ function EndingSoonCard({
         
         {/* Content overlay - timer e nome prodotto */}
         <div className="absolute inset-0 flex flex-col justify-end p-3">
-          {/* Countdown - scadenza */}
-          <div className="mb-2 rounded-[8px] bg-[#8B5CF6]/30 p-1.5 text-center backdrop-blur-md shadow-[0_0_15px_rgba(139,92,246,0.4)]">
-            <p className="font-mono text-base font-bold tabular-nums text-[#FF7300]">{formatHMS(ms)}</p>
+          {/* Countdown - scadenza con bordo condizionale */}
+          <div className={`mb-2 rounded-full border bg-white/20 p-1.5 text-center backdrop-blur-md shadow-lg ${featured ? 'border-amber-400/60' : 'border-red-400/60 animate-pulse'}`}>
+            <p className="font-mono text-sm font-bold tabular-nums text-white" suppressHydrationWarning>{formatHMS(ms)}</p>
           </div>
           
           {/* Title - nome prodotto */}
