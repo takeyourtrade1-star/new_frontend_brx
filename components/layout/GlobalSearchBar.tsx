@@ -1144,7 +1144,6 @@ function SearchWithInstantSearch({
 
   const handleEnter = () => {
     const searchQuery = (localValue ?? '').trim();
-    if (!searchQuery) return;
     refine(searchQuery);
     inputRef.current?.blur();
     closePanel();
@@ -1190,7 +1189,7 @@ function SearchWithInstantSearch({
   ) : null;
 
   // Stile "aperto" (bianco, bordo): barra bianca quando aperta o quando c'è testo
-  const showOpenStyle = selectedGame && (isOpen || hasText);
+  const showOpenStyle = Boolean(selectedGame && (isOpen || hasText));
   const triggerBar = (
     <div
       ref={triggerRef}
@@ -1232,10 +1231,8 @@ function SearchWithInstantSearch({
         inputMode="search"
         placeholder="Cerca carte..."
         className={`min-h-0 min-w-0 flex-1 border-0 bg-transparent px-3 py-0 text-[16px] leading-normal outline-none font-sans transition-colors duration-200 md:px-4 md:py-2.5 md:text-sm ${
-          showOpenStyle
-            ? 'text-gray-900 placeholder:text-gray-500'
-            : 'placeholder:text-white/30 text-white'
-        }`}
+          showOpenStyle ? 'text-gray-900' : 'text-white'
+        } search-input-orange-placeholder`}
         aria-label="Cerca carte"
         autoComplete="off"
       />
