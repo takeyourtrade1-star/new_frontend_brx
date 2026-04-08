@@ -146,6 +146,15 @@ const getComingSoonGames = (): {
 
 
 
+const BOUTIQUE_GLOW_COLORS: Record<string, string> = {
+  dadi: '251, 191, 36',
+  buste: '167, 139, 250',
+  tappetini: '56, 189, 248',
+  memorabilia: '251, 146, 60',
+  albums: '251, 113, 133',
+  'game-kits': '255, 115, 0',
+};
+
 const BOUTIQUE_CATEGORIES = [
 
   { id: 'dadi', label: 'Dadi', href: '/products?category=dadi', 
@@ -263,6 +272,12 @@ export function LandingWelcome() {
   const [email, setEmail] = React.useState('');
 
   const [isNotifySuccess, setIsNotifySuccess] = React.useState(false);
+
+  // Track CTA visibility for progressive animation trigger
+
+  const [isCtaVisible, setIsCtaVisible] = React.useState(false);
+
+  const ctaRef = React.useRef<HTMLDivElement>(null);
 
 
 
@@ -432,6 +447,44 @@ export function LandingWelcome() {
 
 
 
+  // Intersection Observer to trigger glow animation when CTA enters viewport
+
+  useEffect(() => {
+
+    if (!ctaRef.current) return;
+
+    
+
+    const observer = new IntersectionObserver(
+
+      ([entry]) => {
+
+        if (entry.isIntersecting) {
+
+          setIsCtaVisible(true);
+
+          observer.disconnect(); // Trigger once, then cleanup
+
+        }
+
+      },
+
+      { threshold: 0.5 } // Trigger when 50% visible
+
+    );
+
+    
+
+    observer.observe(ctaRef.current);
+
+    
+
+    return () => observer.disconnect();
+
+  }, []);
+
+
+
   return (
 
     <div className="relative w-full overflow-x-hidden overflow-y-visible text-white">
@@ -524,25 +577,47 @@ export function LandingWelcome() {
 
             
 
-            {/* Pulsante CTA "INIZIA ORA" - Ridotto per mobile */}
+            {/* Pulsante CTA - Con effetto glow pulse */}
 
-            <Link
+            <div ref={ctaRef} className="relative">
 
-              href="/login"
+              {/* Glow pulse effect - si attiva solo quando in viewport + delay 2s */}
 
-              className="group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 px-4 py-2 sm:px-7 sm:py-3 text-[11px] sm:text-xs font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95"
+              {isCtaVisible && (
 
-            >
+                <div
 
-              <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
+                  className="absolute -inset-1 -z-10 rounded-full bg-gradient-to-r from-[#FF7300]/40 to-[#FF9A44]/40 blur-lg opacity-0 animate-[pulse-glow_3s_ease-in-out_infinite_2s]"
 
-                <div className="relative h-full w-8 bg-white/20" />
+                  style={{
 
-              </div>
+                    animation: 'pulse-glow 3s ease-in-out infinite 2s',
 
-              <span>INIZIA ORA</span>
+                  }}
 
-            </Link>
+                />
+
+              )}
+
+              <Link
+
+                href="/login"
+
+                className="group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 px-4 py-2 sm:px-7 sm:py-3 text-[11px] sm:text-xs font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95"
+
+              >
+
+                <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
+
+                  <div className="relative h-full w-8 bg-white/20" />
+
+                </div>
+
+                <span>{t('landing.cta.register')}</span>
+
+              </Link>
+
+            </div>
 
           </div>
 
@@ -1097,57 +1172,87 @@ export function LandingWelcome() {
 
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4 max-w-5xl mx-auto px-2">
 
-                {BOUTIQUE_CATEGORIES.map((cat) => (
+                {BOUTIQUE_CATEGORIES.map((cat, index) => {
 
-                  <Link
+                  const glowColor = BOUTIQUE_GLOW_COLORS[cat.id] || '255,255,255';
 
-                    key={cat.id}
+                  return (
 
-                    href={cat.href}
+                    <Link
 
-                    className="group relative aspect-[3/4] overflow-hidden rounded-xl border border-white/10 transition-all duration-300 hover:border-white/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)]"
+                      key={cat.id}
 
-                  >
+                      href={cat.href}
 
-                    {/* Full card background image */}
-
-                    <div
-
-                      className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                      className="group relative aspect-square overflow-hidden rounded-full border border-white/10 transition-all duration-300 hover:border-white/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)]"
 
                       style={{
 
-                        backgroundImage: `image-set(
-
-                          url(${cat.imageSet?.sm || cat.imageUrl}) 1x,
-
-                          url(${cat.imageSet?.md || cat.imageUrl}) 2x,
-
-                          url(${cat.imageSet?.lg || cat.imageUrl}) 3x
-
-                        )`,
-
+                        animation: `categoryEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${index * 120}ms both`,
                       }}
 
-                      aria-hidden
+                    >
 
-                    />
+                      {/* Full card background image */}
 
-                    {/* Gradient overlay for text readability */}
+                      <div
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent group-hover:from-black/60 transition-colors" aria-hidden />
+                        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
 
-                    {/* Label at bottom */}
+                        style={{
 
-                    <span className="absolute bottom-3 left-0 right-0 text-center text-[11px] sm:text-sm font-bold uppercase tracking-wider text-white drop-shadow-lg">
+                          backgroundImage: `image-set(
 
-                      {cat.label}
+                            url(${cat.imageSet?.sm || cat.imageUrl}) 1x,
 
-                    </span>
+                            url(${cat.imageSet?.md || cat.imageUrl}) 2x,
 
-                  </Link>
+                            url(${cat.imageSet?.lg || cat.imageUrl}) 3x
 
-                ))}
+                          )`,
+
+                        }}
+
+                        aria-hidden
+
+                      />
+
+                      {/* Overlay scuro che si riduce al hover - effetto EbartexBoutique */}
+
+                      <div 
+
+                        className="absolute inset-0 bg-black/40 transition-all duration-300 group-hover:bg-black/10 group-hover:backdrop-blur-[2px]" 
+
+                        aria-hidden 
+
+                      />
+
+                      {/* Label con glow colorato al hover - effetto EbartexBoutique - CENTRATA */}
+
+                      <span 
+
+                        className="absolute inset-0 flex items-center justify-center text-center text-[11px] sm:text-sm font-bold uppercase tracking-wider text-white drop-shadow-lg transition-all duration-300 group-hover:scale-110"
+
+                        style={{
+
+                          ['--glow-color' as string]: glowColor,
+                          textShadow: '0 2px 12px rgba(0,0,0,0.45)',
+                        }}
+                      >
+
+                        <span className="transition-all duration-300 group-hover:[text-shadow:0_0_20px_rgba(var(--glow-color),0.9),0_0_40px_rgba(var(--glow-color),0.6),0_2px_12px_rgba(0,0,0,0.45)]">
+
+                          {cat.label}
+
+                        </span>
+
+                      </span>
+
+                    </Link>
+
+                  );
+
+                })}
 
               </div>
 
@@ -1268,6 +1373,43 @@ export function LandingWelcome() {
           </div>
         </div>
       )}
+
+      {/* Animazione card boutique */}
+
+      <style>{`
+
+        @keyframes categoryEnter {
+
+          0% {
+
+            opacity: 0;
+
+            transform: translateY(30px) scale(0.95);
+
+          }
+
+          60% {
+
+            opacity: 0.8;
+
+            transform: translateY(-5px) scale(1.02);
+
+          }
+
+          100% {
+
+            opacity: 1;
+
+            transform: translateY(0) scale(1);
+
+          }
+
+        }
+
+      `}</style>
+
     </div>
+
   );
+
 }
