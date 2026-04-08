@@ -1362,3 +1362,24 @@
   animation: slideUpBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* Search input orange placeholder - applies to both open and closed states */
+.search-input-orange-placeholder::placeholder {
+  color: #FF7300;
+  opacity: 1;
+}
+
+.search-input-orange-placeholder::-webkit-input-placeholder {
+  color: #FF7300;
+  opacity: 1;
+}
+
+.search-input-orange-placeholder::-moz-placeholder {
+  color: #FF7300;
+  opacity: 1;
+}
+
+.search-input-orange-placeholder:-ms-input-placeholder {
+  color: #FF7300;
+  opacity: 1;
+}
+
