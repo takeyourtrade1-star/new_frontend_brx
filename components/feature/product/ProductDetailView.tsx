@@ -173,6 +173,13 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   /* Modal Condizione */
   const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
   const [modalCondition, setModalCondition] = useState(condizioneVendi);
+  const [dontShowConditionModal, setDontShowConditionModal] = useState(false);
+
+  /* Verifica se l'utente ha scelto di non mostrare più il modal */
+  const shouldSkipConditionModal = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('hideConditionModal') === 'true';
+  }, []);
 
   const CONDIZIONE_OPTIONS = ['HT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'] as const;
   const [condizioneMinima, setCondizioneMinima] = useState<string>('HT');
@@ -185,8 +192,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
   const lightboxRef = useRef<HTMLDivElement>(null);
 
-  /* Espansione grafico su mobile */
-  const [showChartMobile, setShowChartMobile] = useState(false);
+  /* Toggle grafico - nascosto di default su tutti i device */
+  const [showChart, setShowChart] = useState(false);
 
   const CONDITION_OPTIONS_MAP: { value: string; label: string }[] = [
     { value: 'near_mint', label: 'Near Mint' },
@@ -696,117 +703,129 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 {/* MOBILE: Layout compatta - solo info + tendenza, grafico espandibile */}
                 <div className="sm:hidden flex flex-col gap-2 p-2 min-w-0 w-full">
                   {/* Box info carta: RARITÀ, NUMERO, STAMPATA IN, DISPONIBILI */}
-                  <div className="flex flex-col bg-white rounded-lg p-2.5 border border-gray-200 shadow-sm">
-                    <div className="flex items-stretch border-b border-gray-200 pb-2">
-                      <div className="flex flex-col items-center pr-2 border-r border-gray-200">
-                        <span className="text-[9px] font-bold uppercase text-black">RARITÀ</span>
-                        <div className="mt-0.5">
+                  <div className="flex flex-col bg-white rounded-xl p-4 border border-gray-200/70 shadow-sm">
+                    {/* Riga 1: Rarità + Numero - metadati centrati */}
+                    <div className="flex items-center justify-center gap-4 pb-3 border-b border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Rarità</span>
+                        <div className="flex items-center">
                           {card?.rarity ? (
-                            <span className="text-xs font-bold text-black">{card.rarity}</span>
+                            <span className="text-xs font-bold text-zinc-900">{card.rarity}</span>
                           ) : (
-                            <Image src={getCdnImageUrl('stellina.png')} alt="" width={20} height={20} className="h-5 w-5 object-contain" aria-hidden unoptimized />
+                            <Image src={getCdnImageUrl('stellina.png')} alt="" width={18} height={18} className="h-4 w-4 object-contain" aria-hidden unoptimized />
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-center pl-2 flex-1">
-                        <span className="text-[9px] font-bold uppercase text-black">NUMERO</span>
-                        <span className="mt-0.5 text-sm font-bold text-black">{card?.collector_number ?? '015'}</span>
+                      <div className="w-px h-4 bg-gray-200" />
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Numero</span>
+                        <span className="text-sm font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</span>
                       </div>
                     </div>
-                    <div className="mt-1.5">
-                      <span className="text-[9px] font-bold uppercase text-black">STAMPATA IN</span>
-                      <p className="text-xs font-bold uppercase text-black">
+
+                    {/* Riga 2: Set - info contestuale centrata */}
+                    <div className="py-3 border-b border-gray-100 text-center">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Stampata in</span>
+                      <p className="mt-0.5 text-sm font-bold text-zinc-900">
                         {card?.set_name ?? 'SUSSURRI NEL POZZO'}
                       </p>
+                      <button className="mt-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors">
+                        Mostra ristampe →
+                      </button>
                     </div>
-                    {card?.game_slug === 'mtg' && card?.available_languages && card.available_languages.length > 0 && (
-                      <div className="mt-1.5">
-                        <span className="text-[9px] font-bold uppercase text-black">LINGUE</span>
-                        <p className="text-xs font-bold uppercase text-black">
-                          {card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ')}
+
+                    {/* Lingue (solo MTG) - centrata */}
+                    {card?.game_slug === 'mtg' && (
+                      <div className="py-3 border-b border-gray-100 text-center">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Lingue disponibili</span>
+                        <p className="mt-0.5 text-xs font-medium text-zinc-700">
+                          {card?.available_languages && card.available_languages.length > 0
+                            ? card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ')
+                            : 'English'}
                         </p>
                       </div>
                     )}
-                    <div className="mt-1.5 flex items-center justify-between">
-                      <div>
-                        <span className="text-[9px] font-bold uppercase text-black">DISPONIBILI</span>
-                        <p className="text-base font-bold text-black">1148</p>
+
+                    {/* Riga 3: Disponibili + Tendenza - dati principali centrati */}
+                    <div className="flex items-center justify-center gap-8 pt-3">
+                      <div className="text-center">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Disponibili</span>
+                        <p className="mt-0.5 text-xl font-extrabold text-zinc-900 tabular-nums">1,148</p>
                       </div>
-                      <div className="text-right">
-                        <span className="text-[9px] font-bold uppercase text-gray-600">TENDENZA</span>
-                        <p className="text-sm font-bold text-[#FF8800]">1,46 €</p>
+                      <div className="w-px h-8 bg-gray-200" />
+                      <div className="text-center">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Tendenza</span>
+                        <p className="mt-0.5 text-base font-bold text-primary">1,46 €</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Toggle per espandere grafico */}
-                  {!showChartMobile ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowChartMobile(true)}
-                      className="w-full py-2.5 px-3 rounded-lg border border-[#FF8800] bg-white text-[#FF8800] text-xs font-bold uppercase tracking-wide hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="20" x2="18" y2="10" />
-                        <line x1="12" y1="20" x2="12" y2="4" />
-                        <line x1="6" y1="20" x2="6" y2="14" />
-                      </svg>
-                      Vedi grafico e prezzi medi
-                    </button>
-                  ) : (
-                    <div className="flex flex-col bg-white rounded-lg p-2.5 border border-gray-200 shadow-sm">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold uppercase text-gray-700">Grafico prezzi</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowChartMobile(false)}
-                          className="text-[10px] text-gray-500 hover:text-gray-700 underline"
-                        >
-                          Nascondi
-                        </button>
+                  {/* Toggle grafico mobile */}
+                  <div className="transition-all duration-500 ease-out">
+                    {!showChart ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowChart(true)}
+                        className="w-auto mx-auto py-2 px-4 rounded-lg border border-[#FF8800] bg-white text-[#FF8800] text-xs font-bold uppercase tracking-wide hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="20" x2="18" y2="10" />
+                          <line x1="12" y1="20" x2="12" y2="4" />
+                          <line x1="6" y1="20" x2="6" y2="14" />
+                        </svg>
+                        Mostra grafico
+                      </button>
+                    ) : (
+                      <div className="flex flex-col bg-white rounded-lg p-2.5 border border-gray-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-500">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold uppercase text-gray-700">Grafico prezzi</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowChart(false)}
+                            className="text-[10px] text-gray-500 hover:text-gray-700 underline transition-colors"
+                          >
+                            Nascondi
+                          </button>
+                        </div>
+                        <div className="min-h-[200px]">
+                          <ProductPriceChart slug={slug} />
+                        </div>
                       </div>
-                      <div className="min-h-[200px]">
-                        <ProductPriceChart slug={slug} />
-                      </div>
-                      <div className="mt-2 pt-2 border-t border-gray-200">
-                        <p className="text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
-                        <ul className="mt-1 list-none space-y-0.5 text-xs">
-                          <li className="flex justify-between gap-3"><span className="text-gray-600">30 gg</span><span className="font-bold text-gray-900">1,35 €</span></li>
-                          <li className="flex justify-between gap-3"><span className="text-gray-600">7 gg</span><span className="font-bold text-gray-900">1,48 €</span></li>
-                          <li className="flex justify-between gap-3"><span className="text-gray-600">1 gg</span><span className="font-bold text-gray-900">1,05 €</span></li>
-                        </ul>
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 {/* DESKTOP: Layout completo originale */}
                 <div className="hidden sm:grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-3 sm:gap-4 lg:gap-4 p-3 sm:p-4 lg:p-4 min-w-0 w-full">
                   {/* Box info carta: RARITÀ, NUMERO, STAMPATA IN, DISPONIBILI */}
-                  <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
-                    <div className="flex items-stretch border-b border-gray-200 pb-2 sm:pb-3">
-                      <div className="flex flex-col items-center pr-3 sm:pr-4 border-r border-gray-200">
-                        <span className="text-[10px] font-bold uppercase text-black">RARITÀ</span>
-                        <div className="mt-1">
+                  <div className="flex flex-col min-h-0 bg-white rounded-xl p-4 sm:p-5 border border-gray-200/70 shadow-sm">
+                    {/* Riga 1: Rarità + Numero - metadati centrati */}
+                    <div className="flex items-center justify-center gap-6 pb-4 border-b border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Rarità</span>
+                        <div className="flex items-center">
                           {card?.rarity ? (
-                            <span className="text-sm font-bold text-black">{card.rarity}</span>
+                            <span className="text-sm font-bold text-zinc-900">{card.rarity}</span>
                           ) : (
-                            <Image src={getCdnImageUrl('stellina.png')} alt="" width={28} height={28} className="h-6 w-6 sm:h-7 sm:w-7 object-contain" aria-hidden unoptimized />
+                            <Image src={getCdnImageUrl('stellina.png')} alt="" width={22} height={22} className="h-5 w-5 object-contain" aria-hidden unoptimized />
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-center pl-3 sm:pl-4 flex-1">
-                        <span className="text-[10px] font-bold uppercase text-black">NUMERO</span>
-                        <span className="mt-1 text-base sm:text-lg font-bold text-black">{card?.collector_number ?? '015'}</span>
+                      <div className="w-px h-5 bg-gray-200" />
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Numero</span>
+                        <span className="text-base font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</span>
                       </div>
                     </div>
-                    <div className="mt-2 sm:mt-3">
-                      <span className="text-[10px] font-bold uppercase text-black">STAMPATA IN</span>
-                      <p className="mt-0.5 text-xs sm:text-sm font-bold uppercase text-black">
+
+                    {/* Riga 2: Set - info contestuale centrata */}
+                    <div className="py-4 border-b border-gray-100 text-center">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Stampata in</span>
+                      <p className="mt-1 text-sm font-bold text-zinc-900">
                         {card?.set_name ?? 'SUSSURRI NEL POZZO'}
                       </p>
-                      {card && (
-                        <div className="mt-1 flex flex-col gap-0.5">
+                      <div className="flex items-center justify-center gap-4 mt-2">
+                        {card && (
                           <Link
                             href={{
                               pathname: '/set',
@@ -815,47 +834,82 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                                 game: card.game_slug,
                               },
                             }}
-                            className="inline-block text-xs font-medium text-[#FF8800] hover:underline uppercase"
+                            className="text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
                           >
-                            MOSTRA IL SET
+                            Mostra il set →
                           </Link>
-                        </div>
-                      )}
+                        )}
+                        <button className="text-[11px] font-medium text-primary hover:text-primary/80 transition-colors">
+                          Mostra ristampe →
+                        </button>
+                      </div>
                     </div>
-                    {card?.game_slug === 'mtg' && card?.available_languages && card.available_languages.length > 0 && (
-                      <div className="mt-2 sm:mt-3">
-                        <span className="text-[10px] font-bold uppercase text-black">LINGUE DISPONIBILI</span>
-                        <p className="mt-0.5 text-xs sm:text-sm font-bold uppercase text-black">
-                          {card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ')}
+
+                    {/* Lingue (solo MTG) - centrata */}
+                    {card?.game_slug === 'mtg' && (
+                      <div className="py-4 border-b border-gray-100 text-center">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Lingue disponibili</span>
+                        <p className="mt-1 text-sm font-medium text-zinc-700">
+                          {card?.available_languages && card.available_languages.length > 0
+                            ? card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ')
+                            : 'English'}
                         </p>
                       </div>
                     )}
-                    <div className="mt-2 sm:mt-3">
-                      <span className="text-[10px] font-bold uppercase text-black">DISPONIBILI</span>
-                      <p className="mt-0.5 text-lg sm:text-xl font-bold text-black">1148</p>
+
+                    {/* Riga 3: Disponibili - dato principale centrato */}
+                    <div className="pt-4 text-center">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Disponibili</span>
+                      <p className="mt-1 text-2xl font-extrabold text-zinc-900 tabular-nums">1,148</p>
                     </div>
-                    <Link href="#" className="mt-2 sm:mt-3 inline-block text-[10px] font-medium text-[#FF8800] hover:underline">
-                      Informazioni sull&apos;RSGP / Produttore
-                    </Link>
                   </div>
                   {/* Box grafico e prezzi: occupa il resto della riga */}
                   <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
-                    <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-3 sm:gap-4">
-                      {/* Grafico prezzo stile Cardmarket: 6 mesi, frecce, arancione brand */}
-                      <div className="flex flex-[1.5] min-w-0 flex-col min-h-[280px]">
-                        <ProductPriceChart slug={slug} />
-                      </div>
-                      {/* Valore tendenza + Prezzo medio */}
-                      <div className="flex flex-col justify-start sm:justify-center flex-shrink-0 sm:w-[120px] lg:w-[140px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-3">
-                        <p className="text-xs sm:text-sm text-gray-700">Tendenza di prezzo</p>
-                        <p className="mt-0.5 text-base sm:text-lg font-bold text-[#FF8800] underline">1,46 €</p>
-                        <p className="mt-2 text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
-                        <ul className="mt-1 list-none space-y-0.5 text-xs sm:text-sm">
-                          <li className="flex justify-between gap-3"><span className="text-gray-600">30 gg</span><span className="font-bold text-gray-900">1,35 €</span></li>
-                          <li className="flex justify-between gap-3"><span className="text-gray-600">7 gg</span><span className="font-bold text-gray-900">1,48 €</span></li>
-                          <li className="flex justify-between gap-3"><span className="text-gray-600">1 gg</span><span className="font-bold text-gray-900">1,05 €</span></li>
-                        </ul>
-                      </div>
+                    <div className="transition-all duration-500 ease-out">
+                      {!showChart ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowChart(true)}
+                          className="w-auto mx-auto py-2 px-4 rounded-lg border border-[#FF8800] bg-white text-[#FF8800] text-xs font-bold uppercase tracking-wide hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10" />
+                            <line x1="12" y1="20" x2="12" y2="4" />
+                            <line x1="6" y1="20" x2="6" y2="14" />
+                          </svg>
+                          Mostra grafico
+                        </button>
+                      ) : (
+                        <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold uppercase text-gray-700">Grafico prezzi</span>
+                            <button
+                              type="button"
+                              onClick={() => setShowChart(false)}
+                              className="text-[10px] text-gray-500 hover:text-gray-700 underline transition-colors"
+                            >
+                              Nascondi
+                            </button>
+                          </div>
+                          <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-3 sm:gap-4">
+                            {/* Grafico prezzo stile Cardmarket: 6 mesi, frecce, arancione brand */}
+                            <div className="flex flex-[1.5] min-w-0 flex-col min-h-[280px]">
+                              <ProductPriceChart slug={slug} />
+                            </div>
+                            {/* Valore tendenza + Prezzo medio */}
+                            <div className="flex flex-col justify-start sm:justify-center flex-shrink-0 sm:w-[120px] lg:w-[140px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-3">
+                              <p className="text-xs sm:text-sm text-gray-700">Tendenza di prezzo</p>
+                              <p className="mt-0.5 text-base sm:text-lg font-bold text-[#FF8800] underline">1,46 €</p>
+                              <p className="mt-2 text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
+                              <ul className="mt-1 list-none space-y-0.5 text-xs sm:text-sm">
+                                <li className="flex justify-between gap-3"><span className="text-gray-600">30 gg</span><span className="font-bold text-gray-900">1,35 €</span></li>
+                                <li className="flex justify-between gap-3"><span className="text-gray-600">7 gg</span><span className="font-bold text-gray-900">1,48 €</span></li>
+                                <li className="flex justify-between gap-3"><span className="text-gray-600">1 gg</span><span className="font-bold text-gray-900">1,05 €</span></li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -894,7 +948,12 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                             type="button"
                             onClick={() => {
                               setModalCondition(condizioneVendi);
-                              setIsConditionModalOpen(true);
+                              if (shouldSkipConditionModal()) {
+                                // Se l'utente ha scelto di non mostrare più, conferma direttamente
+                                setCondizioneVendi(condizioneVendi);
+                              } else {
+                                setIsConditionModalOpen(true);
+                              }
                             }}
                             className="text-gray-400 hover:text-gray-600 cursor-pointer"
                             title="Info"
@@ -961,20 +1020,49 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 </div>
                 {/* Grafico prezzo – uguale al tab INFO */}
                 <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
-                  <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-3 sm:gap-4">
-                    <div className="flex flex-[1.5] min-w-0 flex-col min-h-[280px]">
-                      <ProductPriceChart slug={slug} />
-                    </div>
-                    <div className="flex flex-col justify-start sm:justify-center flex-shrink-0 sm:w-[120px] lg:w-[140px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-3">
-                      <p className="text-xs sm:text-sm text-gray-700">Tendenza di prezzo</p>
-                      <p className="mt-0.5 text-base sm:text-lg font-bold text-[#FF8800] underline">1,46 €</p>
-                      <p className="mt-2 text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
-                      <ul className="mt-1 list-none space-y-0.5 text-xs sm:text-sm">
-                        <li className="flex justify-between gap-3"><span className="text-gray-600">30 gg</span><span className="font-bold text-gray-900">1,35 €</span></li>
-                        <li className="flex justify-between gap-3"><span className="text-gray-600">7 gg</span><span className="font-bold text-gray-900">1,48 €</span></li>
-                        <li className="flex justify-between gap-3"><span className="text-gray-600">1 gg</span><span className="font-bold text-gray-900">1,05 €</span></li>
-                      </ul>
-                    </div>
+                  <div className="transition-all duration-500 ease-out">
+                    {!showChart ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowChart(true)}
+                        className="w-auto mx-auto py-2 px-4 rounded-lg border border-[#FF8800] bg-white text-[#FF8800] text-xs font-bold uppercase tracking-wide hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="20" x2="18" y2="10" />
+                          <line x1="12" y1="20" x2="12" y2="4" />
+                          <line x1="6" y1="20" x2="6" y2="14" />
+                        </svg>
+                        Mostra grafico
+                      </button>
+                    ) : (
+                      <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase text-gray-700">Grafico prezzi</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowChart(false)}
+                            className="text-[10px] text-gray-500 hover:text-gray-700 underline transition-colors"
+                          >
+                            Nascondi
+                          </button>
+                        </div>
+                        <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-3 sm:gap-4">
+                          <div className="flex flex-[1.5] min-w-0 flex-col min-h-[280px]">
+                            <ProductPriceChart slug={slug} />
+                          </div>
+                          <div className="flex flex-col justify-start sm:justify-center flex-shrink-0 sm:w-[120px] lg:w-[140px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-3">
+                            <p className="text-xs sm:text-sm text-gray-700">Tendenza di prezzo</p>
+                            <p className="mt-0.5 text-base sm:text-lg font-bold text-[#FF8800] underline">1,46 €</p>
+                            <p className="mt-2 text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
+                            <ul className="mt-1 list-none space-y-0.5 text-xs sm:text-sm">
+                              <li className="flex justify-between gap-3"><span className="text-gray-600">30 gg</span><span className="font-bold text-gray-900">1,35 €</span></li>
+                              <li className="flex justify-between gap-3"><span className="text-gray-600">7 gg</span><span className="font-bold text-gray-900">1,48 €</span></li>
+                              <li className="flex justify-between gap-3"><span className="text-gray-600">1 gg</span><span className="font-bold text-gray-900">1,05 €</span></li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1639,11 +1727,28 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-center">
+              {/* Checkbox non mostrare più */}
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <input
+                  type="checkbox"
+                  id="dontShowAgain"
+                  checked={dontShowConditionModal}
+                  onChange={(e) => setDontShowConditionModal(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-[#FF8800] focus:ring-[#FF8800]/25 cursor-pointer"
+                />
+                <label htmlFor="dontShowAgain" className="text-sm text-gray-600 cursor-pointer select-none">
+                  Non mostrare più
+                </label>
+              </div>
+
+              <div className="mt-6 flex justify-center">
                 <button
                   type="button"
                   onClick={() => {
                     setCondizioneVendi(modalCondition);
+                    if (dontShowConditionModal && typeof window !== 'undefined') {
+                      localStorage.setItem('hideConditionModal', 'true');
+                    }
                     setIsConditionModalOpen(false);
                   }}
                   className="rounded-lg px-6 py-3 text-sm font-bold uppercase text-white transition-all hover:opacity-95 bg-[#FF8800]/85 backdrop-blur-sm border border-white/30 shadow-lg shadow-[#FF8800]/20 hover:shadow-[#FF8800]/40 hover:bg-[#FF8800]/90"
