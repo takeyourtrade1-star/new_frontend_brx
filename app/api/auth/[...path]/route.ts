@@ -58,6 +58,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   const path = pathSegments.join('/');
   const targetPath = `/api/auth${path ? `/${path}` : ''}`;
   const url = new URL(targetPath, AUTH_API_URL);
+  
   request.nextUrl.searchParams.forEach((value, key) => {
     url.searchParams.set(key, value);
   });
@@ -75,7 +76,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     if (body) headers['Content-Type'] = request.headers.get('content-type') || 'application/json';
   }
 
-try {
+  try {
     const res = await fetch(url.toString(), {
       method: request.method,
       headers,
@@ -90,7 +91,7 @@ try {
     const responseHeaders = new Headers();
     responseHeaders.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
 
-    // 2. IL PEZZO MANCANTE: Inoltriamo i Cookie dal backend al browser!
+    // 2. Inoltriamo i Cookie dal backend al browser!
     const setCookies = res.headers.getSetCookie();
     if (setCookies && setCookies.length > 0) {
       for (const cookie of setCookies) {
@@ -110,6 +111,7 @@ try {
       { status: 502 }
     );
   }
+} // <--- MANCAVA QUESTA PARENTESI PER CHIUDERE LA FUNZIONE PROXY!
 
 export async function GET(
   request: NextRequest,
