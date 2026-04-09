@@ -486,7 +486,7 @@ export function AuctionCreateCardPicker({
                         <p className="truncate text-xs text-gray-500">{row.card?.set_name}</p>
                       </div>
                       {active && (
-                        <span className="shrink-0 rounded-full bg-[#FF7300] px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                        <span className="btn-orange-glow shrink-0 rounded-full px-2 py-0.5 text-[10px]">
                           {t('auctions.createCardSelected')}
                         </span>
                       )}

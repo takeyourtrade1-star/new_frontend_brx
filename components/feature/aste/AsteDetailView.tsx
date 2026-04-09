@@ -9,7 +9,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { countryFlagEmoji } from '@/lib/auction/country-flag';
+import { FlagIcon } from '@/components/ui/FlagIcon';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { roundMoney, minNextBidEur } from '@/lib/auction/bid-math';
 import { AuctionBidModal } from '@/components/feature/aste/AuctionBidModal';
@@ -90,9 +90,7 @@ function SellerMetaRow({ country, rating, reviews }: { country: string; rating: 
   const stars = Math.min(5, Math.max(0, Math.round((rating / 100) * 5)));
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm text-gray-800">
-      <span className="text-lg leading-none" aria-hidden>
-        {countryFlagEmoji(country)}
-      </span>
+      <FlagIcon country={country} size="md" />
       <Shield className="h-4 w-4 shrink-0 text-amber-500" aria-hidden />
       <span className="text-amber-500">
         {'★'.repeat(stars)}
@@ -250,7 +248,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   <>
                     <span className="text-gray-500">{t('auctions.detailSoldBy')}:</span>
                     <span className="font-bold text-gray-900">{detail.seller}</span>
-                    <span className="text-lg">{countryFlagEmoji(detail.sellerCountry)}</span>
+                    <FlagIcon country={detail.sellerCountry} size="md" />
                     <Shield className="h-4 w-4 text-amber-500" />
                     <span className="text-amber-500 text-xs">{'★'.repeat(Math.min(5, Math.round((detail.sellerRating / 100) * 5)))}</span>
                     <span className="text-xs text-gray-500">{detail.sellerRating}%</span>
@@ -590,7 +588,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     </button>
                     <Link
                       href="/aste/mie"
-                      className="inline-flex flex-1 items-center justify-center rounded-full border border-[#FF7300] bg-white py-3 text-sm font-bold uppercase tracking-wide text-[#FF7300] transition hover:bg-orange-50"
+                      className="btn-orange-outline-glow inline-flex flex-1 items-center justify-center rounded-full py-3"
                     >
                       {t('auctions.sellerActionManage')}
                     </Link>
@@ -613,7 +611,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     <button
                       type="button"
                       onClick={() => setBidModalOpen(true)}
-                      className="group relative w-full overflow-hidden rounded-xl border-2 border-[#FF7300] bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] py-3.5 text-center font-bold uppercase tracking-wide text-white shadow-lg shadow-orange-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:translate-y-0 sm:py-4"
+                      className="btn-orange-glow group relative w-full overflow-hidden rounded-xl border-2 py-3.5 text-center bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] hover:-translate-y-0.5 active:translate-y-0 sm:py-4"
                     >
                       {/* Animated gradient overlay */}
                       <div className="absolute inset-0 bg-gradient-to-r from-[#FF9A5C] via-[#FF8A3D] to-[#FF7300] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
@@ -621,7 +619,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                       <div className="relative flex items-center justify-between gap-2 px-4 sm:px-6">
                         {/* Left - Label */}
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold sm:text-sm">
+                          <span className="text-sm font-semibold sm:text-base">
                             {t('auctions.bidButtonChoose')}
                           </span>
                         </div>
@@ -738,7 +736,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     {/* Bids List */}
                     {detail.bids.map((b, i) => {
                       const isFirst = i === 0;
-                      const countryEmoji = countryFlagEmoji(b.countryCode || 'IT');
+                      const bidderCountry = b.countryCode || 'IT';
                       const animationDelay = `${i * 0.05}s`;
 
                       return (
@@ -748,7 +746,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                           className={`flex items-center justify-between px-4 py-2.5 animate-[fadeInUp_0.4s_ease-out_both] ${i !== detail.bids.length - 1 ? 'border-b border-gray-50' : ''} ${isFirst ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/20' : ''}`}
                         >
                           <div className="flex items-center gap-2">
-                            <span className="text-base" aria-hidden>{countryEmoji}</span>
+                            <FlagIcon country={bidderCountry} size="sm" />
                             <span className={`text-sm ${isFirst ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
                               {b.username}
                             </span>
@@ -863,7 +861,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         {row.title}
                       </p>
                       <p className="mt-1 flex items-center gap-1.5 text-[11px] text-gray-500 sm:text-xs">
-                        <span>{countryFlagEmoji(row.country)}</span>
+                        <FlagIcon country={row.country} size="xs" />
                         <span className="font-medium text-gray-700">{row.seller}</span>
                         <span className="text-amber-500">★</span>
                         <span className="text-[10px] text-gray-400">{row.rating}%</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
@@ -17,7 +17,8 @@ import {
 import type { RegisterDemoValues } from '@/lib/registrati/schema';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { countryFlagEmoji } from '@/lib/auction/country-flag';
+import { FlagIcon, CountrySelect, type CountryOption } from '@/lib/auction/country-flag';
+import { useUserCountry } from '@/lib/hooks/use-user-country';
 
 const defaultValues: RegisterDemoValues = {
   website_url: '',
@@ -36,6 +37,7 @@ const defaultValues: RegisterDemoValues = {
 export function RegistratiDemoForm() {
   const router = useRouter();
   const { t } = useTranslation();
+  const detectedCountry = useUserCountry();
   const registerUser = useAuthStore((s) => s.register);
   const isLoading = useAuthStore((s) => s.isLoading);
   const error = useAuthStore((s) => s.error);
@@ -54,8 +56,27 @@ export function RegistratiDemoForm() {
     formState: { errors },
   } = useForm<RegisterDemoValues>({
     resolver: zodResolver(registerDemoSchema),
-    defaultValues,
+    defaultValues: {
+      ...defaultValues,
+      country: detectedCountry || defaultValues.country,
+    },
   });
+
+  // Aggiorna il paese quando viene rilevato
+  useEffect(() => {
+    if (detectedCountry) {
+      setValue('country', detectedCountry, { shouldValidate: true });
+      // Aggiorna anche il prefisso telefonico corrispondente
+      const prefixMap: Record<string, string> = {
+        'IT': '+39', 'DE': '+49', 'FR': '+33', 'ES': '+34',
+        'AT': '+43', 'CH': '+41', 'GB': '+44', 'US': '+1'
+      };
+      const newPrefix = prefixMap[detectedCountry];
+      if (newPrefix && PHONE_PREFIXES.includes(newPrefix as typeof PHONE_PREFIXES[number])) {
+        setValue('phone_prefix', newPrefix as typeof PHONE_PREFIXES[number], { shouldValidate: true });
+      }
+    }
+  }, [detectedCountry, setValue]);
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -86,6 +107,30 @@ export function RegistratiDemoForm() {
   const country = watch('country');
 
   const countryManuallyEditedRef = useRef(false);
+
+  // Country options with flags for dropdowns
+  const prefixOptions: CountryOption[] = useMemo(
+    () =>
+      PHONE_PREFIXES.map((p) => {
+        const iso = phonePrefixToCountryCode(p);
+        return {
+          code: p,
+          label: p,
+          flagCode: iso || 'IT',
+        };
+      }),
+    []
+  );
+
+  const countryOptions: CountryOption[] = useMemo(
+    () =>
+      COUNTRIES.map((c) => ({
+        code: c.code,
+        label: c.label,
+        flagCode: c.code,
+      })),
+    []
+  );
 
   // Quando cambia il prefisso telefono, riattiviamo la comodità di auto-mapping.
   useEffect(() => {
@@ -200,25 +245,17 @@ export function RegistratiDemoForm() {
       </div>
 
       <div className="flex gap-2">
-        <div className="w-24 shrink-0">
+        <div className="w-28 shrink-0">
           <Controller
             name="phone_prefix"
             control={control}
             render={({ field }) => (
-              <select
-                id="phone_prefix_demo"
-                className="h-14 w-full rounded-xl border border-gray-100/30 bg-white/55 px-3 text-base text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40 focus-visible:ring-offset-0"
-                {...field}
-              >
-                {PHONE_PREFIXES.map((p) => {
-                  const iso = phonePrefixToCountryCode(p);
-                  return (
-                    <option key={p} value={p}>
-                      {iso ? countryFlagEmoji(iso) : ''} {p}
-                    </option>
-                  );
-                })}
-              </select>
+              <CountrySelect
+                options={prefixOptions}
+                value={field.value}
+                onChange={field.onChange}
+                size="md"
+              />
             )}
           />
         </div>
@@ -244,29 +281,18 @@ export function RegistratiDemoForm() {
           name="country"
           control={control}
           render={({ field }) => (
-            <select
-              id="country_demo"
-              className={cn(
-                'h-14 w-full rounded-xl border border-gray-100/30 bg-white/55 px-3 text-base text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40 focus-visible:ring-offset-0',
-                !field.value && 'text-gray-500'
-              )}
-                {...field}
-                onChange={(e) => {
-                  countryManuallyEditedRef.current = true;
-                  field.onChange(e);
-                }}
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {countryFlagEmoji(c.code)} {c.label}
-                </option>
-              ))}
-            </select>
+            <CountrySelect
+              options={countryOptions}
+              value={field.value}
+              onChange={(val) => {
+                countryManuallyEditedRef.current = true;
+                field.onChange(val);
+              }}
+              placeholder={t('registerForm.countryLabel')}
+              size="md"
+            />
           )}
         />
-        <label htmlFor="country_demo" className="mt-1 block text-xs text-gray-600">
-          {t('registerForm.countryLabel')}
-        </label>
         {errors.country && (
           <p className="mt-1 text-sm text-red-500">{String(errors.country.message ?? '')}</p>
         )}
@@ -309,7 +335,7 @@ export function RegistratiDemoForm() {
         <Button
           type="submit"
           disabled={isLoading}
-          className="h-12 max-w-xs rounded-full bg-gradient-to-b from-[#FF7300] to-[#FF7300] text-sm sm:text-base font-semibold text-white shadow-[0_4px_12px_rgba(255,115,0,0.25)] hover:brightness-95 hover:shadow-[0_8px_18px_rgba(255,115,0,0.30)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-orange-glow h-12 max-w-xs rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? t('registerForm.registrationLoading') : t('auth.registerUpper')}
         </Button>

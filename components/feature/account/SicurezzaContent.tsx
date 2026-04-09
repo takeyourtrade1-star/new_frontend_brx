@@ -263,7 +263,7 @@ export function SicurezzaContent() {
                     <Button
                       onClick={handleEnableMFA}
                       disabled={enableMFAMutation.isPending}
-                      className="h-12 w-full rounded-[16px] bg-[#FF7300] text-white font-semibold hover:opacity-90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="btn-orange-glow h-12 w-full rounded-[16px] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {enableMFAMutation.isPending ? 'Caricamento...' : 'Attiva MFA'}
                     </Button>
@@ -397,7 +397,7 @@ export function SicurezzaContent() {
                           <Button
                             type="submit"
                             disabled={verifyMFAMutation.isPending}
-                            className="h-12 w-full rounded-[16px] bg-[#FF7300] text-white font-semibold hover:opacity-90 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="btn-orange-glow h-12 w-full rounded-[16px] disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {verifyMFAMutation.isPending ? 'Verifica...' : t('accountPage.secConfirm')}
                           </Button>

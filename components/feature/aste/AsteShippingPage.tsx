@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Package, Truck } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { countryFlagEmoji } from '@/lib/auction/country-flag';
+import { FlagIcon } from '@/components/ui/FlagIcon';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { MOCK_SHIPPING_ORDERS } from '@/components/feature/aste/mock-auction-shipping';
@@ -40,7 +40,7 @@ export function AsteShippingPage() {
           <p className="mt-3 text-sm leading-relaxed text-gray-600">{t('auctions.loginRequiredBody')}</p>
           <Link
             href="/login"
-            className="mt-6 inline-flex rounded-full bg-[#FF7300] px-8 py-3 text-sm font-bold uppercase text-white transition hover:bg-[#e86800]"
+            className="btn-orange-glow mt-6 inline-flex rounded-full px-8 py-3"
           >
             {t('auth.login')}
           </Link>
@@ -96,9 +96,7 @@ export function AsteShippingPage() {
                           <h2 className="mt-1 text-lg font-bold text-gray-900">{o.title}</h2>
                           <p className="mt-1 text-sm text-gray-600">
                             {t('auctions.shippingBuyer')}:{' '}
-                            <span className="text-lg leading-none" aria-hidden>
-                              {countryFlagEmoji(o.buyerCountry)}
-                            </span>{' '}
+                            <FlagIcon country={o.buyerCountry} size="md" />{' '}
                             <span className="font-semibold text-gray-900">{o.buyerUsername}</span>
                           </p>
                         </div>

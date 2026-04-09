@@ -41,7 +41,9 @@ import {
   type GameSlug,
   type CategoryKey,
   normalizeGameSlug,
+  normalizeCategoryKey,
   getCategoryIds,
+  getCategoryIdsAcrossGames,
   getCategoryKeys,
   getCategoryLabel,
   mapCategoryIdToKey,
@@ -282,8 +284,9 @@ export function SearchResults({
 
   // Determina categoryKey (da URL o da category_id legacy)
   const categoryKey: CategoryKey = useMemo(() => {
-    if (categoryKeyParam && isValidCategoryKey(gameSlug, categoryKeyParam)) {
-      return categoryKeyParam as CategoryKey;
+    const normalizedCategory = normalizeCategoryKey(categoryKeyParam);
+    if (normalizedCategory && (normalizedCategory === 'all' || isValidCategoryKey(gameSlug, normalizedCategory))) {
+      return normalizedCategory;
     }
     if (categoryIdLegacy && gameSlug) {
       return mapCategoryIdToKey(gameSlug, categoryIdLegacy);
@@ -292,7 +295,10 @@ export function SearchResults({
   }, [categoryKeyParam, categoryIdLegacy, gameSlug]);
 
   // Ottieni gli ID categoria per la macro-categoria selezionata
-  const categoryIds = useMemo(() => getCategoryIds(gameSlug, categoryKey), [gameSlug, categoryKey]);
+  const categoryIds = useMemo(
+    () => (gameSlug ? getCategoryIds(gameSlug, categoryKey) : getCategoryIdsAcrossGames(categoryKey)),
+    [gameSlug, categoryKey]
+  );
 
   const sortOptions = useMemo(
     () => SORT_DEFS.map(({ value, labelKey }) => ({ value, label: t(labelKey) })),
@@ -396,17 +402,20 @@ export function SearchResults({
       if (!window.matchMedia('(hover: hover)').matches) return;
       const el = e.currentTarget;
       const rect = el.getBoundingClientRect();
-      const previewW = 280;
-      const margin = 8;
+      const previewW = 208;
+      const margin = 4;
       let left = rect.right + margin;
       if (left + previewW > window.innerWidth - margin) {
         left = Math.max(margin, rect.left - previewW - margin);
       }
-      let top = rect.top;
+      // Centra verticalmente la preview rispetto alla card (aspect ratio 63/88)
+      const previewH = previewW * (88 / 63);
+      let top = rect.top + (rect.height / 2) - (previewH / 2);
       const maxH = Math.min(window.innerHeight * 0.85, 520);
       if (top + maxH > window.innerHeight - margin) {
         top = Math.max(margin, window.innerHeight - margin - maxH);
       }
+      if (top < margin) top = margin;
       setListHoverPreview({ url, name, left, top });
     },
     [cancelHideHoverPreview]
@@ -1103,14 +1112,14 @@ export function SearchResults({
             onMouseEnter={cancelHideHoverPreview}
             onMouseLeave={scheduleHideHoverPreview}
           >
-            <div className="relative w-[220px] sm:w-[260px] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+            <div className="relative w-[176px] sm:w-[208px] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.35)] animate-in fade-in zoom-in-95 duration-200">
               <div className="relative aspect-[63/88] w-full bg-gray-100">
                 <Image
                   src={listHoverPreview.url}
                   alt={listHoverPreview.name}
                   fill
                   className="object-contain"
-                  sizes="260px"
+                  sizes="208px"
                 />
               </div>
             </div>

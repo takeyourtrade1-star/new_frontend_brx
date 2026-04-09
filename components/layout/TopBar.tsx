@@ -281,7 +281,7 @@ export function TopBar() {
         >
           <Link
             href="/"
-            className="flex shrink-0 items-center rounded-lg py-0.5 pl-0 pr-1 transition-opacity hover:opacity-90 md:px-2 md:py-1"
+            className="flex shrink-0 items-center rounded-lg py-0.5 pl-0 pr-1 transition-opacity hover:opacity-90 md:pl-8 md:pr-1 md:py-1"
             aria-label={t('topBar.homeAria')}
           >
             <Image
@@ -296,19 +296,19 @@ export function TopBar() {
           </Link>
 
           {/* Da tablet in su: selettore in header. Su mobile il gioco si sceglie dal menu hamburger. */}
-          <div className="relative hidden min-w-0 md:ml-[3.25rem] md:block" ref={gamesMenuRef}>
+          <div className="relative hidden h-full min-w-0 items-center md:ml-[3.25rem] md:-ml-1 md:flex" ref={gamesMenuRef}>
             <button
               type="button"
               onClick={() => setGamesMenuOpen((o) => !o)}
               className={cn(
-                'relative flex cursor-pointer items-center gap-1 px-0 py-0 text-sm font-medium text-white',
+                'relative flex cursor-pointer items-center gap-1 px-0 py-0 leading-none text-sm font-medium text-white',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]'
               )}
               aria-expanded={gamesMenuOpen}
               aria-haspopup="true"
               aria-label={t('game.selectGameAria')}
             >
-              <span>{selectedGame ? gameDisplayName(selectedGame) : t('game.selectGame')}</span>
+              <span className="leading-none">{selectedGame ? gameDisplayName(selectedGame) : t('game.selectGame')}</span>
               <span
                 className={cn(
                   'ml-1 flex h-4 w-4 items-center justify-center text-[#FF7300] transition-transform',
@@ -430,14 +430,7 @@ export function TopBar() {
             <Button
               type="submit"
               disabled={loginMutation.isPending}
-              className="flex shrink-0 items-center justify-center rounded-full border px-4 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: '#FF7300',
-                borderColor: '#878787',
-                color: '#2d1810',
-                height: '2.25rem',
-                minWidth: '2.25rem',
-              }}
+              className="btn-orange-glow flex shrink-0 items-center justify-center rounded-full border px-4 !text-[#2d1810] h-[2.25rem] min-w-[2.25rem] disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label={t('auth.loginButtonAria')}
             >
               {loginMutation.isPending ? (
@@ -445,7 +438,7 @@ export function TopBar() {
               ) : (
                 <LogIn
                   className="shrink-0"
-                  style={{ width: '1.25rem', height: '1.25rem' }}
+                  style={{ width: '1.25rem', height: '1.25rem', color: 'white' }}
                   strokeWidth={2}
                 />
               )}
@@ -963,8 +956,7 @@ export function TopBar() {
             <div className="hidden shrink-0 md:block">
               <Button
                 asChild
-                className="rounded-full border px-5 py-2 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:opacity-90"
-                style={{ backgroundColor: '#FF7300', borderColor: '#878787' }}
+                className="btn-orange-glow rounded-full border px-5 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Link href="/registrati">{t('auth.registerUpper')}</Link>
               </Button>

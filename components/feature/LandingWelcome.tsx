@@ -82,7 +82,7 @@ const getMainGames = (): {
 
 
 
-/** Giochi in arrivo + Pokemon + Yu-Gi-Oh (sfondo rotondo, riga inferiore) */
+/** Giochi in arrivo (bolle a destra di Magic) */
 
 const GAME_FULLSCREEN_IMAGES: Record<string, string> = {
   'Pokémon Trading Card Game': '/landing-giochi-bg/pokemon.png',
@@ -99,49 +99,53 @@ const getComingSoonGames = (): {
   comingSoon?: boolean;
   gameSlug?: LandingGameSlug;
 }[] => [
-
   {
-
     src: getCdnImageUrl('loghi-giochi/pokèmon.png'),
-
     alt: 'Pokémon Trading Card Game',
-
     homeHref: '/home/pokemon',
-
     gameSlug: 'pokemon',
-
     comingSoon: true,
-
   },
-
   {
-
     src: getCdnImageUrl('loghi-giochi/yu-gi-oh.png'),
-
     alt: 'Yu-Gi-Oh! Trading Card Game',
-
     homeHref: '/home',
-
     gameSlug: 'clear',
-
     comingSoon: true,
-
   },
-
   { src: getCdnImageUrl('loghi-giochi/One_Piece_Card_Game_Logo%201.png'), alt: 'One Piece Card Game', comingSoon: true },
-
   { src: getCdnImageUrl('loghi-giochi/Disney_Lorcana_480x480%201.png'), alt: 'Disney Lorcana', comingSoon: true },
-
   {
-
     src: getCdnImageUrl('star_wars.jpg'),
-
     alt: 'Star Wars: Unlimited',
-
     comingSoon: true,
-
   },
+];
 
+/** Bolle caratteristiche del sito (a sinistra di Magic) */
+const FEATURE_BUBBLES: { id: string; label: string; icon: React.FC<any>; color: string }[] = [
+  { id: 'scambi', label: 'Scambi', icon: ArrowRightLeft, color: 'rgba(56,189,248,0.25)' },
+  { id: 'aste', label: 'Aste', icon: Gavel, color: 'rgba(251,146,60,0.25)' },
+  { id: 'vendita', label: 'Vendita', icon: Tag, color: 'rgba(74,222,128,0.25)' },
+  { id: 'acquisti', label: 'Acquisti', icon: Package, color: 'rgba(167,139,250,0.25)' },
+  { id: 'boutique', label: 'Boutique', icon: Sparkles, color: 'rgba(251,191,36,0.25)' },
+];
+
+/** Dimensioni e offset per le bolle — spostate verso l'esterno, lontano dal centro */
+const BUBBLE_SIZES_RIGHT = [
+  { w: 'w-20 sm:w-24 md:w-28', top: '-20%',  offset: 'left-[75%]'  },
+  { w: 'w-24 sm:w-28 md:w-32', top: '8%', offset: 'left-[85%]' },
+  { w: 'w-[5rem] sm:w-24 md:w-28', top: '35%', offset: 'left-[78%]'  },
+  { w: 'w-[5.5rem] sm:w-[6.5rem] md:w-24', top: '58%', offset: 'left-[88%]' },
+  { w: 'w-16 sm:w-20 md:w-24', top: '82%', offset: 'left-[72%]' },
+];
+
+const BUBBLE_SIZES_LEFT = [
+  { w: 'w-[5rem] sm:w-24 md:w-28', top: '-18%',  offset: 'right-[72%]'  },
+  { w: 'w-24 sm:w-28 md:w-32', top: '10%', offset: 'right-[82%]' },
+  { w: 'w-20 sm:w-24 md:w-28', top: '36%', offset: 'right-[75%]'  },
+  { w: 'w-[5.5rem] sm:w-[6.5rem] md:w-24', top: '60%', offset: 'right-[85%]' },
+  { w: 'w-[4.5rem] sm:w-20 md:w-24', top: '84%', offset: 'right-[70%]' },
 ];
 
 
@@ -543,110 +547,160 @@ export function LandingWelcome() {
 
 
 
-        {/* Loghi giochi: Magic grande a tutta larghezza + Altri sotto nel PRESTO IN ARRIVO */}
-
-        <section className="px-2 pt-14 pb-10 sm:px-4 sm:pt-8 sm:pb-3 md:px-6 md:pt-10 md:pb-4">
-
-          <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-6">
-
-            {/* Riga 1: Magic — sfondo rettangolare/"allungato" (rounded-2xl) a tutta larghezza (max-w-lg) */}
-
-            {MAIN_GAMES.map((game) => (
-
-              <Link
-
-                key={game.alt}
-
-                href={game.homeHref}
-
-                className="group relative flex w-full h-32 sm:h-40 md:h-48 items-center justify-center overflow-visible rounded-3xl border border-white/20 bg-white/10 p-8 shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all duration-300 hover:border-white/40 hover:bg-white/15 hover:backdrop-blur-md hover:scale-[1.02]"
-
-                aria-label={t('landing.gameAria.goHome', { name: game.alt })}
-
-                onClick={() => {
-
-                  if (game.gameSlug === 'clear') setSelectedGame(null);
-
-                  else if (game.gameSlug) setSelectedGame(game.gameSlug);
-
-                }}
-
-              >
-
-                {/* Banner glass sopra - Citazione Magic centrata - DESKTOP */}
-
-                <div className="hidden sm:flex absolute -top-3 left-0 right-0 z-10 items-center justify-center px-2">
-
-                  <div className="text-center font-sans text-sm font-medium italic tracking-wide text-white drop-shadow-md truncate">
-
-                    <span className="text-[#FF7300] not-italic">"</span>La battaglia non ha bisogno di uno scopo<span className="text-[#FF7300] not-italic">"</span>
-
-                  </div>
-
-                </div>
-
-                {/* Badge Disponibile DESKTOP - in alto a destra mezzo fuori */}
-
-                <span className="hidden sm:block absolute -top-3 right-0 z-10 translate-x-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile subito!</span>
-
-                {/* Badge Disponibile MOBILE - in basso centrato mezzo fuori */}
-
-                <span className="sm:hidden absolute bottom-0 left-1/2 z-10 -translate-x-1/2 translate-y-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile subito!</span>
-
-                <img
-
-                  src={game.src}
-
-                  alt={game.alt}
-
-                  className="transition-transform duration-500 group-hover:scale-110"
-
-                  style={{ display: 'block', maxWidth: '85%', maxHeight: '75%', width: 'auto', height: 'auto', objectFit: 'contain' }}
-
-                />
-
-              </Link>
-
-            ))}
-
-            
-
-            {/* Spacer per distanziare dalla sezione giochi */}
-
-            <div className="h-4 sm:h-6" />
-
-            
-
-            {/* Giochi in arrivo — scorrimento libero senza container */}
-
-            {/* Banner glass "PRESTO IN ARRIVO" - posizionato vicino ai giochi */}
-
-            <div className="relative w-full mb-8 sm:mb-10">
-
-              <div className="absolute top-2 sm:top-4 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap text-center font-sans text-xs sm:text-sm font-bold uppercase tracking-widest text-white drop-shadow-md animate-in fade-in slide-in-from-top-2 duration-700">
-
-                Presto in Arrivo
-
+        {/* ===== BUBBLE UNIVERSE: Features (left) | Magic (center) | Games (right) ===== */}
+        <section className="relative px-2 pt-2 pb-10 sm:px-4 sm:pt-1 sm:pb-3 md:px-6 md:pt-2 md:pb-4">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-center">
+            {/* --- DESKTOP 3-column layout --- */}
+            <div className="hidden lg:grid lg:grid-cols-[1fr_auto_1fr] w-full items-center gap-0">
+              {/* LEFT COLUMN — Feature bubbles */}
+              <div className="relative h-[520px] w-full -mt-16">
+                {FEATURE_BUBBLES.map((feat, i) => {
+                  const layout = BUBBLE_SIZES_LEFT[i];
+                  const Icon = feat.icon;
+                  return (
+                    <div
+                      key={feat.id}
+                      className={`landing-bubble absolute ${layout.w} aspect-square ${layout.offset} flex flex-col items-center justify-center rounded-full border border-white/20 bg-white/[0.08] backdrop-blur-md cursor-default overflow-hidden`}
+                      style={{
+                        top: layout.top,
+                        animationDelay: `${i * 0.8}s`,
+                        background: `radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,0.25) 0%, ${feat.color} 35%, transparent 65%)`,
+                        backgroundSize: '200% 200%',
+                        boxShadow: `
+                          0 4px 30px rgba(255,255,255,0.1),
+                          0 0 60px rgba(255,255,255,0.05),
+                          inset 0 0 20px rgba(255,255,255,0.1),
+                          inset 0 0 40px rgba(255,255,255,0.03)
+                        `,
+                      }}
+                    >
+                      {/* Highlight reflection */}
+                      <div className="absolute top-2 left-1/3 w-1/4 h-1/6 rounded-full bg-white/30 blur-sm" />
+                      <Icon className="relative z-10 h-5 w-5 sm:h-6 sm:w-6 text-white/90 mb-1 drop-shadow-lg" strokeWidth={1.5} />
+                      <span className="relative z-10 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white drop-shadow-md">{feat.label}</span>
+                    </div>
+                  );
+                })}
               </div>
 
+              {/* CENTER — Magic card */}
+              <div className="flex flex-col items-center gap-4 px-4 -mt-8">
+                {MAIN_GAMES.map((game) => (
+                  <Link
+                    key={game.alt}
+                    href={game.homeHref}
+                    className="group relative flex w-72 xl:w-80 h-40 xl:h-48 items-center justify-center overflow-visible rounded-3xl border border-white/20 bg-white/10 p-8 shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all duration-300 hover:border-white/40 hover:bg-white/15 hover:backdrop-blur-md hover:scale-[1.02]"
+                    aria-label={t('landing.gameAria.goHome', { name: game.alt })}
+                    onClick={() => {
+                      if (game.gameSlug === 'clear') setSelectedGame(null);
+                      else if (game.gameSlug) setSelectedGame(game.gameSlug);
+                    }}
+                  >
+                    {/* Banner glass sopra - Citazione Magic centrata */}
+                    <div className="hidden sm:flex absolute -top-3 left-0 right-0 z-10 items-center justify-center px-2">
+                      <div className="text-center font-sans text-sm font-medium italic tracking-wide text-white drop-shadow-md truncate">
+                        <span className="text-[#FF7300] not-italic">&ldquo;</span>La battaglia non ha bisogno di uno scopo<span className="text-[#FF7300] not-italic">&rdquo;</span>
+                      </div>
+                    </div>
+                    {/* Badge Disponibile */}
+                    <span className="absolute -top-3 right-0 z-10 translate-x-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile subito!</span>
+                    <img
+                      src={game.src}
+                      alt={game.alt}
+                      className="transition-transform duration-500 group-hover:scale-110"
+                      style={{ display: 'block', maxWidth: '85%', maxHeight: '75%', width: 'auto', height: 'auto', objectFit: 'contain' }}
+                    />
+                  </Link>
+                ))}
+              </div>
+
+              {/* RIGHT COLUMN — Coming soon game bubbles */}
+              <div className="relative h-[520px] w-full -mt-16">
+                {COMING_SOON_GAMES.map((game, i) => {
+                  const layout = BUBBLE_SIZES_RIGHT[i];
+                  return (
+                    <button
+                      key={game.alt}
+                      type="button"
+                      className={`landing-bubble absolute ${layout.w} aspect-square ${layout.offset} flex items-center justify-center rounded-full border border-white/20 bg-white/[0.08] backdrop-blur-md cursor-pointer overflow-hidden group`}
+                      style={{
+                        top: layout.top,
+                        animationDelay: `${i * 0.9}s`,
+                        background: 'radial-gradient(120% 120% at 35% 25%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.08) 40%, transparent 65%)',
+                        backgroundSize: '200% 200%',
+                        boxShadow: `
+                          0 4px 30px rgba(255,255,255,0.1),
+                          0 0 60px rgba(255,255,255,0.05),
+                          inset 0 0 20px rgba(255,255,255,0.1),
+                          inset 0 0 40px rgba(255,255,255,0.03)
+                        `,
+                        opacity: 0.85,
+                      }}
+                      onClick={() => {
+                        const bgImage = GAME_FULLSCREEN_IMAGES[game.alt];
+                        if (bgImage) {
+                          setFullscreenGame({ src: game.src, alt: game.alt, bgImage });
+                        } else {
+                          setNotifyGame({ src: game.src, alt: game.alt });
+                        }
+                      }}
+                    >
+                      {/* Highlight reflection */}
+                      <div className="absolute top-3 left-1/3 w-1/5 h-[15%] rounded-full bg-white/25 blur-sm group-hover:bg-white/40 transition-all duration-300" />
+                      <img
+                        src={game.src}
+                        alt={game.alt}
+                        className="relative z-10 max-w-[70%] max-h-[70%] object-contain drop-shadow-lg transition-transform duration-300 group-hover:scale-110"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            
+            {/* --- MOBILE / TABLET layout (< lg) --- */}
+            <div className="flex flex-col items-center gap-8 lg:hidden w-full max-w-lg">
+              {/* Magic card — full width */}
+              {MAIN_GAMES.map((game) => (
+                <Link
+                  key={game.alt}
+                  href={game.homeHref}
+                  className="group relative flex w-full h-32 sm:h-40 md:h-48 items-center justify-center overflow-visible rounded-3xl border border-white/20 bg-white/10 p-8 shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all duration-300 hover:border-white/40 hover:bg-white/15 hover:backdrop-blur-md hover:scale-[1.02]"
+                  aria-label={t('landing.gameAria.goHome', { name: game.alt })}
+                  onClick={() => {
+                    if (game.gameSlug === 'clear') setSelectedGame(null);
+                    else if (game.gameSlug) setSelectedGame(game.gameSlug);
+                  }}
+                >
+                  <span className="sm:hidden absolute bottom-0 left-1/2 z-10 -translate-x-1/2 translate-y-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile subito!</span>
+                  <span className="hidden sm:block absolute -top-3 right-0 z-10 translate-x-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile subito!</span>
+                  <img
+                    src={game.src}
+                    alt={game.alt}
+                    className="transition-transform duration-500 group-hover:scale-110"
+                    style={{ display: 'block', maxWidth: '85%', maxHeight: '75%', width: 'auto', height: 'auto', objectFit: 'contain' }}
+                  />
+                </Link>
+              ))}
 
-            <div className="games-marquee-track items-center gap-5 sm:gap-6 md:gap-8 py-6 w-full">
-
-              {/* 10 copie dei giochi per loop infinito fluido */}
-
-              {[...Array(10)].map((_, i) => (
-
-                COMING_SOON_GAMES.map((game) => (
-
+              {/* Mobile bubbles row — games */}
+              <div className="flex flex-wrap justify-center gap-3">
+                {COMING_SOON_GAMES.map((game, i) => (
                   <button
-
-                    key={`${i}-${game.alt}`}
-
+                    key={game.alt}
                     type="button"
-
+                    className="landing-bubble flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full border border-white/20 bg-white/[0.08] backdrop-blur-md cursor-pointer overflow-hidden group"
+                    style={{
+                      animationDelay: `${i * 0.7}s`,
+                      background: 'radial-gradient(130% 130% at 35% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 45%, transparent 70%)',
+                      backgroundSize: '200% 200%',
+                      boxShadow: `
+                        0 4px 24px rgba(255,255,255,0.1),
+                        0 0 40px rgba(255,255,255,0.05),
+                        inset 0 0 16px rgba(255,255,255,0.12)
+                      `,
+                      opacity: 0.9,
+                    }}
                     onClick={() => {
                       const bgImage = GAME_FULLSCREEN_IMAGES[game.alt];
                       if (bgImage) {
@@ -655,31 +709,43 @@ export function LandingWelcome() {
                         setNotifyGame({ src: game.src, alt: game.alt });
                       }
                     }}
-
-                    className="group relative flex h-32 w-32 sm:h-28 sm:w-28 md:h-36 md:w-36 lg:h-36 lg:w-36 xl:h-36 xl:w-36 shrink-0 items-center justify-center overflow-visible rounded-full border border-white/10 bg-white/5 p-2 sm:p-4 transition-opacity duration-300 hover:opacity-100 opacity-60"
-
                   >
-
-                    <img
-
-                      src={game.src}
-
-                      alt={game.alt}
-
-                      style={{ display: 'block', maxWidth: '90%', maxHeight: '90%', width: 'auto', height: 'auto', objectFit: 'contain' }}
-
-                    />
-
+                    {/* Mobile highlight */}
+                    <div className="absolute top-2 left-1/3 w-1/4 h-[12%] rounded-full bg-white/25 blur-sm group-hover:bg-white/40 transition-all duration-300" />
+                    <img src={game.src} alt={game.alt} className="relative z-10 max-w-[70%] max-h-[70%] object-contain drop-shadow-lg transition-transform duration-300 group-hover:scale-110" />
                   </button>
+                ))}
+              </div>
 
-                ))
-
-              ))}
-
+              {/* Mobile bubbles row — features */}
+              <div className="flex flex-wrap justify-center gap-3">
+                {FEATURE_BUBBLES.map((feat, i) => {
+                  const Icon = feat.icon;
+                  return (
+                    <div
+                      key={feat.id}
+                      className="landing-bubble flex h-20 w-20 sm:h-24 sm:w-24 flex-col items-center justify-center rounded-full border border-white/20 bg-white/[0.08] backdrop-blur-md overflow-hidden"
+                      style={{
+                        animationDelay: `${i * 0.6}s`,
+                        background: `radial-gradient(130% 130% at 30% 20%, rgba(255,255,255,0.22) 0%, ${feat.color} 40%, transparent 70%)`,
+                        backgroundSize: '200% 200%',
+                        boxShadow: `
+                          0 4px 24px rgba(255,255,255,0.1),
+                          0 0 40px rgba(255,255,255,0.05),
+                          inset 0 0 16px rgba(255,255,255,0.12)
+                        `,
+                      }}
+                    >
+                      {/* Mobile highlight */}
+                      <div className="absolute top-2 left-1/3 w-1/4 h-[10%] rounded-full bg-white/30 blur-sm" />
+                      <Icon className="relative z-10 h-5 w-5 text-white/90 mb-0.5 drop-shadow-lg" strokeWidth={1.5} />
+                      <span className="relative z-10 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-white drop-shadow-md">{feat.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-
           </div>
-
         </section>
 
 
@@ -768,7 +834,7 @@ export function LandingWelcome() {
 
                       type="submit"
 
-                      className="w-full rounded-2xl bg-[#FF7300] py-4 text-sm font-bold uppercase tracking-widest text-white shadow-[0_4px_15px_rgba(255,115,0,0.3)] transition-all hover:bg-[#e66700] hover:scale-[1.02] active:scale-95"
+                      className="btn-orange-glow w-full rounded-2xl py-4"
 
                     >
 

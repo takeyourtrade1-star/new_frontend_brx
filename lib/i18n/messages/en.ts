@@ -40,6 +40,16 @@ export const en = {
 
   'common.languageSelectAria': 'Select language',
 
+  'country.IT': 'Italy',
+  'country.DE': 'Germany',
+  'country.FR': 'France',
+  'country.ES': 'Spain',
+  'country.AT': 'Austria',
+  'country.CH': 'Switzerland',
+  'country.GB': 'United Kingdom',
+  'country.US': 'United States',
+  'country.PT': 'Portugal',
+
   'user.fallbackName': 'User',
 
   'topBar.homeAria': 'BRX Home',

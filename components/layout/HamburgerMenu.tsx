@@ -402,7 +402,7 @@ export function HamburgerMenu() {
                   <Button
                     type="button"
                     asChild
-                    className="h-10 w-full rounded-sm border border-[#878787] bg-[#FF7300] text-sm font-bold uppercase tracking-wide text-white shadow-none hover:opacity-95"
+                    className="btn-orange-glow h-10 w-full rounded-sm border disabled:opacity-50"
                   >
                     <Link href="/login" onClick={() => setOpen(false)}>
                       {t('auth.register')}

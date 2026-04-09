@@ -425,7 +425,7 @@ export function SincronizzazioneContent() {
               type="button"
               onClick={handleSetupTestUser}
               disabled={loadingSetup || !cardtraderToken.trim()}
-              className="bg-[#FF7300] font-semibold text-white hover:bg-[#e66a00] disabled:opacity-50"
+              className="btn-orange-glow disabled:opacity-50"
             >
               {loadingSetup ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {t('accountPage.syncSaveConnect')}

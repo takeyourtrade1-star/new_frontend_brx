@@ -20,6 +20,9 @@ import {
 import type { RegisterPrivatoValues } from '@/lib/registrati/schema';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { CountrySelect, type CountryOption } from '@/components/ui/CountrySelect';
+import { useUserCountry } from '@/lib/hooks/use-user-country';
+import { useMemo } from 'react';
 
 const defaultValues: RegisterPrivatoValues = {
   website_url: '',
@@ -40,6 +43,7 @@ const defaultValues: RegisterPrivatoValues = {
 export function RegistratiPrivatoForm() {
   const router = useRouter();
   const { t } = useTranslation();
+  const detectedCountry = useUserCountry();
   const authError = useAuthError();
   const registerUser = useAuthStore((s) => s.register);
   const isLoading = useAuthStore((s) => s.isLoading);
@@ -57,8 +61,32 @@ export function RegistratiPrivatoForm() {
     formState: { errors },
   } = useForm<RegisterPrivatoValues>({
     resolver: zodResolver(registerPrivatoSchema),
-    defaultValues,
+    defaultValues: {
+      ...defaultValues,
+      country: detectedCountry || defaultValues.country,
+    },
   });
+
+  // Country options with flags
+  const countryOptions: CountryOption[] = useMemo(
+    () => COUNTRIES.map((c) => ({ code: c.code, label: c.label, flagCode: c.code })),
+    []
+  );
+
+  // Aggiorna paese e prefisso quando rilevato
+  useEffect(() => {
+    if (detectedCountry) {
+      setValue('country', detectedCountry, { shouldValidate: true });
+      const prefixMap: Record<string, string> = {
+        'IT': '+39', 'DE': '+49', 'FR': '+33', 'ES': '+34',
+        'AT': '+43', 'CH': '+41', 'GB': '+44', 'US': '+1'
+      };
+      const newPrefix = prefixMap[detectedCountry];
+      if (newPrefix && PHONE_PREFIXES.includes(newPrefix as typeof PHONE_PREFIXES[number])) {
+        setValue('phone_prefix', newPrefix as typeof PHONE_PREFIXES[number], { shouldValidate: true });
+      }
+    }
+  }, [detectedCountry, setValue]);
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -281,27 +309,18 @@ export function RegistratiPrivatoForm() {
           name="country"
           control={control}
           render={({ field }) => (
-            <select
-              id="country_privato"
-              className={cn(
-                'h-14 w-full rounded-lg border border-gray-300 bg-[#e5e7eb] px-3 text-base',
-                !field.value && 'text-gray-500'
-              )}
-              {...field}
-                onChange={(e) => {
-                  countryManuallyEditedRef.current = true;
-                  field.onChange(e);
-                }}
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.label}</option>
-              ))}
-            </select>
+            <CountrySelect
+              options={countryOptions}
+              value={field.value}
+              onChange={(val) => {
+                countryManuallyEditedRef.current = true;
+                field.onChange(val);
+              }}
+              placeholder={t('registerForm.countryLabel')}
+              size="md"
+            />
           )}
         />
-        <label htmlFor="country_privato" className="mt-1 block text-xs text-white/70">
-          {t('registerForm.countryLabel')}
-        </label>
         {errors.country && (
           <p className="mt-1 text-sm text-red-500">{String(errors.country.message ?? '')}</p>
         )}

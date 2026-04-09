@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Loader2, Minus, Pencil, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Minus, Pencil, Plus, X, ChevronLeft, ChevronRight, Heart, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 import { getCardImageUrl } from '@/lib/assets';
@@ -18,28 +18,45 @@ import { AuctionCreateWizard } from '@/components/feature/aste/create/AuctionCre
 import { InventoryEditModal } from '@/components/feature/sync/InventoryEditModal';
 import { listingToInventoryEditItem } from '@/lib/product-detail/listing-to-inventory-item';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
-import { getCdnImageUrl } from '@/lib/config';
+import { getCdnImageUrl, MEILISEARCH } from '@/lib/config';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { COUNTRIES } from '@/lib/registrati/schema';
-import { ProductPriceChart } from '@/components/feature/product/ProductPriceChart';
+import { ProductPriceChart, type ProductPriceStats, buildPriceHistoryPoints } from '@/components/feature/product/ProductPriceChart';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
+import { FlagIcon } from '@/components/ui/FlagIcon';
+import { CountrySelect, type CountryOption } from '@/components/ui/CountrySelect';
+import { useUserCountry } from '@/lib/hooks/use-user-country';
 
 const PRIMARY_BLUE = '#1D3160';
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Restituisce l’emoji bandiera per un codice paese ISO 2 lettere (es. IT → 🇮🇹). */
-function countryFlag(code: string): string {
-  if (code.length !== 2) return '';
-  return code
-    .toUpperCase()
-    .split('')
-    .map((c) => String.fromCodePoint(0x1f1e6 - 65 + c.charCodeAt(0)))
-    .join('');
-}
 const ACCENT_ORANGE = '#f97316';
 
 type ProductDetailViewProps =
   | { card: CardDocument; slug?: string; title?: string; subtitle?: string; breadcrumbs?: { label: string; href?: string }[]; imageSrc?: string }
   | { card?: never; slug: string; title?: string; subtitle?: string; breadcrumbs?: { label: string; href?: string }[]; imageSrc?: string };
+
+type ReprintSearchHit = {
+  id: string;
+  set_name?: string;
+  rarity?: string;
+  image?: string | null;
+  image_uri_small?: string | null;
+  image_uri_normal?: string | null;
+  image_path?: string | null;
+  set_icon_uri?: string | null;
+  icon_svg_uri?: string | null;
+  set_code?: string | null;
+};
+
+type ReprintCard = {
+  id: string;
+  imageSrc: string | null;
+  setName: string;
+  rarity: string;
+  setIconSrc: string | null;
+  setCode: string;
+};
 
 export function ProductDetailView(props: ProductDetailViewProps) {
   const { card } = props;
@@ -89,6 +106,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const accessToken = useAuthStore(
     (s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
   );
+  const detectedCountry = useUserCountry();
 
   const blueprintIdForAuction = useMemo(() => {
     const raw = card?.cardtrader_id;
@@ -194,6 +212,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
   /* Toggle grafico - nascosto di default su tutti i device */
   const [showChart, setShowChart] = useState(false);
+  const [chartStats, setChartStats] = useState<ProductPriceStats | null>(null);
+  const [reprints, setReprints] = useState<ReprintCard[]>([]);
+  const [reprintsLoading, setReprintsLoading] = useState(false);
 
   const CONDITION_OPTIONS_MAP: { value: string; label: string }[] = [
     { value: 'near_mint', label: 'Near Mint' },
@@ -231,6 +252,17 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     []
   );
   const langLabelByCode = useMemo(() => Object.fromEntries(LANG_OPTIONS.map((o) => [o.code, o.label])), [LANG_OPTIONS]);
+
+  /** Opzioni paese con bandiere SVG per il select Posizione venditore */
+  const countryOptions: CountryOption[] = useMemo(
+    () =>
+      COUNTRIES.map((c) => ({
+        code: c.code,
+        label: c.label,
+        flagCode: c.code,
+      })),
+    []
+  );
 
   /** Opzioni Lingua nel tab VENDI: se la carta ha available_languages, solo quelle; altrimenti tutte. */
   const vendiLanguageOptions = useMemo(() => {
@@ -282,6 +314,95 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   useEffect(() => {
     void refreshListings();
   }, [refreshListings]);
+
+  useEffect(() => {
+    if (!card?.id || !card.name || !card.game_slug || !MEILISEARCH.host) {
+      setReprints([]);
+      setReprintsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setReprintsLoading(true);
+
+    (async () => {
+      try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (MEILISEARCH.apiKey) headers.Authorization = `Bearer ${MEILISEARCH.apiKey}`;
+
+        const escapedName = card.name.replace(/"/g, '\\"');
+        const escapedGameSlug = card.game_slug.replace(/"/g, '\\"');
+
+        const res = await fetch(`${MEILISEARCH.host}/indexes/${MEILISEARCH.indexName}/search`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            q: card.name,
+            limit: 28,
+            filter: [`name = "${escapedName}"`, `game_slug = "${escapedGameSlug}"`],
+            attributesToRetrieve: [
+              'id',
+              'set_name',
+              'rarity',
+              'image',
+              'image_uri_small',
+              'image_uri_normal',
+              'image_path',
+              'set_icon_uri',
+              'icon_svg_uri',
+              'set_code',
+            ],
+          }),
+          cache: 'no-store',
+        });
+
+        if (!res.ok) {
+          if (!cancelled) setReprints([]);
+          return;
+        }
+
+        const data = (await res.json()) as { hits?: ReprintSearchHit[] };
+        const hits = Array.isArray(data.hits) ? data.hits : [];
+
+        const mapped = hits
+          .filter((hit) => hit.id && hit.id !== card.id)
+          .map((hit) => {
+            const rawImage = hit.image ?? hit.image_uri_normal ?? hit.image_uri_small ?? hit.image_path ?? null;
+            const setName = hit.set_name ?? 'Set sconosciuto';
+            const setCode =
+              hit.set_code ??
+              setName
+                .split(' ')
+                .filter(Boolean)
+                .map((token) => token[0])
+                .join('')
+                .slice(0, 3)
+                .toUpperCase();
+            return {
+              id: hit.id,
+              imageSrc: getCardImageUrl(rawImage),
+              setName,
+              rarity: hit.rarity ?? 'N/D',
+              setIconSrc: hit.set_icon_uri ?? hit.icon_svg_uri ?? null,
+              setCode,
+            } as ReprintCard;
+          });
+
+        const dedup = Array.from(new Map(mapped.map((item) => [item.id, item])).values()).slice(0, 18);
+        if (!cancelled) setReprints(dedup);
+      } catch {
+        if (!cancelled) setReprints([]);
+      } finally {
+        if (!cancelled) setReprintsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [card?.id, card?.name, card?.game_slug]);
 
   const pollSyncTaskThenRefresh = useCallback(
     async (taskId: string) => {
@@ -432,10 +553,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     return () => clearTimeout(t);
   }, []);
 
-  /* Quando l'utente loggato ha un paese, usa quello come "Posizione venditore". */
+  /* Quando l'utente loggato ha un paese, usa quello; altrimenti usa la geolocalizzazione. */
   useEffect(() => {
-    if (user?.country) setPosizioneVenditore(user.country);
-  }, [user?.country]);
+    if (user?.country) {
+      setPosizioneVenditore(user.country);
+    } else if (detectedCountry) {
+      setPosizioneVenditore(detectedCountry);
+    }
+  }, [user?.country, detectedCountry]);
 
   const showImagePlaceholder = imageError || !imageSrc;
   const effectiveImageSrc = showImagePlaceholder ? '' : imageSrc;
@@ -471,6 +596,37 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
   const formatEuro = (n: number) =>
     new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(n);
+
+  const cardsInSaleCount = useMemo(
+    () => listings.reduce((total, item) => total + Math.max(0, item.quantity || 0), 0),
+    [listings]
+  );
+  const cardsInSaleLabel = listingsLoading ? '…' : new Intl.NumberFormat('it-IT').format(cardsInSaleCount);
+  const defaultTrendStats = useMemo<ProductPriceStats>(() => {
+    const points = buildPriceHistoryPoints(slug);
+    const end = points[points.length - 1]?.t ?? Date.now();
+    const start = end - 7 * ONE_DAY_MS;
+    const rangePoints = points.filter((point) => point.t >= start && point.t <= end);
+    const safePoints = rangePoints.length > 0 ? rangePoints : points.slice(-7);
+    const trendPrice = safePoints[safePoints.length - 1]?.price ?? card?.market_price ?? 0;
+    const soldCopies = safePoints.reduce((acc, point) => acc + (point.sales ?? 0), 0);
+    const averageSalePrice =
+      safePoints.length > 0
+        ? safePoints.reduce((acc, point) => acc + point.price, 0) / safePoints.length
+        : card?.market_price ?? 0;
+    return {
+      trendPrice,
+      soldCopies,
+      averageSalePrice,
+      rangeLabel: 'Ultimi 7 giorni',
+    };
+  }, [slug, card?.market_price]);
+
+  const effectiveTrendStats = chartStats ?? defaultTrendStats;
+  const trendPriceValue = effectiveTrendStats.trendPrice;
+  const soldCopiesValue = effectiveTrendStats.soldCopies;
+  const averageSalePriceValue = effectiveTrendStats.averageSalePrice;
+  const trendRangeLabel = effectiveTrendStats.rangeLabel;
 
   // Mock multiple images for swipe demo (front/back of card)
   const cardImages = useMemo(() => {
@@ -567,7 +723,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             </Link>
           </div>
 
-          {/* DESKTOP: Layout originale */}
+          {/* DESKTOP: Layout originale con bottoni azione a destra del titolo */}
           <div className="hidden sm:flex flex-wrap items-center justify-between gap-2 mb-1.5">
             <AppBreadcrumb
               items={breadcrumbItems}
@@ -579,13 +735,38 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               HAI BISOGNO DI AIUTO?
             </Link>
           </div>
-          <div className="hidden sm:block text-left">
-            <h1 className="text-lg font-bold uppercase tracking-tight text-gray-900 sm:text-xl md:text-2xl lg:text-3xl break-words">
-              {title}
+          <div className="hidden sm:flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0 text-left">
+              <h1 className="text-lg font-bold uppercase tracking-tight text-gray-900 sm:text-xl md:text-2xl lg:text-3xl break-words">
+                {title}
             </h1>
             <p className="mt-1 text-xs sm:text-sm font-bold uppercase tracking-tight text-gray-700 break-words">
-              {subtitle}
+                {subtitle}
             </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 transition-colors hover:border-[#FF8800] hover:text-[#FF8800] shadow-sm"
+                aria-label="Aggiungi ai preferiti"
+              >
+                <Heart className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleShare}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 transition-colors hover:border-[#FF8800] hover:text-[#FF8800] shadow-sm"
+                aria-label="Condividi"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -594,10 +775,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       <section className="w-full bg-[#F0F0F0] px-4 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 pb-4 sm:pb-6 min-h-0">
         <div className="container-content">
           <div className="flex flex-col rounded-lg bg-white shadow-md overflow-hidden md:flex-row min-h-0">
-            {/* Colonna sinistra: immagine carta più piccola per adattarsi all'altezza del contenuto INFO */}
-            <aside className="flex flex-col w-full md:w-[min(280px,26vw)] lg:min-w-[260px] flex-shrink-0 items-center p-3 sm:p-4 lg:p-4 bg-white border-b md:border-b-0 md:border-r border-gray-200">
+            {/* Colonna sinistra: immagine carta compatta */}
+            <aside className="flex flex-col w-full md:w-[200px] lg:w-[220px] flex-shrink-0 items-center p-3 sm:p-3 bg-white border-b md:border-b-0 md:border-r border-gray-200">
               <div
-                className="relative w-full overflow-hidden rounded-md shrink-0 border border-gray-800 max-w-[260px] flex flex-col items-center justify-center bg-gray-100 cursor-pointer hover:opacity-95 transition-opacity"
+                className="relative w-full overflow-hidden rounded-md shrink-0 border border-gray-800 max-w-[200px] max-h-[280px] flex flex-col items-center justify-center bg-gray-100 cursor-pointer hover:opacity-95 transition-opacity"
                 style={{ aspectRatio: '63/88' }}
                 onClick={handleLightboxOpen}
                 role="button"
@@ -608,10 +789,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   <img
                     src={EBARTEX_LOGO_PLACEHOLDER}
                     alt="Ebartex"
-                    className="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0"
+                    className="w-14 h-14 object-contain shrink-0"
                   />
-                  <p className="mt-2 text-[10px] sm:text-xs font-medium text-gray-600 leading-tight">
-                    Questa immagine non è al momento disponibile
+                  <p className="mt-2 text-[10px] font-medium text-gray-600 leading-tight">
+                    Immagine non disponibile
                   </p>
                 </div>
               ) : isLocalImage ? (
@@ -627,70 +808,29 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   alt={card?.name ?? title}
                   fill
                   className="object-contain"
-                  sizes="260px"
+                  sizes="200px"
                   unoptimized
                   onError={() => setImageError(true)}
                   priority
                 />
               )}
             </div>
-            {/* MOBILE: Preferiti + Condividi affiancati, più piccoli */}
-            <div className="flex gap-2 w-full max-w-[260px] sm:hidden">
-              <button
-                type="button"
-                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:border-[#FF8800] hover:text-[#FF8800] transition-colors"
-                aria-label="Aggiungi ai preferiti"
-              >
-                <svg width="16" height="14" viewBox="0 0 32 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true">
-                  <path d="M16 26s-14-8-14-15a6.5 6.5 0 0 1 13-2.5 6.5 6.5 0 0 1 13 2.5C28 18 16 26 16 26z" />
-                </svg>
-                <span className="text-[11px] font-bold uppercase tracking-wide">Preferiti</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleShare}
-                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:border-[#FF8800] hover:text-[#FF8800] transition-colors"
-                aria-label="Condividi"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true">
-                  <circle cx="18" cy="5" r="3" />
-                  <circle cx="6" cy="12" r="3" />
-                  <circle cx="18" cy="19" r="3" />
-                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                </svg>
-                <span className="text-[11px] font-bold uppercase tracking-wide">Condividi</span>
-              </button>
-            </div>
-            {/* DESKTOP: Preferiti originale */}
-            <button
-              type="button"
-              className="hidden sm:flex mt-2 w-full max-w-[240px] sm:max-w-[260px] items-center justify-center gap-2 py-1.5 px-3 rounded-md border border-gray-300 bg-white text-gray-700 hover:border-[#FF8800] hover:text-[#FF8800] transition-colors"
-              aria-label="Aggiungi ai preferiti"
-            >
-              <svg width="20" height="18" viewBox="0 0 32 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true">
-                <path d="M16 26s-14-8-14-15a6.5 6.5 0 0 1 13-2.5 6.5 6.5 0 0 1 13 2.5C28 18 16 26 16 26z" />
-              </svg>
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wide">PREFERITI</span>
-            </button>
           </aside>
 
-          {/* Colonna destra: tab squadrati (INFO = arancione sotto + linea destra) + contenuto */}
+          {/* Colonna destra: tab minimali + contenuto */}
           <div className="flex-1 min-w-0 flex flex-col bg-[#FAFAFA]">
-            {/* Tab squadrati come Figma: occupano tutta la larghezza, distribuiti in modo uguale */}
-            <div className="flex border-b border-gray-300 bg-[#E5E7EB]">
+            <div className="flex border-b border-gray-200 bg-gray-50/80">
               {tabs.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => setActiveTab(t.id)}
                   className={cn(
-                    'relative flex-1 min-w-0 min-h-[40px] px-2 sm:px-3 py-2 text-xs sm:text-sm font-bold uppercase transition-colors border-r border-gray-300 last:border-r-0',
+                    'relative flex-1 min-w-0 px-3 sm:px-4 py-3 text-xs sm:text-sm font-bold uppercase tracking-wide transition-all duration-200',
                     activeTab === t.id
-                      ? 'bg-white text-gray-900 border-b-[3px] border-b-[#FF8800] border-r-2 border-r-[#FF8800]'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'bg-white text-[#FF7300] border-t-2 border-[#FF7300] shadow-[0_-2px_8px_rgba(0,0,0,0.04)]'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                   )}
-                  style={activeTab === t.id ? { marginBottom: '-1px' } : undefined}
                 >
                   <span className="block truncate text-center">{t.label}</span>
                 </button>
@@ -700,213 +840,275 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             {/* Contenuto tab INFO: MOBILE compatta con espansione grafico; DESKTOP layout completo */}
             {activeTab === 'INFO' && (
               <>
-                {/* MOBILE: Layout compatta - solo info + tendenza, grafico espandibile */}
+                {/* MOBILE: Layout 3 sezioni verticali - Info | Ristampe | Prezzi+Grafico */}
                 <div className="sm:hidden flex flex-col gap-2 p-2 min-w-0 w-full">
-                  {/* Box info carta: RARITÀ, NUMERO, STAMPATA IN, DISPONIBILI */}
-                  <div className="flex flex-col bg-white rounded-xl p-4 border border-gray-200/70 shadow-sm">
-                    {/* Riga 1: Rarità + Numero - metadati centrati */}
-                    <div className="flex items-center justify-center gap-4 pb-3 border-b border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Rarità</span>
-                        <div className="flex items-center">
+                  {/* Sezione 1: Info carta compatta */}
+                  <div className="flex flex-col bg-white rounded-lg p-3 border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="grid grid-cols-2 gap-2 pb-2 border-b border-gray-100">
+                      <div>
+                        <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">Rarità</span>
+                        <div className="flex items-center gap-1">
                           {card?.rarity ? (
-                            <span className="text-xs font-bold text-zinc-900">{card.rarity}</span>
+                            <span className="text-sm font-bold text-zinc-900">{card.rarity}</span>
                           ) : (
-                            <Image src={getCdnImageUrl('stellina.png')} alt="" width={18} height={18} className="h-4 w-4 object-contain" aria-hidden unoptimized />
+                            <Image src={getCdnImageUrl('stellina.png')} alt="" width={16} height={16} className="h-3.5 w-3.5 object-contain" aria-hidden unoptimized />
                           )}
                         </div>
                       </div>
-                      <div className="w-px h-4 bg-gray-200" />
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Numero</span>
-                        <span className="text-sm font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</span>
+                      <div>
+                        <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">Numero</span>
+                        <p className="text-sm font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</p>
                       </div>
                     </div>
-
-                    {/* Riga 2: Set - info contestuale centrata */}
-                    <div className="py-3 border-b border-gray-100 text-center">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Stampata in</span>
-                      <p className="mt-0.5 text-sm font-bold text-zinc-900">
-                        {card?.set_name ?? 'SUSSURRI NEL POZZO'}
-                      </p>
-                      <button className="mt-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors">
-                        Mostra ristampe →
-                      </button>
+                    <div className="py-2 border-b border-gray-100">
+                      <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">Set</span>
+                      <p className="text-sm font-bold text-zinc-900 truncate">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
                     </div>
-
-                    {/* Lingue (solo MTG) - centrata */}
                     {card?.game_slug === 'mtg' && (
-                      <div className="py-3 border-b border-gray-100 text-center">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Lingue disponibili</span>
-                        <p className="mt-0.5 text-xs font-medium text-zinc-700">
-                          {card?.available_languages && card.available_languages.length > 0
-                            ? card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ')
-                            : 'English'}
+                      <div className="py-2 border-b border-gray-100">
+                        <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">Lingue</span>
+                        <p className="text-xs font-medium text-zinc-700 truncate">
+                          {card?.available_languages?.length ? card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ') : 'English'}
                         </p>
                       </div>
                     )}
-
-                    {/* Riga 3: Disponibili + Tendenza - dati principali centrati */}
-                    <div className="flex items-center justify-center gap-8 pt-3">
-                      <div className="text-center">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Disponibili</span>
-                        <p className="mt-0.5 text-xl font-extrabold text-zinc-900 tabular-nums">1,148</p>
-                      </div>
-                      <div className="w-px h-8 bg-gray-200" />
-                      <div className="text-center">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Tendenza</span>
-                        <p className="mt-0.5 text-base font-bold text-primary">1,46 €</p>
-                      </div>
+                    <div className="pt-2">
+                      <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">Carte in vendita</span>
+                      <p className="text-lg font-extrabold text-zinc-900 tabular-nums">{cardsInSaleLabel}</p>
                     </div>
                   </div>
 
-                  {/* Toggle grafico mobile */}
-                  <div className="transition-all duration-500 ease-out">
-                    {!showChart ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowChart(true)}
-                        className="w-auto mx-auto py-2 px-4 rounded-lg border border-[#FF8800] bg-white text-[#FF8800] text-xs font-bold uppercase tracking-wide hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="18" y1="20" x2="18" y2="10" />
-                          <line x1="12" y1="20" x2="12" y2="4" />
-                          <line x1="6" y1="20" x2="6" y2="14" />
-                        </svg>
-                        Mostra grafico
+                  {/* Sezione 2: Ristampe orizzontali */}
+                  <div className="bg-white rounded-lg p-3 border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-extrabold uppercase tracking-wide text-gray-900">Ristampe</span>
+                      <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{reprints.length}</span>
+                    </div>
+                    {reprintsLoading ? (
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {[...Array(4)].map((_, i) => <div key={i} className="h-[90px] w-[60px] flex-shrink-0 rounded-md bg-gray-100 animate-pulse" />)}
+                      </div>
+                    ) : reprints.length > 0 ? (
+                      <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory -mx-1 px-1">
+                        {reprints.slice(0, 8).map((r) => (
+                          <div key={r.id} className="relative h-[90px] w-[60px] flex-shrink-0 snap-start overflow-hidden rounded-md border border-gray-200 bg-gray-50">
+                            {r.imageSrc ? <Image src={r.imageSrc} alt="" fill className="object-cover" sizes="60px" unoptimized /> : <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">N/A</div>}
+                            <div className="absolute left-0.5 top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-black/60 px-0.5">
+                              {r.setIconSrc ? <img src={r.setIconSrc} alt="" className="h-2.5 w-2.5 object-contain" /> : <span className="text-[8px] font-bold text-white">{r.setCode || 'S'}</span>}
+                            </div>
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1 py-0.5">
+                              <span className="text-[7px] font-semibold uppercase text-white">{r.rarity}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="text-xs text-gray-500">Nessuna ristampa.</p>}
+                  </div>
+
+                  {/* Sezione 3: Prezzi sempre visibili + grafico espandibile */}
+                  <div className="bg-white rounded-lg p-3 border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{trendRangeLabel}</span>
+                      <button type="button" onClick={() => setShowChart((v) => !v)} className="text-[10px] font-medium text-[#FF7300] flex items-center gap-1">
+                        {showChart ? <><EyeOff className="h-3 w-3" /> Nascondi</> : <><Eye className="h-3 w-3" /> Grafico</>}
                       </button>
-                    ) : (
-                      <div className="flex flex-col bg-white rounded-lg p-2.5 border border-gray-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-500">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold uppercase text-gray-700">Grafico prezzi</span>
-                          <button
-                            type="button"
-                            onClick={() => setShowChart(false)}
-                            className="text-[10px] text-gray-500 hover:text-gray-700 underline transition-colors"
-                          >
-                            Nascondi
-                          </button>
-                        </div>
-                        <div className="min-h-[200px]">
-                          <ProductPriceChart slug={slug} />
-                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                      <div className="rounded-md border border-orange-100 bg-orange-50/60 p-2 text-center">
+                        <p className="text-[9px] font-semibold uppercase text-orange-700">Tendenza</p>
+                        <p className="text-sm font-extrabold text-orange-700">{formatEuro(trendPriceValue)}</p>
+                      </div>
+                      <div className="rounded-md border border-blue-100 bg-blue-50/50 p-2 text-center">
+                        <p className="text-[9px] font-semibold uppercase text-blue-700">Vendute</p>
+                        <p className="text-sm font-extrabold text-blue-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                      </div>
+                      <div className="rounded-md border border-gray-200 bg-gray-50/50 p-2 text-center">
+                        <p className="text-[9px] font-semibold uppercase text-gray-600">Media</p>
+                        <p className="text-sm font-extrabold text-gray-900">{formatEuro(averageSalePriceValue)}</p>
+                      </div>
+                    </div>
+                    {showChart && (
+                      <div className="animate-in fade-in slide-in-from-top-2 duration-500 pt-1">
+                        <div className="h-[220px]"><ProductPriceChart slug={slug} onStatsChange={setChartStats} /></div>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* DESKTOP: Layout completo originale */}
-                <div className="hidden sm:grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-3 sm:gap-4 lg:gap-4 p-3 sm:p-4 lg:p-4 min-w-0 w-full">
-                  {/* Box info carta: RARITÀ, NUMERO, STAMPATA IN, DISPONIBILI */}
-                  <div className="flex flex-col min-h-0 bg-white rounded-xl p-4 sm:p-5 border border-gray-200/70 shadow-sm">
-                    {/* Riga 1: Rarità + Numero - metadati centrati */}
-                    <div className="flex items-center justify-center gap-6 pb-4 border-b border-gray-100">
-                      <div className="flex items-center gap-2">
+                {/* DESKTOP: Layout 3 colonne dinamiche - Info | Ristampe | Prezzi+Grafico */}
+                <div className={cn(
+                  'hidden sm:grid min-w-0 w-full transition-all duration-500',
+                  showChart
+                    ? 'gap-3 lg:gap-4 p-3 lg:p-4 lg:grid-cols-[200px_280px_1fr]'
+                    : 'gap-4 lg:gap-6 p-4 lg:p-6 lg:grid-cols-[1fr_1.5fr_auto]'
+                )}>
+                  {/* Colonna 1: Info carta - padding dinamico */}
+                  <div className={cn(
+                    'flex flex-col min-h-0 bg-white rounded-lg border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500',
+                    showChart ? 'p-3' : 'p-4 lg:p-5'
+                  )}>
+                    {/* Riga 1: Rarità + Numero */}
+                    <div className="space-y-2.5 pb-2.5 border-b border-gray-100">
+                      <div className="flex items-center justify-between">
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Rarità</span>
                         <div className="flex items-center">
                           {card?.rarity ? (
                             <span className="text-sm font-bold text-zinc-900">{card.rarity}</span>
                           ) : (
-                            <Image src={getCdnImageUrl('stellina.png')} alt="" width={22} height={22} className="h-5 w-5 object-contain" aria-hidden unoptimized />
+                            <Image src={getCdnImageUrl('stellina.png')} alt="" width={16} height={16} className="h-3.5 w-3.5 object-contain" aria-hidden unoptimized />
                           )}
                         </div>
                       </div>
-                      <div className="w-px h-5 bg-gray-200" />
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between">
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Numero</span>
-                        <span className="text-base font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</span>
+                        <span className="text-sm font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</span>
                       </div>
                     </div>
 
-                    {/* Riga 2: Set - info contestuale centrata */}
-                    <div className="py-4 border-b border-gray-100 text-center">
+                    {/* Riga 2: Set */}
+                    <div className="py-2.5 border-b border-gray-100">
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Stampata in</span>
-                      <p className="mt-1 text-sm font-bold text-zinc-900">
+                      <p className="mt-0.5 text-sm font-bold text-zinc-900 truncate">
                         {card?.set_name ?? 'SUSSURRI NEL POZZO'}
                       </p>
-                      <div className="flex items-center justify-center gap-4 mt-2">
-                        {card && (
-                          <Link
-                            href={{
-                              pathname: '/set',
-                              query: {
-                                set: card.set_name,
-                                game: card.game_slug,
-                              },
-                            }}
-                            className="text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
-                          >
-                            Mostra il set →
-                          </Link>
-                        )}
-                        <button className="text-[11px] font-medium text-primary hover:text-primary/80 transition-colors">
-                          Mostra ristampe →
-                        </button>
-                      </div>
+                      {card && (
+                        <Link
+                          href={{
+                            pathname: '/set',
+                            query: { set: card.set_name, game: card.game_slug },
+                          }}
+                          className="mt-0.5 inline-block text-[11px] font-medium text-[#FF7300] hover:text-[#FF5500] transition-colors"
+                        >
+                          Mostra il set →
+                        </Link>
+                      )}
                     </div>
 
-                    {/* Lingue (solo MTG) - centrata */}
+                    {/* Lingue (solo MTG) */}
                     {card?.game_slug === 'mtg' && (
-                      <div className="py-4 border-b border-gray-100 text-center">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Lingue disponibili</span>
-                        <p className="mt-1 text-sm font-medium text-zinc-700">
-                          {card?.available_languages && card.available_languages.length > 0
+                      <div className="py-2.5 border-b border-gray-100">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Lingue</span>
+                        <p className="mt-0.5 text-xs font-medium text-zinc-700 truncate">
+                          {card?.available_languages?.length
                             ? card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ')
                             : 'English'}
                         </p>
                       </div>
                     )}
 
-                    {/* Riga 3: Disponibili - dato principale centrato */}
-                    <div className="pt-4 text-center">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Disponibili</span>
-                      <p className="mt-1 text-2xl font-extrabold text-zinc-900 tabular-nums">1,148</p>
+                    {/* Riga 3: Carte in vendita */}
+                    <div className="pt-2.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Carte in vendita</span>
+                      <p className="mt-0.5 text-lg font-extrabold text-zinc-900 tabular-nums">{cardsInSaleLabel}</p>
                     </div>
                   </div>
-                  {/* Box grafico e prezzi: occupa il resto della riga */}
-                  <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
-                    <div className="transition-all duration-500 ease-out">
-                      {!showChart ? (
+
+                  {/* Colonna 2: Ristampe (in mezzo) - padding dinamico */}
+                  <div className={cn(
+                    'flex flex-col min-h-0 bg-white rounded-lg border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500',
+                    showChart ? 'p-3' : 'p-4 lg:p-5'
+                  )}>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div>
+                        <h3 className="text-xs font-extrabold uppercase tracking-wide text-gray-900">Ristampe</h3>
+                        <p className="text-[10px] text-gray-500">Stessa carta, set diversi</p>
+                      </div>
+                      <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{reprints.length}</span>
+                    </div>
+
+                    {reprintsLoading ? (
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {[...Array(4)].map((_, i) => (
+                          <div key={i} className="h-[110px] w-[74px] flex-shrink-0 rounded-md border border-gray-200 bg-gray-100 animate-pulse" />
+                        ))}
+                      </div>
+                    ) : reprints.length > 0 ? (
+                      <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory -mx-1 px-1">
+                        {reprints.slice(0, 10).map((reprint) => (
+                          <div
+                            key={reprint.id}
+                            className="group relative h-[110px] w-[74px] flex-shrink-0 snap-start overflow-hidden rounded-md border border-gray-200 bg-gray-50 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+                            title={`${reprint.setName} • ${reprint.rarity}`}
+                          >
+                            {reprint.imageSrc ? (
+                              <Image src={reprint.imageSrc} alt={reprint.setName} fill className="object-cover" sizes="74px" unoptimized />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-gray-100 text-[10px] font-semibold text-gray-400">N/A</div>
+                            )}
+                            <div className="absolute left-1 top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full border border-white/60 bg-black/55 px-1 backdrop-blur-sm">
+                              {reprint.setIconSrc ? (
+                                <img src={reprint.setIconSrc} alt="" className="h-3 w-3 object-contain" loading="lazy" />
+                              ) : (
+                                <span className="text-[9px] font-bold uppercase text-white">{reprint.setCode || 'SET'}</span>
+                              )}
+                            </div>
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/35 to-transparent px-1.5 py-1">
+                              <span className="inline-flex rounded-full border border-white/25 bg-black/45 px-1 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-white">{reprint.rarity}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 py-2">Nessuna ristampa trovata.</p>
+                    )}
+                  </div>
+
+                  {/* Colonna 3: Prezzi (sempre visibili) + Grafico (espandibile) - larghezza auto */}
+                  <div className={cn(
+                    'flex flex-col min-h-0 bg-white rounded-lg border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500',
+                    showChart ? 'p-3 w-full' : 'p-3 w-[140px] lg:w-[160px]'
+                  )}>
+                    {/* Metriche prezzi - sempre visibili */}
+                    <div className={cn('transition-all duration-500', showChart ? 'mb-2.5' : 'mb-1')}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{trendRangeLabel}</span>
                         <button
                           type="button"
-                          onClick={() => setShowChart(true)}
-                          className="w-auto mx-auto py-2 px-4 rounded-lg border border-[#FF8800] bg-white text-[#FF8800] text-xs font-bold uppercase tracking-wide hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"
+                          onClick={() => setShowChart((v) => !v)}
+                          className="text-[10px] font-medium text-[#FF7300] hover:text-[#FF5500] transition-colors flex items-center gap-1"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="20" x2="18" y2="10" />
-                            <line x1="12" y1="20" x2="12" y2="4" />
-                            <line x1="6" y1="20" x2="6" y2="14" />
-                          </svg>
-                          Mostra grafico
+                          {showChart ? (
+                            <><EyeOff className="h-3 w-3" /> Nascondi</>
+                          ) : (
+                            <><Eye className="h-3 w-3" /> Grafico</>
+                          )}
                         </button>
-                      ) : (
-                        <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold uppercase text-gray-700">Grafico prezzi</span>
-                            <button
-                              type="button"
-                              onClick={() => setShowChart(false)}
-                              className="text-[10px] text-gray-500 hover:text-gray-700 underline transition-colors"
-                            >
-                              Nascondi
-                            </button>
-                          </div>
-                          <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-3 sm:gap-4">
-                            {/* Grafico prezzo stile Cardmarket: 6 mesi, frecce, arancione brand */}
-                            <div className="flex flex-[1.5] min-w-0 flex-col min-h-[280px]">
-                              <ProductPriceChart slug={slug} />
-                            </div>
-                            {/* Valore tendenza + Prezzo medio */}
-                            <div className="flex flex-col justify-start sm:justify-center flex-shrink-0 sm:w-[120px] lg:w-[140px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-3">
-                              <p className="text-xs sm:text-sm text-gray-700">Tendenza di prezzo</p>
-                              <p className="mt-0.5 text-base sm:text-lg font-bold text-[#FF8800] underline">1,46 €</p>
-                              <p className="mt-2 text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
-                              <ul className="mt-1 list-none space-y-0.5 text-xs sm:text-sm">
-                                <li className="flex justify-between gap-3"><span className="text-gray-600">30 gg</span><span className="font-bold text-gray-900">1,35 €</span></li>
-                                <li className="flex justify-between gap-3"><span className="text-gray-600">7 gg</span><span className="font-bold text-gray-900">1,48 €</span></li>
-                                <li className="flex justify-between gap-3"><span className="text-gray-600">1 gg</span><span className="font-bold text-gray-900">1,05 €</span></li>
-                              </ul>
-                            </div>
+                      </div>
+                      {/* Quando il grafico è aperto: orizzontale | Quando chiuso: verticale compatta */}
+                      <div className={cn(
+                        'gap-1.5 transition-all duration-500',
+                        showChart ? 'grid grid-cols-3' : 'flex flex-col'
+                      )}>
+                        <div className={cn(
+                          'rounded-md border border-orange-100 bg-orange-50/60 transition-all duration-500',
+                          showChart ? 'p-2' : 'p-1.5 py-1'
+                        )}>
+                          <p className="text-[9px] font-semibold uppercase text-orange-700 leading-tight">Tendenza</p>
+                          <p className={cn('font-extrabold text-orange-700 tabular-nums leading-tight', showChart ? 'text-sm' : 'text-xs')}>{formatEuro(trendPriceValue)}</p>
+                        </div>
+                        <div className={cn(
+                          'rounded-md border border-blue-100 bg-blue-50/50 transition-all duration-500',
+                          showChart ? 'p-2' : 'p-1.5 py-1'
+                        )}>
+                          <p className="text-[9px] font-semibold uppercase text-blue-700 leading-tight">Vendute</p>
+                          <p className={cn('font-extrabold text-blue-700 tabular-nums leading-tight', showChart ? 'text-sm' : 'text-xs')}>{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                        </div>
+                        <div className={cn(
+                          'rounded-md border border-gray-200 bg-gray-50/50 transition-all duration-500',
+                          showChart ? 'p-2' : 'p-1.5 py-1'
+                        )}>
+                          <p className="text-[9px] font-semibold uppercase text-gray-600 leading-tight">Media</p>
+                          <p className={cn('font-extrabold text-gray-900 tabular-nums leading-tight', showChart ? 'text-sm' : 'text-xs')}>{formatEuro(averageSalePriceValue)}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Grafico - espandibile (dimensioni ottimizzate) */}
+                    <div className={cn('transition-all duration-500 ease-out overflow-hidden', showChart ? 'opacity-100 max-h-[260px] mt-2' : 'opacity-0 max-h-0')}>
+                      {showChart && (
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-500">
+                          <div className="h-[220px] w-full">
+                            <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
                           </div>
                         </div>
                       )}
@@ -1048,17 +1250,22 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                         </div>
                         <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-3 sm:gap-4">
                           <div className="flex flex-[1.5] min-w-0 flex-col min-h-[280px]">
-                            <ProductPriceChart slug={slug} />
+                            <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
                           </div>
-                          <div className="flex flex-col justify-start sm:justify-center flex-shrink-0 sm:w-[120px] lg:w-[140px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-3">
-                            <p className="text-xs sm:text-sm text-gray-700">Tendenza di prezzo</p>
-                            <p className="mt-0.5 text-base sm:text-lg font-bold text-[#FF8800] underline">1,46 €</p>
-                            <p className="mt-2 text-xs sm:text-sm font-bold text-gray-700">Prezzo medio</p>
-                            <ul className="mt-1 list-none space-y-0.5 text-xs sm:text-sm">
-                              <li className="flex justify-between gap-3"><span className="text-gray-600">30 gg</span><span className="font-bold text-gray-900">1,35 €</span></li>
-                              <li className="flex justify-between gap-3"><span className="text-gray-600">7 gg</span><span className="font-bold text-gray-900">1,48 €</span></li>
-                              <li className="flex justify-between gap-3"><span className="text-gray-600">1 gg</span><span className="font-bold text-gray-900">1,05 €</span></li>
-                            </ul>
+                          <div className="flex flex-col justify-start gap-2.5 flex-shrink-0 sm:w-[170px] lg:w-[190px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{trendRangeLabel}</p>
+                            <div className="rounded-md border border-orange-100 bg-orange-50/70 p-2">
+                              <p className="text-[10px] font-semibold uppercase text-orange-700">Tendenza prezzo</p>
+                              <p className="text-base font-extrabold text-orange-700">{formatEuro(trendPriceValue)}</p>
+                            </div>
+                            <div className="rounded-md border border-blue-100 bg-blue-50/60 p-2">
+                              <p className="text-[10px] font-semibold uppercase text-blue-700">Copie vendute</p>
+                              <p className="text-base font-extrabold text-blue-700 tabular-nums">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                            </div>
+                            <div className="rounded-md border border-gray-200 bg-white p-2">
+                              <p className="text-[10px] font-semibold uppercase text-gray-600">Prezzo medio vendita</p>
+                              <p className="text-base font-extrabold text-gray-900">{formatEuro(averageSalePriceValue)}</p>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1169,7 +1376,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   <svg className="h-5 w-5 text-gray-600 shrink-0 hidden lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
-                  <span className="text-[10px] font-bold uppercase text-gray-600 hidden lg:inline" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>Filtri</span>
+                  <span className="text-xs font-bold uppercase text-zinc-600 hidden lg:inline">FILTRI</span>
                 </button>
               ) : (
               <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm h-full min-w-0">
@@ -1194,17 +1401,12 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Posizione venditore</label>
-                    <select
+                    <CountrySelect
+                      options={countryOptions}
                       value={posizioneVenditore}
-                      onChange={(e) => setPosizioneVenditore(e.target.value)}
-                      className="w-full rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-900"
-                    >
-                      {COUNTRIES.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {countryFlag(c.code)} {c.label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setPosizioneVenditore}
+                      size="sm"
+                    />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Tipo venditore</label>
@@ -1306,11 +1508,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
             {/* Tabella Venditori / Scambio / Asta – subito a destra dei filtri */}
             <div className="flex-1 min-w-0 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-              <div className="flex border-b border-gray-200 bg-[#E5E7EB] overflow-x-auto scrollbar-hide">
+              <div className="flex gap-1 border-b border-gray-200 bg-gray-100 p-1 overflow-x-auto scrollbar-hide">
                 {(['VENDITORI', 'SCAMBIO', 'ASTA'] as const).map((tab) => {
-                  const tabLabelDesktop = tab === 'VENDITORI' ? 'IN VENDITA' : tab === 'SCAMBIO' ? 'DISPONIBILI ALLO SCAMBIO' : "DISPONIBILI ALL'ASTA";
-                  const tabLabelMobile = tab === 'VENDITORI' ? 'IN VENDITA' : tab === 'SCAMBIO' ? 'SCAMBIO' : 'ASTA';
-                  const tabLabel = typeof window !== 'undefined' && window.innerWidth < 640 ? tabLabelMobile : tabLabelDesktop;
+                  const tabLabel = tab === 'VENDITORI' ? 'IN VENDITA' : tab === 'SCAMBIO' ? 'SCAMBIO' : 'ASTA';
                   const iconClass = 'h-5 w-5 shrink-0';
                   return (
                   <button
@@ -1318,8 +1518,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     type="button"
                     onClick={() => setSellerSubTab(tab)}
                     className={cn(
-                      'flex flex-1 min-w-[120px] sm:min-w-0 min-h-[48px] items-center justify-center gap-2 px-3 sm:px-4 py-3 text-xs sm:text-sm font-bold uppercase transition-colors whitespace-nowrap',
-                      sellerSubTab === tab ? 'bg-[#FF8800] text-white' : 'bg-transparent text-gray-600 hover:bg-gray-100'
+                      'flex flex-1 min-w-[120px] sm:min-w-0 min-h-[44px] items-center justify-center gap-2 rounded-md px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold uppercase transition-colors whitespace-nowrap',
+                      sellerSubTab === tab
+                        ? 'bg-white text-[#FF8800] shadow-sm ring-1 ring-[#FF8800]/30'
+                        : 'bg-transparent text-gray-600 hover:bg-white/70'
                     )}
                   >
                     {tab === 'VENDITORI' && (
@@ -1396,7 +1598,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           <td className="px-4 py-3.5">
                             <div className="flex items-center gap-2">
                               <span className="min-w-0 truncate text-sm font-medium uppercase text-gray-900">{item.seller_display_name}</span>
-                              <span className="text-sm text-gray-600">{item.country ?? '—'}</span>
+                              {item.country && <FlagIcon country={item.country} size="sm" />}
                               <Image src={getCdnImageUrl('medal.png')} alt="" width={24} height={24} className="h-6 w-6 shrink-0 object-contain" aria-hidden unoptimized />
                             </div>
                           </td>
@@ -1543,7 +1745,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           <Image src={getCdnImageUrl('star.png')} alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" aria-hidden unoptimized />
                           <span className="text-sm text-gray-700">{item.condition ?? '—'}</span>
                           {item.mtg_language && <span className="text-xs text-gray-500">({item.mtg_language})</span>}
-                          <span className="text-xs text-gray-400">• {item.country ?? '—'}</span>
+                          {item.country && <FlagIcon country={item.country} size="xs" />}
                         </div>
                         {/* Action Row */}
                         <div className="flex items-center justify-between">
@@ -1605,8 +1807,22 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
                 </div>
               )}
-              {sellerSubTab === 'SCAMBIO' && <div className="p-8 text-center text-sm text-gray-500">Contenuto in preparazione per Scambio.</div>}
-              {sellerSubTab === 'ASTA' && <div className="p-8 text-center text-sm text-gray-500">Contenuto in preparazione per Vedi all&apos;asta.</div>}
+              {sellerSubTab === 'SCAMBIO' && (
+                <div className="p-6 sm:p-8">
+                  <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-6 text-center">
+                    <p className="text-sm font-semibold uppercase tracking-wide text-gray-700">Scambio</p>
+                    <p className="mt-1 text-sm text-gray-500">Contenuto in preparazione per Scambio.</p>
+                  </div>
+                </div>
+              )}
+              {sellerSubTab === 'ASTA' && (
+                <div className="p-6 sm:p-8">
+                  <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-6 text-center">
+                    <p className="text-sm font-semibold uppercase tracking-wide text-gray-700">Asta</p>
+                    <p className="mt-1 text-sm text-gray-500">Contenuto in preparazione per Vedi all&apos;asta.</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1639,7 +1855,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               {card?.name ?? purchaseListing.seller_display_name}
             </p>
             <div className="mb-3 text-sm text-gray-600">
-              Disponibili: <span className="font-semibold">{purchaseListing.quantity}</span>
+              Carte in vendita: <span className="font-semibold">{purchaseListing.quantity}</span>
             </div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Quantità</label>
             <input

@@ -4,88 +4,17 @@ import { useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
+import { FlagIcon } from '@/components/ui/FlagIcon';
+import type { CountryCode } from '@/components/ui/FlagIcon';
 
-const LANGUAGES = [
-  { code: 'it', name: 'Italiano', flag: FlagIt },
-  { code: 'en', name: 'English', flag: FlagEn },
-  { code: 'de', name: 'Deutsch', flag: FlagDe },
-  { code: 'es', name: 'Español', flag: FlagEs },
-  { code: 'fr', name: 'Français', flag: FlagFr },
-  { code: 'pt', name: 'Português', flag: FlagPt },
+const LANGUAGES: { code: string; name: string; flagCode: CountryCode }[] = [
+  { code: 'it', name: 'Italiano', flagCode: 'IT' },
+  { code: 'en', name: 'English', flagCode: 'GB' },
+  { code: 'de', name: 'Deutsch', flagCode: 'DE' },
+  { code: 'es', name: 'Español', flagCode: 'ES' },
+  { code: 'fr', name: 'Français', flagCode: 'FR' },
+  { code: 'pt', name: 'Português', flagCode: 'PT' },
 ] as const;
-
-function FlagIt() {
-  return (
-    <span className="inline-block h-5 w-7 overflow-hidden rounded-sm border border-gray-300 shadow-sm" aria-hidden>
-      <span className="flex h-full w-full">
-        <span className="w-1/3 bg-[#009246]" />
-        <span className="w-1/3 bg-white" />
-        <span className="w-1/3 bg-[#CE2B37]" />
-      </span>
-    </span>
-  );
-}
-
-function FlagEn() {
-  return (
-    <span className="inline-block h-5 w-7 overflow-hidden rounded-sm border border-gray-300 shadow-sm bg-[#012169]" aria-hidden>
-      <svg viewBox="0 0 60 40" className="h-full w-full">
-        <rect width="60" height="40" fill="#012169"/>
-        <path d="M0 0 L60 40 M60 0 L0 40" stroke="white" strokeWidth="6"/>
-        <path d="M30 0 V40 M0 20 H60" stroke="white" strokeWidth="10"/>
-        <path d="M30 0 V40 M0 20 H60" stroke="#C8102E" strokeWidth="6"/>
-        <path d="M0 0 L60 40 M60 0 L0 40" stroke="#C8102E" strokeWidth="4"/>
-      </svg>
-    </span>
-  );
-}
-
-function FlagDe() {
-  return (
-    <span className="inline-block h-5 w-7 overflow-hidden rounded-sm border border-gray-300 shadow-sm" aria-hidden>
-      <span className="flex h-full w-full flex-col">
-        <span className="h-1/3 bg-black" />
-        <span className="h-1/3 bg-[#DD0000]" />
-        <span className="h-1/3 bg-[#FFCE00]" />
-      </span>
-    </span>
-  );
-}
-
-function FlagEs() {
-  return (
-    <span className="inline-block h-5 w-7 overflow-hidden rounded-sm border border-gray-300 shadow-sm" aria-hidden>
-      <span className="flex h-full w-full flex-col">
-        <span className="h-1/4 bg-[#AA151B]" />
-        <span className="h-1/2 bg-[#F1BF00]" />
-        <span className="h-1/4 bg-[#AA151B]" />
-      </span>
-    </span>
-  );
-}
-
-function FlagFr() {
-  return (
-    <span className="inline-block h-5 w-7 overflow-hidden rounded-sm border border-gray-300 shadow-sm" aria-hidden>
-      <span className="flex h-full w-full">
-        <span className="w-1/3 bg-[#0055A4]" />
-        <span className="w-1/3 bg-white" />
-        <span className="w-1/3 bg-[#EF4135]" />
-      </span>
-    </span>
-  );
-}
-
-function FlagPt() {
-  return (
-    <span className="inline-block h-5 w-7 overflow-hidden rounded-sm border border-gray-300 shadow-sm" aria-hidden>
-      <span className="flex h-full w-full">
-        <span className="w-2/5 bg-[#006600]" />
-        <span className="w-3/5 bg-[#FF0000]" />
-      </span>
-    </span>
-  );
-}
 
 interface LanguageDropdownProps {
   value: string;
@@ -96,7 +25,6 @@ interface LanguageDropdownProps {
 function LanguageDropdown({ value, onChange, label }: LanguageDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedLang = LANGUAGES.find((l) => l.code === value) || LANGUAGES[0];
-  const FlagComponent = selectedLang.flag;
 
   return (
     <div className="relative">
@@ -109,7 +37,7 @@ function LanguageDropdown({ value, onChange, label }: LanguageDropdownProps) {
         aria-label={label}
       >
         <span>{selectedLang.name}</span>
-        <FlagComponent />
+        <FlagIcon country={selectedLang.flagCode} size="md" />
         <ChevronDown className={`h-5 w-5 text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
@@ -121,7 +49,6 @@ function LanguageDropdown({ value, onChange, label }: LanguageDropdownProps) {
             className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
           >
             {LANGUAGES.map((lang) => {
-              const Flag = lang.flag;
               const isSelected = lang.code === value;
               return (
                 <li key={lang.code}>
@@ -137,7 +64,7 @@ function LanguageDropdown({ value, onChange, label }: LanguageDropdownProps) {
                       isSelected ? 'bg-[#FF7300]/10 text-[#FF7300]' : 'text-gray-900'
                     }`}
                   >
-                    <Flag />
+                    <FlagIcon country={lang.flagCode} size="sm" />
                     <span className="flex-1">{lang.name}</span>
                     {isSelected && <Check className="h-4 w-4" />}
                   </button>

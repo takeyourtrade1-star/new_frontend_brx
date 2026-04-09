@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Info, Eye, EyeOff } from 'lucide-react';
+import { Info, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const BRAND_ORANGE = '#FF7300';
@@ -9,9 +9,18 @@ const SALES_BLUE = '#2563EB';
 const GRID_COLOR = '#E8E8E8';
 const AXIS_TEXT = '#5C5C5C';
 
-const MONTHS_VISIBLE = 4;
 /** Max punti evidenziati sulla linea (Cardmarket: pochi marker) */
 const MAX_VISIBLE_DOTS = 12;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+type RangePreset = '1d' | '7d' | '30d' | 'all' | 'custom';
+
+export type ProductPriceStats = {
+  trendPrice: number;
+  soldCopies: number;
+  averageSalePrice: number;
+  rangeLabel: string;
+};
 
 function hashSlug(s: string): number {
   let h = 2166136261;
@@ -58,20 +67,6 @@ export function buildPriceHistoryPoints(slug: string): { t: number; price: numbe
   }
   out.push({ t: end.getTime(), price: out[out.length - 1]?.price ?? 18, sales: out[out.length - 1]?.sales ?? 50 });
   return out;
-}
-
-function startOfMonth(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
-}
-
-function endOfMonth(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
-}
-
-function addMonths(d: Date, n: number): Date {
-  const x = new Date(d);
-  x.setMonth(x.getMonth() + n);
-  return x;
 }
 
 function formatDateIt(t: number): string {
@@ -127,14 +122,73 @@ function niceYStepsSales(minS: number, maxS: number): number[] {
   return ticks.map((v) => Math.round(v));
 }
 
+function formatDateInput(t: number): string {
+  const d = new Date(t);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function parseDateInput(value: string, endOfDay: boolean): number | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  if (endOfDay) d.setHours(23, 59, 59, 999);
+  else d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function buildTimeMarkers(tMin: number, tMax: number): number[] {
+  const span = Math.max(tMax - tMin, 1);
+  const days = span / DAY_MS;
+  const markers: number[] = [];
+
+  if (days <= 14) {
+    let cursor = new Date(tMin);
+    cursor.setHours(0, 0, 0, 0);
+    while (cursor.getTime() <= tMax) {
+      markers.push(cursor.getTime());
+      cursor = new Date(cursor.getTime() + DAY_MS);
+      if (markers.length > 18) break;
+    }
+    return markers;
+  }
+
+  if (days <= 90) {
+    let cursor = new Date(tMin);
+    cursor.setHours(0, 0, 0, 0);
+    while (cursor.getTime() <= tMax) {
+      markers.push(cursor.getTime());
+      cursor = new Date(cursor.getTime() + 7 * DAY_MS);
+      if (markers.length > 16) break;
+    }
+    return markers;
+  }
+
+  let cursor = new Date(tMin);
+  cursor = new Date(cursor.getFullYear(), cursor.getMonth(), 1, 0, 0, 0, 0);
+  while (cursor.getTime() <= tMax) {
+    markers.push(cursor.getTime());
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1, 0, 0, 0, 0);
+    if (markers.length > 14) break;
+  }
+  return markers;
+}
+
 export function ProductPriceChart({
   slug,
   className,
+  onStatsChange,
 }: {
   slug: string;
   className?: string;
+  onStatsChange?: (stats: ProductPriceStats) => void;
 }) {
   const [isLoading, setIsLoading] = useState(true);
+  const [rangePreset, setRangePreset] = useState<RangePreset>('7d');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
 
   useEffect(() => {
     // Simula caricamento dati
@@ -143,53 +197,68 @@ export function ProductPriceChart({
   }, [slug]);
 
   const allPoints = useMemo(() => buildPriceHistoryPoints(slug), [slug]);
-  const dataStart = useMemo(() => {
-    const t0 = allPoints[0]?.t ?? Date.now();
-    return startOfMonth(new Date(t0));
-  }, [allPoints]);
-  const dataEndMonth = useMemo(() => {
-    const t1 = allPoints[allPoints.length - 1]?.t ?? Date.now();
-    return startOfMonth(new Date(t1));
-  }, [allPoints]);
-
-  /** Ultimo mese della finestra visibile (4 mesi). */
-  const [endMonth, setEndMonth] = useState<Date>(() => dataEndMonth);
+  const dataStartTs = allPoints[0]?.t ?? Date.now() - 30 * DAY_MS;
+  const dataEndTs = allPoints[allPoints.length - 1]?.t ?? Date.now();
 
   useEffect(() => {
-    setEndMonth(dataEndMonth);
-  }, [dataEndMonth]);
+    setRangePreset('7d');
+    setCustomFrom('');
+    setCustomTo('');
+  }, [slug]);
 
-  const windowStart = useMemo(() => addMonths(startOfMonth(endMonth), -(MONTHS_VISIBLE - 1)), [endMonth]);
-  const windowEnd = useMemo(() => endOfMonth(endMonth), [endMonth]);
+  useEffect(() => {
+    if (!customFrom) setCustomFrom(formatDateInput(Math.max(dataStartTs, dataEndTs - 7 * DAY_MS)));
+    if (!customTo) setCustomTo(formatDateInput(dataEndTs));
+  }, [customFrom, customTo, dataStartTs, dataEndTs]);
+
+  const { rangeStartTs, rangeEndTs, rangeLabel } = useMemo(() => {
+    const end = dataEndTs;
+    const fallbackStart = Math.max(dataStartTs, end - 7 * DAY_MS);
+
+    if (rangePreset === 'custom') {
+      const fromTs = parseDateInput(customFrom, false);
+      const toTs = parseDateInput(customTo, true);
+      if (fromTs != null && toTs != null && fromTs <= toTs) {
+        const clampedFrom = Math.max(dataStartTs, fromTs);
+        const clampedTo = Math.min(dataEndTs, toTs);
+        if (clampedFrom <= clampedTo) {
+          return {
+            rangeStartTs: clampedFrom,
+            rangeEndTs: clampedTo,
+            rangeLabel: `${formatDateIt(clampedFrom)} - ${formatDateIt(clampedTo)}`,
+          };
+        }
+      }
+      return {
+        rangeStartTs: fallbackStart,
+        rangeEndTs: end,
+        rangeLabel: 'Ultimi 7 giorni',
+      };
+    }
+
+    if (rangePreset === 'all') {
+      return {
+        rangeStartTs: dataStartTs,
+        rangeEndTs: dataEndTs,
+        rangeLabel: 'Dall\'inizio',
+      };
+    }
+
+    const days = rangePreset === '1d' ? 1 : rangePreset === '30d' ? 30 : 7;
+    const start = Math.max(dataStartTs, end - days * DAY_MS);
+    return {
+      rangeStartTs: start,
+      rangeEndTs: end,
+      rangeLabel: `Ultimi ${days} giorni`,
+    };
+  }, [rangePreset, customFrom, customTo, dataStartTs, dataEndTs]);
 
   const visiblePoints = useMemo(() => {
-    const ws = windowStart.getTime();
-    const we = windowEnd.getTime();
-    const inWin = allPoints.filter((p) => p.t >= ws && p.t <= we);
-    if (inWin.length >= 2) return inWin;
-    const near = allPoints.filter((p) => p.t <= we).slice(-24);
-    return near.length >= 2 ? near : allPoints.slice(-24);
-  }, [allPoints, windowStart, windowEnd]);
-
-  const oldestEndMonth = useMemo(() => addMonths(dataStart, MONTHS_VISIBLE - 1), [dataStart]);
-
-  const canGoOlder = useMemo(
-    () => endMonth.getTime() > oldestEndMonth.getTime(),
-    [endMonth, oldestEndMonth]
-  );
-
-  const canGoNewer = useMemo(() => {
-    const next = addMonths(endMonth, 1);
-    return next.getTime() <= dataEndMonth.getTime();
-  }, [endMonth, dataEndMonth]);
-
-  const goOlder = useCallback(() => {
-    if (canGoOlder) setEndMonth((m) => addMonths(m, -1));
-  }, [canGoOlder]);
-
-  const goNewer = useCallback(() => {
-    if (canGoNewer) setEndMonth((m) => addMonths(m, 1));
-  }, [canGoNewer]);
+    const inRange = allPoints.filter((p) => p.t >= rangeStartTs && p.t <= rangeEndTs);
+    if (inRange.length >= 2) return inRange;
+    const fallback = allPoints.filter((p) => p.t <= rangeEndTs).slice(-Math.max(2, Math.min(24, allPoints.length)));
+    return fallback.length >= 2 ? fallback : allPoints.slice(-2);
+  }, [allPoints, rangeStartTs, rangeEndTs]);
 
   const { minP, maxP, yTicks } = useMemo(() => {
     const prices = visiblePoints.map((p) => p.price);
@@ -199,25 +268,16 @@ export function ProductPriceChart({
     return { minP: ticks[0] ?? min, maxP: ticks[ticks.length - 1] ?? max, yTicks: ticks };
   }, [visiblePoints]);
 
-  const { minS, maxS, yTicksSales, avgSales30d } = useMemo(() => {
+  const { minS, maxS, yTicksSales } = useMemo(() => {
     const sales = visiblePoints.map((p) => p.sales ?? 0);
     const min = Math.min(...sales);
     const max = Math.max(...sales);
     const ticks = niceYStepsSales(min, max);
-    // Calcolo media vendite ultimi 30 giorni (punti con timestamp entro 30gg)
-    const now = Date.now();
-    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
-    const recentSales = visiblePoints
-      .filter((p) => p.t >= thirtyDaysAgo)
-      .map((p) => p.sales ?? 0);
-    const avg30 = recentSales.length > 0
-      ? Math.round(recentSales.reduce((a, b) => a + b, 0) / recentSales.length)
-      : Math.round(sales.reduce((a, b) => a + b, 0) / sales.length);
-    return { minS: ticks[0] ?? min, maxS: ticks[ticks.length - 1] ?? max, yTicksSales: ticks, avgSales30d: avg30 };
+    return { minS: ticks[0] ?? min, maxS: ticks[ticks.length - 1] ?? max, yTicksSales: ticks };
   }, [visiblePoints]);
 
-  const tMin = windowStart.getTime();
-  const tMax = windowEnd.getTime();
+  const tMin = visiblePoints[0]?.t ?? rangeStartTs;
+  const tMax = visiblePoints[visiblePoints.length - 1]?.t ?? rangeEndTs;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [cw, setCw] = useState(560);
@@ -230,8 +290,8 @@ export function ProductPriceChart({
     return () => ro.disconnect();
   }, []);
 
-  const pad = { t: 8, r: 12, b: 40, l: 48 };
-  const H = 220;
+  const pad = { t: 8, r: 16, b: 48, l: 56 };
+  const H = 200;
   const W = cw;
   const iw = W - pad.l - pad.r;
   const ih = H - pad.t - pad.b;
@@ -276,19 +336,37 @@ export function ProductPriceChart({
     return [...new Set(out)].sort((a, b) => a - b);
   }, [visiblePoints]);
 
-  const monthMarkers = useMemo(() => {
-    const markers: Date[] = [];
-    let d = new Date(windowStart);
-    while (d <= windowEnd) {
-      markers.push(new Date(d));
-      d = addMonths(d, 1);
-    }
-    return markers;
-  }, [windowStart, windowEnd]);
+  const timeMarkers = useMemo(() => buildTimeMarkers(tMin, tMax), [tMin, tMax]);
 
   const [hover, setHover] = useState<{ x: number; y: number; t: number; price: number; sales: number } | null>(null);
   const [showPriceLine, setShowPriceLine] = useState(true);
   const [showSalesLine, setShowSalesLine] = useState(true);
+
+  const stats = useMemo<ProductPriceStats>(() => {
+    const first = visiblePoints[0];
+    const last = visiblePoints[visiblePoints.length - 1];
+    const soldCopies = visiblePoints.reduce((acc, p) => acc + (p.sales ?? 0), 0);
+    const averageSalePrice =
+      visiblePoints.length > 0
+        ? visiblePoints.reduce((acc, p) => acc + p.price, 0) / visiblePoints.length
+        : 0;
+    return {
+      trendPrice: last?.price ?? first?.price ?? 0,
+      soldCopies,
+      averageSalePrice,
+      rangeLabel,
+    };
+  }, [visiblePoints, rangeLabel]);
+
+  useEffect(() => {
+    onStatsChange?.(stats);
+  }, [onStatsChange, stats]);
+
+  const currentDayX = useMemo(() => {
+    const now = Date.now();
+    if (now < tMin || now > tMax) return null;
+    return xScale(now);
+  }, [tMin, tMax, xScale]);
 
   const onSvgMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
@@ -337,7 +415,7 @@ export function ProductPriceChart({
           </div>
         </div>
         {/* Chart skeleton */}
-        <div className="w-full rounded border border-gray-200 bg-white overflow-hidden" style={{ minHeight: 220 + 24 }}>
+        <div className="w-full rounded border border-gray-200 bg-white overflow-hidden" style={{ minHeight: 200 + 16 }}>
           <div className="p-4 space-y-3">
             {/* Grid lines skeleton */}
             <div className="space-y-4 pt-2">
@@ -381,40 +459,81 @@ export function ProductPriceChart({
 
   return (
     <div className={cn('flex flex-col min-w-0', className)}>
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-1.5 text-xs text-gray-600">
-          <Info className="h-3.5 w-3.5 shrink-0" style={{ color: BRAND_ORANGE }} aria-hidden />
-          <span className="font-medium">Info.</span>
-        </div>
-        <div className="flex items-center gap-0.5 rounded border border-gray-200 bg-white shadow-sm">
-          <button
-            type="button"
-            onClick={goOlder}
-            disabled={!canGoOlder}
-            className="p-1.5 text-gray-700 hover:bg-gray-50 disabled:opacity-35 disabled:pointer-events-none transition-colors"
-            aria-label="Periodo precedente"
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 text-xs text-zinc-500 min-w-0">
+          <span
+            className="inline-flex cursor-help"
+            title="Andamento prezzo e vendite nel periodo selezionato"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="px-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500 border-x border-gray-100 max-w-[140px] sm:max-w-none truncate text-center">
-            {formatDateIt(windowStart.getTime())} – {formatDateIt(windowEnd.getTime())}
+            <Info className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
           </span>
-          <button
-            type="button"
-            onClick={goNewer}
-            disabled={!canGoNewer}
-            className="p-1.5 text-gray-700 hover:bg-gray-50 disabled:opacity-35 disabled:pointer-events-none transition-colors"
-            aria-label="Periodo successivo"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+          <span className="font-medium truncate">{stats.rangeLabel}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Mini legenda accanto al selettore */}
+          <div className="hidden sm:flex items-center gap-1.5 mr-1 shrink-0">
+            <div className="flex items-center gap-1">
+              <span className="inline-block h-1.5 w-2.5 rounded-sm" style={{ backgroundColor: BRAND_ORANGE }} aria-hidden />
+              <span className="text-[9px] font-medium text-zinc-500 whitespace-nowrap">Prezzo</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="inline-block h-1.5 w-2.5 rounded-sm border border-dashed" style={{ borderColor: SALES_BLUE }} aria-hidden />
+              <span className="text-[9px] font-medium whitespace-nowrap" style={{ color: SALES_BLUE }}>Vendite</span>
+            </div>
+          </div>
+          <div className="inline-flex items-center rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm">
+            {([
+              { value: '1d' as const, label: '1G' },
+              { value: '7d' as const, label: '7G' },
+              { value: '30d' as const, label: '30G' },
+              { value: 'all' as const, label: 'Dall\'inizio' },
+              { value: 'custom' as const, label: 'Date' },
+            ]).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setRangePreset(option.value)}
+                className={cn(
+                  'rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide transition-colors',
+                  rangePreset === option.value
+                    ? 'bg-orange-50 text-orange-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {rangePreset === 'custom' && (
+        <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <label className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Da</span>
+            <input
+              type="date"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              className="w-full bg-transparent text-xs text-gray-800 outline-none"
+            />
+          </label>
+          <label className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">A</span>
+            <input
+              type="date"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+              className="w-full bg-transparent text-xs text-gray-800 outline-none"
+            />
+          </label>
+        </div>
+      )}
+
       <div
         ref={containerRef}
-        className="w-full rounded border border-gray-200 bg-white overflow-hidden"
-        style={{ minHeight: H + 24 }}
+        className="w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+        style={{ minHeight: H + 16 }}
       >
         <svg
           width="100%"
@@ -426,7 +545,7 @@ export function ProductPriceChart({
           onMouseLeave={() => setHover(null)}
         >
           {/* Sfondo area grafico: grigio chiarissimo tipo Cardmarket (niente fill sotto linea) */}
-          <rect x={pad.l} y={pad.t} width={iw} height={ih} fill="#FAFAFA" rx={2} />
+          <rect x={pad.l} y={pad.t} width={iw} height={ih} fill="#F8FAFC" rx={4} />
 
           {/* Griglia orizzontale */}
           {yTicks.map((yv) => {
@@ -465,14 +584,13 @@ export function ProductPriceChart({
             );
           })}
 
-          {/* Griglia verticale (inizio mese) */}
-          {monthMarkers.map((md) => {
-            const tx = md.getTime();
+          {/* Griglia verticale */}
+          {timeMarkers.map((tx) => {
             if (tx < tMin || tx > tMax) return null;
             const x = xScale(tx);
             return (
               <line
-                key={md.toISOString()}
+                key={`grid-${tx}`}
                 x1={x}
                 y1={pad.t}
                 x2={x}
@@ -483,12 +601,24 @@ export function ProductPriceChart({
             );
           })}
 
+          {currentDayX != null && (
+            <line
+              x1={currentDayX}
+              y1={pad.t}
+              x2={currentDayX}
+              y2={pad.t + ih}
+              stroke="#0F172A"
+              strokeWidth={1.2}
+              opacity={0.45}
+            />
+          )}
+
           {showPriceLine && linePath ? (
             <path
               d={linePath}
               fill="none"
               stroke={BRAND_ORANGE}
-              strokeWidth={2.25}
+              strokeWidth={2.8}
               strokeLinejoin="round"
               strokeLinecap="round"
             />
@@ -499,7 +629,7 @@ export function ProductPriceChart({
               d={salesPath}
               fill="none"
               stroke={SALES_BLUE}
-              strokeWidth={2}
+              strokeWidth={2.2}
               strokeLinejoin="round"
               strokeLinecap="round"
               strokeDasharray="6 4"
@@ -551,10 +681,10 @@ export function ProductPriceChart({
                   y1={pad.t}
                   x2={hover.x}
                   y2={pad.t + ih}
-                  stroke={BRAND_ORANGE}
-                  strokeWidth={1}
-                  strokeDasharray="4 3"
-                  opacity={0.45}
+                  stroke="#111827"
+                  strokeWidth={1.25}
+                  strokeDasharray="4 2"
+                  opacity={0.65}
                 />
                 <g transform={`translate(${tx}, ${ty})`}>
                   <rect width={tw} height={th} rx={6} fill="#2a2a2a" opacity={0.96} />
@@ -573,13 +703,12 @@ export function ProductPriceChart({
           })()}
 
           {/* Asse X etichette */}
-          {monthMarkers.map((md) => {
-            const mid = new Date(md.getFullYear(), md.getMonth(), 15).getTime();
-            if (mid < tMin || mid > tMax) return null;
-            const x = xScale(mid);
+          {timeMarkers.map((tx) => {
+            if (tx < tMin || tx > tMax) return null;
+            const x = xScale(tx);
             return (
               <text
-                key={`xl-${md.toISOString()}`}
+                key={`xl-${tx}`}
                 x={x}
                 y={H - 10}
                 textAnchor="middle"
@@ -587,61 +716,43 @@ export function ProductPriceChart({
                 style={{ fill: AXIS_TEXT }}
                 transform={`rotate(-40 ${x} ${H - 10})`}
               >
-                {formatDateIt(mid)}
+                {formatDateIt(tx)}
               </text>
             );
           })}
         </svg>
       </div>
 
-      <div className="flex flex-col gap-3 mt-3">
-        {/* Toggle linee */}
-        <div className="flex justify-center items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setShowPriceLine((v) => !v)}
-            className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium transition-colors",
-              showPriceLine
-                ? "border-orange-200 bg-orange-50 text-orange-700"
-                : "border-gray-200 bg-gray-50 text-gray-400 line-through"
-            )}
-          >
-            {showPriceLine ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-            <span className="inline-block h-2.5 w-4 rounded-sm shrink-0" style={{ backgroundColor: BRAND_ORANGE }} aria-hidden />
-            Prezzo
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowSalesLine((v) => !v)}
-            className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium transition-colors",
-              showSalesLine
-                ? "border-blue-200 bg-blue-50 text-blue-700"
-                : "border-gray-200 bg-gray-50 text-gray-400 line-through"
-            )}
-          >
-            {showSalesLine ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-            <span className="inline-block h-2.5 w-4 rounded-sm shrink-0 border-2 border-dashed" style={{ borderColor: SALES_BLUE }} aria-hidden />
-            Vendite
-          </button>
-        </div>
-
-        {/* Legenda + Media 30gg */}
-        <div className="flex justify-center items-center gap-4 py-2 border-t border-gray-100">
-          <div className="flex items-center gap-1.5">
-            <span className="inline-block h-3 w-5 rounded-sm shrink-0" style={{ backgroundColor: BRAND_ORANGE }} aria-hidden />
-            <span className="text-xs font-medium text-gray-800">Prezzo medio</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-block h-3 w-5 rounded-sm shrink-0 border-2 border-dashed" style={{ borderColor: SALES_BLUE }} aria-hidden />
-            <span className="text-xs font-medium text-gray-800" style={{ color: SALES_BLUE }}>Carte vendute</span>
-          </div>
-          <div className="flex items-center gap-1.5 pl-3 border-l border-gray-200">
-            <span className="text-[10px] text-gray-500">Media 30gg:</span>
-            <span className="text-xs font-bold" style={{ color: SALES_BLUE }}>{avgSales30d} vendite/giorno</span>
-          </div>
-        </div>
+      {/* Toggle linee - solo su mobile, nascosto su desktop dove c'è la mini legenda */}
+      <div className="flex sm:hidden justify-center items-center gap-2 mt-2">
+        <button
+          type="button"
+          onClick={() => setShowPriceLine((v) => !v)}
+          className={cn(
+            "flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-medium transition-colors",
+            showPriceLine
+              ? "border-orange-200 bg-orange-50 text-orange-700"
+              : "border-gray-200 bg-gray-50 text-gray-400 line-through"
+          )}
+        >
+          {showPriceLine ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+          <span className="inline-block h-2 w-3 rounded-sm shrink-0" style={{ backgroundColor: BRAND_ORANGE }} aria-hidden />
+          Prezzo
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowSalesLine((v) => !v)}
+          className={cn(
+            "flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-medium transition-colors",
+            showSalesLine
+              ? "border-blue-200 bg-blue-50 text-blue-700"
+              : "border-gray-200 bg-gray-50 text-gray-400 line-through"
+          )}
+        >
+          {showSalesLine ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+          <span className="inline-block h-2 w-3 rounded-sm shrink-0 border border-dashed" style={{ borderColor: SALES_BLUE }} aria-hidden />
+          Vendite
+        </button>
       </div>
     </div>
   );

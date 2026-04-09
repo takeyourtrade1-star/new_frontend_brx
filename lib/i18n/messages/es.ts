@@ -39,6 +39,16 @@ export const es: Record<MessageKey, string> = {
 
   'common.languageSelectAria': 'Seleccionar idioma',
 
+  'country.IT': 'Italia',
+  'country.DE': 'Alemania',
+  'country.FR': 'Francia',
+  'country.ES': 'España',
+  'country.AT': 'Austria',
+  'country.CH': 'Suiza',
+  'country.GB': 'Reino Unido',
+  'country.US': 'Estados Unidos',
+  'country.PT': 'Portugal',
+
   'user.fallbackName': 'Usuario',
 
   'topBar.homeAria': 'Inicio BRX',

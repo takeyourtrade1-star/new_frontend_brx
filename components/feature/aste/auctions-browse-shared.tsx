@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LayoutGrid, LayoutList, SlidersHorizontal } from 'lucide-react';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
-import { countryFlagEmoji } from '@/lib/auction/country-flag';
+import { FlagIcon } from '@/components/ui/FlagIcon';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { isAuctionEnded, type AuctionGame } from '@/components/feature/aste/mock-auctions';
 
@@ -173,7 +173,7 @@ export function AuctionGridCard({
 
         {/* Seller info */}
         <div className="mt-1.5 flex items-center gap-1.5">
-          <span className="text-sm leading-none">{countryFlagEmoji(auction.sellerCountry)}</span>
+          <FlagIcon country={auction.sellerCountry} size="sm" />
           <span className="truncate text-[11px] font-medium text-gray-600">{auction.seller}</span>
         </div>
         <div className="mt-0.5 flex items-center gap-1 text-[10px] text-amber-600">
@@ -266,7 +266,7 @@ export function AuctionListTable({
                 <td className="p-3">
                   <div className="flex flex-col gap-0.5">
                     <span className="flex items-center gap-1 text-gray-800">
-                      <span>{countryFlagEmoji(a.sellerCountry)}</span>
+                      <FlagIcon country={a.sellerCountry} size="sm" />
                       {a.seller}
                     </span>
                     <span className="text-xs text-amber-600">

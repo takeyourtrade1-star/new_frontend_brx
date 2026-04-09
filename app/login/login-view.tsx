@@ -149,7 +149,7 @@ export function LoginView() {
                     </div>
 
                     <div className="mt-3 flex items-center justify-center">
-                      <span className="inline-flex items-center justify-center rounded-full bg-gradient-to-b from-[#FF7300] to-[#FF7300] px-7 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(255,115,0,0.32)] transition-all duration-200 hover:scale-[1.06] hover:shadow-[0_10px_22px_rgba(255,115,0,0.45)] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/35">
+                      <span className="btn-orange-glow inline-flex items-center justify-center rounded-full px-7 py-2">
                         {t('pages.login.demoLanding.ctaDemo')}
                       </span>
                     </div>
@@ -171,7 +171,7 @@ export function LoginView() {
                   <button
                     type="button"
                     onClick={goToLoginForm}
-                    className="rounded-full bg-gradient-to-b from-[#FF7300] to-[#FF7300] px-3 py-1 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(255,115,0,0.25)] transition-all duration-200 hover:scale-[1.03] hover:brightness-95 hover:shadow-[0_8px_18px_rgba(255,115,0,0.30)] active:scale-95"
+                    className="btn-orange-glow rounded-full px-3 py-1 text-xs"
                   >
                     {t('pages.login.demoLanding.ctaLoginNow')}
                   </button>

@@ -185,6 +185,16 @@
   border-radius: 0.375rem;
 }
 
+/* Shimmer animation for step transition progress indicator */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auction-search-top-hit {
     animation: none;
@@ -493,6 +503,7 @@
   box-sizing: border-box;
   min-height: 2.75rem;
   height: 2.75rem;
+  transition: border-radius 200ms ease-out, background-color 200ms ease-out, border-color 200ms ease-out;
 }
 @media (min-width: 768px) {
   .search-container {
@@ -508,6 +519,12 @@
   border-radius: 0 !important;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+/* Hover state coerente per barra aperta */
+.search-container.search-container--open:hover {
+  border-color: rgba(0,0,0,0.25) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 /* Pannello ricerca aperto: sotto la barra, vetro e bordi rotondi in basso */
@@ -783,30 +800,431 @@
   }
 }
 
-/* Landing: giochi "Presto in Arrivo" — scorrimento infinito orizzontale */
-@keyframes games-marquee {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  100% {
-    transform: translate3d(-50%, 0, 0);
-  }
+/* ========== LANDING: SOAP BUBBLE ANIMATIONS ========== */
+
+/* Fluid floating with gentle wave motion */
+@keyframes bubble-float-1 {
+  0%, 100%   { transform: translate(0, 0) rotate(0deg) scale(1); }
+  20%  { transform: translate(8px, -14px) rotate(2deg) scale(1.02); }
+  40%  { transform: translate(-6px, -8px) rotate(-1deg) scale(0.99); }
+  60%  { transform: translate(4px, -18px) rotate(1deg) scale(1.01); }
+  80%  { transform: translate(-3px, -6px) rotate(-2deg) scale(0.98); }
 }
 
-.games-marquee-track {
-  display: flex;
-  width: max-content;
-  animation: games-marquee 50s linear infinite;
+@keyframes bubble-float-2 {
+  0%, 100%   { transform: translate(0, 0) rotate(0deg) scale(1); }
+  25%  { transform: translate(-10px, -12px) rotate(-2deg) scale(1.03); }
+  50%  { transform: translate(6px, -20px) rotate(1deg) scale(0.97); }
+  75%  { transform: translate(-4px, -10px) rotate(-1deg) scale(1.01); }
+}
+
+@keyframes bubble-float-3 {
+  0%, 100%   { transform: translate(0, 0) rotate(0deg) scale(1); }
+  30%  { transform: translate(5px, -16px) rotate(1deg) scale(1.02); }
+  55%  { transform: translate(-8px, -8px) rotate(-2deg) scale(0.98); }
+  80%  { transform: translate(3px, -14px) rotate(0deg) scale(1.01); }
+}
+
+/* Ethereal glow pulse — breathing light effect */
+@keyframes bubble-glow {
+  0%, 100%   { box-shadow: 0 4px 24px rgba(255,255,255,0.08), 0 0 40px rgba(255,255,255,0.04), inset 0 0 20px rgba(255,255,255,0.06); }
+  33%  { box-shadow: 0 6px 32px rgba(200,230,255,0.15), 0 0 50px rgba(180,220,255,0.08), inset 0 0 28px rgba(255,255,255,0.10); }
+  66%  { box-shadow: 0 8px 28px rgba(255,220,200,0.12), 0 0 45px rgba(255,200,180,0.06), inset 0 0 24px rgba(255,255,255,0.08); }
+}
+
+/* Enhanced hover wobble with elastic feel */
+@keyframes bubble-hover-wobble {
+  0%   { transform: scale(1) rotate(0deg); }
+  30%  { transform: scale(1.08) rotate(2deg); }
+  50%  { transform: scale(1.02) rotate(-1deg); }
+  70%  { transform: scale(1.06) rotate(1deg); }
+  100% { transform: scale(1.05) rotate(0deg); }
+}
+
+/* Inner shimmer movement */
+@keyframes bubble-inner-shimmer {
+  0%   { background-position: 0% 0%; }
+  50%  { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* Base bubble styles */
+.landing-bubble {
+  animation: bubble-float-1 8s ease-in-out infinite, bubble-glow 6s ease-in-out infinite;
   will-change: transform;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.games-marquee-track:hover {
-  animation-play-state: paused;
+/* Staggered animation delays via nth-child for variety */
+.landing-bubble:nth-child(2) {
+  animation: bubble-float-2 9s ease-in-out infinite, bubble-glow 7s ease-in-out infinite;
+  animation-delay: -2s, -1s;
+}
+
+.landing-bubble:nth-child(3) {
+  animation: bubble-float-3 7.5s ease-in-out infinite, bubble-glow 5s ease-in-out infinite;
+  animation-delay: -4s, -2s;
+}
+
+.landing-bubble:nth-child(4) {
+  animation: bubble-float-2 8.5s ease-in-out infinite, bubble-glow 8s ease-in-out infinite;
+  animation-delay: -1s, -3s;
+}
+
+.landing-bubble:nth-child(5) {
+  animation: bubble-float-1 9.5s ease-in-out infinite, bubble-glow 6.5s ease-in-out infinite;
+  animation-delay: -3s, -1.5s;
+}
+
+/* Enhanced hover state */
+.landing-bubble:hover {
+  animation: bubble-hover-wobble 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  box-shadow:
+    0 8px 40px rgba(255,255,255,0.25),
+    0 0 60px rgba(255,200,150,0.15),
+    inset 0 0 30px rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.5);
+  z-index: 10;
+}
+
+/* Press/Active state */
+.landing-bubble:active {
+  transform: scale(0.95);
+  box-shadow:
+    0 4px 20px rgba(255,255,255,0.15),
+    inset 0 0 25px rgba(255,255,255,0.12);
+}
+
+/* Motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .landing-bubble,
+  .landing-bubble:nth-child(2),
+  .landing-bubble:nth-child(3),
+  .landing-bubble:nth-child(4),
+  .landing-bubble:nth-child(5) {
+    animation: none;
+  }
+  .landing-bubble:hover {
+    animation: none;
+    transform: scale(1.02);
+  }
+}
+
+/* ========== SEARCH: FOCUS GLOW HEARTBEAT ========== */
+
+@keyframes search-glow-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,115,0,0), 0 0 0 0 rgba(255,115,0,0); }
+  50%      { box-shadow: 0 0 12px 2px rgba(255,115,0,0.15), 0 0 24px 4px rgba(255,115,0,0.06); }
+}
+
+.search-container--open {
+  animation: search-glow-breathe 2.4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .games-marquee-track {
-    animation-duration: 50s;
+  .search-container--open {
+    animation: none;
+  }
+}
+
+/* ========== SEARCH: RAINBOW ROAD TYPING ANIMATION ========== */
+
+/* Rainbow gradient sweep on the left bar of each result row */
+@keyframes rainbow-bar-sweep {
+  0%   { opacity: 0; background-position: 0% 0%; }
+  15%  { opacity: 1; }
+  50%  { opacity: 1; background-position: 0% 100%; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; background-position: 0% 200%; }
+}
+
+/* Full-row pastel rainbow wave animation */
+@keyframes row-rainbow-wave {
+  0% {
+    opacity: 0;
+    background-position: 200% 50%;
+  }
+  15% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+    background-position: 100% 50%;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    background-position: 0% 50%;
+  }
+}
+
+.rainbow-bar-active {
+  background: linear-gradient(
+    180deg,
+    #FF7300 0%,
+    #FF4500 15%,
+    #C850C0 35%,
+    #7B68EE 55%,
+    #4FC3F7 75%,
+    #FF7300 100%
+  );
+  background-size: 100% 300%;
+  animation: rainbow-bar-sweep 1.2s ease-in-out forwards;
+}
+
+/* Full row pastel rainbow overlay - covers entire card row with soft colors */
+.row-glow-active {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 183, 178, 0.35) 0%,
+    rgba(255, 218, 193, 0.4) 15%,
+    rgba(255, 240, 203, 0.4) 30%,
+    rgba(226, 240, 203, 0.4) 45%,
+    rgba(203, 240, 226, 0.4) 60%,
+    rgba(203, 226, 240, 0.4) 75%,
+    rgba(226, 203, 240, 0.35) 100%
+  );
+  background-size: 200% 100%;
+  animation: row-rainbow-wave 1.4s ease-in-out forwards;
+  z-index: 0;
+}
+
+/* ========== GAMIFIED GLOW WAVE - BALANCED SEARCH ANIMATION ========== */
+
+/* Energy-reactive morphing animation */
+@keyframes energy-morph {
+  0% {
+    opacity: 0;
+    background-position: 0% 50%;
+    transform: scaleX(0.98);
+  }
+  15% {
+    opacity: calc(0.4 + var(--energy, 0) * 0.35);
+  }
+  50% {
+    opacity: calc(0.5 + var(--energy, 0) * 0.4);
+    background-position: 100% 50%;
+    transform: scaleX(1);
+  }
+  85% {
+    opacity: calc(0.3 + var(--energy, 0) * 0.2);
+  }
+  100% {
+    opacity: 0;
+    background-position: 200% 50%;
+    transform: scaleX(1);
+  }
+}
+
+/* Velocity-reactive shimmer speed */
+@keyframes velocity-shimmer {
+  0% {
+    transform: translateX(-100%) translateY(-8%);
+    opacity: 0;
+  }
+  20% {
+    opacity: calc(0.2 + var(--velocity, 0) * 0.3);
+  }
+  80% {
+    opacity: calc(0.15 + var(--velocity, 0) * 0.25);
+  }
+  100% {
+    transform: translateX(100%) translateY(8%);
+    opacity: 0;
+  }
+}
+
+/* Sparkle particle animation */
+@keyframes sparkle-pop {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1) rotate(45deg);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.8) rotate(90deg);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(0) rotate(135deg);
+    opacity: 0;
+  }
+}
+
+/* Sparkle float and fade */
+@keyframes sparkle-float {
+  0% {
+    transform: translateY(0) scale(0);
+    opacity: 0;
+  }
+  20% {
+    transform: translateY(-4px) scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-20px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* Base energy-reactive glow classes */
+.row-glow-party-0,
+.row-glow-party-1,
+.row-glow-party-2,
+.row-glow-party-3,
+.row-glow-party-4,
+.row-glow-party-5 {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-size: 300% 100%;
+  animation: energy-morph 2s ease-in-out forwards;
+  animation-duration: calc(2.2s - var(--velocity, 0) * 0.6s);
+  z-index: 0;
+}
+
+/* Velocity-reactive shimmer overlay */
+.row-glow-party-0::before,
+.row-glow-party-1::before,
+.row-glow-party-2::before,
+.row-glow-party-3::before,
+.row-glow-party-4::before,
+.row-glow-party-5::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 40%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.2) 60%,
+    transparent 100%
+  );
+  animation: velocity-shimmer calc(2s - var(--velocity, 0) * 1s) ease-out forwards;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Streak sparkles container */
+.streak-sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+}
+
+/* Individual sparkle particle */
+.streak-sparkles .sparkle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: radial-gradient(circle, rgba(255, 200, 100, 0.9) 0%, rgba(255, 150, 50, 0.6) 50%, transparent 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 8px 2px rgba(255, 180, 80, 0.5);
+  animation: sparkle-float 1.2s ease-out forwards;
+}
+
+/* Soft Coral */
+.row-glow-party-0 {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 154, 158, 0) 0%,
+    rgba(255, 154, 158, 0.35) 30%,
+    rgba(255, 183, 178, 0.45) 50%,
+    rgba(255, 154, 158, 0.35) 70%,
+    rgba(255, 154, 158, 0) 100%
+  );
+}
+
+/* Soft Peach */
+.row-glow-party-1 {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 195, 113, 0) 0%,
+    rgba(255, 195, 113, 0.35) 30%,
+    rgba(255, 218, 163, 0.45) 50%,
+    rgba(255, 195, 113, 0.35) 70%,
+    rgba(255, 195, 113, 0) 100%
+  );
+}
+
+/* Soft Yellow */
+.row-glow-party-2 {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 236, 139, 0) 0%,
+    rgba(255, 236, 139, 0.35) 30%,
+    rgba(255, 247, 188, 0.45) 50%,
+    rgba(255, 236, 139, 0.35) 70%,
+    rgba(255, 236, 139, 0) 100%
+  );
+}
+
+/* Soft Mint */
+.row-glow-party-3 {
+  background-image: linear-gradient(
+    90deg,
+    rgba(130, 230, 176, 0) 0%,
+    rgba(130, 230, 176, 0.35) 30%,
+    rgba(168, 241, 200, 0.45) 50%,
+    rgba(130, 230, 176, 0.35) 70%,
+    rgba(130, 230, 176, 0) 100%
+  );
+}
+
+/* Soft Blue */
+.row-glow-party-4 {
+  background-image: linear-gradient(
+    90deg,
+    rgba(135, 206, 250, 0) 0%,
+    rgba(135, 206, 250, 0.35) 30%,
+    rgba(176, 224, 247, 0.45) 50%,
+    rgba(135, 206, 250, 0.35) 70%,
+    rgba(135, 206, 250, 0) 100%
+  );
+}
+
+/* Soft Lavender */
+.row-glow-party-5 {
+  background-image: linear-gradient(
+    90deg,
+    rgba(200, 162, 222, 0) 0%,
+    rgba(200, 162, 222, 0.35) 30%,
+    rgba(225, 195, 240, 0.45) 50%,
+    rgba(200, 162, 222, 0.35) 70%,
+    rgba(200, 162, 222, 0) 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rainbow-bar-active,
+  .row-glow-active,
+  .row-glow-party-0,
+  .row-glow-party-1,
+  .row-glow-party-2,
+  .row-glow-party-3,
+  .row-glow-party-4,
+  .row-glow-party-5,
+  .row-glow-party-0::before,
+  .row-glow-party-1::before,
+  .row-glow-party-2::before,
+  .row-glow-party-3::before,
+  .row-glow-party-4::before,
+  .row-glow-party-5::before,
+  [class*="animate-"][class*="shimmer"] {
+    animation: none;
+    opacity: 0;
   }
 }
 
@@ -1360,6 +1778,70 @@
 
 .animate-slide-up-bounce {
   animation: slideUpBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Animated search placeholder – typewriter cursor blink */
+@keyframes blink-caret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.animate-blink-caret {
+  animation: blink-caret 0.75s step-end infinite;
+}
+
+/* ========== ORANGE PRIMARY BUTTON - Reusable glow style ========== */
+.btn-orange-glow {
+  background-color: #FF7300;
+  border-color: #878787;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  transition: all 200ms ease;
+}
+
+.btn-orange-glow:hover {
+  box-shadow: 0 0 16px rgba(255, 115, 0, 0.5);
+  filter: brightness(1.1);
+}
+
+.btn-orange-glow:active {
+  transform: scale(0.97);
+  filter: brightness(0.95);
+}
+
+.btn-orange-glow:focus-visible {
+  outline: 2px solid rgba(255, 115, 0, 0.5);
+  outline-offset: 2px;
+}
+
+/* ========== ORANGE OUTLINE BUTTON - Reusable glow style ========== */
+.btn-orange-outline-glow {
+  background-color: transparent;
+  border: 1px solid #FF7300;
+  color: #FF7300;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  transition: all 200ms ease;
+}
+
+.btn-orange-outline-glow:hover {
+  background-color: #FF7300;
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(255, 115, 0, 0.4);
+}
+
+.btn-orange-outline-glow:active {
+  transform: scale(0.97);
+  filter: brightness(0.95);
+}
+
+.btn-orange-outline-glow:focus-visible {
+  outline: 2px solid rgba(255, 115, 0, 0.5);
+  outline-offset: 2px;
 }
 
 /* Search input orange placeholder - higher specificity overrides .search-container rules */

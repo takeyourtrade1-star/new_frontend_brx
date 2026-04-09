@@ -224,7 +224,7 @@ export function AsteHubPage() {
                 </div>
                 <button
                   type="button"
-                  className="shrink-0 rounded-full bg-[#FF7300] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#e86800] sm:px-4 sm:text-sm"
+                  className="btn-orange-glow shrink-0 rounded-full px-3 py-1.5 text-xs sm:px-4 sm:text-sm"
                 >
                   Cerca
                 </button>

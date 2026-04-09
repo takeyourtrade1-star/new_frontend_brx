@@ -366,7 +366,7 @@ export function BugReportButton() {
                   <button
                     type="submit"
                     disabled={!message.trim()}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="btn-orange-glow flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Send className="h-4 w-4" />
                     Invia

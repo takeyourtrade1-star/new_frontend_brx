@@ -233,6 +233,45 @@ export const CATEGORY_KEY_ORDER: CategoryKey[] = [
   'all',
 ];
 
+const CATEGORY_KEY_ALIASES: Record<string, CategoryKey> = {
+  singles: 'singles',
+  singole: 'singles',
+  'carte-singole': 'singles',
+  booster: 'boosters',
+  boosters: 'boosters',
+  'booster-box': 'booster_box',
+  'booster-boxes': 'booster_box',
+  booster_box: 'booster_box',
+  'starter-precon': 'starter_precon',
+  starter_precon: 'starter_precon',
+  'mazzi-precostruiti': 'starter_precon',
+  mazzi: 'starter_precon',
+  'bundle-set': 'bundle_set',
+  bundle_set: 'bundle_set',
+  'set-lotti-collezioni': 'bundle_set',
+  tins: 'tins',
+  'tin-box': 'tins',
+  tin: 'tins',
+  accessori: 'accessori',
+  collezionabili: 'collezionabili',
+  all: 'all',
+  tutte: 'all',
+  'tutte-le-categorie': 'all',
+};
+
+/**
+ * Normalizza una categoria da URL/UI verso una CategoryKey valida.
+ */
+export function normalizeCategoryKey(key: string | null | undefined): CategoryKey | null {
+  if (!key) return null;
+  const normalized = key.toLowerCase().trim();
+  if (!normalized) return null;
+  if (normalized in CATEGORY_KEY_ALIASES) {
+    return CATEGORY_KEY_ALIASES[normalized];
+  }
+  return null;
+}
+
 /**
  * Converte uno slug frontend in GameSlug valido.
  */
@@ -263,6 +302,20 @@ export function getCategoryIds(game: GameSlug | null | undefined, key: CategoryK
   const gameMapping = CATEGORY_MAPPING[game];
   if (!gameMapping) return [];
   return gameMapping[key]?.ids || [];
+}
+
+/**
+ * Ritorna gli ID categoria aggregati su tutti i giochi per una chiave.
+ */
+export function getCategoryIdsAcrossGames(key: CategoryKey): number[] {
+  if (key === 'all') return [];
+  const uniqueIds = new Set<number>();
+  const games = Object.keys(CATEGORY_MAPPING) as GameSlug[];
+  for (const game of games) {
+    const ids = CATEGORY_MAPPING[game][key]?.ids ?? [];
+    for (const id of ids) uniqueIds.add(id);
+  }
+  return Array.from(uniqueIds);
 }
 
 /**

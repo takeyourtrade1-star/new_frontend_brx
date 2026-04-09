@@ -178,6 +178,17 @@ const faceCodingSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" s
   <line x1="50" y1="24" x2="50" y2="52" stroke-width="2" stroke="#4a5548"/>
 </svg>`;
 
+const faceSleepSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Closed eyes - curved lines like sleeping anime eyes -->
+  <path d="M 24 40 Q 34 48 44 40" stroke-width="2.8" fill="none"/>
+  <path d="M 56 40 Q 66 48 76 40" stroke-width="2.8" fill="none"/>
+  <!-- Small sleepy mouth -->
+  <ellipse cx="50" cy="68" rx="3" ry="2" fill="#4a5548" stroke="none"/>
+  <!-- Gentle blush marks -->
+  <ellipse cx="22" cy="52" rx="5" ry="3" fill="#ff9999" stroke="none" opacity="0.4"/>
+  <ellipse cx="78" cy="52" rx="5" ry="3" fill="#ff9999" stroke="none" opacity="0.4"/>
+</svg>`;
+
 export function CardMascotte() {
   // Safe mount check
   const [isMounted, setIsMounted] = useState(false);
@@ -230,7 +241,39 @@ export function CardMascotte() {
   const [hintIndex, setHintIndex] = useState(0);
 
   // Mascotte expression state
-  const [mascotteExpression, setMascotteExpression] = useState<'normal' | 'bugReport' | 'bugFocus' | 'wink' | 'coding'>('normal');
+  const [mascotteExpression, setMascotteExpression] = useState<'normal' | 'bugReport' | 'bugFocus' | 'wink' | 'coding' | 'sleeping'>('normal');
+
+  // Sleep mode state - triggered after 15s of mouse inactivity
+  const [isSleeping, setIsSleeping] = useState(false);
+  const isSleepingRef = useRef(false); // Ref to track sleeping state without re-triggering effect
+  const [isSleepMuted, setIsSleepMuted] = useState(() => {
+    // Load mute preference from localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('brx_asso_sleep_muted') === 'true';
+      } catch { return false; }
+    }
+    return false;
+  });
+  // Sleep hours tracking
+  const [totalSleepMs, setTotalSleepMs] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return parseInt(localStorage.getItem('brx_asso_sleep_ms') || '0', 10) || 0;
+      } catch { return 0; }
+    }
+    return 0;
+  });
+  const sleepStartTimeRef = useRef<number | null>(null);
+  const sleepTimeoutRef = useRef<number | null>(null);
+  const snoreOscillatorRef = useRef<OscillatorNode | null>(null);
+  const snoreGainRef = useRef<GainNode | null>(null);
+  const SLEEP_DELAY_MS = 15000; // 15 seconds
+
+  // Sync isSleeping ref with state
+  useEffect(() => {
+    isSleepingRef.current = isSleeping;
+  }, [isSleeping]);
 
   // Bug form state - complete form with all fields
   const [bugForm, setBugForm] = useState({
@@ -1206,9 +1249,18 @@ export function CardMascotte() {
     };
   }, []);
 
-  // Keep expression in sync with current overlay state
+  // Keep expression in sync with current overlay state + sleep mode
   useEffect(() => {
-    const nextExpression = isCodingTransition ? 'bugReport' : isModalOpen ? (isBugFormFocused ? 'bugFocus' : 'bugReport') : showChatModal ? 'wink' : 'normal';
+    // Priority: sleep > coding > modal > chat > normal
+    const nextExpression = isSleeping 
+      ? 'sleeping' 
+      : isCodingTransition 
+        ? 'bugReport' 
+        : isModalOpen 
+          ? (isBugFormFocused ? 'bugFocus' : 'bugReport') 
+          : showChatModal 
+            ? 'wink' 
+            : 'normal';
 
     if (mascotteExpression === nextExpression) {
       return;
@@ -1230,7 +1282,7 @@ export function CardMascotte() {
         expressionTimeoutRef.current = null;
       }
     };
-  }, [isModalOpen, showChatModal, mascotteExpression, isCodingTransition, isBugFormFocused]);
+  }, [isModalOpen, showChatModal, mascotteExpression, isCodingTransition, isBugFormFocused, isSleeping]);
 
   useEffect(() => {
     if (!isModalOpen) {
@@ -1326,6 +1378,122 @@ export function CardMascotte() {
   }, []);
 
   const isOverlayVisible = showChatModal || isModalOpen || isCodingTransition || showCodingCompanion || isExternalModalOpen;
+
+  // Snore sound using Web Audio API - soft rhythmic breathing sound
+  const playSnoreSound = useCallback(() => {
+    if (isSleepMuted) return;
+    try {
+      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const now = ctx.currentTime;
+      
+      // Create oscillator for gentle hum
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      
+      // Low frequency for sleep breathing effect
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(120, now);
+      osc.frequency.exponentialRampToValueAtTime(80, now + 2);
+      
+      // Lowpass filter for muffled sound
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(400, now);
+      
+      // Gentle volume envelope - rhythmic breathing
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.03, now + 0.5);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+      
+      osc.start(now);
+      osc.stop(now + 2.5);
+      
+      // Store refs for stopping
+      snoreOscillatorRef.current = osc;
+      snoreGainRef.current = gain;
+    } catch {}
+  }, [isSleepMuted]);
+
+  // Stop snore sound
+  const stopSnoreSound = useCallback(() => {
+    try {
+      if (snoreOscillatorRef.current) {
+        snoreOscillatorRef.current.stop();
+        snoreOscillatorRef.current = null;
+      }
+    } catch {}
+  }, []);
+
+  // Mouse inactivity tracking for sleep mode - defined after isOverlayVisible and isFlipped
+  // BUG FIX: Use refs to avoid effect re-running when sleeping state changes
+  useEffect(() => {
+    const resetSleepTimer = () => {
+      // Wake up if sleeping (using ref to avoid re-trigger)
+      if (isSleepingRef.current) {
+        // Calculate and save sleep duration
+        if (sleepStartTimeRef.current) {
+          const sleepDuration = Date.now() - sleepStartTimeRef.current;
+          const newTotal = totalSleepMs + sleepDuration;
+          setTotalSleepMs(newTotal);
+          try {
+            localStorage.setItem('brx_asso_sleep_ms', String(newTotal));
+          } catch {}
+          sleepStartTimeRef.current = null;
+        }
+        setIsSleeping(false);
+        stopSnoreSound();
+      }
+      // Clear existing timer
+      if (sleepTimeoutRef.current !== null) {
+        window.clearTimeout(sleepTimeoutRef.current);
+      }
+      // Set new timer - only if no overlay is open and card is not flipped
+      if (!isOverlayVisible && !isFlipped) {
+        sleepTimeoutRef.current = window.setTimeout(() => {
+          setIsSleeping(true);
+          sleepStartTimeRef.current = Date.now(); // Track when sleep started
+          playSnoreSound();
+        }, SLEEP_DELAY_MS);
+      }
+    };
+
+    // Listen for mouse activity
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    events.forEach(event => {
+      document.addEventListener(event, resetSleepTimer, { passive: true });
+    });
+
+    // Initial timer - only set if not already sleeping
+    if (!isSleepingRef.current) {
+      resetSleepTimer();
+    }
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, resetSleepTimer);
+      });
+      if (sleepTimeoutRef.current !== null) {
+        window.clearTimeout(sleepTimeoutRef.current);
+      }
+      stopSnoreSound();
+    };
+    // BUG FIX: Removed isSleeping from dependencies - use ref instead
+  }, [isOverlayVisible, isFlipped, playSnoreSound, stopSnoreSound, totalSleepMs]);
+
+  // Toggle sleep mute and persist to localStorage
+  const toggleSleepMute = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newMuted = !isSleepMuted;
+    setIsSleepMuted(newMuted);
+    try {
+      localStorage.setItem('brx_asso_sleep_muted', String(newMuted));
+    } catch {}
+    vibrate(10);
+  }, [isSleepMuted, vibrate]);
 
   // Safe render - don't render if not mounted (hydration mismatch protection)
   if (!isMounted) {
@@ -1530,6 +1698,53 @@ export function CardMascotte() {
           <div className="flex items-center gap-1.5 rounded-lg border border-amber-400/50 bg-amber-500/90 px-2.5 py-1 shadow-lg shadow-amber-500/30">
             <span className="text-[10px] font-black text-white">{comboCount}x</span>
             <span className="text-[8px] font-bold uppercase tracking-wider text-white/80">COMBO</span>
+          </div>
+        </div>
+      )}
+
+      {/* Sleep Tooltip - Shows when hovering mascot in sleep mode */}
+      {isSleeping && !isOverlayVisible && !isFlipped && (
+        <div
+          className="fixed pointer-events-none"
+          style={{
+            zIndex: Z_INDEX.tooltip + 2,
+            bottom: isStickyBarVisible ? '195px' : '135px',
+            right: '25px',
+          }}
+        >
+          <div 
+            className="sleep-tooltip whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium text-white/90 shadow-lg"
+            style={{
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(139, 92, 246, 0.85) 100%)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.2)',
+            }}
+          >
+            <span className="mr-1">💤</span> Nessuna attività, Asso si fa un pisolino
+            <span 
+              className="absolute -bottom-1 right-6 h-2 w-2 rotate-45"
+              style={{
+                background: 'rgba(139, 92, 246, 0.85)',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Zzz Animation - Floating when sleeping */}
+      {isSleeping && !isOverlayVisible && !isFlipped && (
+        <div
+          className="fixed pointer-events-none"
+          style={{
+            zIndex: Z_INDEX.tooltip + 1,
+            bottom: isStickyBarVisible ? '185px' : '125px',
+            right: '75px',
+          }}
+        >
+          <div className="sleep-zzz-container">
+            <span className="sleep-zzz sleep-zzz-1">Z</span>
+            <span className="sleep-zzz sleep-zzz-2">z</span>
+            <span className="sleep-zzz sleep-zzz-3">Z</span>
           </div>
         </div>
       )}
@@ -1761,16 +1976,18 @@ export function CardMascotte() {
               left: '3px',
               right: '3px',
               zIndex: 5,
-              transition: 'transform 120ms ease-out',
+              transition: 'transform 120ms ease-out, opacity 500ms ease-in-out',
               transform: mascotteExpression === 'wink'
                 ? `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2 - 2}px) rotate(-2deg)`
                 : `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2}px)`,
+              opacity: mascotteExpression === 'sleeping' ? 0.85 : 1,
             }}
             dangerouslySetInnerHTML={{
               __html: mascotteExpression === 'bugFocus' ? faceBugFocusSVG :
                       mascotteExpression === 'bugReport' ? faceBugReportSVG :
                       mascotteExpression === 'wink' ? faceWinkSVG :
                       mascotteExpression === 'coding' ? faceCodingSVG :
+                      mascotteExpression === 'sleeping' ? faceSleepSVG :
                       faceSVG
             }}
           />
@@ -1832,7 +2049,7 @@ export function CardMascotte() {
               <span className="text-[8px] font-bold text-white">{flipCount}</span>
             </div>
 
-            {/* Top-left: share + album buttons */}
+            {/* Top-left: share + album + mute buttons */}
             <div className="absolute top-2 left-2 flex items-center gap-1">
               <button
                 onClick={(e) => { e.stopPropagation(); handleShare(); }}
@@ -1852,6 +2069,18 @@ export function CardMascotte() {
               >
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
               </button>
+              {/* Sleep sound mute/unmute button */}
+              <button
+                onClick={toggleSleepMute}
+                className={`flex h-5 w-5 items-center justify-center rounded-full backdrop-blur-sm transition-all hover:scale-110 ${isSleepMuted ? 'bg-red-400/40' : 'bg-white/25'}`}
+                title={isSleepMuted ? 'Audio disattivato' : 'Audio sonno attivo'}
+              >
+                {isSleepMuted ? (
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                ) : (
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                )}
+              </button>
             </div>
 
             {/* Star sparkle SVG */}
@@ -1864,6 +2093,20 @@ export function CardMascotte() {
             <span className="mt-0.5 text-[7px] font-medium uppercase tracking-widest text-white/60">
               {BACK_VARIANTS[backVariant].sub}
             </span>
+
+            {/* Sleep hours stat */}
+            {totalSleepMs > 0 && (
+              <div className="absolute bottom-8 flex items-center gap-1.5 rounded-full bg-white/15 px-2 py-0.5 backdrop-blur-sm">
+                <span className="text-[8px]">💤</span>
+                <span className="text-[8px] font-medium text-white/90">
+                  {totalSleepMs < 60000 
+                    ? `${Math.round(totalSleepMs / 1000)}s` 
+                    : totalSleepMs < 3600000
+                      ? `${Math.round(totalSleepMs / 60000)}m`
+                      : `${(totalSleepMs / 3600000).toFixed(1)}h`}
+                </span>
+              </div>
+            )}
 
             {/* Unlock progress dots */}
             <div className="absolute bottom-3 flex items-center gap-1">
@@ -2623,6 +2866,53 @@ export function CardMascotte() {
         }
         [aria-label="Segnala un bug"]:hover .mascotte-band-sheen {
           animation: bandSheenSweep 700ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        /* Sleep Zzz animation */
+        @keyframes sleepZzzFloat {
+          0% {
+            opacity: 0;
+            transform: translateY(0) translateX(0) scale(0.6);
+          }
+          15% {
+            opacity: 0.8;
+          }
+          50% {
+            opacity: 1;
+          }
+          85% {
+            opacity: 0.6;
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-28px) translateX(12px) scale(1.1);
+          }
+        }
+        .sleep-zzz-container {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 2px;
+        }
+        .sleep-zzz {
+          display: inline-block;
+          font-weight: 700;
+          color: #6366f1;
+          text-shadow: 0 0 6px rgba(99, 102, 241, 0.4);
+          animation: sleepZzzFloat 2.4s ease-in-out infinite;
+        }
+        .sleep-zzz-1 {
+          font-size: 12px;
+          animation-delay: 0ms;
+        }
+        .sleep-zzz-2 {
+          font-size: 9px;
+          margin-left: 8px;
+          animation-delay: 0.8s;
+        }
+        .sleep-zzz-3 {
+          font-size: 10px;
+          margin-left: 4px;
+          animation-delay: 1.6s;
         }
       `}} />
     </>

@@ -6,7 +6,7 @@
  * Input disabilitato finché non è selezionato un gioco; filtro rigoroso game_slug.
  */
 
-import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Loader2, X, ChevronDown, Camera } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -17,13 +17,15 @@ import { useGame, GAME_OPTIONS, type GameSlug } from '@/lib/contexts/GameContext
 import { MEILISEARCH } from '@/lib/config';
 import { getCardImageUrl } from '@/lib/assets';
 import { generateSlug } from '@/lib/mock-cards';
-import { PRODUCT_CATEGORIES, type ProductCategorySlug, CATEGORY_SLUGS } from '@/lib/product-categories';
+import { CATEGORY_SLUGS } from '@/lib/product-categories';
 import {
   FRONTEND_TO_GAME_SLUG,
   type CategoryKey,
   type GameSlug as MappingGameSlug,
   normalizeGameSlug,
+  normalizeCategoryKey,
   getCategoryIds,
+  getCategoryIdsAcrossGames,
   getCategoryKeys,
   getCategoryLabel,
   CATEGORY_KEY_ORDER,
@@ -65,16 +67,16 @@ const FRONTEND_TO_DB_SLUG: Record<string, string> = {
 /* CATEGORY_TO_MEILI_TYPE rimosso: ora usiamo category_id da CATEGORY_MAPPING */
 
 /** Costruisce URL pagina risultati; game in query = slug DB (per /api/search e Meilisearch). */
-function buildSearchUrl(q: string, game?: GameSlug | null, categoryKey?: string | null): string {
+function buildSearchUrl(q: string, game?: GameSlug | null, categoryKey?: CategoryKey | null): string {
   const params = new URLSearchParams();
   if (q) params.set('q', q);
   if (game) {
     const dbSlug = FRONTEND_TO_GAME_SLUG[game] ?? game;
     params.set('game', dbSlug);
   }
-  // Usa category_key (nuovo sistema) invece di category legacy
-  if (categoryKey && categoryKey !== 'all') {
-    params.set('category_key', categoryKey);
+  const normalizedCategory = normalizeCategoryKey(categoryKey);
+  if (normalizedCategory && normalizedCategory !== 'all') {
+    params.set('category_key', normalizedCategory);
   }
   return `/search?${params.toString()}`;
 }
@@ -353,6 +355,38 @@ function SearchInput({
   );
 }
 
+function AnimatedCounter({ value }: { value: number }) {
+  const [display, setDisplay] = useState(0);
+  const prevValue = useRef(value);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const from = prevValue.current;
+    const to = value;
+    prevValue.current = value;
+    if (from === to) { setDisplay(to); return; }
+
+    const duration = 400;
+    const start = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(from + (to - from) * eased));
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [value]);
+
+  return <>{display}</>;
+}
+
 const HOVER_CLOSE_DELAY_MS = 250;
 
 /** Larghezza anteprima carta inline (stile CardTrader) */
@@ -366,6 +400,12 @@ function CardHit({
   onShowInlinePreview,
   onScheduleClose,
   searchQuery,
+  isTyping = false,
+  typingKey = 0,
+  rowDelay = 80,
+  energyLevel = 0,
+  typingVelocity = 0,
+  streak = 0,
 }: {
   hit: CardSearchHit;
   index: number;
@@ -374,6 +414,12 @@ function CardHit({
   onShowInlinePreview: (url: string, name: string, buttonRect: DOMRect) => void;
   onScheduleClose?: () => void;
   searchQuery: string;
+  isTyping?: boolean;
+  typingKey?: number;
+  rowDelay?: number;
+  energyLevel?: number;
+  typingVelocity?: number;
+  streak?: number;
 }) {
   const cameraButtonRef = useRef<HTMLButtonElement>(null);
   const { selectedLang } = useLanguage();
@@ -407,6 +453,18 @@ function CardHit({
   const hasBackendHighlight = title != null && /<em>/i.test(title);
 
   const rowBg = index % 2 === 0 ? 'bg-white' : 'bg-[#F8F8F8]';
+  const rainbowDelay = index * rowDelay;
+
+  // Random color based on card ID (not just index) for better distribution
+  const cardIdForColor = hit.id ?? hit.objectID ?? hit.card_print_id ?? hit.name ?? String(index);
+  const colorIndex = useMemo(() => {
+    let hash = 0;
+    for (let i = 0; i < cardIdForColor.length; i++) {
+      hash = ((hash << 5) - hash) + cardIdForColor.charCodeAt(i);
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash) % 6;
+  }, [cardIdForColor]);
 
   return (
     <div
@@ -421,11 +479,35 @@ function CardHit({
       }}
       className={`group relative flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 cursor-pointer transition-colors hover:bg-[#EEEEEE] ${rowBg}`}
     >
-      {/* Barra arancione a sinistra al hover (stile Cardmarket) */}
-      <div
-        className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-l-sm"
-        aria-hidden
-      />
+      {/* Rainbow glow overlay (while typing) - PARTY MODE: each row gets its own color */}
+      {isTyping && (
+        <div
+          key={`glow-${typingKey}`}
+          className={`row-glow-party-${colorIndex}`}
+          style={{ 
+            animationDelay: `${rainbowDelay}ms`,
+            '--energy': energyLevel,
+            '--velocity': typingVelocity,
+          } as React.CSSProperties}
+          aria-hidden
+        />
+      )}
+      {/* Streak sparkles for high velocity typing */}
+      {isTyping && streak > 5 && index < 3 && (
+        <div className="streak-sparkles" aria-hidden>
+          {[...Array(Math.min(streak - 5, 4))].map((_, i) => (
+            <span
+              key={i}
+              className="sparkle"
+              style={{
+                left: `${15 + Math.random() * 70}%`,
+                top: `${20 + Math.random() * 60}%`,
+                animationDelay: `${i * 0.08}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
       <button
         ref={cameraButtonRef}
         type="button"
@@ -509,6 +591,12 @@ function SearchResultsDropdown({
   inputValue,
   productCategory,
   position: dropdownPosition = 'bottom',
+  isTyping = false,
+  typingKey = 0,
+  rowDelay = 80,
+  energyLevel = 0,
+  typingVelocity = 0,
+  streak = 0,
 }: {
   gameSlug: GameSlug;
   onSelect: () => void;
@@ -516,8 +604,14 @@ function SearchResultsDropdown({
   anchorRef: React.RefObject<HTMLDivElement | null>;
   /** Valore attuale dell'input (per mostrare suggerimenti subito mentre digiti, prima che query InstantSearch si aggiorni) */
   inputValue?: string;
-  productCategory: string | null;
+  productCategory: CategoryKey | null;
   position?: 'top' | 'bottom';
+  isTyping?: boolean;
+  typingKey?: number;
+  rowDelay?: number;
+  energyLevel?: number;
+  typingVelocity?: number;
+  streak?: number;
 }) {
   const router = useRouter();
   const { query, isSearchStalled } = useSearchBox();
@@ -619,6 +713,12 @@ function SearchResultsDropdown({
                   index={index}
                   gameSlug={gameSlug}
                   searchQuery={query ?? ''}
+                  isTyping={isTyping}
+                  typingKey={typingKey}
+                  rowDelay={rowDelay}
+                  energyLevel={energyLevel}
+                  typingVelocity={typingVelocity}
+                  streak={streak}
                   onNavigate={() => {
                     const slug = getCardSlugForUrl(hit as unknown as CardSearchHit);
                     router.push(`/products/${slug}`);
@@ -641,7 +741,7 @@ function SearchResultsDropdown({
               }}
               className="w-full py-4 text-center text-base font-medium text-[#0f172a] bg-[#F8F8F8] rounded-none hover:bg-[#EEEEEE] transition-colors"
             >
-              Mostra tutti i risultati ({hits.length}+)
+              Mostra tutti i risultati (<AnimatedCounter value={hits.length} />+)
             </button>
           </>
         ) : (
@@ -693,7 +793,7 @@ function SearchPanelBody({
   onEnter: () => void;
   onSelectResult: () => void;
   selectedGame: GameSlug | null;
-  productCategory: string | null;
+  productCategory: CategoryKey | null;
   /** Se true, non mostrare l'input nel pannello (si scrive nella barra) */
   hideInput?: boolean;
 }) {
@@ -838,7 +938,7 @@ function SearchSubmitButton({
   variant = 'default',
 }: {
   selectedGame: GameSlug | null;
-  productCategory?: string | null;
+  productCategory?: CategoryKey | null;
   variant?: 'default' | 'pill' | 'panel';
 }) {
   const router = useRouter();
@@ -921,9 +1021,9 @@ function CategorieButton({
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className="flex items-center gap-1.5 rounded-[50px] border-0 bg-transparent px-3 py-1.5 text-sm text-white/90 font-sans"
+        className="flex items-center gap-1.5 rounded-[50px] border-0 bg-transparent px-3 py-0 text-sm text-white/90 font-sans"
       >
-        <span>{selectedGame ? gameDisplayName(selectedGame) : 'Categorie'}</span>
+        <span className="leading-none">{selectedGame ? gameDisplayName(selectedGame) : 'Categorie'}</span>
         <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
@@ -960,8 +1060,8 @@ function ProductCategoryButton({
   gameSlug,
   isBarOpen = false,
 }: {
-  selectedCategory: string | null;
-  onSelect: (cat: string | null) => void;
+  selectedCategory: CategoryKey | null;
+  onSelect: (cat: CategoryKey | null) => void;
   gameSlug: MappingGameSlug | null;
   isBarOpen?: boolean;
 }) {
@@ -1068,14 +1168,14 @@ function ProductCategoryButton({
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className={`flex items-center justify-center gap-1 md:gap-1.5 h-full rounded-full border backdrop-blur-sm pl-2.5 pr-2.5 md:pl-3 md:pr-4 text-xs md:text-sm font-medium font-sans transition-all duration-200 ease-out active:scale-[0.98] whitespace-nowrap min-w-[5.5rem] md:min-w-0 ${
+        className={`flex items-center gap-1 md:gap-1.5 h-full rounded-full border backdrop-blur-sm text-xs md:text-sm font-medium font-sans leading-none transition-all duration-200 ease-out active:scale-[0.98] whitespace-nowrap min-w-[5.5rem] md:min-w-0 ${
           isBarOpen
-            ? 'border-gray-300 bg-gray-100 text-gray-800 hover:bg-gray-200 hover:border-gray-400'
-            : 'border-white/20 bg-white/10 text-white hover:bg-white/15 hover:border-white/30'
+            ? 'border-gray-300 bg-gray-100 text-gray-800 hover:bg-gray-200 hover:border-gray-400 pl-0 pr-0 md:pl-0 md:pr-0'
+            : 'border-white/20 bg-white/10 text-white hover:bg-white/15 hover:border-white/30 pl-2.5 pr-2.5 md:pl-3 md:pr-4'
         }`}
       >
-        <span className="hidden md:inline">{currentLabel}</span>
-        <span className="md:hidden">{mobileLabel}</span>
+        <span className="hidden md:inline leading-none text-left">{currentLabel}</span>
+        <span className="md:hidden leading-none">{mobileLabel}</span>
         <ChevronDown
           className={`h-3 w-3 md:h-4 md:w-4 transition-transform ${
             isBarOpen
@@ -1089,6 +1189,98 @@ function ProductCategoryButton({
   );
 }
 
+const ROTATING_WORDS = [
+  'carte singole...',
+  'boosters...',
+  'espansioni...',
+  'mazzi precostruiti...',
+  'Pokémon...',
+  'Magic...',
+  'One Piece...',
+  'accessori...',
+  'carte rare...',
+  'booster box...',
+];
+
+const TYPE_SPEED = 60;
+const DELETE_SPEED = 35;
+const PAUSE_AFTER_TYPE = 2200;
+const PAUSE_AFTER_DELETE = 400;
+
+function AnimatedSearchPlaceholder({ visible, isDark }: { visible: boolean; isDark: boolean }) {
+  const [wordIndex, setWordIndex] = useState(0);
+  const [displayText, setDisplayText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const tick = useCallback(() => {
+    const currentWord = ROTATING_WORDS[wordIndex];
+
+    if (!isDeleting) {
+      const nextText = currentWord.slice(0, displayText.length + 1);
+      setDisplayText(nextText);
+
+      if (nextText === currentWord) {
+        timeoutRef.current = setTimeout(() => setIsDeleting(true), PAUSE_AFTER_TYPE);
+        return;
+      }
+      timeoutRef.current = setTimeout(tick, TYPE_SPEED);
+    } else {
+      const nextText = currentWord.slice(0, displayText.length - 1);
+      setDisplayText(nextText);
+
+      if (nextText === '') {
+        setIsDeleting(false);
+        setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
+        timeoutRef.current = setTimeout(tick, PAUSE_AFTER_DELETE);
+        return;
+      }
+      timeoutRef.current = setTimeout(tick, DELETE_SPEED);
+    }
+  }, [wordIndex, displayText, isDeleting]);
+
+  useEffect(() => {
+    if (!visible) return;
+    timeoutRef.current = setTimeout(tick, TYPE_SPEED);
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [tick, visible]);
+
+  // Reset animation when becoming visible again
+  useEffect(() => {
+    if (visible) return;
+    // Reset state when hidden so it starts fresh next time
+    return () => {
+      setDisplayText('');
+      setIsDeleting(false);
+    };
+  }, [visible]);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      className={`pointer-events-none absolute inset-0 flex items-center px-3 py-0 md:px-4 md:py-2.5 text-[16px] leading-normal md:text-sm font-sans select-none transition-opacity duration-300 ${
+        visible ? 'opacity-100' : 'opacity-0'
+      }`}
+      aria-hidden="true"
+    >
+      <span className={`mr-1.5 ${isDark ? 'text-gray-400' : 'text-white/50'}`}>
+        Cerca
+      </span>
+      <span className="text-[#FF7300]">
+        {displayText}
+      </span>
+      <span
+        className={`inline-block w-[2px] h-[1.1em] ml-[1px] align-middle animate-blink-caret ${
+          isDark ? 'bg-[#FF7300]' : 'bg-[#FF7300]/80'
+        }`}
+      />
+    </div>
+  );
+}
+
 function SearchWithInstantSearch({
   selectedGame,
   productCategory,
@@ -1096,8 +1288,8 @@ function SearchWithInstantSearch({
   onOpenChange,
 }: {
   selectedGame: GameSlug | null;
-  productCategory: string | null;
-  setProductCategory: (c: string | null) => void;
+  productCategory: CategoryKey | null;
+  setProductCategory: (c: CategoryKey | null) => void;
   onOpenChange?: (isOpen: boolean) => void;
 }) {
   const router = useRouter();
@@ -1113,6 +1305,20 @@ function SearchWithInstantSearch({
   const [localValue, setLocalValue] = useState(query ?? '');
   const hasText = (localValue ?? '').trim().length > 0;
   const mappedGame = useMemo(() => normalizeGameSlug(selectedGame), [selectedGame]);
+
+  // Rainbow Road: track whether user is actively typing + adaptive speed
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingKey, setTypingKey] = useState(0);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastKeystrokeRef = useRef<number>(0);
+  const [rowDelay, setRowDelay] = useState(80);
+  
+  // Gamification: typing velocity and energy system
+  const [typingVelocity, setTypingVelocity] = useState(0);
+  const [energyLevel, setEnergyLevel] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const keystrokeTimesRef = useRef<number[]>([]);
+  const energyDecayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const pathname = usePathname();
   const isProductsPage = pathname.startsWith('/products') || pathname.startsWith('/search') || pathname === '/';
@@ -1165,6 +1371,20 @@ function SearchWithInstantSearch({
     setDropdownDismissed(true);
   };
 
+  const handleCategorySelect = useCallback(
+    (nextCategory: CategoryKey | null) => {
+      const normalizedCategory = normalizeCategoryKey(nextCategory);
+      setProductCategory(normalizedCategory);
+      const currentQuery = (localValue ?? query ?? urlQueryParam ?? '').trim();
+      if (!currentQuery) return;
+      refineRef.current(currentQuery);
+      inputRef.current?.blur();
+      closePanel();
+      router.push(buildSearchUrl(currentQuery, selectedGame, normalizedCategory));
+    },
+    [localValue, query, router, selectedGame, setProductCategory, urlQueryParam]
+  );
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as Node;
@@ -1185,15 +1405,21 @@ function SearchWithInstantSearch({
       anchorRef={triggerRef}
       inputValue={localValue}
       productCategory={productCategory}
+      isTyping={isTyping}
+      typingKey={typingKey}
+      rowDelay={rowDelay}
+      energyLevel={energyLevel}
+      typingVelocity={typingVelocity}
+      streak={streak}
     />
   ) : null;
 
   // Stile "aperto" (bianco, bordo): barra bianca quando aperta o quando c'è testo
-  const showOpenStyle = Boolean(selectedGame && (isOpen || hasText));
+  const showOpenStyle = Boolean(isOpen || hasText);
   const triggerBar = (
     <div
       ref={triggerRef}
-      className={`search-container flex h-[2.75rem] min-h-[2.75rem] max-h-[2.75rem] w-full min-w-[200px] flex-1 items-stretch gap-0 overflow-hidden transition-[background-color,border-color,border-radius] duration-200 md:h-auto md:min-h-0 md:max-h-none ${
+      className={`search-container flex w-full min-w-[200px] flex-1 items-stretch gap-0 overflow-hidden transition-[background-color,border-color,border-radius] duration-200 h-11 min-h-11 max-h-11 md:h-auto md:min-h-0 md:max-h-none ${
         showOpenStyle
           ? 'search-container--open rounded-none bg-white'
           : 'rounded-[50px]'
@@ -1202,40 +1428,79 @@ function SearchWithInstantSearch({
       onClick={() => inputRef.current?.focus()}
     >
       {/* Menu a tendina Categorie Prodotto visibile sempre */}
-      <div className="flex items-center justify-center pl-0 pr-2">
+      <div className="flex items-center justify-center pl-0 pr-0">
         <ProductCategoryButton
           selectedCategory={productCategory}
-          onSelect={setProductCategory}
+          onSelect={handleCategorySelect}
           gameSlug={mappedGame}
           isBarOpen={showOpenStyle}
         />
       </div>
 
-      <input
-        ref={inputRef}
-        type="text"
-        value={localValue}
-        onChange={(e) => {
-          const v = e.target.value;
-          setLocalValue(v);
-          refine(v);
-        }}
-        onFocus={openPanel}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            handleEnter();
-          }
-        }}
-        enterKeyHint="search"
-        inputMode="search"
-        placeholder="Cerca carte..."
-        className={`min-h-0 min-w-0 flex-1 border-0 bg-transparent px-3 py-0 text-[16px] leading-normal outline-none font-sans transition-colors duration-200 md:px-4 md:py-2.5 md:text-sm ${
-          showOpenStyle ? 'text-gray-900' : 'text-white'
-        } search-input-orange-placeholder`}
-        aria-label="Cerca carte"
-        autoComplete="off"
-      />
+      <div className="relative min-h-0 min-w-0 flex-1">
+        <AnimatedSearchPlaceholder
+          visible={!hasText}
+          isDark={showOpenStyle}
+        />
+        <input
+          ref={inputRef}
+          type="text"
+          value={localValue}
+          onChange={(e) => {
+            const v = e.target.value;
+            setLocalValue(v);
+            refine(v);
+            // Rainbow Road: trigger typing wave with adaptive speed
+            const now = Date.now();
+            const gap = now - lastKeystrokeRef.current;
+            lastKeystrokeRef.current = now;
+            // Clamp: fast typing (gap < 80ms) → 30ms delay, slow (gap > 400ms) → 120ms
+            const adaptive = gap > 0 && gap < 600
+              ? Math.round(30 + (90 * Math.min(Math.max(gap - 60, 0), 340)) / 340)
+              : 80;
+            setRowDelay(adaptive);
+            setIsTyping(true);
+            setTypingKey((k) => k + 1);
+            
+            // Gamification: typing velocity and energy
+            keystrokeTimesRef.current = keystrokeTimesRef.current.filter(t => now - t < 1000);
+            keystrokeTimesRef.current.push(now);
+            const velocity = Math.min(keystrokeTimesRef.current.length / 8, 1);
+            setTypingVelocity(velocity);
+            setEnergyLevel(prev => Math.min(prev + 0.12, 1));
+            setStreak(prev => Math.min(prev + 1, 15));
+            if (energyDecayRef.current) clearTimeout(energyDecayRef.current);
+            energyDecayRef.current = setTimeout(() => {
+              setEnergyLevel(prev => Math.max(prev - 0.08, 0));
+              setStreak(0);
+            }, 150);
+            
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = setTimeout(() => {
+              setIsTyping(false);
+              setEnergyLevel(0);
+              setStreak(0);
+              setTypingVelocity(0);
+              keystrokeTimesRef.current = [];
+            }, 1300);
+          }}
+          onFocus={openPanel}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleEnter();
+            }
+          }}
+          enterKeyHint="search"
+          inputMode="search"
+          placeholder=""
+          className={`h-full w-full border-0 bg-transparent px-3 py-0 text-[16px] leading-normal outline-none font-sans transition-colors duration-200 md:px-4 md:py-2.5 md:text-sm ${
+            showOpenStyle ? 'text-gray-900' : 'text-white'
+          } search-input-orange-placeholder`}
+          aria-label="Cerca carte"
+          autoComplete="off"
+        />
+      </div>
       <div
         className="search-right flex h-full flex-shrink-0 items-center gap-1 pr-1.5 md:pr-2"
         onClick={(e) => e.stopPropagation()}
@@ -1281,17 +1546,36 @@ function SearchWithInstantSearch({
 export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOpen: boolean) => void }) {
   const { selectedGame, setSelectedGame, gameDisplayName } = useGame();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   // Categoria di default: 'singles' (come richiesto)
-  const [productCategory, setProductCategory] = useState<string | null>(() => {
+  const [productCategory, setProductCategory] = useState<CategoryKey | null>(() => {
     if (typeof window === 'undefined') return 'singles';
     const params = new URLSearchParams(window.location.search);
-    const catKey = params.get('category_key');
-    if (catKey && CATEGORY_KEY_ORDER.includes(catKey as CategoryKey)) return catKey;
+    const catKey = normalizeCategoryKey(params.get('category_key'));
+    if (catKey) return catKey;
     const pathParts = pathname.split('/');
-    if (CATEGORY_SLUGS.has(pathParts[2])) return pathParts[2];
+    const pathCategory = pathParts[2] ?? '';
+    if (CATEGORY_SLUGS.has(pathCategory)) {
+      const normalizedPathCategory = normalizeCategoryKey(pathCategory);
+      if (normalizedPathCategory) return normalizedPathCategory;
+    }
     return 'singles';
   });
+
+  useEffect(() => {
+    const fromQuery = normalizeCategoryKey(searchParams.get('category_key'));
+    if (fromQuery) {
+      setProductCategory((prev) => (prev === fromQuery ? prev : fromQuery));
+      return;
+    }
+    const pathParts = pathname.split('/');
+    const pathCategory = pathParts[2] ?? '';
+    if (!CATEGORY_SLUGS.has(pathCategory)) return;
+    const fromPath = normalizeCategoryKey(pathCategory);
+    if (!fromPath) return;
+    setProductCategory((prev) => (prev === fromPath ? prev : fromPath));
+  }, [pathname, searchParams]);
 
   // Normalizza game slug per CATEGORY_MAPPING
   const mappingGameSlug = useMemo(() => normalizeGameSlug(selectedGame), [selectedGame]);
@@ -1304,9 +1588,11 @@ export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOp
 
   // Filtro category_id basato su CATEGORY_MAPPING (fix: prima non filtrava per categoria)
   const categoryFilter = useMemo(() => {
-    if (!mappingGameSlug || !productCategory || productCategory === 'all') return [];
-    const catKey = productCategory as CategoryKey;
-    const ids = getCategoryIds(mappingGameSlug, catKey);
+    const normalizedCategory = normalizeCategoryKey(productCategory);
+    if (!normalizedCategory || normalizedCategory === 'all') return [];
+    const ids = mappingGameSlug
+      ? getCategoryIds(mappingGameSlug, normalizedCategory)
+      : getCategoryIdsAcrossGames(normalizedCategory);
     if (ids.length === 0) return [];
     if (ids.length === 1) return [`category_id = ${ids[0]}`];
     // Meilisearch InstantSearch: usa filter string format
