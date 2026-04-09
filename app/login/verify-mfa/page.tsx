@@ -136,9 +136,15 @@ export default function VerifyMFAPage() {
     setLocalError(null);
     clearError();
 
+    const tokenToSend = effectiveToken || preAuthToken;
+    if (!tokenToSend) {
+      setLocalError('Token di sessione mancante. Torna al login.');
+      return;
+    }
+
     try {
       await verifyMFAMutation.mutateAsync({
-        pre_auth_token: effectiveToken || preAuthToken || 'test-token',
+        pre_auth_token: tokenToSend,
         mfa_code: data.mfa_code,
         remember_device: rememberDevice,
       });

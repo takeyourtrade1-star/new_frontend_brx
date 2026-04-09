@@ -60,11 +60,8 @@ class AuthApiClient {
   }
 
   private shouldTryDirectCredentialedCall(normalizedUrl: string): boolean {
-    return (
-      typeof window !== 'undefined' &&
-      !!config.api.baseURL &&
-      DEVICE_TRUST_CRITICAL_PATHS.has(normalizedUrl)
-    );
+    void normalizedUrl;
+    return false;
   }
 
   private async tryDirectCredentialedPost<T = any>(
