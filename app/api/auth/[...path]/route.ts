@@ -23,6 +23,7 @@ const ALLOWED_AUTH_PATHS = [
   'refresh',
   'me',
   'logout',
+  'verify-mfa',
   'mfa/enable',
   'mfa/verify',
   'mfa/disable',
@@ -41,15 +42,6 @@ function isAllowedPath(segments: string[]): boolean {
   return ALLOWED_AUTH_PATHS.some(
     (allowed) => joined === allowed || joined.startsWith(`${allowed}/`) || joined.startsWith(`${allowed}?`)
   );
-}
-
-function normalizeAuthPath(segments: string[]): string[] {
-  const joined = segments.join('/');
-  // Retro-compatibilità: alcuni client storici usano /api/auth/verify-mfa
-  if (joined === 'verify-mfa' || joined.startsWith('verify-mfa/')) {
-    return ['mfa', 'verify', ...segments.slice(1)];
-  }
-  return segments;
 }
 
 function extractAccessToken(payload: unknown): string | undefined {
@@ -83,8 +75,6 @@ function extractExpiresIn(payload: unknown): number {
 }
 
 async function proxy(request: NextRequest, pathSegments: string[]) {
-  const normalizedPathSegments = normalizeAuthPath(pathSegments);
-
   if (!AUTH_API_URL) {
     return NextResponse.json(
       { detail: 'NEXT_PUBLIC_AUTH_API_URL is not configured' },
@@ -92,14 +82,14 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     );
   }
 
-  if (!isAllowedPath(normalizedPathSegments)) {
+  if (!isAllowedPath(pathSegments)) {
     return NextResponse.json(
       { detail: 'Not found' },
       { status: 404 }
     );
   }
 
-  const path = normalizedPathSegments.join('/');
+  const path = pathSegments.join('/');
   const targetPath = `/api/auth${path ? `/${path}` : ''}`;
   const url = new URL(targetPath, AUTH_API_URL);
   
@@ -156,7 +146,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
         'Set-Cookie',
         `${AUTH_COOKIE_NAME}=${encodeURIComponent(accessToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secureFlag}`
       );
-    } else if (normalizedPathSegments[0] === 'logout') {
+    } else if (pathSegments[0] === 'logout') {
       const secureFlag = isSecure ? '; Secure' : '';
       responseHeaders.append(
         'Set-Cookie',
