@@ -9,8 +9,12 @@ import { authApi } from '@/lib/api/auth-client';
 import { refreshAccessToken } from '@/lib/api/refresh-token';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
-/** Base URL Sync: sempre chiamata diretta (NEXT_PUBLIC_SYNC_API_URL + /api/v1). Il dominio deve essere raggiungibile. */
+/** Base URL Sync:
+ * - browser: usa proxy same-origin /api/sync (evita CORS/rete mobile instabile)
+ * - server: usa URL diretto del servizio Sync + /api/v1
+ */
 function getSyncBaseUrl(): string {
+  if (typeof window !== 'undefined') return '';
   const baseUrl = process.env.NEXT_PUBLIC_SYNC_API_URL || 'https://sync.ebartex.com';
   return `${baseUrl.replace(/\/+$/, '')}/api/v1`;
 }
@@ -126,14 +130,27 @@ async function request<T>(
     throw err;
   }
   const base = getSyncBaseUrl();
-  // base = SYNC_API_URL + /api/v1 → path /api/v1/sync/... diventa base + /sync/...
-  const pathSuffix = path.startsWith('/api/v1') ? path.replace(/^\/api\/v1/, '') : path;
+  const isBrowser = typeof window !== 'undefined';
+  // Browser: /api/v1/sync/... -> /api/sync/... (proxy interno Next.js)
+  // Server:  /api/v1/sync/... -> /sync/... (base già contiene /api/v1)
+  const normalizedPath = isBrowser
+    ? path.replace(/^\/api\/v1\/sync/, '/api/sync')
+    : path.startsWith('/api/v1')
+      ? path.replace(/^\/api\/v1/, '')
+      : path;
   const url = path.startsWith('http')
     ? path
-    : `${base}${pathSuffix.startsWith('/') ? '' : '/'}${pathSuffix}`;
-  const res = await fetch(url, {
+    : `${base}${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
+
+  const controller = new AbortController();
+  const timeoutMs = 20000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(url, {
     ...options,
-    credentials: 'same-origin',
+    credentials: isBrowser ? 'same-origin' : options.credentials,
+    signal: controller.signal,
     headers: {
       Authorization: `Bearer ${t}`,
       'Content-Type': 'application/json',
@@ -141,6 +158,18 @@ async function request<T>(
       ...options.headers,
     },
   });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      const timeoutError = new Error('Sync request timeout. Riprova tra qualche secondo.') as Error & {
+        status?: number;
+      };
+      timeoutError.status = 408;
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     // Su 401: usa il refresh centralizzato (stesso lock di auth-client, evita doppio refresh)
