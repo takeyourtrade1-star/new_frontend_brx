@@ -75,7 +75,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     if (body) headers['Content-Type'] = request.headers.get('content-type') || 'application/json';
   }
 
-  try {
+try {
     const res = await fetch(url.toString(), {
       method: request.method,
       headers,
@@ -83,13 +83,26 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
       cache: 'no-store',
       next: { revalidate: 0 },
     });
+    
     const data = await res.json().catch(() => ({}));
+    
+    // 1. Creiamo gli header di risposta
+    const responseHeaders = new Headers();
+    responseHeaders.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+
+    // 2. IL PEZZO MANCANTE: Inoltriamo i Cookie dal backend al browser!
+    const setCookies = res.headers.getSetCookie();
+    if (setCookies && setCookies.length > 0) {
+      for (const cookie of setCookies) {
+        responseHeaders.append('Set-Cookie', cookie);
+      }
+    }
+
     return NextResponse.json(data, {
       status: res.status,
-      headers: {
-        'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
-      },
+      headers: responseHeaders,
     });
+    
   } catch (err) {
     console.error('[auth proxy]', err);
     return NextResponse.json(
@@ -97,7 +110,6 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
       { status: 502 }
     );
   }
-}
 
 export async function GET(
   request: NextRequest,
