@@ -33,11 +33,44 @@ const ALLOWED_AUTH_PATHS = [
   'resend-verification',
 ];
 
+const AUTH_COOKIE_NAME = 'ebartex_access_token';
+const DEFAULT_ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24; // 24h
+
 function isAllowedPath(segments: string[]): boolean {
   const joined = segments.join('/');
   return ALLOWED_AUTH_PATHS.some(
     (allowed) => joined === allowed || joined.startsWith(`${allowed}/`) || joined.startsWith(`${allowed}?`)
   );
+}
+
+function extractAccessToken(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== 'object') return undefined;
+  const data = payload as Record<string, unknown>;
+
+  const directToken = data.access_token;
+  if (typeof directToken === 'string' && directToken.length > 0) return directToken;
+
+  const nested = data.data;
+  if (!nested || typeof nested !== 'object') return undefined;
+  const nestedToken = (nested as Record<string, unknown>).access_token;
+  return typeof nestedToken === 'string' && nestedToken.length > 0 ? nestedToken : undefined;
+}
+
+function extractExpiresIn(payload: unknown): number {
+  if (!payload || typeof payload !== 'object') return DEFAULT_ACCESS_TOKEN_MAX_AGE;
+  const data = payload as Record<string, unknown>;
+
+  const direct = data.expires_in;
+  if (typeof direct === 'number' && Number.isFinite(direct) && direct > 0) return Math.floor(direct);
+
+  const nested = data.data;
+  if (!nested || typeof nested !== 'object') return DEFAULT_ACCESS_TOKEN_MAX_AGE;
+  const nestedExpires = (nested as Record<string, unknown>).expires_in;
+  if (typeof nestedExpires === 'number' && Number.isFinite(nestedExpires) && nestedExpires > 0) {
+    return Math.floor(nestedExpires);
+  }
+
+  return DEFAULT_ACCESS_TOKEN_MAX_AGE;
 }
 
 async function proxy(request: NextRequest, pathSegments: string[]) {
@@ -97,6 +130,27 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
       for (const cookie of setCookies) {
         responseHeaders.append('Set-Cookie', cookie);
       }
+    }
+
+    const accessToken = extractAccessToken(data);
+    const isSecure =
+      process.env.NODE_ENV === 'production' ||
+      request.nextUrl.protocol === 'https:' ||
+      request.headers.get('x-forwarded-proto') === 'https';
+
+    if (accessToken) {
+      const maxAge = extractExpiresIn(data);
+      const secureFlag = isSecure ? '; Secure' : '';
+      responseHeaders.append(
+        'Set-Cookie',
+        `${AUTH_COOKIE_NAME}=${encodeURIComponent(accessToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secureFlag}`
+      );
+    } else if (pathSegments[0] === 'logout') {
+      const secureFlag = isSecure ? '; Secure' : '';
+      responseHeaders.append(
+        'Set-Cookie',
+        `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secureFlag}`
+      );
     }
 
     return NextResponse.json(data, {
