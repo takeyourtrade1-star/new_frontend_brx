@@ -59,6 +59,21 @@ class AuthApiClient {
     this.setupInterceptors();
   }
 
+  private isAnonymousAuthRequest(url?: string): boolean {
+    if (!url) return false;
+    return (
+      url.includes('/api/auth/login') ||
+      url.includes('/api/auth/register') ||
+      url.includes('/api/auth/refresh') ||
+      url.includes('/api/auth/verify-mfa') ||
+      url.includes('/api/auth/mfa/verify') ||
+      url.includes('/api/auth/login/code/request') ||
+      url.includes('/api/auth/login/code/verify') ||
+      url.includes('/api/auth/password/reset/request') ||
+      url.includes('/api/auth/password/reset/confirm')
+    );
+  }
+
   private shouldTryDirectCredentialedCall(normalizedUrl: string): boolean {
     void normalizedUrl;
     return false;
@@ -103,7 +118,11 @@ class AuthApiClient {
           this.token = this.getStoredToken();
         }
 
-        if (this.token && requestConfig.headers) {
+        if (
+          this.token &&
+          requestConfig.headers &&
+          !this.isAnonymousAuthRequest(requestConfig.url)
+        ) {
           requestConfig.headers.Authorization = `Bearer ${this.token}`;
         }
         return requestConfig;
