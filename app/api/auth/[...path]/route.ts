@@ -43,6 +43,15 @@ function isAllowedPath(segments: string[]): boolean {
   );
 }
 
+function normalizeAuthPath(segments: string[]): string[] {
+  const joined = segments.join('/');
+  // Retro-compatibilità: alcuni client storici usano /api/auth/verify-mfa
+  if (joined === 'verify-mfa' || joined.startsWith('verify-mfa/')) {
+    return ['mfa', 'verify', ...segments.slice(1)];
+  }
+  return segments;
+}
+
 function extractAccessToken(payload: unknown): string | undefined {
   if (!payload || typeof payload !== 'object') return undefined;
   const data = payload as Record<string, unknown>;
@@ -74,6 +83,8 @@ function extractExpiresIn(payload: unknown): number {
 }
 
 async function proxy(request: NextRequest, pathSegments: string[]) {
+  const normalizedPathSegments = normalizeAuthPath(pathSegments);
+
   if (!AUTH_API_URL) {
     return NextResponse.json(
       { detail: 'NEXT_PUBLIC_AUTH_API_URL is not configured' },
@@ -81,14 +92,14 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     );
   }
 
-  if (!isAllowedPath(pathSegments)) {
+  if (!isAllowedPath(normalizedPathSegments)) {
     return NextResponse.json(
       { detail: 'Not found' },
       { status: 404 }
     );
   }
 
-  const path = pathSegments.join('/');
+  const path = normalizedPathSegments.join('/');
   const targetPath = `/api/auth${path ? `/${path}` : ''}`;
   const url = new URL(targetPath, AUTH_API_URL);
   
@@ -145,7 +156,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
         'Set-Cookie',
         `${AUTH_COOKIE_NAME}=${encodeURIComponent(accessToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secureFlag}`
       );
-    } else if (pathSegments[0] === 'logout') {
+    } else if (normalizedPathSegments[0] === 'logout') {
       const secureFlag = isSecure ? '; Secure' : '';
       responseHeaders.append(
         'Set-Cookie',
