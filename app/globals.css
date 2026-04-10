@@ -819,6 +819,122 @@
   }
 }
 
+/* ========== LANDING: BENTO GRID HERO ========== */
+
+/* Staggered entry animation for bento cards */
+@keyframes bento-slide-up {
+  0% {
+    opacity: 0;
+    transform: translateY(32px) scale(0.97);
+  }
+  60% {
+    opacity: 0.85;
+    transform: translateY(-3px) scale(1.005);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.bento-entry {
+  opacity: 0;
+  animation: bento-slide-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--bento-delay, 0ms);
+}
+
+/* Support inline animationDelay via style prop */
+.bento-entry[style*="animationDelay"] {
+  opacity: 0;
+}
+
+/* Bento card base: glass effect with subtle inner glow */
+.bento-card {
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.3),
+    0 4px 24px rgba(0,0,0,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.bento-card:hover {
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.3),
+    0 8px 40px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+/* Badge glow pulse: subtle orange pulse ring */
+@keyframes badge-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 2px 12px rgba(255,115,0,0.5), 0 0 0 0 rgba(255,115,0,0.3);
+  }
+  50% {
+    box-shadow: 0 2px 16px rgba(255,115,0,0.6), 0 0 0 6px rgba(255,115,0,0);
+  }
+}
+
+.bento-badge-glow {
+  animation: badge-glow-pulse 2.5s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+/* CTA button glow pulse */
+@keyframes cta-glow-breathe {
+  0%, 100% {
+    box-shadow: 0 4px 24px rgba(255,115,0,0.4);
+  }
+  50% {
+    box-shadow: 0 4px 32px rgba(255,115,0,0.55), 0 0 0 4px rgba(255,115,0,0.1);
+  }
+}
+
+.bento-cta-glow {
+  animation: cta-glow-breathe 3s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .bento-entry {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .bento-badge-glow,
+  .bento-cta-glow {
+    animation: none;
+  }
+}
+
+/* Arrow bounce left animation */
+@keyframes bounce-left {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-8px);
+  }
+}
+
+.animate-bounce-left {
+  animation: bounce-left 1.5s ease-in-out infinite;
+}
+
+/* Arrow bounce right */
+@keyframes bounce-right {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(8px);
+  }
+}
+
+.animate-bounce-right {
+  animation: bounce-right 1.5s ease-in-out infinite;
+}
+
 /* ========== LANDING: SOAP BUBBLE ANIMATIONS ========== */
 
 /* Fluid floating with gentle wave motion */
@@ -943,6 +1059,29 @@
 @media (prefers-reduced-motion: reduce) {
   .search-container--open {
     animation: none;
+  }
+}
+
+/* ========== PRESTO IN ARRIVO BANNER: lampeggio del banner ========== */
+@keyframes banner-blink {
+  0%, 100% {
+    box-shadow: 0 4px 24px rgba(255, 115, 0, 0.4), 0 0 0 0 rgba(255, 115, 0, 0.3);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 4px 32px rgba(255, 115, 0, 0.6), 0 0 0 8px rgba(255, 115, 0, 0);
+    filter: brightness(1.15);
+  }
+}
+
+.presto-banner-blink {
+  animation: banner-blink 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presto-banner-blink {
+    animation: none;
+    box-shadow: 0 4px 24px rgba(255, 115, 0, 0.4);
   }
 }
 
@@ -1831,8 +1970,26 @@
 }
 
 .btn-orange-glow:focus-visible {
-  outline: 2px solid rgba(255, 115, 0, 0.5);
+  outline: 2px solid #FF7300;
   outline-offset: 2px;
+}
+
+/* ========== INFINITE HORIZONTAL SCROLL ANIMATION ========== */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 15s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
 }
 
 /* ========== ORANGE OUTLINE BUTTON - Reusable glow style ========== */

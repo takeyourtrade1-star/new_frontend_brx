@@ -89,9 +89,16 @@ const config: Config = {
           '0%,70%,100%': { opacity: '1' },
           '20%,50%': { opacity: '0' },
         },
+        'countdown-flip': {
+          '0%': { transform: 'rotateX(0deg)', opacity: '1' },
+          '50%': { transform: 'rotateX(-90deg)', opacity: '0.5' },
+          '51%': { transform: 'rotateX(90deg)', opacity: '0.5' },
+          '100%': { transform: 'rotateX(0deg)', opacity: '1' },
+        },
       },
       animation: {
         'caret-blink': 'caret-blink 1.2s ease-out infinite',
+        'countdown-flip': 'countdown-flip 0.4s ease-in-out',
       },
       backgroundImage: {
         'gradient-global': 'linear-gradient(to bottom, #3D65C6 0%, #1D3160 100%)',
