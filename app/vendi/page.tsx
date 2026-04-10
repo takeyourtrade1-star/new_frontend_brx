@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { VendiLandingPage } from '@/components/feature/vendi/VendiLandingPage';
 import { Header } from '@/components/layout/Header';
 
@@ -9,7 +10,9 @@ export const metadata = {
 export default function VendiPage() {
   return (
     <>
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
       <VendiLandingPage />
     </>
   );

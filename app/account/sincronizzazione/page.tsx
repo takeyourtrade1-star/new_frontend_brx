@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
 const SincronizzazioneContent = dynamic(
@@ -19,5 +20,9 @@ export const metadata = {
 };
 
 export default function SincronizzazionePage() {
-  return <SincronizzazioneContent />;
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Caricamento...</div>}>
+      <SincronizzazioneContent />
+    </Suspense>
+  );
 }

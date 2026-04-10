@@ -465,6 +465,25 @@
   animation: orange-menu-enter 0.2s ease-out both;
 }
 
+/* Cart badge bounce animation when item added */
+@keyframes cart-badge-bounce {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.4);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-cart-badge-bounce {
+  animation: cart-badge-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
 /* Toast flash (login/error): entra da destra, esce a destra – sotto la barra di ricerca */
 @keyframes toast-slide-in-right {
   from {

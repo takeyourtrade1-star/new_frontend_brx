@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 
 export default function LegalLayout({
@@ -7,7 +8,9 @@ export default function LegalLayout({
 }) {
   return (
     <div className="min-h-screen font-sans text-white" style={{ backgroundColor: '#3D65C6' }}>
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
       <main className="w-full flex-1">{children}</main>
     </div>
   );

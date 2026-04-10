@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { UtentiBloccatiContent } from '@/components/feature/account/UtentiBloccatiContent';
 
 export const metadata = {
@@ -6,5 +7,9 @@ export const metadata = {
 };
 
 export default function UtentiBloccatiPage() {
-  return <UtentiBloccatiContent />;
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Caricamento...</div>}>
+      <UtentiBloccatiContent />
+    </Suspense>
+  );
 }

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { AsteMyListingsPage } from '@/components/feature/aste/AsteMyListingsPage';
 
@@ -9,7 +10,9 @@ export const metadata = {
 export default function AsteMiePage() {
   return (
     <main className="min-h-screen bg-white">
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
       <AsteMyListingsPage />
     </main>
   );

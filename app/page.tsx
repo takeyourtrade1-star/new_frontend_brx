@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { LandingWelcome } from '@/components/feature/LandingWelcome';
 import { CookieBanner } from '@/components/layout/CookieBanner';
@@ -11,7 +12,9 @@ export const metadata = {
 export default function LandingPage() {
   return (
     <>
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
       <LandingWelcome />
       <CookieBanner />
     </>

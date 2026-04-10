@@ -69,7 +69,7 @@ export function EbartexProductsSection({
   return (
     <section className="w-full pb-10 pt-0 md:pb-14 bg-transparent text-white">
       {/* Barra full width senza margini laterali */}
-      <ScrollMarquee label="EBARTEX BOUTIQUE" />
+      <ScrollMarquee label="EBARTEX BOUTIQUE" direction="right" />
 
       <div className="relative mt-0 overflow-hidden rounded-none">
         {!useUnifiedBackground && (

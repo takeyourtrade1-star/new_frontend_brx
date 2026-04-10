@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Loader2, Minus, Pencil, Plus, X, ChevronLeft, ChevronRight, Heart, Eye, EyeOff } from 'lucide-react';
@@ -705,7 +705,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
   return (
     <div className="min-h-screen font-sans bg-[#F0F0F0] text-gray-900">
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
 
       {/* Sezione titolo: MOBILE - titolo più grande, edizione sotto, aiuto in fondo; DESKTOP - layout originale */}
       <section className="w-full bg-[#F0F0F0] border-b border-gray-300">

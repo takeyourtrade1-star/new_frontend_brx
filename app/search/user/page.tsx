@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { PrestoInArrivoBanner } from '@/components/feature/account/PrestoInArrivoBanner';
 import { Search, UserCircle, Shield, ArrowRight } from 'lucide-react';
@@ -10,7 +11,9 @@ export default function UserSearchPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#f8faff] via-white to-[#f0f4f8]">
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
       
       <div className="pointer-events-none">
         <div className="container-content pt-8">

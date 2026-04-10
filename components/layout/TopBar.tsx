@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Check, ChevronDown, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
 import { HamburgerMenu } from './HamburgerMenu';
-import { useCartStore } from '@/lib/stores/cart-store';
+import { CartDropdown } from './CartDropdown';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -62,8 +62,6 @@ export function TopBar() {
   const setFlashMessage = useAuthStore((s) => s.setFlashMessage);
   const logout = useAuthStore((s) => s.logout);
   const loginMutation = useLogin();
-  const cartCount = useCartStore((s) => s.getItemCount());
-  const cartTotal = useCartStore((s) => s.getTotal());
   const [loginError, setLoginError] = useState<string | null>(null);
   const lastFlashRef = useRef<string | null>(null);
   const [toastExiting, setToastExiting] = useState(false);
@@ -913,43 +911,10 @@ export function TopBar() {
                 </span>
               </Link>
 
-              {/* 6. Carrello */}
-              <Link
-                href="/cart"
-                className="order-5 flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-6 md:px-2"
-                aria-label={t('nav.cartAria', { total: formatEuro(cartTotal) })}
-              >
-                <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#FF7300"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                    aria-hidden
-                  >
-                    <circle cx="9" cy="21" r="1"></circle>
-                    <circle cx="20" cy="21" r="1"></circle>
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                  </svg>
-                  {cartCount > 0 && (
-                    <span
-                      className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-white px-0.5 text-[9px] font-bold text-[#FF7300]"
-                      aria-hidden
-                    >
-                      {cartCount > 99 ? '99+' : cartCount}
-                    </span>
-                  )}
-                </span>
-                <span className="hidden text-sm text-white sm:inline">
-                  ({formatEuro(cartTotal)})
-                </span>
-              </Link>
+              {/* 6. Carrello con dropdown preview */}
+              <div className="order-5 md:order-6">
+                <CartDropdown />
+              </div>
               </div>
             </>
           ) : (

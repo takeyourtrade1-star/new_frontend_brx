@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { HeroCarousel } from '@/components/feature/HeroCarousel';
 import { FeaturesSection } from '@/components/feature/FeaturesSection';
@@ -21,19 +22,22 @@ export default function HomePage() {
         backgroundAttachment: 'fixed',
       }}
     >
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
+      <Suspense fallback={<div className="p-8 text-center">Caricamento...</div>}>
+        <section className="w-full transition-colors duration-300">
+          <HeroCarousel />
+        </section>
 
-      <section className="w-full transition-colors duration-300">
-        <HeroCarousel />
-      </section>
+        <FeaturesSection />
 
-      <FeaturesSection />
+        <MarketplaceDashboard />
 
-      <MarketplaceDashboard />
+        <CategoriesGrid />
 
-      <CategoriesGrid />
-
-      <EbartexProductsSection />
+        <EbartexProductsSection />
+      </Suspense>
     </main>
   );
 }

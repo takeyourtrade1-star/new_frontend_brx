@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Input } from '@/components/ui/input';
@@ -145,8 +146,10 @@ export default function AdvancedSearchPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#f8faff] via-white to-[#f0f4f8]">
-      <Header />
-      
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
+
       <div className="container-content py-6 lg:py-10">
         {/* Banner presto in arrivo */}
         <div className="pointer-events-none mb-6 flex justify-center">

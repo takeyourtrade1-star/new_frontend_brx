@@ -1910,58 +1910,59 @@ export function CardMascotte() {
             }}
           />
 
-          {/* Top pill badge — BRX */}
-          <div
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2"
-            style={{ top: '5px', zIndex: 8 }}
-          >
-            <div
-              className="relative flex items-center justify-center overflow-hidden rounded-full"
-              style={{
-                height: '14px',
-                paddingInline: '10px',
-                background: 'linear-gradient(180deg, #FF9A40 0%, #FF7300 100%)',
-                boxShadow: '0 1px 4px rgba(255,100,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)',
-              }}
-            >
-              <span
-                className="font-comodo text-[8px] font-bold leading-none"
-                style={{
-                  color: '#fff',
-                  textShadow: '0 1px 1px rgba(100,30,0,0.45)',
-                  letterSpacing: '0.25em',
-                  marginLeft: '0.12em',
-                }}
-              >
-                BRX
-              </span>
-            </div>
-          </div>
-
           {/* Bottom pill badge — ASSO */}
           <div
-            className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+            className={`pointer-events-none absolute left-1/2 -translate-x-1/2 ${isCardHovered ? 'asso-pill-hovered' : ''}`}
             style={{ bottom: '5px', zIndex: 8 }}
           >
             <div
-              className="relative flex items-center justify-center overflow-hidden rounded-full"
+              className={`relative flex items-center justify-center overflow-full asso-pill-${mascotteExpression}`}
               style={{
                 height: '14px',
                 paddingInline: '8px',
-                background: 'linear-gradient(180deg, #FF7300 0%, #FF9A40 100%)',
-                boxShadow: '0 -1px 4px rgba(255,100,0,0.2), inset 0 -1px 0 rgba(255,255,255,0.25)',
+                background: mascotteExpression === 'bugReport' || mascotteExpression === 'bugFocus'
+                  ? 'linear-gradient(180deg, #DC2626 0%, #EF4444 100%)'
+                  : mascotteExpression === 'coding'
+                  ? 'linear-gradient(180deg, #7C3AED 0%, #A78BFA 100%)'
+                  : mascotteExpression === 'sleeping'
+                  ? 'linear-gradient(180deg, #4B5563 0%, #9CA3AF 100%)'
+                  : mascotteExpression === 'wink'
+                  ? 'linear-gradient(180deg, #EC4899 0%, #F472B6 100%)'
+                  : 'linear-gradient(180deg, #FF7300 0%, #FF9A40 100%)',
+                boxShadow: mascotteExpression === 'bugReport' || mascotteExpression === 'bugFocus'
+                  ? '0 -1px 4px rgba(220,38,38,0.3), inset 0 -1px 0 rgba(255,255,255,0.25)'
+                  : mascotteExpression === 'coding'
+                  ? '0 -1px 4px rgba(124,58,237,0.3), inset 0 -1px 0 rgba(255,255,255,0.25)'
+                  : mascotteExpression === 'sleeping'
+                  ? '0 -1px 4px rgba(75,85,99,0.2), inset 0 -1px 0 rgba(255,255,255,0.2)'
+                  : mascotteExpression === 'wink'
+                  ? '0 -1px 4px rgba(236,72,153,0.3), inset 0 -1px 0 rgba(255,255,255,0.25)'
+                  : '0 -1px 4px rgba(255,100,0,0.2), inset 0 -1px 0 rgba(255,255,255,0.25)',
+                animation: 'asso-pulse 3s ease-in-out infinite',
+                borderRadius: '9999px',
               }}
             >
+              {/* Shimmer overlay */}
+              <div
+                className="pointer-events-none absolute inset-0 rounded-full"
+                style={{
+                  background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)',
+                  transform: 'translateX(-100%)',
+                  animation: 'asso-shimmer 2.5s ease-in-out infinite',
+                }}
+              />
               <span
                 className="font-comodo text-[7.5px] font-bold leading-none"
                 style={{
                   color: '#fff',
-                  textShadow: '0 1px 1px rgba(100,30,0,0.45)',
+                  textShadow: mascotteExpression === 'sleeping'
+                    ? '0 1px 1px rgba(30,30,30,0.35)'
+                    : '0 1px 1px rgba(100,30,0,0.45)',
                   letterSpacing: '0.2em',
                   marginLeft: '0.1em',
                 }}
               >
-                ASSO
+                {mascotteExpression === 'sleeping' ? 'Zzz' : 'ASSO'}
               </span>
             </div>
           </div>
@@ -2914,6 +2915,53 @@ export function CardMascotte() {
           margin-left: 4px;
           animation-delay: 1.6s;
         }
+        /* ASSO pill badge animations */
+        @keyframes asso-pulse {
+          0%, 100% { box-shadow: 0 -1px 4px rgba(0,0,0,0.15), inset 0 -1px 0 rgba(255,255,255,0.25); }
+          50% { box-shadow: 0 -1px 6px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(255,255,255,0.35), 0 0 8px rgba(255,255,255,0.2); }
+        }
+        @keyframes asso-shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes asso-pulse-intense-orange {
+          0%, 100% { box-shadow: 0 -1px 6px rgba(255,100,0,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(255,154,64,0.5); }
+          50% { box-shadow: 0 -1px 10px rgba(255,100,0,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(255,154,64,0.7), 0 0 24px rgba(255,115,0,0.3); }
+        }
+        @keyframes asso-pulse-intense-red {
+          0%, 100% { box-shadow: 0 -1px 6px rgba(220,38,38,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(239,68,68,0.5); }
+          50% { box-shadow: 0 -1px 10px rgba(220,38,38,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(239,68,68,0.7), 0 0 24px rgba(220,38,38,0.3); }
+        }
+        @keyframes asso-pulse-intense-purple {
+          0%, 100% { box-shadow: 0 -1px 6px rgba(124,58,237,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(167,139,250,0.5); }
+          50% { box-shadow: 0 -1px 10px rgba(124,58,237,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(167,139,250,0.7), 0 0 24px rgba(124,58,237,0.3); }
+        }
+        @keyframes asso-pulse-intense-gray {
+          0%, 100% { box-shadow: 0 -1px 6px rgba(75,85,99,0.3), inset 0 -1px 0 rgba(255,255,255,0.3), 0 0 12px rgba(156,163,175,0.4); }
+          50% { box-shadow: 0 -1px 10px rgba(75,85,99,0.5), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 18px rgba(156,163,175,0.6), 0 0 24px rgba(75,85,99,0.25); }
+        }
+        @keyframes asso-pulse-intense-pink {
+          0%, 100% { box-shadow: 0 -1px 6px rgba(236,72,153,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(244,114,182,0.5); }
+          50% { box-shadow: 0 -1px 10px rgba(236,72,153,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(244,114,182,0.7), 0 0 24px rgba(236,72,153,0.3); }
+        }
+        @keyframes asso-shimmer-fast {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .asso-pill-hovered > div {
+          transform: scale(1.08);
+          transition: transform 200ms ease-out;
+        }
+        .asso-pill-hovered > div > div:first-child {
+          animation: asso-shimmer-fast 1s ease-in-out infinite !important;
+        }
+        /* State-specific hover pulse animations */
+        .asso-pill-hovered .asso-pill-normal { animation: asso-pulse-intense-orange 0.8s ease-in-out infinite !important; }
+        .asso-pill-hovered .asso-pill-bugReport,
+        .asso-pill-hovered .asso-pill-bugFocus { animation: asso-pulse-intense-red 0.8s ease-in-out infinite !important; }
+        .asso-pill-hovered .asso-pill-coding { animation: asso-pulse-intense-purple 0.8s ease-in-out infinite !important; }
+        .asso-pill-hovered .asso-pill-sleeping { animation: asso-pulse-intense-gray 0.8s ease-in-out infinite !important; }
+        .asso-pill-hovered .asso-pill-wink { animation: asso-pulse-intense-pink 0.8s ease-in-out infinite !important; }
       `}} />
     </>
   );

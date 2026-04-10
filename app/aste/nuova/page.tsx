@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import dynamic from 'next/dynamic';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -23,7 +24,9 @@ export const metadata = {
 export default function AsteNuovaPage() {
   return (
     <main className="min-h-screen bg-white">
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
       <ErrorBoundary>
         <AuctionCreatePage />
       </ErrorBoundary>

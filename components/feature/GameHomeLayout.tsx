@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { GameHeroSection } from '@/components/feature/GameHeroSection';
 import { FeaturesSection } from '@/components/feature/FeaturesSection';
@@ -16,7 +17,9 @@ interface GameHomeLayoutProps {
 export function GameHomeLayout({ gameSlug }: GameHomeLayoutProps) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-100 font-sans text-white transition-colors duration-300">
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
 
       <section className="w-full transition-colors duration-300">
         <GameHeroSection gameSlug={gameSlug} />

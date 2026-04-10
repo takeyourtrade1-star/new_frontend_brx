@@ -5,7 +5,7 @@
  * Carousel, categorie, sezione Stampa 3D in arrivo.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Printer, Package } from 'lucide-react';
@@ -54,7 +54,9 @@ export function EbartexBoutiquePage() {
 
   return (
     <main className="min-h-screen bg-[#F0F0F0]">
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
 
       <div className="container-content py-4">
         {/* Breadcrumb */}

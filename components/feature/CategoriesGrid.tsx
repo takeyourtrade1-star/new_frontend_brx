@@ -88,7 +88,7 @@ export function CategoriesGrid({
 
   return (
     <section className="w-full py-0 bg-transparent text-white transition-colors duration-300">
-      <ScrollMarquee label="L'EMPORIO DEL COLLEZIONISTA" />
+      <ScrollMarquee label="L'EMPORIO DEL COLLEZIONISTA" direction="left" />
       <div>
         <div className="relative mt-0 overflow-hidden rounded-none">
           {!useUnifiedBackground && (

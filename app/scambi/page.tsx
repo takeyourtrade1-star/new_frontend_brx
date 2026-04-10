@@ -18,7 +18,9 @@ const ScambiLandingPage = dynamic(
 function ScambiPageContent() {
   return (
     <>
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
       <ScambiLandingPage />
     </>
   );

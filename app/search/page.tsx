@@ -19,7 +19,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: '#193874' }}>
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
       <Suspense fallback={<SearchPageLoading />}>
         <SearchResults query={q} game={game} />
       </Suspense>

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { OggettiContent } from '@/components/feature/account/OggettiContent';
 
 export const metadata = {
@@ -6,5 +7,9 @@ export const metadata = {
 };
 
 export default function OggettiPage() {
-  return <OggettiContent />;
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Caricamento...</div>}>
+      <OggettiContent />
+    </Suspense>
+  );
 }

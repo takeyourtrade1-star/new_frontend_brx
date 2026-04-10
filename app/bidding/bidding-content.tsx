@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -13,7 +14,9 @@ function BiddingInner() {
 
   return (
     <main className="min-h-screen bg-white">
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
 
       <div className="container-content py-8">
         <Link

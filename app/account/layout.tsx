@@ -1,9 +1,11 @@
+import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { AccountShell } from '@/components/feature/account/AccountShell';
 
 export const metadata = {
   title: 'Account | Ebartex',
   description: 'Area personale e impostazioni account',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
 };
 
 export default function AccountLayout({
@@ -13,8 +15,14 @@ export default function AccountLayout({
 }) {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5F4F0' }}>
-      <Header />
-      <AccountShell>{children}</AccountShell>
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
+      <AccountShell>
+        <Suspense fallback={<div className="p-8 text-center">Caricamento...</div>}>
+          {children}
+        </Suspense>
+      </AccountShell>
     </div>
   );
 }

@@ -6,7 +6,12 @@ import { useState, useEffect } from 'react';
 const MARQUEE_BG = 'linear-gradient(180deg, #F3C76A 0%, #e5b85c 50%, #d4a84b 100%)';
 const SCROLL_TO_OFFSET_FACTOR = 0.18;
 
-export function ScrollMarquee({ label }: { label: string }) {
+interface ScrollMarqueeProps {
+  label: string;
+  direction?: 'left' | 'right';
+}
+
+export function ScrollMarquee({ label, direction = 'right' }: ScrollMarqueeProps) {
   const [offsetX, setOffsetX] = useState(0);
 
   useEffect(() => {
@@ -25,6 +30,14 @@ export function ScrollMarquee({ label }: { label: string }) {
     };
   }, []);
 
+  // Calculate transform based on direction
+  // Base is -50% to center the duplicated content
+  // Right: add offsetX (moves right as you scroll down)
+  // Left: subtract offsetX (moves left as you scroll down)
+  const transformValue = direction === 'right'
+    ? `translateX(calc(-50% + ${offsetX}px))`
+    : `translateX(calc(-50% - ${offsetX}px))`;
+
   return (
     <div
       className="relative flex w-full items-center overflow-hidden py-2.5 font-display"
@@ -33,7 +46,7 @@ export function ScrollMarquee({ label }: { label: string }) {
       <div
         className="flex w-max shrink-0 items-center gap-12 whitespace-nowrap text-lg font-bold uppercase tracking-wide md:gap-14 md:text-xl"
         style={{
-          transform: `translateX(calc(-50% + ${offsetX}px))`,
+          transform: transformValue,
           color: '#1a1a1a',
         }}
         aria-hidden

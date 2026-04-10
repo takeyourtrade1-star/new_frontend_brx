@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { ProductCategoryView } from './SinglesView';
 import { useGame } from '@/lib/contexts/GameContext';
@@ -17,7 +18,9 @@ export function ProductCategoryPageClient({ categorySlug }: ProductCategoryPageC
   if (!config) {
     return (
       <main className="min-h-screen bg-[#F0F0F0]">
-        <Header />
+        <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+          <Header />
+        </Suspense>
         <div className="container-content py-12 text-center">
           <h1 className="text-2xl font-bold text-gray-900">Categoria non trovata</h1>
           <p className="mt-2 text-gray-600">
@@ -32,7 +35,9 @@ export function ProductCategoryPageClient({ categorySlug }: ProductCategoryPageC
 
   return (
     <main className="min-h-screen bg-[#F0F0F0]">
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
       <ProductCategoryView
         game={selectedGame}
         title={config.title}

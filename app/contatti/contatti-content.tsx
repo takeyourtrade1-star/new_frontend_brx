@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { ChevronLeft, Mail, MessageCircle } from 'lucide-react';
@@ -10,7 +11,9 @@ export function ContattiContent() {
 
   return (
     <div className="min-h-screen font-sans text-white" style={{ backgroundColor: '#3D65C6' }}>
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
       <main className="mx-auto max-w-3xl px-4 py-10 md:py-14">
         <Link
           href="/"

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { AsteDetailView } from '@/components/feature/aste/AsteDetailView';
 
@@ -12,7 +13,9 @@ export default async function AsteDetailPage({ params }: Props) {
   const { id } = await params;
   return (
     <main className="min-h-screen bg-white">
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
       <AsteDetailView auctionId={id} />
     </main>
   );

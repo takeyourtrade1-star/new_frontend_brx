@@ -1,6 +1,9 @@
-import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
+import dynamicImport from 'next/dynamic';
 
-const SicurezzaContent = dynamic(
+export const dynamic = 'force-dynamic';
+
+const SicurezzaContent = dynamicImport(
   () => import('@/components/feature/account/SicurezzaContent').then((mod) => ({ default: mod.SicurezzaContent })),
   {
     loading: () => (
@@ -19,5 +22,9 @@ export const metadata = {
 };
 
 export default function SicurezzaPage() {
-  return <SicurezzaContent />;
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Caricamento...</div>}>
+      <SicurezzaContent />
+    </Suspense>
+  );
 }
