@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { IndirizziContent } from '@/components/feature/account/IndirizziContent';
-import { PrestoInArrivoBanner } from '@/components/feature/account/PrestoInArrivoBanner';
 
 export const metadata = {
   title: 'Indirizzi | Account | Ebartex',
@@ -10,7 +9,6 @@ export const metadata = {
 export default function IndirizziPage() {
   return (
     <Suspense fallback={<div className="p-8 text-center">Caricamento...</div>}>
-      <PrestoInArrivoBanner />
       <div className="pointer-events-none opacity-60">
         <IndirizziContent />
       </div>

@@ -1025,17 +1025,17 @@ function OggettiTable({
                         <div className="mt-1 flex flex-wrap gap-1">
                           {hasFoil && (
                             <span className="rounded-full bg-amber-500/20 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-700 border border-amber-500/30">
-                              Foil
+                              {t('accountPage.itemsBadgeFoil')}
                             </span>
                           )}
                           {isSigned && (
                             <span className="rounded-full bg-purple-500/20 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-bold uppercase text-purple-700 border border-purple-500/30">
-                              Signed
+                              {t('accountPage.itemsBadgeSigned')}
                             </span>
                           )}
                           {isGraded && (
                             <span className="rounded-full bg-blue-500/20 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-700 border border-blue-500/30">
-                              Graded
+                              {t('accountPage.itemsBadgeGraded')}
                             </span>
                           )}
                         </div>
@@ -1155,7 +1155,7 @@ function OggettiTable({
                 <h2 id="purchase-modal-title" className="text-lg font-bold text-gray-900">
                   {t('accountPage.itemsCart')}
                 </h2>
-                <p className="text-xs text-gray-500">CardTrader sync</p>
+                <p className="text-xs text-gray-500">{t('accountPage.itemsSyncActive')}</p>
               </div>
             </div>
 
@@ -1869,7 +1869,7 @@ export function OggettiContent() {
             className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
-            Esporta
+            {t('accountPage.itemsExport')}
           </button>
         </div>
       </div>
@@ -1974,7 +1974,7 @@ export function OggettiContent() {
 
           {/* Right: View Toggle - Standardized orange glass style */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">Vista</span>
+            <span className="text-xs text-gray-400">{t('account.itemsViewTableLabel')}</span>
             <div className="flex rounded-lg bg-gray-100 p-1">
               <button
                 type="button"
@@ -1986,7 +1986,7 @@ export function OggettiContent() {
                 }`}
               >
                 <List className="h-4 w-4" />
-                Lista
+                {t('account.itemsViewListLabel')}
               </button>
               <button
                 type="button"
@@ -1998,7 +1998,7 @@ export function OggettiContent() {
                 }`}
               >
                 <Grid3X3 className="h-4 w-4" />
-                Cards
+                {t('account.itemsViewCardsLabel')}
               </button>
             </div>
           </div>
@@ -2033,7 +2033,7 @@ export function OggettiContent() {
           <p className="text-gray-500">
             {filteredInventoryItems.length.toLocaleString()} {t('accountPage.itemsOf')} {total.toLocaleString()} {cardWord}
             {inventorySearchQuery.trim() && (
-              <span className="ml-1 text-gray-400">(filtro: "{inventorySearchQuery}")</span>
+              <span className="ml-1 text-gray-400">(filtro: &quot;{inventorySearchQuery}&quot;)</span>
             )}
           </p>
         </div>

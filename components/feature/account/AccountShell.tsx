@@ -232,7 +232,7 @@ function AccountNavMobile() {
             'absolute left-2 top-1/2 z-40 -translate-y-1/2 transition-all duration-300',
             canScrollLeft ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none'
           )}
-          aria-label="Scorri a sinistra"
+          aria-label={t('account.shellScrollLeft')}
           type="button"
         >
           <div className="flex h-7 w-7 items-center justify-center rounded-full border border-primary/45 bg-primary/60 shadow-lg ring-1 ring-white/20 backdrop-blur-2xl backdrop-saturate-150 transition-transform hover:scale-110 active:scale-95">
@@ -272,7 +272,7 @@ function AccountNavMobile() {
             'absolute right-2 top-1/2 z-40 -translate-y-1/2 transition-all duration-300',
             canScrollRight ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2 pointer-events-none'
           )}
-          aria-label="Scorri a destra"
+          aria-label={t('account.shellScrollRight')}
           type="button"
         >
           <div className="flex h-7 w-7 items-center justify-center rounded-full border border-primary/45 bg-primary/60 shadow-lg ring-1 ring-white/20 backdrop-blur-2xl backdrop-saturate-150 transition-transform hover:scale-110 active:scale-95">

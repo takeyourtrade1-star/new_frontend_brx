@@ -236,8 +236,8 @@ export function SicurezzaContent() {
                           <Smartphone className="h-6 w-6 text-white" />
                         </div>
                         <div>
-                          <p className="font-semibold text-[#1D1D1F]">Google Authenticator</p>
-                          <p className="text-xs text-[#86868B]">Android & iOS</p>
+                          <p className="font-semibold text-[#1D1D1F]">{t('account.securityGoogleAuth')}</p>
+                          <p className="text-xs text-[#86868B]">{t('account.securityGoogleAuthDesc')}</p>
                         </div>
                       </a>
                       <a
@@ -250,8 +250,8 @@ export function SicurezzaContent() {
                           <Smartphone className="h-6 w-6 text-white" />
                         </div>
                         <div>
-                          <p className="font-semibold text-[#1D1D1F]">Authy</p>
-                          <p className="text-xs text-[#86868B]">Android & iOS</p>
+                          <p className="font-semibold text-[#1D1D1F]">{t('account.securityAuthy')}</p>
+                          <p className="text-xs text-[#86868B]">{t('account.securityAuthyDesc')}</p>
                         </div>
                       </a>
                     </div>
@@ -415,7 +415,7 @@ export function SicurezzaContent() {
               </h2>
 
               <p className="text-sm text-[#86868B]">
-                Per disattivare MFA, inserisci la tua password di conferma.
+                {t('account.securityDisableDesc')}
               </p>
 
               {disableError && <ErrorMessage message={disableError} />}
@@ -426,13 +426,13 @@ export function SicurezzaContent() {
                     htmlFor="password"
                     className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#86868B]"
                   >
-                    Password
+                    {t('account.securityPassword')}
                   </label>
                   <Input
                     id="password"
                     type="password"
                     autoComplete="current-password"
-                    placeholder="Inserisci la tua password"
+                    placeholder={t('account.securityPasswordPlaceholder')}
                     className="h-12 rounded-[14px] bg-[#F2F2F7] border border-black/5 focus-visible:ring-2 focus-visible:ring-[#FF7300]"
                     disabled={disableMFAMutation.isPending}
                     {...registerDisable('password')}

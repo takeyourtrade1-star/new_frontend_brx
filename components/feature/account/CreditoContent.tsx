@@ -118,7 +118,7 @@ export function CreditoContent() {
           <PaymentCard
             highlighted
             icon={
-              <Image src={ICONS.paypal} alt="PayPal" width={48} height={48} className="h-10 w-auto object-contain" unoptimized />
+              <Image src={ICONS.paypal} alt={t('account.creditAltPaypal')} width={48} height={48} className="h-10 w-auto object-contain" unoptimized />
             }
             label={t('accountPage.creditPaypal')}
             description={t('accountPage.creditPaypalDesc')}

@@ -409,9 +409,9 @@ export function SincronizzazioneContent() {
       )}
 
       {currentStep === 1 && (
-        <Card title="Step 1 - Collega CardTrader">
+        <Card title={t('account.syncStep1Title')}>
           <p className="mb-4 text-sm text-gray-600">
-            Inserisci il token API CardTrader per attivare l’integrazione.
+            {t('account.syncStep1Text')}
           </p>
           <div className="flex flex-wrap gap-3">
             <Input
@@ -435,7 +435,7 @@ export function SincronizzazioneContent() {
       )}
 
       {currentStep === 2 && (
-        <Card title="Step 2 - Configura Webhook">
+        <Card title={t('account.syncStep2Title')}>
           {loadingWebhook ? (
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -444,7 +444,7 @@ export function SincronizzazioneContent() {
           ) : webhookData ? (
             <>
               <p className="mb-3 text-sm text-gray-600">
-                Copia l’URL e inseriscilo su CardTrader. Al momento sincronizziamo solo Magic: The Gathering.
+                {t('account.syncStep2Text')}
               </p>
               <div className="mb-3 flex gap-2">
                 <Input
@@ -488,7 +488,7 @@ export function SincronizzazioneContent() {
               </p>
               {!webhookSecretReady && (
                 <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                  Configura il secret su CardTrader per procedere allo step successivo.
+                  {t('account.syncStep3Text')}
                 </p>
               )}
             </>
@@ -499,9 +499,9 @@ export function SincronizzazioneContent() {
       )}
 
       {currentStep === 3 && (
-        <Card title="Step 3 - Avvia sincronizzazione">
+        <Card title={t('account.syncStep4Title')}>
           <p className="mb-4 text-sm text-gray-600">
-            Avvia la sincronizzazione iniziale. Ti mostreremo avanzamento e risultato nel prossimo step.
+            {t('account.syncStep4Text')}
           </p>
           <div className="flex flex-wrap items-center gap-4">
             <Button
@@ -514,7 +514,7 @@ export function SincronizzazioneContent() {
               {t('accountPage.syncStartFull')}
             </Button>
             {!canStartSync && (
-              <span className="text-sm text-gray-500">Verifica prima token, webhook e secret configurato.</span>
+              <span className="text-sm text-gray-500">{t('account.syncVerifyFirst')}</span>
             )}
           </div>
           {loadingStart && (
@@ -524,7 +524,7 @@ export function SincronizzazioneContent() {
       )}
 
       {currentStep === 4 && (
-        <Card title="Step 4 - Stato sincronizzazione">
+        <Card title={t('account.syncStep4TitleAlt')}>
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <Button
               type="button"
@@ -596,7 +596,7 @@ export function SincronizzazioneContent() {
                   href="/account/oggetti"
                   className="inline-flex items-center rounded-md bg-[#FF7300] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e66a00]"
                 >
-                  Vedi ora il mio inventario
+                  {t('account.syncViewInventory')}
                 </Link>
               </div>
             </div>
