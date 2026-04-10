@@ -1670,7 +1670,7 @@ export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOp
             indexName={MEILISEARCH.indexName}
             future={{ preserveSharedStateOnUnmount: true }}
           >
-            <Configure filters={allFilters?.join(' AND ')} hitsPerPage={8} />
+            <Configure {...({ filter: allFilters?.join(' AND '), hitsPerPage: 8 } as any)} />
             <SearchWithInstantSearch
               selectedGame={selectedGame}
               productCategory={productCategory}
