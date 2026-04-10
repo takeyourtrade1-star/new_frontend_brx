@@ -518,7 +518,7 @@ function AiutoContentInner() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary">•</span>
-                      Per bug tecnici, usa il form "Segnala Bug"
+                      Per bug tecnici, usa il form &quot;Segnala Bug&quot;
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary">•</span>
@@ -526,7 +526,7 @@ function AiutoContentInner() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-primary">•</span>
-                      Per ordini, allega il numero d'ordine
+                      Per ordini, allega il numero d&apos;ordine
                     </li>
                   </ul>
                 </CardContent>

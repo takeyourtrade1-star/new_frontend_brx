@@ -34,14 +34,6 @@ export default function TestImagesPage() {
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  if (!isDev) {
-    return (
-      <main className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-500 text-sm">Pagina non disponibile.</p>
-      </main>
-    );
-  }
-
   const checkImage = useCallback((url: string) => {
     const img = new Image();
     img.onload = () => {
@@ -121,6 +113,14 @@ export default function TestImagesPage() {
     const url = buildImageUrl(baseUrl, mockFilename);
     runTest(url);
   };
+
+  if (!isDev) {
+    return (
+      <main className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <p className="text-gray-500 text-sm">Pagina non disponibile.</p>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gray-100 p-6">
