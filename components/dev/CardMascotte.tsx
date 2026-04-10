@@ -1350,14 +1350,14 @@ export function CardMascotte() {
       id: 'scambi',
       text: 'Lo sai cosa ci rende unici? Poter scambiare sulla piattaforma!',
       route: '/account/scambi',
-      gradient: 'linear-gradient(135deg, #FF7300 0%, #FF9A40 50%, #FFB366 100%)',
+      gradient: 'linear-gradient(135deg, #059669 0%, #10B981 50%, #34D399 100%)',
       icon: 'swap',
     },
     {
       id: 'aste',
       text: 'Vuoi guadagnare di più dalle vendite? Perché non provi le Aste?',
       route: '/aste',
-      gradient: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 50%, #C4B5FD 100%)',
+      gradient: 'linear-gradient(135deg, #0891B2 0%, #06B6D4 50%, #22D3EE 100%)',
       icon: 'auction',
     },
   ], []);
