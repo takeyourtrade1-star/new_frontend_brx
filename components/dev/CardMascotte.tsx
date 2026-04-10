@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare, ArrowRight, Sparkles } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { CardLoader } from '@/components/dev/CardLoader';
 
@@ -239,6 +240,9 @@ export function CardMascotte() {
   // Hint bubble visibility + message rotation
   const [showHint, setShowHint] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
+  const [isPromoHint, setIsPromoHint] = useState(false);
+  const [promoHintIndex, setPromoHintIndex] = useState(0);
+  const [sleepPromoIndex, setSleepPromoIndex] = useState(0); // Cycles through promos during sleep
 
   // Mascotte expression state
   const [mascotteExpression, setMascotteExpression] = useState<'normal' | 'bugReport' | 'bugFocus' | 'wink' | 'coding' | 'sleeping'>('normal');
@@ -246,6 +250,7 @@ export function CardMascotte() {
   // Sleep mode state - triggered after 15s of mouse inactivity
   const [isSleeping, setIsSleeping] = useState(false);
   const isSleepingRef = useRef(false); // Ref to track sleeping state without re-triggering effect
+  const sleepPromoIntervalRef = useRef<number | null>(null); // For cycling promos during sleep
   const [isSleepMuted, setIsSleepMuted] = useState(() => {
     // Load mute preference from localStorage
     if (typeof window !== 'undefined') {
@@ -1331,41 +1336,87 @@ export function CardMascotte() {
     };
   }, [isExternalModalOpen]);
 
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Regular hint messages
   const hintMessages = useMemo(() => [
-    'Visto un bug? Dimmelo',
-    'Qualcosa non va? 🐛',
-    'Cliccami per segnalare',
-    'Serve aiuto?',
+    'Segnalami un bug!',
   ], []);
 
+  // Promotional hints - more visible with special effects
+  const promoHints = useMemo(() => [
+    {
+      id: 'scambi',
+      text: 'Lo sai cosa ci rende unici? Poter scambiare sulla piattaforma!',
+      route: '/account/scambi',
+      gradient: 'linear-gradient(135deg, #FF7300 0%, #FF9A40 50%, #FFB366 100%)',
+      icon: 'swap',
+    },
+    {
+      id: 'aste',
+      text: 'Vuoi guadagnare di più dalle vendite? Perché non provi le Aste?',
+      route: '/aste',
+      gradient: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 50%, #C4B5FD 100%)',
+      icon: 'auction',
+    },
+  ], []);
+
+  // Filter promos to exclude current page (smart rotation)
+  const activePromoHints = useMemo(() => {
+    if (!pathname) return promoHints;
+    return promoHints.filter(promo => !pathname.startsWith(promo.route));
+  }, [pathname, promoHints]);
+
   // Cycle hint bubble: show briefly, hide, repeat with rotating messages
+  // Promotional hints appear frequently (every 2nd hint = 50% of the time)
   useEffect(() => {
-    const INITIAL_DELAY = 3000;
-    const SHOW_DURATION = 4000;
-    const HIDE_DURATION = 25000;
+    const INITIAL_DELAY = 1500; // Very fast first appearance
+    const REGULAR_SHOW_DURATION = 3000; // Brief display
+    const PROMO_SHOW_DURATION = 4500; // Brief but noticeable
+    const HIDE_DURATION = 6000; // Very short hide = almost continuous
+    const PROMO_FREQUENCY = 2; // Every 2nd hint is promotional (more frequent)
+
     let showTimer: number;
     let hideTimer: number;
+    let hintCounter = 0;
+
     const show = () => {
-      setHintIndex(prev => (prev + 1) % hintMessages.length);
+      hintCounter++;
+      // Only show promo if it's promo time AND there are active promos available
+      const shouldShowPromo = hintCounter % PROMO_FREQUENCY === 0 && activePromoHints.length > 0;
+
+      if (shouldShowPromo) {
+        setIsPromoHint(true);
+        setPromoHintIndex(prev => (prev + 1) % activePromoHints.length);
+      } else {
+        setIsPromoHint(false);
+        setHintIndex(prev => (prev + 1) % hintMessages.length);
+      }
+
       setShowHint(true);
+      const showDuration = shouldShowPromo ? PROMO_SHOW_DURATION : REGULAR_SHOW_DURATION;
+
       hideTimer = window.setTimeout(() => {
         setShowHint(false);
         showTimer = window.setTimeout(show, HIDE_DURATION);
-      }, SHOW_DURATION);
+      }, showDuration);
     };
+
     const initialTimer = window.setTimeout(() => {
       setShowHint(true);
       hideTimer = window.setTimeout(() => {
         setShowHint(false);
         showTimer = window.setTimeout(show, HIDE_DURATION);
-      }, SHOW_DURATION);
+      }, REGULAR_SHOW_DURATION);
     }, INITIAL_DELAY);
+
     return () => {
       window.clearTimeout(initialTimer);
       window.clearTimeout(showTimer);
       window.clearTimeout(hideTimer);
     };
-  }, [hintMessages.length]);
+  }, [hintMessages.length, activePromoHints.length]);
 
   // Listen for sticky bar visibility changes
   useEffect(() => {
@@ -1376,6 +1427,31 @@ export function CardMascotte() {
     window.addEventListener('stickyBarVisibilityChange' as any, handleStickyBarShow as any);
     return () => window.removeEventListener('stickyBarVisibilityChange' as any, handleStickyBarShow as any);
   }, []);
+
+  // Cycle promo messages during sleep - dreamy rotation
+  useEffect(() => {
+    if (isSleeping && activePromoHints.length > 0) {
+      // Clear any existing interval
+      if (sleepPromoIntervalRef.current) {
+        window.clearInterval(sleepPromoIntervalRef.current);
+      }
+      // Start cycling through promos every 4 seconds
+      sleepPromoIntervalRef.current = window.setInterval(() => {
+        setSleepPromoIndex(prev => (prev + 1) % activePromoHints.length);
+      }, 4000);
+    } else {
+      // Clear interval when not sleeping
+      if (sleepPromoIntervalRef.current) {
+        window.clearInterval(sleepPromoIntervalRef.current);
+        sleepPromoIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (sleepPromoIntervalRef.current) {
+        window.clearInterval(sleepPromoIntervalRef.current);
+      }
+    };
+  }, [isSleeping, activePromoHints.length]);
 
   const isOverlayVisible = showChatModal || isModalOpen || isCodingTransition || showCodingCompanion || isExternalModalOpen;
 
@@ -1550,44 +1626,208 @@ export function CardMascotte() {
         </div>
       )}
 
-      {/* Hint Bubble — minimal, periodic, centered on mascot, hidden on mobile */}
-      <div
-        className="fixed pointer-events-none hidden sm:flex justify-center"
-        style={{
-          zIndex: Z_INDEX.tooltip,
-          bottom: isStickyBarVisible ? '210px' : '154px',
-          right: '48px',
-          width: '96px',
-          opacity: showHint && !isModalOpen ? 1 : 0,
-          transform: showHint && !isModalOpen ? 'translateY(0) scale(1)' : 'translateY(4px) scale(0.92)',
-          transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease, transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-        }}
-      >
+      {/* Hint Bubble — minimal for regular, premium animated for promos, dreamy for sleep */}
+      {isSleeping && !isModalOpen ? (
+        // Sleep mode - dreamy promo that cycles and stays visible
         <div
-          className="relative whitespace-nowrap rounded-md px-2 py-1 text-center backdrop-blur-sm"
+          className="fixed hidden sm:flex flex-col items-center cursor-pointer group"
+          onClick={() => {
+            const promo = activePromoHints[sleepPromoIndex];
+            if (promo) {
+              router.push(promo.route);
+            }
+          }}
           style={{
-            fontSize: '9.5px',
-            fontWeight: 500,
-            letterSpacing: '0.01em',
-            color: 'rgba(255,255,255,0.9)',
-            background: 'rgba(30,20,10,0.65)',
-            border: '1px solid rgba(255,180,100,0.15)',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+            zIndex: Z_INDEX.tooltip,
+            bottom: isStickyBarVisible ? '210px' : '154px',
+            right: '24px',
+            width: '220px',
+            opacity: 1,
+            transform: 'translateY(0) scale(1)',
+            transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+            pointerEvents: 'auto',
           }}
         >
-          {hintMessages[hintIndex]}
-          <span
-            className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
+          {/* Soft dreamy glow */}
+          <div
+            className="absolute inset-0 rounded-xl blur-xl opacity-50"
             style={{
-              width: '6px',
-              height: '6px',
-              background: 'rgba(30,20,10,0.65)',
-              borderBottom: '1px solid rgba(255,180,100,0.15)',
-              borderRight: '1px solid rgba(255,180,100,0.15)',
+              background: 'linear-gradient(135deg, #8B5CF6 0%, #C4B5FD 50%, #A78BFA 100%)',
+              animation: 'sleepGlow 3s ease-in-out infinite',
             }}
           />
+          {/* Main bubble - dreamy styling */}
+          <div
+            className="relative rounded-xl px-4 py-3 text-center backdrop-blur-md overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(167, 139, 250, 0.85) 50%, rgba(196, 181, 253, 0.8) 100%)',
+              border: '2px solid rgba(255,255,255,0.4)',
+              boxShadow: '0 8px 32px rgba(139, 92, 246, 0.4), 0 4px 16px rgba(0,0,0,0.15), 0 0 20px rgba(196, 181, 253, 0.3)',
+              animation: 'sleepFloat 4s ease-in-out infinite',
+            }}
+          >
+            {/* Soft shine */}
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                animation: 'sleepShine 4s ease-in-out infinite',
+              }}
+            />
+            {/* Sleep emoji indicator */}
+            <span className="absolute -top-1 -left-1 text-lg" style={{ animation: 'sleepTwinkle 2s ease-in-out infinite' }}>💤</span>
+            {/* Text content - cycles between promos */}
+            <p
+              className="relative text-white font-semibold leading-tight"
+              style={{
+                fontSize: '11px',
+                textShadow: '0 1px 2px rgba(0,0,0,0.15)',
+              }}
+            >
+              {activePromoHints[sleepPromoIndex]?.text}
+            </p>
+            {/* CTA - softer */}
+            <div className="flex items-center justify-center gap-1 mt-2">
+              <span className="text-[9px] text-white/80 font-medium">Scopri nel sogno</span>
+              <ArrowRight className="w-3 h-3 text-white/80 group-hover:translate-x-1 transition-transform" />
+            </div>
+            {/* Arrow pointer */}
+            <span
+              className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
+              style={{
+                width: '10px',
+                height: '10px',
+                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(167, 139, 250, 0.85) 100%)',
+                borderBottom: '2px solid rgba(255,255,255,0.4)',
+                borderRight: '2px solid rgba(255,255,255,0.4)',
+              }}
+            />
+          </div>
         </div>
-      </div>
+      ) : isPromoHint ? (
+        // Premium promotional hint with effects
+        <div
+          className="fixed hidden sm:flex flex-col items-center cursor-pointer group"
+          onClick={() => {
+            const promo = activePromoHints[promoHintIndex];
+            if (promo) {
+              router.push(promo.route);
+            }
+          }}
+          style={{
+            zIndex: Z_INDEX.tooltip,
+            bottom: isStickyBarVisible ? '210px' : '154px',
+            right: '24px',
+            width: '220px',
+            opacity: showHint && !isModalOpen ? 1 : 0,
+            transform: showHint && !isModalOpen ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.9)',
+            transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 500ms ease, transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+            pointerEvents: showHint && !isModalOpen ? 'auto' : 'none',
+          }}
+        >
+          {/* Animated glow background */}
+          <div
+            className="absolute inset-0 rounded-xl blur-xl opacity-60"
+            style={{
+              background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #FF7300 0%, #FF9A40 100%)',
+              animation: 'promoPulse 2s ease-in-out infinite',
+            }}
+          />
+          {/* Main bubble */}
+          <div
+            className="relative rounded-xl px-4 py-3 text-center backdrop-blur-md overflow-hidden"
+            style={{
+              background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #FF7300 0%, #FF9A40 100%)',
+              border: '2px solid rgba(255,255,255,0.3)',
+              boxShadow: '0 8px 32px rgba(255,115,0,0.4), 0 4px 16px rgba(0,0,0,0.2)',
+              animation: 'promoFloat 3s ease-in-out infinite',
+            }}
+          >
+            {/* Shine effect */}
+            <div
+              className="absolute inset-0 opacity-30"
+              style={{
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+                animation: 'promoShine 2.5s ease-in-out infinite',
+              }}
+            />
+            {/* Sparkles */}
+            <Sparkles
+              className="absolute -top-1 -right-1 w-4 h-4 text-white/80"
+              style={{ animation: 'promoSparkle 1.5s ease-in-out infinite' }}
+            />
+            <Sparkles
+              className="absolute -bottom-1 -left-1 w-3 h-3 text-white/60"
+              style={{ animation: 'promoSparkle 1.8s ease-in-out infinite 0.3s' }}
+            />
+            {/* Text content */}
+            <p
+              className="relative text-white font-semibold leading-tight"
+              style={{
+                fontSize: '11px',
+                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+              }}
+            >
+              {activePromoHints[promoHintIndex]?.text}
+            </p>
+            {/* CTA arrow */}
+            <div className="flex items-center justify-center gap-1 mt-2">
+              <span className="text-[9px] text-white/90 font-medium">Scopri di più</span>
+              <ArrowRight className="w-3 h-3 text-white/90 group-hover:translate-x-1 transition-transform" />
+            </div>
+            {/* Arrow pointer */}
+            <span
+              className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
+              style={{
+                width: '10px',
+                height: '10px',
+                background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #FF7300 0%, #FF9A40 100%)',
+                borderBottom: '2px solid rgba(255,255,255,0.3)',
+                borderRight: '2px solid rgba(255,255,255,0.3)',
+              }}
+            />
+          </div>
+        </div>
+      ) : (
+        // Regular hint bubble
+        <div
+          className="fixed pointer-events-none hidden sm:flex justify-center"
+          style={{
+            zIndex: Z_INDEX.tooltip,
+            bottom: isStickyBarVisible ? '210px' : '154px',
+            right: '48px',
+            width: '96px',
+            opacity: showHint && !isModalOpen ? 1 : 0,
+            transform: showHint && !isModalOpen ? 'translateY(0) scale(1)' : 'translateY(4px) scale(0.92)',
+            transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease, transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+          }}
+        >
+          <div
+            className="relative whitespace-nowrap rounded-md px-2 py-1 text-center backdrop-blur-sm"
+            style={{
+              fontSize: '9.5px',
+              fontWeight: 500,
+              letterSpacing: '0.01em',
+              color: 'rgba(255,255,255,0.9)',
+              background: 'rgba(30,20,10,0.65)',
+              border: '1px solid rgba(255,180,100,0.15)',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+            }}
+          >
+            {hintMessages[hintIndex]}
+            <span
+              className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
+              style={{
+                width: '6px',
+                height: '6px',
+                background: 'rgba(30,20,10,0.65)',
+                borderBottom: '1px solid rgba(255,180,100,0.15)',
+                borderRight: '1px solid rgba(255,180,100,0.15)',
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Unlock Notification */}
       {newUnlock && (
@@ -1942,15 +2182,6 @@ export function CardMascotte() {
                 borderRadius: '9999px',
               }}
             >
-              {/* Shimmer overlay */}
-              <div
-                className="pointer-events-none absolute inset-0 rounded-full"
-                style={{
-                  background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)',
-                  transform: 'translateX(-100%)',
-                  animation: 'asso-shimmer 2.5s ease-in-out infinite',
-                }}
-              />
               <span
                 className="font-comodo text-[7.5px] font-bold leading-none"
                 style={{
@@ -1982,6 +2213,7 @@ export function CardMascotte() {
                 ? `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2 - 2}px) rotate(-2deg)`
                 : `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2}px)`,
               opacity: mascotteExpression === 'sleeping' ? 0.85 : 1,
+              filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.9)) drop-shadow(0 0 4px rgba(255,255,255,0.6))',
             }}
             dangerouslySetInnerHTML={{
               __html: mascotteExpression === 'bugFocus' ? faceBugFocusSVG :
@@ -2317,7 +2549,7 @@ export function CardMascotte() {
                     placeholder="https://..."
                     className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
-                  <p className="mt-1 text-xs text-gray-500">L'URL ci aiuta a identificare esattamente dove si è verificato il problema.</p>
+                  <p className="mt-1 text-xs text-gray-500">L&apos;URL ci aiuta a identificare esattamente dove si è verificato il problema.</p>
                 </div>
 
                 {/* Screenshot preview */}
@@ -2582,7 +2814,7 @@ export function CardMascotte() {
             {/* Footer - Clean */}
             <div className="border-t border-zinc-200 bg-white px-4 py-3">
               <p className="text-center text-xs text-zinc-400">
-                Asso è qui per aiutarti. Scegli un'opzione sopra.
+                Asso è qui per aiutarti. Scegli un&apos;opzione sopra.
               </p>
             </div>
           </div>
@@ -2920,10 +3152,6 @@ export function CardMascotte() {
           0%, 100% { box-shadow: 0 -1px 4px rgba(0,0,0,0.15), inset 0 -1px 0 rgba(255,255,255,0.25); }
           50% { box-shadow: 0 -1px 6px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(255,255,255,0.35), 0 0 8px rgba(255,255,255,0.2); }
         }
-        @keyframes asso-shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
         @keyframes asso-pulse-intense-orange {
           0%, 100% { box-shadow: 0 -1px 6px rgba(255,100,0,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(255,154,64,0.5); }
           50% { box-shadow: 0 -1px 10px rgba(255,100,0,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(255,154,64,0.7), 0 0 24px rgba(255,115,0,0.3); }
@@ -2962,6 +3190,46 @@ export function CardMascotte() {
         .asso-pill-hovered .asso-pill-coding { animation: asso-pulse-intense-purple 0.8s ease-in-out infinite !important; }
         .asso-pill-hovered .asso-pill-sleeping { animation: asso-pulse-intense-gray 0.8s ease-in-out infinite !important; }
         .asso-pill-hovered .asso-pill-wink { animation: asso-pulse-intense-pink 0.8s ease-in-out infinite !important; }
+        /* Promotional hint premium animations */
+        @keyframes promoPulse {
+          0%, 100% { opacity: 0.5; transform: scale(0.98); }
+          50% { opacity: 0.8; transform: scale(1.02); }
+        }
+        @keyframes promoFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        @keyframes promoShine {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes promoSparkle {
+          0%, 100% { opacity: 0.6; transform: scale(0.9) rotate(0deg); }
+          50% { opacity: 1; transform: scale(1.1) rotate(15deg); }
+        }
+        @keyframes promoGlow {
+          0%, 100% { box-shadow: 0 8px 32px rgba(255,115,0,0.4), 0 4px 16px rgba(0,0,0,0.2); }
+          50% { box-shadow: 0 12px 40px rgba(255,115,0,0.6), 0 6px 20px rgba(0,0,0,0.25), 0 0 30px rgba(255,154,64,0.3); }
+        }
+        /* Sleep mode dreamy animations */
+        @keyframes sleepGlow {
+          0%, 100% { opacity: 0.4; transform: scale(0.98); }
+          50% { opacity: 0.7; transform: scale(1.03); }
+        }
+        @keyframes sleepFloat {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          25% { transform: translateY(-4px) rotate(0.5deg); }
+          75% { transform: translateY(-2px) rotate(-0.5deg); }
+        }
+        @keyframes sleepShine {
+          0% { transform: translateX(-100%); opacity: 0; }
+          50% { opacity: 0.3; }
+          100% { transform: translateX(100%); opacity: 0; }
+        }
+        @keyframes sleepTwinkle {
+          0%, 100% { opacity: 0.5; transform: scale(0.9); }
+          50% { opacity: 1; transform: scale(1.1); }
+        }
       `}} />
     </>
   );

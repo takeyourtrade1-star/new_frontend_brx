@@ -49,7 +49,7 @@ export default function DemoExplanationPage() {
               </h1>
 
               <p className="mt-4 text-sm leading-relaxed text-gray-700/90">
-                Qui puoi esplorare la piattaforma e farti un'idea di come funzioneranno aste,
+                Qui puoi esplorare la piattaforma e farti un&apos;idea di come funzioneranno aste,
                 acquisti e gestione del tuo account. Tutto è in fase di sviluppo e potresti
                 incontrare bug, rallentamenti o altre piccole imperfezioni.
               </p>

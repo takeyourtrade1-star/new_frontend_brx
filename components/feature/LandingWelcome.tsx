@@ -1,88 +1,50 @@
 'use client';
 
-
-
-import React, { useRef, useEffect } from 'react';
-
+import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import Image from 'next/image';
-
 import Link from 'next/link';
-
-import { Tag, RefreshCw, Gavel, CircleDollarSign, ShieldCheck, ArrowRightLeft, Scale, Package, TrendingUp, X, Mail, CheckCircle2, ArrowLeft, Sparkles, BellRing, Users } from 'lucide-react';
-
+import {
+  Tag, RefreshCw, Gavel, CircleDollarSign, ShieldCheck,
+  ArrowRightLeft, Scale, Package, TrendingUp, X, Mail,
+  CheckCircle2, ArrowLeft, BellRing, Users,
+} from 'lucide-react';
 import { getCdnImageUrl, getCdnVideoUrl } from '@/lib/config';
-
 import { useGame } from '@/lib/contexts/GameContext';
-
 import type { GameSlug } from '@/lib/contexts/GameContext';
-
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useAuth } from '@/lib/hooks/use-auth';
 
-
-
-const BRAND_ORANGE = '#FF7300';
-
-const REGISTER_BTN_BORDER = '#878787';
-
-
+/* ═══════════════════════════════════════════════════════════
+   CONSTANTS
+   ═══════════════════════════════════════════════════════════ */
 
 const LANDING_BG_VIDEO = 'videos/sfondo_carte.mp4';
 
-
-
-const FEATURE_ICONS: Record<string, React.FC<any>> = {
-
-  prezzi: CircleDollarSign,
-
-  sicuro: ShieldCheck,
-
-  gestione: ArrowRightLeft,
-
-  domanda: Scale,
-
-  vendite: Package,
-
-  commissioni: TrendingUp,
-
-};
-
-
-
 type LandingGameSlug = GameSlug | 'clear';
 
+const FEATURE_ICONS: Record<string, React.FC<any>> = {
+  prezzi: CircleDollarSign,
+  sicuro: ShieldCheck,
+  gestione: ArrowRightLeft,
+  domanda: Scale,
+  vendite: Package,
+  commissioni: TrendingUp,
+};
 
-
-/** Giochi principali: Solo Magic (ora a tutta larghezza) */
-
+/* ─── Games ─── */
 const getMainGames = (): {
-
   src: string;
-
   alt: string;
-
   homeHref: string;
-
   gameSlug: LandingGameSlug;
-
 }[] => [
-
   {
-
     src: getCdnImageUrl('loghi-giochi/magic.png'),
-
     alt: 'Magic The Gathering',
-
     homeHref: '/home/magic',
-
     gameSlug: 'mtg',
-
   },
-
 ];
-
-
-
-/** Giochi in arrivo (bolle a destra di Magic) */
 
 const GAME_FULLSCREEN_IMAGES: Record<string, string> = {
   'Pokémon Trading Card Game': '/landing-giochi-bg/pokemon.png',
@@ -122,34 +84,7 @@ const getComingSoonGames = (): {
   },
 ];
 
-/** Bolle caratteristiche del sito (a sinistra di Magic) */
-const FEATURE_BUBBLES: { id: string; label: string; icon: React.FC<any>; color: string }[] = [
-  { id: 'scambi', label: 'Scambi', icon: ArrowRightLeft, color: 'rgba(56,189,248,0.25)' },
-  { id: 'aste', label: 'Aste', icon: Gavel, color: 'rgba(251,146,60,0.25)' },
-  { id: 'vendita', label: 'Vendita', icon: Tag, color: 'rgba(74,222,128,0.25)' },
-  { id: 'acquisti', label: 'Acquisti', icon: Package, color: 'rgba(167,139,250,0.25)' },
-  { id: 'boutique', label: 'Boutique', icon: Sparkles, color: 'rgba(251,191,36,0.25)' },
-];
-
-/** Dimensioni e offset per le bolle — spostate verso l'esterno, lontano dal centro */
-const BUBBLE_SIZES_RIGHT = [
-  { w: 'w-20 sm:w-24 md:w-28', top: '-20%',  offset: 'left-[75%]'  },
-  { w: 'w-24 sm:w-28 md:w-32', top: '8%', offset: 'left-[85%]' },
-  { w: 'w-[5rem] sm:w-24 md:w-28', top: '35%', offset: 'left-[78%]'  },
-  { w: 'w-[5.5rem] sm:w-[6.5rem] md:w-24', top: '58%', offset: 'left-[88%]' },
-  { w: 'w-16 sm:w-20 md:w-24', top: '82%', offset: 'left-[72%]' },
-];
-
-const BUBBLE_SIZES_LEFT = [
-  { w: 'w-[5rem] sm:w-24 md:w-28', top: '-18%',  offset: 'right-[72%]'  },
-  { w: 'w-24 sm:w-28 md:w-32', top: '10%', offset: 'right-[82%]' },
-  { w: 'w-20 sm:w-24 md:w-28', top: '36%', offset: 'right-[75%]'  },
-  { w: 'w-[5.5rem] sm:w-[6.5rem] md:w-24', top: '60%', offset: 'right-[85%]' },
-  { w: 'w-[4.5rem] sm:w-20 md:w-24', top: '84%', offset: 'right-[70%]' },
-];
-
-
-
+/* ─── Boutique ─── */
 const BOUTIQUE_GLOW_COLORS: Record<string, string> = {
   dadi: '251, 191, 36',
   buste: '167, 139, 250',
@@ -160,124 +95,50 @@ const BOUTIQUE_GLOW_COLORS: Record<string, string> = {
 };
 
 const BOUTIQUE_CATEGORIES = [
-
-  { id: 'dadi', label: 'Dadi', href: '/products?category=dadi', 
-
+  { id: 'dadi', label: 'Dadi', href: '/products?category=dadi',
     imageUrl: '/ebartex-boutique/dadi-boutique.webp',
-
-    imageSet: {
-
-      sm: '/ebartex-boutique/dadi-boutique-sm.webp',
-
-      md: '/ebartex-boutique/dadi-boutique-md.webp',
-
-      lg: '/ebartex-boutique/dadi-boutique-lg.webp'
-
-    }
-
+    imageSet: { sm: '/ebartex-boutique/dadi-boutique-sm.webp', md: '/ebartex-boutique/dadi-boutique-md.webp', lg: '/ebartex-boutique/dadi-boutique-lg.webp' }
   },
-
   { id: 'buste', label: 'Buste', href: '/products?category=buste',
-
     imageUrl: '/ebartex-boutique/buste-boutique.webp',
-
-    imageSet: {
-
-      sm: '/ebartex-boutique/buste-boutique-sm.webp',
-
-      md: '/ebartex-boutique/buste-boutique-md.webp',
-
-      lg: '/ebartex-boutique/buste-boutique-lg.webp'
-
-    }
-
+    imageSet: { sm: '/ebartex-boutique/buste-boutique-sm.webp', md: '/ebartex-boutique/buste-boutique-md.webp', lg: '/ebartex-boutique/buste-boutique-lg.webp' }
   },
-
   { id: 'tappetini', label: 'Tappetini', href: '/products?category=tappetini',
-
     imageUrl: '/ebartex-boutique/tappetini-boutique.webp',
-
-    imageSet: {
-
-      sm: '/ebartex-boutique/tappetini-boutique-sm.webp',
-
-      md: '/ebartex-boutique/tappetini-boutique-md.webp',
-
-      lg: '/ebartex-boutique/tappetini-boutique-lg.webp'
-
-    }
-
+    imageSet: { sm: '/ebartex-boutique/tappetini-boutique-sm.webp', md: '/ebartex-boutique/tappetini-boutique-md.webp', lg: '/ebartex-boutique/tappetini-boutique-lg.webp' }
   },
-
   { id: 'memorabilia', label: 'Memorabilia', href: '/products?category=memorabilia',
-
     imageUrl: '/ebartex-boutique/memorabilia-boutique.webp',
-
-    imageSet: {
-
-      sm: '/ebartex-boutique/memorabilia-boutique-sm.webp',
-
-      md: '/ebartex-boutique/memorabilia-boutique-md.webp',
-
-      lg: '/ebartex-boutique/memorabilia-boutique-lg.webp'
-
-    }
-
+    imageSet: { sm: '/ebartex-boutique/memorabilia-boutique-sm.webp', md: '/ebartex-boutique/memorabilia-boutique-md.webp', lg: '/ebartex-boutique/memorabilia-boutique-lg.webp' }
   },
-
   { id: 'albums', label: 'Albums', href: '/products?category=albums',
-
     imageUrl: '/ebartex-boutique/albums-boutique.webp',
-
-    imageSet: {
-
-      sm: '/ebartex-boutique/albums-boutique-sm.webp',
-
-      md: '/ebartex-boutique/albums-boutique-md.webp',
-
-      lg: '/ebartex-boutique/albums-boutique-lg.webp'
-
-    }
-
+    imageSet: { sm: '/ebartex-boutique/albums-boutique-sm.webp', md: '/ebartex-boutique/albums-boutique-md.webp', lg: '/ebartex-boutique/albums-boutique-lg.webp' }
   },
-
   { id: 'game-kits', label: 'Game kits', href: '/products?category=game-kits',
-
     imageUrl: '/ebartex-boutique/gamekits-boutique.webp',
-
-    imageSet: {
-
-      sm: '/ebartex-boutique/gamekits-boutique-sm.webp',
-
-      md: '/ebartex-boutique/gamekits-boutique-md.webp',
-
-      lg: '/ebartex-boutique/gamekits-boutique-lg.webp'
-
-    }
-
+    imageSet: { sm: '/ebartex-boutique/gamekits-boutique-sm.webp', md: '/ebartex-boutique/gamekits-boutique-md.webp', lg: '/ebartex-boutique/gamekits-boutique-lg.webp' }
   },
-
 ];
 
-
+/* ═══════════════════════════════════════════════════════════
+   COMPONENT
+   ═══════════════════════════════════════════════════════════ */
 
 export function LandingWelcome() {
-
   const { t } = useTranslation();
-
   const { setSelectedGame } = useGame();
+  const { isAuthenticated } = useAuth();
 
-  const [activePill, setActivePill] = React.useState<'vendere' | 'scambiare' | 'asta' | null>(null);
+  /* ─── state ─── */
+  const [notifyGame, setNotifyGame] = useState<{ src: string; alt: string } | null>(null);
+  const [fullscreenGame, setFullscreenGame] = useState<{ src: string; alt: string; bgImage: string } | null>(null);
+  const [isFullscreenClosing, setIsFullscreenClosing] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isNotifySuccess, setIsNotifySuccess] = useState(false);
 
-  const [notifyGame, setNotifyGame] = React.useState<{ src: string; alt: string } | null>(null);
-  const [fullscreenGame, setFullscreenGame] = React.useState<{ src: string; alt: string; bgImage: string } | null>(null);
-  const [isFullscreenClosing, setIsFullscreenClosing] = React.useState(false);
-
-  const [email, setEmail] = React.useState('');
-
-  const [isNotifySuccess, setIsNotifySuccess] = React.useState(false);
-
-  const handleCloseFullscreen = React.useCallback(() => {
+  /* ─── handlers ─── */
+  const handleCloseFullscreen = useCallback(() => {
     setIsFullscreenClosing(true);
     setTimeout(() => {
       setFullscreenGame(null);
@@ -287,7 +148,7 @@ export function LandingWelcome() {
     }, 400);
   }, []);
 
-  const handleNotifySubmit = React.useCallback((e: React.FormEvent) => {
+  const handleNotifySubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setTimeout(() => {
@@ -300,7 +161,7 @@ export function LandingWelcome() {
     }, 800);
   }, [email]);
 
-  const handleFullscreenNotifySubmit = React.useCallback((e: React.FormEvent) => {
+  const handleFullscreenNotifySubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setTimeout(() => {
@@ -311,396 +172,282 @@ export function LandingWelcome() {
     }, 800);
   }, [email, handleCloseFullscreen]);
 
-
-
-  const HOW_TO_ITEMS = React.useMemo(
-
+  /* ─── memoised data ─── */
+  const FEATURES = useMemo(
     () => [
-
-      {
-
-        id: 'vendere' as const,
-
-        shortTitle: 'VENDI',
-
-        title: t('landing.howTo.sell.title'),
-
-        description: t('landing.howTo.sell.desc'),
-
-        href: '/home',
-
-        cta: t('landing.howTo.sell.cta'),
-
-        icon: Tag,
-
-      },
-
-      {
-
-        id: 'scambiare' as const,
-
-        shortTitle: 'SCAMBIA',
-
-        title: t('landing.howTo.trade.title'),
-
-        description: t('landing.howTo.trade.desc'),
-
-        href: '/scambi?video=1',
-
-        cta: t('landing.howTo.trade.cta'),
-
-        icon: RefreshCw,
-
-      },
-
-      {
-
-        id: 'asta' as const,
-
-        shortTitle: 'ASTE',
-
-        title: t('landing.howTo.auction.title'),
-
-        description: t('landing.howTo.auction.desc'),
-
-        href: '/scambi',
-
-        cta: t('landing.howTo.auction.cta'),
-
-        icon: Gavel,
-
-      },
-
-    ],
-
-    [t]
-
-  );
-
-
-
-  const FEATURES = React.useMemo(
-
-    () => [
-
       { iconKey: 'prezzi' as const, title: t('landing.feat.prezzi.title'), description: t('landing.feat.prezzi.desc') },
-
       { iconKey: 'sicuro' as const, title: t('landing.feat.sicuro.title'), description: t('landing.feat.sicuro.desc') },
-
       { iconKey: 'gestione' as const, title: t('landing.feat.gestione.title'), description: t('landing.feat.gestione.desc') },
-
       { iconKey: 'domanda' as const, title: t('landing.feat.domanda.title'), description: t('landing.feat.domanda.desc') },
-
       { iconKey: 'vendite' as const, title: t('landing.feat.vendite.title'), description: t('landing.feat.vendite.desc') },
-
       { iconKey: 'commissioni' as const, title: t('landing.feat.commissioni.title'), description: t('landing.feat.commissioni.desc') },
-
     ],
-
     [t]
-
   );
-
-
-
-  const NAV_TICKER_WORDS = React.useMemo(
-
-    () =>
-
-      [
-
-        t('landing.nav.sell'),
-
-        t('landing.nav.earn'),
-
-        t('landing.nav.buy'),
-
-        t('landing.nav.save'),
-
-        t('landing.nav.collect'),
-
-      ] as const,
-
-    [t]
-
-  );
-
-
 
   const MAIN_GAMES = getMainGames();
-
   const COMING_SOON_GAMES = getComingSoonGames();
-
   const videoRef = useRef<HTMLVideoElement>(null);
 
-
-
   useEffect(() => {
-
     videoRef.current?.play().catch(() => {});
-
   }, []);
 
+  /* ─── render ─── */
   return (
-
     <div className="relative w-full overflow-x-hidden overflow-y-visible text-white">
 
-      {/* Sfondo video: copre l’altezza del contenuto (niente min-h-screen: evita doppia altezza con header + scroll strani) */}
-
+      {/* ══════ Background video ══════ */}
       <video
-
         ref={videoRef}
-
         src={getCdnVideoUrl(LANDING_BG_VIDEO)}
-
         className="pointer-events-none absolute inset-0 h-full min-h-full w-full object-cover object-center"
-
-        autoPlay
-
-        loop
-
-        muted
-
-        playsInline
-
-        disablePictureInPicture
-
-        disableRemotePlayback
-
-        aria-hidden
-
+        autoPlay loop muted playsInline
+        disablePictureInPicture disableRemotePlayback aria-hidden
       />
 
-      {/* Overlay blu leggero: lascia vedere il video ma mantiene leggibilità */}
-
+      {/* Overlay gradient */}
       <div
-
         className="absolute inset-0 z-[1]"
-
-        style={{
-
-          background: 'linear-gradient(rgba(61, 101, 198, 0.4), rgba(29, 49, 96, 0.5))',
-
-        }}
-
+        style={{ background: 'linear-gradient(180deg, rgba(15,23,42,0.65) 0%, rgba(29,49,96,0.50) 40%, rgba(15,23,42,0.72) 100%)' }}
       />
 
+      {/* ══════ CONTENT LAYER ══════ */}
       <div className="relative z-10 flex min-h-0 flex-col">
 
-        {/* Hero: logo + tagline + griglia giochi, più compatto in alto */}
-
-        <header className="flex items-center justify-center px-4 pb-1 pt-0 sm:pb-2 sm:pt-1 md:pb-2 md:pt-2">
-
-          <div className="relative flex w-full max-w-5xl items-center justify-center">
-
+        {/* ────── LOGO + TAGLINE — same row ────── */}
+        <header className="bento-entry flex items-center justify-center px-4 pt-1 pb-1 sm:pt-2 sm:pb-2 md:pt-3" style={{ animationDelay: '0ms' }}>
+          <div className="flex w-full max-w-6xl items-center justify-center gap-3 sm:gap-5 md:gap-6">
             <Image
-
               src={getCdnImageUrl('Logo%20Principale%20EBARTEX.png')}
-
               alt="Ebartex"
-
               width={700}
-
               height={263}
-
-              className="h-36 w-auto max-w-[95vw] object-contain object-center sm:h-44 md:h-52 lg:h-56 xl:h-64 2xl:h-72"
-
-              sizes="(max-width: 640px) 95vw, (max-width: 1024px) 60vw, 800px"
-
+              className="h-14 w-auto shrink-0 object-contain sm:h-20 md:h-24 lg:h-28"
+              sizes="(max-width: 640px) 140px, (max-width: 1024px) 200px, 280px"
               priority
-
               unoptimized
-
             />
-
+            <div className="h-8 w-px bg-white/20 hidden sm:block" />
+            <h1 className="text-xs font-medium uppercase tracking-[0.06em] text-white/80 sm:text-sm md:text-base lg:text-lg">
+              L&apos;unico marketplace dove <span className="font-bold text-[#38BDF8]">Scambi</span> e metti all&apos;<span className="font-bold text-[#FB923C]">Asta</span> le tue carte
+            </h1>
           </div>
-
         </header>
 
+        {/* ═══════════════════════════════════════════════
+            BENTO GRID HERO — 4 elementi grandi
+            ═══════════════════════════════════════════════ */}
+        <section className="px-3 pt-1 pb-3 sm:px-4 sm:pt-2 sm:pb-4 md:px-6 md:pt-2 md:pb-5">
+          <div className="mx-auto grid w-full max-w-6xl gap-2.5 sm:gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 lg:grid-rows-[auto_auto]">
 
-
-        {/* Tagline: titolo + CTA arancione sotto */}
-
-        <div className="px-3 pb-3 sm:px-4 sm:pb-4 md:pb-5">
-
-          <div className="flex flex-col items-center justify-center">
-
-            <h2 className="text-lg font-semibold uppercase tracking-[0.06em] text-white drop-shadow-sm sm:text-xl md:text-2xl md:tracking-[0.05em] lg:text-3xl">
-
-              {t('landing.heroTitle')}
-
-            </h2>
-
-          </div>
-
-          {/* CTA Arancione sotto il titolo */}
-          <div className="mx-auto mt-6 flex justify-center sm:mt-8 md:mt-10">
+            {/* ──── SCAMBI CARD ──── */}
             <Link
-              href="/login"
-              className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-[#FF7300] px-8 py-3 sm:px-10 sm:py-4 text-sm sm:text-base font-bold uppercase tracking-widest text-white shadow-[0_4px_20px_rgba(255,115,0,0.4)] transition-all duration-300 hover:scale-[1.33] hover:bg-[#e66700] hover:shadow-[0_6px_30px_rgba(255,115,0,0.6)] active:scale-110"
+              href="/scambi"
+              id="hero-scambi-card"
+              className="bento-entry bento-card group relative col-span-1 md:col-span-1 lg:col-span-2 lg:row-span-1 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-5 md:p-6 min-h-[130px] sm:min-h-[140px] md:min-h-[150px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
+              style={{
+                animationDelay: '100ms',
+                background: 'linear-gradient(135deg, rgba(56,189,248,0.10) 0%, rgba(15,23,42,0.40) 50%, rgba(56,189,248,0.04) 100%)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+              }}
             >
-              <span>{t('landing.cta.register')}</span>
+              {/* Exclusive badges */}
+              <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1">
+                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white/90">
+                  Presto disponibile
+                </span>
+                <span className="bento-badge-glow rounded-full bg-[#FF7300] px-2 py-0.5 sm:px-2.5 sm:py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white shadow-[0_2px_12px_rgba(255,115,0,0.5)]">
+                  Solo su Ebartex
+                </span>
+              </div>
+
+              {/* Decorative bg glow */}
+              <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#38BDF8]/10 blur-3xl transition-all duration-700 group-hover:bg-[#38BDF8]/18 group-hover:scale-110" />
+
+              {/* Content */}
+              <div className="relative z-10 flex flex-col gap-1.5 sm:gap-2">
+                <h2 className="font-display text-2xl sm:text-3xl md:text-[2.5rem] font-bold uppercase tracking-tight text-white drop-shadow-lg">
+                  Scambi
+                </h2>
+                <p className="max-w-sm text-[11px] sm:text-xs leading-relaxed text-white/60">
+                  Proponi e accetta scambi con altri collezionisti. Nessun altro marketplace lo offre.
+                </p>
+              </div>
+
+              {/* CTA — text only, no icon */}
+              <div className="relative z-10 mt-2 sm:mt-3">
+                <span className="inline-flex items-center rounded-full border border-[#38BDF8]/30 bg-[#38BDF8]/10 px-3.5 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-[#38BDF8] transition-all duration-300 group-hover:bg-[#38BDF8]/20 group-hover:border-[#38BDF8]/50 group-hover:shadow-[0_0_16px_rgba(56,189,248,0.15)]">
+                  Scopri gli Scambi
+                </span>
+              </div>
             </Link>
-          </div>
 
-        </div>
-
-
-
-        {/* ===== BUBBLE UNIVERSE: Features (left) | Magic (center) | Games (right) ===== */}
-        <section className="relative px-2 pt-2 pb-10 sm:px-4 sm:pt-1 sm:pb-3 md:px-6 md:pt-2 md:pb-4">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-center">
-            {/* --- DESKTOP 3-column layout --- */}
-            <div className="hidden lg:grid lg:grid-cols-[1fr_auto_1fr] w-full items-center gap-0">
-              {/* LEFT COLUMN — Feature bubbles */}
-              <div className="relative h-[520px] w-full -mt-16">
-                {FEATURE_BUBBLES.map((feat, i) => {
-                  const layout = BUBBLE_SIZES_LEFT[i];
-                  const Icon = feat.icon;
-                  return (
-                    <div
-                      key={feat.id}
-                      className={`landing-bubble absolute ${layout.w} aspect-square ${layout.offset} flex flex-col items-center justify-center rounded-full border border-white/20 bg-white/[0.08] backdrop-blur-md cursor-default overflow-hidden`}
-                      style={{
-                        top: layout.top,
-                        animationDelay: `${i * 0.8}s`,
-                        background: `radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,0.25) 0%, ${feat.color} 35%, transparent 65%)`,
-                        backgroundSize: '200% 200%',
-                        boxShadow: `
-                          0 4px 30px rgba(255,255,255,0.1),
-                          0 0 60px rgba(255,255,255,0.05),
-                          inset 0 0 20px rgba(255,255,255,0.1),
-                          inset 0 0 40px rgba(255,255,255,0.03)
-                        `,
-                      }}
-                    >
-                      {/* Highlight reflection */}
-                      <div className="absolute top-2 left-1/3 w-1/4 h-1/6 rounded-full bg-white/30 blur-sm" />
-                      <Icon className="relative z-10 h-5 w-5 sm:h-6 sm:w-6 text-white/90 mb-1 drop-shadow-lg" strokeWidth={1.5} />
-                      <span className="relative z-10 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white drop-shadow-md">{feat.label}</span>
-                    </div>
-                  );
-                })}
+            {/* ──── ASTE CARD ──── */}
+            <Link
+              href="/aste"
+              id="hero-aste-card"
+              className="bento-entry bento-card group relative col-span-1 md:col-span-1 lg:col-span-2 lg:row-span-1 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-5 md:p-6 min-h-[130px] sm:min-h-[140px] md:min-h-[150px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
+              style={{
+                animationDelay: '180ms',
+                background: 'linear-gradient(135deg, rgba(251,146,60,0.10) 0%, rgba(15,23,42,0.40) 50%, rgba(251,146,60,0.04) 100%)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+              }}
+            >
+              {/* Exclusive badges */}
+              <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1">
+                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white/90">
+                  Presto disponibile
+                </span>
+                <span className="bento-badge-glow rounded-full bg-[#FF7300] px-2 py-0.5 sm:px-2.5 sm:py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white shadow-[0_2px_12px_rgba(255,115,0,0.5)]">
+                  Solo su Ebartex
+                </span>
               </div>
 
-              {/* CENTER — Magic card */}
-              <div className="flex flex-col items-center gap-4 px-4 -mt-8">
-                {MAIN_GAMES.map((game) => (
-                  <Link
-                    key={game.alt}
-                    href={game.homeHref}
-                    className="group relative flex w-72 xl:w-80 h-40 xl:h-48 items-center justify-center overflow-visible rounded-3xl border border-white/20 bg-white/10 p-8 shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all duration-300 hover:border-white/40 hover:bg-white/15 hover:backdrop-blur-md hover:scale-[1.02]"
-                    aria-label={t('landing.gameAria.goHome', { name: game.alt })}
-                    onClick={() => {
-                      if (game.gameSlug === 'clear') setSelectedGame(null);
-                      else if (game.gameSlug) setSelectedGame(game.gameSlug);
-                    }}
-                  >
-                    {/* Banner glass sopra - Citazione Magic centrata */}
-                    <div className="hidden sm:flex absolute -top-3 left-0 right-0 z-10 items-center justify-center px-2">
-                      <div className="text-center font-sans text-sm font-medium italic tracking-wide text-white drop-shadow-md truncate">
-                        <span className="text-[#FF7300] not-italic">&ldquo;</span>La battaglia non ha bisogno di uno scopo<span className="text-[#FF7300] not-italic">&rdquo;</span>
-                      </div>
-                    </div>
-                    {/* Badge Disponibile */}
-                    <span className="absolute -top-3 right-0 z-10 translate-x-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile subito!</span>
-                    <img
-                      src={game.src}
-                      alt={game.alt}
-                      className="transition-transform duration-500 group-hover:scale-110"
-                      style={{ display: 'block', maxWidth: '85%', maxHeight: '75%', width: 'auto', height: 'auto', objectFit: 'contain' }}
-                    />
-                  </Link>
-                ))}
+              {/* Decorative bg glows */}
+              <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#FB923C]/10 blur-3xl transition-all duration-700 group-hover:bg-[#FB923C]/18 group-hover:scale-110" />
+
+              {/* Content */}
+              <div className="relative z-10 flex flex-col gap-1.5 sm:gap-2">
+                <h2 className="font-display text-2xl sm:text-3xl md:text-[2.5rem] font-bold uppercase tracking-tight text-white drop-shadow-lg">
+                  Aste
+                </h2>
+                <p className="max-w-sm text-[11px] sm:text-xs leading-relaxed text-white/60">
+                  Metti all&apos;asta le tue carte o fai offerte. Solo su Ebartex.
+                </p>
               </div>
 
-              {/* RIGHT COLUMN — Coming soon game bubbles */}
-              <div className="relative h-[520px] w-full -mt-16">
-                {COMING_SOON_GAMES.map((game, i) => {
-                  const layout = BUBBLE_SIZES_RIGHT[i];
-                  return (
-                    <button
-                      key={game.alt}
-                      type="button"
-                      className={`landing-bubble absolute ${layout.w} aspect-square ${layout.offset} flex items-center justify-center rounded-full border border-white/20 bg-white/[0.08] backdrop-blur-md cursor-pointer overflow-hidden group`}
-                      style={{
-                        top: layout.top,
-                        animationDelay: `${i * 0.9}s`,
-                        background: 'radial-gradient(120% 120% at 35% 25%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.08) 40%, transparent 65%)',
-                        backgroundSize: '200% 200%',
-                        boxShadow: `
-                          0 4px 30px rgba(255,255,255,0.1),
-                          0 0 60px rgba(255,255,255,0.05),
-                          inset 0 0 20px rgba(255,255,255,0.1),
-                          inset 0 0 40px rgba(255,255,255,0.03)
-                        `,
-                        opacity: 0.85,
-                      }}
-                      onClick={() => {
-                        const bgImage = GAME_FULLSCREEN_IMAGES[game.alt];
-                        if (bgImage) {
-                          setFullscreenGame({ src: game.src, alt: game.alt, bgImage });
-                        } else {
-                          setNotifyGame({ src: game.src, alt: game.alt });
-                        }
-                      }}
-                    >
-                      {/* Highlight reflection */}
-                      <div className="absolute top-3 left-1/3 w-1/5 h-[15%] rounded-full bg-white/25 blur-sm group-hover:bg-white/40 transition-all duration-300" />
-                      <img
-                        src={game.src}
-                        alt={game.alt}
-                        className="relative z-10 max-w-[70%] max-h-[70%] object-contain drop-shadow-lg transition-transform duration-300 group-hover:scale-110"
-                      />
-                    </button>
-                  );
-                })}
+              {/* CTA — text only, no icon */}
+              <div className="relative z-10 mt-2 sm:mt-3">
+                <span className="inline-flex items-center rounded-full border border-[#FB923C]/30 bg-[#FB923C]/10 px-3.5 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-[#FB923C] transition-all duration-300 group-hover:bg-[#FB923C]/20 group-hover:border-[#FB923C]/50 group-hover:shadow-[0_0_16px_rgba(251,146,60,0.15)]">
+                  Scopri le Aste
+                </span>
               </div>
+            </Link>
+
+            {/* ──── COMPRA & VENDI — text + arrow pointing RIGHT toward Magic ──── */}
+            <div
+              className="bento-entry col-span-1 lg:col-span-1 flex flex-col items-center justify-center gap-2 p-4 sm:p-5 min-h-[110px] sm:min-h-[120px] md:min-h-[130px] text-center"
+              style={{ animationDelay: '260ms' }}
+            >
+              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-400">
+                Compra &amp; Vendi
+              </p>
+              <p className="text-[9px] sm:text-[10px] text-white/50 max-w-[140px] leading-snug">
+                Già disponibile su Magic
+              </p>
+              {/* Big animated arrow pointing right */}
+              <svg
+                className="h-8 w-12 sm:h-10 sm:w-14 text-white/40 animate-bounce-right"
+                viewBox="0 0 56 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden
+              >
+                <path
+                  d="M8 20H48M48 20L34 8M48 20L34 32"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
 
-            {/* --- MOBILE / TABLET layout (< lg) --- */}
-            <div className="flex flex-col items-center gap-8 lg:hidden w-full max-w-lg">
-              {/* Magic card — full width */}
-              {MAIN_GAMES.map((game) => (
-                <Link
-                  key={game.alt}
-                  href={game.homeHref}
-                  className="group relative flex w-full h-32 sm:h-40 md:h-48 items-center justify-center overflow-visible rounded-3xl border border-white/20 bg-white/10 p-8 shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all duration-300 hover:border-white/40 hover:bg-white/15 hover:backdrop-blur-md hover:scale-[1.02]"
-                  aria-label={t('landing.gameAria.goHome', { name: game.alt })}
-                  onClick={() => {
-                    if (game.gameSlug === 'clear') setSelectedGame(null);
-                    else if (game.gameSlug) setSelectedGame(game.gameSlug);
-                  }}
-                >
-                  <span className="sm:hidden absolute bottom-0 left-1/2 z-10 -translate-x-1/2 translate-y-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile subito!</span>
-                  <span className="hidden sm:block absolute -top-3 right-0 z-10 translate-x-1/2 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_2px_8px_rgba(255,115,0,0.4)]">Disponibile subito!</span>
-                  <img
-                    src={game.src}
-                    alt={game.alt}
-                    className="transition-transform duration-500 group-hover:scale-110"
-                    style={{ display: 'block', maxWidth: '85%', maxHeight: '75%', width: 'auto', height: 'auto', objectFit: 'contain' }}
-                  />
-                </Link>
-              ))}
+            {/* ──── MAGIC CARD — expands when logged in (no CTA) ──── */}
+            <Link
+              href="/home/magic"
+              id="hero-magic-card"
+              className={`bento-entry bento-card group relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-5 md:p-6 min-h-[110px] sm:min-h-[120px] md:min-h-[130px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01] col-span-1 ${isAuthenticated ? 'md:col-span-2 lg:col-span-3' : 'md:col-span-1 lg:col-span-2'}`}
+              style={{
+                animationDelay: '320ms',
+                background: 'linear-gradient(135deg, rgba(167,139,250,0.08) 0%, rgba(15,23,42,0.40) 40%, rgba(99,102,241,0.04) 100%)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+              }}
+              aria-label={t('landing.gameAria.goHome', { name: 'Magic The Gathering' })}
+              onClick={() => setSelectedGame('mtg')}
+            >
+              {/* Badge "Disponibile subito" */}
+              <span className="absolute right-3 top-3 z-10 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white">
+                Disponibile subito!
+              </span>
 
-              {/* Mobile bubbles row — games */}
-              <div className="flex flex-wrap justify-center gap-3">
-                {COMING_SOON_GAMES.map((game, i) => (
+              {/* Decorative glows */}
+              <div className="pointer-events-none absolute -left-12 -top-12 h-48 w-48 rounded-full bg-indigo-500/8 blur-3xl" />
+
+              {/* Left side: Text */}
+              <div className="relative z-10 flex flex-col gap-1">
+                <h2 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold uppercase tracking-tight text-white drop-shadow-lg">
+                  Magic: The Gathering
+                </h2>
+                <p className="max-w-md text-[11px] sm:text-xs text-white/50">
+                  Compra, vendi, scambia e metti all&apos;asta le tue carte. Inizia subito.
+                </p>
+              </div>
+
+              {/* Right side: Game logo */}
+              <div className="relative z-10 flex shrink-0 items-center justify-center">
+                <div className="relative h-18 w-32 sm:h-22 sm:w-40 md:h-26 md:w-48 lg:h-32 lg:w-56 transition-transform duration-500 group-hover:scale-110">
+                  <img
+                    src={MAIN_GAMES[0].src}
+                    alt={MAIN_GAMES[0].alt}
+                    className="h-full w-full object-contain drop-shadow-[0_0_24px_rgba(167,139,250,0.25)]"
+                  />
+                </div>
+              </div>
+            </Link>
+
+            {/* ──── CTA + REGISTRATI — only if NOT authenticated ──── */}
+            {!isAuthenticated && (
+              <div
+                className="bento-entry col-span-1 lg:col-span-1 flex flex-col items-center justify-center gap-2.5 sm:gap-3 rounded-2xl border border-white/10 p-4 sm:p-5"
+                style={{
+                  animationDelay: '380ms',
+                  background: 'linear-gradient(135deg, rgba(255,115,0,0.04) 0%, rgba(15,23,42,0.35) 100%)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                }}
+              >
+                <p className="text-center text-[11px] sm:text-xs font-medium text-white/60">
+                  Unisciti a migliaia di collezionisti
+                </p>
+                <Link
+                  href="/login"
+                  id="hero-cta-register"
+                  className="bento-cta-glow group relative inline-flex w-full items-center justify-center overflow-hidden rounded-full bg-[#FF7300] px-5 py-2.5 sm:px-7 sm:py-3 text-xs sm:text-sm font-bold uppercase tracking-widest text-white shadow-[0_4px_24px_rgba(255,115,0,0.4)] transition-all duration-300 hover:scale-105 hover:bg-[#e66700] hover:shadow-[0_6px_32px_rgba(255,115,0,0.6)] active:scale-100"
+                >
+                  {/* Shimmer sweep */}
+                  <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                  <span className="relative">{t('landing.cta.register')}</span>
+                </Link>
+              </div>
+            )}
+
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════
+            COMING SOON GAMES — infinite horizontal scroll
+            ═══════════════════════════════════════════════ */}
+        <section className="bento-entry px-4 pb-4 sm:px-6 sm:pb-6" style={{ animationDelay: '480ms' }}>
+          <div className="mx-auto max-w-md">
+            <p className="mb-3 sm:mb-4 text-center text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-white/40">
+              Presto in arrivo
+            </p>
+            <div className="relative overflow-hidden mx-auto max-w-xs">
+              {/* Fade sx */}
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-black/10 to-transparent z-10" />
+              {/* Fade dx */}
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-black/10 to-transparent z-10" />
+              <div className="flex gap-4 sm:gap-5 md:gap-6 animate-marquee">
+                {COMING_SOON_GAMES.map((game) => (
                   <button
                     key={game.alt}
                     type="button"
-                    className="landing-bubble flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full border border-white/20 bg-white/[0.08] backdrop-blur-md cursor-pointer overflow-hidden group"
-                    style={{
-                      animationDelay: `${i * 0.7}s`,
-                      background: 'radial-gradient(130% 130% at 35% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 45%, transparent 70%)',
-                      backgroundSize: '200% 200%',
-                      boxShadow: `
-                        0 4px 24px rgba(255,255,255,0.1),
-                        0 0 40px rgba(255,255,255,0.05),
-                        inset 0 0 16px rgba(255,255,255,0.12)
-                      `,
-                      opacity: 0.9,
-                    }}
+                    className="group flex h-18 w-18 sm:h-20 sm:w-20 md:h-24 md:w-24 items-center justify-center rounded-full cursor-pointer overflow-hidden bg-white/10 border border-white/20 transition-transform duration-300 hover:scale-110 flex-shrink-0"
                     onClick={() => {
                       const bgImage = GAME_FULLSCREEN_IMAGES[game.alt];
                       if (bgImage) {
@@ -710,555 +457,212 @@ export function LandingWelcome() {
                       }
                     }}
                   >
-                    {/* Mobile highlight */}
-                    <div className="absolute top-2 left-1/3 w-1/4 h-[12%] rounded-full bg-white/25 blur-sm group-hover:bg-white/40 transition-all duration-300" />
-                    <img src={game.src} alt={game.alt} className="relative z-10 max-w-[70%] max-h-[70%] object-contain drop-shadow-lg transition-transform duration-300 group-hover:scale-110" />
+                    <img
+                      src={game.src}
+                      alt={game.alt}
+                      className="max-w-[65%] max-h-[65%] object-contain"
+                    />
                   </button>
                 ))}
-              </div>
-
-              {/* Mobile bubbles row — features */}
-              <div className="flex flex-wrap justify-center gap-3">
-                {FEATURE_BUBBLES.map((feat, i) => {
-                  const Icon = feat.icon;
-                  return (
-                    <div
-                      key={feat.id}
-                      className="landing-bubble flex h-20 w-20 sm:h-24 sm:w-24 flex-col items-center justify-center rounded-full border border-white/20 bg-white/[0.08] backdrop-blur-md overflow-hidden"
-                      style={{
-                        animationDelay: `${i * 0.6}s`,
-                        background: `radial-gradient(130% 130% at 30% 20%, rgba(255,255,255,0.22) 0%, ${feat.color} 40%, transparent 70%)`,
-                        backgroundSize: '200% 200%',
-                        boxShadow: `
-                          0 4px 24px rgba(255,255,255,0.1),
-                          0 0 40px rgba(255,255,255,0.05),
-                          inset 0 0 16px rgba(255,255,255,0.12)
-                        `,
-                      }}
-                    >
-                      {/* Mobile highlight */}
-                      <div className="absolute top-2 left-1/3 w-1/4 h-[10%] rounded-full bg-white/30 blur-sm" />
-                      <Icon className="relative z-10 h-5 w-5 text-white/90 mb-0.5 drop-shadow-lg" strokeWidth={1.5} />
-                      <span className="relative z-10 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-white drop-shadow-md">{feat.label}</span>
-                    </div>
-                  );
-                })}
               </div>
             </div>
           </div>
         </section>
 
-
-
-        {/* Modal "Avvisami" stile Glass */}
-
-        {notifyGame && (
-
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 backdrop-blur-md bg-black/40 animate-in fade-in duration-300">
-
-            <div 
-
-              className="relative w-full max-w-sm overflow-hidden rounded-[32px] border border-white/25 bg-white/10 p-8 shadow-2xl backdrop-blur-xl animate-in zoom-in-95 duration-300"
-
-              style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.05)' }}
-
-            >
-
-              <button 
-
-                onClick={() => setNotifyGame(null)}
-
-                className="absolute right-6 top-6 rounded-full bg-white/5 p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
-
-              >
-
-                <X className="h-4 w-4" />
-
-              </button>
-
-
-
-              {!isNotifySuccess ? (
-
-                <div className="flex flex-col items-center text-center">
-
-                  <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#FF7300]/20 text-[#FF7300] shadow-[0_0_20px_rgba(255,115,0,0.2)]">
-
-                    <img src={notifyGame.src} alt="" className="h-10 w-10 object-contain" />
-
-                  </div>
-
-                  
-
-                  <h3 className="mb-3 text-lg font-bold uppercase tracking-tight text-white sm:text-xl">
-
-                    Ti interessa {notifyGame.alt}?
-
-                  </h3>
-
-                  
-
-                  <p className="mb-8 text-sm leading-relaxed text-white/70">
-
-                    Siamo quasi pronti! Inserisci la tua email e ti avviseremo appena il gioco sarà disponibile sul marketplace.
-
-                  </p>
-
-
-
-                  <form onSubmit={handleNotifySubmit} className="w-full space-y-4">
-
-                    <div className="relative group">
-
-                      <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-[#FF7300]" />
-
-                      <input 
-
-                        type="email" 
-
-                        required
-
-                        placeholder="La tua email..."
-
-                        className="w-full rounded-2xl border border-white/10 bg-white/5 py-3.5 pl-11 pr-4 text-sm text-white placeholder:text-white/20 outline-none transition-all focus:border-[#FF7300]/50 focus:bg-white/10"
-
-                        value={email}
-
-                        onChange={(e) => setEmail(e.target.value)}
-
-                      />
-
-                    </div>
-
-                    <button
-
-                      type="submit"
-
-                      className="btn-orange-glow w-full rounded-2xl py-4"
-
-                    >
-
-                      AVVISAMI
-
-                    </button>
-
-                  </form>
-
-                </div>
-
-              ) : (
-
-                <div className="flex flex-col items-center py-10 text-center animate-in zoom-in-95 duration-500">
-
-                  <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-500/20 text-green-500">
-
-                    <CheckCircle2 className="h-12 w-12" />
-
-                  </div>
-
-                  <h3 className="mb-2 text-xl font-bold text-white">GRAZIE!</h3>
-
-                  <p className="text-sm text-white/70">
-
-                    Abbiamo registrato la tua email. <br/>A presto!
-
-                  </p>
-
-                </div>
-
-              )}
-
-            </div>
-
-          </div>
-
-        )}
-
-
-
-        {/* Come vendere / scambiare / asta — forte glass effect, video che si intravede */}
-
-        {/* Sfondo blur che parte da metà "PRESTO IN ARRIVO" e sfuma dolcissimo verso il basso */}
-
-        {/* Sfondo glass progressivo: blur che aumenta man mano che si scende */}
-
-        {/* Layer 1: blur leggero, parte più in alto dai punti di forza */}
-
-        <div 
-
-          className="absolute inset-x-0 bottom-0 backdrop-blur-md pointer-events-none z-[1]" 
-
-          style={{ 
-
+        {/* ══════ Glass blur layers before features ══════ */}
+        <div
+          className="absolute inset-x-0 bottom-0 backdrop-blur-md pointer-events-none z-[1]"
+          style={{
             top: 'calc(100% - 520px)',
-
             WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 10%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.55) 45%, black 65%)',
-
-            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 10%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.55) 45%, black 65%)'
-
-          }} 
-
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 10%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.55) 45%, black 65%)',
+          }}
         />
-
-        {/* Layer 2: blur medio, transizione più visibile */}
-
-        <div 
-
-          className="absolute inset-x-0 bottom-0 backdrop-blur-xl pointer-events-none z-[1]" 
-
-          style={{ 
-
+        <div
+          className="absolute inset-x-0 bottom-0 backdrop-blur-xl pointer-events-none z-[1]"
+          style={{
             top: 'calc(100% - 420px)',
-
             WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0.5) 40%, black 65%)',
-
-            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0.5) 40%, black 65%)'
-
-          }} 
-
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0.5) 40%, black 65%)',
+          }}
         />
-
-        {/* Layer 3: blur forte + tinta colore più intensa */}
-
-        <div 
-
-          className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent via-header-bg/35 to-header-bg/80 backdrop-blur-2xl pointer-events-none z-[1]" 
-
-          style={{ 
-
+        <div
+          className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent via-header-bg/35 to-header-bg/80 backdrop-blur-2xl pointer-events-none z-[1]"
+          style={{
             top: 'calc(100% - 320px)',
-
             WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.6) 45%, black 70%)',
-
-            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.6) 45%, black 70%)'
-
-          }} 
-
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.6) 45%, black 70%)',
+          }}
         />
 
-
-
-        <section className="relative w-full overflow-hidden px-4 pt-8 pb-6 sm:px-5 sm:pt-10 sm:pb-7 md:pt-12 md:pb-8 z-[2]">
-
-          
-
+        {/* ═══════════════════════════════════════════════
+            FEATURES + BOUTIQUE (below the fold)
+            ═══════════════════════════════════════════════ */}
+        <section className="relative w-full overflow-hidden px-4 pt-6 pb-6 sm:px-5 sm:pt-8 sm:pb-7 md:pt-10 md:pb-8 z-[2]">
           <div className="relative z-10 mx-auto max-w-4xl">
 
-            {/* KPI icone — rimpicciolite e integrate */}
-
+            {/* ─── KPI / Features grid ─── */}
             <div className="mb-6 sm:mb-7" aria-labelledby="landing-features-heading">
-
               <div className="mb-4 text-center sm:mb-6">
-
                 <h2
-
                   id="landing-features-heading"
-
                   className="text-base font-normal leading-tight tracking-wide text-white sm:text-lg md:text-xl"
-
                 >
-
                   {t('landing.feat.sectionTitle')}
-
                 </h2>
-
               </div>
 
               <div className="grid w-full grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-4 sm:gap-x-6 sm:gap-y-8">
-
                 {FEATURES.map((f) => {
-
                   const IconComponent = FEATURE_ICONS[f.iconKey];
-
                   return (
-
-                    <div
-
-                      key={f.title}
-
-                      className="flex flex-col items-center text-center max-w-[11rem] sm:max-w-[14rem]"
-
-                    >
-
+                    <div key={f.title} className="flex flex-col items-center text-center max-w-[11rem] sm:max-w-[14rem]">
                       <div className="mb-2 flex shrink-0 items-center justify-center">
-
                         {IconComponent ? <IconComponent className="h-7 w-7 sm:h-8 sm:w-8 text-[#FF7300]" strokeWidth={1.5} /> : null}
-
                       </div>
-
                       <h3 className="text-[10px] font-bold uppercase leading-tight tracking-[0.06em] text-white sm:text-[11px] mb-1">
-
                         {f.title}
-
                       </h3>
-
                       <p className="hidden md:block text-[10px] sm:text-[11px] leading-relaxed text-white/70">
-
                         {f.description}
-
                       </p>
-
                     </div>
-
                   );
-
                 })}
-
               </div>
-
             </div>
 
-
-
-            {/* Divisore linea tra sezioni */}
-
+            {/* Divider */}
             <div className="mx-auto my-6 sm:my-8 h-px w-2/3 max-w-lg bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
-
-
-            {/* 3 Pillole espandibili Accordion */}
-
-            <p className="mt-8 sm:mt-10 md:mt-12 text-center text-xs font-normal leading-relaxed text-white/95 sm:text-sm md:text-base">
-
-              {t('landing.howToIntro')}
-
-            </p>
-
-            <div className="mt-3 md:mt-4 flex flex-row flex-nowrap justify-center items-center gap-1 sm:gap-2 md:gap-3 w-full max-w-4xl mx-auto px-1 sm:px-2">
-
-              {HOW_TO_ITEMS.map((item) => {
-
-                const Icon = item.icon;
-
-                const isActive = activePill === item.id;
-
-                const isCollapsed = activePill !== null && !isActive;
-
-
-
-                return (
-
-                  <button
-
-                    key={item.id}
-
-                    onClick={() => setActivePill(isActive ? null : item.id)}
-
-                    className={`group relative flex overflow-hidden border border-white/20 bg-white/[0.08] backdrop-blur-md hover:bg-white/[0.15] hover:border-white/30 shadow-[0_0_20px_rgba(0,0,0,0.2)] transition-all duration-500 ease-in-out cursor-pointer h-12 sm:h-14 items-center rounded-full shrink-0 ${
-
-                      isActive 
-
-                        ? 'p-1.5 pl-1.5 sm:p-2 sm:pl-2 w-auto justify-between bg-white/[0.12] border-white/30 transition-[width] duration-300 ease-out' 
-
-                        : isCollapsed 
-
-                          ? 'p-1.5 sm:p-2 w-[44px] sm:w-[48px] md:w-[56px] justify-center transition-[width] duration-500 delay-75' 
-
-                          : 'p-1.5 pr-1 sm:p-2 sm:pr-4 md:pr-5 w-[100px] sm:w-[140px] md:w-[170px] justify-start text-center transition-[width] duration-500 delay-75'
-
-                    }`}
-
-                  >
-
-                    {/* SINISTRA: Icona + Testi (Titolo e Descrizione) */}
-
-                    <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 overflow-hidden whitespace-nowrap min-w-0">
-
-                      {/* Pallino con Icona */}
-
-                      <div className={`flex shrink-0 items-center justify-center rounded-full transition-colors duration-300 h-9 w-9 sm:h-10 sm:w-10 ${isActive ? 'bg-[#FF7300]/20' : 'bg-white/10 group-hover:bg-white/20'}`}>
-
-                        <Icon className={`h-4 w-4 sm:h-4 sm:w-4 transition-colors duration-300 ${isActive ? 'text-[#FF7300]' : 'text-white'}`} strokeWidth={2.5} />
-
-                      </div>
-
-                      
-
-                      {/* Contenitore Testi */}
-
-                      <div className={`flex flex-col justify-center text-left transition-[max-width,opacity] duration-500 ease-in-out overflow-hidden ${isCollapsed ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[450px]'}`}>
-
-                        <span className="font-bold text-white uppercase tracking-wide text-[9px] sm:text-xs md:text-sm leading-tight truncate">
-
-                          {item.shortTitle}
-
-                        </span>
-
-                        
-
-                        {/* Descrizione: sempre nel DOM, larghezza animata per non farla scattare */}
-
-                        <span className={`hidden sm:block text-[10px] sm:text-[11px] text-white/70 tracking-wide font-medium leading-tight truncate transition-all duration-500 ease-in-out ${isActive ? 'max-h-8 opacity-100 mt-0.5 max-w-[280px] sm:max-w-[400px]' : 'max-h-0 opacity-0 mt-0 max-w-0'}`}>
-
-                          {item.description}
-
-                        </span>
-
-                      </div>
-
-                    </div>
-
-
-
-                    {/* DESTRA: Pulsante Azione (sempre nel DOM animato fluidamente) */}
-
-                    <div className={`shrink-0 overflow-hidden transition-all duration-500 ease-in-out ${isActive ? 'max-w-[150px] opacity-100 pl-1 md:pl-2' : 'max-w-0 opacity-0 pl-0'}`}>
-
-                      <Link
-
-                        href={item.href}
-
-                        className="inline-flex h-8 sm:h-9 md:h-10 items-center justify-center rounded-full bg-[#FF7300] px-3 sm:px-4 md:px-5 text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-wide text-white transition-all hover:bg-[#e66700] shadow-[0_2px_10px_rgba(255,115,0,0.3)] hover:scale-105 active:scale-95 whitespace-nowrap"
-
-                        onClick={(e) => e.stopPropagation()}
-
-                      >
-
-                        {item.cta}
-
-                      </Link>
-
-                    </div>
-
-                  </button>
-
-                );
-
-              })}
-
-            </div>
-
-
-
-            {/* Divisore linea tra sezioni */}
-
-            <div className="mx-auto my-8 sm:my-10 h-px w-2/3 max-w-lg bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-
-
-
-            {/* Boutique Cards Full Image */}
-
-            <div className="mt-12 sm:mt-16 text-center">
-
+            {/* ─── Boutique Cards ─── */}
+            <div className="mt-8 sm:mt-12 text-center">
               <h3 className="mb-4 sm:mb-6 text-xs sm:text-sm font-semibold uppercase tracking-widest text-white/90">
-
                 La Nostra Boutique
-
               </h3>
 
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4 max-w-5xl mx-auto px-2">
-
                 {BOUTIQUE_CATEGORIES.map((cat, index) => {
-
                   const glowColor = BOUTIQUE_GLOW_COLORS[cat.id] || '255,255,255';
-
                   return (
-
                     <Link
-
                       key={cat.id}
-
                       href={cat.href}
-
                       className="group relative aspect-square overflow-hidden rounded-full border border-white/10 transition-all duration-300 hover:border-white/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)]"
-
-                      style={{
-
-                        animation: `categoryEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${index * 120}ms both`,
-                      }}
-
+                      style={{ animation: `categoryEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${index * 120}ms both` }}
                     >
-
-                      {/* Full card background image */}
-
                       <div
-
                         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-
                         style={{
-
                           backgroundImage: `image-set(
-
                             url(${cat.imageSet?.sm || cat.imageUrl}) 1x,
-
                             url(${cat.imageSet?.md || cat.imageUrl}) 2x,
-
                             url(${cat.imageSet?.lg || cat.imageUrl}) 3x
-
                           )`,
-
                         }}
-
                         aria-hidden
-
                       />
-
-                      {/* Overlay scuro che si riduce al hover - effetto EbartexBoutique */}
-
-                      <div 
-
-                        className="absolute inset-0 bg-black/40 transition-all duration-300 group-hover:bg-black/10 group-hover:backdrop-blur-[2px]" 
-
-                        aria-hidden 
-
-                      />
-
-                      {/* Label con glow colorato al hover - effetto EbartexBoutique - CENTRATA */}
-
-                      <span 
-
+                      <div className="absolute inset-0 bg-black/40 transition-all duration-300 group-hover:bg-black/10 group-hover:backdrop-blur-[2px]" aria-hidden />
+                      <span
                         className="absolute inset-0 flex items-center justify-center text-center text-[11px] sm:text-sm font-bold uppercase tracking-wider text-white drop-shadow-lg transition-all duration-300 group-hover:scale-110"
-
                         style={{
-
                           ['--glow-color' as string]: glowColor,
                           textShadow: '0 2px 12px rgba(0,0,0,0.45)',
                         }}
                       >
-
                         <span className="transition-all duration-300 group-hover:[text-shadow:0_0_20px_rgba(var(--glow-color),0.9),0_0_40px_rgba(var(--glow-color),0.6),0_2px_12px_rgba(0,0,0,0.45)]">
-
                           {cat.label}
-
                         </span>
-
                       </span>
-
                     </Link>
-
                   );
-
                 })}
-
               </div>
-
             </div>
 
           </div>
-
         </section>
       </div>
 
-      {/* Fullscreen Game Page - RENDERED OUTSIDE z-10 container to cover header */}
+      {/* ══════ MODAL: Notify (small glass) ══════ */}
+      {notifyGame && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 backdrop-blur-md bg-black/40 animate-in fade-in duration-300">
+          <div
+            className="relative w-full max-w-sm overflow-hidden rounded-[32px] border border-white/25 bg-white/10 p-8 shadow-2xl backdrop-blur-xl animate-in zoom-in-95 duration-300"
+            style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.05)' }}
+          >
+            <button
+              onClick={() => setNotifyGame(null)}
+              className="absolute right-6 top-6 rounded-full bg-white/5 p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            {!isNotifySuccess ? (
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#FF7300]/20 text-[#FF7300] shadow-[0_0_20px_rgba(255,115,0,0.2)]">
+                  <img src={notifyGame.src} alt="" className="h-10 w-10 object-contain" />
+                </div>
+
+                <h3 className="mb-3 text-lg font-bold uppercase tracking-tight text-white sm:text-xl">
+                  Ti interessa {notifyGame.alt}?
+                </h3>
+
+                <p className="mb-8 text-sm leading-relaxed text-white/70">
+                  Siamo quasi pronti! Inserisci la tua email e ti avviseremo appena il gioco sarà disponibile sul marketplace.
+                </p>
+
+                <form onSubmit={handleNotifySubmit} className="w-full space-y-4">
+                  <div className="relative group">
+                    <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-[#FF7300]" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="La tua email..."
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 py-3.5 pl-11 pr-4 text-sm text-white placeholder:text-white/20 outline-none transition-all focus:border-[#FF7300]/50 focus:bg-white/10"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full rounded-2xl bg-[#FF7300] py-4 text-sm font-bold uppercase tracking-widest text-white shadow-[0_4px_20px_rgba(255,115,0,0.4)] transition-all hover:bg-[#e66700] hover:shadow-[0_6px_28px_rgba(255,115,0,0.5)] active:scale-95"
+                  >
+                    AVVISAMI
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center py-10 text-center animate-in zoom-in-95 duration-500">
+                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-500/20 text-green-500">
+                  <CheckCircle2 className="h-12 w-12" />
+                </div>
+                <h3 className="mb-2 text-xl font-bold text-white">GRAZIE!</h3>
+                <p className="text-sm text-white/70">
+                  Abbiamo registrato la tua email. <br/>A presto!
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════ FULLSCREEN GAME PAGE ══════ */}
       {fullscreenGame && (
-        <div 
+        <div
           className={`fixed inset-0 z-[9999] flex flex-col ${isFullscreenClosing ? 'animate-landing-exit' : ''}`}
           style={{ willChange: 'opacity' }}
         >
-          {/* Background Image with smooth zoom and fade */}
           <div
             className={`absolute inset-0 bg-cover bg-center bg-no-repeat ${isFullscreenClosing ? 'animate-landing-bg-exit' : 'animate-landing-bg'}`}
-            style={{ 
-              backgroundImage: `url(${fullscreenGame.bgImage})`,
-              willChange: 'transform, opacity'
-            }}
+            style={{ backgroundImage: `url(${fullscreenGame.bgImage})`, willChange: 'transform, opacity' }}
           />
-          {/* Dark overlay with fade */}
-          <div 
+          <div
             className={`absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70 ${isFullscreenClosing ? 'animate-landing-fade-exit' : 'animate-landing-fade'}`}
             style={{ willChange: 'opacity' }}
           />
-          {/* Back button - top left with slide-in */}
+
+          {/* Back button */}
           <button
             type="button"
             onClick={handleCloseFullscreen}
@@ -1268,38 +672,37 @@ export function LandingWelcome() {
             <ArrowLeft className="h-5 w-5" />
             <span className="text-sm font-medium">Torna indietro</span>
           </button>
-          {/* Social proof counter - top right with slide-in */}
-          <div 
+
+          {/* Social proof */}
+          <div
             className={`absolute right-6 top-6 z-10 flex items-center gap-2 rounded-full bg-[#FF7300]/90 px-4 py-2 text-white shadow-lg ${isFullscreenClosing ? 'animate-landing-slide-up-exit' : 'animate-landing-slide-down'}`}
             style={{ willChange: 'transform, opacity', animationDelay: isFullscreenClosing ? '0ms' : '100ms' }}
           >
             <Users className="h-4 w-4" />
-            <span className="text-sm font-semibold">1,247 in lista d'attesa</span>
+            <span className="text-sm font-semibold">1,247 in lista d&apos;attesa</span>
           </div>
-          {/* Content - centered form with staggered animation */}
-          <div 
-            className="relative z-10 flex flex-1 items-center justify-center p-4"
-            style={{ willChange: 'opacity' }}
-          >
+
+          {/* Content area */}
+          <div className="relative z-10 flex flex-1 items-center justify-center p-4" style={{ willChange: 'opacity' }}>
             {!isNotifySuccess ? (
-              <div 
+              <div
                 className={`w-full max-w-md text-center ${isFullscreenClosing ? 'animate-landing-content-down-exit' : 'animate-landing-content-up'}`}
                 style={{ willChange: 'transform, opacity' }}
               >
-                <h2 
+                <h2
                   className={`mb-4 text-3xl font-black uppercase tracking-tight text-white sm:text-4xl ${isFullscreenClosing ? 'animate-landing-fade-exit' : 'animate-landing-fade-in'}`}
                   style={{ willChange: 'opacity', animationDelay: isFullscreenClosing ? '0ms' : '150ms' }}
                 >
                   Ti interessa<br/>{fullscreenGame.alt}?
                 </h2>
-                <p 
+                <p
                   className={`mb-8 text-base text-white/80 ${isFullscreenClosing ? 'animate-landing-fade-exit' : 'animate-landing-fade-in'}`}
                   style={{ willChange: 'opacity', animationDelay: isFullscreenClosing ? '50ms' : '250ms' }}
                 >
                   Siamo quasi pronti! Inserisci la tua email e ti avviseremo appena il gioco sarà disponibile sul marketplace.
                 </p>
-                <form 
-                  onSubmit={handleFullscreenNotifySubmit} 
+                <form
+                  onSubmit={handleFullscreenNotifySubmit}
                   className={`space-y-4 ${isFullscreenClosing ? 'animate-landing-fade-exit' : 'animate-landing-fade-in'}`}
                   style={{ willChange: 'opacity', animationDelay: isFullscreenClosing ? '100ms' : '350ms' }}
                 >
@@ -1327,11 +730,8 @@ export function LandingWelcome() {
                 </form>
               </div>
             ) : (
-              <div 
-                className="text-center"
-                style={{ willChange: 'transform, opacity' }}
-              >
-                <div 
+              <div className="text-center" style={{ willChange: 'transform, opacity' }}>
+                <div
                   className={`mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-green-500/20 text-green-400 mx-auto ${isFullscreenClosing ? 'animate-landing-scale-down-exit' : 'animate-landing-success-bounce'}`}
                   style={{ willChange: 'transform' }}
                 >
@@ -1350,42 +750,24 @@ export function LandingWelcome() {
         </div>
       )}
 
-      {/* Animazione card boutique */}
-
+      {/* Inline keyframes for boutique entry */}
       <style>{`
-
         @keyframes categoryEnter {
-
           0% {
-
             opacity: 0;
-
             transform: translateY(30px) scale(0.95);
-
           }
-
           60% {
-
             opacity: 0.8;
-
             transform: translateY(-5px) scale(1.02);
-
           }
-
           100% {
-
             opacity: 1;
-
             transform: translateY(0) scale(1);
-
           }
-
         }
-
       `}</style>
 
     </div>
-
   );
-
 }

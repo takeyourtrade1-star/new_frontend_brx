@@ -243,7 +243,7 @@ export function MarketplaceDashboard({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [gameSlug]);
 
   useEffect(() => {
     if (magicHits.length < 4) return;
