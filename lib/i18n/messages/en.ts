@@ -684,6 +684,7 @@ export const en = {
   'breadcrumb.lista-desideri': 'Wishlist',
 
   'cart.title': 'Cart',
+  'cart.item': 'item',
   'cart.empty': 'Your cart is empty.',
   'cart.browse': 'Browse products',
   'cart.items': '{count} items',
@@ -693,6 +694,10 @@ export const en = {
   'cart.product': 'Product',
   'cart.qty': 'Qty:',
   'cart.checkout': 'Proceed to checkout',
+  'cart.total': 'Total',
+  'cart.goToCart': 'Go to cart',
+  'cart.continueShopping': 'Continue shopping',
+  'cart.moreItems': 'more items',
 
   'help.backHome': 'Back to home',
   'help.title': 'Help & FAQ',

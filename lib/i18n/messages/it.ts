@@ -685,6 +685,7 @@ export const it: Record<MessageKey, string> = {
   'breadcrumb.lista-desideri': 'Lista desideri',
 
   'cart.title': 'Carrello',
+  'cart.item': 'articolo',
   'cart.empty': 'Il tuo carrello è vuoto.',
   'cart.browse': 'Sfoglia i prodotti',
   'cart.items': '{count} articoli',
@@ -694,6 +695,10 @@ export const it: Record<MessageKey, string> = {
   'cart.product': 'Prodotto',
   'cart.qty': 'Q.tà:',
   'cart.checkout': 'Procedi al checkout',
+  'cart.total': 'Totale',
+  'cart.goToCart': 'Vai al carrello',
+  'cart.continueShopping': 'Continua a fare acquisti',
+  'cart.moreItems': 'articoli in più',
 
   'help.backHome': 'Torna alla home',
   'help.title': 'Aiuto e FAQ',
