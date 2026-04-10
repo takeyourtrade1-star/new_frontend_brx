@@ -51,7 +51,7 @@ export function CookieBanner() {
         <div className="px-5 py-4">
           <p className="text-sm leading-relaxed text-white/90">
             Utilizziamo cookie e tecnologie simili per migliorare la tua esperienza, 
-            personalizzare contenuti e analizzare il traffico. Cliccando "Accetta" 
+            personalizzare contenuti e analizzare il traffico. Cliccando &quot;Accetta&quot; 
             acconsenti all&apos;uso dei cookie.
           </p>
         </div>

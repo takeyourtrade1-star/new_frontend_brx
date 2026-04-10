@@ -11,7 +11,7 @@ import { HamburgerMenu } from './HamburgerMenu';
 import { CartDropdown } from './CartDropdown';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { parseAuthError } from '@/lib/api/auth-error';
 import { useLogin } from '@/lib/hooks/use-auth';
@@ -69,8 +69,7 @@ export function TopBar() {
   const [errorExiting, setErrorExiting] = useState(false);
 
   const intlLocale = LOCALE_TO_INTL[locale as UiLocale] ?? 'it-IT';
-  const formatEuro = (n: number) =>
-    new Intl.NumberFormat(intlLocale, { style: 'currency', currency: 'EUR' }).format(n);
+  const formatEuro = (n: number) => formatEuroNoSpace(n, intlLocale);
 
   const {
     register,

@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { TopBar } from './TopBar';
 import GlobalSearchBar from './GlobalSearchBar';
 import { ProdottiMenu } from './ProdottiMenu';
+import { DemoBanner } from './DemoBanner';
 
 export function Header({ transparent = false }: { transparent?: boolean }) {
   const headerRef = useRef<HTMLElement | null>(null);
@@ -30,6 +31,9 @@ export function Header({ transparent = false }: { transparent?: boolean }) {
         }}
         className={`fixed top-0 left-0 right-0 z-[100] w-full font-display text-white ${transparent ? 'bg-transparent' : 'bg-[#1D3160]'}`}
       >
+      {/* Demo Banner - parte sopra dell'header */}
+      <DemoBanner />
+
       {/* Top bar */}
       <div className={`relative z-20 w-full pb-0 ${transparent ? 'bg-transparent' : 'bg-[#1D3160]'}`}>
         <div className="container-content container-header">

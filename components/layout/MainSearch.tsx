@@ -80,7 +80,7 @@ export function MainSearch() {
                 className="absolute right-0 top-full z-20 mt-1 max-h-60 w-48 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
               >
                 {CATEGORY_LABELS.map((label) => (
-                  <li key={label} role="option">
+                  <li key={label} role="option" aria-selected={categoryLabel === label}>
                     <button
                       type="button"
                       onClick={() => {

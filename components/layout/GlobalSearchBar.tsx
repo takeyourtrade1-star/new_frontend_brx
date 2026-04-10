@@ -1170,7 +1170,7 @@ function ProductCategoryButton({
         }}
         className={`flex items-center gap-1 md:gap-1.5 h-full rounded-full border backdrop-blur-sm text-xs md:text-sm font-medium font-sans leading-none transition-all duration-200 ease-out active:scale-[0.98] whitespace-nowrap min-w-[5.5rem] md:min-w-0 ${
           isBarOpen
-            ? 'border-gray-300 bg-gray-100 text-gray-800 hover:bg-gray-200 hover:border-gray-400 pl-0 pr-0 md:pl-0 md:pr-0'
+            ? 'border-gray-300 bg-gray-100 text-gray-800 hover:bg-gray-200 hover:border-gray-400 pl-3 pr-3 md:pl-4 md:pr-4'
             : 'border-white/20 bg-white/10 text-white hover:bg-white/15 hover:border-white/30 pl-2.5 pr-2.5 md:pl-3 md:pr-4'
         }`}
       >
