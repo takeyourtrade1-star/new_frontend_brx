@@ -96,14 +96,7 @@ export default function RootLayout({
           type="font/ttf"
           crossOrigin="anonymous"
         />
-        {/* Display font */}
-        <link
-          rel="preload"
-          href="/fonts/Comodo Regular Free.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
+        {/* Display font - using existing .otf and .ttf files */}
         <style
           dangerouslySetInnerHTML={{
             __html: `:root{--brx-bg-url:url("${brxBgUrl}");}`,
