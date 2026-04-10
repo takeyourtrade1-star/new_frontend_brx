@@ -1943,7 +1943,7 @@ export function CardMascotte() {
       )}
 
       {/* Sleep Tooltip - Shows when hovering mascot in sleep mode */}
-      {isSleeping && !isOverlayVisible && !isFlipped && (
+      {isSleeping && !isOverlayVisible && !isFlipped && !showHint && (
         <div
           className="fixed pointer-events-none"
           style={{
@@ -1971,20 +1971,23 @@ export function CardMascotte() {
         </div>
       )}
 
-      {/* Zzz Animation - Floating when sleeping */}
+      {/* Sleep Bubbles - Floating when sleeping */}
       {isSleeping && !isOverlayVisible && !isFlipped && (
         <div
-          className="fixed pointer-events-none"
+          className="fixed pointer-events-none sleep-bubbles-wrapper"
           style={{
             zIndex: Z_INDEX.tooltip + 1,
-            bottom: isStickyBarVisible ? '185px' : '125px',
-            right: '75px',
+            bottom: isStickyBarVisible ? '175px' : '115px',
+            right: '70px',
           }}
         >
-          <div className="sleep-zzz-container">
-            <span className="sleep-zzz sleep-zzz-1">Z</span>
-            <span className="sleep-zzz sleep-zzz-2">z</span>
-            <span className="sleep-zzz sleep-zzz-3">Z</span>
+          <div className="sleep-bubbles-container">
+            <div className="sleep-bubble sleep-bubble-large">
+              <span className="sleep-bubble-text">Zzz</span>
+            </div>
+            <div className="sleep-bubble sleep-bubble-small">
+              <span className="sleep-bubble-text">z</span>
+            </div>
           </div>
         </div>
       )}
@@ -3100,52 +3103,96 @@ export function CardMascotte() {
         [aria-label="Segnala un bug"]:hover .mascotte-band-sheen {
           animation: bandSheenSweep 700ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
-        /* Sleep Zzz animation */
-        @keyframes sleepZzzFloat {
+        /* Sleep Bubbles animation */
+        @keyframes sleepBubbleFloat {
           0% {
             opacity: 0;
-            transform: translateY(0) translateX(0) scale(0.6);
+            transform: translateY(0) translateX(0) scale(0.7);
           }
           15% {
-            opacity: 0.8;
+            opacity: 0.9;
           }
           50% {
             opacity: 1;
           }
           85% {
-            opacity: 0.6;
+            opacity: 0.7;
           }
           100% {
             opacity: 0;
-            transform: translateY(-28px) translateX(12px) scale(1.1);
+            transform: translateY(-35px) translateX(8px) scale(1.05);
           }
         }
-        .sleep-zzz-container {
+        @keyframes sleepBubbleWobble {
+          0%, 100% {
+            transform: rotate(-2deg);
+          }
+          50% {
+            transform: rotate(2deg);
+          }
+        }
+        .sleep-bubbles-container {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          gap: 2px;
+          gap: 6px;
         }
-        .sleep-zzz {
-          display: inline-block;
-          font-weight: 700;
-          color: #6366f1;
-          text-shadow: 0 0 6px rgba(99, 102, 241, 0.4);
-          animation: sleepZzzFloat 2.4s ease-in-out infinite;
+        .sleep-bubble {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(145deg, #e0e7ff 0%, #c7d2fe 50%, #a5b4fc 100%);
+          border: 1.5px solid rgba(99, 102, 241, 0.3);
+          box-shadow: 
+            0 2px 8px rgba(99, 102, 241, 0.25),
+            0 4px 12px rgba(99, 102, 241, 0.15),
+            inset 0 1px 2px rgba(255, 255, 255, 0.6);
+          animation: sleepBubbleFloat 2.8s ease-in-out infinite;
         }
-        .sleep-zzz-1 {
-          font-size: 12px;
+        .sleep-bubble-large {
+          width: 42px;
+          height: 28px;
+          border-radius: 20px 20px 20px 8px;
           animation-delay: 0ms;
         }
-        .sleep-zzz-2 {
-          font-size: 9px;
-          margin-left: 8px;
-          animation-delay: 0.8s;
+        .sleep-bubble-large::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          left: 6px;
+          width: 8px;
+          height: 6px;
+          background: linear-gradient(145deg, #e0e7ff 0%, #c7d2fe 100%);
+          border-radius: 50%;
         }
-        .sleep-zzz-3 {
-          font-size: 10px;
-          margin-left: 4px;
-          animation-delay: 1.6s;
+        .sleep-bubble-small {
+          width: 26px;
+          height: 20px;
+          border-radius: 14px 14px 14px 4px;
+          margin-left: 18px;
+          animation-delay: 1.2s;
+        }
+        .sleep-bubble-small::after {
+          content: '';
+          position: absolute;
+          bottom: -3px;
+          left: 4px;
+          width: 5px;
+          height: 4px;
+          background: linear-gradient(145deg, #e0e7ff 0%, #c7d2fe 100%);
+          border-radius: 50%;
+        }
+        .sleep-bubble-text {
+          font-weight: 700;
+          color: #4f46e5;
+          text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+        }
+        .sleep-bubble-large .sleep-bubble-text {
+          font-size: 11px;
+          letter-spacing: -0.3px;
+        }
+        .sleep-bubble-small .sleep-bubble-text {
+          font-size: 9px;
         }
         /* ASSO pill badge animations */
         @keyframes asso-pulse {
