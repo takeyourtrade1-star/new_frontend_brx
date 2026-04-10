@@ -89,6 +89,40 @@ const GAME_TO_HEADER_KEY: Record<string, MessageKey> = {
 
 type ViewMode = 'list' | 'grid';
 
+const LIST_HOVER_PREVIEW_WIDTH_DESKTOP = 208;
+const LIST_HOVER_PREVIEW_WIDTH_MOBILE = 176;
+const LIST_HOVER_PREVIEW_MIN_WIDTH = 140;
+const LIST_HOVER_PREVIEW_ASPECT_RATIO = 88 / 63;
+const LIST_HOVER_PREVIEW_MARGIN = 8;
+const LIST_HOVER_PREVIEW_GAP = 8;
+
+function getListHoverPreviewLayout(
+  anchorRect: DOMRect,
+  preferredWidth: number
+): { left: number; top: number; width: number } {
+  if (typeof window === 'undefined') {
+    return {
+      left: anchorRect.right + LIST_HOVER_PREVIEW_GAP,
+      top: anchorRect.top,
+      width: preferredWidth,
+    };
+  }
+
+  const availableRight = window.innerWidth - LIST_HOVER_PREVIEW_MARGIN - (anchorRect.right + LIST_HOVER_PREVIEW_GAP);
+  const width = Math.max(LIST_HOVER_PREVIEW_MIN_WIDTH, Math.min(preferredWidth, availableRight));
+  const previewHeight = width * LIST_HOVER_PREVIEW_ASPECT_RATIO;
+
+  const left = anchorRect.right + LIST_HOVER_PREVIEW_GAP;
+
+  let top = anchorRect.top + (anchorRect.height - previewHeight) / 2;
+  top = Math.max(
+    LIST_HOVER_PREVIEW_MARGIN,
+    Math.min(top, window.innerHeight - previewHeight - LIST_HOVER_PREVIEW_MARGIN)
+  );
+
+  return { left, top, width };
+}
+
 interface SearchApiResponse {
   hits: SearchHit[];
   total: number;
@@ -254,7 +288,7 @@ function SearchFiltersFields({
   );
 }
 
-type ListHoverPreviewState = { url: string; name: string; left: number; top: number };
+type ListHoverPreviewState = { url: string; name: string; left: number; top: number; width: number };
 
 export function SearchResults({
   query: initialQuery,
@@ -400,23 +434,12 @@ export function SearchResults({
       cancelHideHoverPreview();
       if (!url || typeof window === 'undefined') return;
       if (!window.matchMedia('(hover: hover)').matches) return;
-      const el = e.currentTarget;
-      const rect = el.getBoundingClientRect();
-      const previewW = 208;
-      const margin = 4;
-      let left = rect.right + margin;
-      if (left + previewW > window.innerWidth - margin) {
-        left = Math.max(margin, rect.left - previewW - margin);
-      }
-      // Centra verticalmente la preview rispetto alla card (aspect ratio 63/88)
-      const previewH = previewW * (88 / 63);
-      let top = rect.top + (rect.height / 2) - (previewH / 2);
-      const maxH = Math.min(window.innerHeight * 0.85, 520);
-      if (top + maxH > window.innerHeight - margin) {
-        top = Math.max(margin, window.innerHeight - margin - maxH);
-      }
-      if (top < margin) top = margin;
-      setListHoverPreview({ url, name, left, top });
+      const anchorRect = e.currentTarget.getBoundingClientRect();
+      const preferredWidth = window.innerWidth < 640
+        ? LIST_HOVER_PREVIEW_WIDTH_MOBILE
+        : LIST_HOVER_PREVIEW_WIDTH_DESKTOP;
+      const { left, top, width } = getListHoverPreviewLayout(anchorRect, preferredWidth);
+      setListHoverPreview({ url, name, left, top, width });
     },
     [cancelHideHoverPreview]
   );
@@ -1111,11 +1134,11 @@ export function SearchResults({
           <div
             role="presentation"
             className="fixed z-[250] pointer-events-auto"
-            style={{ left: listHoverPreview.left, top: listHoverPreview.top }}
+            style={{ left: listHoverPreview.left, top: listHoverPreview.top, width: listHoverPreview.width }}
             onMouseEnter={cancelHideHoverPreview}
             onMouseLeave={scheduleHideHoverPreview}
           >
-            <div className="relative w-[176px] sm:w-[208px] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.35)] animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative w-full bg-white shadow-[0_12px_40px_rgba(0,0,0,0.35)] animate-in fade-in zoom-in-95 duration-200">
               <div className="relative aspect-[63/88] w-full bg-gray-100">
                 <Image
                   src={listHoverPreview.url}

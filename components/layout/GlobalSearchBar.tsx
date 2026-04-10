@@ -391,6 +391,37 @@ const HOVER_CLOSE_DELAY_MS = 250;
 
 /** Larghezza anteprima carta inline (stile CardTrader) */
 const INLINE_PREVIEW_WIDTH = 220;
+const INLINE_PREVIEW_MIN_WIDTH = 140;
+const INLINE_PREVIEW_ASPECT_RATIO = 88 / 63;
+const INLINE_PREVIEW_MARGIN = 8;
+const INLINE_PREVIEW_GAP = 8;
+
+function getInlinePreviewLayout(
+  anchorRect: DOMRect,
+  preferredWidth: number
+): { left: number; top: number; width: number } {
+  if (typeof window === 'undefined') {
+    return {
+      left: anchorRect.right + INLINE_PREVIEW_GAP,
+      top: anchorRect.top,
+      width: preferredWidth,
+    };
+  }
+
+  const availableRight = window.innerWidth - INLINE_PREVIEW_MARGIN - (anchorRect.right + INLINE_PREVIEW_GAP);
+  const width = Math.max(INLINE_PREVIEW_MIN_WIDTH, Math.min(preferredWidth, availableRight));
+  const previewHeight = width * INLINE_PREVIEW_ASPECT_RATIO;
+
+  const left = anchorRect.right + INLINE_PREVIEW_GAP;
+
+  let top = anchorRect.top + (anchorRect.height - previewHeight) / 2;
+  top = Math.max(
+    INLINE_PREVIEW_MARGIN,
+    Math.min(top, window.innerHeight - previewHeight - INLINE_PREVIEW_MARGIN)
+  );
+
+  return { left, top, width };
+}
 
 function CardHit({
   hit,
@@ -411,7 +442,7 @@ function CardHit({
   index: number;
   gameSlug: GameSlug;
   onNavigate: () => void;
-  onShowInlinePreview: (url: string, name: string, buttonRect: DOMRect) => void;
+  onShowInlinePreview: (url: string, name: string, anchorRect: DOMRect) => void;
   onScheduleClose?: () => void;
   searchQuery: string;
   isTyping?: boolean;
@@ -671,6 +702,9 @@ function SearchResultsDropdown({
   const inputTrimmed = (inputValue ?? '').trim();
   const hasQuery = queryTrimmed.length > 0 || inputTrimmed.length > 0;
   const hasHits = hits.length > 0;
+  const inlinePreviewLayout = inlinePreview
+    ? getInlinePreviewLayout(inlinePreview.rect, INLINE_PREVIEW_WIDTH)
+    : null;
 
   if (!position) return null;
 
@@ -750,14 +784,15 @@ function SearchResultsDropdown({
       </div>
 
       {inlinePreview &&
+        inlinePreviewLayout &&
         typeof document !== 'undefined' &&
         createPortal(
           <div
             className="fixed z-[1100] rounded-lg shadow-xl border border-gray-200 bg-white overflow-hidden"
             style={{
-              left: inlinePreview.rect.left,
-              top: inlinePreview.rect.bottom + 4,
-              width: INLINE_PREVIEW_WIDTH,
+              left: inlinePreviewLayout.left,
+              top: inlinePreviewLayout.top,
+              width: inlinePreviewLayout.width,
             }}
             onMouseEnter={cancelClose}
             onMouseLeave={() => setInlinePreview(null)}
@@ -810,6 +845,9 @@ function SearchPanelBody({
 
   const hasQuery = (query ?? '').trim().length > 0;
   const hasHits = hits.length > 0;
+  const inlinePreviewLayout = inlinePreview
+    ? getInlinePreviewLayout(inlinePreview.rect, INLINE_PREVIEW_WIDTH)
+    : null;
 
   const showInlinePreview = (url: string, name: string, buttonRect: DOMRect) => {
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
@@ -904,14 +942,15 @@ function SearchPanelBody({
         </>
       )}
       {inlinePreview &&
+        inlinePreviewLayout &&
         typeof document !== 'undefined' &&
         createPortal(
           <div
             className="fixed z-[1100] rounded-lg border border-gray-200 bg-white shadow-xl overflow-hidden"
             style={{
-              left: inlinePreview.rect.left,
-              top: inlinePreview.rect.bottom + 4,
-              width: INLINE_PREVIEW_WIDTH,
+              left: inlinePreviewLayout.left,
+              top: inlinePreviewLayout.top,
+              width: inlinePreviewLayout.width,
             }}
             onMouseEnter={cancelClose}
             onMouseLeave={() => setInlinePreview(null)}
@@ -1168,14 +1207,14 @@ function ProductCategoryButton({
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className={`flex items-center gap-1 md:gap-1.5 h-full rounded-full border backdrop-blur-sm text-xs md:text-sm font-medium font-sans leading-none transition-all duration-200 ease-out active:scale-[0.98] whitespace-nowrap min-w-[5.5rem] md:min-w-0 ${
+        className={`flex h-8 items-center gap-1 border-0 bg-transparent px-2.5 text-xs font-medium font-sans leading-none transition-colors duration-200 whitespace-nowrap md:h-9 md:gap-1.5 md:px-3 md:text-sm ${
           isBarOpen
-            ? 'border-gray-300 bg-gray-100 text-gray-800 hover:bg-gray-200 hover:border-gray-400 pl-3 pr-3 md:pl-4 md:pr-4'
-            : 'border-white/20 bg-white/10 text-white hover:bg-white/15 hover:border-white/30 pl-2.5 pr-2.5 md:pl-3 md:pr-4'
+            ? 'text-gray-800 hover:text-gray-900'
+            : 'text-white/90 hover:text-white'
         }`}
       >
-        <span className="hidden md:inline leading-none text-left">{currentLabel}</span>
-        <span className="md:hidden leading-none">{mobileLabel}</span>
+        <span className="relative hidden md:inline leading-none text-left" style={{ top: '-0.5px' }}>{currentLabel}</span>
+        <span className="relative md:hidden leading-none" style={{ top: '-0.5px' }}>{mobileLabel}</span>
         <ChevronDown
           className={`h-3 w-3 md:h-4 md:w-4 transition-transform ${
             isBarOpen
@@ -1421,14 +1460,14 @@ function SearchWithInstantSearch({
       ref={triggerRef}
       className={`search-container flex w-full min-w-[200px] flex-1 items-stretch gap-0 overflow-hidden transition-[background-color,border-color,border-radius] duration-200 h-11 min-h-11 max-h-11 md:h-auto md:min-h-0 md:max-h-none ${
         showOpenStyle
-          ? 'search-container--open rounded-none bg-white'
+          ? 'search-container--open rounded-b-none rounded-t-[22px] bg-white'
           : 'rounded-[50px]'
       }`}
       style={{ zIndex: 1000 }}
       onClick={() => inputRef.current?.focus()}
     >
       {/* Menu a tendina Categorie Prodotto visibile sempre */}
-      <div className="flex items-center justify-center pl-0 pr-0">
+      <div className="flex h-full shrink-0 items-center justify-center pl-0">
         <ProductCategoryButton
           selectedCategory={productCategory}
           onSelect={handleCategorySelect}
@@ -1436,6 +1475,13 @@ function SearchWithInstantSearch({
           isBarOpen={showOpenStyle}
         />
       </div>
+
+      <div
+        aria-hidden="true"
+        className={`mx-1.5 my-auto h-6 w-px shrink-0 md:mx-2 md:h-7 ${
+          showOpenStyle ? 'bg-gray-300' : 'bg-white/30'
+        }`}
+      />
 
       <div className="relative min-h-0 min-w-0 flex-1">
         <AnimatedSearchPlaceholder

@@ -74,6 +74,29 @@ export default function RootLayout({
   return (
     <html lang="it" suppressHydrationWarning>
       <head>
+        {/* Preload font principale SF Compact (tutti i pesi) per evitare FOUT */}
+        <link
+          rel="preload"
+          href="/fonts/SF-Compact-Rounded-Regular.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/SF-Compact-Rounded-Medium.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/SF-Compact-Rounded-Heavy.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+        {/* Display font */}
         <link
           rel="preload"
           href="/fonts/Comodo Regular Free.woff2"
