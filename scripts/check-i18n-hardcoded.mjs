@@ -47,11 +47,24 @@ function isLikelyTranslatableText(value) {
   return /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(text);
 }
 
+function isLikelyCodeFragment(value) {
+  const text = value.trim().replace(/\s+/g, ' ');
+  if (!text) return false;
+
+  if (/(=>|===|!==|&&|\|\||\?\s*\(|\)\s*:\s*)/.test(text)) return true;
+  if (/[=><{}()[\]|]/.test(text)) return true;
+  if (/\b(import|export|return|const|let|var|function|class)\b/.test(text)) return true;
+  if (/[A-Za-z_]\w*\s*\(/.test(text) && !/[.!?]$/.test(text)) return true;
+
+  return false;
+}
+
 function getLineNumber(content, index) {
   return content.slice(0, index).split('\n').length;
 }
 
 function pushResult(filePath, kind, value, index, content) {
+  if (isLikelyCodeFragment(value)) return;
   if (!isLikelyTranslatableText(value)) return;
   const rel = normalizeRelPath(path.relative(ROOT, filePath));
   results.push({
