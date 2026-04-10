@@ -272,7 +272,9 @@ function AiutoContentInner() {
 
   return (
     <div className="min-h-screen font-sans text-white" style={{ backgroundColor: '#3D65C6' }}>
-      <Header />
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
       <main className="mx-auto max-w-4xl px-4 py-10 md:py-14">
         <Link
           href="/"
@@ -542,7 +544,6 @@ export function AiutoContent() {
   return (
     <Suspense fallback={
       <div className="min-h-screen font-sans text-white" style={{ backgroundColor: '#3D65C6' }}>
-        <Header />
         <main className="mx-auto max-w-4xl px-4 py-10 md:py-14">
           <div className="flex items-center justify-center py-20">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
