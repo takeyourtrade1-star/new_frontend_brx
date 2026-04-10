@@ -1770,6 +1770,13 @@ export function CardMascotte() {
             >
               {activePromoHints[promoHintIndex]?.text}
             </p>
+            {/* Sleep indicator when sleeping */}
+            {isSleeping && (
+              <div className="flex items-center justify-center gap-1 mt-2 pt-2 border-t border-white/20">
+                <span className="text-[10px]">💤</span>
+                <span className="text-[9px] text-white/80 font-medium">Nessuna attività, Asso si fa un pisolino</span>
+              </div>
+            )}
             {/* CTA arrow */}
             <div className="flex items-center justify-center gap-1 mt-2">
               <span className="text-[9px] text-white/90 font-medium">Scopri di più</span>
@@ -1938,35 +1945,6 @@ export function CardMascotte() {
           <div className="flex items-center gap-1.5 rounded-lg border border-amber-400/50 bg-amber-500/90 px-2.5 py-1 shadow-lg shadow-amber-500/30">
             <span className="text-[10px] font-black text-white">{comboCount}x</span>
             <span className="text-[8px] font-bold uppercase tracking-wider text-white/80">COMBO</span>
-          </div>
-        </div>
-      )}
-
-      {/* Sleep Tooltip - Shows when hovering mascot in sleep mode */}
-      {isSleeping && !isOverlayVisible && !isFlipped && !showHint && (
-        <div
-          className="fixed pointer-events-none"
-          style={{
-            zIndex: Z_INDEX.tooltip + 2,
-            bottom: isStickyBarVisible ? '195px' : '135px',
-            right: '25px',
-          }}
-        >
-          <div 
-            className="sleep-tooltip whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium text-white/90 shadow-lg"
-            style={{
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(139, 92, 246, 0.85) 100%)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.2)',
-            }}
-          >
-            <span className="mr-1">💤</span> Nessuna attività, Asso si fa un pisolino
-            <span 
-              className="absolute -bottom-1 right-6 h-2 w-2 rotate-45"
-              style={{
-                background: 'rgba(139, 92, 246, 0.85)',
-              }}
-            />
           </div>
         </div>
       )}
