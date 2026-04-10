@@ -1044,7 +1044,7 @@ export function LandingWelcome() {
 
                     onClick={() => setActivePill(isActive ? null : item.id)}
 
-                    className={`group relative flex overflow-hidden border border-white/20 bg-white/[0.08] backdrop-blur-md hover:bg-white/[0.15] hover:border-white/30 shadow-[0_0_20px_rgba(0,0,0,0.2)] transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] cursor-pointer h-12 sm:h-14 items-center rounded-full shrink-0 ${
+                    className={`group relative flex overflow-hidden border border-white/20 bg-white/[0.08] backdrop-blur-md hover:bg-white/[0.15] hover:border-white/30 shadow-[0_0_20px_rgba(0,0,0,0.2)] transition-all duration-500 ease-in-out cursor-pointer h-12 sm:h-14 items-center rounded-full shrink-0 ${
 
                       isActive 
 
@@ -1076,7 +1076,7 @@ export function LandingWelcome() {
 
                       {/* Contenitore Testi */}
 
-                      <div className={`flex flex-col justify-center text-left transition-[max-width,opacity] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${isCollapsed ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[450px]'}`}>
+                      <div className={`flex flex-col justify-center text-left transition-[max-width,opacity] duration-500 ease-in-out overflow-hidden ${isCollapsed ? 'opacity-0 max-w-0' : 'opacity-100 max-w-[450px]'}`}>
 
                         <span className="font-bold text-white uppercase tracking-wide text-[9px] sm:text-xs md:text-sm leading-tight truncate">
 
@@ -1088,7 +1088,7 @@ export function LandingWelcome() {
 
                         {/* Descrizione: sempre nel DOM, larghezza animata per non farla scattare */}
 
-                        <span className={`hidden sm:block text-[10px] sm:text-[11px] text-white/70 tracking-wide font-medium leading-tight truncate transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isActive ? 'max-h-8 opacity-100 mt-0.5 max-w-[280px] sm:max-w-[400px]' : 'max-h-0 opacity-0 mt-0 max-w-0'}`}>
+                        <span className={`hidden sm:block text-[10px] sm:text-[11px] text-white/70 tracking-wide font-medium leading-tight truncate transition-all duration-500 ease-in-out ${isActive ? 'max-h-8 opacity-100 mt-0.5 max-w-[280px] sm:max-w-[400px]' : 'max-h-0 opacity-0 mt-0 max-w-0'}`}>
 
                           {item.description}
 
@@ -1102,7 +1102,7 @@ export function LandingWelcome() {
 
                     {/* DESTRA: Pulsante Azione (sempre nel DOM animato fluidamente) */}
 
-                    <div className={`shrink-0 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isActive ? 'max-w-[150px] opacity-100 pl-1 md:pl-2' : 'max-w-0 opacity-0 pl-0'}`}>
+                    <div className={`shrink-0 overflow-hidden transition-all duration-500 ease-in-out ${isActive ? 'max-w-[150px] opacity-100 pl-1 md:pl-2' : 'max-w-0 opacity-0 pl-0'}`}>
 
                       <Link
 
