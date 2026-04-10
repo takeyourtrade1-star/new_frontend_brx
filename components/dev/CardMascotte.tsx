@@ -240,9 +240,7 @@ export function CardMascotte() {
   // Hint bubble visibility + message rotation
   const [showHint, setShowHint] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
-  const [isPromoHint, setIsPromoHint] = useState(false);
   const [promoHintIndex, setPromoHintIndex] = useState(0);
-  const [sleepPromoIndex, setSleepPromoIndex] = useState(0); // Cycles through promos during sleep
 
   // Mascotte expression state
   const [mascotteExpression, setMascotteExpression] = useState<'normal' | 'bugReport' | 'bugFocus' | 'wink' | 'coding' | 'sleeping'>('normal');
@@ -1339,12 +1337,7 @@ export function CardMascotte() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Regular hint messages
-  const hintMessages = useMemo(() => [
-    'Segnalami un bug!',
-  ], []);
-
-  // Promotional hints - more visible with special effects
+  // Promotional hints - more visible with special effects (includes bug hint as fallback)
   const promoHints = useMemo(() => [
     {
       id: 'scambi',
@@ -1359,6 +1352,13 @@ export function CardMascotte() {
       route: '/aste',
       gradient: 'linear-gradient(135deg, #0891B2 0%, #06B6D4 50%, #22D3EE 100%)',
       icon: 'auction',
+    },
+    {
+      id: 'bug',
+      text: 'Segnalami un bug! Clicca qui per aiutarci a migliorare.',
+      route: '#bug-report',
+      gradient: 'linear-gradient(135deg, #FF7300 0%, #FF9A40 50%, #FFB366 100%)',
+      icon: 'bug',
     },
   ], []);
 
@@ -1386,13 +1386,8 @@ export function CardMascotte() {
       // Only show promo if it's promo time AND there are active promos available
       const shouldShowPromo = hintCounter % PROMO_FREQUENCY === 0 && activePromoHints.length > 0;
 
-      if (shouldShowPromo) {
-        setIsPromoHint(true);
-        setPromoHintIndex(prev => (prev + 1) % activePromoHints.length);
-      } else {
-        setIsPromoHint(false);
-        setHintIndex(prev => (prev + 1) % hintMessages.length);
-      }
+      // Always cycle through promo hints (scambi, aste, bug hint)
+      setPromoHintIndex(prev => (prev + 1) % activePromoHints.length);
 
       setShowHint(true);
       const showDuration = shouldShowPromo ? PROMO_SHOW_DURATION : REGULAR_SHOW_DURATION;
@@ -1416,7 +1411,7 @@ export function CardMascotte() {
       window.clearTimeout(showTimer);
       window.clearTimeout(hideTimer);
     };
-  }, [hintMessages.length, activePromoHints.length]);
+  }, [activePromoHints.length]);
 
   // Listen for sticky bar visibility changes
   useEffect(() => {
@@ -1428,30 +1423,7 @@ export function CardMascotte() {
     return () => window.removeEventListener('stickyBarVisibilityChange' as any, handleStickyBarShow as any);
   }, []);
 
-  // Cycle promo messages during sleep - dreamy rotation
-  useEffect(() => {
-    if (isSleeping && activePromoHints.length > 0) {
-      // Clear any existing interval
-      if (sleepPromoIntervalRef.current) {
-        window.clearInterval(sleepPromoIntervalRef.current);
-      }
-      // Start cycling through promos every 4 seconds
-      sleepPromoIntervalRef.current = window.setInterval(() => {
-        setSleepPromoIndex(prev => (prev + 1) % activePromoHints.length);
-      }, 4000);
-    } else {
-      // Clear interval when not sleeping
-      if (sleepPromoIntervalRef.current) {
-        window.clearInterval(sleepPromoIntervalRef.current);
-        sleepPromoIntervalRef.current = null;
-      }
-    }
-    return () => {
-      if (sleepPromoIntervalRef.current) {
-        window.clearInterval(sleepPromoIntervalRef.current);
-      }
-    };
-  }, [isSleeping, activePromoHints.length]);
+  // No separate sleep promo cycle - uses same index as awake state
 
   const isOverlayVisible = showChatModal || isModalOpen || isCodingTransition || showCodingCompanion || isExternalModalOpen;
 
@@ -1626,92 +1598,18 @@ export function CardMascotte() {
         </div>
       )}
 
-      {/* Hint Bubble — minimal for regular, premium animated for promos, dreamy for sleep */}
-      {isSleeping && !isModalOpen ? (
-        // Sleep mode - dreamy promo that cycles and stays visible
-        <div
-          className="fixed hidden sm:flex flex-col items-center cursor-pointer group"
-          onClick={() => {
-            const promo = activePromoHints[sleepPromoIndex];
-            if (promo) {
-              router.push(promo.route);
-            }
-          }}
-          style={{
-            zIndex: Z_INDEX.tooltip,
-            bottom: isStickyBarVisible ? '210px' : '154px',
-            right: '24px',
-            width: '220px',
-            opacity: 1,
-            transform: 'translateY(0) scale(1)',
-            transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-            pointerEvents: 'auto',
-          }}
-        >
-          {/* Soft dreamy glow */}
-          <div
-            className="absolute inset-0 rounded-xl blur-xl opacity-50"
-            style={{
-              background: 'linear-gradient(135deg, #8B5CF6 0%, #C4B5FD 50%, #A78BFA 100%)',
-              animation: 'sleepGlow 3s ease-in-out infinite',
-            }}
-          />
-          {/* Main bubble - dreamy styling */}
-          <div
-            className="relative rounded-xl px-4 py-3 text-center backdrop-blur-md overflow-hidden"
-            style={{
-              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(167, 139, 250, 0.85) 50%, rgba(196, 181, 253, 0.8) 100%)',
-              border: '2px solid rgba(255,255,255,0.4)',
-              boxShadow: '0 8px 32px rgba(139, 92, 246, 0.4), 0 4px 16px rgba(0,0,0,0.15), 0 0 20px rgba(196, 181, 253, 0.3)',
-              animation: 'sleepFloat 4s ease-in-out infinite',
-            }}
-          >
-            {/* Soft shine */}
-            <div
-              className="absolute inset-0 opacity-20"
-              style={{
-                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-                animation: 'sleepShine 4s ease-in-out infinite',
-              }}
-            />
-            {/* Sleep emoji indicator */}
-            <span className="absolute -top-1 -left-1 text-lg" style={{ animation: 'sleepTwinkle 2s ease-in-out infinite' }}>💤</span>
-            {/* Text content - cycles between promos */}
-            <p
-              className="relative text-white font-semibold leading-tight"
-              style={{
-                fontSize: '11px',
-                textShadow: '0 1px 2px rgba(0,0,0,0.15)',
-              }}
-            >
-              {activePromoHints[sleepPromoIndex]?.text}
-            </p>
-            {/* CTA - softer */}
-            <div className="flex items-center justify-center gap-1 mt-2">
-              <span className="text-[9px] text-white/80 font-medium">Scopri nel sogno</span>
-              <ArrowRight className="w-3 h-3 text-white/80 group-hover:translate-x-1 transition-transform" />
-            </div>
-            {/* Arrow pointer */}
-            <span
-              className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
-              style={{
-                width: '10px',
-                height: '10px',
-                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(167, 139, 250, 0.85) 100%)',
-                borderBottom: '2px solid rgba(255,255,255,0.4)',
-                borderRight: '2px solid rgba(255,255,255,0.4)',
-              }}
-            />
-          </div>
-        </div>
-      ) : isPromoHint ? (
-        // Premium promotional hint with effects
+      {/* Unified Hint Bubble — single component for all states */}
+      {!isModalOpen && (
         <div
           className="fixed hidden sm:flex flex-col items-center cursor-pointer group"
           onClick={() => {
             const promo = activePromoHints[promoHintIndex];
             if (promo) {
-              router.push(promo.route);
+              if (promo.id === 'bug') {
+                setIsModalOpen(true);
+              } else {
+                router.push(promo.route);
+              }
             }
           }}
           style={{
@@ -1719,10 +1617,10 @@ export function CardMascotte() {
             bottom: isStickyBarVisible ? '210px' : '154px',
             right: '24px',
             width: '220px',
-            opacity: showHint && !isModalOpen ? 1 : 0,
-            transform: showHint && !isModalOpen ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.9)',
+            opacity: showHint ? 1 : 0,
+            transform: showHint ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.9)',
             transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 500ms ease, transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-            pointerEvents: showHint && !isModalOpen ? 'auto' : 'none',
+            pointerEvents: showHint ? 'auto' : 'none',
           }}
         >
           {/* Animated glow background */}
@@ -1760,6 +1658,10 @@ export function CardMascotte() {
               className="absolute -bottom-1 -left-1 w-3 h-3 text-white/60"
               style={{ animation: 'promoSparkle 1.8s ease-in-out infinite 0.3s' }}
             />
+            {/* Sleep emoji indicator when sleeping */}
+            {isSleeping && (
+              <span className="absolute -top-1 -left-1 text-lg" style={{ animation: 'sleepTwinkle 2s ease-in-out infinite' }}>💤</span>
+            )}
             {/* Text content */}
             <p
               className="relative text-white font-semibold leading-tight"
@@ -1770,16 +1672,11 @@ export function CardMascotte() {
             >
               {activePromoHints[promoHintIndex]?.text}
             </p>
-            {/* Sleep indicator when sleeping */}
-            {isSleeping && (
-              <div className="flex items-center justify-center gap-1 mt-2 pt-2 border-t border-white/20">
-                <span className="text-[10px]">💤</span>
-                <span className="text-[9px] text-white/80 font-medium">Nessuna attività, Asso si fa un pisolino</span>
-              </div>
-            )}
             {/* CTA arrow */}
             <div className="flex items-center justify-center gap-1 mt-2">
-              <span className="text-[9px] text-white/90 font-medium">Scopri di più</span>
+              <span className="text-[9px] text-white/90 font-medium">
+                {isSleeping ? 'Scopri nel sogno' : 'Scopri di più'}
+              </span>
               <ArrowRight className="w-3 h-3 text-white/90 group-hover:translate-x-1 transition-transform" />
             </div>
             {/* Arrow pointer */}
@@ -1791,45 +1688,6 @@ export function CardMascotte() {
                 background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #FF7300 0%, #FF9A40 100%)',
                 borderBottom: '2px solid rgba(255,255,255,0.3)',
                 borderRight: '2px solid rgba(255,255,255,0.3)',
-              }}
-            />
-          </div>
-        </div>
-      ) : (
-        // Regular hint bubble
-        <div
-          className="fixed pointer-events-none hidden sm:flex justify-center"
-          style={{
-            zIndex: Z_INDEX.tooltip,
-            bottom: isStickyBarVisible ? '210px' : '154px',
-            right: '48px',
-            width: '96px',
-            opacity: showHint && !isModalOpen ? 1 : 0,
-            transform: showHint && !isModalOpen ? 'translateY(0) scale(1)' : 'translateY(4px) scale(0.92)',
-            transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease, transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-          }}
-        >
-          <div
-            className="relative whitespace-nowrap rounded-md px-2 py-1 text-center backdrop-blur-sm"
-            style={{
-              fontSize: '9.5px',
-              fontWeight: 500,
-              letterSpacing: '0.01em',
-              color: 'rgba(255,255,255,0.9)',
-              background: 'rgba(30,20,10,0.65)',
-              border: '1px solid rgba(255,180,100,0.15)',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-            }}
-          >
-            {hintMessages[hintIndex]}
-            <span
-              className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
-              style={{
-                width: '6px',
-                height: '6px',
-                background: 'rgba(30,20,10,0.65)',
-                borderBottom: '1px solid rgba(255,180,100,0.15)',
-                borderRight: '1px solid rgba(255,180,100,0.15)',
               }}
             />
           </div>
