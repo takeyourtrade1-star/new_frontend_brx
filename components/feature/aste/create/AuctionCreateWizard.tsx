@@ -23,7 +23,7 @@ import { createEmbeddedDraftFromProduct, mergeInventoryIntoAuctionDraft } from '
 import type { CardDocument } from '@/lib/product-detail';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCardImageUrl } from '@/lib/assets';
-import { cn } from '@/lib/utils';
+import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { AuctionCreateCardPicker } from './AuctionCreateCardPicker';
 import { AuctionListingPhotoUpload, ListingPhotoThumbnailsRow, listingPhotosComplete } from './AuctionListingPhotoUpload';
 
@@ -130,9 +130,7 @@ export function AuctionCreateWizard({
   const activeStepIndex = stepOrder.indexOf(stepId);
   const currentStepNumber = activeStepIndex >= 0 ? activeStepIndex + 1 : 1;
 
-  const formatEuro = useCallback((n: number) => {
-    return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(n);
-  }, []);
+  const formatEuro = useCallback((n: number) => formatEuroNoSpace(n, 'it-IT'), []);
 
   const update = useCallback(<K extends keyof AuctionCreateDraft>(key: K, value: AuctionCreateDraft[K]) => {
     setDraft((d) => ({ ...d, [key]: value }));

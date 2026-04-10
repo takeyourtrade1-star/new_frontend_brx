@@ -15,7 +15,7 @@ import { getCardImageUrl } from '@/lib/assets';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import type { SearchHit } from '@/app/api/search/route';
 import type { GameSlug } from '@/lib/contexts/GameContext';
-import { cn } from '@/lib/utils';
+import { cn, formatEuroNoSpace } from '@/lib/utils';
 
 const BACKEND_LANG_ORDER = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
 type SupportedLang = (typeof BACKEND_LANG_ORDER)[number];
@@ -199,7 +199,7 @@ export function ProductCategoryView({
   };
 
   const formatEuro = (n: number | undefined) =>
-    n != null ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(n) : '–';
+    n != null ? formatEuroNoSpace(n, 'it-IT') : '–';
 
   return (
     <section className="min-h-screen pb-12 bg-[#F0F0F0]">

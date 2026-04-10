@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { ProductCategoryView } from './SinglesView';
 import { useGame } from '@/lib/contexts/GameContext';
@@ -24,9 +25,9 @@ export function ProductCategoryPageClient({ categorySlug }: ProductCategoryPageC
         <div className="container-content py-12 text-center">
           <h1 className="text-2xl font-bold text-gray-900">Categoria non trovata</h1>
           <p className="mt-2 text-gray-600">
-            <a href="/products/singles" className="text-[#FF8800] hover:underline">
+            <Link href="/products/singles" className="text-[#FF8800] hover:underline">
               Vai a Singles
-            </a>
+            </Link>
           </p>
         </div>
       </main>

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'rea
 import Link from 'next/link';
 import Image from 'next/image';
 import { Loader2, Minus, Pencil, Plus, X, ChevronLeft, ChevronRight, Heart, Eye, EyeOff } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 import { getCardImageUrl } from '@/lib/assets';
 import { getCardDisplayNames } from '@/lib/card-display-name';
@@ -272,7 +272,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         .filter((o, i, arr) => arr.findIndex((x) => x.code === o.code) === i);
     }
     return LANG_OPTIONS.filter((o) => o.code !== 'jp');
-  }, [card?.available_languages, langLabelByCode]);
+  }, [card?.available_languages, langLabelByCode, LANG_OPTIONS]);
 
   useEffect(() => {
     if (vendiLanguageOptions.length && !vendiLanguageOptions.some((o) => o.code === linguaVendi)) {
@@ -594,8 +594,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     return sorted;
   }, [listings, listingsSort]);
 
-  const formatEuro = (n: number) =>
-    new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(n);
+  const formatEuro = (n: number) => formatEuroNoSpace(n, 'it-IT');
 
   const cardsInSaleCount = useMemo(
     () => listings.reduce((total, item) => total + Math.max(0, item.quantity || 0), 0),

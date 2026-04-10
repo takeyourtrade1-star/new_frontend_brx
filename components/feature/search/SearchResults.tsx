@@ -507,14 +507,17 @@ export function SearchResults({
       : []),
   ];
 
-  const buildSearchUrl = (updates: Record<string, string>) => {
-    const p = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => {
-      if (v) p.set(k, v);
-      else p.delete(k);
-    });
-    return `/search?${p.toString()}`;
-  };
+  const buildSearchUrl = useCallback(
+    (updates: Record<string, string>) => {
+      const p = new URLSearchParams(searchParams.toString());
+      Object.entries(updates).forEach(([k, v]) => {
+        if (v) p.set(k, v);
+        else p.delete(k);
+      });
+      return `/search?${p.toString()}`;
+    },
+    [searchParams]
+  );
 
   const liveSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const triggerLiveSearch = useCallback(

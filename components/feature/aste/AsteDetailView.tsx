@@ -7,14 +7,14 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap } from 'lucide-react';
+import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap, ArrowLeft } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { roundMoney, minNextBidEur } from '@/lib/auction/bid-math';
 import { AuctionBidModal } from '@/components/feature/aste/AuctionBidModal';
 import { AuctionShareButton } from '@/components/feature/aste/AuctionShareButton';
-import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
+import { AsteNav } from '@/components/feature/aste/AsteNav';
 import {
   getAuctionDetailMock,
   SIMILAR_MOCK_IDS,
@@ -125,25 +125,31 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const [bidToastAmount, setBidToastAmount] = useState<number | null>(null);
   const mainImg = detail.images[imgIdx] ?? detail.images[0];
   const [stickyTop, setStickyTop] = useState(HEADER_OFFSET);
+  const [asteNavHeight, setAsteNavHeight] = useState(56); // Altezza di default AsteNav
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const heroTitleRef = useRef<HTMLDivElement>(null);
+  const asteNavRef = useRef<HTMLDivElement>(null);
 
-  // Misura l'altezza effettiva dell'header per calcolare l'offset corretto (come AsteNav)
+  // Misura l'altezza effettiva dell'header e di AsteNav per calcolare l'offset corretto
   useEffect(() => {
     const header = document.querySelector('header');
+    const asteNavEl = asteNavRef.current;
     if (!header) return;
-    
+
     const measure = () => {
-      const height = header.getBoundingClientRect().height;
-      setStickyTop(height);
+      const headerHeight = header.getBoundingClientRect().height;
+      const navHeight = asteNavEl?.getBoundingClientRect().height ?? 56;
+      setStickyTop(headerHeight);
+      setAsteNavHeight(navHeight);
     };
-    
+
     measure();
-    
+
     const ro = new ResizeObserver(() => measure());
     ro.observe(header);
+    if (asteNavEl) ro.observe(asteNavEl);
     window.addEventListener('resize', measure);
-    
+
     return () => {
       ro.disconnect();
       window.removeEventListener('resize', measure);
@@ -176,14 +182,14 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       },
       {
         root: null,
-        rootMargin: `-${stickyTop + 10}px 0px 0px 0px`,
+        rootMargin: `-${stickyTop + asteNavHeight + 10}px 0px 0px 0px`,
         threshold: 0,
       }
     );
 
     observer.observe(titleElement);
     return () => observer.disconnect();
-  }, [stickyTop]);
+  }, [stickyTop, asteNavHeight]);
 
   const effectiveCurrentBidEur = Math.max(detail.currentBidEur, myLastOfferEur ?? 0);
 
@@ -214,24 +220,23 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     []
   );
 
-  const breadcrumbItems: AppBreadcrumbItem[] = [
-    { href: '/', label: t('auctions.breadcrumbHome'), isCurrent: false },
-    { href: '/aste', label: t('auctions.detailBreadcrumb'), isCurrent: false },
-    { label: detail.title.toUpperCase(), isCurrent: true },
-  ];
-
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
+      <div ref={asteNavRef}>
+        <AsteNav />
+      </div>
+
       {/* Hero — Priorità al nome prodotto */}
       <section className="w-full border-b border-gray-200 bg-white">
         <div className="container-content py-3 sm:py-4 lg:py-5">
-          {/* Breadcrumb */}
-          <AppBreadcrumb
-            items={breadcrumbItems}
-            ariaLabel="Breadcrumb"
-            variant="default"
-            className="mb-3 min-w-0 text-xs font-medium sm:text-sm"
-          />
+          {/* Back link */}
+          <Link
+            href="/aste"
+            className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 transition hover:text-[#FF7300] sm:text-sm"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t('auctions.backToAuctions')}
+          </Link>
 
           {/* Titolo prodotto + azioni a destra */}
           <div ref={heroTitleRef} className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
@@ -278,9 +283,9 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       </section>
 
       {/* Sticky Mobile Header - Nome prodotto | Condividi */}
-      <div 
-        className={`sticky z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm lg:hidden transition-transform duration-300 ${showStickyHeader ? 'translate-y-0' : '-translate-y-full hidden'}`} 
-        style={{ top: stickyTop }}
+      <div
+        className={`sticky z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm lg:hidden transition-transform duration-300 ${showStickyHeader ? 'translate-y-0' : '-translate-y-full hidden'}`}
+        style={{ top: stickyTop + asteNavHeight }}
       >
         <div className="container-content py-3">
           <div className="flex items-center justify-between gap-3">
