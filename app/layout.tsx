@@ -5,6 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { CardMascotte } from '@/components/dev/CardMascotte';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
   title: {
     default: 'Ebartex | Marketplace di Carte Collezionabili',
     template: '%s | Ebartex',
@@ -92,12 +93,6 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased min-h-screen flex flex-col">
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-[9999] bg-primary text-white px-4 py-2 rounded-md font-semibold shadow-lg"
-        >
-          Skip to main content
-        </a>
         <Providers>
           <div className="flex-1 flex flex-col" id="main-content">
             {children}
