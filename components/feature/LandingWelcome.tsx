@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Tag, RefreshCw, Gavel, CircleDollarSign, ShieldCheck,
   ArrowRightLeft, Scale, Package, TrendingUp, X, Mail,
-  CheckCircle2, ArrowLeft, BellRing, Users,
+  CheckCircle2, ArrowLeft, BellRing, Users, ChevronUp,
 } from 'lucide-react';
 import { getCdnImageUrl, getCdnVideoUrl } from '@/lib/config';
 import { useGame } from '@/lib/contexts/GameContext';
@@ -136,6 +136,7 @@ export function LandingWelcome() {
   const [isFullscreenClosing, setIsFullscreenClosing] = useState(false);
   const [email, setEmail] = useState('');
   const [isNotifySuccess, setIsNotifySuccess] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   /* ─── handlers ─── */
   const handleCloseFullscreen = useCallback(() => {
@@ -171,6 +172,19 @@ export function LandingWelcome() {
       }, 2000);
     }, 800);
   }, [email, handleCloseFullscreen]);
+
+  const handleScrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   /* ─── memoised data ─── */
   const FEATURES = useMemo(
@@ -238,14 +252,14 @@ export function LandingWelcome() {
         {/* ═══════════════════════════════════════════════
             BENTO GRID HERO — 4 elementi grandi
             ═══════════════════════════════════════════════ */}
-        <section className="px-3 pt-1 pb-3 sm:px-4 sm:pt-2 sm:pb-4 md:px-6 md:pt-2 md:pb-5">
-          <div className="mx-auto grid w-full max-w-6xl gap-2.5 sm:gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 lg:grid-rows-[auto_auto]">
+        <section className="px-4 pt-2 pb-4 sm:px-4 sm:pt-2 sm:pb-4 md:px-6 md:pt-2 md:pb-5">
+          <div className="mx-auto grid w-full max-w-6xl gap-3 sm:gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-6 lg:grid-rows-[auto_auto]">
 
             {/* ═══ ROW 1: COMPRA & VENDI + MAGIC CARD ═══ */}
 
             {/* ──── COMPRA & VENDI — text + arrow pointing RIGHT toward Magic ──── */}
             <div
-              className="bento-entry col-span-1 lg:col-span-1 flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 md:p-5 min-h-[90px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px] text-center"
+              className="bento-entry col-span-1 lg:col-span-1 flex flex-col items-center justify-center gap-2 sm:gap-2 p-4 sm:p-4 md:p-5 min-h-[100px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px] text-center"
               style={{ animationDelay: '100ms' }}
             >
               <p className="text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-widest text-emerald-400">
@@ -254,9 +268,9 @@ export function LandingWelcome() {
               <p className="text-[8px] sm:text-[9px] md:text-[10px] text-white/50 max-w-[120px] sm:max-w-[140px] leading-snug">
                 Già disponibile su Magic
               </p>
-              {/* Big animated arrow pointing right */}
+              {/* Big animated arrow pointing right - hidden on mobile */}
               <svg
-                className="h-6 w-10 sm:h-8 sm:w-12 md:h-10 md:w-14 text-white/40 animate-bounce-right"
+                className="hidden sm:block h-8 sm:h-8 sm:w-12 md:h-10 md:w-14 text-white/40 animate-bounce-right"
                 viewBox="0 0 56 40"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -276,7 +290,7 @@ export function LandingWelcome() {
             <Link
               href="/home/magic"
               id="hero-magic-card"
-              className={`bento-entry bento-card group relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/15 p-3 sm:p-4 md:p-5 lg:p-6 min-h-[90px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01] col-span-1 ${isAuthenticated ? 'md:col-span-2 lg:col-span-3' : 'md:col-span-1 lg:col-span-2'}`}
+              className={`bento-entry bento-card group relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-4 md:p-5 lg:p-6 min-h-[110px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01] col-span-1 ${isAuthenticated ? 'md:col-span-2 lg:col-span-5' : 'md:col-span-1 lg:col-span-3'}`}
               style={{
                 animationDelay: '180ms',
                 background: 'linear-gradient(135deg, rgba(167,139,250,0.08) 0%, rgba(15,23,42,0.40) 40%, rgba(99,102,241,0.04) 100%)',
@@ -319,7 +333,7 @@ export function LandingWelcome() {
             {/* ──── CTA + REGISTRATI — only if NOT authenticated ──── */}
             {!isAuthenticated && (
               <div
-                className="bento-entry col-span-1 lg:col-span-1 flex flex-col items-center justify-center gap-2 sm:gap-2.5 rounded-2xl border border-white/10 p-3 sm:p-4 md:p-5 h-20 sm:h-24 md:h-28 lg:h-32"
+                className="bento-entry col-span-1 lg:col-span-1 flex flex-col items-center justify-center gap-2.5 sm:gap-2.5 rounded-2xl border border-white/10 p-4 sm:p-4 md:p-5 h-24 sm:h-24 md:h-28 lg:h-32"
                 style={{
                   animationDelay: '260ms',
                   background: 'linear-gradient(135deg, rgba(255,115,0,0.04) 0%, rgba(15,23,42,0.35) 100%)',
@@ -348,7 +362,7 @@ export function LandingWelcome() {
             <Link
               href="/scambi"
               id="hero-scambi-card"
-              className="bento-entry bento-card group relative col-span-1 md:col-span-1 lg:col-span-1 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-3 sm:p-4 md:p-5 lg:p-6 min-h-[100px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
+              className="bento-entry bento-card group relative col-span-1 md:col-span-1 lg:col-span-2 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-4 md:p-5 lg:p-6 min-h-[120px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
               style={{
                 animationDelay: '320ms',
                 background: 'linear-gradient(135deg, rgba(56,189,248,0.10) 0%, rgba(15,23,42,0.40) 50%, rgba(56,189,248,0.04) 100%)',
@@ -391,7 +405,7 @@ export function LandingWelcome() {
             <Link
               href="/aste"
               id="hero-aste-card"
-              className="bento-entry bento-card group relative col-span-1 md:col-span-1 lg:col-span-1 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-3 sm:p-4 md:p-5 lg:p-6 min-h-[100px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
+              className="bento-entry bento-card group relative col-span-1 md:col-span-1 lg:col-span-2 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-4 md:p-5 lg:p-6 min-h-[120px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
               style={{
                 animationDelay: '400ms',
                 background: 'linear-gradient(135deg, rgba(251,146,60,0.10) 0%, rgba(15,23,42,0.40) 50%, rgba(251,146,60,0.04) 100%)',
@@ -432,12 +446,12 @@ export function LandingWelcome() {
 
             {/* ──── PRESTO DISPONIBILI — text with arrow pointing LEFT toward cards ──── */}
             <div
-              className="bento-entry col-span-1 lg:col-span-2 flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 md:p-5 min-h-[90px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px] text-center"
+              className="bento-entry col-span-1 lg:col-span-2 flex flex-col items-center sm:items-end justify-center gap-2 sm:gap-2 p-4 sm:p-4 md:p-5 pr-4 sm:pr-6 md:pr-8 lg:pr-10 min-h-[100px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px] text-center sm:text-right"
               style={{ animationDelay: '480ms' }}
             >
-              {/* Arrow pointing LEFT toward the cards */}
+              {/* Arrow pointing LEFT toward the cards - hidden on mobile */}
               <svg
-                className="h-6 w-10 sm:h-8 sm:w-12 md:h-10 md:w-14 text-white/40 animate-bounce-left"
+                className="hidden sm:block h-8 sm:h-8 sm:w-12 md:h-10 md:w-14 text-white/40 animate-bounce-left"
                 viewBox="0 0 56 40"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -782,6 +796,17 @@ export function LandingWelcome() {
           </div>
         </div>
       )}
+
+      {/* ══════ SCROLL TO TOP BUTTON ══════ */}
+      <button
+        onClick={handleScrollToTop}
+        className={`fixed bottom-6 right-6 z-[10001] flex h-12 w-12 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-[0_4px_20px_rgba(255,115,0,0.4)] transition-all duration-300 hover:bg-[#e66700] hover:scale-110 hover:shadow-[0_6px_28px_rgba(255,115,0,0.6)] active:scale-95 ${
+          showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+        aria-label="Torna in cima"
+      >
+        <ChevronUp className="h-5 w-5" />
+      </button>
 
       {/* Inline keyframes for boutique entry */}
       <style>{`
