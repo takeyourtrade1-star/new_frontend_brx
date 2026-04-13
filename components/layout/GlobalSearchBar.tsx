@@ -1214,7 +1214,7 @@ function ProductCategoryButton({
         }`}
       >
         <span className="relative hidden md:inline leading-none text-left" style={{ top: '-0.5px' }}>{currentLabel}</span>
-        <span className="relative md:hidden leading-none" style={{ top: '-0.5px' }}>{mobileLabel}</span>
+        <span className="relative md:hidden leading-none text-center" style={{ top: '-0.5px' }}>{mobileLabel}</span>
         <ChevronDown
           className={`h-3 w-3 md:h-4 md:w-4 transition-transform ${
             isBarOpen
