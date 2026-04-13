@@ -241,106 +241,22 @@ export function LandingWelcome() {
         <section className="px-3 pt-1 pb-3 sm:px-4 sm:pt-2 sm:pb-4 md:px-6 md:pt-2 md:pb-5">
           <div className="mx-auto grid w-full max-w-6xl gap-2.5 sm:gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 lg:grid-rows-[auto_auto]">
 
-            {/* ──── SCAMBI CARD ──── */}
-            <Link
-              href="/scambi"
-              id="hero-scambi-card"
-              className="bento-entry bento-card group relative col-span-1 md:col-span-1 lg:col-span-2 lg:row-span-1 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-5 md:p-6 min-h-[130px] sm:min-h-[140px] md:min-h-[150px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
-              style={{
-                animationDelay: '100ms',
-                background: 'linear-gradient(135deg, rgba(56,189,248,0.10) 0%, rgba(15,23,42,0.40) 50%, rgba(56,189,248,0.04) 100%)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-              }}
-            >
-              {/* Exclusive badges */}
-              <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1">
-                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white/90">
-                  Presto disponibile
-                </span>
-                <span className="bento-badge-glow rounded-full bg-[#FF7300] px-2 py-0.5 sm:px-2.5 sm:py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white shadow-[0_2px_12px_rgba(255,115,0,0.5)]">
-                  Solo su Ebartex
-                </span>
-              </div>
-
-              {/* Decorative bg glow */}
-              <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#38BDF8]/10 blur-3xl transition-all duration-700 group-hover:bg-[#38BDF8]/18 group-hover:scale-110" />
-
-              {/* Content */}
-              <div className="relative z-10 flex flex-col gap-1.5 sm:gap-2">
-                <h2 className="font-display text-2xl sm:text-3xl md:text-[2.5rem] font-bold uppercase tracking-tight text-white drop-shadow-lg">
-                  Scambi
-                </h2>
-                <p className="max-w-sm text-[11px] sm:text-xs leading-relaxed text-white/60">
-                  Proponi e accetta scambi con altri collezionisti. Nessun altro marketplace lo offre.
-                </p>
-              </div>
-
-              {/* CTA — text only, no icon */}
-              <div className="relative z-10 mt-2 sm:mt-3">
-                <span className="inline-flex items-center rounded-full border border-[#38BDF8]/30 bg-[#38BDF8]/10 px-3.5 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-[#38BDF8] transition-all duration-300 group-hover:bg-[#38BDF8]/20 group-hover:border-[#38BDF8]/50 group-hover:shadow-[0_0_16px_rgba(56,189,248,0.15)]">
-                  Scopri gli Scambi
-                </span>
-              </div>
-            </Link>
-
-            {/* ──── ASTE CARD ──── */}
-            <Link
-              href="/aste"
-              id="hero-aste-card"
-              className="bento-entry bento-card group relative col-span-1 md:col-span-1 lg:col-span-2 lg:row-span-1 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-5 md:p-6 min-h-[130px] sm:min-h-[140px] md:min-h-[150px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
-              style={{
-                animationDelay: '180ms',
-                background: 'linear-gradient(135deg, rgba(251,146,60,0.10) 0%, rgba(15,23,42,0.40) 50%, rgba(251,146,60,0.04) 100%)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-              }}
-            >
-              {/* Exclusive badges */}
-              <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1">
-                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white/90">
-                  Presto disponibile
-                </span>
-                <span className="bento-badge-glow rounded-full bg-[#FF7300] px-2 py-0.5 sm:px-2.5 sm:py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white shadow-[0_2px_12px_rgba(255,115,0,0.5)]">
-                  Solo su Ebartex
-                </span>
-              </div>
-
-              {/* Decorative bg glows */}
-              <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#FB923C]/10 blur-3xl transition-all duration-700 group-hover:bg-[#FB923C]/18 group-hover:scale-110" />
-
-              {/* Content */}
-              <div className="relative z-10 flex flex-col gap-1.5 sm:gap-2">
-                <h2 className="font-display text-2xl sm:text-3xl md:text-[2.5rem] font-bold uppercase tracking-tight text-white drop-shadow-lg">
-                  Aste
-                </h2>
-                <p className="max-w-sm text-[11px] sm:text-xs leading-relaxed text-white/60">
-                  Metti all&apos;asta le tue carte o fai offerte. Solo su Ebartex.
-                </p>
-              </div>
-
-              {/* CTA — text only, no icon */}
-              <div className="relative z-10 mt-2 sm:mt-3">
-                <span className="inline-flex items-center rounded-full border border-[#FB923C]/30 bg-[#FB923C]/10 px-3.5 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-[#FB923C] transition-all duration-300 group-hover:bg-[#FB923C]/20 group-hover:border-[#FB923C]/50 group-hover:shadow-[0_0_16px_rgba(251,146,60,0.15)]">
-                  Scopri le Aste
-                </span>
-              </div>
-            </Link>
+            {/* ═══ ROW 1: COMPRA & VENDI + MAGIC CARD ═══ */}
 
             {/* ──── COMPRA & VENDI — text + arrow pointing RIGHT toward Magic ──── */}
             <div
-              className="bento-entry col-span-1 lg:col-span-1 flex flex-col items-center justify-center gap-2 p-4 sm:p-5 min-h-[110px] sm:min-h-[120px] md:min-h-[130px] text-center"
-              style={{ animationDelay: '260ms' }}
+              className="bento-entry col-span-1 lg:col-span-1 flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 md:p-5 min-h-[90px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px] text-center"
+              style={{ animationDelay: '100ms' }}
             >
-              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-400">
+              <p className="text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-widest text-emerald-400">
                 Compra &amp; Vendi
               </p>
-              <p className="text-[9px] sm:text-[10px] text-white/50 max-w-[140px] leading-snug">
+              <p className="text-[8px] sm:text-[9px] md:text-[10px] text-white/50 max-w-[120px] sm:max-w-[140px] leading-snug">
                 Già disponibile su Magic
               </p>
               {/* Big animated arrow pointing right */}
               <svg
-                className="h-8 w-12 sm:h-10 sm:w-14 text-white/40 animate-bounce-right"
+                className="h-6 w-10 sm:h-8 sm:w-12 md:h-10 md:w-14 text-white/40 animate-bounce-right"
                 viewBox="0 0 56 40"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -360,9 +276,9 @@ export function LandingWelcome() {
             <Link
               href="/home/magic"
               id="hero-magic-card"
-              className={`bento-entry bento-card group relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-5 md:p-6 min-h-[110px] sm:min-h-[120px] md:min-h-[130px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01] col-span-1 ${isAuthenticated ? 'md:col-span-2 lg:col-span-3' : 'md:col-span-1 lg:col-span-2'}`}
+              className={`bento-entry bento-card group relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/15 p-3 sm:p-4 md:p-5 lg:p-6 min-h-[90px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01] col-span-1 ${isAuthenticated ? 'md:col-span-2 lg:col-span-3' : 'md:col-span-1 lg:col-span-2'}`}
               style={{
-                animationDelay: '320ms',
+                animationDelay: '180ms',
                 background: 'linear-gradient(135deg, rgba(167,139,250,0.08) 0%, rgba(15,23,42,0.40) 40%, rgba(99,102,241,0.04) 100%)',
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
@@ -379,18 +295,18 @@ export function LandingWelcome() {
               <div className="pointer-events-none absolute -left-12 -top-12 h-48 w-48 rounded-full bg-indigo-500/8 blur-3xl" />
 
               {/* Left side: Text */}
-              <div className="relative z-10 flex flex-col gap-1">
-                <h2 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold uppercase tracking-tight text-white drop-shadow-lg">
+              <div className="relative z-10 flex flex-col gap-0.5 sm:gap-1">
+                <h2 className="font-display text-base sm:text-lg md:text-xl lg:text-2xl font-bold uppercase tracking-tight text-white drop-shadow-lg">
                   Magic: The Gathering
                 </h2>
-                <p className="max-w-md text-[11px] sm:text-xs text-white/50">
+                <p className="max-w-md text-[10px] sm:text-[11px] md:text-xs text-white/50">
                   Compra, vendi, scambia e metti all&apos;asta le tue carte. Inizia subito.
                 </p>
               </div>
 
               {/* Right side: Game logo */}
               <div className="relative z-10 flex shrink-0 items-center justify-center">
-                <div className="relative h-18 w-32 sm:h-22 sm:w-40 md:h-26 md:w-48 lg:h-32 lg:w-56 transition-transform duration-500 group-hover:scale-110">
+                <div className="relative h-16 w-28 sm:h-20 sm:w-36 md:h-24 md:w-44 lg:h-32 lg:w-56 transition-transform duration-500 group-hover:scale-110">
                   <img
                     src={MAIN_GAMES[0].src}
                     alt={MAIN_GAMES[0].alt}
@@ -403,21 +319,21 @@ export function LandingWelcome() {
             {/* ──── CTA + REGISTRATI — only if NOT authenticated ──── */}
             {!isAuthenticated && (
               <div
-                className="bento-entry col-span-1 lg:col-span-1 flex flex-col items-center justify-center gap-2.5 sm:gap-3 rounded-2xl border border-white/10 p-4 sm:p-5"
+                className="bento-entry col-span-1 lg:col-span-1 flex flex-col items-center justify-center gap-2 sm:gap-2.5 rounded-2xl border border-white/10 p-3 sm:p-4 md:p-5 h-20 sm:h-24 md:h-28 lg:h-32"
                 style={{
-                  animationDelay: '380ms',
+                  animationDelay: '260ms',
                   background: 'linear-gradient(135deg, rgba(255,115,0,0.04) 0%, rgba(15,23,42,0.35) 100%)',
                   backdropFilter: 'blur(16px)',
                   WebkitBackdropFilter: 'blur(16px)',
                 }}
               >
-                <p className="text-center text-[11px] sm:text-xs font-medium text-white/60">
+                <p className="text-center text-[10px] sm:text-[11px] md:text-xs font-medium text-white/60">
                   Unisciti a migliaia di collezionisti
                 </p>
                 <Link
                   href="/login"
                   id="hero-cta-register"
-                  className="bento-cta-glow group relative inline-flex w-full items-center justify-center overflow-hidden rounded-full bg-[#FF7300] px-5 py-2.5 sm:px-7 sm:py-3 text-xs sm:text-sm font-bold uppercase tracking-widest text-white shadow-[0_4px_24px_rgba(255,115,0,0.4)] transition-all duration-300 hover:scale-105 hover:bg-[#e66700] hover:shadow-[0_6px_32px_rgba(255,115,0,0.6)] active:scale-100"
+                  className="bento-cta-glow group relative inline-flex w-full items-center justify-center overflow-hidden rounded-full bg-[#FF7300] px-4 py-2 sm:px-5 sm:py-2.5 md:px-7 md:py-3 text-[10px] sm:text-xs md:text-sm font-bold uppercase tracking-widest text-white shadow-[0_4px_24px_rgba(255,115,0,0.4)] transition-all duration-300 hover:scale-105 hover:bg-[#e66700] hover:shadow-[0_6px_32px_rgba(255,115,0,0.6)] active:scale-100"
                 >
                   {/* Shimmer sweep */}
                   <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
@@ -425,6 +341,123 @@ export function LandingWelcome() {
                 </Link>
               </div>
             )}
+
+            {/* ═══ ROW 2: SCAMBI + ASTE + Presto disponibili text ═══ */}
+
+            {/* ──── SCAMBI CARD ──── */}
+            <Link
+              href="/scambi"
+              id="hero-scambi-card"
+              className="bento-entry bento-card group relative col-span-1 md:col-span-1 lg:col-span-1 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-3 sm:p-4 md:p-5 lg:p-6 min-h-[100px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
+              style={{
+                animationDelay: '320ms',
+                background: 'linear-gradient(135deg, rgba(56,189,248,0.10) 0%, rgba(15,23,42,0.40) 50%, rgba(56,189,248,0.04) 100%)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+              }}
+            >
+              {/* Exclusive badges */}
+              <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1">
+                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white/90">
+                  Presto
+                </span>
+                <span className="bento-badge-glow rounded-full bg-[#FF7300] px-2 py-0.5 sm:px-2.5 sm:py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white shadow-[0_2px_12px_rgba(255,115,0,0.5)]">
+                  Solo Ebartex
+                </span>
+              </div>
+
+              {/* Decorative bg glow */}
+              <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#38BDF8]/10 blur-3xl transition-all duration-700 group-hover:bg-[#38BDF8]/18 group-hover:scale-110" />
+
+              {/* Content */}
+              <div className="relative z-10 flex flex-col gap-1 sm:gap-1.5">
+                <h2 className="font-display text-xl sm:text-2xl md:text-3xl lg:text-[2rem] font-bold uppercase tracking-tight text-white drop-shadow-lg">
+                  Scambi
+                </h2>
+                <p className="max-w-sm text-[10px] sm:text-[11px] md:text-xs leading-relaxed text-white/60">
+                  Proponi e accetta scambi. Nessun altro marketplace lo offre.
+                </p>
+              </div>
+
+              {/* CTA — text only, no icon */}
+              <div className="relative z-10 mt-2 sm:mt-3">
+                <span className="inline-flex items-center rounded-full border border-[#38BDF8]/30 bg-[#38BDF8]/10 px-3.5 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-[#38BDF8] transition-all duration-300 group-hover:bg-[#38BDF8]/20 group-hover:border-[#38BDF8]/50 group-hover:shadow-[0_0_16px_rgba(56,189,248,0.15)]">
+                  Scopri gli Scambi
+                </span>
+              </div>
+            </Link>
+
+            {/* ──── ASTE CARD ──── */}
+            <Link
+              href="/aste"
+              id="hero-aste-card"
+              className="bento-entry bento-card group relative col-span-1 md:col-span-1 lg:col-span-1 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-3 sm:p-4 md:p-5 lg:p-6 min-h-[100px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
+              style={{
+                animationDelay: '400ms',
+                background: 'linear-gradient(135deg, rgba(251,146,60,0.10) 0%, rgba(15,23,42,0.40) 50%, rgba(251,146,60,0.04) 100%)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+              }}
+            >
+              {/* Exclusive badges */}
+              <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1">
+                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white/90">
+                  Presto
+                </span>
+                <span className="bento-badge-glow rounded-full bg-[#FF7300] px-2 py-0.5 sm:px-2.5 sm:py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white shadow-[0_2px_12px_rgba(255,115,0,0.5)]">
+                  Solo Ebartex
+                </span>
+              </div>
+
+              {/* Decorative bg glows */}
+              <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#FB923C]/10 blur-3xl transition-all duration-700 group-hover:bg-[#FB923C]/18 group-hover:scale-110" />
+
+              {/* Content */}
+              <div className="relative z-10 flex flex-col gap-1 sm:gap-1.5">
+                <h2 className="font-display text-xl sm:text-2xl md:text-3xl lg:text-[2rem] font-bold uppercase tracking-tight text-white drop-shadow-lg">
+                  Aste
+                </h2>
+                <p className="max-w-sm text-[10px] sm:text-[11px] md:text-xs leading-relaxed text-white/60">
+                  Metti all&apos;asta le tue carte o fai offerte.
+                </p>
+              </div>
+
+              {/* CTA — text only, no icon */}
+              <div className="relative z-10 mt-2 sm:mt-3">
+                <span className="inline-flex items-center rounded-full border border-[#FB923C]/30 bg-[#FB923C]/10 px-3.5 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-[#FB923C] transition-all duration-300 group-hover:bg-[#FB923C]/20 group-hover:border-[#FB923C]/50 group-hover:shadow-[0_0_16px_rgba(251,146,60,0.15)]">
+                  Scopri le Aste
+                </span>
+              </div>
+            </Link>
+
+            {/* ──── PRESTO DISPONIBILI — text with arrow pointing LEFT toward cards ──── */}
+            <div
+              className="bento-entry col-span-1 lg:col-span-2 flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 md:p-5 min-h-[90px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px] text-center"
+              style={{ animationDelay: '480ms' }}
+            >
+              {/* Arrow pointing LEFT toward the cards */}
+              <svg
+                className="h-6 w-10 sm:h-8 sm:w-12 md:h-10 md:w-14 text-white/40 animate-bounce-left"
+                viewBox="0 0 56 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden
+              >
+                <path
+                  d="M48 20H8M8 20L22 8M8 20L22 32"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <p className="text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-widest text-amber-400">
+                Presto disponibili
+              </p>
+              <p className="text-[8px] sm:text-[9px] md:text-[10px] text-white/50 max-w-[160px] sm:max-w-[180px] leading-snug">
+                Solo su Ebartex
+              </p>
+            </div>
 
           </div>
         </section>
@@ -437,7 +470,7 @@ export function LandingWelcome() {
             <p className="mb-3 sm:mb-4 text-center text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-white/40">
               Presto in arrivo
             </p>
-            <div className="relative overflow-hidden mx-auto max-w-xs">
+            <div className="relative overflow-hidden mx-auto max-w-[416px] rounded-2xl backdrop-blur-sm bg-white/5 shadow-lg">
               {/* Fade sx */}
               <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-black/10 to-transparent z-10" />
               {/* Fade dx */}
@@ -447,7 +480,7 @@ export function LandingWelcome() {
                   <button
                     key={game.alt}
                     type="button"
-                    className="group flex h-18 w-18 sm:h-20 sm:w-20 md:h-24 md:w-24 items-center justify-center rounded-full cursor-pointer overflow-hidden bg-white/10 border border-white/20 transition-transform duration-300 hover:scale-110 flex-shrink-0"
+                    className="group flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 items-center justify-center rounded-full cursor-pointer overflow-hidden bg-white/10 border border-white/20 transition-transform duration-300 hover:scale-110 flex-shrink-0"
                     onClick={() => {
                       const bgImage = GAME_FULLSCREEN_IMAGES[game.alt];
                       if (bgImage) {
@@ -460,7 +493,7 @@ export function LandingWelcome() {
                     <img
                       src={game.src}
                       alt={game.alt}
-                      className="max-w-[65%] max-h-[65%] object-contain"
+                      className="max-w-[60%] sm:max-w-[65%] max-h-[60%] sm:max-h-[65%] object-contain"
                     />
                   </button>
                 ))}
@@ -502,25 +535,25 @@ export function LandingWelcome() {
           <div className="relative z-10 mx-auto max-w-4xl">
 
             {/* ─── KPI / Features grid ─── */}
-            <div className="mb-6 sm:mb-7" aria-labelledby="landing-features-heading">
-              <div className="mb-4 text-center sm:mb-6">
+            <div className="mb-5 sm:mb-6 md:mb-7" aria-labelledby="landing-features-heading">
+              <div className="mb-3 sm:mb-4 md:mb-6 text-center">
                 <h2
                   id="landing-features-heading"
-                  className="text-base font-normal leading-tight tracking-wide text-white sm:text-lg md:text-xl"
+                  className="text-sm font-normal leading-tight tracking-wide text-white sm:text-base md:text-lg lg:text-xl"
                 >
                   {t('landing.feat.sectionTitle')}
                 </h2>
               </div>
 
-              <div className="grid w-full grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-4 sm:gap-x-6 sm:gap-y-8">
+              <div className="grid w-full grid-cols-2 md:grid-cols-3 gap-x-2 sm:gap-x-3 md:gap-x-6 gap-y-3 sm:gap-y-4 md:gap-y-8">
                 {FEATURES.map((f) => {
                   const IconComponent = FEATURE_ICONS[f.iconKey];
                   return (
-                    <div key={f.title} className="flex flex-col items-center text-center max-w-[11rem] sm:max-w-[14rem]">
-                      <div className="mb-2 flex shrink-0 items-center justify-center">
-                        {IconComponent ? <IconComponent className="h-7 w-7 sm:h-8 sm:w-8 text-[#FF7300]" strokeWidth={1.5} /> : null}
+                    <div key={f.title} className="flex flex-col items-center text-center">
+                      <div className="mb-1.5 sm:mb-2 flex shrink-0 items-center justify-center">
+                        {IconComponent ? <IconComponent className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-[#FF7300]" strokeWidth={1.5} /> : null}
                       </div>
-                      <h3 className="text-[10px] font-bold uppercase leading-tight tracking-[0.06em] text-white sm:text-[11px] mb-1">
+                      <h3 className="text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase leading-tight tracking-[0.06em] text-white mb-0.5 sm:mb-1">
                         {f.title}
                       </h3>
                       <p className="hidden md:block text-[10px] sm:text-[11px] leading-relaxed text-white/70">
@@ -533,15 +566,15 @@ export function LandingWelcome() {
             </div>
 
             {/* Divider */}
-            <div className="mx-auto my-6 sm:my-8 h-px w-2/3 max-w-lg bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+            <div className="mx-auto my-4 sm:my-6 md:my-8 h-px w-2/3 max-w-lg bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
             {/* ─── Boutique Cards ─── */}
-            <div className="mt-8 sm:mt-12 text-center">
-              <h3 className="mb-4 sm:mb-6 text-xs sm:text-sm font-semibold uppercase tracking-widest text-white/90">
+            <div className="mt-6 sm:mt-8 md:mt-12 text-center">
+              <h3 className="mb-3 sm:mb-4 md:mb-6 text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-widest text-white/90">
                 La Nostra Boutique
               </h3>
 
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4 max-w-5xl mx-auto px-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3 md:gap-4 max-w-5xl mx-auto px-1 sm:px-2">
                 {BOUTIQUE_CATEGORIES.map((cat, index) => {
                   const glowColor = BOUTIQUE_GLOW_COLORS[cat.id] || '255,255,255';
                   return (
@@ -564,7 +597,7 @@ export function LandingWelcome() {
                       />
                       <div className="absolute inset-0 bg-black/40 transition-all duration-300 group-hover:bg-black/10 group-hover:backdrop-blur-[2px]" aria-hidden />
                       <span
-                        className="absolute inset-0 flex items-center justify-center text-center text-[11px] sm:text-sm font-bold uppercase tracking-wider text-white drop-shadow-lg transition-all duration-300 group-hover:scale-110"
+                        className="absolute inset-0 flex items-center justify-center text-center px-1 text-[10px] sm:text-xs md:text-sm font-bold uppercase tracking-wider text-white drop-shadow-lg transition-all duration-300 group-hover:scale-110"
                         style={{
                           ['--glow-color' as string]: glowColor,
                           textShadow: '0 2px 12px rgba(0,0,0,0.45)',

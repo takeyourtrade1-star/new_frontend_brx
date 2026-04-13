@@ -115,76 +115,115 @@ function inferBugCategory(url: string): string {
   return 'functional';
 }
 
-const faceSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="35" cy="39" r="11.5" stroke-width="2.5"/>
+const faceSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Eyes: light stroke behind (thicker) -->
+  <circle cx="35" cy="39" r="11.5" stroke="#faf9f6" stroke-width="3.5"/>
+  <circle cx="65" cy="39" r="11.5" stroke="#faf9f6" stroke-width="3.5"/>
+  <!-- Eyes: dark stroke on top -->
+  <circle cx="35" cy="39" r="11.5" stroke="#4a5548" stroke-width="2.5"/>
+  <circle cx="65" cy="39" r="11.5" stroke="#4a5548" stroke-width="2.5"/>
+  <!-- Pupils and highlights -->
   <circle class="pupil" cx="35" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
   <circle cx="32.3" cy="36.4" r="2.2" fill="#faf9f6" stroke="none"/>
-  <circle cx="65" cy="39" r="11.5" stroke-width="2.5"/>
   <circle class="pupil" cx="65" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
   <circle cx="62.3" cy="36.4" r="2.2" fill="#faf9f6" stroke="none"/>
-  <path d="M 34 63 Q 50 77 66 63" stroke-width="3.2" fill="none"/>
+  <!-- Mouth: light stroke behind -->
+  <path d="M 34 63 Q 50 77 66 63" stroke="#faf9f6" stroke-width="4.2" fill="none"/>
+  <!-- Mouth: dark stroke on top -->
+  <path d="M 34 63 Q 50 77 66 63" stroke="#4a5548" stroke-width="3.2" fill="none"/>
 </svg>`;
 
-const faceBugReportSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="34" cy="40" r="10" stroke-width="2.2"/>
+const faceBugReportSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Eyes: light stroke behind -->
+  <circle cx="34" cy="40" r="10" stroke="#faf9f6" stroke-width="3.2"/>
+  <circle cx="66" cy="40" r="10" stroke="#faf9f6" stroke-width="3.2"/>
+  <!-- Eyes: dark stroke on top -->
+  <circle cx="34" cy="40" r="10" stroke="#4a5548" stroke-width="2.2"/>
+  <circle cx="66" cy="40" r="10" stroke="#4a5548" stroke-width="2.2"/>
+  <!-- Pupils and highlights -->
   <circle class="pupil" cx="34" cy="41" r="4" fill="#4a5548" stroke="none"/>
   <circle cx="31.6" cy="37.2" r="1.5" fill="#faf9f6" stroke="none"/>
-  <circle cx="66" cy="40" r="10" stroke-width="2.2"/>
   <circle class="pupil" cx="66" cy="41" r="4" fill="#4a5548" stroke="none"/>
   <circle cx="63.6" cy="37.2" r="1.5" fill="#faf9f6" stroke="none"/>
-  <rect x="20" y="29" width="60" height="23" rx="4.5" stroke-width="2.1" fill="none" stroke="#4a5548"/>
-  <line x1="50" y1="33" x2="50" y2="48" stroke-width="1.7" stroke="#4a5548"/>
-  <line x1="20" y1="41" x2="16" y2="39" stroke-width="1.8" stroke="#4a5548"/>
-  <line x1="80" y1="41" x2="84" y2="39" stroke-width="1.8" stroke="#4a5548"/>
+  <!-- Monitor frame -->
+  <rect x="20" y="29" width="60" height="23" rx="4.5" stroke-width="2.1" fill="none" stroke="#faf9f6"/>
+  <line x1="50" y1="33" x2="50" y2="48" stroke-width="1.7" stroke="#faf9f6"/>
+  <line x1="20" y1="41" x2="16" y2="39" stroke-width="1.8" stroke="#faf9f6"/>
+  <line x1="80" y1="41" x2="84" y2="39" stroke-width="1.8" stroke="#faf9f6"/>
   <path class="bug-glint bug-glint-1" d="M 28 34 L 34 31" stroke="#faf9f6" stroke-width="1.4"/>
   <path class="bug-glint bug-glint-2" d="M 62 35 L 68 32" stroke="#faf9f6" stroke-width="1.4"/>
-  <path class="bug-mouth" d="M 44 65 Q 50 69 56 65" stroke-width="2.8" fill="none"/>
+  <!-- Mouth: light behind, dark on top -->
+  <path class="bug-mouth" d="M 44 65 Q 50 69 56 65" stroke="#faf9f6" stroke-width="3.8" fill="none"/>
+  <path class="bug-mouth" d="M 44 65 Q 50 69 56 65" stroke="#4a5548" stroke-width="2.8" fill="none"/>
 </svg>`;
 
-const faceBugFocusSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M 24 30 Q 32 24 40 28" stroke-width="2.2"/>
-  <path d="M 60 28 Q 68 24 76 30" stroke-width="2.2"/>
-  <!-- Narrowed (squint) eye outlines -->
-  <ellipse cx="34" cy="40" rx="10" ry="6.2" stroke-width="2.2"/>
+const faceBugFocusSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M 24 30 Q 32 24 40 28" stroke="#faf9f6" stroke-width="3.2"/>
+  <path d="M 60 28 Q 68 24 76 30" stroke="#faf9f6" stroke-width="3.2"/>
+  <path d="M 24 30 Q 32 24 40 28" stroke="#4a5548" stroke-width="2.2"/>
+  <path d="M 60 28 Q 68 24 76 30" stroke="#4a5548" stroke-width="2.2"/>
+  <!-- Narrowed (squint) eye outlines: light behind -->
+  <ellipse cx="34" cy="40" rx="10" ry="6.2" stroke="#faf9f6" stroke-width="3.2"/>
+  <ellipse cx="66" cy="40" rx="10" ry="6.2" stroke="#faf9f6" stroke-width="3.2"/>
+  <!-- Eyes: dark on top -->
+  <ellipse cx="34" cy="40" rx="10" ry="6.2" stroke="#4a5548" stroke-width="2.2"/>
   <circle class="pupil" cx="34" cy="40.2" r="3.4" fill="#4a5548" stroke="none"/>
   <circle cx="31.9" cy="37.7" r="1.2" fill="#faf9f6" stroke="none"/>
-  <ellipse cx="66" cy="40" rx="10" ry="6.2" stroke-width="2.2"/>
+  <ellipse cx="66" cy="40" rx="10" ry="6.2" stroke="#4a5548" stroke-width="2.2"/>
   <circle class="pupil" cx="66" cy="40.2" r="3.4" fill="#4a5548" stroke="none"/>
   <circle cx="63.9" cy="37.7" r="1.2" fill="#faf9f6" stroke="none"/>
-  <rect x="20" y="29" width="60" height="23" rx="4.5" stroke-width="2.1" fill="none" stroke="#4a5548"/>
-  <line x1="50" y1="33" x2="50" y2="48" stroke-width="1.7" stroke="#4a5548"/>
-  <line x1="20" y1="41" x2="16" y2="39" stroke-width="1.8" stroke="#4a5548"/>
-  <line x1="80" y1="41" x2="84" y2="39" stroke-width="1.8" stroke="#4a5548"/>
+  <rect x="20" y="29" width="60" height="23" rx="4.5" stroke-width="2.1" fill="none" stroke="#faf9f6"/>
+  <line x1="50" y1="33" x2="50" y2="48" stroke-width="1.7" stroke="#faf9f6"/>
+  <line x1="20" y1="41" x2="16" y2="39" stroke-width="1.8" stroke="#faf9f6"/>
+  <line x1="80" y1="41" x2="84" y2="39" stroke-width="1.8" stroke="#faf9f6"/>
   <path class="bug-glint bug-glint-1" d="M 28 34 L 34 31" stroke="#faf9f6" stroke-width="1.4"/>
   <path class="bug-glint bug-glint-2" d="M 62 35 L 68 32" stroke="#faf9f6" stroke-width="1.4"/>
-  <path class="bug-mouth" d="M 45 65 Q 50 67.5 55 65" stroke-width="2.7" fill="none"/>
+  <!-- Mouth: light behind, dark on top -->
+  <path class="bug-mouth" d="M 45 65 Q 50 67.5 55 65" stroke="#faf9f6" stroke-width="3.7" fill="none"/>
+  <path class="bug-mouth" d="M 45 65 Q 50 67.5 55 65" stroke="#4a5548" stroke-width="2.7" fill="none"/>
 </svg>`;
 
-const faceWinkSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M 24 40 Q 34 32 44 40" stroke-width="3.4"/>
-  <circle cx="67" cy="39" r="11.2" stroke-width="2.5"/>
+const faceWinkSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Wink eye: light behind, dark on top -->
+  <path d="M 24 40 Q 34 32 44 40" stroke="#faf9f6" stroke-width="4.4"/>
+  <path d="M 24 40 Q 34 32 44 40" stroke="#4a5548" stroke-width="3.4"/>
+  <!-- Open eye: light behind -->
+  <circle cx="67" cy="39" r="11.2" stroke="#faf9f6" stroke-width="3.5"/>
+  <!-- Open eye: dark on top -->
+  <circle cx="67" cy="39" r="11.2" stroke="#4a5548" stroke-width="2.5"/>
   <circle class="pupil" cx="67" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
   <circle cx="64.4" cy="36.4" r="2.1" fill="#faf9f6" stroke="none"/>
-  <path d="M 39 63 Q 54 72 68 62" stroke-width="3.2" fill="none"/>
+  <!-- Mouth: light behind, dark on top -->
+  <path d="M 39 63 Q 54 72 68 62" stroke="#faf9f6" stroke-width="4.2" fill="none"/>
+  <path d="M 39 63 Q 54 72 68 62" stroke="#4a5548" stroke-width="3.2" fill="none"/>
 </svg>`;
 
-const faceCodingSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="35" cy="38" r="14" stroke-width="2.5"/>
+const faceCodingSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Eyes: light behind -->
+  <circle cx="35" cy="38" r="14" stroke="#faf9f6" stroke-width="3.5"/>
+  <circle cx="65" cy="38" r="14" stroke="#faf9f6" stroke-width="3.5"/>
+  <!-- Eyes: dark on top -->
+  <circle cx="35" cy="38" r="14" stroke="#4a5548" stroke-width="2.5"/>
+  <circle cx="65" cy="38" r="14" stroke="#4a5548" stroke-width="2.5"/>
+  <!-- Pupils -->
   <circle class="pupil" cx="35" cy="38.6" r="3.6" fill="#4a5548" stroke="none"/>
-  <circle cx="65" cy="38" r="14" stroke-width="2.5"/>
   <circle class="pupil" cx="65" cy="38.6" r="3.6" fill="#4a5548" stroke="none"/>
-  <path class="coding-mouth" d="M 36 66 Q 50 63.8 64 66" stroke-width="3" fill="none"/>
+  <!-- Mouth: light behind, dark on top -->
+  <path class="coding-mouth" d="M 36 66 Q 50 63.8 64 66" stroke="#faf9f6" stroke-width="4" fill="none"/>
+  <path class="coding-mouth" d="M 36 66 Q 50 63.8 64 66" stroke="#4a5548" stroke-width="3" fill="none"/>
   <!-- Glasses/monitor frame -->
-  <rect x="20" y="24" width="60" height="28" rx="3" stroke-width="2.5" fill="none" stroke="#4a5548"/>
-  <line x1="50" y1="24" x2="50" y2="52" stroke-width="2" stroke="#4a5548"/>
+  <rect x="20" y="24" width="60" height="28" rx="3" stroke-width="2.5" fill="none" stroke="#faf9f6"/>
+  <line x1="50" y1="24" x2="50" y2="52" stroke-width="2" stroke="#faf9f6"/>
 </svg>`;
 
-const faceSleepSVG = `<svg viewBox="0 0 100 100" fill="none" stroke="#4a5548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Closed eyes - curved lines like sleeping anime eyes -->
-  <path d="M 24 40 Q 34 48 44 40" stroke-width="2.8" fill="none"/>
-  <path d="M 56 40 Q 66 48 76 40" stroke-width="2.8" fill="none"/>
+const faceSleepSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Closed eyes: light behind, dark on top -->
+  <path d="M 24 40 Q 34 48 44 40" stroke="#faf9f6" stroke-width="3.8" fill="none"/>
+  <path d="M 56 40 Q 66 48 76 40" stroke="#faf9f6" stroke-width="3.8" fill="none"/>
+  <path d="M 24 40 Q 34 48 44 40" stroke="#4a5548" stroke-width="2.8" fill="none"/>
+  <path d="M 56 40 Q 66 48 76 40" stroke="#4a5548" stroke-width="2.8" fill="none"/>
   <!-- Small sleepy mouth -->
-  <ellipse cx="50" cy="68" rx="3" ry="2" fill="#4a5548" stroke="none"/>
+  <ellipse cx="50" cy="68" rx="3" ry="2" fill="#faf9f6" stroke="none"/>
   <!-- Gentle blush marks -->
   <ellipse cx="22" cy="52" rx="5" ry="3" fill="#ff9999" stroke="none" opacity="0.4"/>
   <ellipse cx="78" cy="52" rx="5" ry="3" fill="#ff9999" stroke="none" opacity="0.4"/>
@@ -733,6 +772,19 @@ export function CardMascotte() {
   // Sticky bar offset state (when sticky bar appears, mascot moves up)
   const [isStickyBarVisible, setIsStickyBarVisible] = useState(false);
 
+  // Mobile hide state (mascotte moves 80% off-screen when hidden)
+  const [isMobileHidden, setIsMobileHidden] = useState(false);
+  
+  // Mobile detection state for flip behavior
+  const [isMobileView, setIsMobileView] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => setIsMobileView(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Welcome message variants based on interaction history
   const welcomeMessages = useMemo(() => {
     if (!hasInteractedBefore) {
@@ -756,6 +808,12 @@ export function CardMascotte() {
     // Ignore clicks on buttons inside the card (share, album, flip)
     const target = e.target as HTMLElement;
     if (target.closest('button')) return;
+
+    // If mascot is hidden on mobile, restore it
+    if (isMobileHidden) {
+      setIsMobileHidden(false);
+      return;
+    }
 
     // If card is flipped, flip it back instead of opening chat
     if (isFlipped) {
@@ -1858,6 +1916,51 @@ export function CardMascotte() {
         </div>
       )}
 
+      {/* Mobile X button to hide mascot */}
+      {!isMobileHidden && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log('X button clicked, setting isMobileHidden to true');
+            setIsMobileHidden(true);
+            console.log('isMobileHidden state updated');
+          }}
+          className="sm:hidden fixed flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm border border-white/20 shadow-lg hover:bg-white/20 transition-colors"
+          style={{
+            zIndex: Z_INDEX.mascotteBase + 2,
+            bottom: isStickyBarVisible ? '80px' : '20px',
+            right: '150px',
+            width: '28px',
+            height: '28px',
+          }}
+          aria-label="Nascondi mascotte"
+        >
+          <X className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+        </button>
+      )}
+
+      {/* Peek animation when mascot is hidden on mobile */}
+      {isMobileHidden && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMobileHidden(false);
+          }}
+          className="sm:hidden fixed flex items-center justify-center rounded-l-lg bg-white/10 backdrop-blur-sm border-l border-y border-white/20 shadow-lg hover:bg-white/20 transition-all"
+          style={{
+            zIndex: Z_INDEX.mascotteBase + 2,
+            bottom: isStickyBarVisible ? '80px' : '20px',
+            right: 0,
+            width: '8px',
+            height: '40px',
+            animation: 'peekPulse 2s ease-in-out infinite',
+          }}
+          aria-label="Ripristina mascotte"
+        />
+      )}
+
       {/* Golden Confetti — Easter Egg at 100 flips */}
       {goldenConfetti.length > 0 && (
         <div
@@ -1910,13 +2013,15 @@ export function CardMascotte() {
           height: '128px',
           perspective: '600px',
           filter: 'drop-shadow(0 12px 32px rgba(255, 115, 0, 0.35)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4))',
-          animation: justReappeared
+          animation: isMobileHidden ? undefined : (justReappeared
             ? 'mascotteReappear 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards, mascotteFloat 3s ease-in-out infinite 500ms'
-            : 'mascotteFloat 3s ease-in-out infinite',
-          transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-in-out',
+            : 'mascotteFloat 3s ease-in-out infinite'),
+          transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-in-out, transform 300ms ease-in-out',
           // Hide mascot when external modal is open (AuctionBidModal)
           opacity: isExternalModalOpen ? 0 : 1,
           pointerEvents: isExternalModalOpen ? 'none' : 'auto',
+          // Move 80% off-screen to the right on mobile when hidden
+          transform: isMobileHidden ? 'translateX(120%)' : 'translateX(0)',
         }}
         role="button"
         tabIndex={0}
@@ -1938,7 +2043,13 @@ export function CardMascotte() {
         {/* ── FRONT FACE ── */}
         <div
           className="mascotte-flip-face absolute inset-0"
-          style={{ backfaceVisibility: 'hidden', pointerEvents: isFlipped ? 'none' : 'auto' }}
+          style={{ 
+            backfaceVisibility: isMobileView && isFlipped ? 'visible' : 'hidden', 
+            pointerEvents: isFlipped ? 'none' : 'auto',
+            opacity: isMobileView && isFlipped ? 0.3 : 1,
+            transform: isMobileView && isFlipped ? 'rotateY(-30deg)' : 'rotateY(0deg)',
+            transition: isMobileView ? 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease' : 'none',
+          }}
         >
         {/* Card container — soft charm style */}
         <div
@@ -2052,7 +2163,7 @@ export function CardMascotte() {
                 ? `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2 - 2}px) rotate(-2deg)`
                 : `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2}px)`,
               opacity: mascotteExpression === 'sleeping' ? 0.85 : 1,
-              filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.9)) drop-shadow(0 0 4px rgba(255,255,255,0.6))',
+              filter: 'none',
             }}
             dangerouslySetInnerHTML={{
               __html: mascotteExpression === 'bugFocus' ? faceBugFocusSVG :
@@ -2085,20 +2196,21 @@ export function CardMascotte() {
         <div
           ref={backFaceRef}
           className="mascotte-flip-face absolute inset-0"
-          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', pointerEvents: isFlipped ? 'auto' : 'none' }}
+          style={{ 
+            backfaceVisibility: isMobileView ? 'visible' : 'hidden', 
+            transform: isMobileView 
+              ? (isFlipped ? 'translateX(0)' : 'translateX(120%)')
+              : 'rotateY(180deg)',
+            pointerEvents: isFlipped ? 'auto' : 'none',
+            transition: isMobileView 
+              ? 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1)' 
+              : 'none',
+          }}
         >
           <div
             className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-2xl"
             style={{ background: BACK_VARIANTS[backVariant].gradient }}
           >
-            {/* Decorative pattern */}
-            <div
-              className="pointer-events-none absolute inset-0 opacity-[0.08]"
-              style={{
-                backgroundImage: `repeating-linear-gradient(${BACK_VARIANTS[backVariant].pattern}, transparent, transparent 8px, rgba(255,255,255,0.5) 8px, rgba(255,255,255,0.5) 9px)`,
-                backgroundSize: '12px 12px',
-              }}
-            />
             {/* Holographic overlay — GOLD only */}
             {BACK_VARIANTS[backVariant].label === 'GOLD' && (
               <div
@@ -2110,93 +2222,31 @@ export function CardMascotte() {
                 }}
               />
             )}
-            {/* Inner border */}
-            <div
-              className="pointer-events-none absolute rounded-2xl"
-              style={{ inset: '3px', border: '1.5px solid rgba(255,255,255,0.35)', borderRadius: '14px' }}
-            />
 
             {/* Flip counter badge (top-right) */}
-            <div className="absolute top-2.5 right-2.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white/25 px-1.5 backdrop-blur-sm">
-              <span className="text-[8px] font-bold text-white">{flipCount}</span>
+            <div className="absolute top-2 right-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-white/25 px-2 backdrop-blur-sm">
+              <span className="text-[9px] font-bold text-white">{flipCount}</span>
             </div>
 
-            {/* Top-left: share + album + mute buttons */}
-            <div className="absolute top-2 left-2 flex items-center gap-1">
-              <button
-                onClick={(e) => { e.stopPropagation(); handleShare(); }}
-                className="flex h-5 w-5 items-center justify-center rounded-full bg-white/25 backdrop-blur-sm transition-transform hover:scale-110"
-                title={copiedShare ? 'Copiato!' : 'Condividi'}
-              >
-                {copiedShare ? (
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-                ) : (
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                )}
-              </button>
-              <button
-                onClick={handleAlbumToggle}
-                className={`flex h-5 w-5 items-center justify-center rounded-full backdrop-blur-sm transition-all hover:scale-110 ${showAlbum ? 'bg-white/40' : 'bg-white/25'}`}
-                title="Collezione"
-              >
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-              </button>
-              {/* Sleep sound mute/unmute button */}
-              <button
-                onClick={toggleSleepMute}
-                className={`flex h-5 w-5 items-center justify-center rounded-full backdrop-blur-sm transition-all hover:scale-110 ${isSleepMuted ? 'bg-red-400/40' : 'bg-white/25'}`}
-                title={isSleepMuted ? 'Audio disattivato' : 'Audio sonno attivo'}
-              >
-                {isSleepMuted ? (
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-                ) : (
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                )}
-              </button>
-            </div>
+            {/* Album button (top-left) */}
+            <button
+              onClick={handleAlbumToggle}
+              className={`absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full backdrop-blur-sm transition-all hover:scale-110 ${showAlbum ? 'bg-white/40' : 'bg-white/25'}`}
+              title="Collezione"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </button>
 
             {/* Star sparkle SVG */}
-            <svg className="mascotte-back-sparkle mb-0.5" width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" fill="white" fillOpacity="0.9" />
+            <svg className="mascotte-back-sparkle mb-1" width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" fill="white" fillOpacity="0.95" />
             </svg>
-            <span className="font-comodo text-[11px] font-bold tracking-wide text-white/95">
+            <span className="font-comodo text-[13px] font-bold tracking-wide text-white/95">
               {BACK_VARIANTS[backVariant].label}
             </span>
-            <span className="mt-0.5 text-[7px] font-medium uppercase tracking-widest text-white/60">
+            <span className="mt-1 text-[8px] font-medium uppercase tracking-widest text-white/70">
               {BACK_VARIANTS[backVariant].sub}
             </span>
-
-            {/* Sleep hours stat */}
-            {totalSleepMs > 0 && (
-              <div className="absolute bottom-8 flex items-center gap-1.5 rounded-full bg-white/15 px-2 py-0.5 backdrop-blur-sm">
-                <span className="text-[8px]">💤</span>
-                <span className="text-[8px] font-medium text-white/90">
-                  {totalSleepMs < 60000 
-                    ? `${Math.round(totalSleepMs / 1000)}s` 
-                    : totalSleepMs < 3600000
-                      ? `${Math.round(totalSleepMs / 60000)}m`
-                      : `${(totalSleepMs / 3600000).toFixed(1)}h`}
-                </span>
-              </div>
-            )}
-
-            {/* Unlock progress dots */}
-            <div className="absolute bottom-3 flex items-center gap-1">
-              {BACK_VARIANTS.map((v, i) => (
-                <div
-                  key={i}
-                  className="rounded-full transition-all"
-                  style={{
-                    width: i === backVariant ? '10px' : '5px',
-                    height: '5px',
-                    background: flipCount >= v.unlock
-                      ? (i === backVariant ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)')
-                      : 'rgba(255,255,255,0.15)',
-                  }}
-                  title={flipCount >= v.unlock ? v.label : `Sblocca a ${v.unlock} flip`}
-                />
-              ))}
-            </div>
           </div>
         </div>{/* end back face */}
 
@@ -3112,6 +3162,11 @@ export function CardMascotte() {
         @keyframes sleepTwinkle {
           0%, 100% { opacity: 0.5; transform: scale(0.9); }
           50% { opacity: 1; transform: scale(1.1); }
+        }
+        /* Peek animation for hidden mascot on mobile */
+        @keyframes peekPulse {
+          0%, 100% { opacity: 0.6; width: 8px; }
+          50% { opacity: 1; width: 12px; }
         }
       `}} />
     </>
