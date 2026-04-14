@@ -41,6 +41,7 @@ let originalConsole = {
   error: console.error,
   warn: console.warn,
 };
+let isConsoleCaptureActive = false;
 
 // Patterns to exclude from bug report logs (internal debug noise)
 const EXCLUDED_LOG_PATTERNS = [
@@ -56,13 +57,40 @@ function shouldExcludeLog(message: string): boolean {
   return EXCLUDED_LOG_PATTERNS.some(pattern => pattern.test(message));
 }
 
+function safeSerializeArg(arg: unknown): string {
+  if (arg instanceof Error) {
+    return arg.stack || arg.message;
+  }
+
+  if (typeof arg === 'string') {
+    return arg;
+  }
+
+  if (typeof arg === 'object' && arg !== null) {
+    try {
+      return JSON.stringify(arg);
+    } catch {
+      return '[unserializable object]';
+    }
+  }
+
+  return String(arg);
+}
+
+function serializeArgs(args: unknown[]): string {
+  const message = args.map(safeSerializeArg).join(' ');
+  return message.length > 1200 ? `${message.slice(0, 1200)}...[truncated]` : message;
+}
+
 function startConsoleCapture() {
+  if (isConsoleCaptureActive) return;
+  isConsoleCaptureActive = true;
   capturedLogs = [];
   const MAX_LOGS = 200;
 
   console.log = (...args: unknown[]) => {
     originalConsole.log(...args);
-    const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+    const message = serializeArgs(args);
     if (shouldExcludeLog(message)) return;
     capturedLogs.push({
       type: 'log',
@@ -74,7 +102,7 @@ function startConsoleCapture() {
 
   console.error = (...args: unknown[]) => {
     originalConsole.error(...args);
-    const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+    const message = serializeArgs(args);
     if (shouldExcludeLog(message)) return;
     capturedLogs.push({
       type: 'error',
@@ -86,7 +114,7 @@ function startConsoleCapture() {
 
   console.warn = (...args: unknown[]) => {
     originalConsole.warn(...args);
-    const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+    const message = serializeArgs(args);
     if (shouldExcludeLog(message)) return;
     capturedLogs.push({
       type: 'warn',
@@ -95,6 +123,14 @@ function startConsoleCapture() {
     });
     if (capturedLogs.length > MAX_LOGS) capturedLogs.shift();
   };
+}
+
+function stopConsoleCapture() {
+  if (!isConsoleCaptureActive) return;
+  console.log = originalConsole.log;
+  console.error = originalConsole.error;
+  console.warn = originalConsole.warn;
+  isConsoleCaptureActive = false;
 }
 
 function getRecentLogs(seconds: number = 60): ConsoleLog[] {
@@ -1113,10 +1149,14 @@ export function CardMascotte() {
     }
   };
 
-  // Start console capture on mount
+  // Enable console capture only while bug modal is open to avoid global overhead.
   useEffect(() => {
+    if (!isModalOpen) return;
     startConsoleCapture();
-  }, []);
+    return () => {
+      stopConsoleCapture();
+    };
+  }, [isModalOpen]);
 
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
   const bugCategory = inferBugCategory(currentUrl);

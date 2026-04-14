@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { Footer } from '@/components/layout/Footer';
-import { CardMascotte } from '@/components/dev/CardMascotte';
+import { CardMascotteGate } from '@/components/dev/CardMascotteGate';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
@@ -114,7 +114,7 @@ export default function RootLayout({
             {children}
             <Footer />
           </div>
-          <CardMascotte />
+          <CardMascotteGate />
         </Providers>
       </body>
     </html>

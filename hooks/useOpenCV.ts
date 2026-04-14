@@ -201,7 +201,6 @@ export function useOpenCV(options: UseOpenCVOptions = {}): OpenCVInstance {
           if (currentProgress < 80) {
             currentProgress += Math.random() * 3;
             updateProgress(Math.min(currentProgress, 80));
-            console.log(`[OpenCV] Initializing... ${Math.round(currentProgress)}%`);
           }
         }, 500);
       };
