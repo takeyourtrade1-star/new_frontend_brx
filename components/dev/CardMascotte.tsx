@@ -810,12 +810,21 @@ export function CardMascotte() {
 
   // Mobile hide state (mascotte moves 80% off-screen when hidden)
   const [isMobileHidden, setIsMobileHidden] = useState(false);
+  const hasInitializedMobileHide = useRef(false);
   
   // Mobile detection state for flip behavior
   const [isMobileView, setIsMobileView] = useState(false);
   
   useEffect(() => {
-    const checkMobile = () => setIsMobileView(window.innerWidth < 640);
+    const checkMobile = () => {
+      const isMobile = window.innerWidth < 640;
+      setIsMobileView(isMobile);
+
+      if (!hasInitializedMobileHide.current) {
+        setIsMobileHidden(isMobile);
+        hasInitializedMobileHide.current = true;
+      }
+    };
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
