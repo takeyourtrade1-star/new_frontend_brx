@@ -198,6 +198,13 @@ export default function CardScanner({
     containerH: number
   ): string | null => {
     if (!cv) return null;
+    if (
+      typeof cv.getPerspectiveTransform !== 'function' ||
+      typeof cv.warpPerspective !== 'function'
+    ) {
+      onError?.(new Error('OpenCV build missing perspective transform functions (imgproc module).'));
+      return null;
+    }
 
     let srcMat: any = null;
     let dstMat: any = null;
@@ -280,7 +287,7 @@ export default function CardScanner({
       safeDeleteMat(srcPts);
       safeDeleteMat(dstPts);
     }
-  }, [cv]);
+  }, [cv, onError]);
 
   /**
    * Process frame for auto-capture

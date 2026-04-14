@@ -127,8 +127,7 @@ export function useOpenCV(options: UseOpenCVOptions = {}): OpenCVInstance {
     const cvCandidate = candidate as Partial<OpenCV>;
     return (
       typeof cvCandidate.Mat === 'function' &&
-      typeof cvCandidate.getPerspectiveTransform === 'function' &&
-      typeof cvCandidate.warpPerspective === 'function'
+      typeof cvCandidate.matFromArray === 'function'
     );
   }, []);
 
