@@ -11,24 +11,12 @@ import {
   AuctionViewToggle,
   type EnrichedAuction,
 } from '@/components/feature/aste/auctions-browse-shared';
-import { MOCK_AUCTIONS } from '@/components/feature/aste/mock-auctions';
-import { PARTICIPATED_AUCTION_MOCK } from '@/components/feature/aste/mock-user-auctions';
+import { useAuctionList } from '@/lib/hooks/use-auctions';
+import { apiToAuctionUI, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 const STORAGE_KEY = 'partecipazioni';
-
-function useEnrichedAuctions(): EnrichedAuction[] {
-  const pageLoadMs = useState(() => Date.now())[0];
-  return useMemo(
-    () =>
-      MOCK_AUCTIONS.map((a) => ({
-        ...a,
-        endsAt: new Date(pageLoadMs + a.hoursFromNow * 3600000).toISOString(),
-      })),
-    [pageLoadMs]
-  );
-}
 
 function useNowTick(intervalMs = 1000): number {
   const [now, setNow] = useState(() => Date.now());
@@ -44,7 +32,8 @@ export function AsteParticipationsPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const now = useNowTick();
-  const enriched = useEnrichedAuctions();
+  const userId = user?.id;
+  const { data: listData, isLoading } = useAuctionList({ limit: 100 });
 
   const [viewMode, setViewMode] = useState<AsteViewMode>('grid');
 
@@ -56,18 +45,20 @@ export function AsteParticipationsPage() {
   }, [viewMode]);
 
   const { rows, myBidById } = useMemo(() => {
-    const map = new Map(enriched.map((a) => [a.id, a]));
+    if (!listData?.data || !userId) return { rows: [] as AuctionUI[], myBidById: {} as Record<string, number> };
     const bids: Record<string, number> = {};
-    const list: EnrichedAuction[] = [];
-    for (const row of PARTICIPATED_AUCTION_MOCK) {
-      const a = map.get(row.id);
-      if (a) {
-        list.push(a);
-        bids[row.id] = row.myLastBidEur;
+    const participated: AuctionUI[] = [];
+    for (const a of listData.data) {
+      const isCreator = a.created_by_user_id === userId;
+      const isBidder = a.highest_bidder_id === userId;
+      if (!isCreator && isBidder) {
+        const ui = apiToAuctionUI(a);
+        participated.push(ui);
+        bids[ui.id] = a.current_price;
       }
     }
-    return { rows: list, myBidById: bids };
-  }, [enriched]);
+    return { rows: participated, myBidById: bids };
+  }, [listData, userId]);
 
   const displayName = user?.name ?? user?.email?.split('@')[0] ?? '';
   const breadcrumbItems: AppBreadcrumbItem[] = [

@@ -24,6 +24,7 @@ const nextConfig = {
     NEXT_PUBLIC_SEARCH_API_URL: process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL,
     NEXT_PUBLIC_SYNC_API_URL:
       process.env.NEXT_PUBLIC_SYNC_API_URL || process.env.VITE_SYNC_API_URL,
+    NEXT_PUBLIC_AUCTION_API_URL: process.env.NEXT_PUBLIC_AUCTION_API_URL,
   },
   async headers() {
     // Skip security headers in development for easier debugging

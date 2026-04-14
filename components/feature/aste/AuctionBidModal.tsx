@@ -10,6 +10,7 @@ import { X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { minNextBidEur, roundMoney } from '@/lib/auction/bid-math';
+import { usePlaceBid, useMinimumBid } from '@/lib/hooks/use-auctions';
 
 const ORANGE = '#FF7300';
 
@@ -36,6 +37,8 @@ type Props = {
   onSubmitOffer: (amountEur: number) => void;
 
   onSubmitMaxBid?: (amountEur: number) => void;
+
+  auctionId?: number;
 
 };
 
@@ -76,6 +79,8 @@ export function AuctionBidModal({
   onSubmitOffer,
 
   onSubmitMaxBid,
+
+  auctionId,
 
 }: Props) {
 
@@ -208,7 +213,9 @@ export function AuctionBidModal({
 
 
 
-  const submitIfValid = (amount: number) => {
+  const placeBidMutation = auctionId ? usePlaceBid(auctionId) : null;
+
+  const submitIfValid = async (amount: number) => {
 
     const min = minNextBidEur(effectiveCurrentBidEur);
 
@@ -221,6 +228,15 @@ export function AuctionBidModal({
     }
 
     setError(null);
+
+    if (placeBidMutation && auctionId) {
+      try {
+        await placeBidMutation.mutateAsync({ amount: roundMoney(amount) });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Errore offerta');
+        return;
+      }
+    }
 
     onSubmitOffer(roundMoney(amount));
 
@@ -248,7 +264,7 @@ export function AuctionBidModal({
 
   };
 
-  const handleMaxBid = () => {
+  const handleMaxBid = async () => {
 
     const raw = input.replace(',', '.').trim();
 
@@ -275,6 +291,15 @@ export function AuctionBidModal({
     }
 
     setError(null);
+
+    if (placeBidMutation && auctionId) {
+      try {
+        await placeBidMutation.mutateAsync({ amount: roundMoney(amount), maxAmount: roundMoney(amount) });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Errore offerta massima');
+        return;
+      }
+    }
 
     onSubmitMaxBid?.(roundMoney(amount));
 

@@ -11,11 +11,9 @@ import { LayoutGrid, LayoutList, SlidersHorizontal } from 'lucide-react';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import type { MessageKey } from '@/lib/i18n/messages/en';
-import { isAuctionEnded, type AuctionGame } from '@/components/feature/aste/mock-auctions';
+import { isAuctionEndedUI, type AuctionUI, type AuctionGame } from '@/lib/auction/auction-adapter';
 
-export type EnrichedAuction = import('@/components/feature/aste/mock-auctions').AuctionMock & {
-  endsAt: string;
-};
+export type EnrichedAuction = AuctionUI;
 
 export function formatHMS(ms: number): string {
   if (ms <= 0) return '00:00:00';
@@ -129,7 +127,7 @@ export function AuctionGridCard({
   now: number;
   t: AuctionTranslate;
 }) {
-  const ended = isAuctionEnded(auction);
+  const ended = isAuctionEndedUI(auction);
   const ms = new Date(auction.endsAt).getTime() - now;
   return (
     <Link
@@ -235,7 +233,7 @@ export function AuctionListTable({
         </thead>
         <tbody>
           {auctions.map((a) => {
-            const ended = isAuctionEnded(a);
+            const ended = isAuctionEndedUI(a);
             const ms = new Date(a.endsAt).getTime() - now;
             const myBid = myBidById?.[a.id];
             return (

@@ -24,6 +24,8 @@ import type { CardDocument } from '@/lib/product-detail';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCardImageUrl } from '@/lib/assets';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
+import { useCreateAuction } from '@/lib/hooks/use-auctions';
+import type { AuctionCreatePayload } from '@/types/auction';
 import { AuctionCreateCardPicker } from './AuctionCreateCardPicker';
 import { AuctionListingPhotoUpload, ListingPhotoThumbnailsRow, listingPhotosComplete } from './AuctionListingPhotoUpload';
 
@@ -402,7 +404,9 @@ export function AuctionCreateWizard({
     setTimeout(() => setIsTransitioning(false), 400);
   };
 
-  const publish = () => {
+  const createAuctionMutation = useCreateAuction();
+
+  const publish = async () => {
     const order = getStepOrder(draft.isCard, { variant: stepVariant, hasEmbeddedInventory });
     for (const id of order) {
       if (id === 'review') continue;
@@ -411,7 +415,42 @@ export function AuctionCreateWizard({
         return;
       }
     }
-    setDone(true);
+
+    const startingPrice = Number(String(draft.startingBidEur).replace(',', '.'));
+    const reservePrice = draft.reservePriceEur
+      ? Number(String(draft.reservePriceEur).replace(',', '.'))
+      : undefined;
+    const now = new Date();
+    const endDate = new Date(now.getTime() + (draft.durationDays || 7) * 86_400_000);
+    const imageFront = draft.imageUrl || '';
+    const imageBack = draft.imageUrl || '';
+
+    const payload: AuctionCreatePayload = {
+      title: draft.title,
+      description: draft.description || '',
+      starting_price: startingPrice,
+      reserve_price: reservePrice ?? null,
+      start_time: now.toISOString(),
+      end_time: endDate.toISOString(),
+      product: {
+        name: draft.title,
+        description: draft.description || '',
+        image_front: imageFront,
+        image_back: imageBack,
+        condition: draft.condition || '',
+      },
+      image_front: imageFront,
+      image_back: imageBack,
+    };
+
+    try {
+      await createAuctionMutation.mutateAsync(payload);
+      setDone(true);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Errore nella creazione dell\'asta'
+      );
+    }
   };
 
   const isLastStep = stepId === 'review';

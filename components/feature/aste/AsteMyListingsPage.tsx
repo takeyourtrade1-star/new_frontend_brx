@@ -11,24 +11,12 @@ import {
   AuctionViewToggle,
   type EnrichedAuction,
 } from '@/components/feature/aste/auctions-browse-shared';
-import { MOCK_AUCTIONS } from '@/components/feature/aste/mock-auctions';
-import { MY_AUCTION_LISTING_IDS } from '@/components/feature/aste/mock-user-auctions';
+import { useAuctionList } from '@/lib/hooks/use-auctions';
+import { apiToAuctionUI, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 const STORAGE_KEY = 'mie';
-
-function useEnrichedAuctions(): EnrichedAuction[] {
-  const pageLoadMs = useState(() => Date.now())[0];
-  return useMemo(
-    () =>
-      MOCK_AUCTIONS.map((a) => ({
-        ...a,
-        endsAt: new Date(pageLoadMs + a.hoursFromNow * 3600000).toISOString(),
-      })),
-    [pageLoadMs]
-  );
-}
 
 function useNowTick(intervalMs = 1000): number {
   const [now, setNow] = useState(() => Date.now());
@@ -44,7 +32,15 @@ export function AsteMyListingsPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const now = useNowTick();
-  const enriched = useEnrichedAuctions();
+  const { data: listData, isLoading } = useAuctionList({ limit: 100 });
+  const userId = user?.id;
+
+  const mine: AuctionUI[] = useMemo(() => {
+    if (!listData?.data || !userId) return [];
+    return listData.data
+      .filter((a) => a.created_by_user_id === userId)
+      .map((a) => apiToAuctionUI(a));
+  }, [listData, userId]);
 
   const [viewMode, setViewMode] = useState<AsteViewMode>('grid');
 
@@ -54,11 +50,6 @@ export function AsteMyListingsPage() {
   useEffect(() => {
     setStoredAsteViewMode(STORAGE_KEY, viewMode);
   }, [viewMode]);
-
-  const mine = useMemo(() => {
-    const setIds = new Set<string>(MY_AUCTION_LISTING_IDS);
-    return enriched.filter((a) => setIds.has(a.id));
-  }, [enriched]);
 
   const displayName = user?.name ?? user?.email?.split('@')[0] ?? '';
   const breadcrumbItems: AppBreadcrumbItem[] = [

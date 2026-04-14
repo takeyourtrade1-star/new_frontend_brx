@@ -15,17 +15,10 @@ import { roundMoney, minNextBidEur } from '@/lib/auction/bid-math';
 import { AuctionBidModal } from '@/components/feature/aste/AuctionBidModal';
 import { AuctionShareButton } from '@/components/feature/aste/AuctionShareButton';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
-import {
-  getAuctionDetailMock,
-  SIMILAR_MOCK_IDS,
-  SIMILAR_CARD_LAYOUTS,
-  SIMILAR_RESERVE_STATUS,
-  type SimilarCardBanner,
-  type SimilarReserveStatus,
-} from '@/components/feature/aste/mock-auction-detail';
 import type { MessageKey } from '@/lib/i18n/messages/en';
-import { MOCK_AUCTIONS, type AuctionMock } from '@/components/feature/aste/mock-auctions';
-import { isMyAuctionListing } from '@/components/feature/aste/mock-user-auctions';
+import { useAuctionDetail, useAuctionBids, useAuctionList } from '@/lib/hooks/use-auctions';
+import { apiToAuctionUI, apiBidToBidRow, type AuctionUI, type BidRowUI } from '@/lib/auction/auction-adapter';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 const PASTEL_GRADIENTS = [
   { gradient: 'from-rose-300/20 via-rose-200/10 to-transparent', border: 'border-rose-300/60', shadow: 'shadow-rose-200/30' },
@@ -59,23 +52,6 @@ function sellerBannerHandle(seller: string): string {
   return (raw.length <= 5 ? raw : raw.slice(0, 4)).toUpperCase();
 }
 
-const TITLE_ACCENT: Record<SimilarCardBanner['titleAccent'], string> = {
-  red: 'text-red-600',
-  orange: 'text-orange-500',
-  sky: 'text-sky-600',
-};
-
-const RESERVE_MSG: Record<SimilarReserveStatus, MessageKey> = {
-  none: 'auctions.similarReserveNone',
-  not_met: 'auctions.similarReserveNotMet',
-  met: 'auctions.similarReserveMet',
-};
-
-function reserveRowClass(status: SimilarReserveStatus): string {
-  if (status === 'met') return 'text-emerald-800';
-  if (status === 'not_met') return 'text-amber-800';
-  return 'text-gray-600';
-}
 
 function useNowTick(): number {
   const [now, setNow] = useState(() => Date.now());
@@ -105,17 +81,40 @@ function SellerMetaRow({ country, rating, reviews }: { country: string; rating: 
 
 export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const { t } = useTranslation();
-  const detail = useMemo(() => getAuctionDetailMock(auctionId), [auctionId]);
-  const isOwner = isMyAuctionListing(auctionId);
-  const isEnded = detail.outcome !== 'live';
-  const showBuyerBid = !isOwner && !isEnded;
-  const now = useNowTick();
-  const pageLoadMs = useState(() => Date.now())[0];
-  const endsAt = useMemo(
-    () => new Date(pageLoadMs + detail.hoursFromNow * 3600000).toISOString(),
-    [pageLoadMs, detail.hoursFromNow]
+  const numericId = parseInt(auctionId, 10);
+  const { data: detailRes, isLoading } = useAuctionDetail(Number.isNaN(numericId) ? 0 : numericId);
+  const { data: bidsRes } = useAuctionBids(Number.isNaN(numericId) ? 0 : numericId, { limit: 50 });
+  const currentUser = useAuthStore((s) => s.user);
+
+  const detail = useMemo(() => {
+    if (!detailRes?.data) return null;
+    return apiToAuctionUI(detailRes.data, bidsRes?.total ?? 0);
+  }, [detailRes, bidsRes]);
+
+  const bidRows: BidRowUI[] = useMemo(
+    () => (bidsRes?.data ?? []).map(apiBidToBidRow).reverse(),
+    [bidsRes]
   );
-  const msLeft = useMemo(() => new Date(endsAt).getTime() - now, [endsAt, now]);
+
+  const now = useNowTick();
+
+  if (isLoading || !detail) {
+    return (
+      <div className="min-h-screen bg-white">
+        <AsteNav />
+        <div className="flex min-h-[40vh] items-center justify-center">
+          <div className="text-lg font-medium text-gray-400 animate-pulse">Caricamento asta...</div>
+        </div>
+      </div>
+    );
+  }
+
+  const isOwner = currentUser?.id != null && detail.createdByUserId === currentUser.id;
+  const isEnded = detail.status === 'ended';
+  const showBuyerBid = !isOwner && !isEnded;
+  const endsAt = detail.endsAt;
+  const msLeft = new Date(endsAt).getTime() - now;
+  const detailImages = useMemo(() => [detail.imageFront, detail.imageBack].filter(Boolean), [detail]);
   const [imgIdx, setImgIdx] = useState(0);
   const [bidModalOpen, setBidModalOpen] = useState(false);
   const [myLastOfferEur, setMyLastOfferEur] = useState<number | null>(null);
@@ -123,7 +122,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showMaxBidRemovedToast, setShowMaxBidRemovedToast] = useState(false);
   const [bidToastAmount, setBidToastAmount] = useState<number | null>(null);
-  const mainImg = detail.images[imgIdx] ?? detail.images[0];
+  const mainImg = detailImages[imgIdx] ?? detailImages[0] ?? '';
   const [stickyTop, setStickyTop] = useState(HEADER_OFFSET);
   const [asteNavHeight, setAsteNavHeight] = useState(56); // Altezza di default AsteNav
   const [showStickyHeader, setShowStickyHeader] = useState(false);
@@ -191,34 +190,22 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     return () => observer.disconnect();
   }, [stickyTop, asteNavHeight]);
 
+  const reserveMet = detail.reservePrice != null ? detail.currentBidEur >= detail.reservePrice : true;
+  const outcome: 'live' | 'sold' | 'unsold' = isEnded
+    ? (reserveMet && detail.bidCount > 0 ? 'sold' : 'unsold')
+    : 'live';
+
   const effectiveCurrentBidEur = Math.max(detail.currentBidEur, myLastOfferEur ?? 0);
 
   const fmtEur = (n: number) => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
 
+  const { data: similarData } = useAuctionList({ status: 'ACTIVE', limit: 3 });
   const similarCards = useMemo(() => {
-    return SIMILAR_MOCK_IDS.map((id, i) => {
-      const auction = MOCK_AUCTIONS.find((a) => a.id === id);
-      const layout = SIMILAR_CARD_LAYOUTS[i];
-      const reserveStatus = SIMILAR_RESERVE_STATUS[i];
-      if (!auction || !layout || reserveStatus == null) return null;
-      return { auction, layout, reserveStatus };
-    }).filter(
-      (x): x is { auction: AuctionMock; layout: SimilarCardBanner; reserveStatus: SimilarReserveStatus } =>
-        x !== null
-    );
-  }, []);
-
-  const tradeRows = useMemo(
-    () =>
-      MOCK_AUCTIONS.slice(0, 5).map((a) => ({
-        seller: a.seller,
-        country: a.sellerCountry,
-        title: a.title,
-        image: a.image,
-        rating: a.sellerRating,
-      })),
-    []
-  );
+    return (similarData?.data ?? [])
+      .filter((a) => a.id !== numericId)
+      .slice(0, 3)
+      .map((a) => apiToAuctionUI(a));
+  }, [similarData, numericId]);
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
@@ -432,7 +419,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               <div className="flex flex-col gap-4 lg:col-span-5">
                 <div className="flex gap-3 sm:gap-4">
                   <div className="flex w-14 shrink-0 flex-col gap-2 sm:w-[4.5rem]">
-                    {detail.images.slice(0, 4).map((src, i) => (
+                    {detailImages.slice(0, 4).map((src, i) => (
                       <button
                         key={src}
                         type="button"
@@ -495,17 +482,17 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         <span className="text-lg font-bold text-gray-900">{fmtEur(detail.reservePriceEur)}</span>
                       </div>
                       <p className="text-xs font-medium text-amber-900">
-                        {detail.reserveMet ? t('auctions.sellerReserveMet') : t('auctions.sellerReserveNotMet')}
+                        {reserveMet ? t('auctions.sellerReserveMet') : t('auctions.sellerReserveNotMet')}
                       </p>
                     </div>
                   ) : (
                     <div className="px-4 py-3 text-sm text-amber-800">
-                      {detail.reserveMet ? t('auctions.detailReserveYes') : t('auctions.detailReserveNo')}
+                      {reserveMet ? t('auctions.detailReserveYes') : t('auctions.detailReserveNo')}
                     </div>
                   )}
                   <div className="px-4 py-3 text-sm">
                     <span className="text-gray-500">{t('auctions.detailCondition')}: </span>
-                    <span className="text-gray-900">{detail.conditionLabel}</span>
+                    <span className="text-gray-900">{'Verificata'}</span>
                   </div>
                   <div className="px-4 py-3 text-sm leading-relaxed text-gray-700">{detail.description}</div>
                 </div>
@@ -517,7 +504,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                       <div className="flex items-start gap-2 rounded-lg bg-white p-3 shadow-sm">
                         <Users className="mt-0.5 h-4 w-4 shrink-0 text-[#FF7300]" aria-hidden />
                         <div>
-                          <p className="text-lg font-bold text-gray-900">{detail.uniqueBidders}</p>
+                          <p className="text-lg font-bold text-gray-900">{detail.bidCount}</p>
                           <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
                             {t('auctions.sellerUniqueBidders')}
                           </p>
@@ -526,7 +513,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                       <div className="flex items-start gap-2 rounded-lg bg-white p-3 shadow-sm">
                         <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-[#FF7300]" aria-hidden />
                         <div>
-                          <p className="text-lg font-bold text-gray-900">{detail.recentBids24h}</p>
+                          <p className="text-lg font-bold text-gray-900">{bidRows.length}</p>
                           <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
                             {t('auctions.sellerBids24h')}
                           </p>
@@ -536,7 +523,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   </div>
                 )}
 
-                {isOwner && isEnded && detail.outcome === 'sold' && (
+                {isOwner && isEnded && outcome === 'sold' && (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
                     <p className="font-bold">{t('auctions.sellerEndedWonTitle')}</p>
                     <p className="mt-1 text-xs leading-relaxed">
@@ -548,7 +535,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   </div>
                 )}
 
-                {isOwner && isEnded && detail.outcome === 'unsold' && (
+                {isOwner && isEnded && outcome === 'unsold' && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
                     <p className="font-bold">{t('auctions.sellerEndedUnsoldTitle')}</p>
                     <p className="mt-1 text-xs leading-relaxed">
@@ -564,16 +551,16 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
                     <p className="font-bold uppercase tracking-wide text-gray-600">{t('auctions.buyerAuctionEnded')}</p>
                     <p className="mt-2 font-semibold text-gray-900">
-                      {detail.outcome === 'sold'
+                      {outcome === 'sold'
                         ? t('auctions.buyerEndedSold', { amount: fmtEur(detail.currentBidEur) })
                         : t('auctions.buyerEndedUnsold')}
                     </p>
                   </div>
                 )}
 
-                {isOwner && detail.outcome === 'sold' && detail.shippingOrderId && (
+                {isOwner && outcome === 'sold' && (
                   <Link
-                    href={`/aste/spedizioni?order=${encodeURIComponent(detail.shippingOrderId)}`}
+                    href={`/aste/spedizioni?order=${encodeURIComponent(String(detail.numericId))}`}
                     className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#FF7300] bg-[#FF7300] py-4 text-center text-base font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-[#e86800]"
                   >
                     <Package className="h-5 w-5 shrink-0" aria-hidden />
@@ -661,11 +648,11 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                 <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs text-gray-600 sm:text-sm">
                   <span className="inline-flex items-center gap-1.5">
                     <Eye className="h-4 w-4 text-gray-400" />
-                    {t('auctions.statsViews', { count: detail.viewCount })}
+                    {t('auctions.statsViews', { count: 0 })}
                   </span>
                   <span className="inline-flex items-center gap-1.5 font-semibold text-[#FF7300]">
                     <Users className="h-4 w-4" />
-                    {t('auctions.statsWatching', { count: detail.watchingNow })}
+                    {t('auctions.statsWatching', { count: 0 })}
                   </span>
                 </div>
 
@@ -715,7 +702,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                       {isOwner ? t('auctions.sellerBidHistoryTitle') : t('auctions.detailBidHistory')}
                     </h3>
                     <span className="ml-auto rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-[#FF7300]">
-                      {detail.bids.length}
+                      {bidRows.length}
                     </span>
                   </div>
 
@@ -739,7 +726,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     )}
 
                     {/* Bids List */}
-                    {detail.bids.map((b, i) => {
+                    {bidRows.map((b, i) => {
                       const isFirst = i === 0;
                       const bidderCountry = b.countryCode || 'IT';
                       const animationDelay = `${i * 0.05}s`;
@@ -748,7 +735,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         <div
                           key={`${b.username}-${i}`}
                           style={{ animationDelay }}
-                          className={`flex items-center justify-between px-4 py-2.5 animate-[fadeInUp_0.4s_ease-out_both] ${i !== detail.bids.length - 1 ? 'border-b border-gray-50' : ''} ${isFirst ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/20' : ''}`}
+                          className={`flex items-center justify-between px-4 py-2.5 animate-[fadeInUp_0.4s_ease-out_both] ${i !== bidRows.length - 1 ? 'border-b border-gray-50' : ''} ${isFirst ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/20' : ''}`}
                         >
                           <div className="flex items-center gap-2">
                             <FlagIcon country={bidderCountry} size="sm" />
@@ -777,7 +764,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               {t('auctions.similarTitle')}
             </h2>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {similarCards.map(({ auction: a }) => {
+              {similarCards.map((a) => {
                 const fmtEur = (n: number) =>
                   n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
                 const timeLeft = formatBannerCountdown(a.hoursFromNow);
@@ -833,9 +820,9 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               {t('auctions.tableExchangeTitle')}
             </h2>
             <div className="space-y-3">
-              {tradeRows.map((row, i) => (
+              {similarCards.slice(0, 5).map((row, i) => (
                 <div
-                  key={i}
+                  key={row.id}
                   className={`group relative isolate flex h-[110px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].border} hover:${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].shadow} hover:shadow-md`}
                 >
                   {/* Gradient background on hover */}
@@ -866,10 +853,10 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         {row.title}
                       </p>
                       <p className="mt-1 flex items-center gap-1.5 text-[11px] text-gray-500 sm:text-xs">
-                        <FlagIcon country={row.country} size="xs" />
+                        <FlagIcon country={row.sellerCountry} size="xs" />
                         <span className="font-medium text-gray-700">{row.seller}</span>
                         <span className="text-amber-500">★</span>
-                        <span className="text-[10px] text-gray-400">{row.rating}%</span>
+                        <span className="text-[10px] text-gray-400">{row.sellerRating}%</span>
                       </p>
                     </div>
                     <button
@@ -891,11 +878,12 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
           open={bidModalOpen}
           onClose={() => setBidModalOpen(false)}
           effectiveCurrentBidEur={effectiveCurrentBidEur}
-          estimatedShippingEur={detail.estimatedShippingEur}
-          reserveMet={detail.reserveMet}
+          estimatedShippingEur={10}
+          reserveMet={reserveMet}
           msLeft={msLeft}
           endsAt={new Date(endsAt)}
           myLastOfferEur={myLastOfferEur}
+          auctionId={numericId}
           onSubmitOffer={(amountEur) => {
             setMyLastOfferEur(roundMoney(amountEur));
             setBidModalOpen(false);

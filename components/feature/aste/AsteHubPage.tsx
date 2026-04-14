@@ -22,12 +22,8 @@ import {
   type EnrichedAuction,
 } from '@/components/feature/aste/auctions-browse-shared';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
-import {
-  MOCK_AUCTIONS,
-  isAuctionEnded,
-  isEndingSoon,
-  type AuctionGame,
-} from '@/components/feature/aste/mock-auctions';
+import { useAuctionList } from '@/lib/hooks/use-auctions';
+import { apiToAuctionUI, isAuctionEndedUI, isEndingSoonUI, type AuctionGame, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 
 type SortMode = 'ending' | 'new' | 'bid';
@@ -43,22 +39,14 @@ function useNowTick(intervalMs = 1000): number {
   return now;
 }
 
-function useEnrichedAuctions(): EnrichedAuction[] {
-  const pageLoadMs = useState(() => Date.now())[0];
-  return useMemo(
-    () =>
-      MOCK_AUCTIONS.map((a) => ({
-        ...a,
-        endsAt: new Date(pageLoadMs + a.hoursFromNow * 3600000).toISOString(),
-      })),
-    [pageLoadMs]
-  );
-}
-
 export function AsteHubPage() {
   const { t } = useTranslation();
   const now = useNowTick();
-  const enriched = useEnrichedAuctions();
+  const { data: listData, isLoading, error } = useAuctionList({ status: 'ACTIVE', limit: 100 });
+  const enriched: AuctionUI[] = useMemo(
+    () => (listData?.data ?? []).map((a) => apiToAuctionUI(a)),
+    [listData]
+  );
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const breadcrumbItems: AppBreadcrumbItem[] = [
     { href: '/', label: t('auctions.breadcrumbHome'), isCurrent: false },
@@ -110,7 +98,7 @@ export function AsteHubPage() {
 
   const endingSoon = useMemo(() => {
     return enriched
-      .filter((a) => !isAuctionEnded(a) && isEndingSoon(a.hoursFromNow))
+      .filter((a) => !isAuctionEndedUI(a) && isEndingSoonUI(a.hoursFromNow))
       .sort((a, b) => a.hoursFromNow - b.hoursFromNow);
   }, [enriched]);
 
@@ -125,7 +113,7 @@ export function AsteHubPage() {
       }
       if (filterGame !== 'all' && a.game !== filterGame) return false;
       if (!Number.isNaN(maxP) && a.currentBidEur > maxP) return false;
-      if (filterEndingOnly && !isEndingSoon(a.hoursFromNow)) return false;
+      if (filterEndingOnly && !isEndingSoonUI(a.hoursFromNow)) return false;
       if (!Number.isNaN(minB) && a.bidCount < minB) return false;
       return true;
     });
@@ -133,8 +121,8 @@ export function AsteHubPage() {
     const copy = [...rows];
     if (sort === 'ending') {
       copy.sort((a, b) => {
-        const ae = isAuctionEnded(a);
-        const be = isAuctionEnded(b);
+        const ae = isAuctionEndedUI(a);
+        const be = isAuctionEndedUI(b);
         if (ae !== be) return ae ? 1 : -1;
         return a.hoursFromNow - b.hoursFromNow;
       });
@@ -145,6 +133,17 @@ export function AsteHubPage() {
     }
     return copy;
   }, [enriched, q, sort, filterGame, filterPriceMax, filterEndingOnly, filterMinBids]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <AsteNav />
+        <div className="flex min-h-[40vh] items-center justify-center">
+          <div className="text-lg font-medium text-gray-400 animate-pulse">Caricamento...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -502,7 +501,7 @@ function EndingSoonCard({
   now,
   featured = false,
 }: {
-  auction: EnrichedAuction;
+  auction: AuctionUI;
   now: number;
   featured?: boolean;
 }) {
