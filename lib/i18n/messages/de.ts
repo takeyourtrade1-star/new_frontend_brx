@@ -7,6 +7,7 @@ export const de: Record<MessageKey, string> = {
   'common.darkMode': 'Dunkelmodus',
   'common.help': 'Hilfe',
   'common.cancel': 'Abbrechen',
+  'common.loading.shufflingCards': 'Wir mischen die Karten',
 
   'nav.userSearch': 'Benutzersuche',
   'nav.advancedSinglesSearch': 'Erweiterte Einzelkartensuche',

@@ -8,6 +8,7 @@ export const en = {
   'common.darkMode': 'Dark mode',
   'common.help': 'Help',
   'common.cancel': 'Cancel',
+  'common.loading.shufflingCards': 'Shuffling the cards',
 
   'nav.userSearch': 'User search',
   'nav.advancedSinglesSearch': 'Advanced singles search',
