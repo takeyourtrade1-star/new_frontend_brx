@@ -375,6 +375,11 @@ export default function CardScanner({
     setWebcamInstanceKey((prev) => prev + 1);
   }, []);
 
+  // On iPhone/Safari the camera stream can expose landscape dimensions even in portrait.
+  const scannerAspectRatio = isMobileViewport && videoAspectRatio > 1
+    ? 1 / videoAspectRatio
+    : videoAspectRatio;
+
   /**
    * Apply perspective transform using native homography warp.
    */
@@ -698,7 +703,7 @@ export default function CardScanner({
       <div 
         id="scanner-container"
         className="relative rounded-xl overflow-hidden bg-black border border-zinc-700 flex-1 min-h-[60dvh] sm:min-h-0"
-        style={isMobileViewport ? { aspectRatio: `${videoAspectRatio}` } : { aspectRatio: `${videoAspectRatio}` }}
+        style={{ aspectRatio: `${scannerAspectRatio}` }}
         onMouseMove={handleMove}
         onTouchMove={handleMove}
         onMouseUp={handleEnd}

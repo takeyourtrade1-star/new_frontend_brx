@@ -4,8 +4,8 @@ import CardScanner from '@/components/CardScanner';
 
 export default function TestScannerPage() {
   return (
-    <div className="min-h-[100dvh] bg-zinc-950 md:p-4">
-      <div className="mx-auto w-full md:max-w-2xl h-[100dvh] md:h-auto flex flex-col">
+    <div className="min-h-[100svh] bg-zinc-950 md:p-4">
+      <div className="mx-auto w-full md:max-w-2xl h-[100svh] md:h-auto flex flex-col">
         <div className="px-4 pt-4 pb-2 md:px-0">
           <h1 className="text-white text-xl font-bold text-center">Card Scanner Test</h1>
         </div>
