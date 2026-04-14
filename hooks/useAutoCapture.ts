@@ -52,12 +52,14 @@ export function useAutoCapture(options: UseAutoCaptureOptions = {}): UseAutoCapt
   // Refs for processing (avoid re-renders during frame processing)
   const prevFrameRef = useRef<Uint8Array | null>(null);
   const stabilityCounterRef = useRef(0);
+  const motionDetectedRef = useRef(false);
   const frameCountRef = useRef(0);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
   const resetCapture = useCallback(() => {
     prevFrameRef.current = null;
     stabilityCounterRef.current = 0;
+    motionDetectedRef.current = false;
     frameCountRef.current = 0;
     setStatus('idle');
     setStabilityProgress(0);
@@ -184,37 +186,31 @@ export function useAutoCapture(options: UseAutoCaptureOptions = {}): UseAutoCapt
 
         setLastDiffValue(Math.round(avgDiff));
 
-        // Detection logic with hysteresis
+        // Detect movement first, then require N stable frames (low diff) before capture.
         if (diffPercentage > changePercentageThreshold) {
-          // Motion detected - start/continue stability count
-          if (stabilityCounterRef.current === 0) {
-            setStatus('detecting');
-          } else {
-            setStatus('stabilizing');
-          }
-          
+          motionDetectedRef.current = true;
+          stabilityCounterRef.current = 0;
+          setStabilityProgress(0);
+          setIsStable(false);
+          setStatus('detecting');
+        } else if (motionDetectedRef.current) {
+          setStatus('stabilizing');
           stabilityCounterRef.current = Math.min(
             stabilityCounterRef.current + 1,
             stabilityFramesRequired
           );
-          
+
           setStabilityProgress(stabilityCounterRef.current / stabilityFramesRequired);
 
-          // Check if stable enough to capture
           if (stabilityCounterRef.current >= stabilityFramesRequired) {
             setIsStable(true);
             setStatus('captured');
             shouldCapture = true;
-            // Don't reset immediately - let caller handle it
+            motionDetectedRef.current = false;
+            stabilityCounterRef.current = 0;
           }
         } else {
-          // No significant motion - reset counter
-          if (stabilityCounterRef.current > 0) {
-            stabilityCounterRef.current = 0;
-            setStabilityProgress(0);
-            setStatus('detecting');
-            setIsStable(false);
-          }
+          setStatus('detecting');
         }
       }
 

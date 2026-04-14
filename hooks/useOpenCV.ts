@@ -31,6 +31,10 @@ interface OpenCV {
   CV_32FC1: number;
   CV_32FC2: number;
   Size: new (width: number, height: number) => { width: number; height: number };
+  onRuntimeInitialized?: () => void;
+  onAbort?: (err: any) => void;
+  preRun?: Array<() => void>;
+  then?: (func: (cv: OpenCV) => void) => unknown;
 }
 
 declare global {
@@ -118,24 +122,47 @@ export function useOpenCV(options: UseOpenCVOptions = {}): OpenCVInstance {
     onProgressRef.current?.(value);
   }, []);
 
+  const isOpenCVReady = useCallback((candidate: unknown): candidate is OpenCV => {
+    if (!candidate || typeof candidate !== 'object') return false;
+    const cvCandidate = candidate as Partial<OpenCV>;
+    return (
+      typeof cvCandidate.Mat === 'function' &&
+      typeof cvCandidate.getPerspectiveTransform === 'function' &&
+      typeof cvCandidate.warpPerspective === 'function'
+    );
+  }, []);
+
   const loadOpenCV = useCallback(async (): Promise<OpenCV | null> => {
     if (globalOpenCV) {
+      cvRef.current = globalOpenCV;
+      setStatus('ready');
       updateProgress(100);
       return globalOpenCV;
     }
     if (loadingPromise) {
       const cv = await loadingPromise;
+      cvRef.current = cv;
+      setStatus('ready');
+      updateProgress(100);
       return cv;
     }
 
     const config = configRef.current;
     
     loadingPromise = new Promise((resolve, reject) => {
+      const failLoad = (err: Error) => {
+        setError(err);
+        setStatus('error');
+        loadingPromise = null;
+        reject(err);
+      };
+
       // Check if cv is already loaded globally
-      if (typeof window !== 'undefined' && (window as any).cv) {
-        globalOpenCV = (window as any).cv;
+      if (typeof window !== 'undefined' && isOpenCVReady((window as any).cv)) {
+        globalOpenCV = (window as any).cv as OpenCV;
         cvRef.current = globalOpenCV;
         if (globalOpenCV) {
+          setStatus('ready');
           updateProgress(100);
           resolve(globalOpenCV);
         }
@@ -154,6 +181,67 @@ export function useOpenCV(options: UseOpenCVOptions = {}): OpenCVInstance {
       script.onload = () => {
         updateProgress(30); // Script loaded, WASM initializing
         setStatus('initializing');
+
+        // Some OpenCV builds expose a thenable cv object.
+        const cvMaybe = (window as any).cv;
+        if (cvMaybe && typeof cvMaybe.then === 'function') {
+          let thenResolvedSync = false;
+          const handleThenResolved = (resolvedCv: OpenCV) => {
+            thenResolvedSync = true;
+            if (progressInterval) clearInterval(progressInterval);
+            if (timeoutId) clearTimeout(timeoutId);
+
+            const readyCv = isOpenCVReady(resolvedCv)
+              ? resolvedCv
+              : ((window as any).cv as OpenCV);
+
+            if (!isOpenCVReady(readyCv)) {
+              failLoad(new Error('OpenCV then callback fired but cv is not ready yet'));
+              return;
+            }
+
+            globalOpenCV = readyCv;
+            cvRef.current = readyCv;
+            setStatus('ready');
+            updateProgress(100);
+            resolve(readyCv);
+          };
+
+          const handleThenRejected = (err: unknown) => {
+            if (progressInterval) clearInterval(progressInterval);
+            if (timeoutId) clearTimeout(timeoutId);
+            failLoad(err instanceof Error ? err : new Error(String(err)));
+          };
+
+          try {
+            const thenResult = cvMaybe.then(handleThenResolved);
+            if (!thenResolvedSync) {
+              simulateProgress();
+              startTimeout();
+            }
+            if (thenResult && typeof thenResult.catch === 'function') {
+              thenResult.catch(handleThenRejected);
+            }
+          } catch (err) {
+            handleThenRejected(err);
+          }
+          return;
+        }
+
+        if (isOpenCVReady(cvMaybe)) {
+          if (progressInterval) clearInterval(progressInterval);
+          if (timeoutId) clearTimeout(timeoutId);
+          globalOpenCV = cvMaybe;
+          cvRef.current = cvMaybe;
+          setStatus('ready');
+          updateProgress(100);
+          resolve(cvMaybe);
+          return;
+        }
+
+        // Fallback progress watchdog while waiting for runtime callback.
+        simulateProgress();
+        startTimeout();
       };
 
       // Progress simulation for WASM compilation (takes most time)
@@ -175,8 +263,7 @@ export function useOpenCV(options: UseOpenCVOptions = {}): OpenCVInstance {
       const startTimeout = () => {
         timeoutId = setTimeout(() => {
           if (progressInterval) clearInterval(progressInterval);
-          setStatus('error');
-          reject(new Error('OpenCV WASM initialization timeout (45s). Check console for errors or try refreshing.'));
+          failLoad(new Error('OpenCV WASM initialization timeout (45s). Check console for errors or try refreshing.'));
         }, 45000);
       };
       
@@ -184,30 +271,28 @@ export function useOpenCV(options: UseOpenCVOptions = {}): OpenCVInstance {
       const moduleConfig: any = {
         preRun: [() => {
           console.log('[OpenCV] WASM preRun started...');
-          simulateProgress();
-          startTimeout();
         }],
         onRuntimeInitialized: () => {
           if (progressInterval) clearInterval(progressInterval);
           if (timeoutId) clearTimeout(timeoutId);
           console.log('[OpenCV] onRuntimeInitialized called');
           
-          if ((window as any).cv) {
-            globalOpenCV = (window as any).cv;
+          if (isOpenCVReady((window as any).cv)) {
+            globalOpenCV = (window as any).cv as OpenCV;
             cvRef.current = globalOpenCV;
+            setStatus('ready');
             updateProgress(100);
             console.log('[OpenCV] Ready - Version:', globalOpenCV?.VERSION);
             if (globalOpenCV) resolve(globalOpenCV);
-            else reject(new Error('OpenCV loaded but cv object not found'));
+            else failLoad(new Error('OpenCV loaded but cv object not found'));
           } else {
-            reject(new Error('OpenCV loaded but cv object not found'));
+            failLoad(new Error('OpenCV loaded but cv object not found'));
           }
         },
         onAbort: (err: any) => {
           if (progressInterval) clearInterval(progressInterval);
           if (timeoutId) clearTimeout(timeoutId);
-          setStatus('error');
-          reject(new Error(`OpenCV load aborted: ${err}`));
+          failLoad(new Error(`OpenCV load aborted: ${err}`));
         },
       };
 
@@ -222,13 +307,18 @@ export function useOpenCV(options: UseOpenCVOptions = {}): OpenCVInstance {
         };
       }
 
-      (window as any).Module = moduleConfig;
+      // OpenCV bootstrap uses global `cv` if present (`var Module = typeof cv !== 'undefined' ? cv : {}`)
+      const cvBootstrap = {
+        ...((window as any).cv || {}),
+        ...moduleConfig,
+      };
+      (window as any).cv = cvBootstrap;
+      (window as any).Module = cvBootstrap;
 
       script.onerror = () => {
         if (progressInterval) clearInterval(progressInterval);
         if (timeoutId) clearTimeout(timeoutId);
-        setStatus('error');
-        reject(new Error(`Failed to load OpenCV.js from ${config.jsPath}. Check if file exists in public/opencv/`));
+        failLoad(new Error(`Failed to load OpenCV.js from ${config.jsPath}. Check if file exists in public/opencv/`));
       };
 
       document.body.appendChild(script);

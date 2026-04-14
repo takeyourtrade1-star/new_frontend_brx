@@ -50,7 +50,6 @@ export default function CardScanner({
   maxBatchSize = 50
 }: CardScannerProps) {
   const webcamRef = useRef<Webcam>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const outputCanvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
@@ -171,13 +170,6 @@ export default function CardScanner({
     setShowBatchGallery(prev => !prev);
   }, []);
 
-  // Get video element from webcam
-  useEffect(() => {
-    if (webcamRef.current && webcamRef.current.video) {
-      videoRef.current = webcamRef.current.video;
-    }
-  }, [webcamRef.current?.video]);
-
   // Update container size on resize
   useEffect(() => {
     const updateSize = () => {
@@ -294,19 +286,20 @@ export default function CardScanner({
    * Process frame for auto-capture
    */
   const processScanningFrame = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || processingRef.current) return;
+    const liveVideo = webcamRef.current?.video as HTMLVideoElement | null;
+    if (!liveVideo || !canvasRef.current || processingRef.current) return;
 
     processingRef.current = true;
 
     // Auto-capture detection
-    const shouldCapture = processFrame(videoRef.current, canvasRef.current);
+    const shouldCapture = processFrame(liveVideo, canvasRef.current);
 
     if (shouldCapture && !isProcessing) {
       setIsProcessing(true);
       
       // Capture and process
       const captured = applyPerspectiveTransform(
-        videoRef.current,
+        liveVideo,
         calibrationPoints,
         containerSize.width,
         containerSize.height
@@ -335,12 +328,13 @@ export default function CardScanner({
    * Manual capture trigger (for mobile shutter button)
    */
   const manualCapture = useCallback(() => {
-    if (!videoRef.current || isProcessing || mode !== 'scanning') return;
+    const liveVideo = webcamRef.current?.video as HTMLVideoElement | null;
+    if (!liveVideo || isProcessing || mode !== 'scanning') return;
 
     setIsProcessing(true);
     
     const captured = applyPerspectiveTransform(
-      videoRef.current,
+      liveVideo,
       calibrationPoints,
       containerSize.width,
       containerSize.height
@@ -363,7 +357,9 @@ export default function CardScanner({
    * Start scanning loop with requestAnimationFrame
    */
   useEffect(() => {
-    if (mode !== 'scanning' || !videoRef.current) return;
+    if (mode !== 'scanning' || cvStatus !== 'ready') return;
+
+    const liveVideo = webcamRef.current?.video as HTMLVideoElement | null;
 
     const loop = () => {
       processScanningFrame();
@@ -371,8 +367,8 @@ export default function CardScanner({
     };
 
     // Lock focus if supported
-    const video = videoRef.current;
-    if (video.srcObject) {
+    const video = liveVideo;
+    if (video?.srcObject) {
       const track = (video.srcObject as MediaStream).getVideoTracks()[0];
       const capabilities = track.getCapabilities?.() as { focusMode?: string[] } | undefined;
       
@@ -394,7 +390,7 @@ export default function CardScanner({
       }
       focusLockRef.current = false;
     };
-  }, [mode, processScanningFrame]);
+  }, [mode, cvStatus, processScanningFrame]);
 
   /**
    * Handle calibration point drag
@@ -579,24 +575,9 @@ export default function CardScanner({
             width: { ideal: 640 },
             height: { ideal: 480 },
           }}
-          className="absolute inset-0 w-full h-full object-cover opacity-0"
-          style={{ display: mode === 'calibration' ? 'block' : 'none' }}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ display: mode === 'review' ? 'none' : 'block' }}
         />
-
-        {/* Visible Video Preview */}
-        {videoRef.current && (
-          <video
-            ref={(el) => {
-              if (el && videoRef.current) {
-                el.srcObject = videoRef.current.srcObject;
-              }
-            }}
-            autoPlay
-            playsInline
-            muted
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        )}
 
         {/* Lazy Load Prompt - Show when OpenCV not loaded */}
         {cvStatus === 'idle' && (
