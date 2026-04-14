@@ -91,6 +91,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     isCurrent: index === breadcrumbs.length - 1,
   }));
   const imageSrc = props.imageSrc ?? (card?.image != null ? getCardImageUrl(card.image) : null) ?? getCdnImageUrl('kyurem.png');
+  const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'INFO' | 'VENDI' | 'SCAMBIA' | 'ASTA'>('INFO');
   const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'SCAMBIO' | 'ASTA'>('VENDITORI');
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -779,14 +780,44 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         </div>
       </section>
 
+      <div className="w-full bg-[#F0F0F0] px-4 pb-2 sm:hidden">
+        <div className="container-content">
+          <button
+            type="button"
+            onClick={() => setMobileDetailsOpen((prev) => !prev)}
+            className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-left shadow-sm"
+            aria-expanded={mobileDetailsOpen}
+            aria-controls="product-mobile-info-panel"
+          >
+            <span className="text-[11px] font-bold uppercase tracking-wide text-gray-700">
+              {mobileDetailsOpen ? 'Nascondi info carta' : 'Mostra info carta'}
+            </span>
+            <svg
+              className={cn('h-4 w-4 text-gray-500 transition-transform', mobileDetailsOpen && 'rotate-180')}
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden
+            >
+              <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
       {/* Contenuto principale: card bianca su sfondo grigio – responsive padding e layout */}
       <section className="w-full bg-[#F0F0F0] px-4 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 pb-4 sm:pb-6 min-h-0">
         <div className="container-content">
           <div className="flex min-h-0 flex-col overflow-hidden rounded-lg bg-white shadow-md sm:h-[320px] sm:flex-row">
             {/* Colonna sinistra: immagine carta compatta */}
-            <aside className="flex w-full flex-shrink-0 flex-col items-center justify-center border-b border-gray-200 bg-white p-2 sm:h-full sm:w-[180px] sm:max-w-none sm:justify-start sm:border-b-0 sm:border-r sm:p-3 md:w-[200px] lg:w-[220px]">
+            <aside
+              className={cn(
+                'flex w-full flex-shrink-0 flex-col items-center justify-center bg-white p-2 sm:h-full sm:w-[180px] sm:max-w-none sm:justify-start sm:border-b-0 sm:border-r sm:border-gray-200 sm:p-3 md:w-[200px] lg:w-[220px]',
+                mobileDetailsOpen ? 'border-b border-gray-200' : 'border-b-0'
+              )}
+            >
               <div
-                className="relative flex w-full max-w-[86px] max-h-[120px] shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-md border border-gray-800 bg-gray-100 transition-opacity hover:opacity-95 sm:max-w-[160px] sm:max-h-[240px] md:max-w-[200px] md:max-h-[280px]"
+                className="relative flex w-full max-w-[70px] max-h-[98px] shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-md border border-gray-800 bg-gray-100 transition-opacity hover:opacity-95 sm:max-w-[160px] sm:max-h-[240px] md:max-w-[200px] md:max-h-[280px]"
                 style={{ aspectRatio: '63/88' }}
                 onClick={handleLightboxOpen}
                 role="button"
@@ -826,7 +857,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           </aside>
 
           {/* Colonna destra: tab minimali + contenuto */}
-          <div className="flex-1 min-w-0 flex flex-col bg-[#FAFAFA] overflow-hidden sm:h-full">
+          <div
+            id="product-mobile-info-panel"
+            className={cn('flex-1 min-w-0 flex flex-col bg-[#FAFAFA] overflow-hidden sm:h-full', !mobileDetailsOpen && 'hidden sm:flex')}
+          >
             <div className="flex border-b border-gray-200 bg-gray-50/80">
               {tabs.map((t) => (
                 <button
@@ -834,7 +868,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   type="button"
                   onClick={() => setActiveTab(t.id)}
                   className={cn(
-                    'relative flex-1 min-w-0 px-1.5 sm:px-4 py-2 sm:py-3 text-[12px] sm:text-sm font-bold uppercase tracking-wide transition-all duration-200',
+                    'relative flex-1 min-w-0 px-1 sm:px-4 py-1.5 sm:py-3 text-[10px] sm:text-sm font-bold uppercase tracking-[0.04em] sm:tracking-wide transition-all duration-200',
                     activeTab === t.id
                       ? 'bg-white text-[#FF7300] border-t-2 border-[#FF7300] shadow-[0_-2px_8px_rgba(0,0,0,0.04)]'
                       : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
@@ -1449,6 +1483,19 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </button>
                 </div>
                 <div className="space-y-4">
+                  <div className="lg:hidden">
+                    <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Ordina</label>
+                    <select
+                      value={listingsSort}
+                      onChange={(e) => setListingsSort(e.target.value as typeof listingsSort)}
+                      className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700"
+                    >
+                      <option value="price_asc">Prezzo: più basso</option>
+                      <option value="price_desc">Prezzo: più alto</option>
+                      <option value="seller">Venditore: A-Z</option>
+                      <option value="condition">Condizione: migliore</option>
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Posizione venditore</label>
                     <CountrySelect
@@ -1561,14 +1608,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               <div className="flex gap-1 border-b border-gray-200 bg-gray-100 p-1 overflow-x-auto scrollbar-hide">
                 {(['VENDITORI', 'SCAMBIO', 'ASTA'] as const).map((tab) => {
                   const tabLabel = tab === 'VENDITORI' ? 'IN VENDITA' : tab === 'SCAMBIO' ? 'SCAMBIO' : 'ASTA';
-                  const iconClass = 'h-5 w-5 shrink-0';
+                  const iconClass = 'h-4 w-4 sm:h-5 sm:w-5 shrink-0';
                   return (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setSellerSubTab(tab)}
                     className={cn(
-                      'flex flex-1 min-w-[120px] sm:min-w-0 min-h-[44px] items-center justify-center gap-2 rounded-md px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold uppercase transition-colors whitespace-nowrap',
+                      'flex flex-1 min-w-[96px] sm:min-w-0 min-h-[36px] sm:min-h-[44px] items-center justify-center gap-1 sm:gap-2 rounded-md px-2 sm:px-4 py-1.5 sm:py-2.5 text-[10px] sm:text-sm font-bold uppercase transition-colors whitespace-nowrap',
                       sellerSubTab === tab
                         ? 'bg-white text-[#FF8800] shadow-sm ring-1 ring-[#FF8800]/30'
                         : 'bg-transparent text-gray-600 hover:bg-white/70'
@@ -1726,21 +1773,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </table>
                   {/* Mobile Cards */}
                   <div className="sm:hidden">
-                    {/* Mobile Sorting Controls */}
-                    <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-gray-50">
-                      <span className="text-xs font-medium text-gray-500 shrink-0">Ordina:</span>
-                      <select
-                        value={listingsSort}
-                        onChange={(e) => setListingsSort(e.target.value as typeof listingsSort)}
-                        className="flex-1 min-w-0 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700"
-                      >
-                        <option value="price_asc">Prezzo: più basso</option>
-                        <option value="price_desc">Prezzo: più alto</option>
-                        <option value="seller">Venditore: A-Z</option>
-                        <option value="condition">Condizione: migliore</option>
-                      </select>
-                    </div>
-
                     {listingsLoading && (
                       <div className="divide-y divide-gray-200">
                         {[...Array(3)].map((_, i) => (
