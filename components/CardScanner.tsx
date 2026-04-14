@@ -38,6 +38,31 @@ interface CardScannerProps {
   maxBatchSize?: number; // Max images in batch (default: 50)
 }
 
+function getCameraErrorMessage(error: unknown): string {
+  const err = error as { name?: string; message?: string };
+
+  if (typeof window !== 'undefined' && !window.isSecureContext) {
+    return 'Safari blocca la camera fuori da HTTPS. Apri la pagina in https:// e riprova.';
+  }
+
+  switch (err?.name) {
+    case 'NotAllowedError':
+    case 'PermissionDeniedError':
+      return 'Permesso camera negato. Controlla Safari > Impostazioni sito > Fotocamera e consenti l\'accesso.';
+    case 'NotFoundError':
+    case 'DevicesNotFoundError':
+      return 'Nessuna fotocamera disponibile su questo dispositivo.';
+    case 'NotReadableError':
+    case 'TrackStartError':
+      return 'La fotocamera e\' gia\' in uso da un\'altra app. Chiudila e riprova.';
+    case 'OverconstrainedError':
+    case 'ConstraintNotSatisfiedError':
+      return 'Impostazioni camera non supportate su questo dispositivo.';
+    default:
+      return err?.message || 'Impossibile avviare la fotocamera.';
+  }
+}
+
 function solveLinearSystem8x8(matrix: number[][], vector: number[]): number[] | null {
   const n = 8;
   const augmented = matrix.map((row, i) => [...row, vector[i]]);
@@ -187,6 +212,11 @@ export default function CardScanner({
   const [capturedBatch, setCapturedBatch] = useState<CapturedCard[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBatchGallery, setShowBatchGallery] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [webcamInstanceKey, setWebcamInstanceKey] = useState(0);
+  const [cameraFacingMode, setCameraFacingMode] = useState<'environment' | 'user'>('environment');
+  const [videoAspectRatio, setVideoAspectRatio] = useState(4 / 3);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
 
   // Calibration points (normalized 0-1 coordinates)
   const [calibrationPoints, setCalibrationPoints] = useState<CalibrationPoint[]>([
@@ -276,8 +306,8 @@ export default function CardScanner({
       if (container) {
         const rect = container.getBoundingClientRect();
         setContainerSize({
-          width: Math.min(rect.width, 640),
-          height: Math.min(rect.height, 480),
+          width: Math.max(1, Math.round(rect.width)),
+          height: Math.max(1, Math.round(rect.height)),
         });
       }
     };
@@ -285,6 +315,64 @@ export default function CardScanner({
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  // Keep layout adaptive for mobile viewport height.
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 768px)');
+    const syncMobile = () => setIsMobileViewport(media.matches);
+    syncMobile();
+
+    if (media.addEventListener) {
+      media.addEventListener('change', syncMobile);
+    } else {
+      media.addListener(syncMobile);
+    }
+
+    return () => {
+      if (media.removeEventListener) {
+        media.removeEventListener('change', syncMobile);
+      } else {
+        media.removeListener(syncMobile);
+      }
+    };
+  }, []);
+
+  const refreshVideoMetrics = useCallback(() => {
+    const video = webcamRef.current?.video as HTMLVideoElement | null;
+    if (!video?.videoWidth || !video?.videoHeight) return;
+
+    setVideoAspectRatio(video.videoWidth / video.videoHeight);
+  }, []);
+
+  const handleUserMedia = useCallback(() => {
+    setCameraError(null);
+
+    // Delay one frame to ensure videoWidth/videoHeight are populated.
+    requestAnimationFrame(() => {
+      refreshVideoMetrics();
+    });
+  }, [refreshVideoMetrics]);
+
+  const handleUserMediaError = useCallback((error: string | DOMException) => {
+    const err = error as DOMException;
+
+    if (err?.name === 'OverconstrainedError' && cameraFacingMode === 'environment') {
+      setCameraFacingMode('user');
+      setWebcamInstanceKey((prev) => prev + 1);
+      setCameraError('Fotocamera posteriore non disponibile: provo con quella frontale.');
+      return;
+    }
+
+    const message = getCameraErrorMessage(err);
+    setCameraError(message);
+    onError?.(new Error(message));
+  }, [cameraFacingMode, onError]);
+
+  const retryCamera = useCallback(() => {
+    setCameraError(null);
+    setCameraFacingMode('environment');
+    setWebcamInstanceKey((prev) => prev + 1);
   }, []);
 
   /**
@@ -581,7 +669,7 @@ export default function CardScanner({
   });
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full h-full mx-auto flex flex-col sm:max-w-2xl">
       {/* Status Bar with Progress */}
       <div className="flex items-center justify-between mb-4 px-2">
         <div className="flex items-center gap-3 flex-1">
@@ -609,8 +697,8 @@ export default function CardScanner({
       {/* Scanner Container */}
       <div 
         id="scanner-container"
-        className="relative rounded-xl overflow-hidden bg-black border border-zinc-700"
-        style={{ aspectRatio: '4/3' }}
+        className="relative rounded-xl overflow-hidden bg-black border border-zinc-700 flex-1 min-h-[60dvh] sm:min-h-0"
+        style={isMobileViewport ? { aspectRatio: `${videoAspectRatio}` } : { aspectRatio: `${videoAspectRatio}` }}
         onMouseMove={handleMove}
         onTouchMove={handleMove}
         onMouseUp={handleEnd}
@@ -618,18 +706,37 @@ export default function CardScanner({
       >
         {/* Webcam Feed - Hidden UI */}
         <Webcam
+          key={`${cameraFacingMode}-${webcamInstanceKey}`}
           ref={webcamRef}
           audio={false}
           mirrored={false}
           screenshotFormat="image/jpeg"
+          onUserMedia={handleUserMedia}
+          onUserMediaError={handleUserMediaError}
+          playsInline
           videoConstraints={{
-            facingMode: 'environment',
-            width: { ideal: 640 },
-            height: { ideal: 480 },
+            facingMode: { ideal: cameraFacingMode },
+            width: { ideal: 1080 },
+            height: { ideal: 1920 },
           }}
           className="absolute inset-0 w-full h-full object-cover"
           style={{ display: mode === 'review' ? 'none' : 'block' }}
         />
+
+        {cameraError && (
+          <div className="absolute inset-0 z-40 bg-black/85 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-xl p-4 text-center">
+              <h3 className="text-white font-semibold">Camera non disponibile</h3>
+              <p className="text-sm text-zinc-300 mt-2">{cameraError}</p>
+              <button
+                onClick={retryCamera}
+                className="mt-4 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
+              >
+                Riprova
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Calibration Mode Overlay */}
         {mode === 'calibration' && (
@@ -943,7 +1050,7 @@ export default function CardScanner({
       </div>
 
       {/* Instructions */}
-      <div className="mt-4 text-center text-sm text-zinc-400">
+      <div className="mt-3 text-center text-sm text-zinc-400 px-2 pb-2">
         {mode === 'calibration' ? (
           <p>Trascina i punti sugli angoli della carta fisica nel dock</p>
         ) : mode === 'review' ? (
