@@ -780,31 +780,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         </div>
       </section>
 
-      <div className="w-full bg-[#F0F0F0] px-4 pb-2 sm:hidden">
-        <div className="container-content">
-          <button
-            type="button"
-            onClick={() => setMobileDetailsOpen((prev) => !prev)}
-            className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-left shadow-sm"
-            aria-expanded={mobileDetailsOpen}
-            aria-controls="product-mobile-info-panel"
-          >
-            <span className="text-[11px] font-bold uppercase tracking-wide text-gray-700">
-              {mobileDetailsOpen ? 'Nascondi info carta' : 'Mostra info carta'}
-            </span>
-            <svg
-              className={cn('h-4 w-4 text-gray-500 transition-transform', mobileDetailsOpen && 'rotate-180')}
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden
-            >
-              <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
       {/* Contenuto principale: card bianca su sfondo grigio – responsive padding e layout */}
       <section className="w-full bg-[#F0F0F0] px-4 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 pb-4 sm:pb-6 min-h-0">
         <div className="container-content">
@@ -817,7 +792,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               )}
             >
               <div
-                className="relative flex w-full max-w-[70px] max-h-[98px] shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-md border border-gray-800 bg-gray-100 transition-opacity hover:opacity-95 sm:max-w-[160px] sm:max-h-[240px] md:max-w-[200px] md:max-h-[280px]"
+                className="relative flex w-full max-w-[96px] max-h-[134px] shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-md border border-gray-800 bg-gray-100 transition-opacity hover:opacity-95 sm:max-w-[160px] sm:max-h-[240px] md:max-w-[200px] md:max-h-[280px]"
                 style={{ aspectRatio: '63/88' }}
                 onClick={handleLightboxOpen}
                 role="button"
@@ -854,6 +829,26 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 />
               )}
             </div>
+            <button
+              type="button"
+              onClick={() => setMobileDetailsOpen((prev) => !prev)}
+              className="mt-2 flex w-full max-w-[220px] items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-left shadow-sm sm:hidden"
+              aria-expanded={mobileDetailsOpen}
+              aria-controls="product-mobile-info-panel"
+            >
+              <span className="text-[11px] font-bold uppercase tracking-wide text-gray-700">
+                {mobileDetailsOpen ? 'Nascondi info carta' : 'Mostra info carta'}
+              </span>
+              <svg
+                className={cn('h-4 w-4 text-gray-500 transition-transform', mobileDetailsOpen && 'rotate-180')}
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden
+              >
+                <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </aside>
 
           {/* Colonna destra: tab minimali + contenuto */}
