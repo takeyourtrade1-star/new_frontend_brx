@@ -2,9 +2,8 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
-import { useOpenCV, safeDeleteMat } from '@/hooks/useOpenCV';
 import { useAutoCapture } from '@/hooks/useAutoCapture';
-import { Settings2, ScanLine, Camera, RotateCcw, Check, Loader2, Download, Play, Trash2, Images, Plus, X, ChevronRight, Aperture } from 'lucide-react';
+import { Settings2, ScanLine, Camera, RotateCcw, Check, Loader2, Trash2, Images, Plus, X, ChevronRight, Aperture } from 'lucide-react';
 
 // Target dimensions for card scanning (630x880 is standard card ratio)
 const TARGET_WIDTH = 630;
@@ -13,6 +12,11 @@ const STORAGE_KEY = 'card-scanner-calibration';
 
 interface CalibrationPoint {
   id: number;
+  x: number;
+  y: number;
+}
+
+interface Point2D {
   x: number;
   y: number;
 }
@@ -33,13 +37,131 @@ interface CardScannerProps {
   maxBatchSize?: number; // Max images in batch (default: 50)
 }
 
+function solveLinearSystem8x8(matrix: number[][], vector: number[]): number[] | null {
+  const n = 8;
+  const augmented = matrix.map((row, i) => [...row, vector[i]]);
+
+  for (let col = 0; col < n; col++) {
+    let pivotRow = col;
+    for (let row = col + 1; row < n; row++) {
+      if (Math.abs(augmented[row][col]) > Math.abs(augmented[pivotRow][col])) {
+        pivotRow = row;
+      }
+    }
+
+    if (Math.abs(augmented[pivotRow][col]) < 1e-9) {
+      return null;
+    }
+
+    if (pivotRow !== col) {
+      [augmented[col], augmented[pivotRow]] = [augmented[pivotRow], augmented[col]];
+    }
+
+    const pivot = augmented[col][col];
+    for (let k = col; k <= n; k++) {
+      augmented[col][k] /= pivot;
+    }
+
+    for (let row = 0; row < n; row++) {
+      if (row === col) continue;
+      const factor = augmented[row][col];
+      if (factor === 0) continue;
+      for (let k = col; k <= n; k++) {
+        augmented[row][k] -= factor * augmented[col][k];
+      }
+    }
+  }
+
+  return augmented.map((row) => row[n]);
+}
+
+function computeHomography(fromPoints: Point2D[], toPoints: Point2D[]): number[] | null {
+  if (fromPoints.length !== 4 || toPoints.length !== 4) return null;
+
+  const matrix: number[][] = [];
+  const vector: number[] = [];
+
+  for (let i = 0; i < 4; i++) {
+    const x = fromPoints[i].x;
+    const y = fromPoints[i].y;
+    const u = toPoints[i].x;
+    const v = toPoints[i].y;
+
+    matrix.push([x, y, 1, 0, 0, 0, -u * x, -u * y]);
+    vector.push(u);
+
+    matrix.push([0, 0, 0, x, y, 1, -v * x, -v * y]);
+    vector.push(v);
+  }
+
+  const solution = solveLinearSystem8x8(matrix, vector);
+  if (!solution) return null;
+
+  return [
+    solution[0], solution[1], solution[2],
+    solution[3], solution[4], solution[5],
+    solution[6], solution[7], 1,
+  ];
+}
+
+function warpImageWithHomography(
+  source: ImageData,
+  destinationWidth: number,
+  destinationHeight: number,
+  homography: number[]
+): ImageData {
+  const destination = new ImageData(destinationWidth, destinationHeight);
+  const src = source.data;
+  const dst = destination.data;
+  const sw = source.width;
+  const sh = source.height;
+
+  for (let y = 0; y < destinationHeight; y++) {
+    for (let x = 0; x < destinationWidth; x++) {
+      const denominator = homography[6] * x + homography[7] * y + homography[8];
+      if (Math.abs(denominator) < 1e-6) continue;
+
+      const sx = (homography[0] * x + homography[1] * y + homography[2]) / denominator;
+      const sy = (homography[3] * x + homography[4] * y + homography[5]) / denominator;
+
+      const outIndex = (y * destinationWidth + x) * 4;
+
+      if (sx < 0 || sy < 0 || sx >= sw - 1 || sy >= sh - 1) {
+        dst[outIndex + 3] = 255;
+        continue;
+      }
+
+      const x0 = Math.floor(sx);
+      const y0 = Math.floor(sy);
+      const x1 = Math.min(x0 + 1, sw - 1);
+      const y1 = Math.min(y0 + 1, sh - 1);
+
+      const dx = sx - x0;
+      const dy = sy - y0;
+
+      const i00 = (y0 * sw + x0) * 4;
+      const i10 = (y0 * sw + x1) * 4;
+      const i01 = (y1 * sw + x0) * 4;
+      const i11 = (y1 * sw + x1) * 4;
+
+      for (let c = 0; c < 4; c++) {
+        const top = src[i00 + c] * (1 - dx) + src[i10 + c] * dx;
+        const bottom = src[i01 + c] * (1 - dx) + src[i11 + c] * dx;
+        dst[outIndex + c] = top * (1 - dy) + bottom * dy;
+      }
+    }
+  }
+
+  return destination;
+}
+
 /**
  * Card Scanner Component for TCG card scanning
  * 
  * Features:
  * - Calibration mode with 4 draggable points
  * - Auto-capture using frame differencing
- * - Perspective correction using OpenCV
+ * - Perspective correction using native homography on canvas
  * - 60 FPS processing with requestAnimationFrame
  */
 export default function CardScanner({ 
@@ -55,8 +177,6 @@ export default function CardScanner({
   const rafRef = useRef<number | null>(null);
   const processingRef = useRef(false);
   const focusLockRef = useRef<boolean>(false);
-
-  const { cv, status: cvStatus, error: cvError, progress: cvProgress, load: loadOpenCV } = useOpenCV({ lazy: true });
   
   const [mode, setMode] = useState<ScannerMode>('calibration');
   const [isDragging, setIsDragging] = useState<number | null>(null);
@@ -64,7 +184,6 @@ export default function CardScanner({
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedBatch, setCapturedBatch] = useState<CapturedCard[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isOpenCVLoading, setIsOpenCVLoading] = useState(false);
   const [showBatchGallery, setShowBatchGallery] = useState(false);
 
   // Calibration points (normalized 0-1 coordinates)
@@ -79,8 +198,7 @@ export default function CardScanner({
     status: captureStatus, 
     stabilityProgress, 
     processFrame, 
-    resetCapture,
-    isStable 
+    resetCapture
   } = useAutoCapture({
     diffThreshold: 30,
     changePercentageThreshold: 0.08,
@@ -102,27 +220,6 @@ export default function CardScanner({
       }
     }
   }, []);
-
-  // Handle OpenCV errors
-  useEffect(() => {
-    if (cvError && onError) {
-      onError(cvError);
-    }
-  }, [cvError, onError]);
-
-  // Manual trigger to load OpenCV (lazy loading)
-  const handleLoadOpenCV = useCallback(async () => {
-    if (cvStatus === 'ready' || isOpenCVLoading) return;
-    
-    setIsOpenCVLoading(true);
-    try {
-      await loadOpenCV();
-    } catch (err) {
-      console.error('[CardScanner] Failed to load OpenCV:', err);
-    } finally {
-      setIsOpenCVLoading(false);
-    }
-  }, [cvStatus, isOpenCVLoading, loadOpenCV]);
 
   // Add captured image to batch
   const addToBatch = useCallback((imageData: string) => {
@@ -189,7 +286,7 @@ export default function CardScanner({
   }, []);
 
   /**
-   * Apply perspective transform to crop card using OpenCV
+   * Apply perspective transform using native homography warp.
    */
   const applyPerspectiveTransform = useCallback((
     sourceImage: HTMLCanvasElement | HTMLVideoElement,
@@ -197,67 +294,43 @@ export default function CardScanner({
     containerW: number,
     containerH: number
   ): string | null => {
-    if (!cv) return null;
-    if (
-      typeof cv.getPerspectiveTransform !== 'function' ||
-      typeof cv.warpPerspective !== 'function'
-    ) {
-      onError?.(new Error('OpenCV build missing perspective transform functions (imgproc module).'));
-      return null;
-    }
-
-    let srcMat: any = null;
-    let dstMat: any = null;
-    let M: any = null;
-    let srcPts: any = null;
-    let dstPts: any = null;
-
     try {
-      // Create source matrix from canvas or video
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = containerW;
       tempCanvas.height = containerH;
-      const ctx = tempCanvas.getContext('2d');
+      const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) return null;
 
       ctx.drawImage(sourceImage, 0, 0, containerW, containerH);
-      
-      // Read image data into OpenCV Mat
-      const imgData = ctx.getImageData(0, 0, containerW, containerH);
-      srcMat = cv.matFromArray(containerH, containerW, cv.CV_8UC4, Array.from(imgData.data));
-      
-      // Create destination matrix
-      dstMat = new cv.Mat();
 
-      // Source points (calibration corners in pixel coordinates)
-      const srcCoords = points.map(p => ({
+      const sourceImageData = ctx.getImageData(0, 0, containerW, containerH);
+
+      const sourceQuad: Point2D[] = points.map((p) => ({
         x: p.x * containerW,
-        y: p.y * containerH
+        y: p.y * containerH,
       }));
-      
-      srcPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
-        srcCoords[0].x, srcCoords[0].y, // Top-left
-        srcCoords[1].x, srcCoords[1].y, // Top-right
-        srcCoords[2].x, srcCoords[2].y, // Bottom-right
-        srcCoords[3].x, srcCoords[3].y, // Bottom-left
-      ]);
 
-      // Destination points (target rectangle)
-      dstPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
-        0, 0,                           // Top-left
-        TARGET_WIDTH, 0,                // Top-right
-        TARGET_WIDTH, TARGET_HEIGHT,    // Bottom-right
-        0, TARGET_HEIGHT,               // Bottom-left
-      ]);
+      const destinationQuad: Point2D[] = [
+        { x: 0, y: 0 },
+        { x: TARGET_WIDTH - 1, y: 0 },
+        { x: TARGET_WIDTH - 1, y: TARGET_HEIGHT - 1 },
+        { x: 0, y: TARGET_HEIGHT - 1 },
+      ];
 
-      // Calculate perspective transform matrix
-      M = cv.getPerspectiveTransform(srcPts, dstPts);
+      // Homography maps destination rectangle pixels back to source quadrilateral.
+      const homography = computeHomography(destinationQuad, sourceQuad);
+      if (!homography) {
+        onError?.(new Error('Calibrazione non valida: impossibile calcolare la trasformazione prospettica.'));
+        return null;
+      }
 
-      // Apply warp perspective
-      const dsize = new cv.Size(TARGET_WIDTH, TARGET_HEIGHT);
-      cv.warpPerspective(srcMat, dstMat, M, dsize);
+      const warpedImageData = warpImageWithHomography(
+        sourceImageData,
+        TARGET_WIDTH,
+        TARGET_HEIGHT,
+        homography
+      );
 
-      // Convert result to canvas and then to base64
       const outputCanvas = outputCanvasRef.current;
       if (!outputCanvas) return null;
       
@@ -266,28 +339,18 @@ export default function CardScanner({
       const outputCtx = outputCanvas.getContext('2d');
       if (!outputCtx) return null;
 
-      // Create ImageData from Mat
-      const resultData = new ImageData(
-        new Uint8ClampedArray(dstMat.data),
-        TARGET_WIDTH,
-        TARGET_HEIGHT
-      );
-      outputCtx.putImageData(resultData, 0, 0);
+      outputCtx.putImageData(warpedImageData, 0, 0);
 
       // Return base64 image
       return outputCanvas.toDataURL('image/jpeg', 0.95);
     } catch (err) {
       console.error('[CardScanner] Perspective transform error:', err);
+      if (onError) {
+        onError(err instanceof Error ? err : new Error('Errore durante la trasformazione prospettica'));
+      }
       return null;
-    } finally {
-      // CRITICAL: Clean up OpenCV matrices to prevent memory leaks
-      safeDeleteMat(srcMat);
-      safeDeleteMat(dstMat);
-      safeDeleteMat(M);
-      safeDeleteMat(srcPts);
-      safeDeleteMat(dstPts);
     }
-  }, [cv, onError]);
+  }, [onError]);
 
   /**
    * Process frame for auto-capture
@@ -364,7 +427,7 @@ export default function CardScanner({
    * Start scanning loop with requestAnimationFrame
    */
   useEffect(() => {
-    if (mode !== 'scanning' || cvStatus !== 'ready') return;
+    if (mode !== 'scanning') return;
 
     const liveVideo = webcamRef.current?.video as HTMLVideoElement | null;
 
@@ -397,7 +460,7 @@ export default function CardScanner({
       }
       focusLockRef.current = false;
     };
-  }, [mode, cvStatus, processScanningFrame]);
+  }, [mode, processScanningFrame]);
 
   /**
    * Handle calibration point drag
@@ -509,47 +572,16 @@ export default function CardScanner({
       {/* Status Bar with Progress */}
       <div className="flex items-center justify-between mb-4 px-2">
         <div className="flex items-center gap-3 flex-1">
-          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-            cvStatus === 'ready' ? 'bg-green-500' :
-            cvStatus === 'loading' || cvStatus === 'initializing' ? 'bg-yellow-500 animate-pulse' :
-            cvStatus === 'error' ? 'bg-red-500' :
-            'bg-gray-400'
-          }`} />
+          <div className="w-2 h-2 rounded-full flex-shrink-0 bg-green-500" />
           <div className="flex-1 min-w-0">
             <span className="text-sm text-zinc-400 block truncate">
-              {cvStatus === 'ready' ? 'OpenCV Pronto' :
-               cvStatus === 'loading' ? 'Scaricamento OpenCV...' :
-               cvStatus === 'initializing' ? 'Inizializzazione WASM...' :
-               cvStatus === 'error' ? 'Errore OpenCV' :
-               'OpenCV non caricato'}
+              Scanner pronto
             </span>
-            {(cvStatus === 'loading' || cvStatus === 'initializing') && (
-              <div className="mt-1.5 h-1 bg-zinc-700 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary transition-all duration-200 ease-out"
-                  style={{ width: `${cvProgress}%` }}
-                />
-              </div>
-            )}
           </div>
         </div>
         
         <div className="flex items-center gap-2 ml-4">
-          {cvStatus === 'idle' && (
-            <button
-              onClick={handleLoadOpenCV}
-              disabled={isOpenCVLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
-            >
-              {isOpenCVLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-              {isOpenCVLoading ? `${Math.round(cvProgress)}%` : 'Carica'}
-            </button>
-          )}
-          {mode === 'scanning' && cvStatus === 'ready' && (
+          {mode === 'scanning' && (
             <button
               onClick={resetCalibration}
               className="flex items-center gap-1 px-3 py-1.5 text-sm text-zinc-300 hover:text-white bg-zinc-800/80 rounded-lg transition-colors"
@@ -586,91 +618,8 @@ export default function CardScanner({
           style={{ display: mode === 'review' ? 'none' : 'block' }}
         />
 
-        {/* Lazy Load Prompt - Show when OpenCV not loaded */}
-        {cvStatus === 'idle' && (
-          <div className="absolute inset-0 bg-zinc-900/95 flex flex-col items-center justify-center p-6">
-            <div className="text-center max-w-sm">
-              <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <ScanLine className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Scanner Carte TCG
-              </h3>
-              <p className="text-sm text-zinc-400 mb-6">
-                Richiede OpenCV.js (~10 MB) per l&apos;elaborazione delle immagini.
-                Carica una sola volta per questa sessione.
-              </p>
-              <button
-                onClick={handleLoadOpenCV}
-                disabled={isOpenCVLoading}
-                className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isOpenCVLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Caricamento {Math.round(cvProgress)}%</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-5 h-5" />
-                    <span>Avvia Scanner</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {(cvStatus === 'loading' || cvStatus === 'initializing') && (
-          <div className="absolute inset-0 bg-zinc-900/95 flex flex-col items-center justify-center p-6">
-            <div className="text-center max-w-sm">
-              <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">
-                {cvStatus === 'loading' ? 'Scaricamento...' : 'Inizializzazione...'}
-              </h3>
-              <div className="w-48 h-2 bg-zinc-700 rounded-full overflow-hidden mx-auto mb-2">
-                <div 
-                  className="h-full bg-primary transition-all duration-200 ease-out"
-                  style={{ width: `${cvProgress}%` }}
-                />
-              </div>
-              <p className="text-sm text-zinc-500">
-                {Math.round(cvProgress)}% completato
-              </p>
-              <p className="text-xs text-zinc-600 mt-4">
-                La prima volta può richiedere 5-10 secondi
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Error State */}
-        {cvStatus === 'error' && (
-          <div className="absolute inset-0 bg-zinc-900/95 flex flex-col items-center justify-center p-6">
-            <div className="text-center max-w-sm">
-              <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-red-500 text-xl">!</span>
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Errore di Caricamento
-              </h3>
-              <p className="text-sm text-zinc-400 mb-4">
-                Impossibile caricare OpenCV.js. Verifica la connessione e riprova.
-              </p>
-              <button
-                onClick={handleLoadOpenCV}
-                className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-zinc-800 text-white font-medium rounded-xl hover:bg-zinc-700 transition-colors"
-              >
-                <RotateCcw className="w-5 h-5" />
-                <span>Riprova</span>
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Calibration Mode Overlay */}
-        {mode === 'calibration' && cvStatus === 'ready' && (
+        {mode === 'calibration' && (
           <div className="absolute inset-0">
             {/* SVG Overlay with connecting lines */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none">
