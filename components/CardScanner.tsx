@@ -9,6 +9,7 @@ import { Settings2, ScanLine, Camera, RotateCcw, Check, Loader2, Trash2, Images,
 const TARGET_WIDTH = 630;
 const TARGET_HEIGHT = 880;
 const STORAGE_KEY = 'card-scanner-calibration';
+const SEQUENCE_CAPTURE_LOCK_MS = 700;
 
 interface CalibrationPoint {
   id: number;
@@ -177,6 +178,7 @@ export default function CardScanner({
   const rafRef = useRef<number | null>(null);
   const processingRef = useRef(false);
   const focusLockRef = useRef<boolean>(false);
+  const captureLockUntilRef = useRef<number>(0);
   
   const [mode, setMode] = useState<ScannerMode>('calibration');
   const [isDragging, setIsDragging] = useState<number | null>(null);
@@ -358,6 +360,7 @@ export default function CardScanner({
   const processScanningFrame = useCallback(() => {
     const liveVideo = webcamRef.current?.video as HTMLVideoElement | null;
     if (!liveVideo || !canvasRef.current || processingRef.current) return;
+    if (Date.now() < captureLockUntilRef.current) return;
 
     processingRef.current = true;
 
@@ -376,15 +379,19 @@ export default function CardScanner({
       );
 
       if (captured) {
-        setCapturedImage(captured);
         onCapture?.(captured);
         
-        // In batch mode, add to batch and show review
+        // Batch mode stays in scanning for fast sequential capture.
         if (batchMode) {
           addToBatch(captured);
+          setCapturedImage(null);
+          setMode('scanning');
+        } else {
+          setCapturedImage(captured);
           setMode('review');
         }
-        
+
+        captureLockUntilRef.current = Date.now() + SEQUENCE_CAPTURE_LOCK_MS;
         resetCapture();
       }
 
@@ -411,17 +418,23 @@ export default function CardScanner({
     );
 
     if (captured) {
-      setCapturedImage(captured);
       onCapture?.(captured);
       
       if (batchMode) {
         addToBatch(captured);
+        setCapturedImage(null);
+        setMode('scanning');
+      } else {
+        setCapturedImage(captured);
         setMode('review');
       }
+
+      captureLockUntilRef.current = Date.now() + SEQUENCE_CAPTURE_LOCK_MS;
+      resetCapture();
     }
 
     setIsProcessing(false);
-  }, [applyPerspectiveTransform, calibrationPoints, containerSize, isProcessing, mode, onCapture, batchMode, addToBatch]);
+  }, [applyPerspectiveTransform, calibrationPoints, containerSize, isProcessing, mode, onCapture, batchMode, addToBatch, resetCapture]);
 
   /**
    * Start scanning loop with requestAnimationFrame
