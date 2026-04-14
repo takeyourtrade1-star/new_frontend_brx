@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { HeroCarousel } from '@/components/feature/HeroCarousel';
+import { MascotteLoader } from '@/components/dev/MascotteLoader';
 import { FeaturesSection } from '@/components/feature/FeaturesSection';
 import { MarketplaceDashboard } from '@/components/feature/MarketplaceDashboard';
 import { CategoriesGrid } from '@/components/feature/CategoriesGrid';
@@ -25,7 +26,7 @@ export default function HomePage() {
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
       </Suspense>
-      <Suspense fallback={<div className="p-8 text-center">Caricamento...</div>}>
+      <Suspense fallback={<div className="p-8 flex justify-center"><MascotteLoader size="md" /></div>}>
         <section className="w-full transition-colors duration-300">
           <HeroCarousel />
         </section>

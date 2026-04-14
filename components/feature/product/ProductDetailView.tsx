@@ -626,6 +626,13 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const soldCopiesValue = effectiveTrendStats.soldCopies;
   const averageSalePriceValue = effectiveTrendStats.averageSalePrice;
   const trendRangeLabel = effectiveTrendStats.rangeLabel;
+  const prezzoVendiValue = useMemo(() => {
+    const normalized = prezzoVendi.replace(',', '.').replace(/[^\d.]/g, '');
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, [prezzoVendi]);
+  const quantitaVendiValue = Number.isFinite(quantitaVendi) ? Math.max(1, quantitaVendi) : 1;
+  const vendiTotaleValue = prezzoVendiValue * quantitaVendiValue;
 
   // Mock multiple images for swipe demo (front/back of card)
   const cardImages = useMemo(() => {
@@ -696,10 +703,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   };
 
   const tabs = [
-    { id: 'INFO' as const, label: 'INFO' },
-    { id: 'VENDI' as const, label: 'VENDI' },
-    { id: 'SCAMBIA' as const, label: 'SCAMBIA' },
-    { id: 'ASTA' as const, label: "METTI ALL'ASTA" },
+    { id: 'INFO' as const, label: 'INFO', mobileLabel: 'INFO' },
+    { id: 'VENDI' as const, label: 'VENDI', mobileLabel: 'VENDI' },
+    { id: 'SCAMBIA' as const, label: 'SCAMBIA', mobileLabel: 'SCAMBIA' },
+    { id: 'ASTA' as const, label: "METTI ALL'ASTA", mobileLabel: 'ASTA' },
   ];
 
   return (
@@ -775,11 +782,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       {/* Contenuto principale: card bianca su sfondo grigio – responsive padding e layout */}
       <section className="w-full bg-[#F0F0F0] px-4 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 pb-4 sm:pb-6 min-h-0">
         <div className="container-content">
-          <div className="flex flex-col rounded-lg bg-white shadow-md overflow-hidden md:flex-row min-h-0">
+          <div className="flex min-h-0 flex-col overflow-hidden rounded-lg bg-white shadow-md sm:h-[320px] sm:flex-row">
             {/* Colonna sinistra: immagine carta compatta */}
-            <aside className="flex flex-col w-full md:w-[200px] lg:w-[220px] flex-shrink-0 items-center p-3 sm:p-3 bg-white border-b md:border-b-0 md:border-r border-gray-200">
+            <aside className="flex w-full flex-shrink-0 flex-col items-center justify-center border-b border-gray-200 bg-white p-2 sm:h-full sm:w-[180px] sm:max-w-none sm:justify-start sm:border-b-0 sm:border-r sm:p-3 md:w-[200px] lg:w-[220px]">
               <div
-                className="relative w-full overflow-hidden rounded-md shrink-0 border border-gray-800 max-w-[200px] max-h-[280px] flex flex-col items-center justify-center bg-gray-100 cursor-pointer hover:opacity-95 transition-opacity"
+                className="relative flex w-full max-w-[86px] max-h-[120px] shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-md border border-gray-800 bg-gray-100 transition-opacity hover:opacity-95 sm:max-w-[160px] sm:max-h-[240px] md:max-w-[200px] md:max-h-[280px]"
                 style={{ aspectRatio: '63/88' }}
                 onClick={handleLightboxOpen}
                 role="button"
@@ -819,7 +826,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           </aside>
 
           {/* Colonna destra: tab minimali + contenuto */}
-          <div className="flex-1 min-w-0 flex flex-col bg-[#FAFAFA]">
+          <div className="flex-1 min-w-0 flex flex-col bg-[#FAFAFA] overflow-hidden sm:h-full">
             <div className="flex border-b border-gray-200 bg-gray-50/80">
               {tabs.map((t) => (
                 <button
@@ -827,13 +834,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   type="button"
                   onClick={() => setActiveTab(t.id)}
                   className={cn(
-                    'relative flex-1 min-w-0 px-3 sm:px-4 py-3 text-xs sm:text-sm font-bold uppercase tracking-wide transition-all duration-200',
+                    'relative flex-1 min-w-0 px-1.5 sm:px-4 py-2 sm:py-3 text-[12px] sm:text-sm font-bold uppercase tracking-wide transition-all duration-200',
                     activeTab === t.id
                       ? 'bg-white text-[#FF7300] border-t-2 border-[#FF7300] shadow-[0_-2px_8px_rgba(0,0,0,0.04)]'
                       : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                   )}
                 >
-                  <span className="block truncate text-center">{t.label}</span>
+                  <span className="block truncate text-center sm:hidden">{t.mobileLabel}</span>
+                  <span className="hidden truncate text-center sm:block">{t.label}</span>
                 </button>
               ))}
             </div>
@@ -841,97 +849,79 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             {/* Contenuto tab INFO: MOBILE compatta con espansione grafico; DESKTOP layout completo */}
             {activeTab === 'INFO' && (
               <>
-                {/* MOBILE: Layout 3 sezioni verticali - Info | Ristampe | Prezzi+Grafico */}
-                <div className="sm:hidden flex flex-col gap-2 p-2 min-w-0 w-full">
-                  {/* Sezione 1: Info carta compatta */}
-                  <div className="flex flex-col bg-white rounded-lg p-3 border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="grid grid-cols-2 gap-2 pb-2 border-b border-gray-100">
+                {/* MOBILE: blocco compatto leggibile, senza collasso */}
+                <div className="sm:hidden flex h-full min-h-0 w-full min-w-0 flex-col gap-1.5 overflow-y-auto p-1.5">
+                  <div className="rounded-md border border-gray-200/80 bg-white p-2 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                       <div>
-                        <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">Rarità</span>
-                        <div className="flex items-center gap-1">
-                          {card?.rarity ? (
-                            <span className="text-sm font-bold text-zinc-900">{card.rarity}</span>
-                          ) : (
-                            <Image src={getCdnImageUrl('stellina.png')} alt="" width={16} height={16} className="h-3.5 w-3.5 object-contain" aria-hidden unoptimized />
-                          )}
-                        </div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Rarità</p>
+                        <p className="text-xs font-bold text-zinc-900">{card?.rarity ?? 'N/A'}</p>
                       </div>
                       <div>
-                        <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">Numero</span>
-                        <p className="text-sm font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Numero</p>
+                        <p className="text-xs font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</p>
                       </div>
-                    </div>
-                    <div className="py-2 border-b border-gray-100">
-                      <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">Set</span>
-                      <p className="text-sm font-bold text-zinc-900 truncate">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
-                    </div>
-                    {card?.game_slug === 'mtg' && (
-                      <div className="py-2 border-b border-gray-100">
-                        <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">Lingue</span>
-                        <p className="text-xs font-medium text-zinc-700 truncate">
-                          {card?.available_languages?.length ? card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ') : 'English'}
+                      <div className="col-span-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Set</p>
+                        <p className="truncate text-xs font-bold text-zinc-900">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">In vendita</p>
+                        <p className="text-base font-extrabold text-zinc-900 tabular-nums">{cardsInSaleLabel}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Lingue</p>
+                        <p className="truncate text-[11px] font-medium text-zinc-700">
+                          {card?.game_slug === 'mtg'
+                            ? (card?.available_languages?.length
+                              ? card.available_languages.slice(0, 2).map((code) => langLabelByCode[code] ?? code).join(', ')
+                              : 'English')
+                            : 'N/D'}
                         </p>
                       </div>
-                    )}
-                    <div className="pt-2">
-                      <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">Carte in vendita</span>
-                      <p className="text-lg font-extrabold text-zinc-900 tabular-nums">{cardsInSaleLabel}</p>
                     </div>
                   </div>
 
-                  {/* Sezione 2: Ristampe orizzontali */}
-                  <div className="bg-white rounded-lg p-3 border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-extrabold uppercase tracking-wide text-gray-900">Ristampe</span>
-                      <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{reprints.length}</span>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <div className="rounded border border-orange-100 bg-orange-50/60 p-1.5 text-center">
+                      <p className="text-[10px] font-semibold uppercase text-orange-700">Trend</p>
+                      <p className="text-[11px] font-extrabold text-orange-700">{formatEuro(trendPriceValue)}</p>
+                    </div>
+                    <div className="rounded border border-blue-100 bg-blue-50/50 p-1.5 text-center">
+                      <p className="text-[10px] font-semibold uppercase text-blue-700">Vend.</p>
+                      <p className="text-[11px] font-extrabold text-blue-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                    </div>
+                    <div className="rounded border border-gray-200 bg-gray-50/50 p-1.5 text-center">
+                      <p className="text-[10px] font-semibold uppercase text-gray-600">Media</p>
+                      <p className="text-[11px] font-extrabold text-gray-900">{formatEuro(averageSalePriceValue)}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border border-gray-200/80 bg-white p-1.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wide text-gray-900">Ristampe</span>
+                      <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] font-semibold text-gray-400">{reprints.length}</span>
                     </div>
                     {reprintsLoading ? (
-                      <div className="flex gap-2 overflow-x-auto pb-1">
-                        {[...Array(4)].map((_, i) => <div key={i} className="h-[90px] w-[60px] flex-shrink-0 rounded-md bg-gray-100 animate-pulse" />)}
+                      <div className="grid grid-cols-4 gap-1">
+                        {[...Array(4)].map((_, i) => (
+                          <div key={i} className="h-[44px] rounded-md bg-gray-100 animate-pulse" />
+                        ))}
                       </div>
                     ) : reprints.length > 0 ? (
-                      <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory -mx-1 px-1">
-                        {reprints.slice(0, 8).map((r) => (
-                          <div key={r.id} className="relative h-[90px] w-[60px] flex-shrink-0 snap-start overflow-hidden rounded-md border border-gray-200 bg-gray-50">
-                            {r.imageSrc ? <Image src={r.imageSrc} alt="" fill className="object-cover" sizes="60px" unoptimized /> : <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">N/A</div>}
-                            <div className="absolute left-0.5 top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-black/60 px-0.5">
-                              {r.setIconSrc ? <img src={r.setIconSrc} alt="" className="h-2.5 w-2.5 object-contain" /> : <span className="text-[8px] font-bold text-white">{r.setCode || 'S'}</span>}
-                            </div>
-                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1 py-0.5">
-                              <span className="text-[7px] font-semibold uppercase text-white">{r.rarity}</span>
-                            </div>
+                      <div className="grid grid-cols-4 gap-1">
+                        {reprints.slice(0, 4).map((r) => (
+                          <div key={r.id} className="relative h-[44px] overflow-hidden rounded-md border border-gray-200 bg-gray-50">
+                            {r.imageSrc ? (
+                              <Image src={r.imageSrc} alt="" fill className="object-cover" sizes="44px" unoptimized />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-[9px] text-gray-400">N/A</div>
+                            )}
                           </div>
                         ))}
                       </div>
-                    ) : <p className="text-xs text-gray-500">Nessuna ristampa.</p>}
-                  </div>
-
-                  {/* Sezione 3: Prezzi sempre visibili + grafico espandibile */}
-                  <div className="bg-white rounded-lg p-3 border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{trendRangeLabel}</span>
-                      <button type="button" onClick={() => setShowChart((v) => !v)} className="text-[10px] font-medium text-[#FF7300] flex items-center gap-1">
-                        {showChart ? <><EyeOff className="h-3 w-3" /> Nascondi</> : <><Eye className="h-3 w-3" /> Grafico</>}
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 mb-2">
-                      <div className="rounded-md border border-orange-100 bg-orange-50/60 p-2 text-center">
-                        <p className="text-[9px] font-semibold uppercase text-orange-700">Tendenza</p>
-                        <p className="text-sm font-extrabold text-orange-700">{formatEuro(trendPriceValue)}</p>
-                      </div>
-                      <div className="rounded-md border border-blue-100 bg-blue-50/50 p-2 text-center">
-                        <p className="text-[9px] font-semibold uppercase text-blue-700">Vendute</p>
-                        <p className="text-sm font-extrabold text-blue-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
-                      </div>
-                      <div className="rounded-md border border-gray-200 bg-gray-50/50 p-2 text-center">
-                        <p className="text-[9px] font-semibold uppercase text-gray-600">Media</p>
-                        <p className="text-sm font-extrabold text-gray-900">{formatEuro(averageSalePriceValue)}</p>
-                      </div>
-                    </div>
-                    {showChart && (
-                      <div className="animate-in fade-in slide-in-from-top-2 duration-500 pt-1">
-                        <div className="h-[220px]"><ProductPriceChart slug={slug} onStatsChange={setChartStats} /></div>
-                      </div>
+                    ) : (
+                      <p className="text-[11px] text-gray-500">Nessuna ristampa.</p>
                     )}
                   </div>
                 </div>
@@ -940,95 +930,65 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 <div className={cn(
                   'hidden sm:grid min-w-0 w-full transition-all duration-500',
                   showChart
-                    ? 'gap-3 lg:gap-4 p-3 lg:p-4 lg:grid-cols-[200px_280px_1fr]'
-                    : 'gap-4 lg:gap-6 p-4 lg:p-6 lg:grid-cols-[1fr_1.5fr_auto]'
+                    ? 'gap-2 p-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-[180px_240px_1fr]'
+                    : 'gap-2 p-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-[1fr_1.5fr_auto]'
                 )}>
-                  {/* Colonna 1: Info carta - padding dinamico */}
-                  <div className={cn(
-                    'flex flex-col min-h-0 bg-white rounded-lg border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500',
-                    showChart ? 'p-3' : 'p-4 lg:p-5'
-                  )}>
+                  {/* Colonna 1: Info carta - padding compatto */}
+                  <div className="flex flex-col min-h-0 bg-white rounded-lg border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-2">
                     {/* Riga 1: Rarità + Numero */}
-                    <div className="space-y-2.5 pb-2.5 border-b border-gray-100">
+                    <div className="space-y-1.5 pb-1.5 border-b border-gray-100">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Rarità</span>
-                        <div className="flex items-center">
-                          {card?.rarity ? (
-                            <span className="text-sm font-bold text-zinc-900">{card.rarity}</span>
-                          ) : (
-                            <Image src={getCdnImageUrl('stellina.png')} alt="" width={16} height={16} className="h-3.5 w-3.5 object-contain" aria-hidden unoptimized />
-                          )}
-                        </div>
+                        <span className="text-xs font-bold text-zinc-900">{card?.rarity || <Image src={getCdnImageUrl('stellina.png')} alt="" width={14} height={14} className="h-3 w-3 object-contain" aria-hidden unoptimized />}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Numero</span>
-                        <span className="text-sm font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</span>
+                        <span className="text-xs font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</span>
                       </div>
                     </div>
 
                     {/* Riga 2: Set */}
-                    <div className="py-2.5 border-b border-gray-100">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Stampata in</span>
-                      <p className="mt-0.5 text-sm font-bold text-zinc-900 truncate">
-                        {card?.set_name ?? 'SUSSURRI NEL POZZO'}
-                      </p>
-                      {card && (
-                        <Link
-                          href={{
-                            pathname: '/set',
-                            query: { set: card.set_name, game: card.game_slug },
-                          }}
-                          className="mt-0.5 inline-block text-[11px] font-medium text-[#FF7300] hover:text-[#FF5500] transition-colors"
-                        >
-                          Mostra il set →
-                        </Link>
-                      )}
+                    <div className="py-1.5 border-b border-gray-100">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Set</span>
+                      <p className="text-xs font-bold text-zinc-900 truncate">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
                     </div>
 
                     {/* Lingue (solo MTG) */}
                     {card?.game_slug === 'mtg' && (
-                      <div className="py-2.5 border-b border-gray-100">
+                      <div className="py-1.5 border-b border-gray-100">
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Lingue</span>
-                        <p className="mt-0.5 text-xs font-medium text-zinc-700 truncate">
-                          {card?.available_languages?.length
-                            ? card.available_languages.map((code) => langLabelByCode[code] ?? code).join(', ')
-                            : 'English'}
+                        <p className="text-[11px] font-medium text-zinc-700 truncate">
+                          {card?.available_languages?.length ? card.available_languages.slice(0,3).map((code) => langLabelByCode[code] ?? code).join(', ') : 'English'}
                         </p>
                       </div>
                     )}
 
                     {/* Riga 3: Carte in vendita */}
-                    <div className="pt-2.5">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Carte in vendita</span>
-                      <p className="mt-0.5 text-lg font-extrabold text-zinc-900 tabular-nums">{cardsInSaleLabel}</p>
+                    <div className="pt-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">In vendita</span>
+                      <p className="text-base font-extrabold text-zinc-900 tabular-nums">{cardsInSaleLabel}</p>
                     </div>
                   </div>
 
-                  {/* Colonna 2: Ristampe (in mezzo) - padding dinamico */}
-                  <div className={cn(
-                    'flex flex-col min-h-0 bg-white rounded-lg border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500',
-                    showChart ? 'p-3' : 'p-4 lg:p-5'
-                  )}>
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <div>
-                        <h3 className="text-xs font-extrabold uppercase tracking-wide text-gray-900">Ristampe</h3>
-                        <p className="text-[10px] text-gray-500">Stessa carta, set diversi</p>
-                      </div>
-                      <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{reprints.length}</span>
+                  {/* Colonna 2: Ristampe compatte */}
+                  <div className="flex flex-col min-h-0 bg-white rounded-lg border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-2">
+                    <div className="mb-1.5 flex items-center justify-between gap-1">
+                      <h3 className="text-[10px] font-extrabold uppercase tracking-wide text-gray-900">Ristampe</h3>
+                      <span className="text-[9px] font-semibold text-gray-400 bg-gray-100 px-1 py-0 rounded">{reprints.length}</span>
                     </div>
 
                     {reprintsLoading ? (
-                      <div className="flex gap-2 overflow-x-auto pb-1">
+                      <div className="flex gap-1.5 overflow-x-auto pb-1">
                         {[...Array(4)].map((_, i) => (
-                          <div key={i} className="h-[110px] w-[74px] flex-shrink-0 rounded-md border border-gray-200 bg-gray-100 animate-pulse" />
+                          <div key={i} className="h-[70px] w-[50px] flex-shrink-0 rounded-md border border-gray-200 bg-gray-100 animate-pulse" />
                         ))}
                       </div>
                     ) : reprints.length > 0 ? (
-                      <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory -mx-1 px-1">
-                        {reprints.slice(0, 10).map((reprint) => (
+                      <div className="flex gap-1.5 overflow-x-auto pb-1 snap-x snap-mandatory -mx-1 px-1">
+                        {reprints.slice(0, 8).map((reprint) => (
                           <div
                             key={reprint.id}
-                            className="group relative h-[110px] w-[74px] flex-shrink-0 snap-start overflow-hidden rounded-md border border-gray-200 bg-gray-50 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+                            className="group relative h-[70px] w-[50px] flex-shrink-0 snap-start overflow-hidden rounded-md border border-gray-200 bg-gray-50 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
                             title={`${reprint.setName} • ${reprint.rarity}`}
                           >
                             {reprint.imageSrc ? (
@@ -1054,61 +1014,33 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     )}
                   </div>
 
-                  {/* Colonna 3: Prezzi (sempre visibili) + Grafico (espandibile) - larghezza auto */}
-                  <div className={cn(
-                    'flex flex-col min-h-0 bg-white rounded-lg border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500',
-                    showChart ? 'p-3 w-full' : 'p-3 w-[140px] lg:w-[160px]'
-                  )}>
-                    {/* Metriche prezzi - sempre visibili */}
-                    <div className={cn('transition-all duration-500', showChart ? 'mb-2.5' : 'mb-1')}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{trendRangeLabel}</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowChart((v) => !v)}
-                          className="text-[10px] font-medium text-[#FF7300] hover:text-[#FF5500] transition-colors flex items-center gap-1"
-                        >
-                          {showChart ? (
-                            <><EyeOff className="h-3 w-3" /> Nascondi</>
-                          ) : (
-                            <><Eye className="h-3 w-3" /> Grafico</>
-                          )}
-                        </button>
+                  {/* Colonna 3: Prezzi compatti */}
+                  <div className="flex flex-col min-h-0 bg-white rounded-lg border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-2 sm:col-span-2 md:col-span-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{trendRangeLabel}</span>
+                      <button type="button" onClick={() => setShowChart((v) => !v)} className="text-[10px] font-medium text-[#FF7300] flex items-center gap-0.5">
+                        {showChart ? <><EyeOff className="h-3 w-3" /> Nascondi</> : <><Eye className="h-3 w-3" /> Grafico</>}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      <div className="rounded border border-orange-100 bg-orange-50/60 p-1 text-center">
+                        <p className="text-[9px] font-semibold uppercase text-orange-700">Trend</p>
+                        <p className="text-xs font-extrabold text-orange-700">{formatEuro(trendPriceValue)}</p>
                       </div>
-                      {/* Quando il grafico è aperto: orizzontale | Quando chiuso: verticale compatta */}
-                      <div className={cn(
-                        'gap-1.5 transition-all duration-500',
-                        showChart ? 'grid grid-cols-3' : 'flex flex-col'
-                      )}>
-                        <div className={cn(
-                          'rounded-md border border-orange-100 bg-orange-50/60 transition-all duration-500',
-                          showChart ? 'p-2' : 'p-1.5 py-1'
-                        )}>
-                          <p className="text-[9px] font-semibold uppercase text-orange-700 leading-tight">Tendenza</p>
-                          <p className={cn('font-extrabold text-orange-700 tabular-nums leading-tight', showChart ? 'text-sm' : 'text-xs')}>{formatEuro(trendPriceValue)}</p>
-                        </div>
-                        <div className={cn(
-                          'rounded-md border border-blue-100 bg-blue-50/50 transition-all duration-500',
-                          showChart ? 'p-2' : 'p-1.5 py-1'
-                        )}>
-                          <p className="text-[9px] font-semibold uppercase text-blue-700 leading-tight">Vendute</p>
-                          <p className={cn('font-extrabold text-blue-700 tabular-nums leading-tight', showChart ? 'text-sm' : 'text-xs')}>{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
-                        </div>
-                        <div className={cn(
-                          'rounded-md border border-gray-200 bg-gray-50/50 transition-all duration-500',
-                          showChart ? 'p-2' : 'p-1.5 py-1'
-                        )}>
-                          <p className="text-[9px] font-semibold uppercase text-gray-600 leading-tight">Media</p>
-                          <p className={cn('font-extrabold text-gray-900 tabular-nums leading-tight', showChart ? 'text-sm' : 'text-xs')}>{formatEuro(averageSalePriceValue)}</p>
-                        </div>
+                      <div className="rounded border border-blue-100 bg-blue-50/50 p-1 text-center">
+                        <p className="text-[9px] font-semibold uppercase text-blue-700">Vend.</p>
+                        <p className="text-xs font-extrabold text-blue-700">{soldCopiesValue}</p>
+                      </div>
+                      <div className="rounded border border-gray-200 bg-gray-50/50 p-1 text-center">
+                        <p className="text-[9px] font-semibold uppercase text-gray-600">Media</p>
+                        <p className="text-xs font-extrabold text-gray-900">{formatEuro(averageSalePriceValue)}</p>
                       </div>
                     </div>
-
-                    {/* Grafico - espandibile (dimensioni ottimizzate) */}
-                    <div className={cn('transition-all duration-500 ease-out overflow-hidden', showChart ? 'opacity-100 max-h-[260px] mt-2' : 'opacity-0 max-h-0')}>
+                    {/* Grafico espandibile - altezza limitata */}
+                    <div className={cn('transition-all duration-500 ease-out overflow-hidden', showChart ? 'opacity-100 max-h-[140px] mt-2' : 'opacity-0 max-h-0')}>
                       {showChart && (
-                        <div className="animate-in fade-in slide-in-from-top-2 duration-500">
-                          <div className="h-[220px] w-full">
+                        <div className="animate-in fade-in duration-300">
+                          <div className="h-[120px] w-full">
                             <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
                           </div>
                         </div>
@@ -1119,22 +1051,45 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               </>
             )}
 
-            {/* Tab VENDI: form compatto stile CardMarket (sinistra) + grafico (destra) */}
+            {/* Tab VENDI: form ultra-compatto */}
             {activeTab === 'VENDI' && (
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-4 sm:gap-5 lg:gap-6 p-4 sm:p-5 lg:p-6 min-w-0 w-full">
-                {/* Form metti in vendita – compatto, 2 colonne dove possibile */}
-                <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
-                  <div className="space-y-2.5">
-                    <div className="grid grid-cols-2 gap-2">
+              <>
+                <div className="sm:hidden flex h-full min-h-0 w-full min-w-0 flex-col gap-1.5 overflow-y-auto p-1.5">
+                  <div className="rounded-md border border-gray-200 bg-white p-2 shadow-sm">
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <h3 className="text-[13px] font-extrabold uppercase tracking-wide text-gray-900">Vendi subito</h3>
+                      <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-[#FF7300]">Rapido</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1.5">
                       <div>
-                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Quantità</label>
-                        <input type="number" min={1} value={quantitaVendi} onChange={(e) => setQuantitaVendi(Number(e.target.value) || 1)} className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
+                        <label className="mb-0.5 block text-[10px] font-semibold text-gray-600">Quantità</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={quantitaVendi}
+                          onChange={(e) => setQuantitaVendi(Number(e.target.value) || 1)}
+                          className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                        />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">
-                          Lingua <span className="text-gray-400" title="Info">ⓘ</span>
-                        </label>
-                        <select value={linguaVendi} onChange={(e) => setLinguaVendi(e.target.value)} className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm bg-white">
+                        <label className="mb-0.5 block text-[10px] font-semibold text-gray-600">Prezzo (€)</label>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={prezzoVendi}
+                          onChange={(e) => setPrezzoVendi(e.target.value)}
+                          className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-0.5 block text-[10px] font-semibold text-gray-600">Lingua</label>
+                        <select
+                          value={linguaVendi}
+                          onChange={(e) => setLinguaVendi(e.target.value)}
+                          className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs"
+                        >
                           {vendiLanguageOptions.map((opt) => (
                             <option key={opt.code} value={opt.code}>
                               {opt.label}
@@ -1142,186 +1097,280 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           ))}
                         </select>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">
-                          Condizione{' '}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setModalCondition(condizioneVendi);
-                              if (shouldSkipConditionModal()) {
-                                // Se l'utente ha scelto di non mostrare più, conferma direttamente
-                                setCondizioneVendi(condizioneVendi);
-                              } else {
-                                setIsConditionModalOpen(true);
-                              }
-                            }}
-                            className="text-gray-400 hover:text-gray-600 cursor-pointer"
-                            title="Info"
-                          >
-                            ⓘ
-                          </button>
-                        </label>
+                        <label className="mb-0.5 block text-[10px] font-semibold text-gray-600">Condizione</label>
                         <button
                           type="button"
                           onClick={() => {
                             setModalCondition(condizioneVendi);
                             setIsConditionModalOpen(true);
                           }}
-                          className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm bg-white text-left flex items-center justify-between hover:border-gray-400"
+                          className="w-full truncate rounded border border-gray-300 bg-white px-2 py-1 text-left text-xs"
                         >
-                          <span>{CONDITION_OPTIONS_MAP.find((opt) => opt.value === condizioneVendi)?.label}</span>
-                          <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
+                          {CONDITION_OPTIONS_MAP.find((opt) => opt.value === condizioneVendi)?.label ?? 'Near Mint'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-1.5">
+                      <label className="mb-0.5 block text-[10px] font-semibold text-gray-600">Note</label>
+                      <input
+                        type="text"
+                        value={commentiVendi}
+                        onChange={(e) => setCommentiVendi(e.target.value)}
+                        placeholder="Commenti per acquirente"
+                        className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                      />
+                    </div>
+
+                    <div className="mt-1.5 grid grid-cols-3 gap-1">
+                      <div className="rounded border border-gray-200 bg-gray-50 p-1 text-center">
+                        <p className="text-[9px] font-semibold uppercase text-gray-500">Unit.</p>
+                        <p className="text-[11px] font-extrabold text-gray-900">{formatEuro(prezzoVendiValue)}</p>
+                      </div>
+                      <div className="rounded border border-blue-100 bg-blue-50/60 p-1 text-center">
+                        <p className="text-[9px] font-semibold uppercase text-blue-600">Qtà</p>
+                        <p className="text-[11px] font-extrabold text-blue-700">{new Intl.NumberFormat('it-IT').format(quantitaVendiValue)}</p>
+                      </div>
+                      <div className="rounded border border-orange-100 bg-orange-50/70 p-1 text-center">
+                        <p className="text-[9px] font-semibold uppercase text-orange-600">Tot.</p>
+                        <p className="text-[11px] font-extrabold text-orange-700">{formatEuro(vendiTotaleValue)}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-1 text-[11px] font-semibold text-gray-600">
+                          <input
+                            type="checkbox"
+                            checked={extraFoil}
+                            onChange={(e) => setExtraFoil(e.target.checked)}
+                            className="h-3 w-3 rounded border-gray-300"
+                          />
+                          Foil
+                        </label>
+                        <label className="flex items-center gap-1 text-[11px] font-semibold text-gray-600">
+                          <input
+                            type="checkbox"
+                            checked={extraSigned}
+                            onChange={(e) => setExtraSigned(e.target.checked)}
+                            className="h-3 w-3 rounded border-gray-300"
+                          />
+                          Firm.
+                        </label>
+                      </div>
+                      <button
+                        type="button"
+                        className="rounded-md bg-[#FF8800] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white hover:opacity-90"
+                      >
+                        Vendi
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border border-gray-200 bg-white p-1.5 shadow-sm">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Prezzi mercato</span>
+                      <span className="text-[10px] font-medium text-gray-400">Grafico su desktop</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      <div className="rounded border border-orange-100 bg-orange-50/60 p-1 text-center">
+                        <p className="text-[9px] font-semibold uppercase text-orange-700">Trend</p>
+                        <p className="text-[11px] font-extrabold text-orange-700">{formatEuro(trendPriceValue)}</p>
+                      </div>
+                      <div className="rounded border border-blue-100 bg-blue-50/50 p-1 text-center">
+                        <p className="text-[9px] font-semibold uppercase text-blue-700">Vend.</p>
+                        <p className="text-[11px] font-extrabold text-blue-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                      </div>
+                      <div className="rounded border border-gray-200 bg-gray-50/50 p-1 text-center">
+                        <p className="text-[9px] font-semibold uppercase text-gray-600">Media</p>
+                        <p className="text-[11px] font-extrabold text-gray-900">{formatEuro(averageSalePriceValue)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="hidden h-full min-h-0 w-full min-w-0 gap-2 p-2 sm:grid sm:grid-cols-[1.2fr_1fr]">
+                  <div className="flex min-h-0 flex-col rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
+                    <div className="mb-2 flex items-center justify-between">
+                      <h3 className="text-sm font-extrabold uppercase tracking-wide text-gray-900">Inserzione rapida</h3>
+                      <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-[#FF7300]">Vendita</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                      <div>
+                        <label className="mb-0.5 block text-[11px] font-semibold text-gray-600">Quantità</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={quantitaVendi}
+                          onChange={(e) => setQuantitaVendi(Number(e.target.value) || 1)}
+                          className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-0.5 block text-[11px] font-semibold text-gray-600">Lingua</label>
+                        <select
+                          value={linguaVendi}
+                          onChange={(e) => setLinguaVendi(e.target.value)}
+                          className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
+                        >
+                          {vendiLanguageOptions.map((opt) => (
+                            <option key={opt.code} value={opt.code}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-0.5 block text-[11px] font-semibold text-gray-600">Condizione</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalCondition(condizioneVendi);
+                            setIsConditionModalOpen(true);
+                          }}
+                          className="w-full truncate rounded border border-gray-300 bg-white px-2 py-1.5 text-left text-sm"
+                        >
+                          {CONDITION_OPTIONS_MAP.find((opt) => opt.value === condizioneVendi)?.label ?? 'Near Mint'}
                         </button>
                       </div>
                       <div>
-                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Prezzo (€)</label>
-                        <input type="text" inputMode="decimal" value={prezzoVendi} onChange={(e) => setPrezzoVendi(e.target.value)} className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm" placeholder="0.00" />
+                        <label className="mb-0.5 block text-[11px] font-semibold text-gray-600">Prezzo (€)</label>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={prezzoVendi}
+                          onChange={(e) => setPrezzoVendi(e.target.value)}
+                          className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                          placeholder="0.00"
+                        />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Commenti</label>
-                      <textarea value={commentiVendi} onChange={(e) => setCommentiVendi(e.target.value)} rows={2} placeholder="Commenti" className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm resize-none" />
+
+                    <div className="mt-2">
+                      <label className="mb-0.5 block text-[11px] font-semibold text-gray-600">Note venditore</label>
+                      <textarea
+                        value={commentiVendi}
+                        onChange={(e) => setCommentiVendi(e.target.value)}
+                        placeholder="Scrivi info utili per l'acquirente..."
+                        rows={2}
+                        className="w-full resize-none rounded border border-gray-300 px-2 py-1.5 text-sm"
+                      />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <label className="text-[11px] font-semibold text-gray-600 shrink-0">Immagine (.jpg)</label>
-                      <span className="text-[11px] text-gray-400 truncate min-w-0">Nessun file</span>
-                      <label className="cursor-pointer rounded border border-gray-300 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-100 shrink-0">
-                        Scegli file
-                        <input type="file" accept=".jpg,.jpeg" className="sr-only" />
-                      </label>
+
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      <div className="rounded-md border border-gray-200 bg-gray-50 p-1.5 text-center">
+                        <p className="text-[10px] font-semibold uppercase text-gray-500">Unitario</p>
+                        <p className="text-sm font-extrabold text-gray-900">{formatEuro(prezzoVendiValue)}</p>
+                      </div>
+                      <div className="rounded-md border border-blue-100 bg-blue-50/60 p-1.5 text-center">
+                        <p className="text-[10px] font-semibold uppercase text-blue-600">Qtà</p>
+                        <p className="text-sm font-extrabold text-blue-700">{new Intl.NumberFormat('it-IT').format(quantitaVendiValue)}</p>
+                      </div>
+                      <div className="rounded-md border border-orange-100 bg-orange-50/70 p-1.5 text-center">
+                        <p className="text-[10px] font-semibold uppercase text-orange-600">Totale</p>
+                        <p className="text-sm font-extrabold text-orange-700">{formatEuro(vendiTotaleValue)}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4 pt-0.5">
-                      <span className="text-[11px] font-semibold text-gray-600">Extra</span>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={extraFoil} onChange={(e) => setExtraFoil(e.target.checked)} className="rounded border-gray-300 h-3.5 w-3.5" />
-                        <span className="text-xs text-gray-600" aria-hidden>★</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={extraSigned} onChange={(e) => setExtraSigned(e.target.checked)} className="rounded border-gray-300 h-3.5 w-3.5" />
-                        <span className="text-xs font-bold text-gray-600" aria-hidden>A</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={extraAltered} onChange={(e) => setExtraAltered(e.target.checked)} className="rounded border-gray-300 h-3.5 w-3.5" />
-                        <svg className="h-3.5 w-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                      </label>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100">
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={saveSettings} onChange={(e) => setSaveSettings(e.target.checked)} className="rounded border-gray-300 h-3.5 w-3.5" />
-                        <span className="text-[11px] font-semibold text-gray-600">Salva impostazioni</span>
-                      </label>
-                      <button type="button" className="rounded py-2 px-4 text-xs font-bold uppercase text-white transition-opacity hover:opacity-90 shrink-0" style={{ backgroundColor: '#FF8800' }}>
+
+                    <div className="mt-auto flex items-center justify-between border-t border-gray-100 pt-2">
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+                          <input
+                            type="checkbox"
+                            checked={extraFoil}
+                            onChange={(e) => setExtraFoil(e.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-gray-300"
+                          />
+                          Foil
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+                          <input
+                            type="checkbox"
+                            checked={extraSigned}
+                            onChange={(e) => setExtraSigned(e.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-gray-300"
+                          />
+                          Firmata
+                        </label>
+                      </div>
+                      <button
+                        type="button"
+                        className="rounded-md bg-[#FF8800] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white hover:opacity-90"
+                      >
                         Metti in vendita
                       </button>
                     </div>
                   </div>
-                </div>
-                {/* Grafico prezzo – uguale al tab INFO */}
-                <div className="flex flex-col min-h-0 bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
-                  <div className="transition-all duration-500 ease-out">
-                    {!showChart ? (
+
+                  <div className="flex min-h-0 flex-col rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Prezzi di mercato</span>
                       <button
                         type="button"
-                        onClick={() => setShowChart(true)}
-                        className="w-auto mx-auto py-2 px-4 rounded-lg border border-[#FF8800] bg-white text-[#FF8800] text-xs font-bold uppercase tracking-wide hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"
+                        onClick={() => setShowChart((v) => !v)}
+                        className="text-xs font-semibold text-[#FF7300]"
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="18" y1="20" x2="18" y2="10" />
-                          <line x1="12" y1="20" x2="12" y2="4" />
-                          <line x1="6" y1="20" x2="6" y2="14" />
-                        </svg>
-                        Mostra grafico
+                        {showChart ? 'Nascondi grafico' : 'Mostra grafico'}
                       </button>
-                    ) : (
-                      <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase text-gray-700">Grafico prezzi</span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="rounded border border-orange-100 bg-orange-50/60 p-1.5 text-center">
+                        <p className="text-[10px] font-semibold uppercase text-orange-700">Trend</p>
+                        <p className="text-sm font-extrabold text-orange-700">{formatEuro(trendPriceValue)}</p>
+                      </div>
+                      <div className="rounded border border-blue-100 bg-blue-50/50 p-1.5 text-center">
+                        <p className="text-[10px] font-semibold uppercase text-blue-700">Vendute</p>
+                        <p className="text-sm font-extrabold text-blue-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                      </div>
+                      <div className="rounded border border-gray-200 bg-gray-50/50 p-1.5 text-center">
+                        <p className="text-[10px] font-semibold uppercase text-gray-600">Media</p>
+                        <p className="text-sm font-extrabold text-gray-900">{formatEuro(averageSalePriceValue)}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 flex-1 min-h-0 overflow-hidden rounded-md border border-gray-200 bg-[#fafafa]">
+                      {showChart ? (
+                        <div className="h-full min-h-[110px] animate-in fade-in duration-300">
+                          <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
+                        </div>
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center px-3 text-center">
+                          <p className="text-sm font-semibold text-gray-700">Usa il grafico per posizionare meglio il prezzo</p>
+                          <p className="mt-1 text-xs text-gray-500">Range attuale: {trendRangeLabel}</p>
                           <button
                             type="button"
-                            onClick={() => setShowChart(false)}
-                            className="text-[10px] text-gray-500 hover:text-gray-700 underline transition-colors"
+                            onClick={() => setShowChart(true)}
+                            className="mt-2 rounded-md border border-[#FF7300]/40 bg-white px-2.5 py-1 text-xs font-semibold text-[#FF7300] hover:bg-orange-50"
                           >
-                            Nascondi
+                            Apri grafico prezzi
                           </button>
                         </div>
-                        <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-3 sm:gap-4">
-                          <div className="flex flex-[1.5] min-w-0 flex-col min-h-[280px]">
-                            <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
-                          </div>
-                          <div className="flex flex-col justify-start gap-2.5 flex-shrink-0 sm:w-[170px] lg:w-[190px] border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{trendRangeLabel}</p>
-                            <div className="rounded-md border border-orange-100 bg-orange-50/70 p-2">
-                              <p className="text-[10px] font-semibold uppercase text-orange-700">Tendenza prezzo</p>
-                              <p className="text-base font-extrabold text-orange-700">{formatEuro(trendPriceValue)}</p>
-                            </div>
-                            <div className="rounded-md border border-blue-100 bg-blue-50/60 p-2">
-                              <p className="text-[10px] font-semibold uppercase text-blue-700">Copie vendute</p>
-                              <p className="text-base font-extrabold text-blue-700 tabular-nums">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
-                            </div>
-                            <div className="rounded-md border border-gray-200 bg-white p-2">
-                              <p className="text-[10px] font-semibold uppercase text-gray-600">Prezzo medio vendita</p>
-                              <p className="text-base font-extrabold text-gray-900">{formatEuro(averageSalePriceValue)}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
 
-            {/* Tab SCAMBIA: layout anteprima form scambio + messaggio “presto in arrivo” in evidenza */}
+            {/* Tab SCAMBIA: messaggio compatto */}
             {activeTab === 'SCAMBIA' && (
-              <div className="relative p-4 sm:p-5 lg:p-6 min-w-0 w-full overflow-hidden rounded-b-lg">
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-4 lg:gap-6 pointer-events-none select-none">
-                  <div className="rounded-xl border border-white/30 bg-white/25 backdrop-blur-2xl shadow-lg shadow-black/5 p-3 sm:p-4 space-y-2.5">
-                    <div>
-                      <div className="text-[11px] font-semibold text-gray-700 mb-0.5">Cosa offri</div>
-                      <div className="h-9 rounded-lg border border-white/40 bg-white/30 backdrop-blur-sm" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-semibold text-gray-700 mb-0.5">Quantità</div>
-                      <div className="h-9 rounded-lg border border-white/40 bg-white/30 backdrop-blur-sm w-20" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-semibold text-gray-700 mb-0.5">Cosa cerchi</div>
-                      <div className="h-9 rounded-lg border border-white/40 bg-white/30 backdrop-blur-sm" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-semibold text-gray-700 mb-0.5">Commenti</div>
-                      <div className="h-16 rounded-lg border border-white/40 bg-white/30 backdrop-blur-sm" />
-                    </div>
-                    <div className="h-9 rounded-lg bg-white/40 backdrop-blur-sm w-3/4" />
-                  </div>
-                  <div className="rounded-xl border border-white/30 bg-white/25 backdrop-blur-2xl shadow-lg shadow-black/5 p-3 sm:p-4">
-                    <div className="text-[11px] font-semibold text-gray-700 mb-2">Riepilogo scambio</div>
-                    <div className="flex-1 min-h-[100px] rounded-lg border border-white/40 bg-white/20 backdrop-blur-sm" />
-                  </div>
+              <div className="flex flex-col items-center justify-center p-4 min-w-0 w-full h-full">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#FF8800]/25 text-[#FF8800] mb-2" aria-hidden>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
-                <div className="absolute inset-0 flex items-center justify-center p-4">
-                  <div className="rounded-2xl border border-white/40 bg-white/70 backdrop-blur-2xl shadow-2xl shadow-black/10 px-6 py-5 sm:px-8 sm:py-6 text-center max-w-md ring-1 ring-black/5">
-                    <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#FF8800]/25 text-[#FF8800] mb-3 sm:mb-4" aria-hidden>
-                      <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    </div>
-                    <h3 className="text-lg sm:text-xl font-bold uppercase tracking-wide text-gray-900">Funzionalità presto in arrivo</h3>
-                    <p className="mt-2 text-sm text-gray-700">Stiamo lavorando per portarti lo scambio carte. Resta sintonizzato!</p>
-                    <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-[#FF8800]">Coming soon</p>
-                  </div>
-                </div>
+                <h3 className="text-sm font-bold uppercase text-gray-900">Scambio - Coming Soon</h3>
+                <p className="mt-1 text-xs text-gray-600">Funzionalità in arrivo prossimamente.</p>
               </div>
             )}
-            {/* Tab METTI ALL'ASTA: flusso creazione asta (stessi passi di /aste/nuova, senza scelta carta) */}
+            {/* Tab METTI ALL'ASTA: flusso creazione asta compatta */}
             {activeTab === 'ASTA' && card && blueprintIdForAuction && (
-              <div className="min-h-[340px] border-t border-gray-200 bg-[#f8f9fb] p-1.5 sm:p-2">
+              <div className="min-h-0 overflow-y-auto border-t border-gray-200 bg-[#f8f9fb] p-1.5">
                 {auctionInventoryLoading ? (
-                  <div className="flex min-h-[360px] flex-col items-center justify-center gap-2 text-sm text-gray-600">
-                    <Loader2 className="h-8 w-8 animate-spin text-[#FF8800]" aria-hidden />
+                  <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 text-xs text-gray-600">
+                    <Loader2 className="h-6 w-6 animate-spin text-[#FF8800]" aria-hidden />
                     <span>{t('accountPage.itemsLoadingInventory')}</span>
                   </div>
                 ) : (
@@ -1337,7 +1386,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               </div>
             )}
             {activeTab === 'ASTA' && (!card || !blueprintIdForAuction) && (
-              <div className="p-4 sm:p-5 lg:p-6">
+              <div className="p-4 sm:p-5 lg:p-6 overflow-y-auto">
                 <p className="text-sm text-gray-500">
                   {!card
                     ? 'Seleziona un prodotto dal catalogo per creare un’asta.'
@@ -1365,7 +1414,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 <button
                   type="button"
                   onClick={() => setFiltersOpen(true)}
-                  className="w-full lg:h-full lg:min-h-[200px] flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white p-2 shadow-sm hover:bg-gray-50 transition-colors"
+                  className="w-full lg:h-full lg:min-h-[200px] flex items-center justify-center gap-2 lg:flex-col lg:gap-1.5 rounded-lg border border-gray-200 bg-white p-2 shadow-sm hover:bg-gray-50 transition-colors"
                   aria-label="Apri filtri"
                 >
                   {/* MOBILE: Layout orizzontale compatto */}
@@ -1373,11 +1422,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
                   <span className="text-xs font-bold uppercase text-gray-600 lg:hidden">Filtri</span>
-                  {/* DESKTOP: Layout verticale originale */}
+                  {/* DESKTOP: Layout verticale - icona sopra, testo sotto */}
                   <svg className="h-5 w-5 text-gray-600 shrink-0 hidden lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
-                  <span className="text-xs font-bold uppercase text-zinc-600 hidden lg:inline">FILTRI</span>
+                  <span className="text-[10px] font-bold uppercase text-zinc-600 hidden lg:inline leading-none">FILTRI</span>
                 </button>
               ) : (
               <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm h-full min-w-0">

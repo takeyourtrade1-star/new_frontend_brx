@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { AccountShell } from '@/components/feature/account/AccountShell';
 import { PrestoInArrivoBanner } from '@/components/feature/account/PrestoInArrivoBanner';
+import { MascotteLoader } from '@/components/dev/MascotteLoader';
 
 export const metadata = {
   title: 'Account | Ebartex',
@@ -21,7 +22,7 @@ export default function AccountLayout({
       </Suspense>
       <PrestoInArrivoBanner />
       <AccountShell>
-        <Suspense fallback={<div className="p-8 text-center">Caricamento...</div>}>
+        <Suspense fallback={<div className="p-8"><MascotteLoader size="sm" /></div>}>
           {children}
         </Suspense>
       </AccountShell>

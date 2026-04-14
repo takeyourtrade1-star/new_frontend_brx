@@ -2201,9 +2201,10 @@ export function CardMascotte() {
             transform: isMobileView 
               ? (isFlipped ? 'translateX(0)' : 'translateX(120%)')
               : 'rotateY(180deg)',
+            opacity: isMobileView ? (isFlipped ? 1 : 0) : 1,
             pointerEvents: isFlipped ? 'auto' : 'none',
             transition: isMobileView 
-              ? 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1)' 
+              ? 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 220ms ease' 
               : 'none',
           }}
         >

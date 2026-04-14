@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Send, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -9,13 +10,24 @@ interface FakeSearchBarProps {
   delay?: number;
 }
 
+interface FlyingParticle {
+  text: string;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  id: number;
+}
+
 export function FakeSearchBar({ className, delay = 500 }: FakeSearchBarProps) {
   const [localValue, setLocalValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [caterpillarSegments, setCaterpillarSegments] = useState<string[]>([]);
+  const [flyingParticle, setFlyingParticle] = useState<FlyingParticle | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const particleIdRef = useRef(0);
 
   // Trova la barra di ricerca reale
   const findRealSearchInput = useCallback((): HTMLInputElement | null => {
@@ -47,22 +59,74 @@ export function FakeSearchBar({ className, delay = 500 }: FakeSearchBarProps) {
   // Invia il testo alla barra reale
   const submitToRealSearch = useCallback(() => {
     if (!localValue.trim()) return;
-    
+
     const realInput = findRealSearchInput();
-    if (realInput) {
+    const fakeContainer = containerRef.current;
+
+    if (realInput && fakeContainer) {
       setIsSubmitting(true);
-      
+
+      // Calculate positions for flying animation
+      const fakeRect = fakeContainer.getBoundingClientRect();
+      const realRect = realInput.getBoundingClientRect();
+
+      const fromX = fakeRect.left + fakeRect.width / 2;
+      const fromY = fakeRect.top + fakeRect.height / 2;
+      const toX = realRect.left + realRect.width / 2;
+      const toY = realRect.top + realRect.height / 2;
+
+      // Create flying particle
+      const particleId = ++particleIdRef.current;
+      setFlyingParticle({
+        text: localValue,
+        fromX,
+        fromY,
+        toX,
+        toY,
+        id: particleId,
+      });
+
+      // Wait for animation to reach destination before transferring value
       setTimeout(() => {
+        // Focus and scroll to real input
         realInput.focus();
         realInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        realInput.value = localValue;
-        realInput.dispatchEvent(new Event('input', { bubbles: true }));
-        
+
+        // Set native value using Object.getOwnPropertyDescriptor to bypass React's value setter
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+        if (nativeInputValueSetter) {
+          nativeInputValueSetter.call(realInput, localValue);
+        } else {
+          realInput.value = localValue;
+        }
+
+        // Dispatch events that React can properly capture
+        const inputEvent = new InputEvent('input', {
+          bubbles: true,
+          cancelable: true,
+          data: localValue,
+          inputType: 'insertText',
+        });
+        realInput.dispatchEvent(inputEvent);
+
+        const changeEvent = new Event('change', { bubbles: true });
+        realInput.dispatchEvent(changeEvent);
+
+        const keyEvent = new KeyboardEvent('keydown', {
+          bubbles: true,
+          cancelable: true,
+          key: 'Enter',
+          code: 'Enter',
+        });
+        realInput.dispatchEvent(keyEvent);
+
+        // Clear local state and particle
         setLocalValue('');
         setCaterpillarSegments([]);
-        
-        setTimeout(() => setIsSubmitting(false), 500);
-      }, 300);
+        setFlyingParticle(null);
+
+        setTimeout(() => setIsSubmitting(false), 300);
+      }, 400); // Wait for arc animation to complete
     }
   }, [localValue, findRealSearchInput]);
 
@@ -237,6 +301,36 @@ export function FakeSearchBar({ className, delay = 500 }: FakeSearchBarProps) {
         </div>
       )}
 
+      {/* Flying Text Particle */}
+      {flyingParticle && typeof document !== 'undefined' && createPortal(
+        <div
+          key={flyingParticle.id}
+          className="fixed z-[9999] pointer-events-none animate-text-fly"
+          style={{
+            '--from-x': `${flyingParticle.fromX}px`,
+            '--from-y': `${flyingParticle.fromY}px`,
+            '--to-x': `${flyingParticle.toX}px`,
+            '--to-y': `${flyingParticle.toY}px`,
+            left: flyingParticle.fromX,
+            top: flyingParticle.fromY,
+          } as React.CSSProperties}
+        >
+          <div className="relative flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-[#FF7300] to-[#FF8800] text-white font-bold text-sm rounded-full shadow-lg shadow-[#FF7300]/30 whitespace-nowrap -translate-x-1/2 -translate-y-1/2">
+            <Sparkles className="w-4 h-4" />
+            <span className="max-w-[200px] truncate">{flyingParticle.text}</span>
+            <div className="absolute -right-1 -top-1 w-3 h-3 bg-white rounded-full animate-ping" />
+          </div>
+          {/* Trail effect */}
+          <div className="absolute inset-0 animate-trail-1 opacity-50">
+            <div className="w-full h-full bg-gradient-to-br from-[#FF7300]/30 to-transparent rounded-full blur-sm" />
+          </div>
+          <div className="absolute inset-0 animate-trail-2 opacity-30">
+            <div className="w-full h-full bg-gradient-to-br from-[#FF8800]/30 to-transparent rounded-full blur-md" />
+          </div>
+        </div>,
+        document.body
+      )}
+
       <style jsx global>{`
         @keyframes caterpillar-head-bounce {
           0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -268,12 +362,44 @@ export function FakeSearchBar({ className, delay = 500 }: FakeSearchBarProps) {
           50% { transform: translateX(100px) scale(0.8); opacity: 0.5; }
           100% { transform: translateX(200px) scale(0); opacity: 0; }
         }
+        @keyframes text-fly {
+          0% {
+            transform: translate(calc(-1 * var(--from-x, 0px)), calc(-1 * var(--from-y, 0px))) translate(var(--from-x, 0px), var(--from-y, 0px)) scale(1);
+            opacity: 1;
+          }
+          20% {
+            transform: translate(calc(-1 * var(--from-x, 0px)), calc(-1 * var(--from-y, 0px))) translate(calc(var(--from-x, 0px) + (var(--to-x, 0px) - var(--from-x, 0px)) * 0.2), calc(var(--from-y, 0px) - 50px)) scale(1.1);
+          }
+          50% {
+            transform: translate(calc(-1 * var(--from-x, 0px)), calc(-1 * var(--from-y, 0px))) translate(calc(var(--from-x, 0px) + (var(--to-x, 0px) - var(--from-x, 0px)) * 0.5), calc(var(--from-y, 0px) - 80px)) scale(1.2);
+          }
+          80% {
+            transform: translate(calc(-1 * var(--from-x, 0px)), calc(-1 * var(--from-y, 0px))) translate(calc(var(--to-x, 0px) + (var(--from-x, 0px) - var(--to-x, 0px)) * 0.2), calc(var(--to-y, 0px) - 30px)) scale(1.1);
+          }
+          100% {
+            transform: translate(calc(-1 * var(--from-x, 0px)), calc(-1 * var(--from-y, 0px))) translate(var(--to-x, 0px), var(--to-y, 0px)) scale(0.9);
+            opacity: 0.8;
+          }
+        }
+        @keyframes trail-1 {
+          0%, 100% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.5); opacity: 0.2; }
+        }
+        @keyframes trail-2 {
+          0%, 100% { transform: scale(1.2); opacity: 0.3; }
+          50% { transform: scale(1.8); opacity: 0.1; }
+        }
         .animate-caterpillar-head-bounce { animation: caterpillar-head-bounce 1s ease-in-out infinite; }
         .animate-head-wiggle { animation: head-wiggle 0.3s ease-in-out; }
         .animate-caterpillar-segment-pop { animation: caterpillar-segment-pop 0.3s ease-out forwards; }
         .animate-tail-wiggle { animation: tail-wiggle 0.5s ease-in-out infinite; }
         .animate-blink { animation: blink 3s ease-in-out infinite; }
         .animate-submit-shoot { animation: submit-shoot 0.5s ease-in-out forwards; }
+        .animate-text-fly {
+          animation: text-fly 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        .animate-trail-1 { animation: trail-1 0.4s ease-out forwards; }
+        .animate-trail-2 { animation: trail-2 0.4s ease-out forwards; }
       `}</style>
     </div>
   );

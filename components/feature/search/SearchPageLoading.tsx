@@ -1,8 +1,11 @@
 'use client';
 
-import { useTranslation } from '@/lib/i18n/useTranslation';
+import { MascotteLoader } from '@/components/dev/MascotteLoader';
 
 export function SearchPageLoading() {
-  const { t } = useTranslation();
-  return <div className="p-8 text-center text-white">{t('searchPage.loading')}</div>;
+  return (
+    <div className="flex min-h-[30vh] items-center justify-center">
+      <MascotteLoader size="md" />
+    </div>
+  );
 }

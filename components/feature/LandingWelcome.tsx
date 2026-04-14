@@ -262,10 +262,28 @@ export function LandingWelcome() {
               className="bento-entry col-span-1 lg:col-span-1 flex flex-col items-center justify-center gap-2 sm:gap-2 p-4 sm:p-4 md:p-5 min-h-[100px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px] text-center"
               style={{ animationDelay: '100ms' }}
             >
-              <p className="text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-widest text-emerald-400">
-                Compra &amp; Vendi
-              </p>
-              <p className="text-[8px] sm:text-[9px] md:text-[10px] text-white/50 max-w-[120px] sm:max-w-[140px] leading-snug">
+              <div className="flex items-center justify-center gap-2">
+                <p className="text-[10px] sm:text-[10px] md:text-xs font-bold uppercase tracking-[0.12em] text-emerald-300">
+                  Compra e Vendi
+                </p>
+                {/* Mobile: freccia verso il basso che indica la card Magic */}
+                <svg
+                  className="h-4 w-4 text-emerald-300 animate-bounce sm:hidden"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden
+                >
+                  <path
+                    d="M12 5V19M12 19L6.5 13.5M12 19L17.5 13.5"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <p className="text-[10px] sm:text-[9px] md:text-[10px] text-white/60 max-w-[140px] sm:max-w-[140px] leading-snug">
                 Già disponibile su Magic
               </p>
               {/* Big animated arrow pointing right - hidden on mobile */}
@@ -358,11 +376,13 @@ export function LandingWelcome() {
 
             {/* ═══ ROW 2: SCAMBI + ASTE + Presto disponibili text ═══ */}
 
+            <div className="order-2 sm:order-none col-span-1 md:col-span-2 lg:col-span-5 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3">
+
             {/* ──── SCAMBI CARD ──── */}
             <Link
               href="/scambi"
               id="hero-scambi-card"
-              className="bento-entry bento-card group relative col-span-1 md:col-span-1 lg:col-span-2 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-4 md:p-5 lg:p-6 min-h-[120px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
+              className="bento-entry bento-card group relative col-span-1 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-4 md:p-5 lg:p-6 min-h-[120px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
               style={{
                 animationDelay: '320ms',
                 background: 'linear-gradient(135deg, rgba(56,189,248,0.10) 0%, rgba(15,23,42,0.40) 50%, rgba(56,189,248,0.04) 100%)',
@@ -370,16 +390,6 @@ export function LandingWelcome() {
                 WebkitBackdropFilter: 'blur(16px)',
               }}
             >
-              {/* Exclusive badges */}
-              <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1">
-                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white/90">
-                  Presto
-                </span>
-                <span className="bento-badge-glow rounded-full bg-[#FF7300] px-2 py-0.5 sm:px-2.5 sm:py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white shadow-[0_2px_12px_rgba(255,115,0,0.5)]">
-                  Solo Ebartex
-                </span>
-              </div>
-
               {/* Decorative bg glow */}
               <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#38BDF8]/10 blur-3xl transition-all duration-700 group-hover:bg-[#38BDF8]/18 group-hover:scale-110" />
 
@@ -405,7 +415,7 @@ export function LandingWelcome() {
             <Link
               href="/aste"
               id="hero-aste-card"
-              className="bento-entry bento-card group relative col-span-1 md:col-span-1 lg:col-span-2 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-4 md:p-5 lg:p-6 min-h-[120px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
+              className="bento-entry bento-card group relative col-span-1 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-4 md:p-5 lg:p-6 min-h-[120px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
               style={{
                 animationDelay: '400ms',
                 background: 'linear-gradient(135deg, rgba(251,146,60,0.10) 0%, rgba(15,23,42,0.40) 50%, rgba(251,146,60,0.04) 100%)',
@@ -413,16 +423,6 @@ export function LandingWelcome() {
                 WebkitBackdropFilter: 'blur(16px)',
               }}
             >
-              {/* Exclusive badges */}
-              <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1">
-                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white/90">
-                  Presto
-                </span>
-                <span className="bento-badge-glow rounded-full bg-[#FF7300] px-2 py-0.5 sm:px-2.5 sm:py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white shadow-[0_2px_12px_rgba(255,115,0,0.5)]">
-                  Solo Ebartex
-                </span>
-              </div>
-
               {/* Decorative bg glows */}
               <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#FB923C]/10 blur-3xl transition-all duration-700 group-hover:bg-[#FB923C]/18 group-hover:scale-110" />
 
@@ -443,15 +443,16 @@ export function LandingWelcome() {
                 </span>
               </div>
             </Link>
+            </div>
 
             {/* ──── PRESTO DISPONIBILI — text with arrow pointing LEFT toward cards ──── */}
             <div
-              className="bento-entry col-span-1 lg:col-span-2 flex flex-col items-center sm:items-end justify-center gap-2 sm:gap-2 p-4 sm:p-4 md:p-5 pr-4 sm:pr-6 md:pr-8 lg:pr-10 min-h-[100px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px] text-center sm:text-right"
+              className="order-1 sm:order-none bento-entry col-span-1 md:col-span-2 lg:col-span-1 flex flex-col items-center justify-center gap-2 sm:gap-2 p-4 sm:p-4 md:p-5 lg:p-6 min-h-[100px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px] text-center"
               style={{ animationDelay: '480ms' }}
             >
               {/* Arrow pointing LEFT toward the cards - hidden on mobile */}
               <svg
-                className="hidden sm:block h-8 sm:h-8 sm:w-12 md:h-10 md:w-14 text-white/40 animate-bounce-left"
+                className="hidden sm:block h-8 sm:h-7 sm:w-10 md:h-8 md:w-12 lg:h-9 lg:w-14 text-white/45 animate-bounce-left"
                 viewBox="0 0 56 40"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -465,12 +466,29 @@ export function LandingWelcome() {
                   strokeLinejoin="round"
                 />
               </svg>
-              <p className="text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-widest text-amber-400">
+              <p className="text-[11px] sm:text-[10px] md:text-xs lg:text-sm font-extrabold uppercase tracking-[0.18em] sm:tracking-[0.12em] text-cyan-200 drop-shadow-[0_0_10px_rgba(34,211,238,0.30)]">
                 Presto disponibili
               </p>
-              <p className="text-[8px] sm:text-[9px] md:text-[10px] text-white/50 max-w-[160px] sm:max-w-[180px] leading-snug">
+              <p className="w-full max-w-[196px] sm:max-w-[168px] md:max-w-[178px] self-center inline-flex items-center justify-center rounded-full border-2 border-cyan-300/85 bg-gradient-to-r from-cyan-500/30 via-sky-400/25 to-blue-500/30 px-5 py-2 sm:px-4 sm:py-1.5 md:px-5 md:py-2 text-[12px] sm:text-[10px] md:text-[11px] lg:text-xs font-black uppercase tracking-[0.12em] sm:tracking-[0.08em] whitespace-nowrap text-white leading-none backdrop-blur-md shadow-[0_0_0_1px_rgba(34,211,238,0.55),0_0_22px_rgba(14,165,233,0.65),0_0_40px_rgba(59,130,246,0.45)] sm:shadow-[0_0_0_1px_rgba(255,255,255,0.20),0_0_16px_rgba(34,211,238,0.28)]">
                 Solo su Ebartex
               </p>
+
+              {/* Mobile: freccia verso il basso che indica Scambi/Aste */}
+              <svg
+                className="mt-1 h-5 w-5 text-cyan-300 animate-bounce sm:hidden"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden
+              >
+                <path
+                  d="M12 5V19M12 19L6.5 13.5M12 19L17.5 13.5"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
 
           </div>

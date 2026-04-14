@@ -1,14 +1,13 @@
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import { MascotteLoader } from '@/components/dev/MascotteLoader';
 
 const SincronizzazioneContent = dynamic(
   () => import('@/components/feature/account/SincronizzazioneContent').then((mod) => ({ default: mod.SincronizzazioneContent })),
   {
     loading: () => (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-lg font-medium text-gray-500 animate-pulse">
-          Caricamento sincronizzazione...
-        </div>
+        <MascotteLoader size="sm" />
       </div>
     ),
   }
@@ -21,7 +20,7 @@ export const metadata = {
 
 export default function SincronizzazionePage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center">Caricamento...</div>}>
+    <Suspense fallback={<div className="p-8 flex justify-center"><MascotteLoader size="sm" /></div>}>
       <SincronizzazioneContent />
     </Suspense>
   );

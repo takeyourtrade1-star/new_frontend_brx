@@ -1,12 +1,11 @@
 import { Suspense } from 'react';
 import BiddingPage from './bidding-content';
+import { MascotteLoader } from '@/components/dev/MascotteLoader';
 
 function BiddingFallback() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="text-lg font-medium text-gray-500 animate-pulse">
-        Caricamento offerte...
-      </div>
+      <MascotteLoader size="md" />
     </div>
   );
 }

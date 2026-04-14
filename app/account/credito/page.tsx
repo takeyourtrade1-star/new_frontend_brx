@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { CreditoContent } from '@/components/feature/account/CreditoContent';
+import { MascotteLoader } from '@/components/dev/MascotteLoader';
 
 export const metadata = {
   title: 'Credito | Account | Ebartex',
@@ -8,7 +9,7 @@ export const metadata = {
 
 export default function CreditoPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center">Caricamento...</div>}>
+    <Suspense fallback={<div className="p-8 flex justify-center"><MascotteLoader size="sm" /></div>}>
       <div className="pointer-events-none opacity-60">
         <CreditoContent />
       </div>

@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import dynamicImport from 'next/dynamic';
+import { MascotteLoader } from '@/components/dev/MascotteLoader';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,9 +9,7 @@ const SicurezzaContent = dynamicImport(
   {
     loading: () => (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-lg font-medium text-gray-500 animate-pulse">
-          Caricamento impostazioni sicurezza...
-        </div>
+        <MascotteLoader size="sm" />
       </div>
     ),
   }
@@ -23,7 +22,7 @@ export const metadata = {
 
 export default function SicurezzaPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center">Caricamento...</div>}>
+    <Suspense fallback={<div className="p-8 flex justify-center"><MascotteLoader size="sm" /></div>}>
       <SicurezzaContent />
     </Suspense>
   );

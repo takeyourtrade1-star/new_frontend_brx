@@ -22,6 +22,7 @@ import {
   type EnrichedAuction,
 } from '@/components/feature/aste/auctions-browse-shared';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
+import { MascotteLoader } from '@/components/dev/MascotteLoader';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, isAuctionEndedUI, isEndingSoonUI, type AuctionGame, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
@@ -139,7 +140,7 @@ export function AsteHubPage() {
       <div className="min-h-screen bg-white">
         <AsteNav />
         <div className="flex min-h-[40vh] items-center justify-center">
-          <div className="text-lg font-medium text-gray-400 animate-pulse">Caricamento...</div>
+          <MascotteLoader size="md" />
         </div>
       </div>
     );

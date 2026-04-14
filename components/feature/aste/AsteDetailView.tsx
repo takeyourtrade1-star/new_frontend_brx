@@ -19,6 +19,7 @@ import type { MessageKey } from '@/lib/i18n/messages/en';
 import { useAuctionDetail, useAuctionBids, useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, apiBidToBidRow, type AuctionUI, type BidRowUI } from '@/lib/auction/auction-adapter';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { MascotteLoader } from '@/components/dev/MascotteLoader';
 
 const PASTEL_GRADIENTS = [
   { gradient: 'from-rose-300/20 via-rose-200/10 to-transparent', border: 'border-rose-300/60', shadow: 'shadow-rose-200/30' },
@@ -103,7 +104,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       <div className="min-h-screen bg-white">
         <AsteNav />
         <div className="flex min-h-[40vh] items-center justify-center">
-          <div className="text-lg font-medium text-gray-400 animate-pulse">Caricamento asta...</div>
+          <MascotteLoader size="md" />
         </div>
       </div>
     );

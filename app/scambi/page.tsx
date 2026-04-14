@@ -1,15 +1,14 @@
 import dynamic from 'next/dynamic';
 import { Header } from '@/components/layout/Header';
 import { Suspense } from 'react';
+import { MascotteLoader } from '@/components/dev/MascotteLoader';
 
 const ScambiLandingPage = dynamic(
   () => import('@/components/feature/scambi/ScambiLandingPage').then((mod) => ({ default: mod.ScambiLandingPage })),
   {
     loading: () => (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-white text-lg font-medium animate-pulse">
-          Caricamento scambi...
-        </div>
+      <div className="flex min-h-[60vh] items-center justify-center bg-gradient-to-br from-[#1D3160] via-[#243663] to-[#1D3160]">
+        <MascotteLoader size="md" />
       </div>
     ),
   }
@@ -35,9 +34,7 @@ export default function ScambiPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-[#1D3160] via-[#243663] to-[#1D3160] flex items-center justify-center">
-        <div className="text-white text-lg font-medium animate-pulse">
-          Caricamento...
-        </div>
+        <MascotteLoader size="md" />
       </div>
     }>
       <ScambiPageContent />
