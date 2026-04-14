@@ -159,24 +159,38 @@ export function useOpenCV(options: UseOpenCVOptions = {}): OpenCVInstance {
       // Progress simulation for WASM compilation (takes most time)
       let progressInterval: NodeJS.Timeout | null = null;
       let currentProgress = 30;
+      let timeoutId: NodeJS.Timeout | null = null;
 
       const simulateProgress = () => {
         progressInterval = setInterval(() => {
           if (currentProgress < 80) {
-            currentProgress += Math.random() * 5; // Increment by 0-5%
+            currentProgress += Math.random() * 3; // Slower increment (0-3%)
             updateProgress(Math.min(currentProgress, 80));
+            console.log(`[OpenCV] Initializing... ${Math.round(currentProgress)}%`);
           }
-        }, 200);
+        }, 500); // Slower updates (500ms)
+      };
+
+      // Timeout watchdog - if WASM doesn't initialize in 45s, fail
+      const startTimeout = () => {
+        timeoutId = setTimeout(() => {
+          if (progressInterval) clearInterval(progressInterval);
+          setStatus('error');
+          reject(new Error('OpenCV WASM initialization timeout (45s). Check console for errors or try refreshing.'));
+        }, 45000);
       };
       
       // OpenCV.js Module configuration
       const moduleConfig: any = {
         preRun: [() => {
-          console.log('[OpenCV] Initializing...');
+          console.log('[OpenCV] WASM preRun started...');
           simulateProgress();
+          startTimeout();
         }],
         onRuntimeInitialized: () => {
           if (progressInterval) clearInterval(progressInterval);
+          if (timeoutId) clearTimeout(timeoutId);
+          console.log('[OpenCV] onRuntimeInitialized called');
           
           if ((window as any).cv) {
             globalOpenCV = (window as any).cv;
@@ -191,6 +205,8 @@ export function useOpenCV(options: UseOpenCVOptions = {}): OpenCVInstance {
         },
         onAbort: (err: any) => {
           if (progressInterval) clearInterval(progressInterval);
+          if (timeoutId) clearTimeout(timeoutId);
+          setStatus('error');
           reject(new Error(`OpenCV load aborted: ${err}`));
         },
       };
@@ -210,7 +226,9 @@ export function useOpenCV(options: UseOpenCVOptions = {}): OpenCVInstance {
 
       script.onerror = () => {
         if (progressInterval) clearInterval(progressInterval);
-        reject(new Error('Failed to load OpenCV.js script'));
+        if (timeoutId) clearTimeout(timeoutId);
+        setStatus('error');
+        reject(new Error(`Failed to load OpenCV.js from ${config.jsPath}. Check if file exists in public/opencv/`));
       };
 
       document.body.appendChild(script);
