@@ -85,7 +85,7 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
       peerRef.current = peer;
 
       peer.on('signal', (signal) => {
-        const signalString = btoa(JSON.stringify(signal));
+        const signalString = btoa(encodeURIComponent(JSON.stringify(signal)));
         setRoomState(prev => ({
           ...prev,
           state: 'waiting',
@@ -144,7 +144,7 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
     try {
       setRoomState(prev => ({ ...prev, state: 'joining', isHost: false }));
 
-      const offer = JSON.parse(atob(signalString));
+      const offer = JSON.parse(decodeURIComponent(atob(signalString)));
 
       const peer = new Peer({
         initiator: false,
@@ -154,7 +154,7 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
       peerRef.current = peer;
 
       peer.on('signal', (signal) => {
-        const answerString = btoa(JSON.stringify(signal));
+        const answerString = btoa(encodeURIComponent(JSON.stringify(signal)));
         setRoomState(prev => ({
           ...prev,
           state: 'waiting',
