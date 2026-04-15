@@ -216,6 +216,17 @@ export function AuctionBidModal({
     minute: '2-digit',
   });
 
+  const translateApiError = (msg: string): string => {
+    const minMatch = msg.match(/Minimum bid is ([\d.]+)/i);
+    if (minMatch) {
+      const val = parseFloat(minMatch[1]);
+      if (Number.isFinite(val)) return t('auctions.bidErrorTooLow', { min: fmtEur(val) });
+    }
+    if (/not active|has ended/i.test(msg)) return t('auctions.bidErrorEnded');
+    if (/token|unauthorized|expired/i.test(msg)) return t('auctions.bidErrorAuth');
+    return msg;
+  };
+
   const validateInput = (): boolean => {
     if (!Number.isFinite(parsedInput)) {
       setError(t('auctions.bidErrorInvalid'));
@@ -260,7 +271,7 @@ export function AuctionBidModal({
           return;
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Errore offerta');
+        setError(translateApiError(err instanceof Error ? err.message : 'Errore offerta'));
         return;
       }
     }
@@ -353,7 +364,6 @@ export function AuctionBidModal({
                 value={input}
                 onChange={(e) => {
                   setInput(e.target.value);
-                  setError(null);
                 }}
                 placeholder="0,00"
                 className="w-full rounded-xl border-2 border-gray-300 bg-white px-4 py-3.5 pr-12 text-xl font-bold text-gray-900 placeholder:text-gray-400 transition-colors focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20 sm:px-5 sm:py-4 sm:pr-14 sm:text-2xl"
