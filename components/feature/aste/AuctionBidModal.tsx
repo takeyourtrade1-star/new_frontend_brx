@@ -92,6 +92,8 @@ export function AuctionBidModal({
 
   const [outbidWarning, setOutbidWarning] = useState<string | null>(null);
 
+  const [confirmAction, setConfirmAction] = useState<'direct' | 'max' | null>(null);
+
   const minBid = useMemo(() => minNextBidEur(effectiveCurrentBidEur), [effectiveCurrentBidEur]);
 
 
@@ -121,6 +123,8 @@ export function AuctionBidModal({
       setError(null);
 
       setOutbidWarning(null);
+
+      setConfirmAction(null);
 
     }
 
@@ -190,7 +194,10 @@ export function AuctionBidModal({
   const placeBidMutation = usePlaceBid(auctionId ?? 0);
 
   const parsedInput = useMemo(() => {
-    const raw = input.replace(',', '.').trim();
+    let raw = input.trim();
+    if (raw.includes(',')) {
+      raw = raw.replace(/\./g, '').replace(',', '.');
+    }
     const n = parseFloat(raw);
     return Number.isFinite(n) ? roundMoney(n) : NaN;
   }, [input]);
@@ -209,21 +216,45 @@ export function AuctionBidModal({
     minute: '2-digit',
   });
 
-  const handleDirectBid = async () => {
+  const validateInput = (): boolean => {
     if (!Number.isFinite(parsedInput)) {
       setError(t('auctions.bidErrorInvalid'));
-      return;
+      return false;
     }
     const min = minNextBidEur(effectiveCurrentBidEur);
     if (parsedInput < min) {
       setError(t('auctions.bidErrorTooLow', { min: fmtEur(min) }));
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const requestDirectBid = () => {
+    if (!validateInput()) return;
     setError(null);
     setOutbidWarning(null);
+    setConfirmAction('direct');
+  };
+
+  const requestMaxBid = () => {
+    if (!validateInput()) return;
+    setError(null);
+    setOutbidWarning(null);
+    setConfirmAction('max');
+  };
+
+  const executeConfirmedBid = async () => {
+    const action = confirmAction;
+    setConfirmAction(null);
+    if (!action || !Number.isFinite(parsedInput)) return;
+
     if (auctionId != null && auctionId > 0) {
       try {
-        const res = await placeBidMutation.mutateAsync({ amount: parsedInput });
+        const payload =
+          action === 'direct'
+            ? { amount: parsedInput }
+            : { amount: parsedInput, maxAmount: parsedInput };
+        const res = await placeBidMutation.mutateAsync(payload);
         if (res?.data?.outbid) {
           setOutbidWarning(res.data.outbid_message || t('auctions.bidOutbidGeneric'));
           return;
@@ -233,35 +264,12 @@ export function AuctionBidModal({
         return;
       }
     }
-    onSubmitOffer(parsedInput);
-  };
 
-  const handleMaxBid = async () => {
-    if (!Number.isFinite(parsedInput)) {
-      setError(t('auctions.bidErrorInvalid'));
-      return;
+    if (action === 'direct') {
+      onSubmitOffer(parsedInput);
+    } else {
+      onSubmitMaxBid?.(parsedInput);
     }
-    const min = minNextBidEur(effectiveCurrentBidEur);
-    if (parsedInput < min) {
-      setError(t('auctions.bidErrorTooLow', { min: fmtEur(min) }));
-      return;
-    }
-    setError(null);
-    setOutbidWarning(null);
-    const firstBid = roundMoney(min);
-    if (auctionId != null && auctionId > 0) {
-      try {
-        const res = await placeBidMutation.mutateAsync({ amount: firstBid, maxAmount: parsedInput });
-        if (res?.data?.outbid) {
-          setOutbidWarning(res.data.outbid_message || t('auctions.bidOutbidGeneric'));
-          return;
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Errore offerta massima');
-        return;
-      }
-    }
-    onSubmitMaxBid?.(parsedInput);
   };
 
 
@@ -426,25 +434,59 @@ export function AuctionBidModal({
             </div>
           )}
 
+          {/* Confirmation dialog */}
+          {confirmAction != null && (
+            <div className="mb-4 rounded-xl border-2 border-[#FF7300]/40 bg-orange-50 px-4 py-4 sm:mb-5 sm:px-5 sm:py-5 animate-[fadeInDown_0.3s_ease-out]">
+              <p className="text-sm font-bold text-gray-900 sm:text-base">
+                {t('auctions.bidConfirmTitle')}
+              </p>
+              <p className="mt-1 text-xs text-gray-700 sm:text-sm">
+                {confirmAction === 'direct'
+                  ? t('auctions.bidConfirmDirect', { amount: fmtEur(parsedInput) })
+                  : t('auctions.bidConfirmMax', { amount: fmtEur(parsedInput) })}
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={executeConfirmedBid}
+                  disabled={placeBidMutation.isPending}
+                  className="flex-1 rounded-lg bg-[#FF7300] px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800] disabled:opacity-50 disabled:cursor-not-allowed sm:text-sm"
+                >
+                  {placeBidMutation.isPending ? '...' : t('auctions.bidConfirmYes')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction(null)}
+                  disabled={placeBidMutation.isPending}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 sm:text-sm"
+                >
+                  {t('auctions.bidConfirmNo')}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* BOTTONI AZIONE */}
-          <div className="flex items-stretch gap-3 sm:gap-4">
-            <button
-              type="button"
-              onClick={handleDirectBid}
-              disabled={placeBidMutation.isPending}
-              className="flex-[0.65] rounded-xl border-2 border-gray-300 bg-white px-3 py-3.5 text-[10px] font-bold uppercase tracking-wide text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 hover:shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed sm:flex-[0.7] sm:px-4 sm:py-4 sm:text-xs"
-            >
-              {t('auctions.bidButtonMain', { amount: fmtEur(displayBidAmount) })}
-            </button>
-            <button
-              type="button"
-              onClick={handleMaxBid}
-              disabled={placeBidMutation.isPending}
-              className="flex-1 rounded-xl border-2 border-[#FF7300] bg-gradient-to-r from-[#FF8A3D] to-[#FF7300] px-4 py-3.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md shadow-orange-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed sm:px-6 sm:py-4 sm:text-xs"
-            >
-              {t('auctions.bidButtonMax')}
-            </button>
-          </div>
+          {confirmAction == null && (
+            <div className="flex items-stretch gap-3 sm:gap-4">
+              <button
+                type="button"
+                onClick={requestDirectBid}
+                disabled={placeBidMutation.isPending}
+                className="flex-[0.65] rounded-xl border-2 border-gray-300 bg-white px-3 py-3.5 text-[10px] font-bold uppercase tracking-wide text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 hover:shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed sm:flex-[0.7] sm:px-4 sm:py-4 sm:text-xs"
+              >
+                {t('auctions.bidButtonMain', { amount: fmtEur(displayBidAmount) })}
+              </button>
+              <button
+                type="button"
+                onClick={requestMaxBid}
+                disabled={placeBidMutation.isPending}
+                className="flex-1 rounded-xl border-2 border-[#FF7300] bg-gradient-to-r from-[#FF8A3D] to-[#FF7300] px-4 py-3.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md shadow-orange-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed sm:px-6 sm:py-4 sm:text-xs"
+              >
+                {t('auctions.bidButtonMax')}
+              </button>
+            </div>
+          )}
 
           {/* Info text */}
           <p className="mt-3 text-center text-[10px] text-gray-500 sm:mt-4 sm:text-xs">
