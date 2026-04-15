@@ -13,12 +13,17 @@ interface CountdownTime {
 
 export function DemoBanner() {
   const { selectedLang } = useLanguage();
+  const [mounted, setMounted] = useState(false);
   const [timeLeft, setTimeLeft] = useState<CountdownTime>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [animatingKey, setAnimatingKey] = useState<keyof CountdownTime | null>(null);
   const prevTimeRef = useRef<CountdownTime>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   // Target date: December 1st, 2026
   const targetDate = new Date('2026-12-01T00:00:00').getTime();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -54,14 +59,16 @@ export function DemoBanner() {
     return () => clearInterval(timer);
   }, [targetDate]);
 
+  const lang = mounted ? selectedLang : 'en';
+
   const t = {
-    demo: selectedLang === 'it' ? 'IL SITO È IN DEMO' : 'SITE IN DEMO',
-    launch: selectedLang === 'it' ? 'Lancio tra' : 'Launch in',
-    comingSoon: selectedLang === 'it' ? 'Presto: Scambi ed Aste' : 'Coming Soon: Trades & Auctions',
-    days: selectedLang === 'it' ? 'giorni' : 'days',
-    hours: selectedLang === 'it' ? 'ore' : 'hours',
-    minutes: selectedLang === 'it' ? 'min' : 'min',
-    seconds: selectedLang === 'it' ? 'sec' : 'sec',
+    demo: lang === 'it' ? 'IL SITO È IN DEMO' : 'SITE IN DEMO',
+    launch: lang === 'it' ? 'Lancio tra' : 'Launch in',
+    comingSoon: lang === 'it' ? 'Presto: Scambi ed Aste' : 'Coming Soon: Trades & Auctions',
+    days: lang === 'it' ? 'giorni' : 'days',
+    hours: lang === 'it' ? 'ore' : 'hours',
+    minutes: lang === 'it' ? 'min' : 'min',
+    seconds: lang === 'it' ? 'sec' : 'sec',
   };
 
   const TimeBlock = ({ value, label, keyName }: { value: number; label: string; keyName: keyof CountdownTime }) => (
@@ -119,19 +126,19 @@ export function DemoBanner() {
           {/* Coming soon features */}
           <div className="hidden sm:flex items-center gap-2">
             <span className="text-[10px] sm:text-xs font-semibold text-white/80">
-              {selectedLang === 'it' ? 'Presto in arrivo, solo su Ebartex:' : 'Coming soon, only on Ebartex:'}
+              {lang === 'it' ? 'Presto in arrivo, solo su Ebartex:' : 'Coming soon, only on Ebartex:'}
             </span>
             <div className="flex items-center gap-2">
               {/* Scambi badge */}
               <Link href="/scambi" className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-purple-500/40 to-pink-500/40 backdrop-blur-sm rounded-lg border-2 border-purple-400/50 hover:border-purple-400 transition-all duration-300 hover:shadow-[0_0_16px_rgba(168,85,247,0.5)] cursor-pointer">
                 <span className="text-sm sm:text-base font-extrabold text-white tracking-wide">
-                  {selectedLang === 'it' ? 'Scambi' : 'Trades'}
+                  {lang === 'it' ? 'Scambi' : 'Trades'}
                 </span>
               </Link>
               {/* Aste badge */}
               <Link href="/aste" className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500/40 to-red-500/40 backdrop-blur-sm rounded-lg border-2 border-orange-400/50 hover:border-orange-400 transition-all duration-300 hover:shadow-[0_0_16px_rgba(251,146,60,0.5)] cursor-pointer">
                 <span className="text-sm sm:text-base font-extrabold text-white tracking-wide">
-                  {selectedLang === 'it' ? 'Aste' : 'Auctions'}
+                  {lang === 'it' ? 'Aste' : 'Auctions'}
                 </span>
               </Link>
             </div>

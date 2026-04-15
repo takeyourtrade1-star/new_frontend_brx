@@ -99,23 +99,10 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
   const now = useNowTick();
 
-  if (isLoading || !detail) {
-    return (
-      <div className="min-h-screen bg-white">
-        <AsteNav />
-        <div className="flex min-h-[40vh] items-center justify-center">
-          <MascotteLoader size="md" />
-        </div>
-      </div>
-    );
-  }
-
-  const isOwner = currentUser?.id != null && detail.createdByUserId === currentUser.id;
-  const isEnded = detail.status === 'ended';
-  const showBuyerBid = !isOwner && !isEnded;
-  const endsAt = detail.endsAt;
-  const msLeft = new Date(endsAt).getTime() - now;
-  const detailImages = useMemo(() => [detail.imageFront, detail.imageBack].filter(Boolean), [detail]);
+  const detailImages = useMemo(
+    () => (detail ? [detail.imageFront, detail.imageBack].filter(Boolean) : []),
+    [detail]
+  );
   const [imgIdx, setImgIdx] = useState(0);
   const [bidModalOpen, setBidModalOpen] = useState(false);
   const [myLastOfferEur, setMyLastOfferEur] = useState<number | null>(null);
@@ -123,33 +110,27 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showMaxBidRemovedToast, setShowMaxBidRemovedToast] = useState(false);
   const [bidToastAmount, setBidToastAmount] = useState<number | null>(null);
-  const mainImg = detailImages[imgIdx] ?? detailImages[0] ?? '';
   const [stickyTop, setStickyTop] = useState(HEADER_OFFSET);
-  const [asteNavHeight, setAsteNavHeight] = useState(56); // Altezza di default AsteNav
+  const [asteNavHeight, setAsteNavHeight] = useState(56);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const heroTitleRef = useRef<HTMLDivElement>(null);
   const asteNavRef = useRef<HTMLDivElement>(null);
 
-  // Misura l'altezza effettiva dell'header e di AsteNav per calcolare l'offset corretto
   useEffect(() => {
     const header = document.querySelector('header');
     const asteNavEl = asteNavRef.current;
     if (!header) return;
-
     const measure = () => {
       const headerHeight = header.getBoundingClientRect().height;
       const navHeight = asteNavEl?.getBoundingClientRect().height ?? 56;
       setStickyTop(headerHeight);
       setAsteNavHeight(navHeight);
     };
-
     measure();
-
     const ro = new ResizeObserver(() => measure());
     ro.observe(header);
     if (asteNavEl) ro.observe(asteNavEl);
     window.addEventListener('resize', measure);
-
     return () => {
       ro.disconnect();
       window.removeEventListener('resize', measure);
@@ -168,15 +149,12 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     return () => window.clearTimeout(id);
   }, [showMaxBidRemovedToast]);
 
-  // Intersection Observer per mostrare lo sticky header solo quando il titolo principale non è visibile
   useEffect(() => {
     const titleElement = heroTitleRef.current;
     if (!titleElement) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          // Mostra sticky header quando il titolo principale NON è visibile
           setShowStickyHeader(!entry.isIntersecting);
         });
       },
@@ -186,27 +164,41 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         threshold: 0,
       }
     );
-
     observer.observe(titleElement);
     return () => observer.disconnect();
   }, [stickyTop, asteNavHeight]);
 
-  const reserveMet = detail.reservePrice != null ? detail.currentBidEur >= detail.reservePrice : true;
-  const outcome: 'live' | 'sold' | 'unsold' = isEnded
-    ? (reserveMet && detail.bidCount > 0 ? 'sold' : 'unsold')
-    : 'live';
-
-  const effectiveCurrentBidEur = Math.max(detail.currentBidEur, myLastOfferEur ?? 0);
-
-  const fmtEur = (n: number) => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
-
-  const { data: similarData } = useAuctionList({ status: 'ACTIVE', limit: 3 });
+  const { data: similarData } = useAuctionList({ limit: 3 });
   const similarCards = useMemo(() => {
     return (similarData?.data ?? [])
       .filter((a) => a.id !== numericId)
       .slice(0, 3)
       .map((a) => apiToAuctionUI(a));
   }, [similarData, numericId]);
+
+  if (isLoading || !detail) {
+    return (
+      <div className="min-h-screen bg-white">
+        <AsteNav />
+        <div className="flex min-h-[40vh] items-center justify-center">
+          <MascotteLoader size="md" />
+        </div>
+      </div>
+    );
+  }
+
+  const isOwner = currentUser?.id != null && detail.createdByUserId === currentUser.id;
+  const isEnded = detail.status === 'ended';
+  const showBuyerBid = !isOwner && !isEnded;
+  const endsAt = detail.endsAt;
+  const msLeft = new Date(endsAt).getTime() - now;
+  const mainImg = detailImages[imgIdx] ?? detailImages[0] ?? '';
+  const reserveMet = detail.reservePrice != null ? detail.currentBidEur >= detail.reservePrice : true;
+  const outcome: 'live' | 'sold' | 'unsold' = isEnded
+    ? (reserveMet && detail.bidCount > 0 ? 'sold' : 'unsold')
+    : 'live';
+  const effectiveCurrentBidEur = Math.max(detail.currentBidEur, myLastOfferEur ?? 0);
+  const fmtEur = (n: number) => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
@@ -422,7 +414,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   <div className="flex w-14 shrink-0 flex-col gap-2 sm:w-[4.5rem]">
                     {detailImages.slice(0, 4).map((src, i) => (
                       <button
-                        key={src}
+                        key={`${src}-${i}`}
                         type="button"
                         onClick={() => setImgIdx(i)}
                         className={`relative aspect-[63/88] w-full overflow-hidden rounded-lg border-2 bg-gray-50 transition ${

@@ -94,6 +94,14 @@ export const auctionApi = {
     });
   },
 
+  deleteAuction(
+    id: number
+  ): Promise<{ success: boolean; data?: unknown; message?: string }> {
+    return request(`/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   listBids(
     auctionId: number,
     params?: { limit?: number; offset?: number }

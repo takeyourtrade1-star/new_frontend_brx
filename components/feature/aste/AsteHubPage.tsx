@@ -43,7 +43,7 @@ function useNowTick(intervalMs = 1000): number {
 export function AsteHubPage() {
   const { t } = useTranslation();
   const now = useNowTick();
-  const { data: listData, isLoading, error } = useAuctionList({ status: 'ACTIVE', limit: 100 });
+  const { data: listData, isLoading, error } = useAuctionList({ limit: 100 });
   const enriched: AuctionUI[] = useMemo(
     () => (listData?.data ?? []).map((a) => apiToAuctionUI(a)),
     [listData]

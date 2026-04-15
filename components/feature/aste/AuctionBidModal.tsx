@@ -10,7 +10,7 @@ import { X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { minNextBidEur, roundMoney } from '@/lib/auction/bid-math';
-import { usePlaceBid, useMinimumBid } from '@/lib/hooks/use-auctions';
+import { usePlaceBid } from '@/lib/hooks/use-auctions';
 
 const ORANGE = '#FF7300';
 
@@ -89,10 +89,6 @@ export function AuctionBidModal({
   const [input, setInput] = useState('');
 
   const [error, setError] = useState<string | null>(null);
-
-  const [rulesExpanded, setRulesExpanded] = useState(false);
-
-
 
   const minBid = useMemo(() => minNextBidEur(effectiveCurrentBidEur), [effectiveCurrentBidEur]);
 
@@ -189,6 +185,8 @@ export function AuctionBidModal({
 
 
 
+  const placeBidMutation = usePlaceBid(auctionId ?? 0);
+
   if (!open) return null;
 
 
@@ -213,8 +211,6 @@ export function AuctionBidModal({
 
 
 
-  const placeBidMutation = auctionId ? usePlaceBid(auctionId) : null;
-
   const submitIfValid = async (amount: number) => {
 
     const min = minNextBidEur(effectiveCurrentBidEur);
@@ -229,7 +225,7 @@ export function AuctionBidModal({
 
     setError(null);
 
-    if (placeBidMutation && auctionId) {
+    if (auctionId != null && auctionId > 0) {
       try {
         await placeBidMutation.mutateAsync({ amount: roundMoney(amount) });
       } catch (err) {
@@ -292,7 +288,7 @@ export function AuctionBidModal({
 
     setError(null);
 
-    if (placeBidMutation && auctionId) {
+    if (auctionId != null && auctionId > 0) {
       try {
         await placeBidMutation.mutateAsync({ amount: roundMoney(amount), maxAmount: roundMoney(amount) });
       } catch (err) {

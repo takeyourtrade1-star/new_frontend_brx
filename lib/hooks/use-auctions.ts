@@ -113,3 +113,16 @@ export function useUpdateAuction(auctionId: number) {
     },
   });
 }
+
+export function useDeleteAuction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (auctionId: number) => auctionApi.deleteAuction(auctionId),
+    onSuccess: (_data, auctionId) => {
+      qc.invalidateQueries({ queryKey: KEYS.all });
+      qc.removeQueries({ queryKey: KEYS.detail(auctionId) });
+      qc.removeQueries({ queryKey: KEYS.bids(auctionId) });
+      qc.removeQueries({ queryKey: KEYS.minBid(auctionId) });
+    },
+  });
+}
