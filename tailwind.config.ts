@@ -95,10 +95,15 @@ const config: Config = {
           '51%': { transform: 'rotateX(90deg)', opacity: '0.5' },
           '100%': { transform: 'rotateX(0deg)', opacity: '1' },
         },
+        'auth-enter': {
+          '0%': { opacity: '0', transform: 'translateY(12px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'caret-blink': 'caret-blink 1.2s ease-out infinite',
         'countdown-flip': 'countdown-flip 0.4s ease-in-out',
+        'auth-enter': 'auth-enter 0.5s ease-out forwards',
       },
       backgroundImage: {
         'gradient-global': 'linear-gradient(to bottom, #3D65C6 0%, #1D3160 100%)',

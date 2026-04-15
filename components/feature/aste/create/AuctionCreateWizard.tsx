@@ -679,13 +679,34 @@ export function AuctionCreateWizard({
             : 'pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))]')
       )}
     >
-      <div className={cn('mb-8', isEmbedded && 'mb-2.5')}>
-        <p
-          className={cn(
-            'text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-500',
-            isEmbedded && 'text-[10px] tracking-[0.14em]'
-          )}
-        >
+      {isEmbedded ? (
+        <div className="mb-2">
+          <div className="flex items-center justify-between px-0.5">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+              {t('auctions.createProgress', { current: currentStepNumber, total: totalSteps })}
+            </span>
+          </div>
+          <div className="mt-1.5 flex gap-[3px]">
+            {stepperLabels.map((label, i) => {
+              const active = i === activeStepIndex;
+              const complete = i < activeStepIndex;
+              return (
+                <div
+                  key={`${label}-${i}`}
+                  className={cn(
+                    'h-[3px] flex-1 rounded-full transition-all duration-300',
+                    complete ? 'bg-primary' : active ? 'bg-[#1D3160]' : 'bg-zinc-200'
+                  )}
+                  aria-current={active ? 'step' : undefined}
+                  title={label}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+      <div className="mb-8">
+        <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
           {t('auctions.createProgress', { current: currentStepNumber, total: totalSteps })}
         </p>
         <div className={cn('mt-4 flex items-center justify-between gap-1 px-1 sm:gap-2', isEmbedded && 'mt-2 gap-0.5 px-0')}>
@@ -732,12 +753,13 @@ export function AuctionCreateWizard({
           })}
         </div>
       </div>
+      )}
 
-      <div className={cn('relative rounded-2xl border border-gray-200 bg-white shadow-sm', isEmbedded && 'rounded-lg shadow-sm')}>
+      <div className={cn('relative rounded-2xl border border-gray-200 bg-white shadow-sm', isEmbedded && 'rounded-xl border-zinc-200/70 bg-white/95 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.08)]')}>
         <div
           className={cn(
             'relative border-b border-gray-100 px-5 py-4 sm:px-8 sm:py-5',
-            isEmbedded && 'px-3 py-2 sm:px-4 sm:py-2.5'
+            isEmbedded && 'border-b-zinc-100/50 px-3 py-1.5 sm:px-4 sm:py-2'
           )}
         >
           {/* Progress bar transition indicator */}
@@ -751,22 +773,22 @@ export function AuctionCreateWizard({
             tabIndex={-1}
             className={cn(
               'text-lg font-bold uppercase tracking-wide text-[#1D3160] sm:text-xl',
-              isEmbedded && 'text-base sm:text-lg'
+              isEmbedded && 'text-[13px] font-extrabold tracking-[0.06em] sm:text-sm'
             )}
           >
             {stepHeading}
           </h1>
           {stepHint ? (
-            <p className={cn('mt-1 text-sm text-gray-500', isEmbedded && 'mt-0.5 text-xs leading-snug')}>{stepHint}</p>
+            <p className={cn('mt-1 text-sm text-gray-500', isEmbedded && 'mt-0 text-[11px] leading-snug text-zinc-400')}>{stepHint}</p>
           ) : null}
         </div>
 
-        <div ref={stepContentRef} className={cn('px-5 py-6 sm:px-8 sm:py-8', isEmbedded && 'px-3 py-3 sm:px-4 sm:py-4')}>
+        <div ref={stepContentRef} className={cn('px-5 py-6 sm:px-8 sm:py-8', isEmbedded && 'px-3 py-2.5 sm:px-4 sm:py-3')}>
           {error && (
             <p
               className={cn(
                 'mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800',
-                isEmbedded && 'mb-3 py-1.5 text-xs'
+                isEmbedded && 'mb-2 rounded-md py-1 text-[11px]'
               )}
               role="alert"
             >
@@ -812,8 +834,8 @@ export function AuctionCreateWizard({
           )}
 
           {stepId === 'inventory_pick' && embeddedCard && (
-            <div className={cn('space-y-4', isEmbedded && 'space-y-2')}>
-              <p className={cn('text-sm text-gray-600', isEmbedded && 'text-xs leading-snug')}>
+            <div className={cn('space-y-4', isEmbedded && 'space-y-1.5')}>
+              <p className={cn('text-sm text-gray-600', isEmbedded && 'text-[11px] leading-snug text-zinc-500')}>
                 {t('auctions.createStepInventoryPickIntro')}
               </p>
               <ul className={cn('space-y-2', isEmbedded && 'space-y-1.5')}>
@@ -918,13 +940,13 @@ export function AuctionCreateWizard({
                   <div
                     className={cn(
                       'relative mx-auto h-40 w-[7.25rem] shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 sm:mx-0',
-                      isEmbedded && 'h-28 w-[5.5rem]'
+                      isEmbedded && 'h-24 w-[4.5rem] rounded-md border-zinc-200/80'
                     )}
                   >
                     <Image src={previewImageSrc} alt="" fill className="object-cover" sizes="116px" unoptimized />
                   </div>
                 )}
-                <div className={cn('min-w-0 flex-1 space-y-3', isEmbedded && 'space-y-2')}>
+                <div className={cn('min-w-0 flex-1 space-y-3', isEmbedded && 'space-y-1.5')}>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{t('auctions.createTitleLabel')}</p>
                     <p className="mt-1 text-base font-semibold text-[#1D3160]">{draft.title || '—'}</p>
@@ -1066,7 +1088,7 @@ export function AuctionCreateWizard({
 
           {stepId === 'price' && (
             <div className={cn('space-y-5', isEmbedded && 'space-y-3')}>
-              <div className={cn('grid gap-5 sm:grid-cols-2', isEmbedded && 'gap-3')}>
+              <div className={cn('grid gap-5 sm:grid-cols-2', isEmbedded && 'gap-2.5')}>
                 <div>
                   <label htmlFor="ac-start" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
                     {t('auctions.createStartingBidLabel')}
@@ -1110,7 +1132,7 @@ export function AuctionCreateWizard({
               </div>
               <div>
                 <span className="block text-xs font-bold uppercase tracking-wide text-gray-600">{t('auctions.createDurationLabel')}</span>
-                <div className={cn('mt-2 flex flex-wrap gap-2', isEmbedded && 'mt-1.5 gap-1.5')}>
+                <div className={cn('mt-2 flex flex-wrap gap-2', isEmbedded && 'mt-1 gap-1')}>
                   {([3, 5, 7] as const).map((d) => (
                     <button
                       key={d}
@@ -1142,16 +1164,16 @@ export function AuctionCreateWizard({
                     onClick={() => update('shippingPayer', 'buyer')}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-xl border-2 px-4 py-4 text-left transition-all',
-                      isEmbedded && 'rounded-lg py-3',
+                      isEmbedded && 'rounded-lg py-2.5',
                       draft.shippingPayer === 'buyer'
                         ? 'border-[#FF7300] bg-orange-50/80'
                         : 'border-gray-200 hover:border-gray-300'
                     )}
                   >
-                    <Package className="h-5 w-5 text-[#1D3160]" aria-hidden />
+                    <Package className={cn('h-5 w-5 text-[#1D3160]', isEmbedded && 'h-4 w-4')} aria-hidden />
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">{t('auctions.createShippingBuyer')}</p>
-                      <p className="text-xs text-gray-500">{t('auctions.createShippingBuyerHint')}</p>
+                      <p className={cn('text-sm font-semibold text-gray-900', isEmbedded && 'text-xs')}>{t('auctions.createShippingBuyer')}</p>
+                      <p className={cn('text-xs text-gray-500', isEmbedded && 'text-[11px]')}>{t('auctions.createShippingBuyerHint')}</p>
                     </div>
                   </button>
                   <button
@@ -1159,16 +1181,16 @@ export function AuctionCreateWizard({
                     onClick={() => update('shippingPayer', 'seller')}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-xl border-2 px-4 py-4 text-left transition-all',
-                      isEmbedded && 'rounded-lg py-3',
+                      isEmbedded && 'rounded-lg py-2.5',
                       draft.shippingPayer === 'seller'
                         ? 'border-[#FF7300] bg-orange-50/80'
                         : 'border-gray-200 hover:border-gray-300'
                     )}
                   >
-                    <Package className="h-5 w-5 text-[#1D3160]" aria-hidden />
+                    <Package className={cn('h-5 w-5 text-[#1D3160]', isEmbedded && 'h-4 w-4')} aria-hidden />
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">{t('auctions.createShippingSeller')}</p>
-                      <p className="text-xs text-gray-500">{t('auctions.createShippingSellerHint')}</p>
+                      <p className={cn('text-sm font-semibold text-gray-900', isEmbedded && 'text-xs')}>{t('auctions.createShippingSeller')}</p>
+                      <p className={cn('text-xs text-gray-500', isEmbedded && 'text-[11px]')}>{t('auctions.createShippingSellerHint')}</p>
                     </div>
                   </button>
                 </div>
@@ -1206,9 +1228,9 @@ export function AuctionCreateWizard({
 
           {stepId === 'review' && (
             <div className={cn('space-y-4', isEmbedded && 'space-y-3')}>
-              <div className={cn('rounded-xl border border-[#1D3160]/15 bg-[#f8f9fb] p-4', isEmbedded && 'rounded-lg p-3')}>
+              <div className={cn('rounded-xl border border-[#1D3160]/15 bg-[#f8f9fb] p-4', isEmbedded && 'rounded-lg border-zinc-200/60 bg-zinc-50/80 p-2.5')}>
                 <p className="text-xs font-bold uppercase tracking-wide text-[#1D3160]">Pubblicazione</p>
-                <div className={cn('mt-3 grid gap-2 sm:grid-cols-2', isEmbedded && 'mt-2 gap-1.5')}>
+                <div className={cn('mt-3 grid gap-2 sm:grid-cols-2', isEmbedded && 'mt-1.5 gap-1')}>
                   <button
                     type="button"
                     onClick={() => {
@@ -1294,7 +1316,7 @@ export function AuctionCreateWizard({
               <dl
                 className={cn(
                   'divide-y divide-gray-100 rounded-xl border border-gray-100 bg-gray-50/80',
-                  isEmbedded && 'rounded-lg text-sm'
+                  isEmbedded && 'rounded-lg text-xs divide-zinc-100/70'
                 )}
               >
               <div

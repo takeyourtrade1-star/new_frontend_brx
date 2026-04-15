@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowRight } from 'lucide-react';
 import { LoginForm } from '@/components/feature/login/login-form';
-import { getCdnImageUrl } from '@/lib/config';
+import { AuthShell, AUTH_GLASS_CLASS, AUTH_GLASS_LIGHT } from '@/components/layout/AuthShell';
 import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
@@ -14,12 +14,6 @@ export function LoginView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { selectedLang, setSelectedLang, availableLangs } = useLanguage();
-
-  const liquidGlass =
-    'rounded-[24px] border border-gray-100/30 border-t border-l border-white/60 bg-white/60 backdrop-blur-md shadow-[0_8px_24px_rgba(0,0,0,0.10),0_2px_4px_rgba(0,0,0,0.05)]';
-
-  const carouselBg = getCdnImageUrl('carousel/slide1.jpg');
-  const logoUrl = getCdnImageUrl('logo.png');
 
   const openLoginFromUrl = searchParams.get('accesso') === '1';
   const [showLoginForm, setShowLoginForm] = useState(openLoginFromUrl);
@@ -34,51 +28,22 @@ export function LoginView() {
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#2d2d2d]">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url("${carouselBg}")` }}
-        aria-hidden
-      />
-      <div className="absolute inset-0 bg-[#2d2d2d]/25" aria-hidden />
-
-      <div className="relative z-10 flex min-h-screen flex-col pt-8">
-        <div className="flex justify-center px-4">
-          <Link
-            href="/"
-            className="relative block h-[80px] w-[200px] sm:h-[100px] sm:w-[260px]"
-            aria-label={t('pages.auth.homeAria')}
-          >
-            <Image
-              src={logoUrl}
-              alt="Ebartex"
-              fill
-              className="object-contain object-center"
-              priority
-              sizes="(max-width: 640px) 200px, 260px"
-              unoptimized
-            />
-          </Link>
-        </div>
-        <div className="mx-auto mt-8 w-full max-w-lg flex-1 px-4 pb-24 flex flex-col">
+    <AuthShell>
           {showLoginForm ? (
             <>
-              <div
-                className={`${liquidGlass} overflow-hidden`}
-              >
-                <div className="p-6 sm:p-8 md:p-10">
-                  <h1 className="mb-6 text-center text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
-                    {t('pages.login.title')}
-                  </h1>
-
+              <h1 className="mb-6 text-center text-3xl font-bold uppercase tracking-wide text-white">
+                {t('pages.login.title')}
+              </h1>
+              <div className={AUTH_GLASS_CLASS} style={AUTH_GLASS_LIGHT}>
+                <div className="p-8 sm:p-12">
                   <LoginForm />
-
-                  <div className="mt-6 border-t border-gray-100/70 pt-6 text-center">
+                  <div className="mt-6 border-t border-white/20 pt-6 text-center">
                     <Link
                       href="/registrati"
-                      className="text-sm font-semibold text-[#FF7300] hover:underline underline-offset-4"
+                      className="inline-flex items-center gap-1.5 text-base font-semibold text-[#FF7300] hover:underline"
                     >
                       {t('pages.login.noAccount')}
+                      <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
                 </div>
@@ -86,7 +51,7 @@ export function LoginView() {
             </>
           ) : (
             <>
-              <div className={`${liquidGlass} overflow-hidden`}>
+              <div className={AUTH_GLASS_CLASS} style={AUTH_GLASS_LIGHT}>
                 <div className="p-5 sm:p-6 md:p-7 flex flex-col items-center">
                   <h1 className="text-center text-xl sm:text-2xl font-bold tracking-tight text-gray-900">
                     {t('pages.login.demoLanding.title')}
@@ -179,8 +144,6 @@ export function LoginView() {
               </div>
             </>
           )}
-        </div>
-      </div>
-    </div>
+    </AuthShell>
   );
 }

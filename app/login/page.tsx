@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { LoginView } from './login-view';
+import { AuthSkeleton } from '@/components/layout/AuthSkeleton';
 
 export const metadata = {
   title: 'Login | Ebartex',
@@ -8,7 +9,7 @@ export const metadata = {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen" />}>
+    <Suspense fallback={<AuthSkeleton />}>
       <LoginView />
     </Suspense>
   );

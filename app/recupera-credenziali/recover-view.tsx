@@ -1,68 +1,28 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { RecuperaCredenzialiForm } from '@/components/feature/login/recupera-credenziali-form';
-import { getCdnImageUrl } from '@/lib/config';
+import { AuthShell, AUTH_GLASS_CLASS, AUTH_GLASS_LIGHT } from '@/components/layout/AuthShell';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export function RecoverView() {
   const { t } = useTranslation();
-  const carouselBg = getCdnImageUrl('carousel/slide1.jpg');
-  const logoUrl = getCdnImageUrl('logo.png');
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#2d2d2d]">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url("${carouselBg}")` }}
-        aria-hidden
-      />
-      <div className="absolute inset-0 bg-[#2d2d2d]/40" aria-hidden />
-
-      <div className="relative z-10 flex min-h-screen flex-col pt-8">
-        <div className="flex justify-center px-4">
-          <Link
-            href="/"
-            className="relative block h-[80px] w-[200px] sm:h-[100px] sm:w-[260px]"
-            aria-label={t('pages.auth.homeAria')}
-          >
-            <Image
-              src={logoUrl}
-              alt="Ebartex"
-              fill
-              className="object-contain object-center"
-              priority
-              sizes="(max-width: 640px) 200px, 260px"
-              unoptimized
-            />
-          </Link>
-        </div>
-
-        <div className="mx-auto mt-8 w-full max-w-xl flex-1 px-4 pb-12">
-          <h1 className="mb-6 text-center text-3xl font-bold uppercase tracking-wide text-white">
-            {t('pages.recover.title')}
-          </h1>
-          <div
-            className="overflow-hidden rounded-3xl border-2 border-white"
-            style={{
-              background: 'rgba(255, 255, 255, 0.35)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
-            }}
-          >
-            <div className="p-12">
-              <RecuperaCredenzialiForm />
-            </div>
-          </div>
-          <div className="mt-4 text-center">
-            <Link href="/registrati" className="text-base text-[#FF7300] font-medium hover:underline">
-              {t('pages.login.noAccount')}
-            </Link>
-          </div>
+    <AuthShell>
+      <h1 className="mb-6 text-center text-3xl font-bold uppercase tracking-wide text-white">
+        {t('pages.recover.title')}
+      </h1>
+      <div className={AUTH_GLASS_CLASS} style={AUTH_GLASS_LIGHT}>
+        <div className="p-12">
+          <RecuperaCredenzialiForm />
         </div>
       </div>
-    </div>
+      <div className="mt-4 text-center">
+        <Link href="/registrati" className="text-base text-[#FF7300] font-medium hover:underline">
+          {t('pages.login.noAccount')}
+        </Link>
+      </div>
+    </AuthShell>
   );
 }

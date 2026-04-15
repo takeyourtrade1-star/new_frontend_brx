@@ -783,16 +783,16 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       {/* Contenuto principale: card bianca su sfondo grigio – responsive padding e layout */}
       <section className="w-full bg-[#F0F0F0] px-4 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 pb-4 sm:pb-6 min-h-0">
         <div className="container-content">
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-lg bg-white shadow-md sm:h-[320px] sm:flex-row">
+          <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-[2px] shadow-[0_1px_4px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] sm:h-[320px] sm:flex-row">
             {/* Colonna sinistra: immagine carta compatta */}
             <aside
               className={cn(
-                'flex w-full flex-shrink-0 flex-col items-center justify-center bg-white p-2 sm:h-full sm:w-[180px] sm:max-w-none sm:justify-start sm:border-b-0 sm:border-r sm:border-gray-200 sm:p-3 md:w-[200px] lg:w-[220px]',
-                mobileDetailsOpen ? 'border-b border-gray-200' : 'border-b-0'
+                'flex w-full flex-shrink-0 flex-col items-center justify-center bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60 p-3 sm:h-full sm:w-[180px] sm:max-w-none sm:justify-start sm:border-b-0 sm:border-r sm:border-zinc-200/50 sm:p-4 md:w-[200px] lg:w-[220px]',
+                mobileDetailsOpen ? 'border-b border-zinc-200/50' : 'border-b-0'
               )}
             >
               <div
-                className="relative flex w-full max-w-[96px] max-h-[134px] shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-md border border-gray-800 bg-gray-100 transition-opacity hover:opacity-95 sm:max-w-[160px] sm:max-h-[240px] md:max-w-[200px] md:max-h-[280px]"
+                className="relative flex w-full max-w-[96px] max-h-[134px] shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md sm:max-w-[160px] sm:max-h-[240px] md:max-w-[200px] md:max-h-[280px]"
                 style={{ aspectRatio: '63/88' }}
                 onClick={handleLightboxOpen}
                 role="button"
@@ -832,15 +832,15 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             <button
               type="button"
               onClick={() => setMobileDetailsOpen((prev) => !prev)}
-              className="mt-2 flex w-full max-w-[220px] items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-left shadow-sm sm:hidden"
+              className="mt-3 flex w-full max-w-[220px] items-center justify-between rounded-full border border-zinc-200/60 bg-white/90 px-4 py-2 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-colors hover:bg-zinc-50 sm:hidden"
               aria-expanded={mobileDetailsOpen}
               aria-controls="product-mobile-info-panel"
             >
               <span className="text-[11px] font-bold uppercase tracking-wide text-gray-700">
-                {mobileDetailsOpen ? 'Nascondi info carta' : 'Mostra info carta'}
+                {mobileDetailsOpen ? 'Nascondi dettagli' : 'Mostra dettagli'}
               </span>
               <svg
-                className={cn('h-4 w-4 text-gray-500 transition-transform', mobileDetailsOpen && 'rotate-180')}
+                className={cn('h-3.5 w-3.5 text-zinc-400 transition-transform duration-300', mobileDetailsOpen && 'rotate-180')}
                 viewBox="0 0 24 24"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -854,23 +854,23 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           {/* Colonna destra: tab minimali + contenuto */}
           <div
             id="product-mobile-info-panel"
-            className={cn('flex-1 min-w-0 flex flex-col bg-[#FAFAFA] overflow-hidden sm:h-full', !mobileDetailsOpen && 'hidden sm:flex')}
+            className={cn('flex-1 min-w-0 flex flex-col bg-zinc-50/80 overflow-hidden sm:h-full', !mobileDetailsOpen && 'hidden sm:flex')}
           >
-            <div className="flex border-b border-gray-200 bg-gray-50/80">
-              {tabs.map((t) => (
+            <div className="flex gap-1 border-b border-zinc-100 bg-zinc-100/70 p-1 sm:p-1.5">
+              {tabs.map((tab) => (
                 <button
-                  key={t.id}
+                  key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(t.id)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    'relative flex-1 min-w-0 px-1.5 sm:px-4 py-1.5 sm:py-3 text-[11px] sm:text-sm font-bold uppercase tracking-[0.04em] sm:tracking-wide transition-all duration-200',
-                    activeTab === t.id
-                      ? 'bg-white text-[#FF7300] border-t-2 border-[#FF7300] shadow-[0_-2px_8px_rgba(0,0,0,0.04)]'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
+                    'relative flex-1 min-w-0 rounded-lg px-1.5 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold uppercase tracking-[0.06em] transition-all duration-250',
+                    activeTab === tab.id
+                      ? 'bg-white text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)] ring-1 ring-zinc-900/[0.04]'
+                      : 'text-zinc-500 hover:text-zinc-700 hover:bg-white/50'
                   )}
                 >
-                  <span className="block truncate text-center sm:hidden">{t.mobileLabel}</span>
-                  <span className="hidden truncate text-center sm:block">{t.label}</span>
+                  <span className="block truncate text-center sm:hidden">{tab.mobileLabel}</span>
+                  <span className="hidden truncate text-center sm:block">{tab.label}</span>
                 </button>
               ))}
             </div>
@@ -878,79 +878,79 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             {/* Contenuto tab INFO: MOBILE compatta con espansione grafico; DESKTOP layout completo */}
             {activeTab === 'INFO' && (
               <>
-                {/* MOBILE: blocco compatto leggibile, senza collasso */}
-                <div className="sm:hidden flex h-full min-h-0 w-full min-w-0 flex-col gap-1.5 overflow-y-auto p-1.5">
-                  <div className="rounded-md border border-gray-200/80 bg-white p-2 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Rarità</p>
-                        <p className="text-xs font-bold text-zinc-900">{card?.rarity ?? 'N/A'}</p>
+                {/* MOBILE: blocco compatto premium */}
+                <div className="sm:hidden flex h-full min-h-0 w-full min-w-0 flex-col gap-2 overflow-y-auto p-2.5">
+                  <div className="rounded-xl bg-white p-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                    <div className="divide-y divide-zinc-100">
+                      <div className="flex items-center justify-between pb-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Rarità</span>
+                        <span className="text-xs font-bold text-zinc-900">{card?.rarity ?? 'N/A'}</span>
                       </div>
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Numero</p>
-                        <p className="text-xs font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</p>
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Numero</span>
+                        <span className="text-xs font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</span>
                       </div>
-                      <div className="col-span-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Set</p>
-                        <p className="truncate text-xs font-bold text-zinc-900">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Set</span>
+                        <span className="truncate ml-4 text-xs font-bold text-zinc-900 text-right">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</span>
                       </div>
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">In vendita</p>
-                        <p className="text-base font-extrabold text-zinc-900 tabular-nums">{cardsInSaleLabel}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Lingue</p>
-                        <p className="truncate text-[11px] font-medium text-zinc-700">
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lingue</span>
+                        <span className="truncate ml-4 text-[11px] font-medium text-zinc-600 text-right">
                           {card?.game_slug === 'mtg'
                             ? (card?.available_languages?.length
                               ? card.available_languages.slice(0, 2).map((code) => langLabelByCode[code] ?? code).join(', ')
                               : 'English')
                             : 'N/D'}
-                        </p>
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">In vendita</span>
+                        <span className="text-sm font-extrabold text-primary tabular-nums">{cardsInSaleLabel}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <div className="rounded border border-orange-100 bg-orange-50/60 p-1.5 text-center">
-                      <p className="text-[10px] font-semibold uppercase text-orange-700">Trend</p>
-                      <p className="text-[11px] font-extrabold text-orange-700">{formatEuro(trendPriceValue)}</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-xl bg-amber-50/80 p-2.5 text-center">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/80">Trend</p>
+                      <p className="mt-0.5 text-sm font-extrabold text-amber-700">{formatEuro(trendPriceValue)}</p>
                     </div>
-                    <div className="rounded border border-blue-100 bg-blue-50/50 p-1.5 text-center">
-                      <p className="text-[10px] font-semibold uppercase text-blue-700">Vend.</p>
-                      <p className="text-[11px] font-extrabold text-blue-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                    <div className="rounded-xl bg-sky-50/70 p-2.5 text-center">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600/80">Vend.</p>
+                      <p className="mt-0.5 text-sm font-extrabold text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
                     </div>
-                    <div className="rounded border border-gray-200 bg-gray-50/50 p-1.5 text-center">
-                      <p className="text-[10px] font-semibold uppercase text-gray-600">Media</p>
-                      <p className="text-[11px] font-extrabold text-gray-900">{formatEuro(averageSalePriceValue)}</p>
+                    <div className="rounded-xl bg-zinc-100/70 p-2.5 text-center">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Media</p>
+                      <p className="mt-0.5 text-sm font-extrabold text-zinc-800">{formatEuro(averageSalePriceValue)}</p>
                     </div>
                   </div>
 
-                  <div className="rounded-md border border-gray-200/80 bg-white p-1.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wide text-gray-900">Ristampe</span>
-                      <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] font-semibold text-gray-400">{reprints.length}</span>
+                  <div className="rounded-xl bg-white p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Ristampe</span>
+                      <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400 tabular-nums">{reprints.length}</span>
                     </div>
                     {reprintsLoading ? (
-                      <div className="grid grid-cols-4 gap-1">
+                      <div className="flex gap-2 overflow-hidden">
                         {[...Array(4)].map((_, i) => (
-                          <div key={i} className="h-[44px] rounded-md bg-gray-100 animate-pulse" />
+                          <div key={i} className="h-[52px] w-[37px] flex-shrink-0 rounded-lg bg-zinc-100 animate-pulse" />
                         ))}
                       </div>
                     ) : reprints.length > 0 ? (
-                      <div className="grid grid-cols-4 gap-1">
-                        {reprints.slice(0, 4).map((r) => (
-                          <div key={r.id} className="relative h-[44px] overflow-hidden rounded-md border border-gray-200 bg-gray-50">
+                      <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory -mx-0.5 px-0.5">
+                        {reprints.slice(0, 6).map((r) => (
+                          <div key={r.id} className="relative h-[52px] w-[37px] flex-shrink-0 snap-start overflow-hidden rounded-lg bg-zinc-50 shadow-sm transition-transform duration-200 hover:scale-105" title={r.setName}>
                             {r.imageSrc ? (
-                              <Image src={r.imageSrc} alt="" fill className="object-cover" sizes="44px" unoptimized />
+                              <Image src={r.imageSrc} alt="" fill className="object-cover" sizes="37px" unoptimized />
                             ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[9px] text-gray-400">N/A</div>
+                              <div className="flex h-full w-full items-center justify-center text-[8px] font-medium text-zinc-400">N/A</div>
                             )}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[11px] text-gray-500">Nessuna ristampa.</p>
+                      <p className="text-[11px] text-zinc-400">Nessuna ristampa.</p>
                     )}
                   </div>
                 </div>
@@ -962,114 +962,109 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     ? 'gap-2 p-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-[180px_240px_1fr]'
                     : 'gap-2 p-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-[1fr_1.5fr_auto]'
                 )}>
-                  {/* Colonna 1: Info carta - padding compatto */}
-                  <div className="flex flex-col min-h-0 bg-white rounded-lg border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-2">
-                    {/* Riga 1: Rarità + Numero */}
-                    <div className="space-y-1.5 pb-1.5 border-b border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Rarità</span>
-                        <span className="text-xs font-bold text-zinc-900">{card?.rarity || <Image src={getCdnImageUrl('stellina.png')} alt="" width={14} height={14} className="h-3 w-3 object-contain" aria-hidden unoptimized />}</span>
+                  {/* Colonna 1: Info carta — clean dividers, no border card */}
+                  <div className="flex flex-col min-h-0 rounded-xl bg-white/80 p-2.5">
+                    <div className="divide-y divide-zinc-100/80">
+                      <div className="flex items-center justify-between pb-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Rarità</span>
+                        <span className="text-xs font-bold text-zinc-900">{card?.rarity || <Image src={getCdnImageUrl('stellina.png')} alt="" width={14} height={14} className="h-3.5 w-3.5 object-contain" aria-hidden unoptimized />}</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Numero</span>
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Numero</span>
                         <span className="text-xs font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</span>
                       </div>
-                    </div>
-
-                    {/* Riga 2: Set */}
-                    <div className="py-1.5 border-b border-gray-100">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Set</span>
-                      <p className="text-xs font-bold text-zinc-900 truncate">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
-                    </div>
-
-                    {/* Lingue (solo MTG) */}
-                    {card?.game_slug === 'mtg' && (
-                      <div className="py-1.5 border-b border-gray-100">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Lingue</span>
-                        <p className="text-[11px] font-medium text-zinc-700 truncate">
-                          {card?.available_languages?.length ? card.available_languages.slice(0,3).map((code) => langLabelByCode[code] ?? code).join(', ') : 'English'}
-                        </p>
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Set</span>
+                        <span className="text-xs font-bold text-zinc-900 truncate ml-3 text-right">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</span>
                       </div>
-                    )}
-
-                    {/* Riga 3: Carte in vendita */}
-                    <div className="pt-1.5">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">In vendita</span>
-                      <p className="text-base font-extrabold text-zinc-900 tabular-nums">{cardsInSaleLabel}</p>
+                      {card?.game_slug === 'mtg' && (
+                        <div className="flex items-center justify-between py-2">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lingue</span>
+                          <span className="text-[11px] font-medium text-zinc-600 truncate ml-3 text-right">
+                            {card?.available_languages?.length ? card.available_languages.slice(0,3).map((code) => langLabelByCode[code] ?? code).join(', ') : 'English'}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between pt-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">In vendita</span>
+                        <span className="text-base font-extrabold text-primary tabular-nums">{cardsInSaleLabel}</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Colonna 2: Ristampe compatte */}
-                  <div className="flex flex-col min-h-0 bg-white rounded-lg border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-2">
-                    <div className="mb-1.5 flex items-center justify-between gap-1">
-                      <h3 className="text-[10px] font-extrabold uppercase tracking-wide text-gray-900">Ristampe</h3>
-                      <span className="text-[9px] font-semibold text-gray-400 bg-gray-100 px-1 py-0 rounded">{reprints.length}</span>
+                  {/* Colonna 2: Ristampe — larger thumbnails, hover glow */}
+                  <div className="flex flex-col min-h-0 rounded-xl bg-white/80 p-2.5">
+                    <div className="mb-2 flex items-center justify-between gap-1">
+                      <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Ristampe</h3>
+                      <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400 tabular-nums">{reprints.length}</span>
                     </div>
 
                     {reprintsLoading ? (
-                      <div className="flex gap-1.5 overflow-x-auto pb-1">
+                      <div className="flex gap-2 overflow-x-auto pb-1">
                         {[...Array(4)].map((_, i) => (
-                          <div key={i} className="h-[70px] w-[50px] flex-shrink-0 rounded-md border border-gray-200 bg-gray-100 animate-pulse" />
+                          <div key={i} className="h-[80px] w-[57px] flex-shrink-0 rounded-lg bg-zinc-100 animate-pulse" />
                         ))}
                       </div>
                     ) : reprints.length > 0 ? (
-                      <div className="flex gap-1.5 overflow-x-auto pb-1 snap-x snap-mandatory -mx-1 px-1">
+                      <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory -mx-1 px-1">
                         {reprints.slice(0, 8).map((reprint) => (
                           <div
                             key={reprint.id}
-                            className="group relative h-[70px] w-[50px] flex-shrink-0 snap-start overflow-hidden rounded-md border border-gray-200 bg-gray-50 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+                            className="group relative h-[80px] w-[57px] flex-shrink-0 snap-start overflow-hidden rounded-lg bg-zinc-50 shadow-sm ring-1 ring-zinc-200/60 transition-all duration-250 hover:-translate-y-0.5 hover:shadow-lg hover:ring-primary/30 cursor-pointer"
                             title={`${reprint.setName} • ${reprint.rarity}`}
                           >
                             {reprint.imageSrc ? (
-                              <Image src={reprint.imageSrc} alt={reprint.setName} fill className="object-cover" sizes="74px" unoptimized />
+                              <Image src={reprint.imageSrc} alt={reprint.setName} fill className="object-cover" sizes="57px" unoptimized />
                             ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-gray-100 text-[10px] font-semibold text-gray-400">N/A</div>
+                              <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-[10px] font-semibold text-zinc-400">N/A</div>
                             )}
-                            <div className="absolute left-1 top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full border border-white/60 bg-black/55 px-1 backdrop-blur-sm">
+                            <div className="absolute left-0.5 top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-black/50 px-1 backdrop-blur-sm">
                               {reprint.setIconSrc ? (
-                                <img src={reprint.setIconSrc} alt="" className="h-3 w-3 object-contain" loading="lazy" />
+                                <img src={reprint.setIconSrc} alt="" className="h-2.5 w-2.5 object-contain" loading="lazy" />
                               ) : (
-                                <span className="text-[9px] font-bold uppercase text-white">{reprint.setCode || 'SET'}</span>
+                                <span className="text-[7px] font-bold uppercase text-white/90">{reprint.setCode || 'SET'}</span>
                               )}
                             </div>
-                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/35 to-transparent px-1.5 py-1">
-                              <span className="inline-flex rounded-full border border-white/25 bg-black/45 px-1 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-white">{reprint.rarity}</span>
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1 pb-0.5 pt-3">
+                              <span className="text-[7px] font-bold uppercase tracking-wide text-white/90">{reprint.rarity}</span>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-500 py-2">Nessuna ristampa trovata.</p>
+                      <div className="flex flex-1 items-center justify-center">
+                        <p className="text-xs text-zinc-400">Nessuna ristampa trovata.</p>
+                      </div>
                     )}
                   </div>
 
-                  {/* Colonna 3: Prezzi compatti */}
-                  <div className="flex flex-col min-h-0 bg-white rounded-lg border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-2 sm:col-span-2 md:col-span-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{trendRangeLabel}</span>
-                      <button type="button" onClick={() => setShowChart((v) => !v)} className="text-[10px] font-medium text-[#FF7300] flex items-center gap-0.5">
+                  {/* Colonna 3: Prezzi — tinted metric cards, sleek chart toggle */}
+                  <div className="flex flex-col min-h-0 rounded-xl bg-white/80 p-2.5 sm:col-span-2 md:col-span-1">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{trendRangeLabel}</span>
+                      <button type="button" onClick={() => setShowChart((v) => !v)} className="flex items-center gap-1 rounded-full bg-zinc-100/80 px-2 py-0.5 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10">
                         {showChart ? <><EyeOff className="h-3 w-3" /> Nascondi</> : <><Eye className="h-3 w-3" /> Grafico</>}
                       </button>
                     </div>
-                    <div className="grid grid-cols-3 gap-1">
-                      <div className="rounded border border-orange-100 bg-orange-50/60 p-1 text-center">
-                        <p className="text-[9px] font-semibold uppercase text-orange-700">Trend</p>
-                        <p className="text-xs font-extrabold text-orange-700">{formatEuro(trendPriceValue)}</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <div className="rounded-lg bg-amber-50/70 p-1.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/80">Trend</p>
+                        <p className="mt-0.5 text-sm font-extrabold text-amber-700">{formatEuro(trendPriceValue)}</p>
                       </div>
-                      <div className="rounded border border-blue-100 bg-blue-50/50 p-1 text-center">
-                        <p className="text-[9px] font-semibold uppercase text-blue-700">Vend.</p>
-                        <p className="text-xs font-extrabold text-blue-700">{soldCopiesValue}</p>
+                      <div className="rounded-lg bg-sky-50/60 p-1.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600/80">Vend.</p>
+                        <p className="mt-0.5 text-sm font-extrabold text-sky-700">{soldCopiesValue}</p>
                       </div>
-                      <div className="rounded border border-gray-200 bg-gray-50/50 p-1 text-center">
-                        <p className="text-[9px] font-semibold uppercase text-gray-600">Media</p>
-                        <p className="text-xs font-extrabold text-gray-900">{formatEuro(averageSalePriceValue)}</p>
+                      <div className="rounded-lg bg-zinc-100/60 p-1.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Media</p>
+                        <p className="mt-0.5 text-sm font-extrabold text-zinc-800">{formatEuro(averageSalePriceValue)}</p>
                       </div>
                     </div>
-                    {/* Grafico espandibile - altezza limitata */}
+                    {/* Grafico espandibile */}
                     <div className={cn('transition-all duration-500 ease-out overflow-hidden', showChart ? 'opacity-100 max-h-[140px] mt-2' : 'opacity-0 max-h-0')}>
                       {showChart && (
                         <div className="animate-in fade-in duration-300">
-                          <div className="h-[120px] w-full">
+                          <div className="h-[120px] w-full rounded-lg bg-white/60">
                             <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
                           </div>
                         </div>
@@ -1083,41 +1078,41 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             {/* Tab VENDI: form ultra-compatto */}
             {activeTab === 'VENDI' && (
               <>
-                <div className="sm:hidden flex h-full min-h-0 w-full min-w-0 flex-col gap-1.5 overflow-y-auto p-1.5">
-                  <div className="rounded-md border border-gray-200 bg-white p-2 shadow-sm">
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <h3 className="text-[13px] font-extrabold uppercase tracking-wide text-gray-900">Vendi subito</h3>
-                      <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-[#FF7300]">Rapido</span>
+                <div className="sm:hidden flex h-full min-h-0 w-full min-w-0 flex-col gap-2 overflow-y-auto p-2.5">
+                  <div className="rounded-xl bg-white p-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                    <div className="mb-2 flex items-center justify-between">
+                      <h3 className="text-[13px] font-extrabold uppercase tracking-wider text-zinc-900">Vendi subito</h3>
+                      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">Rapido</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="mb-0.5 block text-[10px] font-semibold text-gray-600">Quantità</label>
+                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Quantità</label>
                         <input
                           type="number"
                           min={1}
                           value={quantitaVendi}
                           onChange={(e) => setQuantitaVendi(Number(e.target.value) || 1)}
-                          className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
                         />
                       </div>
                       <div>
-                        <label className="mb-0.5 block text-[10px] font-semibold text-gray-600">Prezzo (€)</label>
+                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Prezzo (€)</label>
                         <input
                           type="text"
                           inputMode="decimal"
                           value={prezzoVendi}
                           onChange={(e) => setPrezzoVendi(e.target.value)}
-                          className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
                           placeholder="0.00"
                         />
                       </div>
                       <div>
-                        <label className="mb-0.5 block text-[10px] font-semibold text-gray-600">Lingua</label>
+                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lingua</label>
                         <select
                           value={linguaVendi}
                           onChange={(e) => setLinguaVendi(e.target.value)}
-                          className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs"
+                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
                         >
                           {vendiLanguageOptions.map((opt) => (
                             <option key={opt.code} value={opt.code}>
@@ -1127,122 +1122,125 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                         </select>
                       </div>
                       <div>
-                        <label className="mb-0.5 block text-[10px] font-semibold text-gray-600">Condizione</label>
+                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Condizione</label>
                         <button
                           type="button"
                           onClick={() => {
                             setModalCondition(condizioneVendi);
                             setIsConditionModalOpen(true);
                           }}
-                          className="w-full truncate rounded border border-gray-300 bg-white px-2 py-1 text-left text-xs"
+                          className="w-full truncate rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-left text-xs font-medium text-zinc-900 transition-colors hover:border-zinc-300"
                         >
                           {CONDITION_OPTIONS_MAP.find((opt) => opt.value === condizioneVendi)?.label ?? 'Near Mint'}
                         </button>
                       </div>
                     </div>
 
-                    <div className="mt-1.5">
-                      <label className="mb-0.5 block text-[10px] font-semibold text-gray-600">Note</label>
+                    <div className="mt-2">
+                      <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Note</label>
                       <input
                         type="text"
                         value={commentiVendi}
                         onChange={(e) => setCommentiVendi(e.target.value)}
                         placeholder="Commenti per acquirente"
-                        className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
                       />
                     </div>
 
-                    <div className="mt-1.5 grid grid-cols-3 gap-1">
-                      <div className="rounded border border-gray-200 bg-gray-50 p-1 text-center">
-                        <p className="text-[9px] font-semibold uppercase text-gray-500">Unit.</p>
-                        <p className="text-[11px] font-extrabold text-gray-900">{formatEuro(prezzoVendiValue)}</p>
+                    <div className="mt-2 grid grid-cols-3 gap-1.5">
+                      <div className="rounded-lg bg-zinc-50/80 p-1.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Unit.</p>
+                        <p className="mt-0.5 text-xs font-extrabold text-zinc-800">{formatEuro(prezzoVendiValue)}</p>
                       </div>
-                      <div className="rounded border border-blue-100 bg-blue-50/60 p-1 text-center">
-                        <p className="text-[9px] font-semibold uppercase text-blue-600">Qtà</p>
-                        <p className="text-[11px] font-extrabold text-blue-700">{new Intl.NumberFormat('it-IT').format(quantitaVendiValue)}</p>
+                      <div className="rounded-lg bg-sky-50/60 p-1.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600/80">Qtà</p>
+                        <p className="mt-0.5 text-xs font-extrabold text-sky-700">{new Intl.NumberFormat('it-IT').format(quantitaVendiValue)}</p>
                       </div>
-                      <div className="rounded border border-orange-100 bg-orange-50/70 p-1 text-center">
-                        <p className="text-[9px] font-semibold uppercase text-orange-600">Tot.</p>
-                        <p className="text-[11px] font-extrabold text-orange-700">{formatEuro(vendiTotaleValue)}</p>
+                      <div className="rounded-lg bg-amber-50/70 p-1.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/80">Tot.</p>
+                        <p className="mt-0.5 text-xs font-extrabold text-amber-700">{formatEuro(vendiTotaleValue)}</p>
                       </div>
                     </div>
 
-                    <div className="mt-1.5 flex items-center justify-between">
+                    <div className="mt-2.5 flex items-center justify-between border-t border-zinc-100 pt-2">
                       <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-1 text-[11px] font-semibold text-gray-600">
+                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-600">
                           <input
                             type="checkbox"
                             checked={extraFoil}
                             onChange={(e) => setExtraFoil(e.target.checked)}
-                            className="h-3 w-3 rounded border-gray-300"
+                            className="h-3.5 w-3.5 rounded border-zinc-300 text-primary focus:ring-primary/25"
                           />
                           Foil
                         </label>
-                        <label className="flex items-center gap-1 text-[11px] font-semibold text-gray-600">
+                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-600">
                           <input
                             type="checkbox"
                             checked={extraSigned}
                             onChange={(e) => setExtraSigned(e.target.checked)}
-                            className="h-3 w-3 rounded border-gray-300"
+                            className="h-3.5 w-3.5 rounded border-zinc-300 text-primary focus:ring-primary/25"
                           />
                           Firm.
                         </label>
                       </div>
                       <button
                         type="button"
-                        className="rounded-md bg-[#FF8800] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white hover:opacity-90"
+                        className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
                       >
                         Vendi
                       </button>
                     </div>
                   </div>
 
-                  <div className="rounded-md border border-gray-200 bg-white p-1.5 shadow-sm">
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Prezzi mercato</span>
-                      <span className="text-[10px] font-medium text-gray-400">Grafico su desktop</span>
+                  <div className="rounded-xl bg-white p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Prezzi mercato</span>
+                      <span className="text-[10px] font-medium text-zinc-400">Grafico su desktop</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-1">
-                      <div className="rounded border border-orange-100 bg-orange-50/60 p-1 text-center">
-                        <p className="text-[9px] font-semibold uppercase text-orange-700">Trend</p>
-                        <p className="text-[11px] font-extrabold text-orange-700">{formatEuro(trendPriceValue)}</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <div className="rounded-lg bg-amber-50/70 p-1.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/80">Trend</p>
+                        <p className="mt-0.5 text-xs font-extrabold text-amber-700">{formatEuro(trendPriceValue)}</p>
                       </div>
-                      <div className="rounded border border-blue-100 bg-blue-50/50 p-1 text-center">
-                        <p className="text-[9px] font-semibold uppercase text-blue-700">Vend.</p>
-                        <p className="text-[11px] font-extrabold text-blue-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                      <div className="rounded-lg bg-sky-50/60 p-1.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600/80">Vend.</p>
+                        <p className="mt-0.5 text-xs font-extrabold text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
                       </div>
-                      <div className="rounded border border-gray-200 bg-gray-50/50 p-1 text-center">
-                        <p className="text-[9px] font-semibold uppercase text-gray-600">Media</p>
-                        <p className="text-[11px] font-extrabold text-gray-900">{formatEuro(averageSalePriceValue)}</p>
+                      <div className="rounded-lg bg-zinc-100/60 p-1.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Media</p>
+                        <p className="mt-0.5 text-xs font-extrabold text-zinc-800">{formatEuro(averageSalePriceValue)}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="hidden h-full min-h-0 w-full min-w-0 gap-2 overflow-y-auto p-2 sm:grid sm:grid-cols-1 lg:grid-cols-[1.2fr_1fr]">
-                  <div className="flex min-h-0 flex-col rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
-                    <div className="mb-2 flex items-center justify-between">
-                      <h3 className="text-sm font-extrabold uppercase tracking-wide text-gray-900">Inserzione rapida</h3>
-                      <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-[#FF7300]">Vendita</span>
+                <div className="hidden h-full min-h-0 w-full min-w-0 gap-3 overflow-y-auto p-3 sm:grid sm:grid-cols-1 lg:grid-cols-[1.3fr_1fr]">
+                  {/* LEFT: Selling form */}
+                  <div className="flex min-h-0 flex-col gap-0 rounded-2xl bg-white ring-1 ring-zinc-900/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    {/* Form header */}
+                    <div className="flex items-center justify-between px-3.5 pt-3 pb-2">
+                      <h3 className="text-xs font-extrabold uppercase tracking-wider text-zinc-800">Inserzione rapida</h3>
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">Vendita</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                    {/* Inputs — compact 4-col grid */}
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 px-3.5 md:grid-cols-4">
                       <div>
-                        <label className="mb-0.5 block text-[11px] font-semibold text-gray-600">Quantità</label>
+                        <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Quantità</label>
                         <input
                           type="number"
                           min={1}
                           value={quantitaVendi}
                           onChange={(e) => setQuantitaVendi(Number(e.target.value) || 1)}
-                          className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                          className="w-full rounded-md border border-zinc-200/80 bg-zinc-50/40 px-2 py-1 text-[13px] font-medium text-zinc-900 tabular-nums transition-colors focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/15"
                         />
                       </div>
                       <div>
-                        <label className="mb-0.5 block text-[11px] font-semibold text-gray-600">Lingua</label>
+                        <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Lingua</label>
                         <select
                           value={linguaVendi}
                           onChange={(e) => setLinguaVendi(e.target.value)}
-                          className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
+                          className="w-full rounded-md border border-zinc-200/80 bg-zinc-50/40 px-2 py-1 text-[13px] font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/15"
                         >
                           {vendiLanguageOptions.map((opt) => (
                             <option key={opt.code} value={opt.code}>
@@ -1252,129 +1250,143 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                         </select>
                       </div>
                       <div>
-                        <label className="mb-0.5 block text-[11px] font-semibold text-gray-600">Condizione</label>
+                        <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Condizione</label>
                         <button
                           type="button"
                           onClick={() => {
                             setModalCondition(condizioneVendi);
                             setIsConditionModalOpen(true);
                           }}
-                          className="w-full truncate rounded border border-gray-300 bg-white px-2 py-1.5 text-left text-sm"
+                          className="w-full truncate rounded-md border border-zinc-200/80 bg-zinc-50/40 px-2 py-1 text-left text-[13px] font-medium text-zinc-900 transition-colors hover:border-zinc-300"
                         >
                           {CONDITION_OPTIONS_MAP.find((opt) => opt.value === condizioneVendi)?.label ?? 'Near Mint'}
                         </button>
                       </div>
                       <div>
-                        <label className="mb-0.5 block text-[11px] font-semibold text-gray-600">Prezzo (€)</label>
+                        <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Prezzo (€)</label>
                         <input
                           type="text"
                           inputMode="decimal"
                           value={prezzoVendi}
                           onChange={(e) => setPrezzoVendi(e.target.value)}
-                          className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                          className="w-full rounded-md border border-zinc-200/80 bg-zinc-50/40 px-2 py-1 text-[13px] font-semibold text-zinc-900 tabular-nums transition-colors focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/15"
                           placeholder="0.00"
                         />
                       </div>
                     </div>
 
-                    <div className="mt-2">
-                      <label className="mb-0.5 block text-[11px] font-semibold text-gray-600">Note venditore</label>
-                      <textarea
+                    {/* Notes — single row */}
+                    <div className="mt-1.5 px-3.5">
+                      <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Note venditore</label>
+                      <input
+                        type="text"
                         value={commentiVendi}
                         onChange={(e) => setCommentiVendi(e.target.value)}
                         placeholder="Scrivi info utili per l'acquirente..."
-                        rows={2}
-                        className="w-full resize-none rounded border border-gray-300 px-2 py-1.5 text-sm"
+                        className="w-full rounded-md border border-zinc-200/80 bg-zinc-50/40 px-2 py-1 text-[13px] font-medium text-zinc-900 transition-colors placeholder:text-zinc-300 focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/15"
                       />
                     </div>
 
-                    <div className="mt-2 grid grid-cols-3 gap-2">
-                      <div className="rounded-md border border-gray-200 bg-gray-50 p-1.5 text-center">
-                        <p className="text-[10px] font-semibold uppercase text-gray-500">Unitario</p>
-                        <p className="text-sm font-extrabold text-gray-900">{formatEuro(prezzoVendiValue)}</p>
-                      </div>
-                      <div className="rounded-md border border-blue-100 bg-blue-50/60 p-1.5 text-center">
-                        <p className="text-[10px] font-semibold uppercase text-blue-600">Qtà</p>
-                        <p className="text-sm font-extrabold text-blue-700">{new Intl.NumberFormat('it-IT').format(quantitaVendiValue)}</p>
-                      </div>
-                      <div className="rounded-md border border-orange-100 bg-orange-50/70 p-1.5 text-center">
-                        <p className="text-[10px] font-semibold uppercase text-orange-600">Totale</p>
-                        <p className="text-sm font-extrabold text-orange-700">{formatEuro(vendiTotaleValue)}</p>
-                      </div>
+                    {/* Extras row: Foil/Firmata */}
+                    <div className="mt-1.5 flex items-center gap-5 px-3.5">
+                      <label className="flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-zinc-500 transition-colors hover:text-zinc-700">
+                        <input
+                          type="checkbox"
+                          checked={extraFoil}
+                          onChange={(e) => setExtraFoil(e.target.checked)}
+                          className="h-3.5 w-3.5 rounded border-zinc-300 text-primary focus:ring-primary/20"
+                        />
+                        Foil
+                      </label>
+                      <label className="flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-zinc-500 transition-colors hover:text-zinc-700">
+                        <input
+                          type="checkbox"
+                          checked={extraSigned}
+                          onChange={(e) => setExtraSigned(e.target.checked)}
+                          className="h-3.5 w-3.5 rounded border-zinc-300 text-primary focus:ring-primary/20"
+                        />
+                        Firmata
+                      </label>
                     </div>
 
-                    <div className="mt-auto flex items-center justify-between border-t border-gray-100 pt-2">
-                      <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-                          <input
-                            type="checkbox"
-                            checked={extraFoil}
-                            onChange={(e) => setExtraFoil(e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-gray-300"
-                          />
-                          Foil
-                        </label>
-                        <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-                          <input
-                            type="checkbox"
-                            checked={extraSigned}
-                            onChange={(e) => setExtraSigned(e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-gray-300"
-                          />
-                          Firmata
-                        </label>
+                    {/* Action strip — totals + CTA unified */}
+                    <div className="mt-auto flex items-center gap-2 rounded-b-2xl border-t border-zinc-100 bg-zinc-50/50 px-3.5 py-2">
+                      <div className="flex flex-1 items-center gap-1.5">
+                        <div className="flex-1 rounded-lg bg-white px-2 py-1 text-center ring-1 ring-zinc-100">
+                          <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-400">Unit.</p>
+                          <p className="text-xs font-extrabold tabular-nums text-zinc-800">{formatEuro(prezzoVendiValue)}</p>
+                        </div>
+                        <span className="text-[10px] font-medium text-zinc-300">&times;</span>
+                        <div className="w-10 rounded-lg bg-white px-2 py-1 text-center ring-1 ring-zinc-100">
+                          <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-400">Qtà</p>
+                          <p className="text-xs font-extrabold tabular-nums text-zinc-800">{quantitaVendiValue}</p>
+                        </div>
+                        <span className="text-[10px] font-medium text-zinc-300">=</span>
+                        <div className="flex-1 rounded-lg bg-primary/5 px-2 py-1 text-center ring-1 ring-primary/15">
+                          <p className="text-[8px] font-bold uppercase tracking-wider text-primary/70">Totale</p>
+                          <p className="text-xs font-extrabold tabular-nums text-primary">{formatEuro(vendiTotaleValue)}</p>
+                        </div>
                       </div>
                       <button
                         type="button"
-                        className="rounded-md bg-[#FF8800] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white hover:opacity-90"
+                        className="ml-1 whitespace-nowrap rounded-lg bg-primary px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.98]"
                       >
-                        Metti in vendita
+                        Pubblica
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex min-h-0 flex-col rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Prezzi di mercato</span>
+                  {/* RIGHT: Market pricing context */}
+                  <div className="flex min-h-0 flex-col rounded-2xl bg-white ring-1 ring-zinc-900/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-3.5 pt-3 pb-2">
+                      <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Prezzi di mercato</span>
                       <button
                         type="button"
                         onClick={() => setShowChart((v) => !v)}
-                        className="text-xs font-semibold text-[#FF7300]"
+                        className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/5"
                       >
-                        {showChart ? 'Nascondi grafico' : 'Mostra grafico'}
+                        {showChart ? <><EyeOff className="h-3 w-3" /> Nascondi</> : <><Eye className="h-3 w-3" /> Grafico</>}
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="rounded border border-orange-100 bg-orange-50/60 p-1.5 text-center">
-                        <p className="text-[10px] font-semibold uppercase text-orange-700">Trend</p>
-                        <p className="text-sm font-extrabold text-orange-700">{formatEuro(trendPriceValue)}</p>
+                    {/* Trend price hero + supporting stats */}
+                    <div className="flex items-end gap-3 px-3.5 pb-2">
+                      <div>
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/70">Trend</p>
+                        <p className="text-xl font-extrabold tabular-nums leading-tight text-zinc-900">{formatEuro(trendPriceValue)}</p>
                       </div>
-                      <div className="rounded border border-blue-100 bg-blue-50/50 p-1.5 text-center">
-                        <p className="text-[10px] font-semibold uppercase text-blue-700">Vendute</p>
-                        <p className="text-sm font-extrabold text-blue-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
-                      </div>
-                      <div className="rounded border border-gray-200 bg-gray-50/50 p-1.5 text-center">
-                        <p className="text-[10px] font-semibold uppercase text-gray-600">Media</p>
-                        <p className="text-sm font-extrabold text-gray-900">{formatEuro(averageSalePriceValue)}</p>
+                      <div className="mb-0.5 flex gap-3">
+                        <div>
+                          <p className="text-[8px] font-bold uppercase tracking-wider text-sky-500/70">Vendute</p>
+                          <p className="text-sm font-extrabold tabular-nums text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-400">Media</p>
+                          <p className="text-sm font-extrabold tabular-nums text-zinc-700">{formatEuro(averageSalePriceValue)}</p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="mt-2 flex-1 min-h-0 overflow-hidden rounded-md border border-gray-200 bg-[#fafafa]">
+                    {/* Chart area */}
+                    <div className="mx-3 mb-3 flex-1 min-h-0 overflow-hidden rounded-xl bg-zinc-50/70 ring-1 ring-zinc-100">
                       {showChart ? (
-                        <div className="h-full min-h-[110px] animate-in fade-in duration-300">
+                        <div className="h-full min-h-[100px] animate-in fade-in duration-300">
                           <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
                         </div>
                       ) : (
-                        <div className="flex h-full flex-col items-center justify-center px-3 text-center">
-                          <p className="text-sm font-semibold text-gray-700">Usa il grafico per posizionare meglio il prezzo</p>
-                          <p className="mt-1 text-xs text-gray-500">Range attuale: {trendRangeLabel}</p>
+                        <div className="flex h-full flex-col items-center justify-center px-4 text-center">
+                          <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                            <Eye className="h-3.5 w-3.5 text-primary/60" />
+                          </div>
+                          <p className="text-[11px] font-semibold text-zinc-600">Posiziona meglio il prezzo</p>
+                          <p className="mt-0.5 text-[10px] text-zinc-400">{trendRangeLabel}</p>
                           <button
                             type="button"
                             onClick={() => setShowChart(true)}
-                            className="mt-2 rounded-md border border-[#FF7300]/40 bg-white px-2.5 py-1 text-xs font-semibold text-[#FF7300] hover:bg-orange-50"
+                            className="mt-2 rounded-md bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary transition-colors hover:bg-primary/15"
                           >
-                            Apri grafico prezzi
+                            Mostra grafico
                           </button>
                         </div>
                       )}
@@ -1384,22 +1396,27 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               </>
             )}
 
-            {/* Tab SCAMBIA: messaggio compatto */}
+            {/* Tab SCAMBIA: elegant empty state */}
             {activeTab === 'SCAMBIA' && (
-              <div className="flex flex-col items-center justify-center p-4 min-w-0 w-full h-full">
-                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#FF8800]/25 text-[#FF8800] mb-2" aria-hidden>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <div className="flex flex-1 flex-col items-center justify-center p-6 min-w-0 w-full">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 mb-3" aria-hidden>
+                  <svg className="w-5 h-5 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <polyline points="17 1 21 5 17 9" />
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                    <polyline points="7 23 3 19 7 15" />
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                  </svg>
                 </div>
-                <h3 className="text-sm font-bold uppercase text-gray-900">Scambio - Coming Soon</h3>
-                <p className="mt-1 text-xs text-gray-600">Funzionalità in arrivo prossimamente.</p>
+                <h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-800">Scambio</h3>
+                <p className="mt-1.5 text-xs text-zinc-400 max-w-[200px] text-center leading-relaxed">Funzionalità in arrivo prossimamente.</p>
               </div>
             )}
             {/* Tab METTI ALL'ASTA: flusso creazione asta compatta */}
             {activeTab === 'ASTA' && card && blueprintIdForAuction && (
-              <div className="min-h-0 overflow-y-auto border-t border-gray-200 bg-[#f8f9fb] p-1.5">
+              <div className="min-h-0 overflow-y-auto bg-zinc-50/30 p-2">
                 {auctionInventoryLoading ? (
-                  <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 text-xs text-gray-600">
-                    <Loader2 className="h-6 w-6 animate-spin text-[#FF8800]" aria-hidden />
+                  <div className="flex min-h-[200px] flex-col items-center justify-center gap-2.5 text-xs text-zinc-500">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
                     <span>{t('accountPage.itemsLoadingInventory')}</span>
                   </div>
                 ) : (
@@ -1415,8 +1432,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               </div>
             )}
             {activeTab === 'ASTA' && (!card || !blueprintIdForAuction) && (
-              <div className="p-4 sm:p-5 lg:p-6 overflow-y-auto">
-                <p className="text-sm text-gray-500">
+              <div className="flex flex-1 flex-col items-center justify-center p-6 min-w-0 w-full">
+                <p className="text-xs text-zinc-400 text-center max-w-[260px] leading-relaxed">
                   {!card
                     ? 'Seleziona un prodotto dal catalogo per creare un’asta.'
                     : 'Blueprint CardTrader non disponibile per questo prodotto: usa la pagina Nuova asta dal menu Aste.'}

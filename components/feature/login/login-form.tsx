@@ -17,7 +17,7 @@ import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
 
 /** Input: bordo grigio, focus arancione Ebartex */
 const loginInputClass =
-  'h-16 w-full rounded-xl border border-gray-100/30 bg-white pt-7 pb-2 px-3 text-lg text-[#0F172A] focus-visible:outline-none focus-visible:border-[#FF7300] focus-visible:ring-2 focus-visible:ring-[#FF7300]/35 transition-colors disabled:cursor-not-allowed disabled:opacity-50';
+  'h-16 w-full rounded-xl border border-gray-300 bg-white pt-7 pb-2 px-3 text-lg text-[#0F172A] focus-visible:outline-none focus-visible:border-[#FF7300] focus-visible:ring-1 focus-visible:ring-[#FF7300] focus-visible:ring-offset-0 transition-colors disabled:cursor-not-allowed disabled:opacity-50';
 
 export function LoginForm() {
   const { t } = useTranslation();
@@ -112,7 +112,8 @@ export function LoginForm() {
         <Button
           type="submit"
           disabled={loginMutation.isPending || authError.isRateLimitError}
-          className="h-12 w-full max-w-xs mx-auto rounded-full bg-gradient-to-b from-[#FF7300] to-[#FF7300] text-sm sm:text-base font-semibold text-white shadow-[0_4px_12px_rgba(255,115,0,0.25)] hover:brightness-95 hover:shadow-[0_8px_18px_-2px_rgba(255,115,0,0.30)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-14 w-full rounded-xl text-xl font-semibold text-white hover:opacity-95 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ backgroundColor: '#FF7300' }}
         >
           {loginMutation.isPending ? t('loginForm.submitting') : t('auth.login')}
         </Button>
@@ -120,7 +121,7 @@ export function LoginForm() {
       <p className="text-center text-sm">
         <Link
           href="/recupera-credenziali"
-          className="text-gray-600 hover:text-[#FF7300] transition-colors"
+          className="text-[#FF7300] hover:underline"
         >
           {t('auth.recoverCredentials')}
         </Link>

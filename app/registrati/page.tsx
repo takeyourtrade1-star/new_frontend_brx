@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import { RegisterView } from './register-view';
+import { AuthSkeleton } from '@/components/layout/AuthSkeleton';
 
 export const metadata = {
   title: 'Registrati | Ebartex',
@@ -6,5 +8,9 @@ export const metadata = {
 };
 
 export default function RegistratiPage() {
-  return <RegisterView />;
+  return (
+    <Suspense fallback={<AuthSkeleton />}>
+      <RegisterView />
+    </Suspense>
+  );
 }
