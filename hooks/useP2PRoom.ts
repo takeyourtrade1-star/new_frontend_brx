@@ -32,8 +32,99 @@ interface P2PRoom {
 interface P2PActions {
   createRoom: () => Promise<void>;
   joinRoom: (signal: string) => Promise<void>;
+  submitAnswer: (signal: string) => Promise<void>;
   sendGameState: (state: Omit<GameState, 'type' | 'timestamp'>) => void;
   disconnect: () => void;
+}
+
+const utf8Encoder = new TextEncoder();
+const utf8Decoder = new TextDecoder();
+
+function toBase64Url(bytes: Uint8Array): string {
+  let binary = '';
+  const chunkSize = 0x8000;
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function fromBase64Url(value: string): Uint8Array {
+  const normalized = value
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const padLength = (4 - (normalized.length % 4)) % 4;
+  const padded = normalized + '='.repeat(padLength);
+
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return bytes;
+}
+
+function encodeSignalForClipboard(signal: unknown): string {
+  const json = JSON.stringify(signal);
+  return toBase64Url(utf8Encoder.encode(json));
+}
+
+function isValidSignalData(value: unknown): value is Peer.SignalData {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const signal = value as Record<string, unknown>;
+  if (typeof signal.type !== 'string') {
+    return false;
+  }
+
+  if ((signal.type === 'offer' || signal.type === 'answer') && typeof signal.sdp !== 'string') {
+    return false;
+  }
+
+  return true;
+}
+
+function decodeSignalFromClipboard(signalString: string): Peer.SignalData {
+  const trimmed = signalString.trim();
+
+  // Common user mistake: entering the short 6-digit room id instead of full SDP signal.
+  if (/^\d{6}$/.test(trimmed)) {
+    throw new Error('Hai incollato il codice stanza (6 cifre). Serve il codice completo di connessione.');
+  }
+
+  // Accept raw JSON signals as a fallback for manual/debug flows.
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (isValidSignalData(parsed)) {
+        return parsed;
+      }
+    } catch {
+      // Fall through to Base64 decode path.
+    }
+  }
+
+  try {
+    const json = utf8Decoder.decode(fromBase64Url(trimmed));
+    const parsed = JSON.parse(json);
+    if (!isValidSignalData(parsed)) {
+      throw new Error('invalid signal shape');
+    }
+    return parsed;
+  } catch {
+    throw new Error('Codice di connessione non valido o corrotto. Copia e incolla nuovamente il testo completo.');
+  }
 }
 
 export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, P2PActions] {
@@ -85,11 +176,7 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
       peerRef.current = peer;
 
       peer.on('signal', (signal) => {
-        // MDN official solution: TextEncoder + String.fromCodePoint for proper UTF-8
-        const jsonStr = JSON.stringify(signal);
-        const bytes = new TextEncoder().encode(jsonStr);
-        const binString = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join("");
-        const signalString = btoa(binString);
+        const signalString = encodeSignalForClipboard(signal);
         setRoomState(prev => ({
           ...prev,
           state: 'waiting',
@@ -148,10 +235,7 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
     try {
       setRoomState(prev => ({ ...prev, state: 'joining', isHost: false }));
 
-      // MDN official solution: TextDecoder + codePointAt for proper UTF-8
-      const binString = atob(signalString);
-      const bytes = Uint8Array.from(binString, (m) => m.codePointAt(0) ?? 0);
-      const offer = JSON.parse(new TextDecoder().decode(bytes));
+      const offer = decodeSignalFromClipboard(signalString);
 
       const peer = new Peer({
         initiator: false,
@@ -161,11 +245,7 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
       peerRef.current = peer;
 
       peer.on('signal', (signal) => {
-        // MDN official solution: TextEncoder + String.fromCodePoint for proper UTF-8
-        const jsonStr = JSON.stringify(signal);
-        const bytes = new TextEncoder().encode(jsonStr);
-        const binString = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join("");
-        const answerString = btoa(binString);
+        const answerString = encodeSignalForClipboard(signal);
         setRoomState(prev => ({
           ...prev,
           state: 'waiting',
@@ -220,6 +300,27 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
     }
   }, [onGameState]);
 
+  const submitAnswer = useCallback(async (signalString: string) => {
+    try {
+      if (!peerRef.current) {
+        throw new Error('Nessuna stanza host attiva. Crea prima una stanza.');
+      }
+
+      if (!roomState.isHost) {
+        throw new Error('Solo l\'host puo\' applicare il codice risposta del guest.');
+      }
+
+      const answer = decodeSignalFromClipboard(signalString);
+      peerRef.current.signal(answer);
+      setRoomState(prev => ({
+        ...prev,
+        remoteSignal: signalString.trim(),
+      }));
+    } catch (err: any) {
+      setRoomState(prev => ({ ...prev, state: 'error', error: err.message }));
+    }
+  }, [roomState.isHost]);
+
   // Send game state
   const sendGameState = useCallback((state: Omit<GameState, 'type' | 'timestamp'>) => {
     if (peerRef.current && roomState.state === 'connected') {
@@ -259,6 +360,7 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
     {
       createRoom,
       joinRoom,
+      submitAnswer,
       sendGameState,
       disconnect,
     },

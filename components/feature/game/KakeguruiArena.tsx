@@ -19,13 +19,13 @@ import {
   type CSSProperties,
 } from 'react';
 
-type Move = 'rock' | 'paper' | 'scissors';
+export type Move = 'rock' | 'paper' | 'scissors';
 type GameState = 'idle' | 'dealing' | 'playing' | 'resolving' | 'end';
 type RoundOutcome = 'player' | 'opponent' | 'draw';
 
 type EmoteType = 'smug' | 'panic' | 'challenge';
 
-interface HandCard {
+export interface HandCard {
   id: string;
   move: Move;
 }
@@ -184,57 +184,80 @@ function MoveSymbolGlyph({
 }) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden>
+      <circle cx="50" cy="50" r="39" fill="rgba(10,10,14,0.58)" stroke={`rgba(${accentRgb},0.35)`} strokeWidth="1.8" />
+      <circle cx="50" cy="50" r="31" fill="none" stroke={`rgba(${accentRgb},0.24)`} strokeWidth="1" strokeDasharray="2 4" />
+      <path d="M 20 50 H 80" stroke={`rgba(${accentRgb},0.14)`} strokeWidth="1" />
+      <path d="M 50 20 V 80" stroke={`rgba(${accentRgb},0.14)`} strokeWidth="1" />
+
       {move === 'rock' && (
         <>
           <path
-            d="M 28 45 L 39 29 L 56 24 L 72 35 L 75 53 L 63 68 L 45 72 L 31 61 Z"
-            fill={`rgba(${accentRgb},0.24)`}
+            d="M 28 47 L 37 31 L 54 24 L 70 33 L 75 51 L 66 66 L 48 73 L 32 64 Z"
+            fill={`rgba(${accentRgb},0.18)`}
             stroke={`rgba(${accentRgb},0.92)`}
-            strokeWidth="3"
+            strokeWidth="3.2"
             strokeLinejoin="round"
+            style={{ filter: `drop-shadow(0 0 8px rgba(${accentRgb},0.5))` }}
           />
-          <path d="M 40 44 L 49 36" stroke="rgba(248,250,252,0.7)" strokeWidth="2" strokeLinecap="round" />
-          <path d="M 52 55 L 61 47" stroke="rgba(248,250,252,0.62)" strokeWidth="2" strokeLinecap="round" />
+          <path d="M 38 44 L 48 36" stroke="rgba(248,250,252,0.78)" strokeWidth="2" strokeLinecap="round" />
+          <path d="M 50 56 L 61 47" stroke="rgba(248,250,252,0.72)" strokeWidth="2" strokeLinecap="round" />
+          <path d="M 35 57 L 44 66" stroke="rgba(248,250,252,0.55)" strokeWidth="1.8" strokeLinecap="round" />
         </>
       )}
 
       {move === 'paper' && (
         <>
           <rect
-            x="29"
-            y="20"
-            width="42"
-            height="60"
+            x="30"
+            y="19"
+            width="40"
+            height="62"
             rx="8"
-            fill={`rgba(${accentRgb},0.2)`}
+            fill={`rgba(${accentRgb},0.14)`}
             stroke={`rgba(${accentRgb},0.95)`}
             strokeWidth="3"
+            style={{ filter: `drop-shadow(0 0 9px rgba(${accentRgb},0.45))` }}
           />
-          <path d="M 37 38 H 63" stroke="rgba(248,250,252,0.74)" strokeWidth="2.6" strokeLinecap="round" />
-          <path d="M 37 48 H 63" stroke="rgba(248,250,252,0.74)" strokeWidth="2.6" strokeLinecap="round" />
-          <path d="M 37 58 H 56" stroke="rgba(248,250,252,0.7)" strokeWidth="2.4" strokeLinecap="round" />
+          <path d="M 36 33 H 64" stroke="rgba(248,250,252,0.75)" strokeWidth="2.4" strokeLinecap="round" />
+          <path d="M 36 43 H 64" stroke="rgba(248,250,252,0.72)" strokeWidth="2.2" strokeLinecap="round" />
+          <path d="M 36 53 H 62" stroke="rgba(248,250,252,0.68)" strokeWidth="2" strokeLinecap="round" />
+          <path d="M 36 63 H 56" stroke="rgba(248,250,252,0.62)" strokeWidth="1.8" strokeLinecap="round" />
         </>
       )}
 
       {move === 'scissors' && (
         <>
-          <circle cx="34" cy="66" r="11" fill="none" stroke={`rgba(${accentRgb},0.95)`} strokeWidth="3" />
-          <circle cx="66" cy="66" r="11" fill="none" stroke={`rgba(${accentRgb},0.95)`} strokeWidth="3" />
+          <circle cx="34" cy="66" r="10.5" fill="none" stroke={`rgba(${accentRgb},0.95)`} strokeWidth="3" />
+          <circle cx="66" cy="66" r="10.5" fill="none" stroke={`rgba(${accentRgb},0.95)`} strokeWidth="3" />
           <path
-            d="M 40 60 L 70 26"
+            d="M 40 60 L 70 25"
             stroke={`rgba(${accentRgb},0.95)`}
-            strokeWidth="5"
+            strokeWidth="5.2"
             strokeLinecap="round"
+            style={{ filter: `drop-shadow(0 0 7px rgba(${accentRgb},0.48))` }}
           />
           <path
-            d="M 60 60 L 30 26"
+            d="M 60 60 L 30 25"
             stroke={`rgba(${accentRgb},0.95)`}
-            strokeWidth="5"
+            strokeWidth="5.2"
             strokeLinecap="round"
+            style={{ filter: `drop-shadow(0 0 7px rgba(${accentRgb},0.48))` }}
           />
           <circle cx="50" cy="56" r="3" fill="rgba(248,250,252,0.86)" />
         </>
       )}
+
+      <text
+        x="50"
+        y="86"
+        textAnchor="middle"
+        className="font-comodo"
+        fontSize="7"
+        letterSpacing="2"
+        fill={`rgba(${accentRgb},0.78)`}
+      >
+        BRX
+      </text>
     </svg>
   );
 }
@@ -263,7 +286,7 @@ function resolveRound(playerMove: Move, opponentMove: Move): RoundOutcome {
   return BEATS[playerMove] === opponentMove ? 'player' : 'opponent';
 }
 
-function ArenaCardBack({ variant = 'hand' }: { variant?: 'hand' | 'duel' }) {
+export function ArenaCardBack({ variant = 'hand' }: { variant?: 'hand' | 'duel' }) {
   const isDuel = variant === 'duel';
 
   return (
@@ -293,14 +316,18 @@ function ArenaMoveFace({
 }) {
   const meta = MOVE_META[move];
   const isDuel = variant === 'duel';
+  const strokeLabel = move.toUpperCase();
 
   return (
     <div
       className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-2xl border"
       style={{
-        borderColor: `rgba(${meta.accentRgb},0.65)`,
-        background: 'linear-gradient(150deg, #1c1c22 0%, #0e0e12 35%, #16161b 70%, #1c1c22 100%)',
-        boxShadow: `0 10px 34px rgba(${meta.accentRgb},0.28), inset 0 1px 0 rgba(${meta.accentRgb},0.15)`,
+        borderColor: `rgba(${meta.accentRgb},0.85)`,
+        background:
+          `radial-gradient(circle at 16% 12%, rgba(${meta.accentRgb},0.22), transparent 36%), ` +
+          `radial-gradient(circle at 84% 88%, rgba(${meta.accentRgb},0.16), transparent 42%), ` +
+          'linear-gradient(156deg, #0b0b0f 0%, #050508 36%, #111118 66%, #0a0a0f 100%)',
+        boxShadow: `0 14px 48px rgba(${meta.accentRgb},0.38), inset 0 1px 0 rgba(${meta.accentRgb},0.28), inset 0 0 0 1px rgba(255,255,255,0.05)`,
       }}
     >
       <motion.div
@@ -327,10 +354,10 @@ function ArenaMoveFace({
       />
 
       <span
-        className={`pointer-events-none absolute top-4 font-comodo font-black tracking-tight text-white/25 ${isDuel ? 'text-2xl' : 'text-base'}`}
-        style={{ textShadow: `0 0 14px rgba(${meta.accentRgb},0.4)` }}
+        className={`pointer-events-none absolute top-3 font-comodo font-black tracking-[0.12em] text-white/55 ${isDuel ? 'text-lg' : 'text-[11px]'}`}
+        style={{ textShadow: `0 0 12px rgba(${meta.accentRgb},0.8)` }}
       >
-        BRX
+        {strokeLabel}
       </span>
 
       <MoveSymbolGlyph
@@ -340,12 +367,19 @@ function ArenaMoveFace({
       />
 
       <span
-        className={`mt-2 rounded-full border px-2.5 py-0.5 font-bold uppercase tracking-[0.2em] text-white/90 ${
+        className={`mt-2 rounded-full border px-2.5 py-0.5 font-bold uppercase tracking-[0.2em] text-white ${
           isDuel ? 'text-[10px]' : 'text-[9px]'
         }`}
-        style={{ borderColor: `rgba(${meta.accentRgb},0.6)`, background: `rgba(${meta.accentRgb},0.15)` }}
+        style={{ borderColor: `rgba(${meta.accentRgb},0.88)`, background: `rgba(${meta.accentRgb},0.22)`, boxShadow: `0 0 18px rgba(${meta.accentRgb},0.32)` }}
       >
         {meta.label}
+      </span>
+
+      <span
+        className={`pointer-events-none absolute bottom-2 font-comodo font-black tracking-[0.28em] text-white/70 ${isDuel ? 'text-[9px]' : 'text-[8px]'}`}
+        style={{ textShadow: `0 0 10px rgba(${meta.accentRgb},0.68)` }}
+      >
+        BRX
       </span>
 
       {[['left-2 top-2', 'left-0 top-0'], ['right-2 top-2', 'right-0 top-0'], ['bottom-2 left-2', 'bottom-0 left-0'], ['bottom-2 right-2', 'bottom-0 right-0']].map(([pos, inner], idx) => (
@@ -362,7 +396,7 @@ function ArenaMoveFace({
   );
 }
 
-function HandMoveCard({
+export function HandMoveCard({
   card,
   hidden,
   disabled,
@@ -430,7 +464,7 @@ function HandMoveCard({
   );
 }
 
-function DuelCard({
+export function DuelCard({
   move,
   reveal,
   state,
@@ -514,6 +548,7 @@ export function KakeguruiArena({
   const [roundOutcome, setRoundOutcome] = useState<RoundOutcome | null>(null);
   const [isAutoPicked, setIsAutoPicked] = useState(false);
   const [activeEmote, setActiveEmote] = useState<EmoteBurst | null>(null);
+  const [shatterPulse, setShatterPulse] = useState(0);
 
   const timeoutRef = useRef<number[]>([]);
   const intervalRef = useRef<number | null>(null);
@@ -616,6 +651,65 @@ export function KakeguruiArena({
     [ensureAudioContext]
   );
 
+  const playCardDestroySfx = useCallback(async () => {
+    const ctx = await ensureAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, now);
+    master.gain.exponentialRampToValueAtTime(0.16, now + 0.015);
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.44);
+    master.connect(ctx.destination);
+
+    const body = ctx.createOscillator();
+    const bodyGain = ctx.createGain();
+    body.type = 'triangle';
+    body.frequency.setValueAtTime(190, now);
+    body.frequency.exponentialRampToValueAtTime(62, now + 0.24);
+    bodyGain.gain.setValueAtTime(0.0001, now);
+    bodyGain.gain.exponentialRampToValueAtTime(0.2, now + 0.012);
+    bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.29);
+    body.connect(bodyGain);
+    bodyGain.connect(master);
+    body.start(now);
+    body.stop(now + 0.33);
+
+    const crack = ctx.createOscillator();
+    const crackGain = ctx.createGain();
+    crack.type = 'square';
+    crack.frequency.setValueAtTime(1160, now + 0.016);
+    crack.frequency.exponentialRampToValueAtTime(360, now + 0.16);
+    crackGain.gain.setValueAtTime(0.0001, now + 0.012);
+    crackGain.gain.exponentialRampToValueAtTime(0.12, now + 0.022);
+    crackGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.21);
+    crack.connect(crackGain);
+    crackGain.connect(master);
+    crack.start(now + 0.012);
+    crack.stop(now + 0.24);
+
+    const noiseBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.28), ctx.sampleRate);
+    const channel = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < channel.length; i += 1) {
+      channel[i] = (Math.random() * 2 - 1) * (1 - i / channel.length);
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.setValueAtTime(1200, now);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.0001, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.17, now + 0.02);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
+    noise.connect(hp);
+    hp.connect(noiseGain);
+    noiseGain.connect(master);
+    noise.start(now + 0.014);
+    noise.stop(now + 0.3);
+  }, [ensureAudioContext]);
+
   const startDealing = useCallback(
     (resetScore: boolean) => {
       stopCountdown();
@@ -690,6 +784,11 @@ export function KakeguruiArena({
       }, 1000);
 
       queueTimeout(() => {
+        void playCardDestroySfx();
+        setShatterPulse((prev) => prev + 1);
+      }, 1680);
+
+      queueTimeout(() => {
         setPlayerHand((prev) => prev.filter((card) => card.id !== playerCard.id));
         setOpponentHand((prev) => prev.filter((card) => card.id !== opponentCard.id));
         setSelectedPlayerId(null);
@@ -721,6 +820,7 @@ export function KakeguruiArena({
       playerScore,
       queueTimeout,
       selectedPlayerId,
+      playCardDestroySfx,
       startDealing,
       stopCountdown,
     ]
@@ -973,6 +1073,25 @@ export function KakeguruiArena({
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                     >
+                      {[0, 1, 2, 3, 4].map((idx) => {
+                        const radius = 34 + idx * 6;
+                        return (
+                          <motion.div
+                            key={`arena-shuffle-${idx}`}
+                            className="absolute h-20 w-16"
+                            animate={{
+                              x: [0, radius, 0, -radius, 0],
+                              y: [-radius * 0.24, 0, radius * 0.24, 0, -radius * 0.24],
+                              rotate: [idx * 12, idx * 12 + 75, idx * 12 + 160, idx * 12 + 250, idx * 12 + 340],
+                              opacity: [0.2, 0.75, 0.65, 0.75, 0.2],
+                            }}
+                            transition={{ duration: 1.15, repeat: Infinity, ease: 'linear', delay: idx * 0.06 }}
+                          >
+                            <ArenaCardBack />
+                          </motion.div>
+                        );
+                      })}
+
                       <motion.div
                         className="h-32 w-24"
                         animate={{ rotate: [-3, 3, -2, 2, 0], y: [0, -5, 0], scale: [1, 1.03, 1] }}
@@ -980,6 +1099,10 @@ export function KakeguruiArena({
                       >
                         <ArenaCardBack />
                       </motion.div>
+
+                      <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-full border border-orange-300/35 bg-orange-500/10 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-orange-200/90">
+                        Mischia in corso
+                      </div>
 
                       {[0, 1, 2].map((idx) => (
                         <motion.div
@@ -1088,7 +1211,7 @@ export function KakeguruiArena({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                     >
-                      <div className="flex w-full items-center justify-center gap-4 sm:gap-8">
+                      <div className="relative flex w-full items-center justify-center gap-4 sm:gap-8">
                         <DuelCard
                           move={battle.opponent.move}
                           reveal={revealed}
@@ -1101,6 +1224,40 @@ export function KakeguruiArena({
                           state={duelState.player}
                           title={playerName}
                         />
+
+                        <AnimatePresence mode="wait">
+                          {revealed && (
+                            <motion.div
+                              key={`arena-shatter-${shatterPulse}`}
+                              className="pointer-events-none absolute inset-0"
+                              initial={{ opacity: 1 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                            >
+                              {Array.from({ length: 16 }).map((_, idx) => {
+                                const angle = (idx / 16) * Math.PI * 2;
+                                const distance = 70 + (idx % 5) * 13;
+                                const targetX = Math.cos(angle) * distance;
+                                const targetY = Math.sin(angle) * distance;
+                                return (
+                                  <motion.div
+                                    key={`arena-fragment-${idx}`}
+                                    className="absolute left-1/2 top-1/2 h-2.5 w-6 rounded-[4px] border border-orange-100/70 bg-gradient-to-r from-orange-200/80 to-cyan-200/70"
+                                    initial={{ x: 0, y: 0, rotate: 0, opacity: 0.95, scale: 1 }}
+                                    animate={{
+                                      x: targetX,
+                                      y: targetY,
+                                      rotate: idx % 2 === 0 ? 140 : -140,
+                                      opacity: 0,
+                                      scale: 0.22,
+                                    }}
+                                    transition={{ duration: 0.42, ease: 'easeOut', delay: idx * 0.012 }}
+                                  />
+                                );
+                              })}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
                       <p className="mt-5 text-center text-sm font-semibold uppercase tracking-[0.16em] text-white/75">

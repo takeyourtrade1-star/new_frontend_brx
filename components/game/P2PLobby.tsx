@@ -5,16 +5,17 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Users, Wifi, WifiOff, CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useP2PRoom, P2PRoom as P2PRoomState } from '@/hooks/useP2PRoom';
+import { P2PRoom as P2PRoomState, P2PActions } from '@/hooks/useP2PRoom';
 
 interface P2PLobbyProps {
   onConnected?: () => void;
-  onGameState?: (state: any) => void;
+  room: P2PRoomState;
+  actions: P2PActions;
 }
 
-export function P2PLobby({ onConnected, onGameState }: P2PLobbyProps) {
-  const [room, actions] = useP2PRoom(onGameState);
+export function P2PLobby({ onConnected, room, actions }: P2PLobbyProps) {
   const [joinSignal, setJoinSignal] = useState('');
+  const [answerSignal, setAnswerSignal] = useState('');
   const [copied, setCopied] = useState(false);
 
   const handleCopySignal = async () => {
@@ -28,6 +29,13 @@ export function P2PLobby({ onConnected, onGameState }: P2PLobbyProps) {
   const handleJoin = async () => {
     if (joinSignal.trim()) {
       await actions.joinRoom(joinSignal.trim());
+    }
+  };
+
+  const handleApplyAnswer = async () => {
+    if (answerSignal.trim()) {
+      await actions.submitAnswer(answerSignal.trim());
+      setAnswerSignal('');
     }
   };
 
@@ -114,12 +122,12 @@ export function P2PLobby({ onConnected, onGameState }: P2PLobbyProps) {
             </div>
 
             <div className="space-y-3">
-              <label className="text-sm text-zinc-400">Incolla codice ricevuto:</label>
+              <label className="text-sm text-zinc-400">Incolla il codice completo di connessione:</label>
               <div className="flex gap-2">
                 <Input
                   value={joinSignal}
                   onChange={(e) => setJoinSignal(e.target.value)}
-                  placeholder="Codice o scansiona QR..."
+                  placeholder="Codice lungo (non il codice stanza a 6 cifre)"
                   className="flex-1 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
                 />
                 <Button 
@@ -139,11 +147,31 @@ export function P2PLobby({ onConnected, onGameState }: P2PLobbyProps) {
           <div className="space-y-6">
             {/* Room Code Display */}
             <div className="text-center space-y-2">
-              <label className="text-sm text-zinc-400 uppercase tracking-wider">Codice Stanza</label>
+              <label className="text-sm text-zinc-400 uppercase tracking-wider">Codice Stanza (solo ID)</label>
               <div className="text-4xl font-mono font-bold text-primary tracking-widest">
                 {room.roomCode}
               </div>
-              <p className="text-xs text-zinc-500">Dittalo al secondo giocatore</p>
+              <p className="text-xs text-zinc-500">Identificativo visuale: per connetterti usa il codice completo qui sotto</p>
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-300">Passo 3 (Host)</p>
+              <label className="text-sm text-zinc-300">Incolla qui la risposta del guest per completare la connessione:</label>
+              <div className="flex gap-2">
+                <Input
+                  value={answerSignal}
+                  onChange={(e) => setAnswerSignal(e.target.value)}
+                  placeholder="Codice risposta guest (lungo)"
+                  className="flex-1 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+                />
+                <Button
+                  onClick={handleApplyAnswer}
+                  disabled={!answerSignal.trim()}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
 
             {/* QR Code */}
