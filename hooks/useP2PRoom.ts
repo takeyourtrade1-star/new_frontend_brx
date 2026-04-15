@@ -85,10 +85,11 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
       peerRef.current = peer;
 
       peer.on('signal', (signal) => {
-        // Use TextEncoder for proper UTF-8 to base64 conversion
+        // MDN official solution: TextEncoder + String.fromCodePoint for proper UTF-8
         const jsonStr = JSON.stringify(signal);
         const bytes = new TextEncoder().encode(jsonStr);
-        const signalString = btoa(String.fromCharCode(...bytes));
+        const binString = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join("");
+        const signalString = btoa(binString);
         setRoomState(prev => ({
           ...prev,
           state: 'waiting',
@@ -147,9 +148,9 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
     try {
       setRoomState(prev => ({ ...prev, state: 'joining', isHost: false }));
 
-      // Use TextDecoder for proper base64 to UTF-8 conversion
-      const decodedStr = atob(signalString);
-      const bytes = new Uint8Array(decodedStr.split('').map(c => c.charCodeAt(0)));
+      // MDN official solution: TextDecoder + codePointAt for proper UTF-8
+      const binString = atob(signalString);
+      const bytes = Uint8Array.from(binString, (m) => m.codePointAt(0) ?? 0);
       const offer = JSON.parse(new TextDecoder().decode(bytes));
 
       const peer = new Peer({
@@ -160,10 +161,11 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
       peerRef.current = peer;
 
       peer.on('signal', (signal) => {
-        // Use TextEncoder for proper UTF-8 to base64 conversion
+        // MDN official solution: TextEncoder + String.fromCodePoint for proper UTF-8
         const jsonStr = JSON.stringify(signal);
         const bytes = new TextEncoder().encode(jsonStr);
-        const answerString = btoa(String.fromCharCode(...bytes));
+        const binString = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join("");
+        const answerString = btoa(binString);
         setRoomState(prev => ({
           ...prev,
           state: 'waiting',
