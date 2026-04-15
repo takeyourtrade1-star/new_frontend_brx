@@ -783,7 +783,12 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       {/* Contenuto principale: card bianca su sfondo grigio – responsive padding e layout */}
       <section className="w-full bg-[#F0F0F0] px-4 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 pb-4 sm:pb-6 min-h-0">
         <div className="container-content">
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-[2px] shadow-[0_1px_4px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] sm:h-[320px] sm:flex-row">
+          <div
+            className={cn(
+              'flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-[2px] shadow-[0_1px_4px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] sm:flex-row',
+              activeTab === 'ASTA' ? 'sm:min-h-[420px]' : 'sm:h-[320px]'
+            )}
+          >
             {/* Colonna sinistra: immagine carta compatta */}
             <aside
               className={cn(
@@ -1413,7 +1418,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             )}
             {/* Tab METTI ALL'ASTA: flusso creazione asta compatta */}
             {activeTab === 'ASTA' && card && blueprintIdForAuction && (
-              <div className="min-h-0 overflow-y-auto bg-zinc-50/30 p-2">
+              <div className="min-h-0 bg-zinc-50/30 p-2 sm:p-2.5">
                 {auctionInventoryLoading ? (
                   <div className="flex min-h-[200px] flex-col items-center justify-center gap-2.5 text-xs text-zinc-500">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />

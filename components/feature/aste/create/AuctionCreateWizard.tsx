@@ -532,8 +532,8 @@ export function AuctionCreateWizard({
     [draft.cardLanguage]
   );
 
-  /** Barra navigazione fissa solo dal passo 2 in poi (dopo «È una carta?»). */
-  const showStickyNav = stepId !== 'q_card';
+  /** Barra navigazione fissa solo nello standalone; embedded usa footer inline nel card. */
+  const showStickyNav = !isEmbedded && stepId !== 'q_card';
 
   // Desktop nav visibile solo quando il centro viewport cade nel range verticale del wizard.
   useEffect(() => {
@@ -585,10 +585,10 @@ export function AuctionCreateWizard({
     return `${y}-${m}-${d}`;
   }, []);
 
-  // On every step change, bring the wizard back into view and focus the first actionable field.
+  // On every step change, bring the wizard into view (standalone) and focus the first actionable field.
   useEffect(() => {
     const shell = wizardShellRef.current;
-    if (shell) {
+    if (shell && !isEmbedded) {
       // Calcola la posizione assoluta del top del wizard nel documento
       const top = shell.getBoundingClientRect().top + window.scrollY;
       // Scrolls al wizard con ampio padding superiore per visualizzare completamente lo step indicator
@@ -624,7 +624,7 @@ export function AuctionCreateWizard({
     }, 200);
 
     return () => window.clearTimeout(timer);
-  }, [stepId]);
+  }, [stepId, isEmbedded]);
 
   if (done) {
     return (
@@ -778,12 +778,12 @@ export function AuctionCreateWizard({
           >
             {stepHeading}
           </h1>
-          {stepHint ? (
+          {stepHint && !isEmbedded ? (
             <p className={cn('mt-1 text-sm text-gray-500', isEmbedded && 'mt-0 text-[11px] leading-snug text-zinc-400')}>{stepHint}</p>
           ) : null}
         </div>
 
-        <div ref={stepContentRef} className={cn('px-5 py-6 sm:px-8 sm:py-8', isEmbedded && 'px-3 py-2.5 sm:px-4 sm:py-3')}>
+        <div ref={stepContentRef} className={cn('px-5 py-6 sm:px-8 sm:py-8', isEmbedded && 'px-3 py-2 sm:px-3.5 sm:py-2.5')}>
           {error && (
             <p
               className={cn(
@@ -834,49 +834,115 @@ export function AuctionCreateWizard({
           )}
 
           {stepId === 'inventory_pick' && embeddedCard && (
-            <div className={cn('space-y-4', isEmbedded && 'space-y-1.5')}>
+            <div className={cn('space-y-4', isEmbedded && 'space-y-2')}>
               <p className={cn('text-sm text-gray-600', isEmbedded && 'text-[11px] leading-snug text-zinc-500')}>
                 {t('auctions.createStepInventoryPickIntro')}
               </p>
-              <ul className={cn('space-y-2', isEmbedded && 'space-y-1.5')}>
-                {embeddedInventoryItems.map((item) => {
-                  const props = item.properties as Record<string, unknown> | undefined;
-                  const cond = typeof props?.condition === 'string' ? props.condition : '';
-                  return (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        onClick={() => setEmbeddedInventoryPick(item.id)}
-                        className={cn(
-                          'w-full rounded-xl border px-4 py-3 text-left text-sm transition',
-                          isEmbedded && 'rounded-lg px-3 py-2 text-xs',
-                          embeddedInventoryPick === item.id
-                            ? 'border-[#FF7300] bg-orange-50'
-                            : 'border-gray-200 bg-white hover:border-gray-300'
-                        )}
-                      >
-                        <span className="font-semibold text-[#1D3160]">#{item.id}</span>
-                        <span className="text-gray-600"> · {t('auctions.createInventoryQtyLabel', { n: item.quantity })}</span>
-                        <span className="text-gray-600"> · {formatEuro(item.price_cents / 100)}</span>
-                        {cond ? <span className="text-xs text-gray-500"> · {cond}</span> : null}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-              <button
-                type="button"
-                onClick={() => setEmbeddedInventoryPick('skip')}
-                className={cn(
-                  'w-full rounded-xl border px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[#1D3160] transition',
-                  isEmbedded && 'rounded-lg px-3 py-2 text-xs',
-                  embeddedInventoryPick === 'skip'
-                    ? 'border-[#FF7300] bg-orange-50'
-                    : 'border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100'
-                )}
-              >
-                {t('auctions.createInventorySkipCta')}
-              </button>
+
+              {isEmbedded ? (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof embeddedInventoryPick === 'number') return;
+                      const firstId = embeddedInventoryItems[0]?.id;
+                      if (typeof firstId === 'number') setEmbeddedInventoryPick(firstId);
+                    }}
+                    className={cn(
+                      'w-full rounded-lg border px-3 py-2 text-left text-xs transition',
+                      typeof embeddedInventoryPick === 'number'
+                        ? 'border-[#FF7300] bg-orange-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    )}
+                  >
+                    <span className="block text-[11px] font-bold uppercase tracking-wide text-[#1D3160]">
+                      Usa una copia in inventario
+                    </span>
+                    <span className="mt-0.5 block text-[11px] text-zinc-500">
+                      Seleziona la copia gia presente e parti da quei dati.
+                    </span>
+                  </button>
+
+                  <select
+                    value={typeof embeddedInventoryPick === 'number' ? String(embeddedInventoryPick) : ''}
+                    onChange={(e) => setEmbeddedInventoryPick(Number(e.target.value))}
+                    className={cn(
+                      'w-full rounded-lg border bg-white px-3 py-2 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
+                      typeof embeddedInventoryPick === 'number'
+                        ? 'border-[#FF7300]/60'
+                        : 'border-gray-300'
+                    )}
+                  >
+                    <option value="" disabled>
+                      Seleziona una copia
+                    </option>
+                    {embeddedInventoryItems.map((item) => {
+                      const props = item.properties as Record<string, unknown> | undefined;
+                      const cond = typeof props?.condition === 'string' ? props.condition : '';
+                      return (
+                        <option key={item.id} value={item.id}>
+                          #{item.id} · {t('auctions.createInventoryQtyLabel', { n: item.quantity })} · {formatEuro(item.price_cents / 100)}{cond ? ` · ${cond}` : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => setEmbeddedInventoryPick('skip')}
+                    className={cn(
+                      'w-full rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#1D3160] transition',
+                      embeddedInventoryPick === 'skip'
+                        ? 'border-[#FF7300] bg-orange-50'
+                        : 'border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100'
+                    )}
+                  >
+                    {t('auctions.createInventorySkipCta')}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <ul className={cn('space-y-2', isEmbedded && 'space-y-1.5')}>
+                    {embeddedInventoryItems.map((item) => {
+                      const props = item.properties as Record<string, unknown> | undefined;
+                      const cond = typeof props?.condition === 'string' ? props.condition : '';
+                      return (
+                        <li key={item.id}>
+                          <button
+                            type="button"
+                            onClick={() => setEmbeddedInventoryPick(item.id)}
+                            className={cn(
+                              'w-full rounded-xl border px-4 py-3 text-left text-sm transition',
+                              isEmbedded && 'rounded-lg px-3 py-2 text-xs',
+                              embeddedInventoryPick === item.id
+                                ? 'border-[#FF7300] bg-orange-50'
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                            )}
+                          >
+                            <span className="font-semibold text-[#1D3160]">#{item.id}</span>
+                            <span className="text-gray-600"> · {t('auctions.createInventoryQtyLabel', { n: item.quantity })}</span>
+                            <span className="text-gray-600"> · {formatEuro(item.price_cents / 100)}</span>
+                            {cond ? <span className="text-xs text-gray-500"> · {cond}</span> : null}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={() => setEmbeddedInventoryPick('skip')}
+                    className={cn(
+                      'w-full rounded-xl border px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[#1D3160] transition',
+                      isEmbedded && 'rounded-lg px-3 py-2 text-xs',
+                      embeddedInventoryPick === 'skip'
+                        ? 'border-[#FF7300] bg-orange-50'
+                        : 'border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100'
+                    )}
+                  >
+                    {t('auctions.createInventorySkipCta')}
+                  </button>
+                </>
+              )}
             </div>
           )}
 
@@ -1313,107 +1379,175 @@ export function AuctionCreateWizard({
                 )}
               </div>
 
-              <dl
-                className={cn(
-                  'divide-y divide-gray-100 rounded-xl border border-gray-100 bg-gray-50/80',
-                  isEmbedded && 'rounded-lg text-xs divide-zinc-100/70'
-                )}
-              >
-              <div
-                className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}
-              >
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createAskIsCard')}</dt>
-                <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
-                  {draft.isCard === true ? t('auctions.createIsCardYes') : draft.isCard === false ? t('auctions.createIsCardNo') : '—'}
-                </dd>
-              </div>
-              {draft.isCard && draft.cardSelection && (
-                <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createStepPickCard')}</dt>
-                  <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
-                    {draft.cardSelection.title}
-                    {draft.cardSelection.setName ? ` — ${draft.cardSelection.setName}` : ''}
-                    {draft.cardSelection.inventoryItemId != null ? (
-                      <span className="mt-1 block text-xs font-normal text-gray-500">
-                        {t('auctions.createFromCollectionItem', { id: draft.cardSelection.inventoryItemId })}
-                      </span>
-                    ) : null}
-                  </dd>
+              {isEmbedded ? (
+                <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/80 p-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-md bg-white px-2.5 py-1.5 ring-1 ring-zinc-100">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Base</p>
+                      <p className="text-xs font-extrabold text-zinc-900">€{draft.startingBidEur || '—'}</p>
+                    </div>
+                    <div className="rounded-md bg-white px-2.5 py-1.5 ring-1 ring-zinc-100">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Durata</p>
+                      <p className="text-xs font-extrabold text-zinc-900">{t('auctions.createDurationDays', { days: draft.durationDays })}</p>
+                    </div>
+                    <div className="rounded-md bg-white px-2.5 py-1.5 ring-1 ring-zinc-100">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Spedizione</p>
+                      <p className="text-xs font-extrabold text-zinc-900">
+                        {draft.shippingPayer === 'buyer' ? t('auctions.createShippingBuyer') : t('auctions.createShippingSeller')}
+                      </p>
+                    </div>
+                    <div className="rounded-md bg-white px-2.5 py-1.5 ring-1 ring-zinc-100">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Foto</p>
+                      <p className="text-xs font-extrabold text-zinc-900">{draft.listingPhotos.length}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 rounded-md bg-white px-2.5 py-2 ring-1 ring-zinc-100">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Titolo</p>
+                    <p className="mt-0.5 line-clamp-1 text-xs font-semibold text-zinc-900">{draft.title || '—'}</p>
+                    <p className="mt-1 text-[11px] text-zinc-500">{draft.publishMode === 'scheduled' ? `Programmata: ${draft.publishAtDate || '—'} ${draft.publishAtTime || '—'}` : 'Pubblicazione immediata'}</p>
+                  </div>
+                  <div className="mt-2">
+                    <ListingPhotoThumbnailsRow photos={draft.listingPhotos} />
+                  </div>
                 </div>
-              )}
-              {draft.isCard === false && draft.game === 'other' && (
-                <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    {t('auctions.createNonCardCategorySection')}
-                  </dt>
-                  <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{t('auctions.createNonCardCategoryOther')}</dd>
-                </div>
-              )}
-              <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.filterGame')}</dt>
-                <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
-                  {draft.game
-                    ? t(AUCTION_CREATE_GAMES.find((g) => g.value === draft.game)?.labelKey ?? 'auctions.gameOther')
-                    : '—'}
-                </dd>
-              </div>
-              <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createTitleLabel')}</dt>
-                <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{draft.title || '—'}</dd>
-              </div>
-              <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {draft.isCard ? t('auctions.createAuctionNoteLabel') : t('auctions.createDescLabel')}
-                </dt>
-                <dd className="text-sm font-medium text-gray-900 sm:col-span-2 whitespace-pre-wrap">{draft.description || '—'}</dd>
-              </div>
-              <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createConditionLabel')}</dt>
-                <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{t(auctionConditionLabelKey(draft.condition))}</dd>
-              </div>
-              {draft.isCard && (
-                <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Lingua carta</dt>
-                  <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{cardLanguageLabel}</dd>
-                </div>
-              )}
-              <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createStartingBidLabel')}</dt>
-                <dd className="text-sm font-medium text-gray-900 sm:col-span-2">€{draft.startingBidEur || '—'}</dd>
-              </div>
-              <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createDurationLabel')}</dt>
-                <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
-                  {t('auctions.createDurationDays', { days: draft.durationDays })}
-                </dd>
-              </div>
-              <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Modalita pubblicazione</dt>
-                <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
-                  {draft.publishMode === 'scheduled'
-                    ? `Programmata: ${draft.publishAtDate || '—'} ${draft.publishAtTime || '—'}`
-                    : 'Immediata'}
-                </dd>
-              </div>
-              <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createShippingWhoLabel')}</dt>
-                <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
-                  {draft.shippingPayer === 'buyer' ? t('auctions.createShippingBuyer') : t('auctions.createShippingSeller')}
-                  {draft.shippingPayer === 'buyer' && (
-                    <span className="text-gray-600"> — €{draft.shippingFlatEur}</span>
+              ) : (
+                <dl className="divide-y divide-gray-100 rounded-xl border border-gray-100 bg-gray-50/80">
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createAskIsCard')}</dt>
+                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
+                      {draft.isCard === true ? t('auctions.createIsCardYes') : draft.isCard === false ? t('auctions.createIsCardNo') : '—'}
+                    </dd>
+                  </div>
+                  {draft.isCard && draft.cardSelection && (
+                    <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createStepPickCard')}</dt>
+                      <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
+                        {draft.cardSelection.title}
+                        {draft.cardSelection.setName ? ` — ${draft.cardSelection.setName}` : ''}
+                        {draft.cardSelection.inventoryItemId != null ? (
+                          <span className="mt-1 block text-xs font-normal text-gray-500">
+                            {t('auctions.createFromCollectionItem', { id: draft.cardSelection.inventoryItemId })}
+                          </span>
+                        ) : null}
+                      </dd>
+                    </div>
                   )}
-                </dd>
-              </div>
-              <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createStepPhotos')}</dt>
-                <dd className="sm:col-span-2">
-                  <ListingPhotoThumbnailsRow photos={draft.listingPhotos} />
-                </dd>
-              </div>
-              </dl>
+                  {draft.isCard === false && draft.game === 'other' && (
+                    <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        {t('auctions.createNonCardCategorySection')}
+                      </dt>
+                      <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{t('auctions.createNonCardCategoryOther')}</dd>
+                    </div>
+                  )}
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.filterGame')}</dt>
+                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
+                      {draft.game
+                        ? t(AUCTION_CREATE_GAMES.find((g) => g.value === draft.game)?.labelKey ?? 'auctions.gameOther')
+                        : '—'}
+                    </dd>
+                  </div>
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createTitleLabel')}</dt>
+                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{draft.title || '—'}</dd>
+                  </div>
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      {draft.isCard ? t('auctions.createAuctionNoteLabel') : t('auctions.createDescLabel')}
+                    </dt>
+                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2 whitespace-pre-wrap">{draft.description || '—'}</dd>
+                  </div>
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createConditionLabel')}</dt>
+                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{t(auctionConditionLabelKey(draft.condition))}</dd>
+                  </div>
+                  {draft.isCard && (
+                    <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Lingua carta</dt>
+                      <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{cardLanguageLabel}</dd>
+                    </div>
+                  )}
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createStartingBidLabel')}</dt>
+                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">€{draft.startingBidEur || '—'}</dd>
+                  </div>
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createDurationLabel')}</dt>
+                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
+                      {t('auctions.createDurationDays', { days: draft.durationDays })}
+                    </dd>
+                  </div>
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Modalita pubblicazione</dt>
+                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
+                      {draft.publishMode === 'scheduled'
+                        ? `Programmata: ${draft.publishAtDate || '—'} ${draft.publishAtTime || '—'}`
+                        : 'Immediata'}
+                    </dd>
+                  </div>
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createShippingWhoLabel')}</dt>
+                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
+                      {draft.shippingPayer === 'buyer' ? t('auctions.createShippingBuyer') : t('auctions.createShippingSeller')}
+                      {draft.shippingPayer === 'buyer' && (
+                        <span className="text-gray-600"> — €{draft.shippingFlatEur}</span>
+                      )}
+                    </dd>
+                  </div>
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createStepPhotos')}</dt>
+                    <dd className="sm:col-span-2">
+                      <ListingPhotoThumbnailsRow photos={draft.listingPhotos} />
+                    </dd>
+                  </div>
+                </dl>
+              )}
             </div>
           )}
         </div>
+
+        {isEmbedded && stepId !== 'q_card' && (
+          <div className="border-t border-zinc-200/70 bg-zinc-50/70 px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={goBack}
+                className="inline-flex min-h-[30px] items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#1D3160] transition hover:border-zinc-400"
+              >
+                <ChevronLeft className="h-3 w-3" aria-hidden />
+                {t('auctions.createBack')}
+              </button>
+
+              {!isLastStep ? (
+                <button
+                  type="button"
+                  disabled={continueDisabled}
+                  title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
+                  onClick={goNext}
+                  className={cn(
+                    'inline-flex min-h-[30px] items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
+                    continueDisabled
+                      ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
+                      : 'bg-[#FF7300] hover:bg-[#e86800]'
+                  )}
+                >
+                  {t('auctions.createContinue')}
+                  <ChevronRight className="h-3 w-3" aria-hidden />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={openPublishConfirm}
+                  className="inline-flex min-h-[30px] items-center gap-1 rounded-lg bg-[#FF7300] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
+                >
+                  <Gavel className="h-3 w-3" aria-hidden />
+                  {t('auctions.createSubmit')}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
