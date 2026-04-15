@@ -863,7 +863,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   type="button"
                   onClick={() => setActiveTab(t.id)}
                   className={cn(
-                    'relative flex-1 min-w-0 px-1 sm:px-4 py-1.5 sm:py-3 text-[10px] sm:text-sm font-bold uppercase tracking-[0.04em] sm:tracking-wide transition-all duration-200',
+                    'relative flex-1 min-w-0 px-1.5 sm:px-4 py-1.5 sm:py-3 text-[11px] sm:text-sm font-bold uppercase tracking-[0.04em] sm:tracking-wide transition-all duration-200',
                     activeTab === t.id
                       ? 'bg-white text-[#FF7300] border-t-2 border-[#FF7300] shadow-[0_-2px_8px_rgba(0,0,0,0.04)]'
                       : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
@@ -1219,7 +1219,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
                 </div>
 
-                <div className="hidden h-full min-h-0 w-full min-w-0 gap-2 p-2 sm:grid sm:grid-cols-[1.2fr_1fr]">
+                <div className="hidden h-full min-h-0 w-full min-w-0 gap-2 overflow-y-auto p-2 sm:grid sm:grid-cols-1 lg:grid-cols-[1.2fr_1fr]">
                   <div className="flex min-h-0 flex-col rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
                     <div className="mb-2 flex items-center justify-between">
                       <h3 className="text-sm font-extrabold uppercase tracking-wide text-gray-900">Inserzione rapida</h3>
