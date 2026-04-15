@@ -1,8 +1,10 @@
 /**
  * React Query hooks for the auction API.
  * Wraps auctionApi calls for cache, refetch, and mutation patterns.
+ * Includes WebSocket hook for live bid updates.
  */
 
+import { useEffect, useRef } from 'react';
 import {
   useQuery,
   useMutation,
@@ -10,6 +12,7 @@ import {
   type UseQueryOptions,
 } from '@tanstack/react-query';
 import { auctionApi } from '@/lib/api/auction-client';
+import { AuctionWebSocket, type AuctionWsEvent } from '@/lib/ws/auction-ws';
 import type {
   AuctionAPI,
   AuctionListResponse,
@@ -65,7 +68,7 @@ export function useAuctionBids(
     queryFn: () => auctionApi.listBids(auctionId, params),
     staleTime: 10_000,
     enabled: auctionId > 0,
-    refetchInterval: 15_000,
+    refetchInterval: 60_000,
   });
 }
 
@@ -125,4 +128,35 @@ export function useDeleteAuction() {
       qc.removeQueries({ queryKey: KEYS.minBid(auctionId) });
     },
   });
+}
+
+/**
+ * Connects a WebSocket to /auctions/{id}/ws for live bid updates.
+ * On every bid event the React Query caches for detail, bids, and minBid are
+ * instantly invalidated so the UI refreshes without waiting for the next poll.
+ */
+export function useAuctionWebSocket(auctionId: number) {
+  const qc = useQueryClient();
+  const wsRef = useRef<AuctionWebSocket | null>(null);
+
+  useEffect(() => {
+    if (auctionId <= 0) return;
+
+    const ws = new AuctionWebSocket(auctionId);
+    wsRef.current = ws;
+
+    const unsub = ws.subscribe((_event: AuctionWsEvent) => {
+      qc.invalidateQueries({ queryKey: KEYS.detail(auctionId) });
+      qc.invalidateQueries({ queryKey: KEYS.bids(auctionId) });
+      qc.invalidateQueries({ queryKey: KEYS.minBid(auctionId) });
+    });
+
+    ws.connect();
+
+    return () => {
+      unsub();
+      ws.close();
+      wsRef.current = null;
+    };
+  }, [auctionId, qc]);
 }

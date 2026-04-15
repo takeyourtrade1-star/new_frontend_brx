@@ -90,6 +90,8 @@ export function AuctionBidModal({
 
   const [error, setError] = useState<string | null>(null);
 
+  const [outbidWarning, setOutbidWarning] = useState<string | null>(null);
+
   const minBid = useMemo(() => minNextBidEur(effectiveCurrentBidEur), [effectiveCurrentBidEur]);
 
 
@@ -114,11 +116,11 @@ export function AuctionBidModal({
 
     if (open) {
 
-      // Pre-popola con minBid formattato con separatori migliaia
-
       setInput(minBid.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 2 }));
 
       setError(null);
+
+      setOutbidWarning(null);
 
     }
 
@@ -218,9 +220,14 @@ export function AuctionBidModal({
       return;
     }
     setError(null);
+    setOutbidWarning(null);
     if (auctionId != null && auctionId > 0) {
       try {
-        await placeBidMutation.mutateAsync({ amount: parsedInput });
+        const res = await placeBidMutation.mutateAsync({ amount: parsedInput });
+        if (res?.data?.outbid) {
+          setOutbidWarning(res.data.outbid_message || t('auctions.bidOutbidGeneric'));
+          return;
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Errore offerta');
         return;
@@ -240,10 +247,15 @@ export function AuctionBidModal({
       return;
     }
     setError(null);
+    setOutbidWarning(null);
     const firstBid = roundMoney(min);
     if (auctionId != null && auctionId > 0) {
       try {
-        await placeBidMutation.mutateAsync({ amount: firstBid, maxAmount: parsedInput });
+        const res = await placeBidMutation.mutateAsync({ amount: firstBid, maxAmount: parsedInput });
+        if (res?.data?.outbid) {
+          setOutbidWarning(res.data.outbid_message || t('auctions.bidOutbidGeneric'));
+          return;
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Errore offerta massima');
         return;
@@ -396,6 +408,21 @@ export function AuctionBidModal({
           {error && (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-700 sm:mb-5 sm:px-5 sm:py-3.5 sm:text-sm" role="alert">
               {error}
+            </div>
+          )}
+
+          {/* Outbid warning */}
+          {outbidWarning && (
+            <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 sm:mb-5 sm:px-5 sm:py-4" role="alert">
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-800 sm:text-sm">
+                {t('auctions.bidOutbidTitle')}
+              </p>
+              <p className="mt-1 text-xs text-amber-700 sm:text-sm">
+                {outbidWarning}
+              </p>
+              <p className="mt-2 text-[10px] font-semibold text-amber-900 sm:text-xs">
+                {t('auctions.bidOutbidHint')}
+              </p>
             </div>
           )}
 

@@ -1,6 +1,6 @@
 /**
  * Auction API client — calls same-origin proxy /api/auctions/* which forwards to auction.ebartex.com.
- * Attaches auth Bearer token when available.
+ * Attaches auth Bearer token when available. On 401 retries once after refreshing the token.
  */
 
 import type {
@@ -12,6 +12,9 @@ import type {
   PlaceBidPayload,
   AuctionCreatePayload,
 } from '@/types/auction';
+import { refreshAccessToken } from '@/lib/api/refresh-token';
+import { authApi } from '@/lib/api/auth-client';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -25,7 +28,8 @@ function authHeaders(): Record<string, string> {
 
 async function request<T>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retried = false,
 ): Promise<T> {
   const url = `/api/auctions${path}`;
   const res = await fetch(url, {
@@ -41,6 +45,14 @@ async function request<T>(
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
+    if (res.status === 401 && !retried && typeof window !== 'undefined') {
+      const result = await refreshAccessToken();
+      if (result) {
+        authApi.setToken(result.accessToken, result.refreshToken);
+        useAuthStore.getState().setToken(result.accessToken, result.refreshToken);
+        return request<T>(path, options, true);
+      }
+    }
     const msg =
       data?.detail ||
       data?.error ||

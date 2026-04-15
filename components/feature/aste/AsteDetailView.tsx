@@ -16,7 +16,7 @@ import { AuctionBidModal } from '@/components/feature/aste/AuctionBidModal';
 import { AuctionShareButton } from '@/components/feature/aste/AuctionShareButton';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import type { MessageKey } from '@/lib/i18n/messages/en';
-import { useAuctionDetail, useAuctionBids, useAuctionList } from '@/lib/hooks/use-auctions';
+import { useAuctionDetail, useAuctionBids, useAuctionList, useAuctionWebSocket } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, apiBidToBidRow, type AuctionUI, type BidRowUI } from '@/lib/auction/auction-adapter';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { MascotteLoader } from '@/components/dev/MascotteLoader';
@@ -85,6 +85,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const numericId = parseInt(auctionId, 10);
   const { data: detailRes, isLoading } = useAuctionDetail(Number.isNaN(numericId) ? 0 : numericId);
   const { data: bidsRes } = useAuctionBids(Number.isNaN(numericId) ? 0 : numericId, { limit: 50 });
+  useAuctionWebSocket(Number.isNaN(numericId) ? 0 : numericId);
   const currentUser = useAuthStore((s) => s.user);
 
   const detail = useMemo(() => {

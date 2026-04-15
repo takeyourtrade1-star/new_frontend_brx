@@ -69,6 +69,8 @@ export interface PlaceBidResponse {
   data: {
     auction: AuctionAPI;
     bids: BidAPI[];
+    outbid?: boolean;
+    outbid_message?: string | null;
   };
 }
 
