@@ -129,6 +129,7 @@ export function AuctionCreateWizard({
   } | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showDesktopFloatingNav, setShowDesktopFloatingNav] = useState(false);
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const wizardShellRef = useRef<HTMLDivElement>(null);
   const stepContentRef = useRef<HTMLDivElement>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -432,6 +433,21 @@ export function AuctionCreateWizard({
 
   const createAuctionMutation = useCreateAuction();
 
+  const openPublishConfirm = () => {
+    setError(null);
+    setPublishConfirmOpen(true);
+  };
+
+  const closePublishConfirm = () => {
+    setPublishConfirmOpen(false);
+  };
+
+  const editFromPublishConfirm = () => {
+    setPublishConfirmOpen(false);
+    setError(null);
+    setStepId('details');
+  };
+
   const publish = async () => {
     const order = getStepOrder(draft.isCard, { variant: stepVariant, hasEmbeddedInventory });
     for (const id of order) {
@@ -494,6 +510,12 @@ export function AuctionCreateWizard({
   };
 
   const isLastStep = stepId === 'review';
+
+  useEffect(() => {
+    if (stepId !== 'review' && publishConfirmOpen) {
+      setPublishConfirmOpen(false);
+    }
+  }, [stepId, publishConfirmOpen]);
 
   /** Continua disabilitato finché non si risponde o non si sceglie una carta (stesso criterio di goNext). */
   const continueDisabled = useMemo(() => {
@@ -1413,7 +1435,7 @@ export function AuctionCreateWizard({
             ) : (
               <button
                 type="button"
-                onClick={publish}
+                onClick={openPublishConfirm}
                 className={cn(
                   'group fixed right-[max(10px,calc(50vw-31rem))] top-1/2 z-50 hidden min-h-[42px] -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/70 bg-[#FF7300] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wide text-white shadow-[0_6px_18px_-4px_rgba(255,115,0,0.38)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-[#FF8800] hover:shadow-[0_10px_24px_-6px_rgba(255,115,0,0.52)] hover:border-white/80 active:scale-95 sm:inline-flex',
                   isEmbedded && 'right-3 min-h-[38px] px-3 py-1.5 text-[10px]'
@@ -1474,7 +1496,7 @@ export function AuctionCreateWizard({
             ) : (
               <button
                 type="button"
-                onClick={publish}
+                onClick={openPublishConfirm}
                 className={cn(
                   'inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-[1.1rem] bg-[#FF7300] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition hover:bg-[#e86800] active:scale-[0.98]',
                   isEmbedded && 'min-h-[32px] px-3 py-1'
@@ -1486,6 +1508,53 @@ export function AuctionCreateWizard({
             )}
           </footer>
         </div>
+
+        {publishConfirmOpen && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="publish-confirm-title"
+              className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl"
+            >
+              <h2 id="publish-confirm-title" className="text-lg font-bold uppercase tracking-wide text-[#1D3160]">
+                Asta pronta alla pubblicazione
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-gray-700">
+                Avrai a disposizione 5 minuti per verificare e apportare eventuali modifiche finali. Trascorso questo
+                intervallo, la pubblicazione verra confermata in modo definitivo e non sara piu reversibile.
+              </p>
+
+              <div className="mt-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={closePublishConfirm}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
+                >
+                  Controlla
+                </button>
+                <button
+                  type="button"
+                  onClick={editFromPublishConfirm}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
+                >
+                  Modifica
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPublishConfirmOpen(false);
+                  void publish();
+                }}
+                className="mt-3 w-full rounded-xl bg-[#FF7300] px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
+              >
+                Continua
+              </button>
+            </div>
+          </div>
+        )}
       </>
     )}
     </>
