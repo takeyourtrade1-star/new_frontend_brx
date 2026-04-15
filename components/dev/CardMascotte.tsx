@@ -163,10 +163,6 @@ const faceSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" s
   <circle cx="32.3" cy="36.4" r="2.2" fill="#faf9f6" stroke="none"/>
   <circle class="pupil" cx="65" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
   <circle cx="62.3" cy="36.4" r="2.2" fill="#faf9f6" stroke="none"/>
-  <!-- Toothbrush Mustache: filled behind -->
-  <rect class="mustache" x="39" y="55" width="22" height="4" rx="1.5" fill="#6b7568" stroke="none"/>
-  <!-- Toothbrush Mustache: filled on top with stroke -->
-  <rect class="mustache" x="39" y="55" width="22" height="4" rx="1.5" fill="#4a5548" stroke="#3d4538" stroke-width="0.8"/>
   <!-- Mouth: light stroke behind -->
   <path d="M 34 63 Q 50 77 66 63" stroke="#faf9f6" stroke-width="4.2" fill="none"/>
   <!-- Mouth: dark stroke on top -->
@@ -198,10 +194,6 @@ const faceBugReportSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap=
 </svg>`;
 
 const faceBugFocusSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M 24 30 Q 32 24 40 28" stroke="#faf9f6" stroke-width="3.2"/>
-  <path d="M 60 28 Q 68 24 76 30" stroke="#faf9f6" stroke-width="3.2"/>
-  <path d="M 24 30 Q 32 24 40 28" stroke="#4a5548" stroke-width="2.2"/>
-  <path d="M 60 28 Q 68 24 76 30" stroke="#4a5548" stroke-width="2.2"/>
   <!-- Narrowed (squint) eye outlines: light behind -->
   <ellipse cx="34" cy="40" rx="10" ry="6.2" stroke="#faf9f6" stroke-width="3.2"/>
   <ellipse cx="66" cy="40" rx="10" ry="6.2" stroke="#faf9f6" stroke-width="3.2"/>
@@ -277,9 +269,9 @@ export function CardMascotte() {
   useEffect(() => {
     setIsMounted(true);
     
-    // Check if user has interacted with Ciro before
+    // Check if user has interacted with Asso before
     try {
-      const hasSeenBefore = localStorage.getItem('brx_ciro_interacted');
+      const hasSeenBefore = localStorage.getItem('brx_asso_interacted');
       setHasInteractedBefore(!!hasSeenBefore);
     } catch {
       // localStorage not available
@@ -300,7 +292,7 @@ export function CardMascotte() {
 
   // Chat flow state
   const [chatStep, setChatStep] = useState<'greeting' | 'menu' | 'bug' | 'contact'>('greeting');
-  const [chatMessages, setChatMessages] = useState<Array<{type: 'ciro' | 'user', text: string}>>([]);
+  const [chatMessages, setChatMessages] = useState<Array<{type: 'asso' | 'user', text: string}>>([]);
   const [showChatModal, setShowChatModal] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   
@@ -332,7 +324,7 @@ export function CardMascotte() {
     // Load mute preference from localStorage
     if (typeof window !== 'undefined') {
       try {
-        return localStorage.getItem('brx_ciro_sleep_muted') === 'true';
+        return localStorage.getItem('brx_asso_sleep_muted') === 'true';
       } catch { return false; }
     }
     return false;
@@ -341,7 +333,7 @@ export function CardMascotte() {
   const [totalSleepMs, setTotalSleepMs] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
-        return parseInt(localStorage.getItem('brx_ciro_sleep_ms') || '0', 10) || 0;
+        return parseInt(localStorage.getItem('brx_asso_sleep_ms') || '0', 10) || 0;
       } catch { return 0; }
     }
     return 0;
@@ -412,7 +404,7 @@ export function CardMascotte() {
 
   // Back face variants with unlock thresholds
   const BACK_VARIANTS = useMemo(() => [
-    { gradient: 'linear-gradient(145deg, #FF7300 0%, #FF9A40 50%, #FFB366 100%)', pattern: '45deg', label: 'CIRO', sub: 'Ebartex', unlock: 0 },
+    { gradient: 'linear-gradient(145deg, #FF7300 0%, #FF9A40 50%, #FFB366 100%)', pattern: '45deg', label: 'ASSO', sub: 'Ebartex', unlock: 0 },
     { gradient: 'linear-gradient(145deg, #6366F1 0%, #818CF8 50%, #A5B4FC 100%)', pattern: '-45deg', label: 'RARO', sub: 'Collezionista', unlock: 5 },
     { gradient: 'linear-gradient(145deg, #10B981 0%, #34D399 50%, #6EE7B7 100%)', pattern: '60deg', label: 'EPICO', sub: 'Leggendario', unlock: 15 },
     { gradient: 'linear-gradient(145deg, #F43F5E 0%, #FB7185 50%, #FDA4AF 100%)', pattern: '30deg', label: 'FOIL', sub: 'Edizione Speciale', unlock: 30 },
@@ -839,16 +831,16 @@ export function CardMascotte() {
     if (!hasInteractedBefore) {
       // First time - warm introduction
       return [
-        "Ciao! Sono Ciro, l'assistente di Ebartex. Come posso aiutarti oggi?",
-        "Benvenuto su Ebartex! Sono Ciro, il tuo assistente personale. Cosa posso fare per te?",
-        "Ciao! Ciro al tuo servizio. Pronto per aiutarti a navigare su Ebartex!"
+        "Ciao! Sono Asso, l'assistente di Ebartex. Come posso aiutarti oggi?",
+        "Benvenuto su Ebartex! Sono Asso, il tuo assistente personale. Cosa posso fare per te?",
+        "Ciao! Asso al tuo servizio. Pronto per aiutarti a navigare su Ebartex!"
       ];
     }
     // Returning user - familiar, shorter greetings
     return [
-      "Bentornato! Ciro è qui. Cosa ti serve oggi?",
+      "Bentornato! Asso è qui. Cosa ti serve oggi?",
       "Ciao di nuovo! Pronto ad aiutarti.",
-      "Ciro al tuo servizio! Come posso esserti utile?",
+      "Asso al tuo servizio! Come posso esserti utile?",
       "Eccomi! Cosa posso fare per te questa volta?"
     ];
   }, [hasInteractedBefore]);
@@ -925,13 +917,13 @@ export function CardMascotte() {
       // Start typewriter effect
       startTypewriterEffect(selectedMessage, () => {
         // After typewriter completes, show the full message in chat and proceed to menu
-        setChatMessages([{ type: 'ciro', text: selectedMessage }]);
+        setChatMessages([{ type: 'asso', text: selectedMessage }]);
         setTimeout(() => setChatStep('menu'), 600);
       });
       
       // Mark as interacted for future visits
       try {
-        localStorage.setItem('brx_ciro_interacted', 'true');
+        localStorage.setItem('brx_asso_interacted', 'true');
         setHasInteractedBefore(true);
       } catch {
         // localStorage not available
@@ -1599,7 +1591,7 @@ export function CardMascotte() {
           const newTotal = totalSleepMs + sleepDuration;
           setTotalSleepMs(newTotal);
           try {
-            localStorage.setItem('brx_ciro_sleep_ms', String(newTotal));
+            localStorage.setItem('brx_asso_sleep_ms', String(newTotal));
           } catch {}
           sleepStartTimeRef.current = null;
         }
@@ -1649,7 +1641,7 @@ export function CardMascotte() {
     const newMuted = !isSleepMuted;
     setIsSleepMuted(newMuted);
     try {
-      localStorage.setItem('brx_ciro_sleep_muted', String(newMuted));
+      localStorage.setItem('brx_asso_sleep_muted', String(newMuted));
     } catch {}
     vibrate(10);
   }, [isSleepMuted, vibrate]);
@@ -2153,13 +2145,13 @@ export function CardMascotte() {
             }}
           />
 
-          {/* Bottom pill badge — CIRO */}
+          {/* Bottom pill badge — ASSO */}
           <div
-            className={`pointer-events-none absolute left-1/2 -translate-x-1/2 ${isCardHovered ? 'ciro-pill-hovered' : ''}`}
+            className={`pointer-events-none absolute left-1/2 -translate-x-1/2 ${isCardHovered ? 'asso-pill-hovered' : ''}`}
             style={{ bottom: '5px', zIndex: 8 }}
           >
             <div
-              className={`relative flex items-center justify-center overflow-full ciro-pill-${mascotteExpression}`}
+              className={`relative flex items-center justify-center overflow-full asso-pill-${mascotteExpression}`}
               style={{
                 height: '14px',
                 paddingInline: '8px',
@@ -2196,7 +2188,7 @@ export function CardMascotte() {
                   marginLeft: '0.1em',
                 }}
               >
-                {mascotteExpression === 'sleeping' ? 'Zzz' : 'CIRO'}
+                {mascotteExpression === 'sleeping' ? 'Zzz' : 'ASSO'}
               </span>
             </div>
           </div>
@@ -2608,7 +2600,7 @@ export function CardMascotte() {
         </div>
       )}
 
-      {/* Chat Modal - Ciro Assistant */}
+      {/* Chat Modal - Asso Assistant */}
       {showChatModal && (
         <div className="fixed inset-0 flex items-end justify-end p-4 sm:items-center sm:justify-center" style={{ zIndex: Z_INDEX.modal }}>
           <div
@@ -2621,7 +2613,7 @@ export function CardMascotte() {
               <div className="flex items-center gap-3">
                 <div className="h-8 w-1 rounded-full bg-primary" />
                 <div>
-                  <h3 className="font-comodo text-base font-medium text-zinc-900">Ciro</h3>
+                  <h3 className="font-comodo text-base font-medium text-zinc-900">Asso</h3>
                   <p className="text-xs text-zinc-500">Assistente Ebartex</p>
                 </div>
               </div>
@@ -2638,12 +2630,12 @@ export function CardMascotte() {
               {chatMessages.map((msg, idx) => (
                 <div
                   key={idx}
-                  className={`mb-3 flex chat-message-in ${msg.type === 'ciro' ? 'justify-start' : 'justify-end'}`}
+                  className={`mb-3 flex chat-message-in ${msg.type === 'asso' ? 'justify-start' : 'justify-end'}`}
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                      msg.type === 'ciro'
+                      msg.type === 'asso'
                         ? 'rounded-tl-none bg-white text-zinc-800 border border-zinc-200'
                         : 'rounded-tr-none bg-primary text-white'
                     }`}
@@ -2653,7 +2645,7 @@ export function CardMascotte() {
                 </div>
               ))}
               
-              {/* Typing Indicator - shows when Ciro is typing */}
+              {/* Typing Indicator - shows when Asso is typing */}
               {isTyping && (
                 <div className="mb-3 flex justify-start chat-message-in">
                   <div className="max-w-[85%] rounded-2xl rounded-tl-none bg-white border border-zinc-200 px-4 py-3">
@@ -2757,7 +2749,7 @@ export function CardMascotte() {
             {/* Footer - Clean */}
             <div className="border-t border-zinc-200 bg-white px-4 py-3">
               <p className="text-center text-xs text-zinc-400">
-                Ciro è qui per aiutarti. Scegli un&apos;opzione sopra.
+                Asso è qui per aiutarti. Scegli un&apos;opzione sopra.
               </p>
             </div>
           </div>
@@ -3134,59 +3126,49 @@ export function CardMascotte() {
         .sleep-bubble-small .sleep-bubble-text {
           font-size: 9px;
         }
-        /* CIRO pill badge animations */
-        @keyframes ciro-pulse {
+        /* ASSO pill badge animations */
+        @keyframes asso-pulse {
           0%, 100% { box-shadow: 0 -1px 4px rgba(0,0,0,0.15), inset 0 -1px 0 rgba(255,255,255,0.25); }
           50% { box-shadow: 0 -1px 6px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(255,255,255,0.35), 0 0 8px rgba(255,255,255,0.2); }
         }
-        @keyframes ciro-pulse-intense-orange {
+        @keyframes asso-pulse-intense-orange {
           0%, 100% { box-shadow: 0 -1px 6px rgba(255,100,0,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(255,154,64,0.5); }
           50% { box-shadow: 0 -1px 10px rgba(255,100,0,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(255,154,64,0.7), 0 0 24px rgba(255,115,0,0.3); }
         }
-        @keyframes ciro-pulse-intense-red {
+        @keyframes asso-pulse-intense-red {
           0%, 100% { box-shadow: 0 -1px 6px rgba(220,38,38,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(239,68,68,0.5); }
           50% { box-shadow: 0 -1px 10px rgba(220,38,38,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(239,68,68,0.7), 0 0 24px rgba(220,38,38,0.3); }
         }
-        @keyframes ciro-pulse-intense-purple {
+        @keyframes asso-pulse-intense-purple {
           0%, 100% { box-shadow: 0 -1px 6px rgba(124,58,237,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(167,139,250,0.5); }
           50% { box-shadow: 0 -1px 10px rgba(124,58,237,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(167,139,250,0.7), 0 0 24px rgba(124,58,237,0.3); }
         }
-        @keyframes ciro-pulse-intense-gray {
+        @keyframes asso-pulse-intense-gray {
           0%, 100% { box-shadow: 0 -1px 6px rgba(75,85,99,0.3), inset 0 -1px 0 rgba(255,255,255,0.3), 0 0 12px rgba(156,163,175,0.4); }
           50% { box-shadow: 0 -1px 10px rgba(75,85,99,0.5), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 18px rgba(156,163,175,0.6), 0 0 24px rgba(75,85,99,0.25); }
         }
-        @keyframes ciro-pulse-intense-pink {
+        @keyframes asso-pulse-intense-pink {
           0%, 100% { box-shadow: 0 -1px 6px rgba(236,72,153,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(244,114,182,0.5); }
           50% { box-shadow: 0 -1px 10px rgba(236,72,153,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(244,114,182,0.7), 0 0 24px rgba(236,72,153,0.3); }
         }
-        @keyframes ciro-shimmer-fast {
+        @keyframes asso-shimmer-fast {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(100%); }
         }
-        /* Neapolitan Mustache animation */
-        @keyframes mustacheWiggle {
-          0%, 100% { transform: rotate(0deg); }
-          25% { transform: rotate(-2deg); }
-          75% { transform: rotate(2deg); }
-        }
-        .mustache {
-          transform-origin: center;
-          animation: mustacheWiggle 3s ease-in-out infinite;
-        }
-        .ciro-pill-hovered > div {
+        .asso-pill-hovered > div {
           transform: scale(1.08);
           transition: transform 200ms ease-out;
         }
-        .ciro-pill-hovered > div > div:first-child {
-          animation: ciro-shimmer-fast 1s ease-in-out infinite !important;
+        .asso-pill-hovered > div > div:first-child {
+          animation: asso-shimmer-fast 1s ease-in-out infinite !important;
         }
         /* State-specific hover pulse animations */
-        .ciro-pill-hovered .ciro-pill-normal { animation: ciro-pulse-intense-orange 0.8s ease-in-out infinite !important; }
-        .ciro-pill-hovered .ciro-pill-bugReport,
-        .ciro-pill-hovered .ciro-pill-bugFocus { animation: ciro-pulse-intense-red 0.8s ease-in-out infinite !important; }
-        .ciro-pill-hovered .ciro-pill-coding { animation: ciro-pulse-intense-purple 0.8s ease-in-out infinite !important; }
-        .ciro-pill-hovered .ciro-pill-sleeping { animation: ciro-pulse-intense-gray 0.8s ease-in-out infinite !important; }
-        .ciro-pill-hovered .ciro-pill-wink { animation: ciro-pulse-intense-pink 0.8s ease-in-out infinite !important; }
+        .asso-pill-hovered .asso-pill-normal { animation: asso-pulse-intense-orange 0.8s ease-in-out infinite !important; }
+        .asso-pill-hovered .asso-pill-bugReport,
+        .asso-pill-hovered .asso-pill-bugFocus { animation: asso-pulse-intense-red 0.8s ease-in-out infinite !important; }
+        .asso-pill-hovered .asso-pill-coding { animation: asso-pulse-intense-purple 0.8s ease-in-out infinite !important; }
+        .asso-pill-hovered .asso-pill-sleeping { animation: asso-pulse-intense-gray 0.8s ease-in-out infinite !important; }
+        .asso-pill-hovered .asso-pill-wink { animation: asso-pulse-intense-pink 0.8s ease-in-out infinite !important; }
         /* Promotional hint premium animations */
         @keyframes promoPulse {
           0%, 100% { opacity: 0.5; transform: scale(0.98); }
