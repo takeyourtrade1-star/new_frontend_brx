@@ -532,14 +532,17 @@ export function AuctionCreateWizard({
   useEffect(() => {
     const shell = wizardShellRef.current;
     if (shell) {
-      // Scroll to show progress indicator at top first, then form content
+      // Calcola la posizione assoluta del top del wizard nel documento
       const top = shell.getBoundingClientRect().top + window.scrollY;
+      // Scrolls al wizard con ampio padding superiore per visualizzare completamente lo step indicator
+      const offset = 80; // Padding generoso per mostrare gli step indicators
       window.scrollTo({
-        top: Math.max(0, top - 16), // Small spacing from viewport top
+        top: Math.max(0, top - offset),
         behavior: 'smooth',
       });
     }
 
+    // Focus sul primo campo dopo un ritardo (per attendere lo scroll)
     const timer = window.setTimeout(() => {
       const root = stepContentRef.current;
       if (!root) return;
@@ -561,7 +564,7 @@ export function AuctionCreateWizard({
         return;
       }
       stepHeadingRef.current?.focus({ preventScroll: true });
-    }, 150);
+    }, 200);
 
     return () => window.clearTimeout(timer);
   }, [stepId]);
