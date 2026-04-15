@@ -425,6 +425,9 @@ export function AuctionCreateCardPicker({
               const imgUrl = getCardImageUrl(row.card?.image ?? null);
               const active = selectedId === sel.id;
               const cardName = row.card?.name ?? '—';
+              const props = row.properties as Record<string, unknown> | undefined;
+              const condition = typeof props?.condition === 'string' ? props.condition : '';
+              const language = typeof props?.language === 'string' ? props.language : '';
               return (
                 <div
                   key={row.id}
@@ -443,10 +446,15 @@ export function AuctionCreateCardPicker({
                   <button
                     type="button"
                     onClick={() => onSelect(sel)}
-                    className="w-full p-2 text-left"
+                    className="w-full flex flex-col gap-1 p-2 text-left"
                   >
                     <p className="line-clamp-2 text-xs font-semibold text-gray-900">{cardName}</p>
                     <p className="line-clamp-1 text-[10px] text-gray-500">{row.card?.set_name}</p>
+                    <div className="flex flex-wrap gap-1 text-[9px] text-gray-600 pt-1">
+                      {condition && (<span className="px-1.5 py-0.5 bg-gray-100 rounded">{condition}</span>)}
+                      {language && (<span className="px-1.5 py-0.5 bg-gray-100 rounded">{language}</span>)}
+                      {row.quantity && (<span className="px-1.5 py-0.5 bg-gray-100 rounded">Qtà: {row.quantity}</span>)}
+                    </div>
                   </button>
                 </div>
               );
@@ -462,6 +470,9 @@ export function AuctionCreateCardPicker({
               const imgUrl = getCardImageUrl(row.card?.image ?? null);
               const active = selectedId === sel.id;
               const cardName = row.card?.name ?? '—';
+              const props = row.properties as Record<string, unknown> | undefined;
+              const condition = typeof props?.condition === 'string' ? props.condition : '';
+              const language = typeof props?.language === 'string' ? props.language : '';
               return (
                 <li key={row.id}>
                   <div
@@ -479,18 +490,25 @@ export function AuctionCreateCardPicker({
                     <button
                       type="button"
                       onClick={() => onSelect(sel)}
-                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      className="flex min-w-0 flex-1 flex-col items-start justify-center gap-1 text-left"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-[#1D3160]">{row.card?.name}</p>
                         <p className="truncate text-xs text-gray-500">{row.card?.set_name}</p>
                       </div>
-                      {active && (
-                        <span className="btn-orange-glow shrink-0 rounded-full px-2 py-0.5 text-[10px]">
-                          {t('auctions.createCardSelected')}
-                        </span>
-                      )}
+                      <div className="flex flex-wrap gap-1 text-[9px] text-gray-600">
+                        {condition && (<span>{condition}</span>)}
+                        {language && (<span>·</span>)} 
+                        {language && (<span>{language}</span>)}
+                        {row.quantity && (<span>·</span>)}
+                        {row.quantity && (<span>Qtà: {row.quantity}</span>)}
+                      </div>
                     </button>
+                    {active && (
+                      <span className="btn-orange-glow shrink-0 rounded-full px-2 py-0.5 text-[10px]">
+                        {t('auctions.createCardSelected')}
+                      </span>
+                    )}
                   </div>
                 </li>
               );

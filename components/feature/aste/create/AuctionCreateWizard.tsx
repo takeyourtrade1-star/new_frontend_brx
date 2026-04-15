@@ -531,7 +531,14 @@ export function AuctionCreateWizard({
   // On every step change, bring the wizard back into view and focus the first actionable field.
   useEffect(() => {
     const shell = wizardShellRef.current;
-    if (shell) shell.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (shell) {
+      // Scroll to show progress indicator at top first, then form content
+      const top = shell.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({
+        top: Math.max(0, top - 16), // Small spacing from viewport top
+        behavior: 'smooth',
+      });
+    }
 
     const timer = window.setTimeout(() => {
       const root = stepContentRef.current;
@@ -554,7 +561,7 @@ export function AuctionCreateWizard({
         return;
       }
       stepHeadingRef.current?.focus({ preventScroll: true });
-    }, 140);
+    }, 150);
 
     return () => window.clearTimeout(timer);
   }, [stepId]);
@@ -1333,12 +1340,13 @@ export function AuctionCreateWizard({
               type="button"
               onClick={goBack}
               className={cn(
-                'group fixed left-2 top-1/2 z-50 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-white/90 text-[#1D3160] shadow-[0_4px_20px_-2px_rgba(29,49,96,0.15)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 hover:bg-white hover:shadow-[0_8px_30px_-4px_rgba(29,49,96,0.25)] hover:border-[#1D3160]/30 active:scale-95 sm:flex lg:left-6 lg:h-12 lg:w-12',
+                'group fixed left-2 top-1/2 z-50 hidden h-10 w-10 -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/60 bg-white/90 text-[#1D3160] shadow-[0_4px_20px_-2px_rgba(29,49,96,0.15)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 hover:bg-white hover:shadow-[0_8px_30px_-4px_rgba(29,49,96,0.25)] hover:border-[#1D3160]/30 active:scale-95 sm:flex lg:left-6 lg:h-12 lg:w-12 lg:gap-2',
                 isEmbedded && 'h-8 w-8 lg:left-4 lg:h-10 lg:w-10'
               )}
               aria-label={t('auctions.createBack')}
             >
               <ChevronLeft className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-0.5 lg:h-6 lg:w-6" aria-hidden />
+              <span className="hidden text-xs font-semibold uppercase tracking-wide lg:inline">{t('auctions.createBack')}</span>
             </button>
 
             {!isLastStep ? (
@@ -1348,7 +1356,7 @@ export function AuctionCreateWizard({
                 title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
                 onClick={goNext}
                 className={cn(
-                  'group fixed right-2 top-1/2 z-50 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 active:scale-95 sm:flex lg:right-6 lg:h-12 lg:w-12',
+                  'group fixed right-2 top-1/2 z-50 hidden h-10 w-10 -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/60 text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 active:scale-95 sm:flex lg:right-6 lg:h-12 lg:w-12 lg:gap-2',
                   isEmbedded && 'h-8 w-8 lg:right-4 lg:h-10 lg:w-10',
                   continueDisabled
                     ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
@@ -1356,6 +1364,7 @@ export function AuctionCreateWizard({
                 )}
                 aria-label={t('auctions.createContinue')}
               >
+                <span className="hidden text-xs font-semibold uppercase tracking-wide lg:inline">{t('auctions.createContinue')}</span>
                 <ChevronRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 lg:h-6 lg:w-6" aria-hidden />
               </button>
             ) : (
@@ -1363,11 +1372,12 @@ export function AuctionCreateWizard({
                 type="button"
                 onClick={publish}
                 className={cn(
-                  'group fixed right-2 top-1/2 z-50 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-[#FF7300] text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 hover:bg-[#FF8800] hover:shadow-[0_8px_30px_-4px_rgba(255,115,0,0.5)] hover:border-white/80 active:scale-95 sm:flex lg:right-6 lg:h-12 lg:w-12',
+                  'group fixed right-2 top-1/2 z-50 hidden h-10 w-10 -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/60 bg-[#FF7300] text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 hover:bg-[#FF8800] hover:shadow-[0_8px_30px_-4px_rgba(255,115,0,0.5)] hover:border-white/80 active:scale-95 sm:flex lg:right-6 lg:h-12 lg:w-12 lg:gap-2',
                   isEmbedded && 'h-8 w-8 lg:right-4 lg:h-10 lg:w-10'
                 )}
                 aria-label={t('auctions.createSubmit')}
               >
+                <span className="hidden text-xs font-semibold uppercase tracking-wide lg:inline">{t('auctions.createSubmit')}</span>
                 <Gavel className="h-4 w-4 transition-transform duration-300 group-hover:scale-110 lg:h-5 lg:w-5" aria-hidden />
               </button>
             )}
