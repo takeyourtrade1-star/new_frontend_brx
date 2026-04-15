@@ -104,9 +104,9 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       (bidsRes?.data ?? [])
         .map(apiBidToBidRow)
         .sort((a, b) => {
-          const timeDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          if (timeDiff !== 0) return timeDiff;
-          return b.amountEur - a.amountEur;
+          const amtDiff = b.amountEur - a.amountEur;
+          if (amtDiff !== 0) return amtDiff;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         }),
     [bidsRes]
   );

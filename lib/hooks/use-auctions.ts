@@ -53,8 +53,9 @@ export function useAuctionDetail(
   return useQuery({
     queryKey: KEYS.detail(id),
     queryFn: () => auctionApi.getAuction(id),
-    staleTime: 15_000,
+    staleTime: 10_000,
     enabled: id > 0,
+    refetchInterval: 15_000,
     ...options,
   });
 }
@@ -68,7 +69,7 @@ export function useAuctionBids(
     queryFn: () => auctionApi.listBids(auctionId, params),
     staleTime: 10_000,
     enabled: auctionId > 0,
-    refetchInterval: 60_000,
+    refetchInterval: 15_000,
   });
 }
 
