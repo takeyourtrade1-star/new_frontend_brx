@@ -13,9 +13,11 @@ const ORANGE = '#FF7300';
 
 type Props = {
   auctionTitle: string;
+  compact?: boolean;
+  className?: string;
 };
 
-export function AuctionShareButton({ auctionTitle }: Props) {
+export function AuctionShareButton({ auctionTitle, compact = false, className }: Props) {
   const { t } = useTranslation();
   const pathname = usePathname();
   const [url, setUrl] = useState('');
@@ -95,11 +97,16 @@ export function AuctionShareButton({ auctionTitle }: Props) {
       <button
         type="button"
         onClick={handlePrimaryClick}
-        className="inline-flex items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-bold uppercase tracking-wide shadow-sm transition hover:brightness-105"
+        className={`${
+          compact
+            ? 'inline-flex h-8 w-8 items-center justify-center rounded-full border text-sm shadow-sm transition hover:brightness-105'
+            : 'inline-flex items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-bold uppercase tracking-wide shadow-sm transition hover:brightness-105'
+        }${className ? ` ${className}` : ''}`}
         style={{ borderColor: ORANGE, color: ORANGE, backgroundColor: 'white' }}
+        aria-label={compact ? t('auctions.share') : undefined}
       >
         <Share2 className="h-4 w-4" aria-hidden />
-        {t('auctions.share')}
+        {!compact ? t('auctions.share') : null}
       </button>
       {copied && (
         <span className="absolute -bottom-8 right-0 z-10 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white shadow">

@@ -53,6 +53,11 @@ function sellerBannerHandle(seller: string): string {
   return (raw.length <= 5 ? raw : raw.slice(0, 4)).toUpperCase();
 }
 
+function sameUserId(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false;
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
 
 function useNowTick(): number {
   const [now, setNow] = useState(() => Date.now());
@@ -87,6 +92,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const { data: bidsRes } = useAuctionBids(Number.isNaN(numericId) ? 0 : numericId, { limit: 50 });
   useAuctionWebSocket(Number.isNaN(numericId) ? 0 : numericId);
   const currentUser = useAuthStore((s) => s.user);
+  const currentUserId = currentUser?.id ?? null;
 
   const detail = useMemo(() => {
     if (!detailRes?.data) return null;
@@ -184,6 +190,12 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       .map((a) => apiToAuctionUI(a));
   }, [similarData, numericId]);
 
+  const myLastOfferFromHistoryEur = useMemo(() => {
+    if (!currentUserId) return null;
+    const myLatestBid = bidRows.find((b) => sameUserId(b.userId, currentUserId));
+    return myLatestBid ? myLatestBid.amountEur : null;
+  }, [bidRows, currentUserId]);
+
   if (isLoading || !detail) {
     return (
       <div className="min-h-screen bg-white">
@@ -195,23 +207,24 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     );
   }
 
-  const isOwner = currentUser?.id != null && detail.createdByUserId === currentUser.id;
+  const isOwner = sameUserId(detail.createdByUserId, currentUserId);
   const isEnded = detail.status === 'ended';
   const showBuyerBid = !isOwner && !isEnded;
   const endsAt = detail.endsAt;
   const msLeft = new Date(endsAt).getTime() - now;
   const mainImg = detailImages[imgIdx] ?? detailImages[0] ?? '';
   const reserveMet = detail.reservePrice != null ? detail.currentBidEur >= detail.reservePrice : true;
+  const effectiveMyLastOfferEur = myLastOfferEur ?? myLastOfferFromHistoryEur;
   const outcome: 'live' | 'sold' | 'unsold' = isEnded
     ? (reserveMet && detail.bidCount > 0 ? 'sold' : 'unsold')
     : 'live';
-  const effectiveCurrentBidEur = Math.max(detail.currentBidEur, myLastOfferEur ?? 0);
+  const effectiveCurrentBidEur = Math.max(detail.currentBidEur, effectiveMyLastOfferEur ?? 0);
   const isWinning =
     !isOwner &&
     !isEnded &&
-    currentUser?.id != null &&
-    (detail.highestBidderId === currentUser.id ||
-      (myLastOfferEur != null && myLastOfferEur >= detail.currentBidEur));
+    currentUserId != null &&
+    (sameUserId(detail.highestBidderId, currentUserId) ||
+      (effectiveMyLastOfferEur != null && effectiveMyLastOfferEur >= detail.currentBidEur));
   const fmtEur = (n: number) => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
 
   return (
@@ -276,28 +289,33 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         </div>
       </section>
 
-      {/* Sticky Mobile Header - Nome prodotto | Condividi */}
-      <div
-        className={`sticky z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm lg:hidden transition-transform duration-300 ${showStickyHeader ? 'translate-y-0' : '-translate-y-full hidden'}`}
-        style={{ top: stickyTop + asteNavHeight }}
-      >
-        <div className="container-content py-3">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="min-w-0 flex-1 truncate text-sm font-bold uppercase tracking-wide text-gray-900">
-              {detail.title}
-            </h2>
-            <div className="flex items-center gap-3 shrink-0">
-              {!isOwner && (
-                <button type="button" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-[#FF7300]">
-                  <Bookmark className="h-4 w-4" />
-                  <span className="hidden sm:inline">{t('auctions.detailSaveLater')}</span>
-                </button>
-              )}
-              <AuctionShareButton auctionTitle={detail.title} />
+      {/* Sticky Mobile Header - Nome prodotto | Preferiti + Condividi */}
+      {showStickyHeader && (
+        <div
+          className="sticky z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm lg:hidden animate-[fadeInDown_0.2s_ease-out]"
+          style={{ top: stickyTop + asteNavHeight }}
+        >
+          <div className="container-content py-2">
+            <div className="flex items-center gap-2.5">
+              <h2 className="min-w-0 flex-1 truncate text-[13px] font-bold uppercase tracking-wide text-gray-900">
+                {detail.title}
+              </h2>
+              <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-1.5 py-1 shadow-sm">
+                {!isOwner && (
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition hover:bg-zinc-100 hover:text-[#FF7300]"
+                    aria-label={t('auctions.detailSaveLater')}
+                  >
+                    <Bookmark className="h-4 w-4" />
+                  </button>
+                )}
+                <AuctionShareButton auctionTitle={detail.title} compact />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <section className="w-full bg-white px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
         <div className="container-content">
@@ -792,7 +810,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
                   <div className="max-h-72 overflow-y-auto py-1">
                     {/* Current User's Bid */}
-                    {!isOwner && myLastOfferEur != null && (
+                    {!isOwner && effectiveMyLastOfferEur != null && (
                       <div 
                         className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-orange-50 to-amber-50/50 px-4 py-2.5 animate-[fadeIn_0.4s_ease-out]"
                       >
@@ -805,13 +823,14 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                             Tu
                           </span>
                         </div>
-                        <span className="text-sm font-bold text-[#FF7300]">{fmtEur(myLastOfferEur)}</span>
+                        <span className="text-sm font-bold text-[#FF7300]">{fmtEur(effectiveMyLastOfferEur)}</span>
                       </div>
                     )}
 
                     {/* Bids List */}
                     {bidRows.map((b, i) => {
-                      const isLeader = detail.highestBidderId != null && b.userId === detail.highestBidderId;
+                      const isLeader = sameUserId(b.userId, detail.highestBidderId);
+                      const isMine = currentUserId != null && sameUserId(b.userId, currentUserId);
                       const bidderCountry = b.countryCode || 'IT';
                       const animationDelay = `${i * 0.05}s`;
                       const bidDate = new Date(b.createdAt);
@@ -827,16 +846,21 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         <div
                           key={`${b.userId}-${b.createdAt}-${i}`}
                           style={{ animationDelay }}
-                          className={`flex items-center justify-between px-4 py-2.5 animate-[fadeInUp_0.4s_ease-out_both] ${i !== bidRows.length - 1 ? 'border-b border-gray-50' : ''} ${isLeader ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/20' : ''}`}
+                          className={`flex items-center justify-between px-4 py-2.5 animate-[fadeInUp_0.4s_ease-out_both] ${i !== bidRows.length - 1 ? 'border-b border-gray-50' : ''} ${isMine ? 'bg-gradient-to-r from-orange-50/70 to-amber-50/40' : isLeader ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/20' : ''}`}
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <FlagIcon country={bidderCountry} size="sm" />
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <span className={`text-sm ${isLeader ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                                <span className={`text-sm ${isMine ? 'font-bold text-[#FF7300]' : isLeader ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
                                   {b.username}
                                 </span>
-                                {isLeader && i === bidRows.findIndex((r) => r.userId === detail.highestBidderId) && (
+                                {isMine && (
+                                  <span className="rounded bg-orange-200 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-800">
+                                    Tu
+                                  </span>
+                                )}
+                                {isLeader && i === bidRows.findIndex((r) => sameUserId(r.userId, detail.highestBidderId)) && (
                                   <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Primo posto" />
                                 )}
                               </div>
@@ -845,7 +869,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                               </span>
                             </div>
                           </div>
-                          <span className={`shrink-0 text-sm font-semibold ${isLeader ? 'text-emerald-600' : 'text-gray-600'}`}>
+                          <span className={`shrink-0 text-sm font-semibold ${isMine ? 'text-[#FF7300]' : isLeader ? 'text-emerald-600' : 'text-gray-600'}`}>
                             {fmtEur(b.amountEur)}
                           </span>
                         </div>

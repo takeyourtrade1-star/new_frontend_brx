@@ -7,7 +7,6 @@ import {
 import {
   Crown,
   ShieldAlert,
-  Smile,
   Swords,
   X,
 } from 'lucide-react';
@@ -38,7 +37,7 @@ interface DuelSnapshot {
 
 interface EmoteBurst {
   id: number;
-  emoji: string;
+  emote: EmoteType;
   tone: string;
 }
 
@@ -52,43 +51,37 @@ interface KakeguruiArenaProps {
 const TURN_DURATION_MS = 3000;
 const WIN_TARGET = 2;
 
-const MOVE_META: Record<Move, { label: string; emoji: string; color: string; accentHex: string; accentRgb: string }> = {
+const MOVE_META: Record<Move, { label: string; color: string; accentHex: string; accentRgb: string }> = {
   rock: {
     label: 'Sasso',
-    emoji: '🪨',
     color: 'from-amber-400/25 to-orange-500/25',
     accentHex: '#FF7300',
     accentRgb: '255,115,0',
   },
   paper: {
     label: 'Carta',
-    emoji: '📄',
     color: 'from-cyan-300/25 to-sky-500/25',
     accentHex: '#818CF8',
     accentRgb: '129,140,248',
   },
   scissors: {
     label: 'Forbice',
-    emoji: '✂️',
     color: 'from-fuchsia-400/25 to-rose-500/25',
     accentHex: '#34D399',
     accentRgb: '52,211,153',
   },
 };
 
-const EMOTES: Record<EmoteType, { emoji: string; tone: string; label: string }> = {
+const EMOTES: Record<EmoteType, { tone: string; label: string }> = {
   smug: {
-    emoji: '😈',
     tone: 'from-fuchsia-500/25 to-pink-500/25',
     label: 'Risata malefica',
   },
   panic: {
-    emoji: '😰',
     tone: 'from-cyan-500/25 to-blue-500/25',
     label: 'Panico',
   },
   challenge: {
-    emoji: '😤',
     tone: 'from-orange-500/25 to-red-500/25',
     label: 'Sfida',
   },
@@ -102,8 +95,119 @@ const BEATS: Record<Move, Move> = {
 
 const CARD_BACK_STYLE: CSSProperties = {
   backgroundImage:
-    'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.25), transparent 30%), radial-gradient(circle at 80% 80%, rgba(255,115,0,0.25), transparent 35%), linear-gradient(145deg, rgba(22,22,22,0.98), rgba(38,38,38,0.98))',
+    'radial-gradient(circle at 22% 18%, rgba(255,255,255,0.2), transparent 32%), radial-gradient(circle at 78% 82%, rgba(255,115,0,0.28), transparent 36%), linear-gradient(155deg, rgba(13,13,17,0.98), rgba(30,30,36,0.98) 40%, rgba(19,19,24,0.98) 100%)',
 };
+
+type MascotExpression = 'neutral' | 'smug' | 'panic' | 'challenge' | 'focus';
+
+const MOVE_EXPRESSIONS: Record<Move, MascotExpression> = {
+  rock: 'challenge',
+  paper: 'focus',
+  scissors: 'smug',
+};
+
+const EMOTE_EXPRESSIONS: Record<EmoteType, MascotExpression> = {
+  smug: 'smug',
+  panic: 'panic',
+  challenge: 'challenge',
+};
+
+function MascotGlyph({
+  expression,
+  accentRgb,
+  mark,
+  className,
+}: {
+  expression: MascotExpression;
+  accentRgb: string;
+  mark?: Move;
+  className?: string;
+}) {
+  const config: Record<MascotExpression, { mouth: string; leftPupil: string; rightPupil: string; brows?: string[] }> = {
+    neutral: {
+      mouth: 'M 34 65 Q 50 75 66 65',
+      leftPupil: '35 41',
+      rightPupil: '65 41',
+    },
+    smug: {
+      mouth: 'M 36 65 Q 51 73 67 62',
+      leftPupil: '33 39.5',
+      rightPupil: '63 39.5',
+    },
+    panic: {
+      mouth: 'M 45 67 Q 50 75 55 67 Q 50 62 45 67',
+      leftPupil: '35 43',
+      rightPupil: '65 43',
+      brows: ['M 24 31 L 42 35', 'M 58 35 L 76 31'],
+    },
+    challenge: {
+      mouth: 'M 34 67 Q 50 62 66 67',
+      leftPupil: '36 40',
+      rightPupil: '64 40',
+      brows: ['M 24 35 L 42 31', 'M 58 31 L 76 35'],
+    },
+    focus: {
+      mouth: 'M 36 66 Q 50 68 64 66',
+      leftPupil: '35 40',
+      rightPupil: '65 40',
+      brows: ['M 24 33 L 42 33', 'M 58 33 L 76 33'],
+    },
+  };
+
+  const active = config[expression];
+  const [leftPupilX, leftPupilY] = active.leftPupil.split(' ').map(Number);
+  const [rightPupilX, rightPupilY] = active.rightPupil.split(' ').map(Number);
+
+  return (
+    <svg viewBox="0 0 100 100" className={className} aria-hidden>
+      <circle cx="50" cy="50" r="45" fill={`rgba(${accentRgb},0.16)`} stroke={`rgba(${accentRgb},0.65)`} strokeWidth="2.8" />
+      <circle cx="50" cy="50" r="39" fill="rgba(15,15,20,0.9)" stroke="rgba(255,255,255,0.12)" strokeWidth="1.8" />
+
+      {active.brows?.map((path, idx) => (
+        <path key={idx} d={path} stroke="rgba(248,250,252,0.88)" strokeWidth="2.8" strokeLinecap="round" />
+      ))}
+
+      <circle cx="35" cy="40" r="11" fill="none" stroke="rgba(248,250,252,0.9)" strokeWidth="2.8" />
+      <circle cx="65" cy="40" r="11" fill="none" stroke="rgba(248,250,252,0.9)" strokeWidth="2.8" />
+
+      <circle cx={leftPupilX} cy={leftPupilY} r="4.8" fill="rgba(232,236,242,0.96)" />
+      <circle cx={rightPupilX} cy={rightPupilY} r="4.8" fill="rgba(232,236,242,0.96)" />
+      <circle cx={leftPupilX - 1.8} cy={leftPupilY - 1.8} r="1.6" fill="rgba(17,17,24,0.95)" />
+      <circle cx={rightPupilX - 1.8} cy={rightPupilY - 1.8} r="1.6" fill="rgba(17,17,24,0.95)" />
+
+      <path d={active.mouth} fill="none" stroke="rgba(248,250,252,0.9)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+
+      {mark === 'rock' && (
+        <rect
+          x="44"
+          y="74"
+          width="12"
+          height="12"
+          rx="2"
+          transform="rotate(45 50 80)"
+          fill="rgba(248,250,252,0.86)"
+          stroke={`rgba(${accentRgb},0.9)`}
+          strokeWidth="1.4"
+        />
+      )}
+
+      {mark === 'paper' && (
+        <g stroke="rgba(248,250,252,0.9)" strokeWidth="2" strokeLinecap="round">
+          <path d="M 42 73 H 58" />
+          <path d="M 42 77 H 58" />
+          <path d="M 42 81 H 58" />
+        </g>
+      )}
+
+      {mark === 'scissors' && (
+        <g stroke="rgba(248,250,252,0.9)" strokeWidth="2.2" strokeLinecap="round">
+          <path d="M 43 73 L 57 85" />
+          <path d="M 57 73 L 43 85" />
+        </g>
+      )}
+    </svg>
+  );
+}
 
 function uid(prefix: string): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -143,6 +247,9 @@ function ArenaCardBack({ variant = 'hand' }: { variant?: 'hand' | 'duel' }) {
       </span>
       <div className="pointer-events-none absolute left-3 right-3 top-3 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
       <div className="pointer-events-none absolute bottom-3 left-3 right-3 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      <div className="pointer-events-none absolute bottom-2 right-2 h-5 w-5 rounded-full border border-white/20 bg-white/5 p-0.5">
+        <MascotGlyph expression="neutral" accentRgb="255,255,255" className="h-full w-full" />
+      </div>
     </div>
   );
 }
@@ -194,7 +301,12 @@ function ArenaMoveFace({
         BRX
       </span>
 
-      <span className={`${isDuel ? 'text-5xl' : 'text-2xl sm:text-3xl'}`}>{meta.emoji}</span>
+      <MascotGlyph
+        expression={MOVE_EXPRESSIONS[move]}
+        accentRgb={meta.accentRgb}
+        mark={move}
+        className={`${isDuel ? 'h-20 w-20' : 'h-12 w-12 sm:h-14 sm:w-14'}`}
+      />
 
       <span
         className={`mt-2 rounded-full border px-2.5 py-0.5 font-bold uppercase tracking-[0.2em] text-white/90 ${
@@ -352,6 +464,7 @@ export function KakeguruiArena({
 
   const timeoutRef = useRef<number[]>([]);
   const intervalRef = useRef<number | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const clearQueuedTimeouts = useCallback(() => {
     timeoutRef.current.forEach((id) => window.clearTimeout(id));
@@ -374,6 +487,81 @@ export function KakeguruiArena({
     timeoutRef.current.push(timeoutId);
     return timeoutId;
   }, []);
+
+  const ensureAudioContext = useCallback(async () => {
+    if (typeof window === 'undefined' || typeof window.AudioContext === 'undefined') {
+      return null;
+    }
+
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new window.AudioContext();
+    }
+
+    if (audioCtxRef.current.state === 'suspended') {
+      await audioCtxRef.current.resume();
+    }
+
+    return audioCtxRef.current;
+  }, []);
+
+  const playEmoteSfx = useCallback(
+    async (type: EmoteType) => {
+      const ctx = await ensureAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.11, now + 0.02);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+      master.connect(ctx.destination);
+
+      const playTone = (opts: {
+        freq: number;
+        dur: number;
+        wave: OscillatorType;
+        gain?: number;
+        start?: number;
+        detune?: number;
+      }) => {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        const start = opts.start ?? 0;
+        const gain = opts.gain ?? 0.08;
+        const detune = opts.detune ?? 0;
+
+        osc.type = opts.wave;
+        osc.frequency.setValueAtTime(opts.freq, now + start);
+        if (detune !== 0) {
+          osc.detune.setValueAtTime(detune, now + start);
+        }
+
+        gainNode.gain.setValueAtTime(0.0001, now + start);
+        gainNode.gain.exponentialRampToValueAtTime(gain, now + start + 0.012);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + start + opts.dur);
+
+        osc.connect(gainNode);
+        gainNode.connect(master);
+
+        osc.start(now + start);
+        osc.stop(now + start + opts.dur + 0.03);
+      };
+
+      if (type === 'smug') {
+        playTone({ freq: 420, dur: 0.12, wave: 'triangle', gain: 0.07 });
+        playTone({ freq: 620, dur: 0.16, wave: 'sine', gain: 0.09, start: 0.09 });
+      } else if (type === 'panic') {
+        playTone({ freq: 860, dur: 0.08, wave: 'square', gain: 0.07, detune: -14 });
+        playTone({ freq: 790, dur: 0.08, wave: 'square', gain: 0.065, start: 0.09, detune: 12 });
+        playTone({ freq: 920, dur: 0.1, wave: 'triangle', gain: 0.06, start: 0.18 });
+      } else {
+        playTone({ freq: 250, dur: 0.14, wave: 'sawtooth', gain: 0.075 });
+        playTone({ freq: 330, dur: 0.16, wave: 'triangle', gain: 0.08, start: 0.1 });
+        playTone({ freq: 440, dur: 0.18, wave: 'sine', gain: 0.085, start: 0.18 });
+      }
+    },
+    [ensureAudioContext]
+  );
 
   const startDealing = useCallback(
     (resetScore: boolean) => {
@@ -489,9 +677,12 @@ export function KakeguruiArena({
     (type: EmoteType) => {
       const emote = EMOTES[type];
       const id = Date.now();
+
+      void playEmoteSfx(type);
+
       setActiveEmote({
         id,
-        emoji: emote.emoji,
+        emote: type,
         tone: emote.tone,
       });
 
@@ -501,7 +692,7 @@ export function KakeguruiArena({
         setActiveEmote((prev) => (prev?.id === id ? null : prev));
       }, 1200);
     },
-    [queueTimeout]
+    [playEmoteSfx, queueTimeout]
   );
 
   useEffect(() => {
@@ -567,6 +758,11 @@ export function KakeguruiArena({
     () => () => {
       stopCountdown();
       clearQueuedTimeouts();
+
+      if (audioCtxRef.current) {
+        void audioCtxRef.current.close();
+        audioCtxRef.current = null;
+      }
     },
     [clearQueuedTimeouts, stopCountdown]
   );
@@ -608,6 +804,20 @@ export function KakeguruiArena({
         ? 'Respira, studia il rivale e riparti.'
         : 'Nessuno ha ceduto. Stress puro.';
 
+  const activeEmoteAnimate =
+    activeEmote?.emote === 'panic'
+      ? { opacity: 1, y: [-48, -50, -48], x: [0, -4, 4, -3, 3, 0], scale: [1, 1.06, 1], rotate: [0, -3, 3, -2, 2, 0] }
+      : activeEmote?.emote === 'smug'
+        ? { opacity: 1, y: [-48, -56, -48], x: [0, 5, 0], scale: [1, 1.06, 1], rotate: [0, 5, 0] }
+        : { opacity: 1, y: [-48, -54, -48], x: [0, 0, 0], scale: [1, 1.12, 1], rotate: [0, -1, 1, 0] };
+
+  const activeEmoteTransition =
+    activeEmote?.emote === 'panic'
+      ? { duration: 0.5, repeat: Infinity, ease: 'easeInOut' as const }
+      : activeEmote?.emote === 'smug'
+        ? { duration: 0.9, repeat: Infinity, ease: 'easeInOut' as const }
+        : { duration: 0.65, repeat: Infinity, ease: 'easeInOut' as const };
+
   return (
     <AnimatePresence>
       {open && (
@@ -622,14 +832,26 @@ export function KakeguruiArena({
             }
           }}
         >
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <motion.div
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.24, ease: 'easeOut' }}
+          />
 
           <motion.div
-            className="relative mx-auto h-[100dvh] w-full max-w-[1200px] overflow-hidden border-x border-white/10 bg-[#090909] text-white"
-            initial={{ y: 26, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            transition={{ duration: 0.26, ease: 'easeOut' }}
+            className="relative mx-auto mt-[2dvh] h-[96dvh] w-[98vw] overflow-hidden rounded-xl border border-white/15 bg-[#090909] text-white shadow-[0_18px_70px_rgba(0,0,0,0.55)] sm:mt-[3dvh] sm:h-[94dvh] sm:w-[96vw] sm:rounded-2xl lg:mt-[4dvh] lg:h-[92dvh] lg:w-[min(96vw,1240px)]"
+            style={{ transformPerspective: 1200, transformOrigin: '50% 20%' }}
+            initial={{ y: 36, opacity: 0, scale: 0.94, rotateX: 7 }}
+            animate={{ y: 0, opacity: 1, scale: 1, rotateX: 0 }}
+            exit={{ y: 24, opacity: 0, scale: 0.98, rotateX: 4 }}
+            transition={{
+              opacity: { duration: 0.2, ease: 'easeOut' },
+              y: { type: 'spring', stiffness: 320, damping: 28, mass: 0.85 },
+              scale: { type: 'spring', stiffness: 260, damping: 24, mass: 0.9 },
+              rotateX: { duration: 0.26, ease: [0.22, 1, 0.36, 1] },
+            }}
           >
             <div className="pointer-events-none absolute inset-0 opacity-30" style={{
               backgroundImage:
@@ -655,12 +877,12 @@ export function KakeguruiArena({
               </div>
             </header>
 
-            <div className="relative z-10 grid h-[calc(100dvh-57px)] grid-rows-[auto_1fr_auto]">
+            <div className="relative z-10 grid h-[calc(100%-57px)] grid-rows-[auto_1fr_auto]">
               <section className="border-b border-white/10 px-4 py-4 sm:px-6">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-rose-300/40 bg-gradient-to-br from-rose-500/25 to-fuchsia-500/15 text-lg font-black text-rose-200">
-                      R
+                    <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-rose-300/40 bg-gradient-to-br from-rose-500/25 to-fuchsia-500/15 p-1">
+                      <MascotGlyph expression="smug" accentRgb="244,114,182" className="h-full w-full" />
                     </div>
                     <div>
                       <p className="text-xs uppercase tracking-[0.15em] text-white/55">Avversario</p>
@@ -679,7 +901,11 @@ export function KakeguruiArena({
                 </div>
               </section>
 
-              <section className="relative flex flex-col items-center justify-center px-4 py-4 sm:px-6">
+              <section className="relative flex flex-col items-center justify-center overflow-hidden px-4 py-4 sm:px-6">
+                <div className="pointer-events-none absolute inset-0">
+                  <div className="absolute left-1/2 top-1/2 h-[280px] w-[min(90%,620px)] -translate-x-1/2 -translate-y-1/2 rounded-[999px] border border-orange-300/20 bg-[radial-gradient(ellipse_at_center,rgba(255,115,0,0.16),transparent_70%)]" />
+                  <div className="absolute left-1/2 top-1/2 h-[220px] w-[min(80%,520px)] -translate-x-1/2 -translate-y-1/2 rounded-[999px] border border-cyan-300/20 bg-[radial-gradient(ellipse_at_center,rgba(56,189,248,0.12),transparent_72%)]" />
+                </div>
                 <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-white/45 sm:mb-4">
                   Round {roundIndex}
                 </p>
@@ -875,19 +1101,24 @@ export function KakeguruiArena({
               <section className="border-t border-white/10 px-4 py-4 sm:px-6">
                 <div className="flex items-start justify-between gap-3">
                   <div className="relative flex items-center gap-3">
-                    <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-orange-300/50 bg-gradient-to-br from-orange-500/25 to-amber-500/20 text-lg font-black text-orange-100">
-                      T
+                    <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-orange-300/50 bg-gradient-to-br from-orange-500/25 to-amber-500/20 p-1">
+                      <MascotGlyph expression="challenge" accentRgb="255,115,0" className="h-full w-full" />
 
                       <AnimatePresence>
                         {activeEmote && (
                           <motion.div
                             key={activeEmote.id}
                             initial={{ opacity: 0, y: 8, scale: 0.65 }}
-                            animate={{ opacity: 1, y: -48, scale: 1 }}
+                            animate={activeEmoteAnimate}
+                            transition={activeEmoteTransition}
                             exit={{ opacity: 0, y: -72, scale: 0.8 }}
-                            className={`pointer-events-none absolute left-1/2 top-0 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-white/20 bg-gradient-to-br ${activeEmote.tone} text-2xl shadow-[0_8px_20px_rgba(0,0,0,0.35)]`}
+                            className={`pointer-events-none absolute left-1/2 top-0 flex h-[52px] w-[52px] -translate-x-1/2 items-center justify-center rounded-full border border-white/20 bg-gradient-to-br ${activeEmote.tone} shadow-[0_8px_20px_rgba(0,0,0,0.35)]`}
                           >
-                            <span>{activeEmote.emoji}</span>
+                            <MascotGlyph
+                              expression={EMOTE_EXPRESSIONS[activeEmote.emote]}
+                              accentRgb="255,255,255"
+                              className="h-[38px] w-[38px]"
+                            />
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -906,13 +1137,25 @@ export function KakeguruiArena({
                         type="button"
                         title={EMOTES[type].label}
                         onClick={() => triggerEmote(type)}
-                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-gradient-to-br ${EMOTES[type].tone} text-base transition hover:scale-110 hover:border-white/50`}
+                        whileHover={
+                          type === 'panic'
+                            ? { scale: 1.07, x: [0, -2, 2, -1, 1, 0] }
+                            : type === 'smug'
+                              ? { scale: 1.08, y: -2, rotate: -4 }
+                              : { scale: 1.1, y: -1 }
+                        }
+                        whileTap={{ scale: 0.94 }}
+                        transition={{ duration: 0.24, ease: 'easeOut' }}
+                        className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-gradient-to-br ${EMOTES[type].tone} p-1 transition hover:scale-110 hover:border-white/50`}
                       >
-                        <span aria-hidden>{EMOTES[type].emoji}</span>
+                        <MascotGlyph
+                          expression={EMOTE_EXPRESSIONS[type]}
+                          accentRgb="255,255,255"
+                          className="h-full w-full"
+                        />
                         <span className="sr-only">{EMOTES[type].label}</span>
                       </button>
                     ))}
-                    <Smile className="h-4 w-4 text-white/60" aria-hidden />
                   </div>
                 </div>
 
