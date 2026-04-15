@@ -85,7 +85,10 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
       peerRef.current = peer;
 
       peer.on('signal', (signal) => {
-        const signalString = btoa(encodeURIComponent(JSON.stringify(signal)));
+        // Use TextEncoder for proper UTF-8 to base64 conversion
+        const jsonStr = JSON.stringify(signal);
+        const bytes = new TextEncoder().encode(jsonStr);
+        const signalString = btoa(String.fromCharCode(...bytes));
         setRoomState(prev => ({
           ...prev,
           state: 'waiting',
@@ -144,7 +147,10 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
     try {
       setRoomState(prev => ({ ...prev, state: 'joining', isHost: false }));
 
-      const offer = JSON.parse(decodeURIComponent(atob(signalString)));
+      // Use TextDecoder for proper base64 to UTF-8 conversion
+      const decodedStr = atob(signalString);
+      const bytes = new Uint8Array(decodedStr.split('').map(c => c.charCodeAt(0)));
+      const offer = JSON.parse(new TextDecoder().decode(bytes));
 
       const peer = new Peer({
         initiator: false,
@@ -154,7 +160,10 @@ export function useP2PRoom(onGameState?: (state: GameState) => void): [P2PRoom, 
       peerRef.current = peer;
 
       peer.on('signal', (signal) => {
-        const answerString = btoa(encodeURIComponent(JSON.stringify(signal)));
+        // Use TextEncoder for proper UTF-8 to base64 conversion
+        const jsonStr = JSON.stringify(signal);
+        const bytes = new TextEncoder().encode(jsonStr);
+        const answerString = btoa(String.fromCharCode(...bytes));
         setRoomState(prev => ({
           ...prev,
           state: 'waiting',
