@@ -100,21 +100,14 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   }, [detailRes, bidsRes]);
 
   const bidRows: BidRowUI[] = useMemo(
-    () => {
-      const all = (bidsRes?.data ?? [])
+    () =>
+      (bidsRes?.data ?? [])
         .map(apiBidToBidRow)
         .sort((a, b) => {
-          const amtDiff = b.amountEur - a.amountEur;
-          if (amtDiff !== 0) return amtDiff;
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-      const seen = new Set<string>();
-      return all.filter((b) => {
-        if (seen.has(b.userId)) return false;
-        seen.add(b.userId);
-        return true;
-      });
-    },
+          const timeDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          if (timeDiff !== 0) return timeDiff;
+          return b.bidId - a.bidId;
+        }),
     [bidsRes]
   );
 
@@ -834,53 +827,58 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     )}
 
                     {/* Bids List */}
-                    {bidRows.map((b, i) => {
-                      const isLeader = sameUserId(b.userId, detail.highestBidderId);
-                      const isMine = currentUserId != null && sameUserId(b.userId, currentUserId);
-                      const bidderCountry = b.countryCode || 'IT';
-                      const animationDelay = `${i * 0.05}s`;
-                      const bidDate = new Date(b.createdAt);
-                      const timeStr = bidDate.toLocaleString('it-IT', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      });
+                    {(() => {
+                      let crownShown = false;
+                      return bidRows.map((b, i) => {
+                        const isLeader = sameUserId(b.userId, detail.highestBidderId);
+                        const showCrown = isLeader && !crownShown;
+                        if (showCrown) crownShown = true;
+                        const isMine = currentUserId != null && sameUserId(b.userId, currentUserId);
+                        const bidderCountry = b.countryCode || 'IT';
+                        const animationDelay = `${i * 0.05}s`;
+                        const bidDate = new Date(b.createdAt);
+                        const timeStr = bidDate.toLocaleString('it-IT', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        });
 
-                      return (
-                        <div
-                          key={`${b.userId}-${b.createdAt}-${i}`}
-                          style={{ animationDelay }}
-                          className={`flex items-center justify-between px-4 py-2.5 animate-[fadeInUp_0.4s_ease-out_both] ${i !== bidRows.length - 1 ? 'border-b border-gray-50' : ''} ${isMine ? 'bg-gradient-to-r from-orange-50/70 to-amber-50/40' : isLeader ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/20' : ''}`}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <FlagIcon country={bidderCountry} size="sm" />
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className={`text-sm ${isMine ? 'font-bold text-[#FF7300]' : isLeader ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
-                                  {b.username}
-                                </span>
-                                {isMine && (
-                                  <span className="rounded bg-orange-200 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-800">
-                                    Tu
+                        return (
+                          <div
+                            key={b.bidId}
+                            style={{ animationDelay }}
+                            className={`flex items-center justify-between px-4 py-2.5 animate-[fadeInUp_0.4s_ease-out_both] ${i !== bidRows.length - 1 ? 'border-b border-gray-50' : ''} ${showCrown ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/20' : isMine ? 'bg-gradient-to-r from-orange-50/30 to-transparent' : ''}`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FlagIcon country={bidderCountry} size="sm" />
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-sm ${showCrown ? 'font-bold text-gray-900' : isMine ? 'font-bold text-[#FF7300]' : 'font-medium text-gray-700'}`}>
+                                    {b.username}
                                   </span>
-                                )}
-                                {isLeader && (
-                                  <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Primo posto" />
-                                )}
+                                  {isMine && (
+                                    <span className="rounded bg-orange-200 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-800">
+                                      Tu
+                                    </span>
+                                  )}
+                                  {showCrown && (
+                                    <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Primo posto" />
+                                  )}
+                                </div>
+                                <span suppressHydrationWarning className="block text-[10px] text-gray-400">
+                                  {timeStr}
+                                </span>
                               </div>
-                              <span suppressHydrationWarning className="block text-[10px] text-gray-400">
-                                {timeStr}
-                              </span>
                             </div>
+                            <span className={`shrink-0 text-sm font-semibold ${showCrown ? 'text-emerald-600' : isMine ? 'text-[#FF7300]' : 'text-gray-600'}`}>
+                              {fmtEur(b.amountEur)}
+                            </span>
                           </div>
-                          <span className={`shrink-0 text-sm font-semibold ${isMine ? 'text-[#FF7300]' : isLeader ? 'text-emerald-600' : 'text-gray-600'}`}>
-                            {fmtEur(b.amountEur)}
-                          </span>
-                        </div>
-                      );
-                    })}
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               </div>

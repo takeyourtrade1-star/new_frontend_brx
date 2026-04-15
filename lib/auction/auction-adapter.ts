@@ -81,6 +81,7 @@ export function apiToAuctionUI(a: AuctionAPI, bidCount?: number): AuctionUI {
 }
 
 export interface BidRowUI {
+  bidId: number;
   username: string;
   amountEur: number;
   countryCode?: string;
@@ -98,6 +99,7 @@ export function apiBidToBidRow(b: BidAPI): BidRowUI {
   else if (ago > 60_000) atLabel = `${Math.floor(ago / 60_000)} min fa`;
 
   return {
+    bidId: b.id,
     username: b.user_id.slice(0, 8),
     amountEur: b.amount,
     countryCode: 'IT',
