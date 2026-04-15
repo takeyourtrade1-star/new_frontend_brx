@@ -2564,14 +2564,15 @@ export function CardMascotte() {
               </button>
               
               {/* Game Mode Selector Dropdown - Ported to body to escape 3D context */}
-              {showGameModeMenu && menuPosition && createPortal(
+              {showGameModeMenu && menuPosition && typeof document !== 'undefined' && createPortal(
                 <div 
                   ref={gameModeMenuRef}
-                  className="fixed w-48 rounded-lg border border-white/20 bg-black/95 backdrop-blur-md shadow-2xl overflow-hidden z-[99999]"
+                  className="fixed w-48 rounded-lg border border-white/20 bg-black/95 backdrop-blur-md shadow-2xl overflow-hidden"
                   style={{
                     top: menuPosition.top,
                     left: menuPosition.left,
-                    transform: 'translateX(-50%)'
+                    transform: 'translateX(-50%)',
+                    zIndex: 2147483647 // Maximum safe z-index
                   }}
                 >
                   <div className="p-2 space-y-1">
