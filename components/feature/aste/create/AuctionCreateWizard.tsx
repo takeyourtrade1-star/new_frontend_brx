@@ -128,6 +128,7 @@ export function AuctionCreateWizard({
     publishMode: 'now' | 'scheduled';
   } | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showDesktopFloatingNav, setShowDesktopFloatingNav] = useState(false);
   const wizardShellRef = useRef<HTMLDivElement>(null);
   const stepContentRef = useRef<HTMLDivElement>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -511,6 +512,40 @@ export function AuctionCreateWizard({
 
   /** Barra navigazione fissa solo dal passo 2 in poi (dopo «È una carta?»). */
   const showStickyNav = stepId !== 'q_card';
+
+  // Desktop nav visibile solo quando il centro viewport cade nel range verticale del wizard.
+  useEffect(() => {
+    if (!showStickyNav) {
+      setShowDesktopFloatingNav(false);
+      return;
+    }
+
+    let rafId = 0;
+    const updateDesktopNavVisibility = () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      rafId = window.requestAnimationFrame(() => {
+        const shell = wizardShellRef.current;
+        if (!shell) {
+          setShowDesktopFloatingNav(false);
+          return;
+        }
+        const rect = shell.getBoundingClientRect();
+        const viewportCenterY = window.innerHeight * 0.5;
+        const inRange = rect.top + 24 <= viewportCenterY && rect.bottom - 24 >= viewportCenterY;
+        setShowDesktopFloatingNav((prev) => (prev === inRange ? prev : inRange));
+      });
+    };
+
+    updateDesktopNavVisibility();
+    window.addEventListener('scroll', updateDesktopNavVisibility, { passive: true });
+    window.addEventListener('resize', updateDesktopNavVisibility);
+
+    return () => {
+      window.removeEventListener('scroll', updateDesktopNavVisibility);
+      window.removeEventListener('resize', updateDesktopNavVisibility);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, [showStickyNav, stepId]);
 
   const formatDateTimeLong = useCallback((iso: string) => {
     const d = new Date(iso);
@@ -1336,8 +1371,13 @@ export function AuctionCreateWizard({
           )}
         </div>
 
-        {/* Desktop: controlli laterali vicini al wizard, non ai bordi estremi */}
-        {showStickyNav && (
+      </div>
+    </div>
+
+    {showStickyNav && (
+      <>
+        {/* Desktop: visibili solo nel range dei campi del wizard */}
+        {showDesktopFloatingNav && (
           <>
             <button
               type="button"
@@ -1386,11 +1426,7 @@ export function AuctionCreateWizard({
             )}
           </>
         )}
-      </div>
-    </div>
 
-    {showStickyNav && (
-      <>
         {/* Mobile: pillola fissa in basso */}
         <div
           className={cn(

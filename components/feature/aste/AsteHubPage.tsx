@@ -234,7 +234,7 @@ export function AsteHubPage() {
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
                 className={cn(
-                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/50 text-white shadow ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 transition-all hover:scale-105 hover:bg-primary/60 active:scale-95',
+                  'self-center sm:self-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/50 text-white shadow ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 transition-all hover:scale-105 hover:bg-primary/60 active:scale-95',
                   showFilters && 'bg-primary/70 ring-white/20'
                 )}
                 aria-label={showFilters ? 'Nascondi filtri' : 'Mostra filtri'}
