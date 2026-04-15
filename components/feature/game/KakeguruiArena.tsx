@@ -1132,7 +1132,7 @@ export function KakeguruiArena({
 
                   <div className="flex items-center gap-2">
                     {(Object.keys(EMOTES) as EmoteType[]).map((type) => (
-                      <button
+                      <motion.button
                         key={type}
                         type="button"
                         title={EMOTES[type].label}
@@ -1154,7 +1154,7 @@ export function KakeguruiArena({
                           className="h-full w-full"
                         />
                         <span className="sr-only">{EMOTES[type].label}</span>
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 </div>
