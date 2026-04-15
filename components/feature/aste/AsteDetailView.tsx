@@ -218,7 +218,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const outcome: 'live' | 'sold' | 'unsold' = isEnded
     ? (reserveMet && detail.bidCount > 0 ? 'sold' : 'unsold')
     : 'live';
-  const effectiveCurrentBidEur = Math.max(detail.currentBidEur, effectiveMyLastOfferEur ?? 0);
+  const effectiveCurrentBidEur = detail.currentBidEur;
   const isWinning =
     !isOwner &&
     !isEnded &&
