@@ -1088,6 +1088,9 @@ export const it: Record<MessageKey, string> = {
   'auctions.maxBidCancelConfirmNo': 'No, mantienila',
   'auctions.maxBidRemovedToast': 'Offerta massima eliminata',
   'auctions.maxBidRemovedToastBody': 'La tua offerta automatica è stata disattivata. Puoi impostare una nuova offerta massima in qualsiasi momento.',
+  'auctions.winningBannerTitle': 'Stai vincendo!',
+  'auctions.winningBannerBody': 'La tua offerta di {amount} è attualmente la più alta.',
+  'auctions.winningBannerLabel': 'La tua offerta',
 
   'legal.lastUpdated': 'Ultimo aggiornamento:',
   'legal.cookie.title': 'Cookie Policy',

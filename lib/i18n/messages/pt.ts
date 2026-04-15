@@ -1087,6 +1087,9 @@ export const pt: Record<MessageKey, string> = {
   'auctions.maxBidCancelConfirmNo': 'Manter',
   'auctions.maxBidRemovedToast': 'Lance máximo removido',
   'auctions.maxBidRemovedToastBody': 'O seu lance automático foi desativado. Pode definir um novo lance máximo a qualquer momento.',
+  'auctions.winningBannerTitle': 'Está a ganhar!',
+  'auctions.winningBannerBody': 'O seu lance de {amount} é atualmente o mais alto.',
+  'auctions.winningBannerLabel': 'O seu lance',
 
   'legal.lastUpdated': 'Última atualização:',
   'legal.cookie.title': 'Política de cookies',

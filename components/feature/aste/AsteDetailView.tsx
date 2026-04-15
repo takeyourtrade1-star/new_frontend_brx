@@ -7,7 +7,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap, ArrowLeft } from 'lucide-react';
+import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap, ArrowLeft, Trophy } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
@@ -93,7 +93,10 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   }, [detailRes, bidsRes]);
 
   const bidRows: BidRowUI[] = useMemo(
-    () => (bidsRes?.data ?? []).map(apiBidToBidRow).reverse(),
+    () =>
+      (bidsRes?.data ?? [])
+        .map(apiBidToBidRow)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [bidsRes]
   );
 
@@ -198,6 +201,12 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     ? (reserveMet && detail.bidCount > 0 ? 'sold' : 'unsold')
     : 'live';
   const effectiveCurrentBidEur = Math.max(detail.currentBidEur, myLastOfferEur ?? 0);
+  const isWinning =
+    !isOwner &&
+    !isEnded &&
+    currentUser?.id != null &&
+    (detail.highestBidderId === currentUser.id ||
+      (myLastOfferEur != null && myLastOfferEur >= detail.currentBidEur));
   const fmtEur = (n: number) => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
 
   return (
@@ -402,6 +411,36 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Banner "Stai vincendo" */}
+          {isWinning && (
+            <div
+              className="mb-6 rounded-xl border-2 border-emerald-400 bg-gradient-to-r from-emerald-50 via-green-50 to-emerald-50 px-4 py-4 shadow-lg shadow-emerald-500/10 animate-[fadeInDown_0.5s_ease-out]"
+              role="status"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/30">
+                  <Trophy className="h-5 w-5 text-white" aria-hidden />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-extrabold uppercase tracking-wide text-emerald-800 sm:text-lg">
+                    {t('auctions.winningBannerTitle')}
+                  </p>
+                  <p className="mt-0.5 text-sm text-emerald-700">
+                    {t('auctions.winningBannerBody', { amount: fmtEur(effectiveCurrentBidEur) })}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right hidden sm:block">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
+                    {t('auctions.winningBannerLabel')}
+                  </span>
+                  <p className="text-xl font-extrabold text-emerald-700">
+                    {fmtEur(effectiveCurrentBidEur)}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -723,23 +762,38 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                       const isFirst = i === 0;
                       const bidderCountry = b.countryCode || 'IT';
                       const animationDelay = `${i * 0.05}s`;
+                      const bidDate = new Date(b.createdAt);
+                      const timeStr = bidDate.toLocaleString('it-IT', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      });
 
                       return (
                         <div
-                          key={`${b.username}-${i}`}
+                          key={`${b.userId}-${b.createdAt}-${i}`}
                           style={{ animationDelay }}
                           className={`flex items-center justify-between px-4 py-2.5 animate-[fadeInUp_0.4s_ease-out_both] ${i !== bidRows.length - 1 ? 'border-b border-gray-50' : ''} ${isFirst ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/20' : ''}`}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <FlagIcon country={bidderCountry} size="sm" />
-                            <span className={`text-sm ${isFirst ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
-                              {b.username}
-                            </span>
-                            {isFirst && (
-                              <Crown className="h-3.5 w-3.5 text-amber-500" aria-label="Primo posto" />
-                            )}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`text-sm ${isFirst ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                                  {b.username}
+                                </span>
+                                {isFirst && (
+                                  <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Primo posto" />
+                                )}
+                              </div>
+                              <span suppressHydrationWarning className="block text-[10px] text-gray-400">
+                                {timeStr}
+                              </span>
+                            </div>
                           </div>
-                          <span className={`text-sm font-semibold ${isFirst ? 'text-emerald-600' : 'text-gray-600'}`}>
+                          <span className={`shrink-0 text-sm font-semibold ${isFirst ? 'text-emerald-600' : 'text-gray-600'}`}>
                             {fmtEur(b.amountEur)}
                           </span>
                         </div>

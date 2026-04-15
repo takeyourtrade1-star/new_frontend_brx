@@ -1087,6 +1087,9 @@ export const es: Record<MessageKey, string> = {
   'auctions.maxBidCancelConfirmNo': 'Mantenerla',
   'auctions.maxBidRemovedToast': 'Puja máxima eliminada',
   'auctions.maxBidRemovedToastBody': 'Tu puja automática ha sido desactivada. Puedes establecer una nueva puja máxima en cualquier momento.',
+  'auctions.winningBannerTitle': '¡Vas ganando!',
+  'auctions.winningBannerBody': 'Tu oferta de {amount} es actualmente la más alta.',
+  'auctions.winningBannerLabel': 'Tu oferta',
 
   'legal.lastUpdated': 'Última actualización:',
   'legal.cookie.title': 'Política de cookies',

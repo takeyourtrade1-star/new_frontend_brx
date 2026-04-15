@@ -187,118 +187,69 @@ export function AuctionBidModal({
 
   const placeBidMutation = usePlaceBid(auctionId ?? 0);
 
+  const parsedInput = useMemo(() => {
+    const raw = input.replace(',', '.').trim();
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? roundMoney(n) : NaN;
+  }, [input]);
+
+  const displayBidAmount = Number.isFinite(parsedInput) ? parsedInput : minBid;
+
   if (!open) return null;
-
-
 
   const fmtEur = (n: number) => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
 
-
-
   const dateLine = endsAt.toLocaleString('it-IT', {
-
     weekday: 'long',
-
     day: 'numeric',
-
     month: 'long',
-
     hour: '2-digit',
-
     minute: '2-digit',
-
   });
 
-
-
-  const submitIfValid = async (amount: number) => {
-
-    const min = minNextBidEur(effectiveCurrentBidEur);
-
-    if (!Number.isFinite(amount) || amount < min) {
-
-      setError(t('auctions.bidErrorTooLow', { min: fmtEur(min) }));
-
+  const handleDirectBid = async () => {
+    if (!Number.isFinite(parsedInput)) {
+      setError(t('auctions.bidErrorInvalid'));
       return;
-
     }
-
+    const min = minNextBidEur(effectiveCurrentBidEur);
+    if (parsedInput < min) {
+      setError(t('auctions.bidErrorTooLow', { min: fmtEur(min) }));
+      return;
+    }
     setError(null);
-
     if (auctionId != null && auctionId > 0) {
       try {
-        await placeBidMutation.mutateAsync({ amount: roundMoney(amount) });
+        await placeBidMutation.mutateAsync({ amount: parsedInput });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Errore offerta');
         return;
       }
     }
-
-    onSubmitOffer(roundMoney(amount));
-
-  };
-
-
-
-  const handleConfirm = () => {
-
-    const raw = input.replace(',', '.').trim();
-
-    const parsed = parseFloat(raw);
-
-    const amount = Number.isFinite(parsed) ? roundMoney(parsed) : NaN;
-
-    if (!Number.isFinite(amount)) {
-
-      setError(t('auctions.bidErrorInvalid'));
-
-      return;
-
-    }
-
-    submitIfValid(amount);
-
+    onSubmitOffer(parsedInput);
   };
 
   const handleMaxBid = async () => {
-
-    const raw = input.replace(',', '.').trim();
-
-    const parsed = parseFloat(raw);
-
-    const amount = Number.isFinite(parsed) ? roundMoney(parsed) : NaN;
-
-    if (!Number.isFinite(amount)) {
-
+    if (!Number.isFinite(parsedInput)) {
       setError(t('auctions.bidErrorInvalid'));
-
       return;
-
     }
-
     const min = minNextBidEur(effectiveCurrentBidEur);
-
-    if (amount < min) {
-
+    if (parsedInput < min) {
       setError(t('auctions.bidErrorTooLow', { min: fmtEur(min) }));
-
       return;
-
     }
-
     setError(null);
-
+    const firstBid = roundMoney(min);
     if (auctionId != null && auctionId > 0) {
       try {
-        await placeBidMutation.mutateAsync({ amount: roundMoney(amount), maxAmount: roundMoney(amount) });
+        await placeBidMutation.mutateAsync({ amount: firstBid, maxAmount: parsedInput });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Errore offerta massima');
         return;
       }
     }
-
-    onSubmitMaxBid?.(roundMoney(amount));
-
+    onSubmitMaxBid?.(parsedInput);
   };
 
 
@@ -452,15 +403,17 @@ export function AuctionBidModal({
           <div className="flex items-stretch gap-3 sm:gap-4">
             <button
               type="button"
-              onClick={handleConfirm}
-              className="flex-[0.65] rounded-xl border-2 border-gray-300 bg-white px-3 py-3.5 text-[10px] font-bold uppercase tracking-wide text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 hover:shadow-sm active:scale-[0.98] sm:flex-[0.7] sm:px-4 sm:py-4 sm:text-xs"
+              onClick={handleDirectBid}
+              disabled={placeBidMutation.isPending}
+              className="flex-[0.65] rounded-xl border-2 border-gray-300 bg-white px-3 py-3.5 text-[10px] font-bold uppercase tracking-wide text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 hover:shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed sm:flex-[0.7] sm:px-4 sm:py-4 sm:text-xs"
             >
-              {t('auctions.bidButtonMain', { amount: fmtEur(minBid) })}
+              {t('auctions.bidButtonMain', { amount: fmtEur(displayBidAmount) })}
             </button>
             <button
               type="button"
               onClick={handleMaxBid}
-              className="flex-1 rounded-xl border-2 border-[#FF7300] bg-gradient-to-r from-[#FF8A3D] to-[#FF7300] px-4 py-3.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md shadow-orange-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98] sm:px-6 sm:py-4 sm:text-xs"
+              disabled={placeBidMutation.isPending}
+              className="flex-1 rounded-xl border-2 border-[#FF7300] bg-gradient-to-r from-[#FF8A3D] to-[#FF7300] px-4 py-3.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md shadow-orange-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed sm:px-6 sm:py-4 sm:text-xs"
             >
               {t('auctions.bidButtonMax')}
             </button>

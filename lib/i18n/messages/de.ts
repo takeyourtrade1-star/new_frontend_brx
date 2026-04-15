@@ -1087,6 +1087,9 @@ export const de: Record<MessageKey, string> = {
   'auctions.maxBidCancelConfirmNo': 'Behalten',
   'auctions.maxBidRemovedToast': 'Maximalgebot entfernt',
   'auctions.maxBidRemovedToastBody': 'Ihr automatisches Bieten wurde deaktiviert. Sie können jederzeit ein neues Maximalgebot festlegen.',
+  'auctions.winningBannerTitle': 'Sie führen!',
+  'auctions.winningBannerBody': 'Ihr Gebot von {amount} ist derzeit das höchste.',
+  'auctions.winningBannerLabel': 'Ihr Gebot',
 
   'legal.lastUpdated': 'Zuletzt aktualisiert:',
   'legal.cookie.title': 'Cookie-Richtlinie',

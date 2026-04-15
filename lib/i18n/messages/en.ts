@@ -1085,6 +1085,9 @@ export const en = {
   'auctions.maxBidCancelConfirmNo': 'Keep it',
   'auctions.maxBidRemovedToast': 'Maximum bid removed',
   'auctions.maxBidRemovedToastBody': 'Your automatic bidding has been deactivated. You can set a new maximum bid anytime.',
+  'auctions.winningBannerTitle': 'You\'re winning!',
+  'auctions.winningBannerBody': 'Your bid of {amount} is currently the highest.',
+  'auctions.winningBannerLabel': 'Your bid',
 
   'legal.lastUpdated': 'Last updated:',
   'legal.cookie.title': 'Cookie policy',

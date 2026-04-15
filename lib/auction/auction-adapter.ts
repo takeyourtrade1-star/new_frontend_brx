@@ -36,6 +36,7 @@ export interface AuctionUI {
   winnerId: string | null;
   reserveNotReachedMessage: string | null;
   createdByUserId: string | null;
+  highestBidderId: string | null;
   startTime: string;
 }
 
@@ -74,6 +75,7 @@ export function apiToAuctionUI(a: AuctionAPI, bidCount?: number): AuctionUI {
     winnerId: a.winner_id ?? null,
     reserveNotReachedMessage: a.reserve_not_reached_message ?? null,
     createdByUserId: a.created_by_user_id ?? null,
+    highestBidderId: a.highest_bidder_id ?? null,
     startTime: a.start_time,
   };
 }
@@ -83,6 +85,7 @@ export interface BidRowUI {
   amountEur: number;
   countryCode?: string;
   atLabel?: string;
+  createdAt: string;
   userId: string;
 }
 
@@ -99,6 +102,7 @@ export function apiBidToBidRow(b: BidAPI): BidRowUI {
     amountEur: b.amount,
     countryCode: 'IT',
     atLabel,
+    createdAt: b.created_at,
     userId: b.user_id,
   };
 }
