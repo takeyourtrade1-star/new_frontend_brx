@@ -815,17 +815,6 @@ export function LandingWelcome() {
         </div>
       )}
 
-      {/* ══════ SCROLL TO TOP BUTTON ══════ */}
-      <button
-        onClick={handleScrollToTop}
-        className={`fixed bottom-6 right-6 z-[10001] flex h-12 w-12 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-[0_4px_20px_rgba(255,115,0,0.4)] transition-all duration-300 hover:bg-[#e66700] hover:scale-110 hover:shadow-[0_6px_28px_rgba(255,115,0,0.6)] active:scale-95 ${
-          showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
-        }`}
-        aria-label="Torna in cima"
-      >
-        <ChevronUp className="h-5 w-5" />
-      </button>
-
       {/* Inline keyframes for boutique entry */}
       <style>{`
         @keyframes categoryEnter {

@@ -2569,7 +2569,7 @@ export function CardMascotte() {
                   ref={gameModeMenuRef}
                   className="fixed w-48 rounded-lg border border-white/20 bg-black/95 backdrop-blur-md shadow-2xl overflow-hidden"
                   style={{
-                    top: menuPosition.top,
+                    bottom: window.innerHeight - menuPosition.top + 8,
                     left: menuPosition.left,
                     transform: 'translateX(-50%)',
                     zIndex: 2147483647 // Maximum safe z-index
