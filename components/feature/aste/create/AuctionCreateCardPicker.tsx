@@ -233,7 +233,7 @@ export function AuctionCreateCardPicker({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {CATALOG_GAME_CHIPS.map(({ value, labelKey, available }) =>
             available ? (
               <button
@@ -252,13 +252,11 @@ export function AuctionCreateCardPicker({
             ) : (
               <span
                 key={value}
-                className="inline-flex flex-col items-start rounded-full border border-dashed border-gray-200 bg-gray-50 px-3 py-1.5"
-                aria-label={`${t(labelKey)} — ${t('landing.comingSoon')}`}
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-gray-300 bg-gray-100/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 cursor-not-allowed"
+                title={`${t(labelKey)} — ${t('landing.comingSoon')}`}
               >
-                <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t(labelKey)}</span>
-                <span className="text-[10px] font-medium normal-case leading-tight text-gray-400">
-                  {t('landing.comingSoon')}
-                </span>
+                {t(labelKey)}
+                <span className="text-[10px] font-medium">•</span>
               </span>
             )
           )}
