@@ -48,7 +48,8 @@ interface KakeguruiArenaProps {
   opponentName?: string;
 }
 
-const TURN_DURATION_MS = 3000;
+const TURN_DURATION_SECONDS = 7;
+const TURN_DURATION_MS = TURN_DURATION_SECONDS * 1000;
 const WIN_TARGET = 2;
 
 const MOVE_META: Record<Move, { label: string; color: string; accentHex: string; accentRgb: string }> = {
@@ -100,12 +101,6 @@ const CARD_BACK_STYLE: CSSProperties = {
 
 type MascotExpression = 'neutral' | 'smug' | 'panic' | 'challenge' | 'focus';
 
-const MOVE_EXPRESSIONS: Record<Move, MascotExpression> = {
-  rock: 'challenge',
-  paper: 'focus',
-  scissors: 'smug',
-};
-
 const EMOTE_EXPRESSIONS: Record<EmoteType, MascotExpression> = {
   smug: 'smug',
   panic: 'panic',
@@ -115,12 +110,10 @@ const EMOTE_EXPRESSIONS: Record<EmoteType, MascotExpression> = {
 function MascotGlyph({
   expression,
   accentRgb,
-  mark,
   className,
 }: {
   expression: MascotExpression;
   accentRgb: string;
-  mark?: Move;
   className?: string;
 }) {
   const config: Record<MascotExpression, { mouth: string; leftPupil: string; rightPupil: string; brows?: string[] }> = {
@@ -176,34 +169,71 @@ function MascotGlyph({
       <circle cx={rightPupilX - 1.8} cy={rightPupilY - 1.8} r="1.6" fill="rgba(17,17,24,0.95)" />
 
       <path d={active.mouth} fill="none" stroke="rgba(248,250,252,0.9)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
-      {mark === 'rock' && (
-        <rect
-          x="44"
-          y="74"
-          width="12"
-          height="12"
-          rx="2"
-          transform="rotate(45 50 80)"
-          fill="rgba(248,250,252,0.86)"
-          stroke={`rgba(${accentRgb},0.9)`}
-          strokeWidth="1.4"
-        />
+function MoveSymbolGlyph({
+  move,
+  accentRgb,
+  className,
+}: {
+  move: Move;
+  accentRgb: string;
+  className?: string;
+}) {
+  return (
+    <svg viewBox="0 0 100 100" className={className} aria-hidden>
+      {move === 'rock' && (
+        <>
+          <path
+            d="M 28 45 L 39 29 L 56 24 L 72 35 L 75 53 L 63 68 L 45 72 L 31 61 Z"
+            fill={`rgba(${accentRgb},0.24)`}
+            stroke={`rgba(${accentRgb},0.92)`}
+            strokeWidth="3"
+            strokeLinejoin="round"
+          />
+          <path d="M 40 44 L 49 36" stroke="rgba(248,250,252,0.7)" strokeWidth="2" strokeLinecap="round" />
+          <path d="M 52 55 L 61 47" stroke="rgba(248,250,252,0.62)" strokeWidth="2" strokeLinecap="round" />
+        </>
       )}
 
-      {mark === 'paper' && (
-        <g stroke="rgba(248,250,252,0.9)" strokeWidth="2" strokeLinecap="round">
-          <path d="M 42 73 H 58" />
-          <path d="M 42 77 H 58" />
-          <path d="M 42 81 H 58" />
-        </g>
+      {move === 'paper' && (
+        <>
+          <rect
+            x="29"
+            y="20"
+            width="42"
+            height="60"
+            rx="8"
+            fill={`rgba(${accentRgb},0.2)`}
+            stroke={`rgba(${accentRgb},0.95)`}
+            strokeWidth="3"
+          />
+          <path d="M 37 38 H 63" stroke="rgba(248,250,252,0.74)" strokeWidth="2.6" strokeLinecap="round" />
+          <path d="M 37 48 H 63" stroke="rgba(248,250,252,0.74)" strokeWidth="2.6" strokeLinecap="round" />
+          <path d="M 37 58 H 56" stroke="rgba(248,250,252,0.7)" strokeWidth="2.4" strokeLinecap="round" />
+        </>
       )}
 
-      {mark === 'scissors' && (
-        <g stroke="rgba(248,250,252,0.9)" strokeWidth="2.2" strokeLinecap="round">
-          <path d="M 43 73 L 57 85" />
-          <path d="M 57 73 L 43 85" />
-        </g>
+      {move === 'scissors' && (
+        <>
+          <circle cx="34" cy="66" r="11" fill="none" stroke={`rgba(${accentRgb},0.95)`} strokeWidth="3" />
+          <circle cx="66" cy="66" r="11" fill="none" stroke={`rgba(${accentRgb},0.95)`} strokeWidth="3" />
+          <path
+            d="M 40 60 L 70 26"
+            stroke={`rgba(${accentRgb},0.95)`}
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 60 60 L 30 26"
+            stroke={`rgba(${accentRgb},0.95)`}
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+          <circle cx="50" cy="56" r="3" fill="rgba(248,250,252,0.86)" />
+        </>
       )}
     </svg>
   );
@@ -280,18 +310,20 @@ function ArenaMoveFace({
           backgroundSize: '240% 100%',
         }}
         animate={{ backgroundPosition: ['220% 0', '-220% 0'] }}
-        transition={{ duration: 1.8, ease: 'easeInOut', repeat: Infinity }}
+        transition={{ duration: isDuel ? 2.2 : 2.6, ease: 'easeInOut', repeat: Infinity }}
       />
 
       <div className="pointer-events-none absolute inset-[1px] rounded-2xl border border-white/10" />
 
-      <div
+      <motion.div
         className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{
           width: isDuel ? 92 : 56,
           height: isDuel ? 92 : 56,
           background: `radial-gradient(circle, rgba(${meta.accentRgb},0.2) 0%, transparent 72%)`,
         }}
+        animate={{ scale: [1, 1.08, 1], opacity: [0.66, 1, 0.66] }}
+        transition={{ duration: isDuel ? 2.1 : 2.6, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       <span
@@ -301,11 +333,10 @@ function ArenaMoveFace({
         BRX
       </span>
 
-      <MascotGlyph
-        expression={MOVE_EXPRESSIONS[move]}
+      <MoveSymbolGlyph
+        move={move}
         accentRgb={meta.accentRgb}
-        mark={move}
-        className={`${isDuel ? 'h-20 w-20' : 'h-12 w-12 sm:h-14 sm:w-14'}`}
+        className={`${isDuel ? 'h-24 w-24' : 'h-14 w-14 sm:h-16 sm:w-16'}`}
       />
 
       <span
@@ -367,7 +398,25 @@ function HandMoveCard({
       disabled={disabled}
       onClick={onPick}
       initial={{ opacity: 0, y: 16, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: selected ? 1.04 : 1 }}
+      animate={
+        selected
+          ? { opacity: 1, y: -5, scale: 1.05, rotate: 0 }
+          : disabled
+            ? { opacity: 1, y: 0, scale: 1, rotate: 0 }
+            : { opacity: 1, y: [0, -4, 0], scale: [1, 1.012, 1], rotate: [0, -0.8, 0.8, 0] }
+      }
+      transition={
+        selected
+          ? { duration: 0.2, ease: 'easeOut' }
+          : disabled
+            ? { duration: 0.2 }
+            : {
+                opacity: { duration: 0.2 },
+                y: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
+                scale: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
+                rotate: { duration: 2.6, repeat: Infinity, ease: 'easeInOut' },
+              }
+      }
       whileHover={disabled ? undefined : { y: -4, scale: 1.03 }}
       whileTap={disabled ? undefined : { scale: 0.97 }}
       className={`${commonClasses} ${
@@ -413,15 +462,19 @@ function DuelCard({
         style={{ transformStyle: 'preserve-3d' }}
         animate={{
           rotateY: reveal ? 180 : 0,
-          scale: state === 'winner' ? 1.07 : 1,
+          scale: state === 'winner' ? [1, 1.08, 1.05] : state === 'draw' ? [1, 1.02, 1] : 1,
           opacity: state === 'loser' ? 0.55 : 1,
           x: state === 'loser' ? [0, -4, 4, -3, 3, 0] : 0,
+          y: state === 'winner' ? [0, -8, 0] : 0,
+          rotateZ: state === 'winner' ? 1.5 : state === 'loser' ? -1.5 : 0,
         }}
         transition={{
-          rotateY: { duration: 0.56, ease: 'easeInOut' },
-          scale: { duration: 0.34 },
+          rotateY: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
+          scale: { duration: 0.4, ease: 'easeOut' },
           opacity: { duration: 0.3 },
           x: { duration: 0.4, ease: 'easeInOut' },
+          y: { duration: 0.44, ease: 'easeOut' },
+          rotateZ: { duration: 0.3, ease: 'easeOut' },
         }}
       >
         <div className="absolute inset-0" style={{ ...faceStyle }}>
@@ -769,6 +822,7 @@ export function KakeguruiArena({
 
   const timerSeconds = Math.ceil(countdownMs / 1000);
   const progressPct = Math.max(0, (countdownMs / TURN_DURATION_MS) * 100);
+  const isCountdownCritical = progressPct < 34;
 
   const duelState = useMemo(() => {
     if (!roundOutcome) {
@@ -921,8 +975,8 @@ export function KakeguruiArena({
                     >
                       <motion.div
                         className="h-32 w-24"
-                        animate={{ rotate: [-2, 2, -2, 2, 0], y: [0, -3, 0] }}
-                        transition={{ duration: 0.55, repeat: Infinity }}
+                        animate={{ rotate: [-3, 3, -2, 2, 0], y: [0, -5, 0], scale: [1, 1.03, 1] }}
+                        transition={{ duration: 0.95, repeat: Infinity, ease: 'easeInOut' }}
                       >
                         <ArenaCardBack />
                       </motion.div>
@@ -977,17 +1031,22 @@ export function KakeguruiArena({
                             Scegli la carta
                           </p>
                           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-orange-300">
-                            3 secondi
+                            {TURN_DURATION_SECONDS} secondi
                           </p>
                         </div>
 
-                        <div className="mt-3 flex items-end gap-3">
+                        <motion.div
+                          className="mt-3 flex items-end gap-3"
+                          animate={isCountdownCritical ? { x: [0, -2, 2, -1, 1, 0] } : { x: 0 }}
+                          transition={isCountdownCritical ? { duration: 0.34, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
+                        >
                           <AnimatePresence mode="popLayout">
                             <motion.span
                               key={timerSeconds}
                               initial={{ y: 6, opacity: 0 }}
-                              animate={{ y: 0, opacity: 1 }}
+                              animate={{ y: 0, opacity: 1, scale: isCountdownCritical ? [1, 1.08, 1] : 1 }}
                               exit={{ y: -6, opacity: 0 }}
+                              transition={{ scale: { duration: 0.55, repeat: isCountdownCritical ? Infinity : 0, ease: 'easeInOut' } }}
                               className="text-4xl font-black leading-none text-white sm:text-5xl"
                             >
                               {timerSeconds}
@@ -996,11 +1055,11 @@ export function KakeguruiArena({
                           <span className="pb-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
                             tempo residuo
                           </span>
-                        </div>
+                        </motion.div>
 
-                        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/10">
+                        <div className="relative mt-4 h-2.5 overflow-hidden rounded-full bg-white/10">
                           <motion.div
-                            className={`h-full ${
+                            className={`relative h-full ${
                               progressPct < 34
                                 ? 'bg-gradient-to-r from-red-500 to-orange-400'
                                 : progressPct < 67
@@ -1009,7 +1068,13 @@ export function KakeguruiArena({
                             }`}
                             animate={{ width: `${progressPct}%` }}
                             transition={{ ease: 'linear', duration: 0.08 }}
-                          />
+                          >
+                            <motion.div
+                              className="absolute inset-y-0 w-12 bg-white/30 blur-[1px]"
+                              animate={{ x: ['-130%', '220%'] }}
+                              transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}
+                            />
+                          </motion.div>
                         </div>
                       </div>
                     </motion.div>
