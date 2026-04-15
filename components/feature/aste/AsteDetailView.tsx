@@ -100,14 +100,21 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   }, [detailRes, bidsRes]);
 
   const bidRows: BidRowUI[] = useMemo(
-    () =>
-      (bidsRes?.data ?? [])
+    () => {
+      const all = (bidsRes?.data ?? [])
         .map(apiBidToBidRow)
         .sort((a, b) => {
           const amtDiff = b.amountEur - a.amountEur;
           if (amtDiff !== 0) return amtDiff;
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        }),
+        });
+      const seen = new Set<string>();
+      return all.filter((b) => {
+        if (seen.has(b.userId)) return false;
+        seen.add(b.userId);
+        return true;
+      });
+    },
     [bidsRes]
   );
 
@@ -223,8 +230,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     !isOwner &&
     !isEnded &&
     currentUserId != null &&
-    (sameUserId(detail.highestBidderId, currentUserId) ||
-      (effectiveMyLastOfferEur != null && effectiveMyLastOfferEur >= detail.currentBidEur));
+    sameUserId(detail.highestBidderId, currentUserId);
   const fmtEur = (n: number) => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
 
   return (
@@ -860,7 +866,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                                     Tu
                                   </span>
                                 )}
-                                {isLeader && i === bidRows.findIndex((r) => sameUserId(r.userId, detail.highestBidderId)) && (
+                                {isLeader && (
                                   <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Primo posto" />
                                 )}
                               </div>
