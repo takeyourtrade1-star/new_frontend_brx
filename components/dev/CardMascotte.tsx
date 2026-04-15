@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare, ArrowRight, Sparkles, Loader2, Play, Users } from 'lucide-react';
 import html2canvas from 'html2canvas';
@@ -419,6 +420,8 @@ export function CardMascotte() {
   const lastFlipTimeRef = useRef(0);
   const backFaceRef = useRef<HTMLDivElement>(null);
   const gameModeMenuRef = useRef<HTMLDivElement>(null);
+  const playButtonRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{top: number; left: number} | null>(null);
   const matchmakingTicketRef = useRef<string | null>(null);
   const matchmakingPollRef = useRef<number | null>(null);
 
@@ -1685,30 +1688,30 @@ export function CardMascotte() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Promotional hints - subtle and elegant (bug hint is more minimal/basic)
+  // Promotional hints - glassmorphism style matching mascot
   const promoHints = useMemo(() => [
     {
       id: 'scambi',
       text: 'Lo sai cosa ci rende unici? Poter scambiare sulla piattaforma!',
       route: '/account/scambi',
-      // Subtle green - toned down saturation
-      gradient: 'linear-gradient(135deg, #047857 0%, #059669 100%)',
+      // Glass tint color (accent only, not solid)
+      accent: '#10B981',
       icon: 'swap',
     },
     {
       id: 'aste',
       text: 'Vuoi guadagnare di più dalle vendite? Perché non provi le Aste?',
       route: '/aste',
-      // Subtle cyan - toned down saturation
-      gradient: 'linear-gradient(135deg, #0e7490 0%, #0891b2 100%)',
+      // Glass tint color (accent only, not solid)
+      accent: '#06B6D4',
       icon: 'auction',
     },
     {
       id: 'bug',
       text: 'Segnalami un bug! Clicca qui per aiutarci a migliorare.',
       route: '#bug-report',
-      // Minimal gray - more basic than the others
-      gradient: 'linear-gradient(135deg, #52525b 0%, #71717a 100%)',
+      // Minimal - no accent color, just glass
+      accent: null,
       icon: 'bug',
     },
   ], []);
@@ -1974,28 +1977,27 @@ export function CardMascotte() {
             pointerEvents: showHint ? 'auto' : 'none',
           }}
         >
-          {/* Subtle glow background - reduced opacity */}
+          {/* Glassmorphism bubble - matches mascot style */}
           <div
-            className="absolute inset-0 rounded-xl blur-lg opacity-25"
+            className="relative rounded-xl px-4 py-3 text-center backdrop-blur-md overflow-hidden"
             style={{
-              background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #52525b 0%, #71717a 100%)',
-            }}
-          />
-          {/* Main bubble - cleaner, less aggressive styling */}
-          <div
-            className="relative rounded-xl px-4 py-3 text-center backdrop-blur-sm overflow-hidden"
-            style={{
-              background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #52525b 0%, #71717a 100%)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+              background: activePromoHints[promoHintIndex]?.accent
+                ? `linear-gradient(135deg, ${activePromoHints[promoHintIndex].accent}15 0%, rgba(39,39,42,0.85) 100%)`
+                : 'rgba(39,39,42,0.85)',
+              border: activePromoHints[promoHintIndex]?.accent
+                ? `1px solid ${activePromoHints[promoHintIndex].accent}40`
+                : '1px solid rgba(255,255,255,0.15)',
+              boxShadow: activePromoHints[promoHintIndex]?.accent
+                ? `0 4px 20px ${activePromoHints[promoHintIndex].accent}25, 0 2px 8px rgba(0,0,0,0.2)`
+                : '0 4px 16px rgba(0,0,0,0.2)',
             }}
           >
-            {/* Subtle shine - only for non-bug hints */}
-            {activePromoHints[promoHintIndex]?.id !== 'bug' && (
+            {/* Subtle accent glow for non-bug hints */}
+            {activePromoHints[promoHintIndex]?.accent && (
               <div
-                className="absolute inset-0 opacity-15"
+                className="absolute inset-0 opacity-20 blur-md"
                 style={{
-                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                  background: activePromoHints[promoHintIndex].accent,
                 }}
               />
             )}
@@ -2020,15 +2022,21 @@ export function CardMascotte() {
               </span>
               <ArrowRight className="w-3 h-3 text-white/90 group-hover:translate-x-1 transition-transform" />
             </div>
-            {/* Arrow pointer - cleaner border */}
+            {/* Glass arrow pointer */}
             <span
               className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
               style={{
                 width: '8px',
                 height: '8px',
-                background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #52525b 0%, #71717a 100%)',
-                borderBottom: '1px solid rgba(255,255,255,0.2)',
-                borderRight: '1px solid rgba(255,255,255,0.2)',
+                background: activePromoHints[promoHintIndex]?.accent
+                  ? `linear-gradient(135deg, ${activePromoHints[promoHintIndex].accent}20 0%, rgba(39,39,42,0.9) 100%)`
+                  : 'rgba(39,39,42,0.9)',
+                borderBottom: activePromoHints[promoHintIndex]?.accent
+                  ? `1px solid ${activePromoHints[promoHintIndex].accent}50`
+                  : '1px solid rgba(255,255,255,0.15)',
+                borderRight: activePromoHints[promoHintIndex]?.accent
+                  ? `1px solid ${activePromoHints[promoHintIndex].accent}50`
+                  : '1px solid rgba(255,255,255,0.15)',
               }}
             />
           </div>
@@ -2046,7 +2054,7 @@ export function CardMascotte() {
             animation: 'unlockFlash 3s ease-out forwards',
           }}
         >
-          <div className="unlock-badge flex items-center gap-2 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-600/90 to-amber-500/90 px-3 py-2 shadow-lg shadow-amber-900/20">
+          <div className="unlock-badge flex items-center gap-2 rounded-xl border border-amber-500/30 bg-zinc-900/80 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-md">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" fill="white" /></svg>
             <div>
               <p className="text-[10px] font-black uppercase tracking-wide text-white">Sbloccato!</p>
@@ -2120,7 +2128,7 @@ export function CardMascotte() {
             animation: 'achievementIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards, achievementOut 400ms ease-in 2s forwards',
           }}
         >
-          <div className="flex items-center gap-2 rounded-xl border border-zinc-700/50 bg-zinc-800/90 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-md">
+          <div className="flex items-center gap-2 rounded-xl border border-zinc-600/40 bg-zinc-900/80 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-md">
             <span className="text-base">&#11088;</span>
             <div>
               <p className="text-[10px] font-bold text-zinc-200">{showAchievement}</p>
@@ -2141,7 +2149,7 @@ export function CardMascotte() {
             animation: 'comboPopIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
           }}
         >
-          <div className="flex items-center gap-1.5 rounded-lg border border-amber-600/40 bg-amber-700/85 px-2.5 py-1 shadow-md shadow-amber-950/20">
+          <div className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-zinc-900/80 px-2.5 py-1 shadow-md shadow-black/20 backdrop-blur-md">
             <span className="text-[10px] font-black text-white">{comboCount}x</span>
             <span className="text-[8px] font-bold uppercase tracking-wider text-white/80">COMBO</span>
           </div>
@@ -2532,10 +2540,20 @@ export function CardMascotte() {
               {BACK_VARIANTS[backVariant].sub}
             </span>
 
-            <div className="relative mt-8" ref={gameModeMenuRef}>
+            <div className="relative mt-8">
               <button
+                ref={playButtonRef}
                 type="button"
-                onClick={() => setShowGameModeMenu(prev => !prev)}
+                onClick={() => {
+                  if (!showGameModeMenu && playButtonRef.current) {
+                    const rect = playButtonRef.current.getBoundingClientRect();
+                    setMenuPosition({
+                      top: rect.bottom + 8,
+                      left: rect.left + rect.width / 2
+                    });
+                  }
+                  setShowGameModeMenu(prev => !prev);
+                }}
                 disabled={isCheckingArenaPlayers}
                 className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white transition hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
                 title="Avvia mini-gioco"
@@ -2545,9 +2563,17 @@ export function CardMascotte() {
                 Play
               </button>
               
-              {/* Game Mode Selector Dropdown */}
-              {showGameModeMenu && (
-                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 rounded-lg border border-white/20 bg-black/95 backdrop-blur-md shadow-2xl overflow-hidden z-[9999]">
+              {/* Game Mode Selector Dropdown - Ported to body to escape 3D context */}
+              {showGameModeMenu && menuPosition && createPortal(
+                <div 
+                  ref={gameModeMenuRef}
+                  className="fixed w-48 rounded-lg border border-white/20 bg-black/95 backdrop-blur-md shadow-2xl overflow-hidden z-[99999]"
+                  style={{
+                    top: menuPosition.top,
+                    left: menuPosition.left,
+                    transform: 'translateX(-50%)'
+                  }}
+                >
                   <div className="p-2 space-y-1">
                     <button
                       type="button"
@@ -2579,7 +2605,8 @@ export function CardMascotte() {
                       </div>
                     </button>
                   </div>
-                </div>
+                </div>,
+                document.body
               )}
             </div>
           </div>
