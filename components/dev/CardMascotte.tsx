@@ -6,6 +6,7 @@ import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, Me
 import html2canvas from 'html2canvas';
 import { CardLoader } from '@/components/dev/CardLoader';
 import { KakeguruiArena } from '@/components/feature/game/KakeguruiArena';
+import { KakeguruiP2P } from '@/components/feature/game/KakeguruiP2P';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
 // Storage keys for bug report data
@@ -396,6 +397,8 @@ export function CardMascotte() {
   const [newUnlock, setNewUnlock] = useState<string | null>(null);
   const [showAlbum, setShowAlbum] = useState(false);
   const [isArenaOpen, setIsArenaOpen] = useState(false);
+  const [isP2POpen, setIsP2POpen] = useState(false);
+  const [showGameModeMenu, setShowGameModeMenu] = useState(false);
   const [isCheckingArenaPlayers, setIsCheckingArenaPlayers] = useState(false);
   const [connectedPlayers, setConnectedPlayers] = useState<number | null>(null);
   const [arenaGateMessage, setArenaGateMessage] = useState<string | null>(null);
@@ -907,9 +910,9 @@ export function CardMascotte() {
     }
   }, []);
 
-  const handlePlayArena = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
+  const handlePlayArena = useCallback(async (e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.stopPropagation();
+    e?.preventDefault();
     vibrate(20);
 
     setIsCheckingArenaPlayers(true);
@@ -2521,17 +2524,56 @@ export function CardMascotte() {
               {BACK_VARIANTS[backVariant].sub}
             </span>
 
-            <button
-              type="button"
-              onClick={handlePlayArena}
-              disabled={isCheckingArenaPlayers}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white transition hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
-              title="Avvia mini-gioco"
-              aria-label="Avvia mini-gioco"
-            >
-              {isCheckingArenaPlayers ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-              Play
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowGameModeMenu(prev => !prev)}
+                disabled={isCheckingArenaPlayers}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white transition hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
+                title="Avvia mini-gioco"
+                aria-label="Avvia mini-gioco"
+              >
+                {isCheckingArenaPlayers ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                Play
+              </button>
+              
+              {/* Game Mode Selector Dropdown */}
+              {showGameModeMenu && (
+                <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 rounded-lg border border-white/20 bg-black/90 backdrop-blur-md shadow-xl overflow-hidden z-50">
+                  <div className="p-2 space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowGameModeMenu(false);
+                        handlePlayArena();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-[11px] text-white/90 hover:bg-white/10 transition"
+                    >
+                      <span className="text-base">🎮</span>
+                      <div>
+                        <div className="font-semibold">Single Player</div>
+                        <div className="text-[9px] text-white/50">vs CPU locale</div>
+                      </div>
+                    </button>
+                    <div className="h-px bg-white/10" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowGameModeMenu(false);
+                        setIsP2POpen(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-[11px] text-white/90 hover:bg-primary/20 transition group"
+                    >
+                      <span className="text-base group-hover:scale-110 transition">⚔️</span>
+                      <div>
+                        <div className="font-semibold text-primary">1v1 LAN</div>
+                        <div className="text-[9px] text-white/50">vs Amico in rete</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <p className="mt-1 inline-flex items-center gap-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-white/80">
               <Users className="h-3 w-3" />
@@ -3016,6 +3058,14 @@ export function CardMascotte() {
         }}
         playerName={authUser?.name?.trim() || 'Tu'}
         opponentName={arenaOpponentName}
+      />
+
+      <KakeguruiP2P
+        open={isP2POpen}
+        onClose={() => {
+          setIsP2POpen(false);
+          setArenaGateMessage('Pronto: puoi premere Play');
+        }}
       />
 
       {/* Float animation */}
