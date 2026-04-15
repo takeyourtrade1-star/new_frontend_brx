@@ -2524,12 +2524,12 @@ export function CardMascotte() {
               {BACK_VARIANTS[backVariant].sub}
             </span>
 
-            <div className="relative">
+            <div className="relative mt-8">
               <button
                 type="button"
                 onClick={() => setShowGameModeMenu(prev => !prev)}
                 disabled={isCheckingArenaPlayers}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white transition hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white transition hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
                 title="Avvia mini-gioco"
                 aria-label="Avvia mini-gioco"
               >
@@ -2574,17 +2574,6 @@ export function CardMascotte() {
                 </div>
               )}
             </div>
-
-            <p className="mt-1 inline-flex items-center gap-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-white/80">
-              <Users className="h-3 w-3" />
-              {connectedPlayers == null ? '--' : connectedPlayers} online
-            </p>
-
-            {arenaGateMessage && (
-              <p className="mt-1 px-2 text-center text-[8px] font-semibold uppercase tracking-[0.12em] text-white/90">
-                {arenaGateMessage}
-              </p>
-            )}
           </div>
         </div>{/* end back face */}
 
