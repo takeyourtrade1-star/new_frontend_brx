@@ -85,7 +85,7 @@ export function AsteNav() {
           >
             <Link
               href="/login?redirect=/aste/nuova"
-              className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-md ring-1 ring-primary/20 transition-all hover:shadow-lg hover:scale-105 hover:ring-primary/40"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-md ring-1 ring-primary/20 transition-all hover:shadow-lg hover:scale-105 hover:ring-primary/40"
             >
               <PlusCircle className="h-4 w-4" aria-hidden />
               <span className="inline">{t('auctions.createAuction')}</span>
@@ -137,8 +137,8 @@ export function AsteNav() {
           aria-label="Scorri a sinistra"
           type="button"
         >
-          <div className="flex h-7 w-7 items-center justify-center rounded-full border border-primary/45 bg-primary/60 shadow-lg ring-1 ring-white/20 backdrop-blur-2xl backdrop-saturate-150 transition-transform hover:scale-110 active:scale-95">
-            <ChevronLeft className="h-4 w-4 text-white" aria-hidden />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/45 bg-primary/60 shadow-lg ring-1 ring-white/20 backdrop-blur-2xl backdrop-saturate-150 transition-transform hover:scale-110 active:scale-95">
+            <ChevronLeft className="h-5 w-5 text-white" aria-hidden />
           </div>
         </button>
 
@@ -155,7 +155,7 @@ export function AsteNav() {
                 key={href}
                 href={href}
                 className={cn(
-                  'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-all',
+                  'flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-all',
                   isCreateAuction && active
                     ? 'bg-primary text-white shadow-lg ring-2 ring-primary/30 scale-105'
                     : isCreateAuction
@@ -182,8 +182,8 @@ export function AsteNav() {
           aria-label="Scorri a destra"
           type="button"
         >
-          <div className="flex h-7 w-7 items-center justify-center rounded-full border border-primary/45 bg-primary/60 shadow-lg ring-1 ring-white/20 backdrop-blur-2xl backdrop-saturate-150 transition-transform hover:scale-110 active:scale-95">
-            <ChevronRight className="h-4 w-4 text-white" aria-hidden />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/45 bg-primary/60 shadow-lg ring-1 ring-white/20 backdrop-blur-2xl backdrop-saturate-150 transition-transform hover:scale-110 active:scale-95">
+            <ChevronRight className="h-5 w-5 text-white" aria-hidden />
           </div>
         </button>
       </div>

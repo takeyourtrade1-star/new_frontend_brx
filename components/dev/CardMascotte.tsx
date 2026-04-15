@@ -9,6 +9,16 @@ import { CardLoader } from '@/components/dev/CardLoader';
 import { KakeguruiArena } from '@/components/feature/game/KakeguruiArena';
 import { KakeguruiP2P } from '@/components/feature/game/KakeguruiP2P';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import {
+  ACCESSORY_ITEMS,
+  ALL_WARDROBE_ITEMS,
+  CLOTHING_ITEMS,
+  OBJECT_ITEMS,
+  getItemOverlayStyle,
+  type Category,
+  type EquippedItems,
+  type WardrobeItem,
+} from './mascotte-wardrobe';
 
 // Storage keys for bug report data
 const BUG_REPORT_STORAGE = {
@@ -32,6 +42,7 @@ const CODING_PREVIEW_MS = 900;
 const SUBMIT_FEEDBACK_MS = 1400;
 const BUG_MODAL_FADE_MS = 220;
 const MATCHMAKING_GUEST_KEY = 'brx_kakegurui_guest_id';
+const WARDROBE_STORAGE_KEY = 'brx_mascotte_wardrobe_v1';
 
 interface MatchmakingPayload {
   status: 'waiting' | 'matched' | 'not_found';
@@ -397,6 +408,13 @@ export function CardMascotte() {
   const [copiedShare, setCopiedShare] = useState(false);
   const [newUnlock, setNewUnlock] = useState<string | null>(null);
   const [showAlbum, setShowAlbum] = useState(false);
+  const [isWardrobeOpen, setIsWardrobeOpen] = useState(false);
+  const [wardrobeCategory, setWardrobeCategory] = useState<Category>('clothing');
+  const [equippedItems, setEquippedItems] = useState<EquippedItems>({
+    clothing: null,
+    accessories: [],
+    objects: [],
+  });
   const [isArenaOpen, setIsArenaOpen] = useState(false);
   const [isP2POpen, setIsP2POpen] = useState(false);
   const [showGameModeMenu, setShowGameModeMenu] = useState(false);
@@ -438,6 +456,113 @@ export function CardMascotte() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showGameModeMenu]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(WARDROBE_STORAGE_KEY);
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as EquippedItems;
+      setEquippedItems({
+        clothing: typeof parsed?.clothing === 'string' ? parsed.clothing : null,
+        accessories: Array.isArray(parsed?.accessories) ? parsed.accessories.filter(Boolean) : [],
+        objects: Array.isArray(parsed?.objects) ? parsed.objects.filter(Boolean) : [],
+      });
+    } catch {
+      // Ignore invalid stored wardrobe payloads.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(WARDROBE_STORAGE_KEY, JSON.stringify(equippedItems));
+    } catch {
+      // Ignore write errors in restricted browsing modes.
+    }
+  }, [equippedItems]);
+
+  useEffect(() => {
+    if (!isFlipped) {
+      setIsWardrobeOpen(false);
+    }
+  }, [isFlipped]);
+
+  const wardrobeItemsById = useMemo(() => new Map(ALL_WARDROBE_ITEMS.map((item) => [item.id, item])), []);
+
+  const equippedWardrobeItems = useMemo(() => {
+    const items: WardrobeItem[] = [];
+
+    if (equippedItems.clothing) {
+      const clothing = wardrobeItemsById.get(equippedItems.clothing);
+      if (clothing) items.push(clothing);
+    }
+
+    for (const id of equippedItems.accessories) {
+      const item = wardrobeItemsById.get(id);
+      if (item) items.push(item);
+    }
+
+    for (const id of equippedItems.objects) {
+      const item = wardrobeItemsById.get(id);
+      if (item) items.push(item);
+    }
+
+    return items.sort((a, b) => a.zIndex - b.zIndex);
+  }, [equippedItems, wardrobeItemsById]);
+
+  const visibleWardrobeItems = useMemo(() => {
+    if (wardrobeCategory === 'clothing') return CLOTHING_ITEMS;
+    if (wardrobeCategory === 'accessories') return ACCESSORY_ITEMS;
+    return OBJECT_ITEMS;
+  }, [wardrobeCategory]);
+
+  const isWardrobeItemEquipped = useCallback((item: WardrobeItem) => {
+    if (item.category === 'clothing') return equippedItems.clothing === item.id;
+    if (item.category === 'accessories') return equippedItems.accessories.includes(item.id);
+    return equippedItems.objects.includes(item.id);
+  }, [equippedItems]);
+
+  const toggleWardrobeItem = useCallback((item: WardrobeItem) => {
+    setEquippedItems((prev) => {
+      if (item.category === 'clothing') {
+        return {
+          ...prev,
+          clothing: prev.clothing === item.id ? null : item.id,
+        };
+      }
+
+      if (item.category === 'accessories') {
+        const exists = prev.accessories.includes(item.id);
+        return {
+          ...prev,
+          accessories: exists
+            ? prev.accessories.filter((id) => id !== item.id)
+            : [...prev.accessories, item.id],
+        };
+      }
+
+      const exists = prev.objects.includes(item.id);
+      if (exists) {
+        return {
+          ...prev,
+          objects: prev.objects.filter((id) => id !== item.id),
+        };
+      }
+
+      const nextObjects = [...prev.objects, item.id].slice(-2);
+      return {
+        ...prev,
+        objects: nextObjects,
+      };
+    });
+  }, []);
+
+  const clearWardrobeItems = useCallback(() => {
+    setEquippedItems({
+      clothing: null,
+      accessories: [],
+      objects: [],
+    });
+  }, []);
 
   const vibrate = useCallback((pattern: number | number[]) => {
     try { navigator?.vibrate?.(pattern); } catch {}
@@ -1107,6 +1232,7 @@ export function CardMascotte() {
     // If card is flipped, flip it back instead of opening chat
     if (isFlipped) {
       setShowAlbum(false);
+      setIsWardrobeOpen(false);
       doFlip();
       return;
     }
@@ -1394,6 +1520,7 @@ export function CardMascotte() {
       // Keyboard activation: flip back if flipped, otherwise open chat
       if (isFlipped) {
         setShowAlbum(false);
+        setIsWardrobeOpen(false);
         doFlip();
       } else {
         playOpenSound();
@@ -2117,6 +2244,80 @@ export function CardMascotte() {
         </div>
       )}
 
+      {/* Wardrobe Panel */}
+      {isWardrobeOpen && isFlipped && (
+        <div
+          className="fixed"
+          style={{
+            zIndex: Z_INDEX.tooltip + 3,
+            bottom: isStickyBarVisible ? '260px' : '200px',
+            right: '16px',
+            animation: 'albumSlideIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+          }}
+        >
+          <div className="w-[240px] max-h-[340px] overflow-hidden rounded-xl border border-zinc-700/60 bg-zinc-900/95 p-2.5 shadow-2xl backdrop-blur-md">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-400">Guardaroba</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearWardrobeItems();
+                }}
+                className="text-[8px] font-bold text-zinc-300 transition hover:text-white"
+              >
+                Reset
+              </button>
+            </div>
+
+            <div className="mb-2 grid grid-cols-3 gap-1">
+              {(['clothing', 'accessories', 'objects'] as const).map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setWardrobeCategory(category);
+                  }}
+                  className={`rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-wide transition ${
+                    wardrobeCategory === category
+                      ? 'bg-primary text-white'
+                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                  }`}
+                >
+                  {category === 'clothing' ? 'Abiti' : category === 'accessories' ? 'Accessori' : 'Oggetti'}
+                </button>
+              ))}
+            </div>
+
+            <div className="max-h-[250px] space-y-1 overflow-y-auto pr-1">
+              {visibleWardrobeItems.map((item) => {
+                const equipped = isWardrobeItemEquipped(item);
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleWardrobeItem(item);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition ${
+                      equipped
+                        ? 'bg-primary/20 text-white'
+                        : 'bg-white/5 text-zinc-200 hover:bg-white/10'
+                    }`}
+                  >
+                    <span className="truncate text-[10px] font-medium">{item.name}</span>
+                    <span className="text-[9px] font-bold">{equipped ? 'ON' : 'OFF'}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Achievement Badge */}
       {showAchievement && (
         <div
@@ -2466,6 +2667,20 @@ export function CardMascotte() {
             }}
           />
 
+          {/* Wardrobe overlays aligned to 96x128 mascot base */}
+          {equippedWardrobeItems.map((item) => (
+            <div
+              key={item.id}
+              aria-hidden="true"
+              style={getItemOverlayStyle(item, equippedItems.objects)}
+            >
+              <div
+                style={{ width: '100%', height: '100%' }}
+                dangerouslySetInnerHTML={{ __html: item.svg }}
+              />
+            </div>
+          ))}
+
           {/* Desktop flip button — appears on hover */}
           {isCardHovered && !isFlipped && (
             <button
@@ -2540,7 +2755,22 @@ export function CardMascotte() {
               {BACK_VARIANTS[backVariant].sub}
             </span>
 
-            <div className="relative mt-8">
+            <div className="relative mt-8 flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowGameModeMenu(false);
+                  setIsWardrobeOpen((prev) => !prev);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white transition hover:bg-black/50"
+                title="Apri guardaroba"
+                aria-label="Apri guardaroba"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Guardaroba
+              </button>
+
               <button
                 ref={playButtonRef}
                 type="button"

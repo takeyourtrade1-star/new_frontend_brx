@@ -1017,7 +1017,7 @@ export function KakeguruiArena({
                 <div className="flex items-center gap-2">
                   <Swords className="h-5 w-5 text-orange-400" />
                   <h2 className="text-sm font-extrabold uppercase tracking-[0.2em] text-white/90 sm:text-base">
-                    Kakegurui Arena
+                    Carta Forbice Sasso
                   </h2>
                 </div>
                 <button

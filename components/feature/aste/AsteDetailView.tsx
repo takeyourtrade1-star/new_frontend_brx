@@ -252,7 +252,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               </h1>
 
               {/* Venditore sotto il titolo */}
-              <div className="mt-2 flex items-center gap-2 text-sm sm:text-base">
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm sm:text-base">
                 {isOwner ? (
                   <span className="font-semibold text-[#FF7300]">{t('auctions.sellerYouTitle')}</span>
                 ) : (
@@ -275,7 +275,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             </div>
 
             {/* Salva per dopo + Condividi a destra */}
-            <div className="flex items-center gap-4 shrink-0">
+            <div className="flex w-full shrink-0 flex-wrap items-center gap-3 sm:w-auto sm:justify-end sm:gap-4">
               {!isOwner && (
                 <button type="button" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 underline decoration-gray-300 hover:text-[#FF7300]">
                   <Bookmark className="h-4 w-4" />

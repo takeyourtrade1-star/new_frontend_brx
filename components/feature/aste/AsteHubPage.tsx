@@ -150,7 +150,7 @@ export function AsteHubPage() {
     <div className="min-h-screen bg-white">
       <AsteNav />
 
-      <section className="pb-16 pt-6">
+      <section className="pb-28 pt-6 md:pb-16">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
           {endingSoon.length > 0 && (
@@ -234,7 +234,7 @@ export function AsteHubPage() {
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
                 className={cn(
-                  'self-center sm:self-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/50 text-white shadow ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 transition-all hover:scale-105 hover:bg-primary/60 active:scale-95',
+                  'self-center sm:self-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/50 text-white shadow ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 transition-all hover:scale-105 hover:bg-primary/60 active:scale-95',
                   showFilters && 'bg-primary/70 ring-white/20'
                 )}
                 aria-label={showFilters ? 'Nascondi filtri' : 'Mostra filtri'}
@@ -249,7 +249,7 @@ export function AsteHubPage() {
 
             {/* Filtri espandibili + risultati */}
             <div
-              className={`overflow-hidden transition-all duration-300 ${showFilters ? 'mt-4 max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
+              className={`overflow-hidden transition-all duration-300 ${showFilters ? 'mt-4 max-h-[75vh] overflow-y-auto pr-1 opacity-100' : 'max-h-0 opacity-0'}`}
             >
               {/* Riga unica: filtri + ordinamento + vista */}
               <div className="flex flex-wrap items-end gap-3 border-b border-gray-200 pb-4">
@@ -350,9 +350,9 @@ export function AsteHubPage() {
       {/* Sticky Bottom Bar - Search + Expandable Filters */}
       {showStickyBar && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md animate-slide-up-bounce"
+          className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-md animate-slide-up-bounce"
         >
-          <div className="px-4 py-3">
+          <div className="px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
             {/* Stessa UI della search bar originale */}
             <div className="flex items-center gap-2">
               {/* Search bar pillola */}
@@ -390,7 +390,7 @@ export function AsteHubPage() {
                 type="button"
                 onClick={() => setBottomBarExpanded(!bottomBarExpanded)}
                 className={cn(
-                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/50 text-white shadow ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 transition-all hover:scale-105 hover:bg-primary/60 active:scale-95',
+                  'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/50 text-white shadow ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 transition-all hover:scale-105 hover:bg-primary/60 active:scale-95',
                   bottomBarExpanded && 'bg-primary/70 ring-white/20'
                 )}
                 aria-label={bottomBarExpanded ? 'Comprimi filtri' : 'Espandi filtri'}

@@ -7,6 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { P2PRoom as P2PRoomState, P2PActions } from '@/hooks/useP2PRoom';
 
+type RoleMode = 'host' | 'guest';
+type StepState = 'upcoming' | 'current' | 'done' | 'error';
+
+interface LobbyStep {
+  id: number;
+  title: string;
+  hint: string;
+  state: StepState;
+}
+
 interface P2PLobbyProps {
   onConnected?: () => void;
   room: P2PRoomState;
@@ -14,9 +24,65 @@ interface P2PLobbyProps {
 }
 
 export function P2PLobby({ onConnected, room, actions }: P2PLobbyProps) {
+  const [mode, setMode] = useState<RoleMode>('host');
   const [joinSignal, setJoinSignal] = useState('');
   const [answerSignal, setAnswerSignal] = useState('');
   const [copied, setCopied] = useState(false);
+
+  const activeMode: RoleMode = room.isHost ? 'host' : mode;
+
+  const hostProgress = (() => {
+    if (room.state === 'connected') return 4;
+    if (room.remoteSignal) return 3;
+    if (room.localSignal || room.state === 'waiting' || room.state === 'creating') return 2;
+    return 1;
+  })();
+
+  const guestProgress = (() => {
+    if (room.state === 'connected') return 4;
+    if (!room.isHost && room.localSignal) return 3;
+    if (room.state === 'joining' || joinSignal.trim().length > 0) return 2;
+    return 1;
+  })();
+
+  const buildSteps = (): LobbyStep[] => {
+    const hostSteps: Omit<LobbyStep, 'state'>[] = [
+      { id: 1, title: 'Host', hint: 'Crea la stanza' },
+      { id: 2, title: 'Condividi', hint: 'Invia codice o QR' },
+      { id: 3, title: 'Risposta', hint: 'Incolla codice guest' },
+      { id: 4, title: 'Connesso', hint: 'Pronti a giocare' },
+    ];
+
+    const guestSteps: Omit<LobbyStep, 'state'>[] = [
+      { id: 1, title: 'Guest', hint: 'Ricevi codice host' },
+      { id: 2, title: 'Incolla', hint: 'Inserisci codice host' },
+      { id: 3, title: 'Invia', hint: 'Manda risposta host' },
+      { id: 4, title: 'Connesso', hint: 'Pronti a giocare' },
+    ];
+
+    const rawSteps = activeMode === 'host' ? hostSteps : guestSteps;
+    const progress = activeMode === 'host' ? hostProgress : guestProgress;
+
+    return rawSteps.map((step) => {
+      let state: StepState = 'upcoming';
+      if (room.state === 'error' && step.id === progress) {
+        state = 'error';
+      } else if (step.id < progress) {
+        state = 'done';
+      } else if (step.id === progress && room.state !== 'connected') {
+        state = 'current';
+      } else if (step.id === 4 && room.state === 'connected') {
+        state = 'done';
+      }
+
+      return {
+        ...step,
+        state,
+      };
+    });
+  };
+
+  const steps = buildSteps();
 
   const handleCopySignal = async () => {
     if (room.localSignal) {
@@ -26,14 +92,21 @@ export function P2PLobby({ onConnected, room, actions }: P2PLobbyProps) {
     }
   };
 
+  const handleCreateRoom = async () => {
+    setMode('host');
+    await actions.createRoom();
+  };
+
   const handleJoin = async () => {
     if (joinSignal.trim()) {
+      setMode('guest');
       await actions.joinRoom(joinSignal.trim());
     }
   };
 
   const handleApplyAnswer = async () => {
     if (answerSignal.trim()) {
+      setMode('host');
       await actions.submitAnswer(answerSignal.trim());
       setAnswerSignal('');
     }
@@ -60,15 +133,15 @@ export function P2PLobby({ onConnected, room, actions }: P2PLobbyProps) {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 rounded-2xl border border-zinc-800/60 p-6 shadow-2xl">
+    <div className="w-full max-w-2xl mx-auto">
+      <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 rounded-2xl border border-zinc-800/60 p-5 sm:p-6 shadow-2xl max-h-[78vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-primary/20 rounded-lg">
             <Users className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-zinc-100">Partita 1v1 LAN</h2>
+            <h2 className="text-lg font-semibold text-zinc-100">Carta Forbice Sasso 1v1</h2>
             <p className="text-sm text-zinc-500">Nessun server richiesto</p>
           </div>
         </div>
@@ -101,43 +174,89 @@ export function P2PLobby({ onConnected, room, actions }: P2PLobbyProps) {
           )}
         </div>
 
+        {/* Visual stepper */}
+        <div className="mb-5 rounded-xl border border-zinc-800/70 bg-zinc-900/35 p-2.5 sm:p-3">
+          <div className="mb-2.5 grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setMode('host')}
+              disabled={room.state !== 'idle' && room.state !== 'error' && room.state !== 'disconnected' && !room.isHost}
+              className={`h-9 text-xs uppercase tracking-wide ${activeMode === 'host' ? 'border-primary/70 bg-primary/15 text-primary' : 'border-zinc-700 text-zinc-400'}`}
+            >
+              Modalita Host
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setMode('guest')}
+              disabled={room.isHost && room.state !== 'idle' && room.state !== 'error' && room.state !== 'disconnected'}
+              className={`h-9 text-xs uppercase tracking-wide ${activeMode === 'guest' ? 'border-cyan-400/70 bg-cyan-500/15 text-cyan-300' : 'border-zinc-700 text-zinc-400'}`}
+            >
+              Modalita Guest
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+            {steps.map((step, idx) => {
+              const circleClass =
+                step.state === 'done'
+                  ? 'border-emerald-400 bg-emerald-500/20 text-emerald-300'
+                  : step.state === 'current'
+                    ? 'border-primary bg-primary/20 text-primary'
+                    : step.state === 'error'
+                      ? 'border-red-400 bg-red-500/20 text-red-300'
+                      : 'border-zinc-700 bg-zinc-900/40 text-zinc-500';
+
+              return (
+                <div key={step.id} className="relative">
+                  {idx < steps.length - 1 && (
+                    <div className="pointer-events-none absolute left-[calc(50%+0.875rem)] top-3.5 h-px w-[calc(100%-1.75rem)] bg-zinc-700/70" />
+                  )}
+                  <div className="relative z-10 flex flex-col items-center text-center">
+                    <div className={`mb-1 flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-bold ${circleClass}`}>
+                      {step.state === 'done' ? <CheckCircle className="h-4 w-4" /> : step.id}
+                    </div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-300 sm:text-[11px]">{step.title}</p>
+                    <p className="mt-0.5 hidden text-[10px] leading-tight text-zinc-500 sm:block">{step.hint}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Create Room Section */}
-        {!room.isHost && room.state === 'idle' && (
+        {activeMode === 'host' && !room.isHost && room.state === 'idle' && (
           <div className="space-y-4">
             <Button 
-              onClick={actions.createRoom}
+              onClick={handleCreateRoom}
               className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold"
             >
               <Users className="h-5 w-5 mr-2" />
               Crea Stanza (Host)
             </Button>
+            <p className="text-center text-xs text-zinc-500">Dopo la creazione, condividi il codice completo al Guest.</p>
+          </div>
+        )}
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-zinc-800" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-zinc-900 text-zinc-500">oppure</span>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm text-zinc-400">Incolla il codice completo di connessione:</label>
-              <div className="flex gap-2">
-                <Input
-                  value={joinSignal}
-                  onChange={(e) => setJoinSignal(e.target.value)}
-                  placeholder="Codice lungo (non il codice stanza a 6 cifre)"
-                  className="flex-1 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
-                />
-                <Button 
-                  onClick={handleJoin}
-                  disabled={!joinSignal.trim()}
-                  className="bg-zinc-700 hover:bg-zinc-600"
-                >
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
-              </div>
+        {activeMode === 'guest' && room.state === 'idle' && (
+          <div className="space-y-3">
+            <label className="text-sm text-zinc-400">Incolla il codice completo di connessione host:</label>
+            <div className="flex gap-2">
+              <Input
+                value={joinSignal}
+                onChange={(e) => setJoinSignal(e.target.value)}
+                placeholder="Codice lungo (non il codice stanza a 6 cifre)"
+                className="flex-1 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+              />
+              <Button 
+                onClick={handleJoin}
+                disabled={!joinSignal.trim()}
+                className="bg-zinc-700 hover:bg-zinc-600"
+              >
+                <ArrowRight className="h-5 w-5" />
+              </Button>
             </div>
           </div>
         )}
@@ -190,7 +309,7 @@ export function P2PLobby({ onConnected, room, actions }: P2PLobbyProps) {
             <div className="space-y-2">
               <label className="text-sm text-zinc-400">Codice completo (per copia-incolla):</label>
               <div className="flex gap-2">
-                <div className="flex-1 p-3 bg-zinc-800 rounded-lg text-xs text-zinc-400 font-mono break-all max-h-20 overflow-y-auto">
+                <div className="flex-1 p-3 bg-zinc-800 rounded-lg text-[11px] text-zinc-400 font-mono whitespace-pre-wrap break-all min-h-[88px] max-h-52 overflow-y-auto">
                   {room.localSignal}
                 </div>
                 <Button 
@@ -230,7 +349,7 @@ export function P2PLobby({ onConnected, room, actions }: P2PLobbyProps) {
             <div className="space-y-2">
               <label className="text-sm text-zinc-400">Copia questo codice e invialo all&apos;Host:</label>
               <div className="flex gap-2">
-                <div className="flex-1 p-3 bg-zinc-800 rounded-lg text-xs text-zinc-400 font-mono break-all max-h-20 overflow-y-auto">
+                <div className="flex-1 p-3 bg-zinc-800 rounded-lg text-[11px] text-zinc-400 font-mono whitespace-pre-wrap break-all min-h-[88px] max-h-52 overflow-y-auto">
                   {room.localSignal}
                 </div>
                 <Button 
@@ -248,7 +367,10 @@ export function P2PLobby({ onConnected, room, actions }: P2PLobbyProps) {
         {room.state === 'error' && (
           <div className="flex flex-col items-center gap-4">
             <Button 
-              onClick={actions.disconnect}
+              onClick={() => {
+                actions.disconnect();
+                setMode('host');
+              }}
               variant="outline"
               className="border-zinc-700 text-zinc-400"
             >

@@ -218,92 +218,165 @@ export function AuctionListTable({
   const router = useRouter();
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold uppercase text-gray-600">
-            <th className="p-3">{t('search.thName')}</th>
-            <th className="p-3">{t('auctions.seller')}</th>
-            <th className="p-3">{t('auctions.currentBid')}</th>
-            {myBidById && <th className="whitespace-nowrap p-3">{t('auctions.colMyBid')}</th>}
-            <th className="p-3">{t('auctions.colBids')}</th>
-            <th className="whitespace-nowrap p-3">{t('auctions.countdownTitle')}</th>
-            <th className="w-32 p-3" />
-          </tr>
-        </thead>
-        <tbody>
-          {auctions.map((a) => {
-            const ended = isAuctionEndedUI(a);
-            const ms = new Date(a.endsAt).getTime() - now;
-            const myBid = myBidById?.[a.id];
-            return (
-              <tr
-                key={a.id}
-                className="cursor-pointer border-b border-gray-100 transition-colors hover:bg-orange-50/60"
-                onClick={(e) => {
-                  if ((e.target as HTMLElement).closest('a')) return;
-                  router.push(auctionDetailPath(a.id));
-                }}
-              >
-                <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                  <Link
-                    href={auctionDetailPath(a.id)}
-                    className="flex items-center gap-3 font-medium text-gray-900 hover:text-[#FF7300]"
-                  >
-                    <span className="relative h-14 w-10 shrink-0 overflow-hidden bg-gray-100">
-                      <Image src={a.image} alt="" fill className="object-cover" sizes="40px" unoptimized />
-                    </span>
-                    <span>
-                      <span className="line-clamp-2 block">{a.title}</span>
-                      <span className="mt-0.5 block text-[10px] font-semibold uppercase text-gray-400">
-                        {auctionGameLabel(t, a.game)}
-                      </span>
-                    </span>
-                  </Link>
-                </td>
-                <td className="p-3">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="flex items-center gap-1 text-gray-800">
-                      <FlagIcon country={a.sellerCountry} size="sm" />
-                      {a.seller}
-                    </span>
-                    <span className="text-xs text-amber-600">
-                      ★ {a.sellerRating}% ({a.sellerReviewCount})
-                    </span>
-                  </div>
-                </td>
-                <td className="p-3 font-bold text-[#FF7300]">
-                  {a.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
-                </td>
-                {myBidById && (
-                  <td className="p-3 font-semibold text-gray-900">
-                    {myBid != null
-                      ? myBid.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-                      : '—'}
-                  </td>
-                )}
-                <td className="p-3 font-semibold text-gray-800">{a.bidCount}</td>
-                <td className="p-3">
-                  <span className="inline-block min-w-[7rem] rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-center font-mono text-sm font-bold tabular-nums text-primary shadow-lg backdrop-blur-md" suppressHydrationWarning>
-                    {ended ? t('auctions.ended') : formatHMS(ms)}
-                  </span>
-                </td>
-                <td className="p-3">
+    <>
+      <ul className="divide-y divide-gray-100 bg-white md:hidden">
+        {auctions.map((a) => {
+          const ended = isAuctionEndedUI(a);
+          const ms = new Date(a.endsAt).getTime() - now;
+          const myBid = myBidById?.[a.id];
+          return (
+            <li key={a.id} className="p-3">
+              <div className="flex items-start gap-3">
+                <Link
+                  href={auctionDetailPath(a.id)}
+                  scroll
+                  prefetch
+                  className="relative h-20 w-14 shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-100"
+                >
+                  <Image src={a.image} alt="" fill className="object-cover" sizes="56px" unoptimized />
+                </Link>
+                <div className="min-w-0 flex-1">
                   <Link
                     href={auctionDetailPath(a.id)}
                     scroll
                     prefetch
-                    className="inline-flex rounded-lg px-3 py-2 text-xs font-bold uppercase text-header-bg hover:underline"
+                    className="line-clamp-2 text-sm font-semibold text-gray-900 hover:text-[#FF7300]"
                   >
-                    {ended ? t('auctions.viewClosedAuction') : 'Fai la tua offerta'}
+                    {a.title}
                   </Link>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                  <p className="mt-0.5 text-[10px] font-semibold uppercase text-gray-400">
+                    {auctionGameLabel(t, a.game)}
+                  </p>
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-700">
+                    <FlagIcon country={a.sellerCountry} size="sm" />
+                    <span className="truncate">{a.seller}</span>
+                    <span className="text-amber-600">★ {a.sellerRating}%</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                    <p className="text-gray-500">{t('auctions.currentBid')}</p>
+                    <p className="text-right font-bold text-[#FF7300]">
+                      {a.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                    </p>
+                    <p className="text-gray-500">{t('auctions.colBids')}</p>
+                    <p className="text-right font-semibold text-gray-800">{a.bidCount}</p>
+                    {myBidById && (
+                      <>
+                        <p className="text-gray-500">{t('auctions.colMyBid')}</p>
+                        <p className="text-right font-semibold text-gray-900">
+                          {myBid != null
+                            ? myBid.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+                            : '—'}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <span className="inline-flex min-h-9 items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-center font-mono text-xs font-bold tabular-nums text-primary" suppressHydrationWarning>
+                  {ended ? t('auctions.ended') : formatHMS(ms)}
+                </span>
+                <Link
+                  href={auctionDetailPath(a.id)}
+                  scroll
+                  prefetch
+                  className="inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-xs font-bold uppercase text-header-bg hover:underline"
+                >
+                  {ended ? t('auctions.viewClosedAuction') : 'Fai la tua offerta'}
+                </Link>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[720px] text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold uppercase text-gray-600">
+              <th className="p-3">{t('search.thName')}</th>
+              <th className="p-3">{t('auctions.seller')}</th>
+              <th className="p-3">{t('auctions.currentBid')}</th>
+              {myBidById && <th className="whitespace-nowrap p-3">{t('auctions.colMyBid')}</th>}
+              <th className="p-3">{t('auctions.colBids')}</th>
+              <th className="whitespace-nowrap p-3">{t('auctions.countdownTitle')}</th>
+              <th className="w-32 p-3" />
+            </tr>
+          </thead>
+          <tbody>
+            {auctions.map((a) => {
+              const ended = isAuctionEndedUI(a);
+              const ms = new Date(a.endsAt).getTime() - now;
+              const myBid = myBidById?.[a.id];
+              return (
+                <tr
+                  key={a.id}
+                  className="cursor-pointer border-b border-gray-100 transition-colors hover:bg-orange-50/60"
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest('a')) return;
+                    router.push(auctionDetailPath(a.id));
+                  }}
+                >
+                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                    <Link
+                      href={auctionDetailPath(a.id)}
+                      className="flex items-center gap-3 font-medium text-gray-900 hover:text-[#FF7300]"
+                    >
+                      <span className="relative h-14 w-10 shrink-0 overflow-hidden bg-gray-100">
+                        <Image src={a.image} alt="" fill className="object-cover" sizes="40px" unoptimized />
+                      </span>
+                      <span>
+                        <span className="line-clamp-2 block">{a.title}</span>
+                        <span className="mt-0.5 block text-[10px] font-semibold uppercase text-gray-400">
+                          {auctionGameLabel(t, a.game)}
+                        </span>
+                      </span>
+                    </Link>
+                  </td>
+                  <td className="p-3">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="flex items-center gap-1 text-gray-800">
+                        <FlagIcon country={a.sellerCountry} size="sm" />
+                        {a.seller}
+                      </span>
+                      <span className="text-xs text-amber-600">
+                        ★ {a.sellerRating}% ({a.sellerReviewCount})
+                      </span>
+                    </div>
+                  </td>
+                  <td className="p-3 font-bold text-[#FF7300]">
+                    {a.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                  </td>
+                  {myBidById && (
+                    <td className="p-3 font-semibold text-gray-900">
+                      {myBid != null
+                        ? myBid.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+                        : '—'}
+                    </td>
+                  )}
+                  <td className="p-3 font-semibold text-gray-800">{a.bidCount}</td>
+                  <td className="p-3">
+                    <span className="inline-block min-w-[7rem] rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-center font-mono text-sm font-bold tabular-nums text-primary shadow-lg backdrop-blur-md" suppressHydrationWarning>
+                      {ended ? t('auctions.ended') : formatHMS(ms)}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <Link
+                      href={auctionDetailPath(a.id)}
+                      scroll
+                      prefetch
+                      className="inline-flex rounded-lg px-3 py-2 text-xs font-bold uppercase text-header-bg hover:underline"
+                    >
+                      {ended ? t('auctions.viewClosedAuction') : 'Fai la tua offerta'}
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 

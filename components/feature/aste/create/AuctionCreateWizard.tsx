@@ -1513,7 +1513,7 @@ export function AuctionCreateWizard({
               <button
                 type="button"
                 onClick={goBack}
-                className="inline-flex min-h-[30px] items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#1D3160] transition hover:border-zinc-400"
+                className="inline-flex min-h-[36px] items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#1D3160] transition hover:border-zinc-400"
               >
                 <ChevronLeft className="h-3 w-3" aria-hidden />
                 {t('auctions.createBack')}
@@ -1526,7 +1526,7 @@ export function AuctionCreateWizard({
                   title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
                   onClick={goNext}
                   className={cn(
-                    'inline-flex min-h-[30px] items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
+                    'inline-flex min-h-[36px] items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
                     continueDisabled
                       ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
                       : 'bg-[#FF7300] hover:bg-[#e86800]'
@@ -1539,7 +1539,7 @@ export function AuctionCreateWizard({
                 <button
                   type="button"
                   onClick={openPublishConfirm}
-                  className="inline-flex min-h-[30px] items-center gap-1 rounded-lg bg-[#FF7300] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
+                  className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-[#FF7300] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
                 >
                   <Gavel className="h-3 w-3" aria-hidden />
                   {t('auctions.createSubmit')}

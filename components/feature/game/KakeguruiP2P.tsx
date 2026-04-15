@@ -676,7 +676,7 @@ export function KakeguruiP2P({ open, onClose }: KakeguruiP2PProps) {
 
               <div className="flex items-center gap-2">
                 <h1 className="text-sm font-bold uppercase tracking-wider text-white/90">
-                  Kakegurui P2P
+                  Carta Forbice Sasso
                 </h1>
               </div>
 
@@ -718,7 +718,7 @@ export function KakeguruiP2P({ open, onClose }: KakeguruiP2PProps) {
                     exit={{ opacity: 0, y: -20 }}
                   >
                     <div className="text-center mb-8">
-                      <h2 className="text-2xl font-bold text-white mb-2">Arena 1v1 LAN</h2>
+                      <h2 className="text-2xl font-bold text-white mb-2">Carta Forbice Sasso 1v1</h2>
                       <p className="text-zinc-400 text-sm max-w-md">
                         Nessun server richiesto. Connettiti direttamente con un altro giocatore nella stessa rete.
                       </p>
