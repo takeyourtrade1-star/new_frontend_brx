@@ -5,7 +5,7 @@
  * Regole: fino a 100 € ultima offerta → min +1 €; oltre 100 € → min +2,5 %.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
@@ -114,20 +114,17 @@ export function AuctionBidModal({
 
 
 
+  const prevOpenRef = useRef(false);
   useEffect(() => {
+    const justOpened = open && !prevOpenRef.current;
+    prevOpenRef.current = open;
 
-    if (open) {
-
+    if (justOpened) {
       setInput(minBid.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 2 }));
-
       setError(null);
-
       setOutbidWarning(null);
-
       setConfirmAction(null);
-
     }
-
   }, [open, minBid]);
 
 
