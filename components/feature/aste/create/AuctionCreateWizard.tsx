@@ -1336,20 +1336,20 @@ export function AuctionCreateWizard({
           )}
         </div>
 
-        {/* Desktop: frecce fissate alla viewport, sempre vicine al punto di lettura */}
+        {/* Desktop: controlli laterali vicini al wizard, non ai bordi estremi */}
         {showStickyNav && (
           <>
             <button
               type="button"
               onClick={goBack}
               className={cn(
-                'group fixed left-2 top-1/2 z-50 hidden h-10 w-10 -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/60 bg-white/90 text-[#1D3160] shadow-[0_4px_20px_-2px_rgba(29,49,96,0.15)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 hover:bg-white hover:shadow-[0_8px_30px_-4px_rgba(29,49,96,0.25)] hover:border-[#1D3160]/30 active:scale-95 sm:flex lg:left-6 lg:h-12 lg:w-12 lg:gap-2',
-                isEmbedded && 'h-8 w-8 lg:left-4 lg:h-10 lg:w-10'
+                'group fixed left-[max(10px,calc(50vw-31rem))] top-1/2 z-50 hidden min-h-[42px] -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/70 bg-white/95 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-[0_6px_18px_-4px_rgba(29,49,96,0.2)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-white hover:shadow-[0_10px_24px_-6px_rgba(29,49,96,0.28)] hover:border-[#1D3160]/30 active:scale-95 sm:inline-flex',
+                isEmbedded && 'left-3 min-h-[38px] px-3 py-1.5 text-[10px]'
               )}
               aria-label={t('auctions.createBack')}
             >
-              <ChevronLeft className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-0.5 lg:h-6 lg:w-6" aria-hidden />
-              <span className="hidden text-xs font-semibold uppercase tracking-wide lg:inline">{t('auctions.createBack')}</span>
+              <ChevronLeft className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:-translate-x-0.5" aria-hidden />
+              <span className="whitespace-nowrap">{t('auctions.createBack')}</span>
             </button>
 
             {!isLastStep ? (
@@ -1359,29 +1359,29 @@ export function AuctionCreateWizard({
                 title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
                 onClick={goNext}
                 className={cn(
-                  'group fixed right-2 top-1/2 z-50 hidden h-10 w-10 -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/60 text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 active:scale-95 sm:flex lg:right-6 lg:h-12 lg:w-12 lg:gap-2',
-                  isEmbedded && 'h-8 w-8 lg:right-4 lg:h-10 lg:w-10',
+                  'group fixed right-[max(10px,calc(50vw-31rem))] top-1/2 z-50 hidden min-h-[42px] -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/70 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wide text-white shadow-[0_6px_18px_-4px_rgba(255,115,0,0.38)] backdrop-blur-md transition-all duration-200 ease-out active:scale-95 sm:inline-flex',
+                  isEmbedded && 'right-3 min-h-[38px] px-3 py-1.5 text-[10px]',
                   continueDisabled
                     ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
-                    : 'bg-[#FF7300] hover:bg-[#FF8800] hover:shadow-[0_8px_30px_-4px_rgba(255,115,0,0.5)] hover:border-white/80'
+                    : 'bg-[#FF7300] hover:bg-[#FF8800] hover:shadow-[0_10px_24px_-6px_rgba(255,115,0,0.52)] hover:border-white/80'
                 )}
                 aria-label={t('auctions.createContinue')}
               >
-                <span className="hidden text-xs font-semibold uppercase tracking-wide lg:inline">{t('auctions.createContinue')}</span>
-                <ChevronRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5 lg:h-6 lg:w-6" aria-hidden />
+                <span className="whitespace-nowrap">{t('auctions.createContinue')}</span>
+                <ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={publish}
                 className={cn(
-                  'group fixed right-2 top-1/2 z-50 hidden h-10 w-10 -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/60 bg-[#FF7300] text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 hover:bg-[#FF8800] hover:shadow-[0_8px_30px_-4px_rgba(255,115,0,0.5)] hover:border-white/80 active:scale-95 sm:flex lg:right-6 lg:h-12 lg:w-12 lg:gap-2',
-                  isEmbedded && 'h-8 w-8 lg:right-4 lg:h-10 lg:w-10'
+                  'group fixed right-[max(10px,calc(50vw-31rem))] top-1/2 z-50 hidden min-h-[42px] -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/70 bg-[#FF7300] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wide text-white shadow-[0_6px_18px_-4px_rgba(255,115,0,0.38)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-[#FF8800] hover:shadow-[0_10px_24px_-6px_rgba(255,115,0,0.52)] hover:border-white/80 active:scale-95 sm:inline-flex',
+                  isEmbedded && 'right-3 min-h-[38px] px-3 py-1.5 text-[10px]'
                 )}
                 aria-label={t('auctions.createSubmit')}
               >
-                <span className="hidden text-xs font-semibold uppercase tracking-wide lg:inline">{t('auctions.createSubmit')}</span>
-                <Gavel className="h-4 w-4 transition-transform duration-300 group-hover:scale-110 lg:h-5 lg:w-5" aria-hidden />
+                <span className="whitespace-nowrap">{t('auctions.createSubmit')}</span>
+                <Gavel className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110" aria-hidden />
               </button>
             )}
           </>
