@@ -88,6 +88,7 @@ export function LoginForm() {
           />
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => setShowPassword((p) => !p)}
             className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 hover:bg-gray-100"
             aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}

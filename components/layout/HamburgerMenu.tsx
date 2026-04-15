@@ -360,6 +360,7 @@ export function HamburgerMenu() {
                     />
                     <button
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => setShowPassword((p) => !p)}
                       className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-[#1D3160]"
                       aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}

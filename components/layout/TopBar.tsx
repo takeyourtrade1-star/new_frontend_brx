@@ -413,6 +413,7 @@ export function TopBar() {
               />
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setShowPassword((p) => !p)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-gray-600 hover:bg-gray-300/50"
                 aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}

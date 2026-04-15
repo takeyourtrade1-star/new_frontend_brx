@@ -2,6 +2,7 @@ import type { AuctionGame } from '@/components/feature/aste/mock-auctions';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 
 export type AuctionCreateShippingPayer = 'buyer' | 'seller';
+export type AuctionCreatePublishMode = 'now' | 'scheduled';
 
 export type AuctionCreateCardSelection = {
   id: string;
@@ -25,12 +26,18 @@ export type AuctionCreateDraft = {
   title: string;
   description: string;
   condition: string;
+  /** Lingua carta (es. it, en), utile in prefill da inventario. */
+  cardLanguage: string;
   imageUrl: string;
   startingBidEur: string;
   reservePriceEur: string;
-  durationDays: 3 | 5 | 7 | 10;
+  durationDays: 3 | 5 | 7;
   shippingPayer: AuctionCreateShippingPayer;
   shippingFlatEur: string;
+  /** Pubblica subito o pianifica data/ora di inizio. */
+  publishMode: AuctionCreatePublishMode;
+  publishAtDate: string;
+  publishAtTime: string;
   /** Opzionale: integrazione catalogo / inventario (es. da ricerca o sync). */
   catalogCardId?: string;
   selectedInventoryItemId?: string | null;
@@ -56,6 +63,26 @@ export const AUCTION_CARD_CONDITION_OPTIONS = [
   { value: 'pl', labelKey: 'auctions.cardConditionPlayed' },
   { value: 'po', labelKey: 'auctions.cardConditionPoor' },
 ] as const satisfies ReadonlyArray<{ value: string; labelKey: MessageKey }>;
+
+/** Lingue comuni per carte (stesso perimetro usato in vendita/prodotto). */
+export const AUCTION_CARD_LANGUAGE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: 'en', label: 'English' },
+  { value: 'it', label: 'Italiano' },
+  { value: 'de', label: 'Deutsch' },
+  { value: 'fr', label: 'Français' },
+  { value: 'es', label: 'Español' },
+  { value: 'pt', label: 'Português' },
+  { value: 'ja', label: '日本語' },
+  { value: 'ko', label: '한국어' },
+  { value: 'zh', label: '中文' },
+];
+
+export function normalizeAuctionCardLanguage(value: string | null | undefined): string {
+  const raw = (value ?? '').trim().toLowerCase();
+  if (!raw) return '';
+  if (raw === 'jp') return 'ja';
+  return AUCTION_CARD_LANGUAGE_OPTIONS.some((o) => o.value === raw) ? raw : '';
+}
 
 /** Migrazione da vecchi valori nm/mp del wizard. */
 export function normalizeAuctionCardCondition(value: string): string {
@@ -86,12 +113,16 @@ export const AUCTION_CREATE_DEFAULT_DRAFT: AuctionCreateDraft = {
   title: '',
   description: '',
   condition: 'near_mint',
+  cardLanguage: '',
   imageUrl: '',
   startingBidEur: '',
   reservePriceEur: '',
   durationDays: 7,
   shippingPayer: 'buyer',
   shippingFlatEur: '4.99',
+  publishMode: 'now',
+  publishAtDate: '',
+  publishAtTime: '',
   listingPhotos: [],
 };
 

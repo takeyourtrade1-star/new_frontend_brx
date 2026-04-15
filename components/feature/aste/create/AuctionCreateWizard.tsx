@@ -1,12 +1,13 @@
 'use client';
 
 import Image from 'next/image';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Check, ChevronLeft, ChevronRight, Gavel, Package } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
+  AUCTION_CARD_LANGUAGE_OPTIONS,
   AUCTION_CARD_CONDITION_OPTIONS,
   AUCTION_CREATE_DEFAULT_DRAFT,
   AUCTION_CREATE_GAMES,
@@ -120,7 +121,16 @@ export function AuctionCreateWizard({
   );
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [createdAuctionInfo, setCreatedAuctionInfo] = useState<{
+    id: number | null;
+    startIso: string;
+    endIso: string;
+    publishMode: 'now' | 'scheduled';
+  } | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const wizardShellRef = useRef<HTMLDivElement>(null);
+  const stepContentRef = useRef<HTMLDivElement>(null);
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const stepVariant = isEmbedded ? 'embedded' : 'standalone';
 
@@ -286,6 +296,21 @@ export function AuctionCreateWizard({
           return false;
         }
       }
+      if (id === 'review' && draft.publishMode === 'scheduled') {
+        if (!draft.publishAtDate || !draft.publishAtTime) {
+          setError('Se scegli la pubblicazione programmata, inserisci data e orario.');
+          return false;
+        }
+        const scheduled = new Date(`${draft.publishAtDate}T${draft.publishAtTime}`);
+        if (!Number.isFinite(scheduled.getTime())) {
+          setError('Data o orario di pubblicazione non validi.');
+          return false;
+        }
+        if (scheduled.getTime() <= Date.now() + 60_000) {
+          setError('La pubblicazione programmata deve essere almeno 1 minuto nel futuro.');
+          return false;
+        }
+      }
       setError(null);
       return true;
     },
@@ -409,7 +434,6 @@ export function AuctionCreateWizard({
   const publish = async () => {
     const order = getStepOrder(draft.isCard, { variant: stepVariant, hasEmbeddedInventory });
     for (const id of order) {
-      if (id === 'review') continue;
       if (!validateStepId(id)) {
         setStepId(id);
         return;
@@ -421,7 +445,16 @@ export function AuctionCreateWizard({
       ? Number(String(draft.reservePriceEur).replace(',', '.'))
       : undefined;
     const now = new Date();
-    const endDate = new Date(now.getTime() + (draft.durationDays || 7) * 86_400_000);
+    let startDate = now;
+    if (draft.publishMode === 'scheduled') {
+      const scheduled = new Date(`${draft.publishAtDate}T${draft.publishAtTime}`);
+      if (!Number.isFinite(scheduled.getTime()) || scheduled.getTime() <= Date.now() + 60_000) {
+        setError('Data/ora di pubblicazione non valida. Controlla e riprova.');
+        return;
+      }
+      startDate = scheduled;
+    }
+    const endDate = new Date(startDate.getTime() + (draft.durationDays || 7) * 86_400_000);
     const imageFront = draft.imageUrl || '';
     const imageBack = draft.imageUrl || '';
 
@@ -430,7 +463,7 @@ export function AuctionCreateWizard({
       description: draft.description || '',
       starting_price: startingPrice,
       reserve_price: reservePrice ?? null,
-      start_time: now.toISOString(),
+      start_time: startDate.toISOString(),
       end_time: endDate.toISOString(),
       product: {
         name: draft.title,
@@ -444,7 +477,13 @@ export function AuctionCreateWizard({
     };
 
     try {
-      await createAuctionMutation.mutateAsync(payload);
+      const created = await createAuctionMutation.mutateAsync(payload);
+      setCreatedAuctionInfo({
+        id: created?.data?.id ?? null,
+        startIso: created?.data?.start_time ?? payload.start_time,
+        endIso: created?.data?.end_time ?? payload.end_time,
+        publishMode: draft.publishMode,
+      });
       setDone(true);
     } catch (err) {
       setError(
@@ -465,9 +504,60 @@ export function AuctionCreateWizard({
   }, [stepId, draft.cardSelection, draft.listingPhotos, embeddedInventoryPick]);
 
   const previewImageSrc = draft.imageUrl ? getCardImageUrl(draft.imageUrl) ?? draft.imageUrl : null;
+  const cardLanguageLabel = useMemo(
+    () => AUCTION_CARD_LANGUAGE_OPTIONS.find((opt) => opt.value === draft.cardLanguage)?.label ?? '—',
+    [draft.cardLanguage]
+  );
 
   /** Barra navigazione fissa solo dal passo 2 in poi (dopo «È una carta?»). */
   const showStickyNav = stepId !== 'q_card';
+
+  const formatDateTimeLong = useCallback((iso: string) => {
+    const d = new Date(iso);
+    if (!Number.isFinite(d.getTime())) return '—';
+    return new Intl.DateTimeFormat('it-IT', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    }).format(d);
+  }, []);
+
+  const localDateInputValue = useCallback((date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, []);
+
+  // On every step change, bring the wizard back into view and focus the first actionable field.
+  useEffect(() => {
+    const shell = wizardShellRef.current;
+    if (shell) shell.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    const timer = window.setTimeout(() => {
+      const root = stepContentRef.current;
+      if (!root) return;
+      const firstFocusable = root.querySelector<HTMLElement>(
+        [
+          'input:not([type="hidden"]):not([disabled])',
+          'textarea:not([disabled])',
+          'select:not([disabled])',
+          'button[data-step-focus="true"]',
+          'button:not([disabled])',
+        ].join(',')
+      );
+      if (firstFocusable) {
+        try {
+          firstFocusable.focus({ preventScroll: true });
+        } catch {
+          firstFocusable.focus();
+        }
+        return;
+      }
+      stepHeadingRef.current?.focus({ preventScroll: true });
+    }, 140);
+
+    return () => window.clearTimeout(timer);
+  }, [stepId]);
 
   if (done) {
     return (
@@ -477,6 +567,19 @@ export function AuctionCreateWizard({
         </div>
         <h1 className="mt-6 text-xl font-bold uppercase tracking-wide text-gray-900">{t('auctions.createSuccessTitle')}</h1>
         <p className="mt-3 text-sm leading-relaxed text-gray-600">{t('auctions.createSuccessBody')}</p>
+        {createdAuctionInfo && (
+          <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-left">
+            <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Dettagli pubblicazione</p>
+            <p className="mt-2 text-sm text-emerald-900">
+              Modalita: {createdAuctionInfo.publishMode === 'scheduled' ? 'Programmata' : 'Immediata'}
+            </p>
+            <p className="mt-1 text-sm text-emerald-900">Inizio asta: {formatDateTimeLong(createdAuctionInfo.startIso)}</p>
+            <p className="mt-1 text-sm text-emerald-900">Fine asta: {formatDateTimeLong(createdAuctionInfo.endIso)}</p>
+            {createdAuctionInfo.id ? (
+              <p className="mt-1 text-sm text-emerald-900">ID asta: #{createdAuctionInfo.id}</p>
+            ) : null}
+          </div>
+        )}
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
             href="/aste/mie"
@@ -498,6 +601,7 @@ export function AuctionCreateWizard({
   return (
     <>
     <div
+      ref={wizardShellRef}
       className={cn(
         'mx-auto max-w-3xl lg:px-12 xl:px-16',
         isEmbedded && 'max-w-full px-0',
@@ -576,6 +680,8 @@ export function AuctionCreateWizard({
             </div>
           )}
           <h1
+            ref={stepHeadingRef}
+            tabIndex={-1}
             className={cn(
               'text-lg font-bold uppercase tracking-wide text-[#1D3160] sm:text-xl',
               isEmbedded && 'text-base sm:text-lg'
@@ -588,7 +694,7 @@ export function AuctionCreateWizard({
           ) : null}
         </div>
 
-        <div className={cn('px-5 py-6 sm:px-8 sm:py-8', isEmbedded && 'px-3 py-3 sm:px-4 sm:py-4')}>
+        <div ref={stepContentRef} className={cn('px-5 py-6 sm:px-8 sm:py-8', isEmbedded && 'px-3 py-3 sm:px-4 sm:py-4')}>
           {error && (
             <p
               className={cn(
@@ -607,6 +713,7 @@ export function AuctionCreateWizard({
                 <button
                   type="button"
                   onClick={chooseYesCard}
+                  data-step-focus="true"
                   className="rounded-xl border-2 border-[#FF7300] bg-[#FF7300] px-8 py-4 text-sm font-bold uppercase text-white transition hover:bg-[#e86800]"
                 >
                   {t('auctions.createIsCardYes')}
@@ -809,6 +916,27 @@ export function AuctionCreateWizard({
                   ))}
                 </select>
               </div>
+              <div>
+                <label htmlFor="ac-language" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+                  Lingua carta
+                </label>
+                <select
+                  id="ac-language"
+                  value={draft.cardLanguage}
+                  onChange={(e) => update('cardLanguage', e.target.value)}
+                  className={cn(
+                    'mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
+                    isEmbedded && 'py-2'
+                  )}
+                >
+                  <option value="">Non specificata</option>
+                  {AUCTION_CARD_LANGUAGE_OPTIONS.map(({ value, label }) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
 
@@ -916,7 +1044,7 @@ export function AuctionCreateWizard({
               <div>
                 <span className="block text-xs font-bold uppercase tracking-wide text-gray-600">{t('auctions.createDurationLabel')}</span>
                 <div className={cn('mt-2 flex flex-wrap gap-2', isEmbedded && 'mt-1.5 gap-1.5')}>
-                  {([3, 5, 7, 10] as const).map((d) => (
+                  {([3, 5, 7] as const).map((d) => (
                     <button
                       key={d}
                       type="button"
@@ -1010,12 +1138,98 @@ export function AuctionCreateWizard({
           )}
 
           {stepId === 'review' && (
-            <dl
-              className={cn(
-                'divide-y divide-gray-100 rounded-xl border border-gray-100 bg-gray-50/80',
-                isEmbedded && 'rounded-lg text-sm'
-              )}
-            >
+            <div className={cn('space-y-4', isEmbedded && 'space-y-3')}>
+              <div className={cn('rounded-xl border border-[#1D3160]/15 bg-[#f8f9fb] p-4', isEmbedded && 'rounded-lg p-3')}>
+                <p className="text-xs font-bold uppercase tracking-wide text-[#1D3160]">Pubblicazione</p>
+                <div className={cn('mt-3 grid gap-2 sm:grid-cols-2', isEmbedded && 'mt-2 gap-1.5')}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraft((d) => ({ ...d, publishMode: 'now', publishAtDate: '', publishAtTime: '' }));
+                      setError(null);
+                    }}
+                    className={cn(
+                      'rounded-xl border-2 px-4 py-3 text-left transition-all',
+                      isEmbedded && 'rounded-lg px-3 py-2',
+                      draft.publishMode === 'now'
+                        ? 'border-[#FF7300] bg-orange-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    )}
+                  >
+                    <span className="block text-sm font-semibold text-gray-900">Pubblica subito</span>
+                    <span className="mt-0.5 block text-xs text-gray-500">L'asta parte appena confermi.</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraft((d) => {
+                        if (d.publishMode === 'scheduled') return d;
+                        const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
+                        return {
+                          ...d,
+                          publishMode: 'scheduled',
+                          publishAtDate: d.publishAtDate || localDateInputValue(oneHourFromNow),
+                          publishAtTime: d.publishAtTime || `${String(oneHourFromNow.getHours()).padStart(2, '0')}:${String(oneHourFromNow.getMinutes()).padStart(2, '0')}`,
+                        };
+                      });
+                      setError(null);
+                    }}
+                    className={cn(
+                      'rounded-xl border-2 px-4 py-3 text-left transition-all',
+                      isEmbedded && 'rounded-lg px-3 py-2',
+                      draft.publishMode === 'scheduled'
+                        ? 'border-[#FF7300] bg-orange-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    )}
+                  >
+                    <span className="block text-sm font-semibold text-gray-900">Programma data e ora</span>
+                    <span className="mt-0.5 block text-xs text-gray-500">Imposta quando deve iniziare l'asta.</span>
+                  </button>
+                </div>
+                {draft.publishMode === 'scheduled' && (
+                  <div className={cn('mt-3 grid gap-3 sm:grid-cols-2', isEmbedded && 'mt-2 gap-2')}>
+                    <div>
+                      <label htmlFor="ac-publish-date" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+                        Data pubblicazione
+                      </label>
+                      <input
+                        id="ac-publish-date"
+                        type="date"
+                        value={draft.publishAtDate}
+                        min={localDateInputValue(new Date())}
+                        onChange={(e) => update('publishAtDate', e.target.value)}
+                        className={cn(
+                          'mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
+                          isEmbedded && 'py-2'
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="ac-publish-time" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+                        Orario pubblicazione
+                      </label>
+                      <input
+                        id="ac-publish-time"
+                        type="time"
+                        step={60}
+                        value={draft.publishAtTime}
+                        onChange={(e) => update('publishAtTime', e.target.value)}
+                        className={cn(
+                          'mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
+                          isEmbedded && 'py-2'
+                        )}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <dl
+                className={cn(
+                  'divide-y divide-gray-100 rounded-xl border border-gray-100 bg-gray-50/80',
+                  isEmbedded && 'rounded-lg text-sm'
+                )}
+              >
               <div
                 className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}
               >
@@ -1068,6 +1282,12 @@ export function AuctionCreateWizard({
                 <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createConditionLabel')}</dt>
                 <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{t(auctionConditionLabelKey(draft.condition))}</dd>
               </div>
+              {draft.isCard && (
+                <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Lingua carta</dt>
+                  <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{cardLanguageLabel}</dd>
+                </div>
+              )}
               <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
                 <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createStartingBidLabel')}</dt>
                 <dd className="text-sm font-medium text-gray-900 sm:col-span-2">€{draft.startingBidEur || '—'}</dd>
@@ -1076,6 +1296,14 @@ export function AuctionCreateWizard({
                 <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createDurationLabel')}</dt>
                 <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
                   {t('auctions.createDurationDays', { days: draft.durationDays })}
+                </dd>
+              </div>
+              <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Modalita pubblicazione</dt>
+                <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
+                  {draft.publishMode === 'scheduled'
+                    ? `Programmata: ${draft.publishAtDate || '—'} ${draft.publishAtTime || '—'}`
+                    : 'Immediata'}
                 </dd>
               </div>
               <div className={cn('grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4', isEmbedded && 'px-3 py-2 sm:gap-3')}>
@@ -1093,19 +1321,20 @@ export function AuctionCreateWizard({
                   <ListingPhotoThumbnailsRow photos={draft.listingPhotos} />
                 </dd>
               </div>
-            </dl>
+              </dl>
+            </div>
           )}
         </div>
 
-        {/* Desktop: frecce ai lati fuori dalla card */}
+        {/* Desktop: frecce fissate alla viewport, sempre vicine al punto di lettura */}
         {showStickyNav && (
           <>
             <button
               type="button"
               onClick={goBack}
               className={cn(
-                'group absolute -left-4 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-white/80 text-[#1D3160] shadow-[0_4px_20px_-2px_rgba(29,49,96,0.15)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 hover:bg-white hover:shadow-[0_8px_30px_-4px_rgba(29,49,96,0.25)] hover:border-[#1D3160]/30 active:scale-95 sm:flex sm:-left-5 lg:-left-20 lg:h-12 lg:w-12',
-                isEmbedded && 'h-8 w-8 lg:-left-16 lg:h-10 lg:w-10'
+                'group fixed left-2 top-1/2 z-50 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-white/90 text-[#1D3160] shadow-[0_4px_20px_-2px_rgba(29,49,96,0.15)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 hover:bg-white hover:shadow-[0_8px_30px_-4px_rgba(29,49,96,0.25)] hover:border-[#1D3160]/30 active:scale-95 sm:flex lg:left-6 lg:h-12 lg:w-12',
+                isEmbedded && 'h-8 w-8 lg:left-4 lg:h-10 lg:w-10'
               )}
               aria-label={t('auctions.createBack')}
             >
@@ -1119,8 +1348,8 @@ export function AuctionCreateWizard({
                 title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
                 onClick={goNext}
                 className={cn(
-                  'group absolute -right-8 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 active:scale-95 sm:flex sm:-right-5 lg:-right-24 lg:h-12 lg:w-12',
-                  isEmbedded && 'h-8 w-8 lg:-right-16 lg:h-10 lg:w-10',
+                  'group fixed right-2 top-1/2 z-50 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 active:scale-95 sm:flex lg:right-6 lg:h-12 lg:w-12',
+                  isEmbedded && 'h-8 w-8 lg:right-4 lg:h-10 lg:w-10',
                   continueDisabled
                     ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
                     : 'bg-[#FF7300] hover:bg-[#FF8800] hover:shadow-[0_8px_30px_-4px_rgba(255,115,0,0.5)] hover:border-white/80'
@@ -1134,8 +1363,8 @@ export function AuctionCreateWizard({
                 type="button"
                 onClick={publish}
                 className={cn(
-                  'group absolute -right-8 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-[#FF7300] text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 hover:bg-[#FF8800] hover:shadow-[0_8px_30px_-4px_rgba(255,115,0,0.5)] hover:border-white/80 active:scale-95 sm:flex sm:-right-5 lg:-right-24 lg:h-12 lg:w-12',
-                  isEmbedded && 'h-8 w-8 lg:-right-16 lg:h-10 lg:w-10'
+                  'group fixed right-2 top-1/2 z-50 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-[#FF7300] text-white shadow-[0_4px_20px_-2px_rgba(255,115,0,0.3)] backdrop-blur-md transition-all duration-300 ease-out hover:scale-110 hover:bg-[#FF8800] hover:shadow-[0_8px_30px_-4px_rgba(255,115,0,0.5)] hover:border-white/80 active:scale-95 sm:flex lg:right-6 lg:h-12 lg:w-12',
+                  isEmbedded && 'h-8 w-8 lg:right-4 lg:h-10 lg:w-10'
                 )}
                 aria-label={t('auctions.createSubmit')}
               >
