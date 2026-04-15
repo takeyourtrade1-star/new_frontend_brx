@@ -253,7 +253,7 @@ export function AuctionBidModal({
         const payload =
           action === 'direct'
             ? { amount: parsedInput }
-            : { amount: parsedInput, maxAmount: parsedInput };
+            : { amount: minBid, maxAmount: parsedInput };
         const res = await placeBidMutation.mutateAsync(payload);
         if (res?.data?.outbid) {
           setOutbidWarning(res.data.outbid_message || t('auctions.bidOutbidGeneric'));
