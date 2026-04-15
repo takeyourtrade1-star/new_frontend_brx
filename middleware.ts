@@ -4,8 +4,10 @@
  * Se il token non è presente, redirige a /login.
  *
  * Route protette:
- * - /account/*  → area personale utente
- * - /admin/*    → pannelli amministrativi
+ * - /account/*     → area personale utente
+ * - /admin/*       → pannelli amministrativi
+ * - /aste/nuova    → creazione nuova asta
+ * - /bidding/*     → offerta massima
  *
  * Il middleware gira server-side (Edge Runtime) quindi non ha accesso a localStorage.
  * Controlla il cookie `ebartex-auth` (scritto da Zustand persist) come proxy per lo stato auth.
@@ -14,7 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const PROTECTED_PREFIXES = ['/account', '/admin'];
+const PROTECTED_PREFIXES = ['/account', '/admin', '/aste/nuova', '/bidding'];
 
 const LOGIN_PATH = '/login';
 
@@ -66,5 +68,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/account/:path*', '/admin/:path*'],
+  matcher: ['/account/:path*', '/admin/:path*', '/aste/nuova', '/bidding', '/bidding/:path*'],
 };

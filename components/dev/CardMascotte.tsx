@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare, ArrowRight, Sparkles } from 'lucide-react';
+import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare, ArrowRight, Sparkles, Loader2, Play, Users } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { CardLoader } from '@/components/dev/CardLoader';
+import { KakeguruiArena } from '@/components/feature/game/KakeguruiArena';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 // Storage keys for bug report data
 const BUG_REPORT_STORAGE = {
@@ -27,6 +29,18 @@ const EXPRESSION_TRANSITION_MS = 140;
 const CODING_PREVIEW_MS = 900;
 const SUBMIT_FEEDBACK_MS = 1400;
 const BUG_MODAL_FADE_MS = 220;
+const MATCHMAKING_GUEST_KEY = 'brx_kakegurui_guest_id';
+
+interface MatchmakingPayload {
+  status: 'waiting' | 'matched' | 'not_found';
+  ticketId: string;
+  queueSize?: number;
+  matchId?: string;
+  opponent?: {
+    userId: string;
+    username: string;
+  };
+}
 
 // Console log capture
 interface ConsoleLog {
@@ -262,6 +276,8 @@ const faceSleepSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="rou
 </svg>`;
 
 export function CardMascotte() {
+  const authUser = useAuthStore((s) => s.user);
+
   // Safe mount check
   const [isMounted, setIsMounted] = useState(false);
   const [hasError] = useState(false);
@@ -379,6 +395,12 @@ export function CardMascotte() {
   const [copiedShare, setCopiedShare] = useState(false);
   const [newUnlock, setNewUnlock] = useState<string | null>(null);
   const [showAlbum, setShowAlbum] = useState(false);
+  const [isArenaOpen, setIsArenaOpen] = useState(false);
+  const [isCheckingArenaPlayers, setIsCheckingArenaPlayers] = useState(false);
+  const [connectedPlayers, setConnectedPlayers] = useState<number | null>(null);
+  const [arenaGateMessage, setArenaGateMessage] = useState<string | null>(null);
+  const [arenaOpponentName, setArenaOpponentName] = useState('Rivale Live');
+  const [arenaMatchId, setArenaMatchId] = useState<string | null>(null);
   const [holoPos, setHoloPos] = useState({ x: 50, y: 50 });
   const [easterEggActive, setEasterEggActive] = useState(false);
   const [goldenConfetti, setGoldenConfetti] = useState<Array<{ id: number; x: number; delay: number; size: number; rotation: number; duration: number; color: string }>>([]);
@@ -393,6 +415,8 @@ export function CardMascotte() {
   const particleIdRef = useRef(0);
   const lastFlipTimeRef = useRef(0);
   const backFaceRef = useRef<HTMLDivElement>(null);
+  const matchmakingTicketRef = useRef<string | null>(null);
+  const matchmakingPollRef = useRef<number | null>(null);
 
   const vibrate = useCallback((pattern: number | number[]) => {
     try { navigator?.vibrate?.(pattern); } catch {}
@@ -787,6 +811,209 @@ export function CardMascotte() {
     vibrate(15);
     setShowAlbum(prev => !prev);
   }, [vibrate]);
+
+  const stopMatchmakingPoll = useCallback(() => {
+    if (matchmakingPollRef.current != null) {
+      window.clearInterval(matchmakingPollRef.current);
+      matchmakingPollRef.current = null;
+    }
+  }, []);
+
+  const getArenaIdentity = useCallback(() => {
+    if (authUser?.id) {
+      const fallbackName = `Player-${authUser.id.slice(0, 6)}`;
+      return {
+        userId: authUser.id,
+        username: authUser.name?.trim() || fallbackName,
+      };
+    }
+
+    let guestId = '';
+    try {
+      guestId = localStorage.getItem(MATCHMAKING_GUEST_KEY) || '';
+      if (!guestId) {
+        guestId = `guest-${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem(MATCHMAKING_GUEST_KEY, guestId);
+      }
+    } catch {
+      guestId = `guest-${Math.random().toString(36).slice(2, 10)}`;
+    }
+
+    return {
+      userId: guestId,
+      username: `Guest-${guestId.slice(-4).toUpperCase()}`,
+    };
+  }, [authUser]);
+
+  const requestMatchmaking = useCallback(async (ticketId?: string): Promise<MatchmakingPayload | null> => {
+    const identity = getArenaIdentity();
+
+    try {
+      const response = await fetch('/api/game/matchmaking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store',
+        body: JSON.stringify({
+          userId: identity.userId,
+          username: identity.username,
+          ticketId,
+        }),
+      });
+
+      if (!response.ok) return null;
+      const data = (await response.json().catch(() => null)) as MatchmakingPayload | null;
+      return data;
+    } catch {
+      return null;
+    }
+  }, [getArenaIdentity]);
+
+  const leaveMatchmakingQueue = useCallback(async (ticketId: string) => {
+    try {
+      await fetch(`/api/game/matchmaking?ticketId=${encodeURIComponent(ticketId)}`, {
+        method: 'DELETE',
+        cache: 'no-store',
+      });
+    } catch {
+      // ignore best-effort cleanup failures
+    }
+  }, []);
+
+  const fetchConnectedPlayers = useCallback(async (): Promise<number> => {
+    try {
+      const response = await fetch('/api/game/user-ids?limit=50', {
+        method: 'GET',
+        cache: 'no-store',
+      });
+
+      const payload: unknown = await response.json().catch(() => []);
+      if (!Array.isArray(payload)) return 0;
+
+      const uniqueIds = new Set(
+        payload
+          .map((entry) => {
+            if (typeof entry === 'string') return entry.trim();
+            if (typeof entry === 'number' && Number.isFinite(entry)) return String(entry);
+            return '';
+          })
+          .filter(Boolean)
+      );
+
+      return uniqueIds.size;
+    } catch {
+      return 0;
+    }
+  }, []);
+
+  const handlePlayArena = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    vibrate(20);
+
+    setIsCheckingArenaPlayers(true);
+    setArenaGateMessage('Controllo giocatori collegati...');
+    stopMatchmakingPoll();
+
+    const players = await fetchConnectedPlayers();
+    setConnectedPlayers(players);
+
+    const matchmaking = await requestMatchmaking(matchmakingTicketRef.current ?? undefined);
+
+    if (!matchmaking) {
+      setArenaGateMessage('Matchmaking non disponibile. Riprova tra poco.');
+      setIsCheckingArenaPlayers(false);
+      return;
+    }
+
+    matchmakingTicketRef.current = matchmaking.ticketId || matchmakingTicketRef.current;
+
+    if (matchmaking.status === 'matched') {
+      setArenaMatchId(matchmaking.matchId ?? null);
+      setArenaOpponentName(matchmaking.opponent?.username || 'Rivale Live');
+      setArenaGateMessage('Match trovato. Si parte!');
+      setIsArenaOpen(true);
+      setIsCheckingArenaPlayers(false);
+      return;
+    }
+
+    if (players >= 2) {
+      setArenaGateMessage('Cerco un avversario libero...');
+    } else {
+      setArenaGateMessage('In attesa di un altro giocatore');
+    }
+
+    if (matchmakingTicketRef.current) {
+      matchmakingPollRef.current = window.setInterval(() => {
+        void (async () => {
+          const update = await requestMatchmaking(matchmakingTicketRef.current ?? undefined);
+          if (!update) return;
+
+          matchmakingTicketRef.current = update.ticketId || matchmakingTicketRef.current;
+
+          if (update.status === 'matched') {
+            stopMatchmakingPoll();
+            setArenaMatchId(update.matchId ?? null);
+            setArenaOpponentName(update.opponent?.username || 'Rivale Live');
+            setArenaGateMessage('Match trovato. Si parte!');
+            setIsArenaOpen(true);
+            return;
+          }
+
+          setArenaGateMessage('In attesa di un altro giocatore');
+        })();
+      }, 2500);
+    }
+
+    setIsCheckingArenaPlayers(false);
+  }, [fetchConnectedPlayers, requestMatchmaking, stopMatchmakingPoll, vibrate]);
+
+  useEffect(() => {
+    if (!isFlipped) {
+      if (matchmakingTicketRef.current) {
+        void leaveMatchmakingQueue(matchmakingTicketRef.current);
+      }
+      stopMatchmakingPoll();
+      matchmakingTicketRef.current = null;
+      setArenaOpponentName('Rivale Live');
+      setArenaMatchId(null);
+      setConnectedPlayers(null);
+      setArenaGateMessage(null);
+      setIsCheckingArenaPlayers(false);
+      return;
+    }
+
+    if (isArenaOpen) return;
+
+    let cancelled = false;
+
+    const refreshPlayers = async () => {
+      const players = await fetchConnectedPlayers();
+      if (cancelled) return;
+      setConnectedPlayers(players);
+      if (matchmakingTicketRef.current) {
+        setArenaGateMessage('In attesa di un altro giocatore');
+        return;
+      }
+      setArenaGateMessage(players >= 2 ? 'Pronto: puoi premere Play' : 'In attesa di un altro giocatore');
+    };
+
+    void refreshPlayers();
+    const pollId = window.setInterval(() => {
+      void refreshPlayers();
+    }, 7000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(pollId);
+    };
+  }, [fetchConnectedPlayers, isArenaOpen, isFlipped, leaveMatchmakingQueue, stopMatchmakingPoll]);
+
+  useEffect(() => {
+    if (!isArenaOpen) return;
+    stopMatchmakingPoll();
+  }, [isArenaOpen, stopMatchmakingPoll]);
 
   // Cleanup timeouts
   useEffect(() => {
@@ -1528,7 +1755,7 @@ export function CardMascotte() {
 
   // No separate sleep promo cycle - uses same index as awake state
 
-  const isOverlayVisible = showChatModal || isModalOpen || isCodingTransition || showCodingCompanion || isExternalModalOpen;
+  const isOverlayVisible = showChatModal || isModalOpen || isCodingTransition || showCodingCompanion || isExternalModalOpen || isArenaOpen;
 
   // Snore sound using Web Audio API - soft rhythmic breathing sound
   const playSnoreSound = useCallback(() => {
@@ -2293,6 +2520,29 @@ export function CardMascotte() {
             <span className="mt-1 text-[8px] font-medium uppercase tracking-widest text-white/70">
               {BACK_VARIANTS[backVariant].sub}
             </span>
+
+            <button
+              type="button"
+              onClick={handlePlayArena}
+              disabled={isCheckingArenaPlayers}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white transition hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
+              title="Avvia mini-gioco"
+              aria-label="Avvia mini-gioco"
+            >
+              {isCheckingArenaPlayers ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+              Play
+            </button>
+
+            <p className="mt-1 inline-flex items-center gap-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-white/80">
+              <Users className="h-3 w-3" />
+              {connectedPlayers == null ? '--' : connectedPlayers} online
+            </p>
+
+            {arenaGateMessage && (
+              <p className="mt-1 px-2 text-center text-[8px] font-semibold uppercase tracking-[0.12em] text-white/90">
+                {arenaGateMessage}
+              </p>
+            )}
           </div>
         </div>{/* end back face */}
 
@@ -2755,6 +3005,18 @@ export function CardMascotte() {
           </div>
         </div>
       )}
+
+      <KakeguruiArena
+        key={arenaMatchId ?? 'arena-idle'}
+        open={isArenaOpen}
+        onClose={() => {
+          setIsArenaOpen(false);
+          setArenaMatchId(null);
+          setArenaGateMessage('Pronto: puoi premere Play');
+        }}
+        playerName={authUser?.name?.trim() || 'Tu'}
+        opponentName={arenaOpponentName}
+      />
 
       {/* Float animation */}
       <style dangerouslySetInnerHTML={{ __html: `
