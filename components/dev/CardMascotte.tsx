@@ -418,8 +418,23 @@ export function CardMascotte() {
   const particleIdRef = useRef(0);
   const lastFlipTimeRef = useRef(0);
   const backFaceRef = useRef<HTMLDivElement>(null);
+  const gameModeMenuRef = useRef<HTMLDivElement>(null);
   const matchmakingTicketRef = useRef<string | null>(null);
   const matchmakingPollRef = useRef<number | null>(null);
+
+  // Close game mode menu when clicking outside
+  useEffect(() => {
+    if (!showGameModeMenu) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      if (gameModeMenuRef.current && !gameModeMenuRef.current.contains(event.target as Node)) {
+        setShowGameModeMenu(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showGameModeMenu]);
 
   const vibrate = useCallback((pattern: number | number[]) => {
     try { navigator?.vibrate?.(pattern); } catch {}
@@ -1670,27 +1685,30 @@ export function CardMascotte() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Promotional hints - more visible with special effects (includes bug hint as fallback)
+  // Promotional hints - subtle and elegant (bug hint is more minimal/basic)
   const promoHints = useMemo(() => [
     {
       id: 'scambi',
       text: 'Lo sai cosa ci rende unici? Poter scambiare sulla piattaforma!',
       route: '/account/scambi',
-      gradient: 'linear-gradient(135deg, #059669 0%, #10B981 50%, #34D399 100%)',
+      // Subtle green - toned down saturation
+      gradient: 'linear-gradient(135deg, #047857 0%, #059669 100%)',
       icon: 'swap',
     },
     {
       id: 'aste',
       text: 'Vuoi guadagnare di più dalle vendite? Perché non provi le Aste?',
       route: '/aste',
-      gradient: 'linear-gradient(135deg, #0891B2 0%, #06B6D4 50%, #22D3EE 100%)',
+      // Subtle cyan - toned down saturation
+      gradient: 'linear-gradient(135deg, #0e7490 0%, #0891b2 100%)',
       icon: 'auction',
     },
     {
       id: 'bug',
       text: 'Segnalami un bug! Clicca qui per aiutarci a migliorare.',
       route: '#bug-report',
-      gradient: 'linear-gradient(135deg, #FF7300 0%, #FF9A40 50%, #FFB366 100%)',
+      // Minimal gray - more basic than the others
+      gradient: 'linear-gradient(135deg, #52525b 0%, #71717a 100%)',
       icon: 'bug',
     },
   ], []);
@@ -1956,41 +1974,31 @@ export function CardMascotte() {
             pointerEvents: showHint ? 'auto' : 'none',
           }}
         >
-          {/* Animated glow background */}
+          {/* Subtle glow background - reduced opacity */}
           <div
-            className="absolute inset-0 rounded-xl blur-xl opacity-60"
+            className="absolute inset-0 rounded-xl blur-lg opacity-25"
             style={{
-              background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #FF7300 0%, #FF9A40 100%)',
-              animation: 'promoPulse 2s ease-in-out infinite',
+              background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #52525b 0%, #71717a 100%)',
             }}
           />
-          {/* Main bubble */}
+          {/* Main bubble - cleaner, less aggressive styling */}
           <div
-            className="relative rounded-xl px-4 py-3 text-center backdrop-blur-md overflow-hidden"
+            className="relative rounded-xl px-4 py-3 text-center backdrop-blur-sm overflow-hidden"
             style={{
-              background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #FF7300 0%, #FF9A40 100%)',
-              border: '2px solid rgba(255,255,255,0.3)',
-              boxShadow: '0 8px 32px rgba(255,115,0,0.4), 0 4px 16px rgba(0,0,0,0.2)',
-              animation: 'promoFloat 3s ease-in-out infinite',
+              background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #52525b 0%, #71717a 100%)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
             }}
           >
-            {/* Shine effect */}
-            <div
-              className="absolute inset-0 opacity-30"
-              style={{
-                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
-                animation: 'promoShine 2.5s ease-in-out infinite',
-              }}
-            />
-            {/* Sparkles */}
-            <Sparkles
-              className="absolute -top-1 -right-1 w-4 h-4 text-white/80"
-              style={{ animation: 'promoSparkle 1.5s ease-in-out infinite' }}
-            />
-            <Sparkles
-              className="absolute -bottom-1 -left-1 w-3 h-3 text-white/60"
-              style={{ animation: 'promoSparkle 1.8s ease-in-out infinite 0.3s' }}
-            />
+            {/* Subtle shine - only for non-bug hints */}
+            {activePromoHints[promoHintIndex]?.id !== 'bug' && (
+              <div
+                className="absolute inset-0 opacity-15"
+                style={{
+                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                }}
+              />
+            )}
             {/* Sleep emoji indicator when sleeping */}
             {isSleeping && (
               <span className="absolute -top-1 -left-1 text-lg" style={{ animation: 'sleepTwinkle 2s ease-in-out infinite' }}>💤</span>
@@ -2012,15 +2020,15 @@ export function CardMascotte() {
               </span>
               <ArrowRight className="w-3 h-3 text-white/90 group-hover:translate-x-1 transition-transform" />
             </div>
-            {/* Arrow pointer */}
+            {/* Arrow pointer - cleaner border */}
             <span
               className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
               style={{
-                width: '10px',
-                height: '10px',
-                background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #FF7300 0%, #FF9A40 100%)',
-                borderBottom: '2px solid rgba(255,255,255,0.3)',
-                borderRight: '2px solid rgba(255,255,255,0.3)',
+                width: '8px',
+                height: '8px',
+                background: activePromoHints[promoHintIndex]?.gradient || 'linear-gradient(135deg, #52525b 0%, #71717a 100%)',
+                borderBottom: '1px solid rgba(255,255,255,0.2)',
+                borderRight: '1px solid rgba(255,255,255,0.2)',
               }}
             />
           </div>
@@ -2038,7 +2046,7 @@ export function CardMascotte() {
             animation: 'unlockFlash 3s ease-out forwards',
           }}
         >
-          <div className="unlock-badge flex items-center gap-2 rounded-xl border border-amber-300/60 bg-gradient-to-r from-amber-500/95 to-yellow-400/95 px-3 py-2 shadow-xl shadow-amber-400/40">
+          <div className="unlock-badge flex items-center gap-2 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-600/90 to-amber-500/90 px-3 py-2 shadow-lg shadow-amber-900/20">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" fill="white" /></svg>
             <div>
               <p className="text-[10px] font-black uppercase tracking-wide text-white">Sbloccato!</p>
@@ -2112,10 +2120,10 @@ export function CardMascotte() {
             animation: 'achievementIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards, achievementOut 400ms ease-in 2s forwards',
           }}
         >
-          <div className="flex items-center gap-2 rounded-xl border border-primary/40 bg-zinc-900/90 px-3 py-2 shadow-xl shadow-primary/25 backdrop-blur-md">
+          <div className="flex items-center gap-2 rounded-xl border border-zinc-700/50 bg-zinc-800/90 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-md">
             <span className="text-base">&#11088;</span>
             <div>
-              <p className="text-[10px] font-bold text-primary">{showAchievement}</p>
+              <p className="text-[10px] font-bold text-zinc-200">{showAchievement}</p>
               <p className="text-[8px] text-zinc-400">{flipCount} flip totali</p>
             </div>
           </div>
@@ -2133,7 +2141,7 @@ export function CardMascotte() {
             animation: 'comboPopIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
           }}
         >
-          <div className="flex items-center gap-1.5 rounded-lg border border-amber-400/50 bg-amber-500/90 px-2.5 py-1 shadow-lg shadow-amber-500/30">
+          <div className="flex items-center gap-1.5 rounded-lg border border-amber-600/40 bg-amber-700/85 px-2.5 py-1 shadow-md shadow-amber-950/20">
             <span className="text-[10px] font-black text-white">{comboCount}x</span>
             <span className="text-[8px] font-bold uppercase tracking-wider text-white/80">COMBO</span>
           </div>
@@ -2524,7 +2532,7 @@ export function CardMascotte() {
               {BACK_VARIANTS[backVariant].sub}
             </span>
 
-            <div className="relative mt-8">
+            <div className="relative mt-8" ref={gameModeMenuRef}>
               <button
                 type="button"
                 onClick={() => setShowGameModeMenu(prev => !prev)}
@@ -2539,7 +2547,7 @@ export function CardMascotte() {
               
               {/* Game Mode Selector Dropdown */}
               {showGameModeMenu && (
-                <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 rounded-lg border border-white/20 bg-black/90 backdrop-blur-md shadow-xl overflow-hidden z-50">
+                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 rounded-lg border border-white/20 bg-black/95 backdrop-blur-md shadow-2xl overflow-hidden z-[9999]">
                   <div className="p-2 space-y-1">
                     <button
                       type="button"
