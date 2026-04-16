@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils';
 
 const BRAND_ORANGE = '#FF7300';
 const SALES_BLUE = '#2563EB';
-const GRID_COLOR = '#E8E8E8';
-const AXIS_TEXT = '#5C5C5C';
+const GRID_COLOR = '#DDE3EA';
+const AXIS_TEXT = '#4B5563';
 
 /** Max punti evidenziati sulla linea (Cardmarket: pochi marker) */
 const MAX_VISIBLE_DOTS = 12;
@@ -290,8 +290,8 @@ export function ProductPriceChart({
     return () => ro.disconnect();
   }, []);
 
-  const pad = { t: 8, r: 16, b: 48, l: 56 };
-  const H = 200;
+  const pad = { t: 10, r: 34, b: 44, l: 56 };
+  const H = 214;
   const W = cw;
   const iw = W - pad.l - pad.r;
   const ih = H - pad.t - pad.b;
@@ -572,10 +572,10 @@ export function ProductPriceChart({
             return (
               <g key={`sales-${sv}`}>
                 <text
-                  x={W - pad.r + 8}
+                  x={W - 8}
                   y={y + 4}
-                  textAnchor="start"
-                  className="text-[9px] fill-current font-medium"
+                  textAnchor="end"
+                  className="text-[10px] fill-current font-medium"
                   style={{ fill: SALES_BLUE }}
                 >
                   {sv}
@@ -710,11 +710,11 @@ export function ProductPriceChart({
               <text
                 key={`xl-${tx}`}
                 x={x}
-                y={H - 10}
+                y={H - 9}
                 textAnchor="middle"
-                className="text-[9px] fill-current"
+                className="text-[10px] fill-current"
                 style={{ fill: AXIS_TEXT }}
-                transform={`rotate(-40 ${x} ${H - 10})`}
+                transform={`rotate(-32 ${x} ${H - 9})`}
               >
                 {formatDateIt(tx)}
               </text>

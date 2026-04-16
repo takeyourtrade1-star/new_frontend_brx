@@ -288,33 +288,35 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         </div>
       </section>
 
-      {/* Sticky Mobile Header - Nome prodotto | Preferiti + Condividi */}
-      {showStickyHeader && (
-        <div
-          className="sticky z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm lg:hidden animate-[fadeInDown_0.2s_ease-out]"
-          style={{ top: stickyTop + asteNavHeight }}
-        >
-          <div className="container-content container-content-card-detail py-2">
-            <div className="flex items-center gap-2.5">
-              <h2 className="min-w-0 flex-1 truncate text-[13px] font-bold uppercase tracking-wide text-gray-900">
-                {detail.title}
-              </h2>
-              <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-1.5 py-1 shadow-sm">
-                {!isOwner && (
-                  <button
-                    type="button"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition hover:bg-zinc-100 hover:text-[#FF7300]"
-                    aria-label={t('auctions.detailSaveLater')}
-                  >
-                    <Bookmark className="h-4 w-4" />
-                  </button>
-                )}
-                <AuctionShareButton auctionTitle={detail.title} compact />
-              </div>
+      {/* Fixed Mobile Action Bar - Nome prodotto | Preferiti + Condividi */}
+      <div
+        className={`fixed left-0 right-0 z-50 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur-sm transition-all duration-200 lg:hidden ${
+          showStickyHeader
+            ? 'pointer-events-auto translate-y-0 opacity-100'
+            : 'pointer-events-none -translate-y-2 opacity-0'
+        }`}
+        style={{ top: stickyTop + asteNavHeight }}
+      >
+        <div className="container-content container-content-card-detail py-2">
+          <div className="flex items-center gap-2.5">
+            <h2 className="min-w-0 flex-1 truncate text-[13px] font-bold uppercase tracking-wide text-gray-900">
+              {detail.title}
+            </h2>
+            <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-1.5 py-1 shadow-sm">
+              {!isOwner && (
+                <button
+                  type="button"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition hover:bg-zinc-100 hover:text-[#FF7300]"
+                  aria-label={t('auctions.detailSaveLater')}
+                >
+                  <Bookmark className="h-4 w-4" />
+                </button>
+              )}
+              <AuctionShareButton auctionTitle={detail.title} compact />
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       <section className="w-full bg-white px-0 py-4 sm:px-6 sm:py-6 lg:px-8">
         <div className="container-content container-content-card-detail">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 interface CountdownTime {
@@ -13,9 +14,9 @@ interface CountdownTime {
 
 export function DemoBanner() {
   const { selectedLang } = useLanguage();
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const [isCompactOnScroll, setIsCompactOnScroll] = useState(false);
   const [timeLeft, setTimeLeft] = useState<CountdownTime>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [animatingKey, setAnimatingKey] = useState<keyof CountdownTime | null>(null);
   const prevTimeRef = useRef<CountdownTime>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -33,23 +34,14 @@ export function DemoBanner() {
     const media = window.matchMedia('(max-width: 1023px)');
     const updateViewport = () => {
       setIsMobileViewport(media.matches);
-      if (!media.matches) setIsCompactOnScroll(false);
-    };
-
-    const handleScroll = () => {
-      if (!media.matches) return;
-      setIsCompactOnScroll(window.scrollY > 24);
     };
 
     updateViewport();
-    handleScroll();
 
     media.addEventListener('change', updateViewport);
-    window.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
       media.removeEventListener('change', updateViewport);
-      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
@@ -92,6 +84,7 @@ export function DemoBanner() {
   const t = {
     demo: lang === 'it' ? 'IL SITO È IN DEMO' : 'SITE IN DEMO',
     launch: lang === 'it' ? 'Lancio tra' : 'Launch in',
+    mobileTeaser: lang === 'it' ? 'Scambi e aste presto in arrivo' : 'Trades and auctions coming soon',
     comingSoon: lang === 'it' ? 'Presto: Scambi ed Aste' : 'Coming Soon: Trades & Auctions',
     days: lang === 'it' ? 'giorni' : 'days',
     hours: lang === 'it' ? 'ore' : 'hours',
@@ -99,7 +92,9 @@ export function DemoBanner() {
     seconds: lang === 'it' ? 'sec' : 'sec',
   };
 
-  const isCompact = isMobileViewport && isCompactOnScroll;
+  const isLandingPage = pathname === '/';
+  const isSlimMobileBanner = isMobileViewport && !isLandingPage;
+  const isCompact = isSlimMobileBanner;
 
   const TimeBlock = ({ value, label, keyName }: { value: number; label: string; keyName: keyof CountdownTime }) => (
     <div className="flex flex-col items-center min-w-[1.75rem] sm:min-w-[2.25rem]">
@@ -108,7 +103,7 @@ export function DemoBanner() {
           animatingKey === keyName ? 'animate-countdown-flip' : ''
         }`}
       >
-        {value.toString().padStart(2, '0')}
+        <span className="tabular-nums leading-none">{value.toString().padStart(2, '0')}</span>
       </span>
       <span className="text-[9px] sm:text-[10px] font-medium text-white/70 uppercase tracking-wider">
         {label}
@@ -122,66 +117,64 @@ export function DemoBanner() {
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[caret-blink_3s_ease-in-out_infinite]" />
 
       <div className="container-content container-header relative z-10">
-        <div
-          className={`flex items-center justify-center transition-all duration-300 ${
-            isCompact ? 'gap-0 py-1' : 'flex-col gap-2 py-0.5 sm:flex-row sm:gap-4 sm:py-1'
-          }`}
-        >
-          {/* Demo badge */}
-          <div className="flex items-center gap-1.5">
-            <div className="flex items-center px-2 py-0.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
-              <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wider">
-                {t.demo}
+        {isCompact ? (
+          <div className="flex items-center justify-between gap-2 py-1 sm:py-1.5">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.9)]" aria-hidden />
+              <div className="flex items-center rounded-full border border-white/35 bg-white/18 px-2 py-0.5 backdrop-blur-sm">
+                <span className="text-[10px] font-bold uppercase tracking-[0.09em] text-white">{t.demo}</span>
+              </div>
+            </div>
+            {isSlimMobileBanner && (
+              <span className="min-w-0 truncate text-right text-[10px] font-medium tracking-[0.01em] text-white/85 sm:hidden">
+                {t.mobileTeaser}
               </span>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-1.5 py-0.5 sm:flex-row sm:justify-center sm:gap-4 sm:py-1">
+            {/* Demo badge */}
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.9)]" aria-hidden />
+              <div className="flex items-center rounded-full border border-white/35 bg-white/18 px-2 py-0.5 backdrop-blur-sm">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.09em] text-white">{t.demo}</span>
+              </div>
+            </div>
+
+            {/* Countdown */}
+            <div className="flex items-center gap-2 rounded-full border border-white/20 bg-black/10 px-2.5 py-0.5 backdrop-blur-sm sm:gap-3 sm:px-3 sm:py-1">
+              <span className="text-[10px] sm:text-xs font-semibold text-white/90">
+                {t.launch}
+              </span>
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <TimeBlock value={timeLeft.days} label={t.days} keyName="days" />
+                <span className="text-xs font-bold text-white/50">:</span>
+                <TimeBlock value={timeLeft.hours} label={t.hours} keyName="hours" />
+                <span className="text-xs font-bold text-white/50">:</span>
+                <TimeBlock value={timeLeft.minutes} label={t.minutes} keyName="minutes" />
+              </div>
+            </div>
+
+            {/* Coming soon features */}
+            <div className="hidden items-center gap-2 sm:flex">
+              <span className="text-[10px] sm:text-xs font-semibold text-white/80">
+                {t.comingSoon}
+              </span>
+              <div className="flex items-center gap-2">
+                <Link href="/scambi" className="flex items-center gap-1.5 rounded-md border border-cyan-300/45 bg-cyan-500/20 px-2.5 py-1 backdrop-blur-sm transition-all duration-300 hover:border-cyan-300/70 hover:bg-cyan-500/30 hover:shadow-[0_0_14px_rgba(34,211,238,0.35)] cursor-pointer">
+                  <span className="text-xs font-extrabold tracking-wide text-white sm:text-sm">
+                    {lang === 'it' ? 'Scambi' : 'Trades'}
+                  </span>
+                </Link>
+                <Link href="/aste" className="flex items-center gap-1.5 rounded-md border border-amber-300/45 bg-amber-500/20 px-2.5 py-1 backdrop-blur-sm transition-all duration-300 hover:border-amber-300/70 hover:bg-amber-500/30 hover:shadow-[0_0_14px_rgba(251,191,36,0.35)] cursor-pointer">
+                  <span className="text-xs font-extrabold tracking-wide text-white sm:text-sm">
+                    {lang === 'it' ? 'Aste' : 'Auctions'}
+                  </span>
+                </Link>
+              </div>
             </div>
           </div>
-
-          {!isCompact && (
-            <>
-              {/* Arrow separator - hidden on mobile */}
-              <div className="hidden sm:block text-white/50">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-
-              {/* Countdown */}
-              <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-[10px] sm:text-xs font-semibold text-white/90">
-                  {t.launch}
-                </span>
-                <div className="flex items-center gap-1 sm:gap-1.5">
-                  <TimeBlock value={timeLeft.days} label={t.days} keyName="days" />
-                  <span className="text-white/50 font-bold text-xs">:</span>
-                  <TimeBlock value={timeLeft.hours} label={t.hours} keyName="hours" />
-                  <span className="text-white/50 font-bold text-xs">:</span>
-                  <TimeBlock value={timeLeft.minutes} label={t.minutes} keyName="minutes" />
-                </div>
-              </div>
-
-              {/* Coming soon features */}
-              <div className="hidden sm:flex items-center gap-2">
-                <span className="text-[10px] sm:text-xs font-semibold text-white/80">
-                  {lang === 'it' ? 'Presto in arrivo, solo su Ebartex:' : 'Coming soon, only on Ebartex:'}
-                </span>
-                <div className="flex items-center gap-2">
-                  {/* Scambi badge */}
-                  <Link href="/scambi" className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-purple-500/40 to-pink-500/40 backdrop-blur-sm rounded-lg border-2 border-purple-400/50 hover:border-purple-400 transition-all duration-300 hover:shadow-[0_0_16px_rgba(168,85,247,0.5)] cursor-pointer">
-                    <span className="text-sm sm:text-base font-extrabold text-white tracking-wide">
-                      {lang === 'it' ? 'Scambi' : 'Trades'}
-                    </span>
-                  </Link>
-                  {/* Aste badge */}
-                  <Link href="/aste" className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500/40 to-red-500/40 backdrop-blur-sm rounded-lg border-2 border-orange-400/50 hover:border-orange-400 transition-all duration-300 hover:shadow-[0_0_16px_rgba(251,146,60,0.5)] cursor-pointer">
-                    <span className="text-sm sm:text-base font-extrabold text-white tracking-wide">
-                      {lang === 'it' ? 'Aste' : 'Auctions'}
-                    </span>
-                  </Link>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

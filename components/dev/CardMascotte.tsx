@@ -339,6 +339,8 @@ export function CardMascotte() {
   const [typewriterText, setTypewriterText] = useState('');
   const [isTypewriting, setIsTypewriting] = useState(false);
   const typewriterTimeoutRef = useRef<number | null>(null);
+  const greetingTimeoutRef = useRef<number | null>(null);
+  const typewriterSequenceRef = useRef(0);
   const [isCodingTransition, setIsCodingTransition] = useState(false);
   const [showCodingCompanion, setShowCodingCompanion] = useState(false);
   const [codingStatus, setCodingStatus] = useState<'compiling' | 'received'>('compiling');
@@ -1314,15 +1316,29 @@ export function CardMascotte() {
 
   // Typewriter effect function
   const startTypewriterEffect = useCallback((fullText: string, onComplete: () => void) => {
+    // Invalidate any in-flight typewriter loop before starting a new one.
+    typewriterSequenceRef.current += 1;
+    const sequenceId = typewriterSequenceRef.current;
+
+    if (typewriterTimeoutRef.current !== null) {
+      window.clearTimeout(typewriterTimeoutRef.current);
+      typewriterTimeoutRef.current = null;
+    }
+
     setIsTypewriting(true);
     setTypewriterText('');
     
     let currentIndex = 0;
-    const chars = fullText.split('');
+    // Use code points instead of split('') to avoid broken glyphs while typing.
+    const chars = Array.from(fullText);
     
     const typeNextChar = () => {
+      if (sequenceId !== typewriterSequenceRef.current) {
+        return;
+      }
+
       if (currentIndex < chars.length) {
-        setTypewriterText(prev => prev + chars[currentIndex]);
+        setTypewriterText(chars.slice(0, currentIndex + 1).join(''));
         currentIndex++;
         
         // Variable typing speed for natural feel (faster for spaces, slower for punctuation)
@@ -1331,6 +1347,7 @@ export function CardMascotte() {
         
         typewriterTimeoutRef.current = window.setTimeout(typeNextChar, delay);
       } else {
+        typewriterTimeoutRef.current = null;
         setIsTypewriting(false);
         onComplete();
       }
@@ -1355,8 +1372,14 @@ export function CardMascotte() {
     
     // Show typing indicator briefly, then start typewriter
     setIsTyping(true);
+
+    if (greetingTimeoutRef.current !== null) {
+      window.clearTimeout(greetingTimeoutRef.current);
+      greetingTimeoutRef.current = null;
+    }
     
-    setTimeout(() => {
+    greetingTimeoutRef.current = window.setTimeout(() => {
+      greetingTimeoutRef.current = null;
       setIsTyping(false);
       
       // Start typewriter effect
@@ -1379,7 +1402,15 @@ export function CardMascotte() {
   // Handle chat modal close
   const handleChatModalClose = () => {
     setShowChatModal(false);
+    setIsTyping(false);
+
+    if (greetingTimeoutRef.current !== null) {
+      window.clearTimeout(greetingTimeoutRef.current);
+      greetingTimeoutRef.current = null;
+    }
+
     // Cancel any ongoing typewriter effect
+    typewriterSequenceRef.current += 1;
     if (typewriterTimeoutRef.current !== null) {
       window.clearTimeout(typewriterTimeoutRef.current);
       typewriterTimeoutRef.current = null;
@@ -1794,6 +1825,9 @@ export function CardMascotte() {
       }
       if (submitFeedbackTimeoutRef.current !== null) {
         window.clearTimeout(submitFeedbackTimeoutRef.current);
+      }
+      if (greetingTimeoutRef.current !== null) {
+        window.clearTimeout(greetingTimeoutRef.current);
       }
       if (typewriterTimeoutRef.current !== null) {
         window.clearTimeout(typewriterTimeoutRef.current);

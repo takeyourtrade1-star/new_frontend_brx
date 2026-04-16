@@ -786,7 +786,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           <div
             className={cn(
               'flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-[2px] shadow-[0_1px_4px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] sm:flex-row',
-              activeTab === 'ASTA' ? 'sm:min-h-[420px]' : 'sm:h-[320px]'
+              activeTab === 'ASTA'
+                ? 'sm:min-h-[420px]'
+                : activeTab === 'INFO'
+                  ? 'sm:min-h-[320px] sm:h-auto'
+                  : 'sm:h-[320px]'
             )}
           >
             {/* Colonna sinistra: immagine carta compatta */}
@@ -963,116 +967,146 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
                 </div>
 
-                {/* DESKTOP: Layout 3 colonne dinamiche - Info | Ristampe | Prezzi+Grafico */}
+                {/* DESKTOP: Layout ottimizzato - Dati prioritari | Ristampe compatte | KPI verticali */}
                 <div className={cn(
                   'hidden sm:grid min-w-0 w-full transition-all duration-500',
                   showChart
-                    ? 'gap-2 p-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-[180px_240px_1fr]'
-                    : 'gap-2 p-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-[1fr_1.5fr_auto]'
+                    ? 'gap-2.5 p-2.5 grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.22fr_0.28fr_1.5fr]'
+                    : 'gap-2.5 p-2.5 grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.35fr_0.7fr_0.95fr]'
                 )}>
-                  {/* Colonna 1: Info carta — clean dividers, no border card */}
-                  <div className="flex flex-col min-h-0 rounded-xl bg-white/80 p-2.5">
-                    <div className="divide-y divide-zinc-100/80">
-                      <div className="flex items-center justify-between pb-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Rarità</span>
-                        <span className="text-xs font-bold text-zinc-900">{card?.rarity || <Image src={getCdnImageUrl('stellina.png')} alt="" width={14} height={14} className="h-3.5 w-3.5 object-contain" aria-hidden unoptimized />}</span>
+                  {/* Colonna 1: Dati carta più densi e meglio distribuiti */}
+                  <div className="flex min-h-0 flex-col rounded-xl bg-white/85 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Dati carta</h3>
+                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-zinc-500">
+                        {gameLabel ?? 'Gioco N/D'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Rarità</p>
+                        <p className="mt-1 text-sm font-extrabold text-zinc-900">
+                          {card?.rarity || <Image src={getCdnImageUrl('stellina.png')} alt="" width={14} height={14} className="h-3.5 w-3.5 object-contain" aria-hidden unoptimized />}
+                        </p>
                       </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Numero</span>
-                        <span className="text-xs font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</span>
+                      <div className="rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2 text-right">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Numero</p>
+                        <p className="mt-1 text-sm font-extrabold tabular-nums text-zinc-900">{card?.collector_number ?? '015'}</p>
                       </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Set</span>
-                        <span className="text-xs font-bold text-zinc-900 truncate ml-3 text-right">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</span>
+                      <div className="col-span-2 rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Set</p>
+                        <p className="mt-1 truncate text-sm font-extrabold text-zinc-900">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
                       </div>
-                      {card?.game_slug === 'mtg' && (
-                        <div className="flex items-center justify-between py-2">
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lingue</span>
-                          <span className="text-[11px] font-medium text-zinc-600 truncate ml-3 text-right">
-                            {card?.available_languages?.length ? card.available_languages.slice(0,3).map((code) => langLabelByCode[code] ?? code).join(', ') : 'English'}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between pt-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">In vendita</span>
-                        <span className="text-base font-extrabold text-primary tabular-nums">{cardsInSaleLabel}</span>
+                      <div className="col-span-2 rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Lingue disponibili</p>
+                        <p className="mt-1 truncate text-[12px] font-semibold text-zinc-700">
+                          {card?.game_slug === 'mtg'
+                            ? (card?.available_languages?.length
+                              ? card.available_languages.slice(0, 4).map((code) => langLabelByCode[code] ?? code).join(', ')
+                              : 'English')
+                            : 'N/D'}
+                        </p>
+                      </div>
+                      <div className="col-span-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-2">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-primary/70">In vendita</p>
+                        <p className="mt-1 text-xl font-extrabold tabular-nums text-primary">{cardsInSaleLabel}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Colonna 2: Ristampe — larger thumbnails, hover glow */}
-                  <div className="flex flex-col min-h-0 rounded-xl bg-white/80 p-2.5">
-                    <div className="mb-2 flex items-center justify-between gap-1">
-                      <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Ristampe</h3>
-                      <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400 tabular-nums">{reprints.length}</span>
+                  {/* Colonna 2: Ristampe compatte (meno dominante) */}
+                  <div className={cn('flex min-h-0 flex-col rounded-xl bg-white/85', showChart ? 'p-1' : 'p-3')}>
+                    <div className={cn('flex items-center justify-between gap-1', showChart ? 'mb-1.5' : 'mb-2')}>
+                      <h3 className={cn('font-extrabold uppercase tracking-wider text-zinc-800 truncate', showChart ? 'text-[9px]' : 'text-[10px]')}>Ristampe</h3>
+                      <span className={cn('rounded-full bg-zinc-100 font-bold text-zinc-400 tabular-nums', showChart ? 'px-1 py-0 text-[8px]' : 'px-1.5 py-0.5 text-[9px]')}>{reprints.length}</span>
                     </div>
 
                     {reprintsLoading ? (
-                      <div className="flex gap-2 overflow-x-auto pb-1">
-                        {[...Array(4)].map((_, i) => (
-                          <div key={i} className="h-[80px] w-[57px] flex-shrink-0 rounded-lg bg-zinc-100 animate-pulse" />
+                      <div className={cn('grid gap-1.5', showChart ? 'grid-cols-1 gap-0.5' : 'grid-cols-2')}>
+                        {[...Array(showChart ? 1 : 4)].map((_, i) => (
+                          <div key={i} className={cn('rounded-lg bg-zinc-100 animate-pulse', showChart ? 'h-[26px]' : 'h-[56px]')} />
                         ))}
                       </div>
                     ) : reprints.length > 0 ? (
-                      <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory -mx-1 px-1">
-                        {reprints.slice(0, 8).map((reprint) => (
+                      <div className={cn('grid gap-1.5', showChart ? 'grid-cols-1 gap-0.5' : 'grid-cols-2')}>
+                        {reprints.slice(0, showChart ? 1 : 4).map((reprint) => (
                           <div
                             key={reprint.id}
-                            className="group relative h-[80px] w-[57px] flex-shrink-0 snap-start overflow-hidden rounded-lg bg-zinc-50 shadow-sm ring-1 ring-zinc-200/60 transition-all duration-250 hover:-translate-y-0.5 hover:shadow-lg hover:ring-primary/30 cursor-pointer"
+                            className={cn(
+                              'group relative overflow-hidden rounded-lg bg-zinc-50 shadow-sm ring-1 ring-zinc-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-primary/30',
+                              showChart ? 'h-[26px]' : 'h-[56px]'
+                            )}
                             title={`${reprint.setName} • ${reprint.rarity}`}
                           >
                             {reprint.imageSrc ? (
-                              <Image src={reprint.imageSrc} alt={reprint.setName} fill className="object-cover" sizes="57px" unoptimized />
+                              <Image src={reprint.imageSrc} alt={reprint.setName} fill className="object-cover" sizes="120px" unoptimized />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-[10px] font-semibold text-zinc-400">N/A</div>
                             )}
-                            <div className="absolute left-0.5 top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-black/50 px-1 backdrop-blur-sm">
-                              {reprint.setIconSrc ? (
-                                <img src={reprint.setIconSrc} alt="" className="h-2.5 w-2.5 object-contain" loading="lazy" />
-                              ) : (
-                                <span className="text-[7px] font-bold uppercase text-white/90">{reprint.setCode || 'SET'}</span>
-                              )}
-                            </div>
-                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1 pb-0.5 pt-3">
-                              <span className="text-[7px] font-bold uppercase tracking-wide text-white/90">{reprint.rarity}</span>
-                            </div>
+                            {!showChart && (
+                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-3">
+                                <span className="text-[8px] font-bold uppercase tracking-wide text-white/95">{reprint.setCode || 'SET'}</span>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="flex flex-1 items-center justify-center">
-                        <p className="text-xs text-zinc-400">Nessuna ristampa trovata.</p>
+                      <div className={cn('flex flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 text-center', showChart ? 'px-1.5 py-2' : 'px-2 py-3')}>
+                        <p className={cn('text-zinc-400', showChart ? 'text-[9px] leading-tight' : 'text-xs')}>Nessuna ristampa trovata.</p>
                       </div>
                     )}
                   </div>
 
-                  {/* Colonna 3: Prezzi — tinted metric cards, sleek chart toggle */}
-                  <div className="flex flex-col min-h-0 rounded-xl bg-white/80 p-2.5 sm:col-span-2 md:col-span-1">
-                    <div className="flex items-center justify-between mb-1.5">
+                  {/* Colonna 3: KPI in verticale + grafico */}
+                  <div className={cn('flex min-h-0 flex-col rounded-xl bg-white/85 sm:col-span-2 md:col-span-2 lg:col-span-1', showChart ? 'p-2.5' : 'p-3')}>
+                    <div className="mb-2 flex items-center justify-between">
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{trendRangeLabel}</span>
-                      <button type="button" onClick={() => setShowChart((v) => !v)} className="flex items-center gap-1 rounded-full bg-zinc-100/80 px-2 py-0.5 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10">
+                      <button
+                        type="button"
+                        onClick={() => setShowChart((v) => !v)}
+                        className="flex items-center gap-1 rounded-full bg-zinc-100/80 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10"
+                      >
                         {showChart ? <><EyeOff className="h-3 w-3" /> Nascondi</> : <><Eye className="h-3 w-3" /> Grafico</>}
                       </button>
                     </div>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <div className="rounded-lg bg-amber-50/70 p-1.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/80">Trend</p>
-                        <p className="mt-0.5 text-sm font-extrabold text-amber-700">{formatEuro(trendPriceValue)}</p>
+
+                    {showChart ? (
+                      <div className="grid grid-cols-3 gap-1">
+                        <div className="flex items-center justify-between gap-1 rounded-md border border-amber-200/70 bg-amber-50/70 px-1.5 py-1">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-amber-700/80">Trend</span>
+                          <span className="text-[11px] font-extrabold tabular-nums text-amber-700">{formatEuro(trendPriceValue)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-1 rounded-md border border-sky-200/70 bg-sky-50/60 px-1.5 py-1">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-sky-700/80">Vendute</span>
+                          <span className="text-[11px] font-extrabold tabular-nums text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-1 rounded-md border border-zinc-200/80 bg-zinc-100/60 px-1.5 py-1">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">Prezzo medio</span>
+                          <span className="text-[11px] font-extrabold tabular-nums text-zinc-800">{formatEuro(averageSalePriceValue)}</span>
+                        </div>
                       </div>
-                      <div className="rounded-lg bg-sky-50/60 p-1.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600/80">Vend.</p>
-                        <p className="mt-0.5 text-sm font-extrabold text-sky-700">{soldCopiesValue}</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="rounded-lg border border-amber-200/70 bg-amber-50/70 px-3 py-2">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700/80">Trend</p>
+                          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-amber-700">{formatEuro(trendPriceValue)}</p>
+                        </div>
+                        <div className="rounded-lg border border-sky-200/70 bg-sky-50/60 px-3 py-2">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-sky-700/80">Vendute</p>
+                          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                        </div>
+                        <div className="rounded-lg border border-zinc-200/80 bg-zinc-100/60 px-3 py-2">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Prezzo medio</p>
+                          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-zinc-800">{formatEuro(averageSalePriceValue)}</p>
+                        </div>
                       </div>
-                      <div className="rounded-lg bg-zinc-100/60 p-1.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Media</p>
-                        <p className="mt-0.5 text-sm font-extrabold text-zinc-800">{formatEuro(averageSalePriceValue)}</p>
-                      </div>
-                    </div>
-                    {/* Grafico espandibile */}
-                    <div className={cn('transition-all duration-500 ease-out overflow-hidden', showChart ? 'opacity-100 max-h-[140px] mt-2' : 'opacity-0 max-h-0')}>
+                    )}
+
+                    <div className={cn('transition-all duration-500 ease-out overflow-hidden', showChart ? 'opacity-100 max-h-[270px] mt-1.5' : 'opacity-0 max-h-0')}>
                       {showChart && (
                         <div className="animate-in fade-in duration-300">
-                          <div className="h-[120px] w-full rounded-lg bg-white/60">
+                          <div className="h-[250px] w-full rounded-lg bg-white/60">
                             <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
                           </div>
                         </div>
