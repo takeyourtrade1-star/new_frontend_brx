@@ -76,7 +76,7 @@ export function AsteNav() {
   if (!isAuthenticated) {
     // Non loggato: mostra solo pulsante "Crea asta" che porta a login
     return (
-      <div className="sticky z-40 bg-white" style={{ top: stickyTop }}>
+      <div className="sticky z-40 overflow-x-clip bg-white" style={{ top: stickyTop }}>
         <div className="container-content relative">
           <nav
             ref={navRef}
@@ -108,7 +108,7 @@ export function AsteNav() {
   }
 
   return (
-    <div className="sticky z-40 bg-white" style={{ top: stickyTop }}>
+    <div className="sticky z-40 overflow-x-clip bg-white" style={{ top: stickyTop }}>
       <div className="container-content relative">
         {/* Blur gradient sinistra */}
         <div

@@ -13,10 +13,13 @@ import {
   ACCESSORY_ITEMS,
   ALL_WARDROBE_ITEMS,
   CLOTHING_ITEMS,
+  DEFAULT_FACE_COLOR_ID,
+  FACE_COLOR_OPTIONS,
   OBJECT_ITEMS,
   getItemOverlayStyle,
   type Category,
   type EquippedItems,
+  type FaceColorId,
   type WardrobeItem,
 } from './mascotte-wardrobe';
 
@@ -43,6 +46,10 @@ const SUBMIT_FEEDBACK_MS = 1400;
 const BUG_MODAL_FADE_MS = 220;
 const MATCHMAKING_GUEST_KEY = 'brx_kakegurui_guest_id';
 const WARDROBE_STORAGE_KEY = 'brx_mascotte_wardrobe_v1';
+
+function isValidFaceColorId(value: unknown): value is FaceColorId {
+  return typeof value === 'string' && FACE_COLOR_OPTIONS.some((option) => option.id === value);
+}
 
 interface MatchmakingPayload {
   status: 'waiting' | 'matched' | 'not_found';
@@ -180,34 +187,34 @@ function inferBugCategory(url: string): string {
 
 const faceSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <!-- Eyes: light stroke behind (thicker) -->
-  <circle cx="35" cy="39" r="11.5" stroke="#faf9f6" stroke-width="3.5"/>
-  <circle cx="65" cy="39" r="11.5" stroke="#faf9f6" stroke-width="3.5"/>
+  <circle class="face-halo" cx="35" cy="39" r="11.5" stroke="#faf9f6" stroke-width="3.5"/>
+  <circle class="face-halo" cx="65" cy="39" r="11.5" stroke="#faf9f6" stroke-width="3.5"/>
   <!-- Eyes: dark stroke on top -->
-  <circle cx="35" cy="39" r="11.5" stroke="#4a5548" stroke-width="2.5"/>
-  <circle cx="65" cy="39" r="11.5" stroke="#4a5548" stroke-width="2.5"/>
+  <circle class="face-line" cx="35" cy="39" r="11.5" stroke="#4a5548" stroke-width="2.5"/>
+  <circle class="face-line" cx="65" cy="39" r="11.5" stroke="#4a5548" stroke-width="2.5"/>
   <!-- Pupils and highlights -->
   <circle class="pupil" cx="35" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
-  <circle cx="32.3" cy="36.4" r="2.2" fill="#faf9f6" stroke="none"/>
+  <circle class="pupil-highlight" cx="32.3" cy="36.4" r="2.2" fill="#faf9f6" stroke="none"/>
   <circle class="pupil" cx="65" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
-  <circle cx="62.3" cy="36.4" r="2.2" fill="#faf9f6" stroke="none"/>
+  <circle class="pupil-highlight" cx="62.3" cy="36.4" r="2.2" fill="#faf9f6" stroke="none"/>
   <!-- Mouth: light stroke behind -->
-  <path d="M 34 63 Q 50 77 66 63" stroke="#faf9f6" stroke-width="4.2" fill="none"/>
+  <path class="face-halo" d="M 34 63 Q 50 77 66 63" stroke="#faf9f6" stroke-width="4.2" fill="none"/>
   <!-- Mouth: dark stroke on top -->
-  <path d="M 34 63 Q 50 77 66 63" stroke="#4a5548" stroke-width="3.2" fill="none"/>
+  <path class="face-line" d="M 34 63 Q 50 77 66 63" stroke="#4a5548" stroke-width="3.2" fill="none"/>
 </svg>`;
 
 const faceBugReportSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <!-- Eyes: light stroke behind -->
-  <circle cx="34" cy="40" r="10" stroke="#faf9f6" stroke-width="3.2"/>
-  <circle cx="66" cy="40" r="10" stroke="#faf9f6" stroke-width="3.2"/>
+  <circle class="face-halo" cx="34" cy="40" r="10" stroke="#faf9f6" stroke-width="3.2"/>
+  <circle class="face-halo" cx="66" cy="40" r="10" stroke="#faf9f6" stroke-width="3.2"/>
   <!-- Eyes: dark stroke on top -->
-  <circle cx="34" cy="40" r="10" stroke="#4a5548" stroke-width="2.2"/>
-  <circle cx="66" cy="40" r="10" stroke="#4a5548" stroke-width="2.2"/>
+  <circle class="face-line" cx="34" cy="40" r="10" stroke="#4a5548" stroke-width="2.2"/>
+  <circle class="face-line" cx="66" cy="40" r="10" stroke="#4a5548" stroke-width="2.2"/>
   <!-- Pupils and highlights -->
   <circle class="pupil" cx="34" cy="41" r="4" fill="#4a5548" stroke="none"/>
-  <circle cx="31.6" cy="37.2" r="1.5" fill="#faf9f6" stroke="none"/>
+  <circle class="pupil-highlight" cx="31.6" cy="37.2" r="1.5" fill="#faf9f6" stroke="none"/>
   <circle class="pupil" cx="66" cy="41" r="4" fill="#4a5548" stroke="none"/>
-  <circle cx="63.6" cy="37.2" r="1.5" fill="#faf9f6" stroke="none"/>
+  <circle class="pupil-highlight" cx="63.6" cy="37.2" r="1.5" fill="#faf9f6" stroke="none"/>
   <!-- Monitor frame -->
   <rect x="20" y="29" width="60" height="23" rx="4.5" stroke-width="2.1" fill="none" stroke="#faf9f6"/>
   <line x1="50" y1="33" x2="50" y2="48" stroke-width="1.7" stroke="#faf9f6"/>
@@ -216,21 +223,21 @@ const faceBugReportSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap=
   <path class="bug-glint bug-glint-1" d="M 28 34 L 34 31" stroke="#faf9f6" stroke-width="1.4"/>
   <path class="bug-glint bug-glint-2" d="M 62 35 L 68 32" stroke="#faf9f6" stroke-width="1.4"/>
   <!-- Mouth: light behind, dark on top -->
-  <path class="bug-mouth" d="M 44 65 Q 50 69 56 65" stroke="#faf9f6" stroke-width="3.8" fill="none"/>
-  <path class="bug-mouth" d="M 44 65 Q 50 69 56 65" stroke="#4a5548" stroke-width="2.8" fill="none"/>
+  <path class="face-halo bug-mouth" d="M 44 65 Q 50 69 56 65" stroke="#faf9f6" stroke-width="3.8" fill="none"/>
+  <path class="face-line bug-mouth" d="M 44 65 Q 50 69 56 65" stroke="#4a5548" stroke-width="2.8" fill="none"/>
 </svg>`;
 
 const faceBugFocusSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <!-- Narrowed (squint) eye outlines: light behind -->
-  <ellipse cx="34" cy="40" rx="10" ry="6.2" stroke="#faf9f6" stroke-width="3.2"/>
-  <ellipse cx="66" cy="40" rx="10" ry="6.2" stroke="#faf9f6" stroke-width="3.2"/>
+  <ellipse class="face-halo" cx="34" cy="40" rx="10" ry="6.2" stroke="#faf9f6" stroke-width="3.2"/>
+  <ellipse class="face-halo" cx="66" cy="40" rx="10" ry="6.2" stroke="#faf9f6" stroke-width="3.2"/>
   <!-- Eyes: dark on top -->
-  <ellipse cx="34" cy="40" rx="10" ry="6.2" stroke="#4a5548" stroke-width="2.2"/>
+  <ellipse class="face-line" cx="34" cy="40" rx="10" ry="6.2" stroke="#4a5548" stroke-width="2.2"/>
   <circle class="pupil" cx="34" cy="40.2" r="3.4" fill="#4a5548" stroke="none"/>
-  <circle cx="31.9" cy="37.7" r="1.2" fill="#faf9f6" stroke="none"/>
-  <ellipse cx="66" cy="40" rx="10" ry="6.2" stroke="#4a5548" stroke-width="2.2"/>
+  <circle class="pupil-highlight" cx="31.9" cy="37.7" r="1.2" fill="#faf9f6" stroke="none"/>
+  <ellipse class="face-line" cx="66" cy="40" rx="10" ry="6.2" stroke="#4a5548" stroke-width="2.2"/>
   <circle class="pupil" cx="66" cy="40.2" r="3.4" fill="#4a5548" stroke="none"/>
-  <circle cx="63.9" cy="37.7" r="1.2" fill="#faf9f6" stroke="none"/>
+  <circle class="pupil-highlight" cx="63.9" cy="37.7" r="1.2" fill="#faf9f6" stroke="none"/>
   <rect x="20" y="29" width="60" height="23" rx="4.5" stroke-width="2.1" fill="none" stroke="#faf9f6"/>
   <line x1="50" y1="33" x2="50" y2="48" stroke-width="1.7" stroke="#faf9f6"/>
   <line x1="20" y1="41" x2="16" y2="39" stroke-width="1.8" stroke="#faf9f6"/>
@@ -238,38 +245,38 @@ const faceBugFocusSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="
   <path class="bug-glint bug-glint-1" d="M 28 34 L 34 31" stroke="#faf9f6" stroke-width="1.4"/>
   <path class="bug-glint bug-glint-2" d="M 62 35 L 68 32" stroke="#faf9f6" stroke-width="1.4"/>
   <!-- Mouth: light behind, dark on top -->
-  <path class="bug-mouth" d="M 45 65 Q 50 67.5 55 65" stroke="#faf9f6" stroke-width="3.7" fill="none"/>
-  <path class="bug-mouth" d="M 45 65 Q 50 67.5 55 65" stroke="#4a5548" stroke-width="2.7" fill="none"/>
+  <path class="face-halo bug-mouth" d="M 45 65 Q 50 67.5 55 65" stroke="#faf9f6" stroke-width="3.7" fill="none"/>
+  <path class="face-line bug-mouth" d="M 45 65 Q 50 67.5 55 65" stroke="#4a5548" stroke-width="2.7" fill="none"/>
 </svg>`;
 
 const faceWinkSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <!-- Wink eye: light behind, dark on top -->
-  <path d="M 24 40 Q 34 32 44 40" stroke="#faf9f6" stroke-width="4.4"/>
-  <path d="M 24 40 Q 34 32 44 40" stroke="#4a5548" stroke-width="3.4"/>
+  <path class="face-halo" d="M 24 40 Q 34 32 44 40" stroke="#faf9f6" stroke-width="4.4"/>
+  <path class="face-line" d="M 24 40 Q 34 32 44 40" stroke="#4a5548" stroke-width="3.4"/>
   <!-- Open eye: light behind -->
-  <circle cx="67" cy="39" r="11.2" stroke="#faf9f6" stroke-width="3.5"/>
+  <circle class="face-halo" cx="67" cy="39" r="11.2" stroke="#faf9f6" stroke-width="3.5"/>
   <!-- Open eye: dark on top -->
-  <circle cx="67" cy="39" r="11.2" stroke="#4a5548" stroke-width="2.5"/>
+  <circle class="face-line" cx="67" cy="39" r="11.2" stroke="#4a5548" stroke-width="2.5"/>
   <circle class="pupil" cx="67" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
-  <circle cx="64.4" cy="36.4" r="2.1" fill="#faf9f6" stroke="none"/>
+  <circle class="pupil-highlight" cx="64.4" cy="36.4" r="2.1" fill="#faf9f6" stroke="none"/>
   <!-- Mouth: light behind, dark on top -->
-  <path d="M 39 63 Q 54 72 68 62" stroke="#faf9f6" stroke-width="4.2" fill="none"/>
-  <path d="M 39 63 Q 54 72 68 62" stroke="#4a5548" stroke-width="3.2" fill="none"/>
+  <path class="face-halo" d="M 39 63 Q 54 72 68 62" stroke="#faf9f6" stroke-width="4.2" fill="none"/>
+  <path class="face-line" d="M 39 63 Q 54 72 68 62" stroke="#4a5548" stroke-width="3.2" fill="none"/>
 </svg>`;
 
 const faceCodingSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <!-- Eyes: light behind -->
-  <circle cx="35" cy="38" r="14" stroke="#faf9f6" stroke-width="3.5"/>
-  <circle cx="65" cy="38" r="14" stroke="#faf9f6" stroke-width="3.5"/>
+  <circle class="face-halo" cx="35" cy="38" r="14" stroke="#faf9f6" stroke-width="3.5"/>
+  <circle class="face-halo" cx="65" cy="38" r="14" stroke="#faf9f6" stroke-width="3.5"/>
   <!-- Eyes: dark on top -->
-  <circle cx="35" cy="38" r="14" stroke="#4a5548" stroke-width="2.5"/>
-  <circle cx="65" cy="38" r="14" stroke="#4a5548" stroke-width="2.5"/>
+  <circle class="face-line" cx="35" cy="38" r="14" stroke="#4a5548" stroke-width="2.5"/>
+  <circle class="face-line" cx="65" cy="38" r="14" stroke="#4a5548" stroke-width="2.5"/>
   <!-- Pupils -->
   <circle class="pupil" cx="35" cy="38.6" r="3.6" fill="#4a5548" stroke="none"/>
   <circle class="pupil" cx="65" cy="38.6" r="3.6" fill="#4a5548" stroke="none"/>
   <!-- Mouth: light behind, dark on top -->
-  <path class="coding-mouth" d="M 36 66 Q 50 63.8 64 66" stroke="#faf9f6" stroke-width="4" fill="none"/>
-  <path class="coding-mouth" d="M 36 66 Q 50 63.8 64 66" stroke="#4a5548" stroke-width="3" fill="none"/>
+  <path class="face-halo coding-mouth" d="M 36 66 Q 50 63.8 64 66" stroke="#faf9f6" stroke-width="4" fill="none"/>
+  <path class="face-line coding-mouth" d="M 36 66 Q 50 63.8 64 66" stroke="#4a5548" stroke-width="3" fill="none"/>
   <!-- Glasses/monitor frame -->
   <rect x="20" y="24" width="60" height="28" rx="3" stroke-width="2.5" fill="none" stroke="#faf9f6"/>
   <line x1="50" y1="24" x2="50" y2="52" stroke-width="2" stroke="#faf9f6"/>
@@ -277,10 +284,10 @@ const faceCodingSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="ro
 
 const faceSleepSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <!-- Closed eyes: light behind, dark on top -->
-  <path d="M 24 40 Q 34 48 44 40" stroke="#faf9f6" stroke-width="3.8" fill="none"/>
-  <path d="M 56 40 Q 66 48 76 40" stroke="#faf9f6" stroke-width="3.8" fill="none"/>
-  <path d="M 24 40 Q 34 48 44 40" stroke="#4a5548" stroke-width="2.8" fill="none"/>
-  <path d="M 56 40 Q 66 48 76 40" stroke="#4a5548" stroke-width="2.8" fill="none"/>
+  <path class="face-halo" d="M 24 40 Q 34 48 44 40" stroke="#faf9f6" stroke-width="3.8" fill="none"/>
+  <path class="face-halo" d="M 56 40 Q 66 48 76 40" stroke="#faf9f6" stroke-width="3.8" fill="none"/>
+  <path class="face-line" d="M 24 40 Q 34 48 44 40" stroke="#4a5548" stroke-width="2.8" fill="none"/>
+  <path class="face-line" d="M 56 40 Q 66 48 76 40" stroke="#4a5548" stroke-width="2.8" fill="none"/>
   <!-- Small sleepy mouth -->
   <ellipse cx="50" cy="68" rx="3" ry="2" fill="#faf9f6" stroke="none"/>
   <!-- Gentle blush marks -->
@@ -414,6 +421,7 @@ export function CardMascotte() {
     clothing: null,
     accessories: [],
     objects: [],
+    faceColor: DEFAULT_FACE_COLOR_ID,
   });
   const [isArenaOpen, setIsArenaOpen] = useState(false);
   const [isP2POpen, setIsP2POpen] = useState(false);
@@ -466,6 +474,7 @@ export function CardMascotte() {
         clothing: typeof parsed?.clothing === 'string' ? parsed.clothing : null,
         accessories: Array.isArray(parsed?.accessories) ? parsed.accessories.filter(Boolean) : [],
         objects: Array.isArray(parsed?.objects) ? parsed.objects.filter(Boolean) : [],
+        faceColor: isValidFaceColorId(parsed?.faceColor) ? parsed.faceColor : DEFAULT_FACE_COLOR_ID,
       });
     } catch {
       // Ignore invalid stored wardrobe payloads.
@@ -512,8 +521,14 @@ export function CardMascotte() {
   const visibleWardrobeItems = useMemo(() => {
     if (wardrobeCategory === 'clothing') return CLOTHING_ITEMS;
     if (wardrobeCategory === 'accessories') return ACCESSORY_ITEMS;
+    if (wardrobeCategory === 'color') return [];
     return OBJECT_ITEMS;
   }, [wardrobeCategory]);
+
+  const selectedFaceColor = useMemo(
+    () => FACE_COLOR_OPTIONS.find((option) => option.id === equippedItems.faceColor) ?? FACE_COLOR_OPTIONS[0],
+    [equippedItems.faceColor],
+  );
 
   const isWardrobeItemEquipped = useCallback((item: WardrobeItem) => {
     if (item.category === 'clothing') return equippedItems.clothing === item.id;
@@ -561,6 +576,7 @@ export function CardMascotte() {
       clothing: null,
       accessories: [],
       objects: [],
+      faceColor: DEFAULT_FACE_COLOR_ID,
     });
   }, []);
 
@@ -2270,8 +2286,8 @@ export function CardMascotte() {
               </button>
             </div>
 
-            <div className="mb-2 grid grid-cols-3 gap-1">
-              {(['clothing', 'accessories', 'objects'] as const).map((category) => (
+            <div className="mb-2 grid grid-cols-4 gap-1">
+              {(['clothing', 'accessories', 'objects', 'color'] as const).map((category) => (
                 <button
                   key={category}
                   type="button"
@@ -2285,35 +2301,77 @@ export function CardMascotte() {
                       : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
                   }`}
                 >
-                  {category === 'clothing' ? 'Abiti' : category === 'accessories' ? 'Accessori' : 'Oggetti'}
+                  {category === 'clothing'
+                    ? 'Abiti'
+                    : category === 'accessories'
+                    ? 'Accessori'
+                    : category === 'objects'
+                    ? 'Oggetti'
+                    : 'Colore'}
                 </button>
               ))}
             </div>
 
-            <div className="max-h-[250px] space-y-1 overflow-y-auto pr-1">
-              {visibleWardrobeItems.map((item) => {
-                const equipped = isWardrobeItemEquipped(item);
+            {wardrobeCategory === 'color' ? (
+              <div className="grid grid-cols-2 gap-1.5">
+                {FACE_COLOR_OPTIONS.map((option) => {
+                  const isActive = equippedItems.faceColor === option.id;
 
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleWardrobeItem(item);
-                    }}
-                    className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition ${
-                      equipped
-                        ? 'bg-primary/20 text-white'
-                        : 'bg-white/5 text-zinc-200 hover:bg-white/10'
-                    }`}
-                  >
-                    <span className="truncate text-[10px] font-medium">{item.name}</span>
-                    <span className="text-[9px] font-bold">{equipped ? 'ON' : 'OFF'}</span>
-                  </button>
-                );
-              })}
-            </div>
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEquippedItems((prev) => ({ ...prev, faceColor: option.id }));
+                      }}
+                      className={`flex items-center justify-between rounded-lg border px-2 py-1.5 text-left transition ${
+                        isActive
+                          ? 'border-primary/60 bg-primary/20 text-white'
+                          : 'border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5 truncate text-[9px] font-semibold">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{
+                            backgroundColor: option.line,
+                            boxShadow: `0 0 8px ${option.glowMid}`,
+                          }}
+                        />
+                        {option.name}
+                      </span>
+                      <span className="text-[8px] font-bold">{isActive ? 'ON' : 'OFF'}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="max-h-[250px] space-y-1 overflow-y-auto pr-1">
+                {visibleWardrobeItems.map((item) => {
+                  const equipped = isWardrobeItemEquipped(item);
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleWardrobeItem(item);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition ${
+                        equipped
+                          ? 'bg-primary/20 text-white'
+                          : 'bg-white/5 text-zinc-200 hover:bg-white/10'
+                      }`}
+                    >
+                      <span className="truncate text-[10px] font-medium">{item.name}</span>
+                      <span className="text-[9px] font-bold">{equipped ? 'ON' : 'OFF'}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2556,7 +2614,7 @@ export function CardMascotte() {
               zIndex: 0,
               boxShadow: isShiny
                 ? '0 0 28px rgba(168,85,247,0.5), 0 0 56px rgba(59,130,246,0.3), 0 0 84px rgba(236,72,153,0.2)'
-                : '0 6px 24px rgba(255,120,20,0.25), 0 2px 8px rgba(0,0,0,0.15)',
+                : `0 6px 24px ${selectedFaceColor.glowSoft}, 0 2px 8px rgba(0,0,0,0.15)`,
               transition: 'box-shadow 300ms ease',
             }}
           />
@@ -2585,7 +2643,7 @@ export function CardMascotte() {
               inset: '0px',
               zIndex: 2,
               padding: '1.5px',
-              background: 'linear-gradient(160deg, rgba(255,180,100,0.6) 0%, rgba(255,120,30,0.5) 50%, rgba(255,180,100,0.6) 100%)',
+              background: `linear-gradient(160deg, ${selectedFaceColor.glowMid} 0%, ${selectedFaceColor.glowStrong} 50%, ${selectedFaceColor.glowMid} 100%)`,
               WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
               WebkitMaskComposite: 'xor',
               maskComposite: 'exclude',
@@ -2643,7 +2701,7 @@ export function CardMascotte() {
           {/* Face SVG — parallax offset on hover */}
           <div
             ref={faceContainerRef}
-            className={`absolute flex items-center justify-center ${isModalOpen ? 'face-glint-active' : ''}`}
+            className={`absolute flex items-center justify-center ${isModalOpen ? 'face-glint-active' : ''} face-fixed-neon`}
             style={{
               top: '4px',
               bottom: '4px',
@@ -2715,7 +2773,7 @@ export function CardMascotte() {
           }}
         >
           <div
-            className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-2xl"
+            className="relative h-full w-full overflow-hidden rounded-2xl"
             style={{ background: BACK_VARIANTS[backVariant].gradient }}
           >
             {/* Holographic overlay — GOLD only */}
@@ -2731,7 +2789,7 @@ export function CardMascotte() {
             )}
 
             {/* Flip counter badge (top-right) */}
-            <div className="absolute top-2 right-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-white/25 px-2 backdrop-blur-sm">
+            <div className="absolute right-2 top-2 inline-flex h-6 min-w-[28px] items-center justify-center rounded-full bg-white/25 px-2 backdrop-blur-sm">
               <span className="text-[9px] font-bold text-white">{flipCount}</span>
             </div>
 
@@ -2744,18 +2802,21 @@ export function CardMascotte() {
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             </button>
 
-            {/* Star sparkle SVG */}
-            <svg className="mascotte-back-sparkle mb-1" width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" fill="white" fillOpacity="0.95" />
-            </svg>
-            <span className="font-comodo text-[13px] font-bold tracking-wide text-white/95">
-              {BACK_VARIANTS[backVariant].label}
-            </span>
-            <span className="mt-1 text-[8px] font-medium uppercase tracking-widest text-white/70">
-              {BACK_VARIANTS[backVariant].sub}
-            </span>
+            {/* Title block */}
+            <div className="pointer-events-none absolute inset-x-2 top-8 flex flex-col items-center text-center">
+              <svg className="mascotte-back-sparkle mb-1" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" fill="white" fillOpacity="0.95" />
+              </svg>
+              <span className="font-comodo text-[12px] font-bold tracking-wide text-white/95">
+                {BACK_VARIANTS[backVariant].label}
+              </span>
+              <span className="mt-0.5 text-[7px] font-medium uppercase tracking-[0.2em] text-white/70">
+                {BACK_VARIANTS[backVariant].sub}
+              </span>
+            </div>
 
-            <div className="relative mt-8 flex flex-col items-center gap-2">
+            {/* Action buttons */}
+            <div className="absolute inset-x-2 bottom-2.5 flex flex-col gap-1.5">
               <button
                 type="button"
                 onClick={(e) => {
@@ -2763,7 +2824,7 @@ export function CardMascotte() {
                   setShowGameModeMenu(false);
                   setIsWardrobeOpen((prev) => !prev);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white transition hover:bg-black/50"
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-white transition hover:bg-black/50"
                 title="Apri guardaroba"
                 aria-label="Apri guardaroba"
               >
@@ -2785,7 +2846,7 @@ export function CardMascotte() {
                   setShowGameModeMenu(prev => !prev);
                 }}
                 disabled={isCheckingArenaPlayers}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white transition hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-white transition hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
                 title="Avvia mini-gioco"
                 aria-label="Avvia mini-gioco"
               >
@@ -3422,6 +3483,25 @@ export function CardMascotte() {
           opacity: 0;
           transform-box: fill-box;
           transform-origin: center;
+        }
+        .face-fixed-neon svg {
+          filter: drop-shadow(0 0 1px ${selectedFaceColor.glowStrong}) drop-shadow(0 0 7px ${selectedFaceColor.glowMid}) drop-shadow(0 0 14px ${selectedFaceColor.glowSoft});
+        }
+        .face-fixed-neon .face-halo {
+          opacity: 1;
+          stroke: #1e3a8a !important;
+          stroke-width: 0.9 !important;
+        }
+        .face-fixed-neon .face-line {
+          stroke: ${selectedFaceColor.line} !important;
+        }
+        .face-fixed-neon .pupil {
+          fill: ${selectedFaceColor.pupil} !important;
+          stroke: none !important;
+        }
+        .face-fixed-neon .pupil-highlight {
+          fill: ${selectedFaceColor.highlight} !important;
+          stroke: none !important;
         }
         .face-glint-active .bug-glint {
           animation: bugGlintSweep 700ms ease-out 120ms 1 both;

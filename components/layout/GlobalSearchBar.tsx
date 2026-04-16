@@ -1383,10 +1383,6 @@ function SearchWithInstantSearch({
     refineRef.current(urlQueryParam);
   }, [pathname, urlQueryParam]);
 
-  useEffect(() => {
-    if (hasText) setDropdownDismissed(false);
-  }, [hasText]);
-
   const handleEnter = () => {
     const searchQuery = (localValue ?? '').trim();
     refine(searchQuery);

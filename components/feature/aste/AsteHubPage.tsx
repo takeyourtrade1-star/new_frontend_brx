@@ -147,7 +147,7 @@ export function AsteHubPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen overflow-x-clip bg-white">
       <AsteNav />
 
       <section className="pb-28 pt-6 md:pb-16">
@@ -197,10 +197,10 @@ export function AsteHubPage() {
           {/* Sezione filtri unificata */}
           <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             {/* Riga superiore: ricerca + toggle filtri */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
               {/* Search bar */}
-              <div className="flex flex-1 items-center rounded-full bg-gray-100 px-2 py-1.5">
-                <div className="flex flex-1 items-center gap-3 px-3">
+              <div className="flex w-full min-w-0 items-center overflow-hidden rounded-full bg-gray-100 px-2 py-1.5">
+                <div className="flex min-w-0 flex-1 items-center gap-2 px-3">
                   <Search className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
                   <input
                     id="aste-hub-search"
@@ -224,7 +224,7 @@ export function AsteHubPage() {
                 </div>
                 <button
                   type="button"
-                  className="btn-orange-glow shrink-0 rounded-full px-3 py-1.5 text-xs sm:px-4 sm:text-sm"
+                  className="btn-orange-glow shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs sm:px-4 sm:text-sm"
                 >
                   Cerca
                 </button>
@@ -350,14 +350,14 @@ export function AsteHubPage() {
       {/* Sticky Bottom Bar - Search + Expandable Filters */}
       {showStickyBar && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-md animate-slide-up-bounce"
+          className="fixed bottom-0 left-0 right-0 z-40 overflow-x-clip border-t border-gray-200 bg-white/95 backdrop-blur-md animate-slide-up-bounce"
         >
           <div className="px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
             {/* Stessa UI della search bar originale */}
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               {/* Search bar pillola */}
-              <div className="flex flex-1 items-center rounded-full bg-gray-100 px-2 py-1.5">
-                <div className="flex flex-1 items-center gap-3 px-3">
+              <div className="flex min-w-0 flex-1 items-center overflow-hidden rounded-full bg-gray-100 px-2 py-1.5">
+                <div className="flex min-w-0 flex-1 items-center gap-2 px-3">
                   <Search className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
                   <input
                     type="search"
@@ -380,7 +380,7 @@ export function AsteHubPage() {
                 </div>
                 <button
                   type="button"
-                  className="shrink-0 rounded-full bg-[#FF7300] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#e86800] sm:px-4 sm:text-sm"
+                  className="shrink-0 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#e86800] sm:px-4 sm:text-sm"
                 >
                   Cerca
                 </button>

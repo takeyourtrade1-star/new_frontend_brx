@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 
-export type Category = 'clothing' | 'accessories' | 'objects';
+export type Category = 'clothing' | 'accessories' | 'objects' | 'color';
+export type FaceColorId = 'neon-orange' | 'electric-cyan' | 'acid-lime' | 'hot-pink' | 'violet-burst';
 
 export interface WardrobeItem {
   id: string;
@@ -15,7 +16,74 @@ export interface EquippedItems {
   clothing: string | null;
   accessories: string[];
   objects: string[];
+  faceColor: FaceColorId;
 }
+
+export interface FaceColorOption {
+  id: FaceColorId;
+  name: string;
+  line: string;
+  pupil: string;
+  highlight: string;
+  glowStrong: string;
+  glowMid: string;
+  glowSoft: string;
+}
+
+export const DEFAULT_FACE_COLOR_ID: FaceColorId = 'neon-orange';
+
+export const FACE_COLOR_OPTIONS: FaceColorOption[] = [
+  {
+    id: 'neon-orange',
+    name: 'Arancio Neon',
+    line: '#ff6a00',
+    pupil: '#ff7f11',
+    highlight: '#fff2bf',
+    glowStrong: 'rgba(255, 120, 10, 0.95)',
+    glowMid: 'rgba(255, 106, 0, 0.75)',
+    glowSoft: 'rgba(255, 106, 0, 0.45)',
+  },
+  {
+    id: 'electric-cyan',
+    name: 'Ciano Elettrico',
+    line: '#00d5ff',
+    pupil: '#22e6ff',
+    highlight: '#d7fbff',
+    glowStrong: 'rgba(0, 213, 255, 0.92)',
+    glowMid: 'rgba(20, 193, 255, 0.72)',
+    glowSoft: 'rgba(20, 193, 255, 0.4)',
+  },
+  {
+    id: 'acid-lime',
+    name: 'Lime Acid',
+    line: '#95ff00',
+    pupil: '#b7ff3f',
+    highlight: '#f3ffd1',
+    glowStrong: 'rgba(149, 255, 0, 0.92)',
+    glowMid: 'rgba(120, 232, 22, 0.72)',
+    glowSoft: 'rgba(120, 232, 22, 0.42)',
+  },
+  {
+    id: 'hot-pink',
+    name: 'Pink Pop',
+    line: '#ff2ea6',
+    pupil: '#ff4eb6',
+    highlight: '#ffd9ee',
+    glowStrong: 'rgba(255, 46, 166, 0.94)',
+    glowMid: 'rgba(255, 62, 182, 0.74)',
+    glowSoft: 'rgba(255, 62, 182, 0.43)',
+  },
+  {
+    id: 'violet-burst',
+    name: 'Viola Burst',
+    line: '#9a5cff',
+    pupil: '#b17bff',
+    highlight: '#e6dcff',
+    glowStrong: 'rgba(154, 92, 255, 0.94)',
+    glowMid: 'rgba(167, 110, 255, 0.73)',
+    glowSoft: 'rgba(167, 110, 255, 0.42)',
+  },
+];
 
 export const CLOTHING_ITEMS: WardrobeItem[] = [
   {
