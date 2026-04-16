@@ -718,7 +718,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
       {/* Sezione titolo: MOBILE - titolo più grande, edizione sotto, aiuto in fondo; DESKTOP - layout originale */}
       <section className="w-full bg-[#F0F0F0] border-b border-gray-300">
-        <div className="container-content py-3 sm:py-2.5 lg:py-3">
+        <div className="container-content container-content-card-detail py-3 sm:py-2.5 lg:py-3">
           {/* MOBILE: Titolo grande, edizione sotto, aiuto in fondo - in colonna */}
           <div className="flex flex-col gap-2 sm:hidden">
             <h1 className="text-xl font-extrabold uppercase tracking-tight text-gray-900 break-words leading-tight">
@@ -781,8 +781,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       </section>
 
       {/* Contenuto principale: card bianca su sfondo grigio – responsive padding e layout */}
-      <section className="w-full bg-[#F0F0F0] px-4 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 pb-4 sm:pb-6 min-h-0">
-        <div className="container-content">
+      <section className="w-full bg-[#F0F0F0] px-0 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 pb-4 sm:pb-6 min-h-0">
+        <div className="container-content container-content-card-detail">
           <div
             className={cn(
               'flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-[2px] shadow-[0_1px_4px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] sm:flex-row',
@@ -797,7 +797,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               )}
             >
               <div
-                className="relative flex w-full max-w-[96px] max-h-[134px] shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md sm:max-w-[160px] sm:max-h-[240px] md:max-w-[200px] md:max-h-[280px]"
+                className={cn(
+                  'relative flex w-full shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md sm:max-w-[160px] sm:max-h-[240px] md:max-w-[200px] md:max-h-[280px]',
+                  mobileDetailsOpen ? 'max-w-[144px] max-h-[201px]' : 'max-w-[96px] max-h-[134px]'
+                )}
                 style={{ aspectRatio: '63/88' }}
                 onClick={handleLightboxOpen}
                 role="button"
@@ -837,7 +840,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             <button
               type="button"
               onClick={() => setMobileDetailsOpen((prev) => !prev)}
-              className="mt-3 flex w-full max-w-[220px] items-center justify-between rounded-full border border-zinc-200/60 bg-white/90 px-4 py-2 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-colors hover:bg-zinc-50 sm:hidden"
+              className="mt-3 inline-flex w-auto max-w-full items-center gap-2 self-center rounded-full border border-zinc-200/60 bg-white/90 px-3 py-1.5 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-colors hover:bg-zinc-50 sm:hidden"
               aria-expanded={mobileDetailsOpen}
               aria-controls="product-mobile-info-panel"
             >
@@ -1452,7 +1455,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
       {/* Sezione FILTRI a fianco della tabella (sinistra) + tab IN VENDITA | DISPONIBILI ALLO SCAMBIO | DISPONIBILI ALL'ASTA + tabella – filtri in striscia stretta quando chiusi, pannello pieno quando aperti */}
       <section className="w-full bg-[#F0F0F0] border-t border-gray-300">
-        <div className="container-content py-2.5 sm:py-3 lg:py-4">
+        <div className="container-content container-content-card-detail py-2.5 sm:py-3 lg:py-4">
           <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch">
             {/* Sidebar FILTRI – subito a sinistra della tabella: striscia stretta quando chiusa, pannello largo quando aperta */}
             <aside

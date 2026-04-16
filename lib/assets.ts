@@ -26,7 +26,22 @@ function stripImgPrefix(path: string): string {
 export function getCardImageUrl(raw: string | null | undefined): string | null {
   if (raw == null || raw === '') return null;
   const trimmed = raw.trim();
-  if (trimmed.startsWith('http')) return trimmed;
+  if (trimmed.startsWith('http')) {
+    try {
+      const parsed = new URL(trimmed);
+      const normalizedPath = stripImgPrefix(parsed.pathname);
+      const normalizedPathWithLeadingSlash = normalizedPath.startsWith('/')
+        ? normalizedPath
+        : `/${normalizedPath}`;
+      if (normalizedPathWithLeadingSlash !== parsed.pathname) {
+        parsed.pathname = normalizedPathWithLeadingSlash;
+        return parsed.toString();
+      }
+      return trimmed;
+    } catch {
+      return trimmed;
+    }
+  }
   const path = stripImgPrefix(trimmed);
   if (!path) return null;
   const base = (ASSETS.cdnUrl || '').replace(/\/+$/, '');

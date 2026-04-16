@@ -244,6 +244,17 @@ function getTitleAndSubtitle(hit: CardSearchHit, selectedLang: string) {
   return { titleType: 'fallback' as const, title: englishName, subtitle: null };
 }
 
+function firstNonEmptyString(
+  ...values: Array<string | null | undefined>
+): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return null;
+}
+
 function SearchInput({
   disabled,
   placeholder,
@@ -455,10 +466,15 @@ function CardHit({
   const cameraButtonRef = useRef<HTMLButtonElement>(null);
   const { selectedLang } = useLanguage();
   const fullImage = useMemo(() => {
-    const raw = hit.image ?? hit.image_path ?? hit.image_uri_normal ?? hit.image_uri_small ?? null;
+    const raw = firstNonEmptyString(
+      hit.image,
+      hit.image_path,
+      hit.image_uri_normal,
+      hit.image_uri_small
+    );
     return getCardImageUrl(raw);
   }, [hit.image, hit.image_path, hit.image_uri_normal, hit.image_uri_small]);
-  const setIcon = hit.set_icon_uri ?? hit.icon_svg_uri ?? null;
+  const setIcon = firstNonEmptyString(hit.set_icon_uri, hit.icon_svg_uri);
   const setCode = hit.set_code ?? (hit.set_name ? hit.set_name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) : null);
   const setName = hit.set_name ?? '';
   const { titleType, title, subtitle } = getTitleAndSubtitle(hit, selectedLang);
@@ -1332,8 +1348,9 @@ function SearchWithInstantSearch({
   onOpenChange?: (isOpen: boolean) => void;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [dropdownDismissed, setDropdownDismissed] = useState(false);
+  const [dropdownDismissed, setDropdownDismissed] = useState(() => pathname.startsWith('/search'));
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
@@ -1358,8 +1375,7 @@ function SearchWithInstantSearch({
   const [streak, setStreak] = useState(0);
   const keystrokeTimesRef = useRef<number[]>([]);
   const energyDecayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
-  const pathname = usePathname();
+
   const isProductsPage = pathname.startsWith('/products') || pathname.startsWith('/search') || pathname === '/';
   
   // Notifica il cambio di stato apertura/chiusura
@@ -1382,6 +1398,12 @@ function SearchWithInstantSearch({
     setLocalValue((prev) => (prev === urlQueryParam ? prev : urlQueryParam));
     refineRef.current(urlQueryParam);
   }, [pathname, urlQueryParam]);
+
+  useEffect(() => {
+    if (!pathname.startsWith('/search')) return;
+    setIsOpen(false);
+    setDropdownDismissed(true);
+  }, [pathname]);
 
   const handleEnter = () => {
     const searchQuery = (localValue ?? '').trim();
@@ -1430,8 +1452,10 @@ function SearchWithInstantSearch({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Dropdown (autocomplete): visibile quando (pannello aperto O c'è testo digitato) e non chiuso con click fuori
-  const showDropdown = selectedGame && (isOpen || hasText) && !dropdownDismissed;
+  // Su /search non aprire automaticamente suggerimenti al mount con query in URL.
+  const allowAutoDropdownFromText = !pathname.startsWith('/search');
+  const showDropdown =
+    selectedGame && (isOpen || (allowAutoDropdownFromText && hasText)) && !dropdownDismissed;
   const dropdownContent = showDropdown ? (
     <SearchResultsDropdown
       gameSlug={selectedGame}
@@ -1450,7 +1474,9 @@ function SearchWithInstantSearch({
   ) : null;
 
   // Stile "aperto" (bianco, bordo): barra bianca quando aperta o quando c'è testo
-  const showOpenStyle = Boolean(isOpen || hasText);
+  const showOpenStyle = Boolean(
+    isOpen || (!dropdownDismissed && allowAutoDropdownFromText && hasText)
+  );
   const triggerBar = (
     <div
       ref={triggerRef}

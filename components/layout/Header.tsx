@@ -45,8 +45,8 @@ export function Header({ transparent = false }: { transparent?: boolean }) {
       <div className={`relative z-10 w-full overflow-visible pt-0 ${transparent ? 'bg-transparent' : 'bg-[#1D3160]'}`}>
         <div className="container-content container-header overflow-visible">
           <div className="middle-bar flex flex-row items-stretch gap-3 overflow-visible py-0 pb-1.5 md:gap-3 md:py-1">
-            <div className="flex shrink-0 items-stretch md:min-h-11">
-              <ProdottiMenu isSquared={searchOpen} />
+            <div className={`shrink-0 items-stretch md:min-h-11 ${searchOpen ? 'hidden md:flex' : 'flex'}`}>
+              <ProdottiMenu />
             </div>
             <div className="flex min-h-[2.75rem] min-w-0 flex-1 items-stretch md:min-h-0">
               <GlobalSearchBar onOpenChange={setSearchOpen} />

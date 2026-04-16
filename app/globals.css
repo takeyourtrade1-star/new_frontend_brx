@@ -409,6 +409,14 @@
   }
 }
 
+/* Dettaglio carta (vendita/asta): su mobile riduce i gutter laterali per una vista piu immersiva. */
+@media (max-width: 639px) {
+  .container-content-card-detail {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
 /* Header più largo del body: meno margini laterali, più respiro orizzontale */
 .container-header {
   max-width: 100%;

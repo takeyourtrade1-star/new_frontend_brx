@@ -234,7 +234,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
       {/* Hero — Priorità al nome prodotto */}
       <section className="w-full border-b border-gray-200 bg-white">
-        <div className="container-content py-3 sm:py-4 lg:py-5">
+        <div className="container-content container-content-card-detail py-3 sm:py-4 lg:py-5">
           {/* Back link */}
           <Link
             href="/aste"
@@ -294,7 +294,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
           className="sticky z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm lg:hidden animate-[fadeInDown_0.2s_ease-out]"
           style={{ top: stickyTop + asteNavHeight }}
         >
-          <div className="container-content py-2">
+          <div className="container-content container-content-card-detail py-2">
             <div className="flex items-center gap-2.5">
               <h2 className="min-w-0 flex-1 truncate text-[13px] font-bold uppercase tracking-wide text-gray-900">
                 {detail.title}
@@ -316,8 +316,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         </div>
       )}
 
-      <section className="w-full bg-white px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-        <div className="container-content">
+      <section className="w-full bg-white px-0 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <div className="container-content container-content-card-detail">
           {bidToastAmount != null && !isOwner && (
             <div
               className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 shadow-sm"
