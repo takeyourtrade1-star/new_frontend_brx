@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
-import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare, ArrowRight, Sparkles, Loader2, Play, Users } from 'lucide-react';
+import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare, ArrowRight, Sparkles, Loader2, Play, Users, Shirt } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { CardLoader } from '@/components/dev/CardLoader';
 import { KakeguruiArena } from '@/components/feature/game/KakeguruiArena';
@@ -348,6 +348,13 @@ export function CardMascotte() {
   const [showHint, setShowHint] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
   const [promoHintIndex, setPromoHintIndex] = useState(0);
+  const [styleReactionText, setStyleReactionText] = useState<string | null>(null);
+  const [showStyleReaction, setShowStyleReaction] = useState(false);
+  const styleReactionHideTimeoutRef = useRef<number | null>(null);
+  const styleReactionClearTimeoutRef = useRef<number | null>(null);
+  const styleReactionLastIndexRef = useRef<number>(-1);
+  const pendingStyleReactionSourceRef = useRef<'outfit' | 'color' | null>(null);
+  const wardrobeDoneTimeoutRef = useRef<number | null>(null);
 
   // Mascotte expression state
   const [mascotteExpression, setMascotteExpression] = useState<'normal' | 'bugReport' | 'bugFocus' | 'wink' | 'coding' | 'sleeping'>('normal');
@@ -495,6 +502,12 @@ export function CardMascotte() {
     }
   }, [isFlipped]);
 
+  useEffect(() => {
+    if (!isWardrobeOpen) {
+      pendingStyleReactionSourceRef.current = null;
+    }
+  }, [isWardrobeOpen]);
+
   const wardrobeItemsById = useMemo(() => new Map(ALL_WARDROBE_ITEMS.map((item) => [item.id, item])), []);
 
   const equippedWardrobeItems = useMemo(() => {
@@ -525,6 +538,17 @@ export function CardMascotte() {
     return OBJECT_ITEMS;
   }, [wardrobeCategory]);
 
+  const wardrobeThumbById = useMemo(
+    () =>
+      new Map(
+        ALL_WARDROBE_ITEMS.map((item) => [
+          item.id,
+          `data:image/svg+xml;utf8,${encodeURIComponent(item.svg)}`,
+        ])
+      ),
+    []
+  );
+
   const selectedFaceColor = useMemo(
     () => FACE_COLOR_OPTIONS.find((option) => option.id === equippedItems.faceColor) ?? FACE_COLOR_OPTIONS[0],
     [equippedItems.faceColor],
@@ -537,6 +561,7 @@ export function CardMascotte() {
   }, [equippedItems]);
 
   const toggleWardrobeItem = useCallback((item: WardrobeItem) => {
+    pendingStyleReactionSourceRef.current = 'outfit';
     setEquippedItems((prev) => {
       if (item.category === 'clothing') {
         return {
@@ -572,13 +597,43 @@ export function CardMascotte() {
   }, []);
 
   const clearWardrobeItems = useCallback(() => {
+    const hasAnyCustomization =
+      equippedItems.clothing !== null ||
+      equippedItems.accessories.length > 0 ||
+      equippedItems.objects.length > 0 ||
+      equippedItems.faceColor !== DEFAULT_FACE_COLOR_ID;
+
+    if (!hasAnyCustomization) {
+      return;
+    }
+
+    pendingStyleReactionSourceRef.current = 'outfit';
     setEquippedItems({
       clothing: null,
       accessories: [],
       objects: [],
       faceColor: DEFAULT_FACE_COLOR_ID,
     });
-  }, []);
+  }, [equippedItems]);
+
+  const handleWardrobeDone = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+
+    const source = pendingStyleReactionSourceRef.current;
+    pendingStyleReactionSourceRef.current = null;
+    setIsWardrobeOpen(false);
+
+    if (!source) return;
+
+    if (wardrobeDoneTimeoutRef.current !== null) {
+      window.clearTimeout(wardrobeDoneTimeoutRef.current);
+    }
+
+    wardrobeDoneTimeoutRef.current = window.setTimeout(() => {
+      triggerStyleReaction(source);
+      wardrobeDoneTimeoutRef.current = null;
+    }, 180);
+  };
 
   const vibrate = useCallback((pattern: number | number[]) => {
     try { navigator?.vibrate?.(pattern); } catch {}
@@ -1743,6 +1798,15 @@ export function CardMascotte() {
       if (typewriterTimeoutRef.current !== null) {
         window.clearTimeout(typewriterTimeoutRef.current);
       }
+      if (styleReactionHideTimeoutRef.current !== null) {
+        window.clearTimeout(styleReactionHideTimeoutRef.current);
+      }
+      if (styleReactionClearTimeoutRef.current !== null) {
+        window.clearTimeout(styleReactionClearTimeoutRef.current);
+      }
+      if (wardrobeDoneTimeoutRef.current !== null) {
+        window.clearTimeout(wardrobeDoneTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -1865,9 +1929,70 @@ export function CardMascotte() {
     return promoHints.filter(promo => !pathname.startsWith(promo.route));
   }, [pathname, promoHints]);
 
+  const styleReactionMessages = useMemo(() => ({
+    outfit: [
+      'Nuovo fit, nuova era.',
+      'Questo outfit spacca, no cap.',
+      'Drip attivato: livello massimo.',
+      'Mood: main character unlocked.',
+      'Flex silenzioso ma devastante.',
+      'Sto servendo look, e si vede.',
+      'Cambio vestito, cambio vibe.',
+      'Versione premium di me: online.',
+    ],
+    color: [
+      'Questo colore mi sta illegalmente bene.',
+      'Glow-up cromatico appena droppato.',
+      'Palette nuova, energia nuova.',
+      'Color match perfetto: chef\'s kiss.',
+    ],
+  }), []);
+
+  const triggerStyleReaction = useCallback((source: 'outfit' | 'color') => {
+    const pool = styleReactionMessages[source];
+    if (pool.length === 0) return;
+
+    let nextIndex = Math.floor(Math.random() * pool.length);
+    if (pool.length > 1 && nextIndex === styleReactionLastIndexRef.current) {
+      nextIndex = (nextIndex + 1) % pool.length;
+    }
+    styleReactionLastIndexRef.current = nextIndex;
+
+    if (styleReactionHideTimeoutRef.current !== null) {
+      window.clearTimeout(styleReactionHideTimeoutRef.current);
+      styleReactionHideTimeoutRef.current = null;
+    }
+    if (styleReactionClearTimeoutRef.current !== null) {
+      window.clearTimeout(styleReactionClearTimeoutRef.current);
+      styleReactionClearTimeoutRef.current = null;
+    }
+
+    setStyleReactionText(pool[nextIndex]);
+    setShowStyleReaction(true);
+
+    styleReactionHideTimeoutRef.current = window.setTimeout(() => {
+      setShowStyleReaction(false);
+      styleReactionHideTimeoutRef.current = null;
+
+      styleReactionClearTimeoutRef.current = window.setTimeout(() => {
+        setStyleReactionText(null);
+        styleReactionClearTimeoutRef.current = null;
+      }, 280);
+    }, 3000);
+  }, [styleReactionMessages]);
+
   // Cycle hint bubble: show briefly, hide, repeat with rotating messages
   // Promotional hints appear frequently (every 2nd hint = 50% of the time)
   useEffect(() => {
+    if (styleReactionText) {
+      return;
+    }
+
+    if (activePromoHints.length === 0) {
+      setShowHint(false);
+      return;
+    }
+
     const INITIAL_DELAY = 1500; // Very fast first appearance
     const REGULAR_SHOW_DURATION = 3000; // Brief display
     const PROMO_SHOW_DURATION = 4500; // Brief but noticeable
@@ -1908,7 +2033,7 @@ export function CardMascotte() {
       window.clearTimeout(showTimer);
       window.clearTimeout(hideTimer);
     };
-  }, [activePromoHints.length]);
+  }, [activePromoHints.length, styleReactionText]);
 
   // Listen for sticky bar visibility changes
   useEffect(() => {
@@ -1923,6 +2048,11 @@ export function CardMascotte() {
   // No separate sleep promo cycle - uses same index as awake state
 
   const isOverlayVisible = showChatModal || isModalOpen || isCodingTransition || showCodingCompanion || isExternalModalOpen || isArenaOpen;
+  const isStyleReactionActive = styleReactionText !== null;
+  const isHintVisible = isStyleReactionActive ? showStyleReaction : showHint;
+  const currentPromoHint = activePromoHints[promoHintIndex];
+  const currentHintAccent = isStyleReactionActive ? '#FF7300' : currentPromoHint?.accent ?? null;
+  const currentHintText = isStyleReactionActive ? styleReactionText : currentPromoHint?.text ?? '';
 
   // Snore sound using Web Audio API - soft rhythmic breathing sound
   const playSnoreSound = useCallback(() => {
@@ -2098,9 +2228,11 @@ export function CardMascotte() {
       {/* Unified Hint Bubble — single component for all states */}
       {!isModalOpen && (
         <div
-          className="fixed hidden sm:flex flex-col items-center cursor-pointer group"
+          className={`fixed hidden sm:flex flex-col items-center group ${isStyleReactionActive ? 'cursor-default' : 'cursor-pointer'}`}
           onClick={() => {
-            const promo = activePromoHints[promoHintIndex];
+            if (isStyleReactionActive) return;
+
+            const promo = currentPromoHint;
             if (promo) {
               if (promo.id === 'bug') {
                 setIsModalOpen(true);
@@ -2110,37 +2242,37 @@ export function CardMascotte() {
             }
           }}
           style={{
-            zIndex: Z_INDEX.tooltip,
+            zIndex: isStyleReactionActive ? Z_INDEX.tooltip + 6 : Z_INDEX.tooltip,
             bottom: isStickyBarVisible ? '210px' : '154px',
             right: '24px',
             width: '220px',
-            opacity: showHint ? 1 : 0,
-            transform: showHint ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.9)',
+            opacity: isHintVisible ? 1 : 0,
+            transform: isHintVisible ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.9)',
             transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 500ms ease, transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-            pointerEvents: showHint ? 'auto' : 'none',
+            pointerEvents: isHintVisible ? 'auto' : 'none',
           }}
         >
           {/* Glassmorphism bubble - matches mascot style */}
           <div
             className="relative rounded-xl px-4 py-3 text-center backdrop-blur-md overflow-hidden"
             style={{
-              background: activePromoHints[promoHintIndex]?.accent
-                ? `linear-gradient(135deg, ${activePromoHints[promoHintIndex].accent}15 0%, rgba(39,39,42,0.85) 100%)`
+              background: currentHintAccent
+                ? `linear-gradient(135deg, ${currentHintAccent}15 0%, rgba(39,39,42,0.85) 100%)`
                 : 'rgba(39,39,42,0.85)',
-              border: activePromoHints[promoHintIndex]?.accent
-                ? `1px solid ${activePromoHints[promoHintIndex].accent}40`
+              border: currentHintAccent
+                ? `1px solid ${currentHintAccent}40`
                 : '1px solid rgba(255,255,255,0.15)',
-              boxShadow: activePromoHints[promoHintIndex]?.accent
-                ? `0 4px 20px ${activePromoHints[promoHintIndex].accent}25, 0 2px 8px rgba(0,0,0,0.2)`
+              boxShadow: currentHintAccent
+                ? `0 4px 20px ${currentHintAccent}25, 0 2px 8px rgba(0,0,0,0.2)`
                 : '0 4px 16px rgba(0,0,0,0.2)',
             }}
           >
             {/* Subtle accent glow for non-bug hints */}
-            {activePromoHints[promoHintIndex]?.accent && (
+            {currentHintAccent && (
               <div
                 className="absolute inset-0 opacity-20 blur-md"
                 style={{
-                  background: activePromoHints[promoHintIndex].accent,
+                  background: currentHintAccent,
                 }}
               />
             )}
@@ -2156,29 +2288,31 @@ export function CardMascotte() {
                 textShadow: '0 1px 2px rgba(0,0,0,0.2)',
               }}
             >
-              {activePromoHints[promoHintIndex]?.text}
+              {currentHintText}
             </p>
             {/* CTA arrow */}
-            <div className="flex items-center justify-center gap-1 mt-2">
-              <span className="text-[9px] text-white/90 font-medium">
-                {isSleeping ? 'Scopri nel sogno' : 'Scopri di più'}
-              </span>
-              <ArrowRight className="w-3 h-3 text-white/90 group-hover:translate-x-1 transition-transform" />
-            </div>
+            {!isStyleReactionActive && (
+              <div className="mt-2 flex items-center justify-center gap-1">
+                <span className="text-[9px] font-medium text-white/90">
+                  {isSleeping ? 'Scopri nel sogno' : 'Scopri di più'}
+                </span>
+                <ArrowRight className="h-3 w-3 text-white/90 transition-transform group-hover:translate-x-1" />
+              </div>
+            )}
             {/* Glass arrow pointer */}
             <span
               className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
               style={{
                 width: '8px',
                 height: '8px',
-                background: activePromoHints[promoHintIndex]?.accent
-                  ? `linear-gradient(135deg, ${activePromoHints[promoHintIndex].accent}20 0%, rgba(39,39,42,0.9) 100%)`
+                background: currentHintAccent
+                  ? `linear-gradient(135deg, ${currentHintAccent}20 0%, rgba(39,39,42,0.9) 100%)`
                   : 'rgba(39,39,42,0.9)',
-                borderBottom: activePromoHints[promoHintIndex]?.accent
-                  ? `1px solid ${activePromoHints[promoHintIndex].accent}50`
+                borderBottom: currentHintAccent
+                  ? `1px solid ${currentHintAccent}50`
                   : '1px solid rgba(255,255,255,0.15)',
-                borderRight: activePromoHints[promoHintIndex]?.accent
-                  ? `1px solid ${activePromoHints[promoHintIndex].accent}50`
+                borderRight: currentHintAccent
+                  ? `1px solid ${currentHintAccent}50`
                   : '1px solid rgba(255,255,255,0.15)',
               }}
             />
@@ -2271,19 +2405,32 @@ export function CardMascotte() {
             animation: 'albumSlideIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
           }}
         >
-          <div className="w-[240px] max-h-[340px] overflow-hidden rounded-xl border border-zinc-700/60 bg-zinc-900/95 p-2.5 shadow-2xl backdrop-blur-md">
+          <div className="relative w-[250px] max-w-[calc(100vw-1.5rem)] max-h-[360px] overflow-hidden rounded-2xl border border-white/35 bg-[linear-gradient(165deg,rgba(255,210,165,0.36)_0%,rgba(255,142,42,0.24)_40%,rgba(25,24,32,0.9)_100%)] p-2.5 shadow-[0_20px_46px_rgba(255,115,0,0.35)] ring-1 ring-white/20 backdrop-blur-2xl">
+            <div className="pointer-events-none absolute -top-12 left-1/2 h-24 w-44 -translate-x-1/2 rounded-full bg-white/25 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-10 -right-8 h-28 w-28 rounded-full bg-[#ff7300]/25 blur-2xl" />
+
+            <div className="relative z-[1]">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-400">Guardaroba</span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  clearWardrobeItems();
-                }}
-                className="text-[8px] font-bold text-zinc-300 transition hover:text-white"
-              >
-                Reset
-              </button>
+              <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/85">Guardaroba</span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearWardrobeItems();
+                  }}
+                  className="rounded-full border border-white/35 bg-white/15 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white/90 transition hover:bg-white/25"
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={handleWardrobeDone}
+                  className="rounded-full border border-[#FFB26B]/70 bg-gradient-to-r from-[#FF7300]/95 to-[#FFA246]/90 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white shadow-[0_6px_14px_rgba(255,115,0,0.35)] transition hover:brightness-110"
+                >
+                  Fatto
+                </button>
+              </div>
             </div>
 
             <div className="mb-2 grid grid-cols-4 gap-1">
@@ -2295,25 +2442,27 @@ export function CardMascotte() {
                     e.stopPropagation();
                     setWardrobeCategory(category);
                   }}
-                  className={`rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-wide transition ${
+                  className={`min-w-0 overflow-hidden rounded-lg border px-1 py-1 text-[7px] font-bold uppercase leading-none tracking-[0.01em] transition ${
                     wardrobeCategory === category
-                      ? 'bg-primary text-white'
-                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                      ? 'border-white/40 bg-gradient-to-r from-[#FF7300]/95 to-[#FFA246]/90 text-white shadow-[0_6px_16px_rgba(255,115,0,0.35)]'
+                      : 'border-white/15 bg-black/20 text-white/75 hover:border-white/30 hover:bg-white/10 hover:text-white'
                   }`}
                 >
-                  {category === 'clothing'
-                    ? 'Abiti'
-                    : category === 'accessories'
-                    ? 'Accessori'
-                    : category === 'objects'
-                    ? 'Oggetti'
-                    : 'Colore'}
+                  <span className="block w-full truncate">
+                    {category === 'clothing'
+                      ? 'Abiti'
+                      : category === 'accessories'
+                      ? 'Accessori'
+                      : category === 'objects'
+                      ? 'Oggetti'
+                      : 'Colore'}
+                  </span>
                 </button>
               ))}
             </div>
 
             {wardrobeCategory === 'color' ? (
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/10 bg-black/15 p-1.5">
                 {FACE_COLOR_OPTIONS.map((option) => {
                   const isActive = equippedItems.faceColor === option.id;
 
@@ -2323,12 +2472,14 @@ export function CardMascotte() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (isActive) return;
+                        pendingStyleReactionSourceRef.current = 'color';
                         setEquippedItems((prev) => ({ ...prev, faceColor: option.id }));
                       }}
-                      className={`flex items-center justify-between rounded-lg border px-2 py-1.5 text-left transition ${
+                      className={`flex items-center rounded-lg border px-2 py-1.5 text-left transition ${
                         isActive
-                          ? 'border-primary/60 bg-primary/20 text-white'
-                          : 'border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10'
+                          ? 'border-[#FFB26B]/80 bg-[#FF7300]/30 text-white shadow-[0_8px_18px_rgba(255,115,0,0.25)]'
+                          : 'border-white/15 bg-black/20 text-white/85 hover:border-white/30 hover:bg-white/10'
                       }`}
                     >
                       <span className="flex items-center gap-1.5 truncate text-[9px] font-semibold">
@@ -2341,37 +2492,53 @@ export function CardMascotte() {
                         />
                         {option.name}
                       </span>
-                      <span className="text-[8px] font-bold">{isActive ? 'ON' : 'OFF'}</span>
                     </button>
                   );
                 })}
               </div>
             ) : (
-              <div className="max-h-[250px] space-y-1 overflow-y-auto pr-1">
-                {visibleWardrobeItems.map((item) => {
-                  const equipped = isWardrobeItemEquipped(item);
+              <div className="max-h-[250px] overflow-y-auto rounded-xl border border-white/10 bg-black/15 p-1.5 pr-1">
+                <div className="grid grid-cols-3 gap-1.5">
+                  {visibleWardrobeItems.map((item) => {
+                    const equipped = isWardrobeItemEquipped(item);
+                    const thumbSrc = wardrobeThumbById.get(item.id);
 
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleWardrobeItem(item);
-                      }}
-                      className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition ${
-                        equipped
-                          ? 'bg-primary/20 text-white'
-                          : 'bg-white/5 text-zinc-200 hover:bg-white/10'
-                      }`}
-                    >
-                      <span className="truncate text-[10px] font-medium">{item.name}</span>
-                      <span className="text-[9px] font-bold">{equipped ? 'ON' : 'OFF'}</span>
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleWardrobeItem(item);
+                        }}
+                        className={`group flex min-h-[78px] flex-col items-center justify-center gap-1 rounded-lg border px-1 py-1.5 text-center transition ${
+                          equipped
+                            ? 'border-[#FFB26B]/80 bg-[#FF7300]/30 text-white shadow-[0_8px_18px_rgba(255,115,0,0.25)]'
+                            : 'border-white/15 bg-black/20 text-white/85 hover:border-white/30 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border ${equipped ? 'border-white/40 bg-white/25' : 'border-white/20 bg-white/10'}`}>
+                          {thumbSrc ? (
+                            <img
+                              src={thumbSrc}
+                              alt=""
+                              aria-hidden="true"
+                              className="h-8 w-8 object-contain"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          ) : (
+                            <Sparkles className="h-4 w-4 text-white/80" />
+                          )}
+                        </span>
+                        <span className="w-full truncate text-[8px] font-semibold leading-tight">{item.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
@@ -2816,7 +2983,7 @@ export function CardMascotte() {
             </div>
 
             {/* Action buttons */}
-            <div className="absolute inset-x-2 bottom-2.5 flex flex-col gap-1.5">
+            <div className="absolute inset-x-2 bottom-2.5 flex items-center justify-center gap-1.5">
               <button
                 type="button"
                 onClick={(e) => {
@@ -2824,12 +2991,12 @@ export function CardMascotte() {
                   setShowGameModeMenu(false);
                   setIsWardrobeOpen((prev) => !prev);
                 }}
-                className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-white transition hover:bg-black/50"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white transition hover:scale-105 hover:bg-black/50"
                 title="Apri guardaroba"
                 aria-label="Apri guardaroba"
               >
-                <Sparkles className="h-3.5 w-3.5" />
-                Guardaroba
+                <Shirt className="h-4 w-4" />
+                <span className="sr-only">Apri guardaroba</span>
               </button>
 
               <button
@@ -2846,12 +3013,12 @@ export function CardMascotte() {
                   setShowGameModeMenu(prev => !prev);
                 }}
                 disabled={isCheckingArenaPlayers}
-                className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-white transition hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white transition hover:scale-105 hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
                 title="Avvia mini-gioco"
                 aria-label="Avvia mini-gioco"
               >
-                {isCheckingArenaPlayers ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                Play
+                {isCheckingArenaPlayers ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                <span className="sr-only">Avvia mini-gioco</span>
               </button>
               
               {/* Game Mode Selector Dropdown - Ported to body to escape 3D context */}
