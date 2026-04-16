@@ -25,7 +25,7 @@ interface LanguageContextValue {
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
 function getInitialLanguage(): string {
-  if (typeof window === 'undefined') return 'en';
+  if (typeof window === 'undefined') return 'it';
   try {
     const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
     if (saved && AVAILABLE_LANGS.includes(saved as (typeof AVAILABLE_LANGS)[number])) {
@@ -34,13 +34,13 @@ function getInitialLanguage(): string {
   } catch {
     // ignore
   }
-  return 'en';
+  return 'it';
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // Usa sempre l'hook (non può essere condizionale)
   const user = useAuthStore((s) => s.user);
-  const [selectedLang, setSelectedLangState] = useState<string>('en');
+  const [selectedLang, setSelectedLangState] = useState<string>('it');
   const [isLangLoading, setIsLangLoading] = useState(false);
 
   useEffect(() => {
