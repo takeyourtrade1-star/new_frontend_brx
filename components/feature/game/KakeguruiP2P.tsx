@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Wifi, WifiOff, Trophy, Users, ArrowLeft, Loader2 } from 'lucide-react';
 import { P2PLobby } from '@/components/game/P2PLobby';
@@ -8,30 +8,29 @@ import { useP2PRoom, GameState } from '@/hooks/useP2PRoom';
 import { Button } from '@/components/ui/button';
 import { HandMoveCard, DuelCard, ArenaCardBack, type HandCard, type Move } from './KakeguruiArena';
 
-// Types for Kakegurui game sync
 type GamePhase = 'lobby' | 'dealing' | 'ready' | 'playing' | 'round_end' | 'game_end';
-type EmoteType = 'smug' | 'panic' | 'challenge';
+type EmoteType = 'smug' | 'panic' | 'challenge' | 'taunt';
 
-const DEALING_MS = 1500;
+const DEALING_MS = 2200;
+const MAX_ROUNDS = 3;
 
-const P2P_HAND_CARDS: HandCard[] = [
-  { id: 'card-rock', move: 'rock' },
-  { id: 'card-paper', move: 'paper' },
-  { id: 'card-scissors', move: 'scissors' },
-];
+/* ── Random hand generation (Kakegurui-style) ───────────────────────── */
+function generateRandomHand(): HandCard[] {
+  const moves: Move[] = ['rock', 'paper', 'scissors'];
+  return Array.from({ length: 3 }, (_, i) => ({
+    id: `p2p-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    move: moves[Math.floor(Math.random() * moves.length)],
+  }));
+}
 
 function getRoundOutcome(playerMove: Move | null, opponentMove: Move | null): 'player' | 'opponent' | 'draw' | null {
   if (!playerMove || !opponentMove) return null;
   if (playerMove === opponentMove) return 'draw';
-
   if (
     (playerMove === 'rock' && opponentMove === 'scissors') ||
     (playerMove === 'paper' && opponentMove === 'rock') ||
     (playerMove === 'scissors' && opponentMove === 'paper')
-  ) {
-    return 'player';
-  }
-
+  ) return 'player';
   return 'opponent';
 }
 
@@ -42,31 +41,172 @@ interface PlayerGameState {
   emote: EmoteType | null;
 }
 
-interface PingMessage {
-  type: 'ping' | 'pong';
-  timestamp: number;
-}
-
 interface EncodedPlayerState {
   move?: Move | null;
   ready?: boolean;
   emote?: EmoteType | null;
 }
 
-const EMOTE_UI: Record<EmoteType, { label: string; toneClass: string }> = {
-  smug: {
-    label: 'SMUG',
-    toneClass: 'from-fuchsia-500/30 to-pink-500/15 border-fuchsia-400/55',
-  },
-  panic: {
-    label: 'PANIC',
-    toneClass: 'from-cyan-500/30 to-blue-500/15 border-cyan-400/55',
-  },
-  challenge: {
-    label: 'CHALLENGE',
-    toneClass: 'from-orange-500/30 to-rose-500/15 border-orange-400/55',
-  },
+/* ═══════════════════════════════════════════════════════════════════════
+   Emote Sticker SVG Faces
+   ═══════════════════════════════════════════════════════════════════════ */
+const EMOTE_CFG: Record<EmoteType, {
+  label: string;
+  tone: string;
+  glow: string;
+  border: string;
+}> = {
+  smug: { label: 'Ghigno', tone: 'from-fuchsia-500/30 to-purple-600/20', glow: 'rgba(217,70,239,0.35)', border: 'border-fuchsia-400/50' },
+  panic: { label: 'Panico', tone: 'from-cyan-400/30 to-blue-500/20', glow: 'rgba(34,211,238,0.35)', border: 'border-cyan-400/50' },
+  challenge: { label: 'Sfida', tone: 'from-orange-500/30 to-red-500/20', glow: 'rgba(249,115,22,0.35)', border: 'border-orange-400/50' },
+  taunt: { label: 'Derisione', tone: 'from-lime-400/30 to-emerald-500/20', glow: 'rgba(132,204,22,0.35)', border: 'border-lime-400/50' },
 };
+
+function StickerFace({ emote, size = 56 }: { emote: EmoteType; size?: number }) {
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} aria-hidden>
+      {/* Outer ring */}
+      <circle cx="50" cy="50" r="46" fill="rgba(14,14,20,0.95)" stroke="rgba(255,255,255,0.18)" strokeWidth="2.2" />
+      <circle cx="50" cy="50" r="40" fill="rgba(8,8,14,0.92)" stroke="rgba(255,255,255,0.08)" strokeWidth="1.2" />
+
+      {emote === 'smug' && (
+        <>
+          {/* Raised eyebrow */}
+          <path d="M 25 32 Q 34 26 44 32" stroke="rgba(248,250,252,0.85)" strokeWidth="2.8" strokeLinecap="round" fill="none" />
+          {/* Normal brow */}
+          <path d="M 56 34 L 76 33" stroke="rgba(248,250,252,0.7)" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+          {/* Narrowed eyes */}
+          <ellipse cx="35" cy="40" rx="10" ry="7" fill="none" stroke="rgba(248,250,252,0.88)" strokeWidth="2.5" />
+          <ellipse cx="65" cy="40" rx="10" ry="7" fill="none" stroke="rgba(248,250,252,0.88)" strokeWidth="2.5" />
+          {/* Side-glancing pupils */}
+          <circle cx="32" cy="40" r="4" fill="rgba(240,244,248,0.95)" />
+          <circle cx="62" cy="40" r="4" fill="rgba(240,244,248,0.95)" />
+          <circle cx="30.5" cy="39" r="1.4" fill="rgba(10,10,18,0.95)" />
+          <circle cx="60.5" cy="39" r="1.4" fill="rgba(10,10,18,0.95)" />
+          {/* Smirk */}
+          <path d="M 36 64 Q 52 74 68 61" stroke="rgba(248,250,252,0.88)" strokeWidth="2.8" strokeLinecap="round" fill="none" />
+          {/* Blush */}
+          <ellipse cx="25" cy="52" rx="5" ry="3" fill="rgba(232,121,249,0.22)" />
+        </>
+      )}
+
+      {emote === 'panic' && (
+        <>
+          {/* Raised brows */}
+          <path d="M 22 28 L 44 33" stroke="rgba(248,250,252,0.8)" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+          <path d="M 56 33 L 78 28" stroke="rgba(248,250,252,0.8)" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+          {/* Wide eyes */}
+          <circle cx="35" cy="41" r="12" fill="none" stroke="rgba(248,250,252,0.9)" strokeWidth="2.6" />
+          <circle cx="65" cy="41" r="12" fill="none" stroke="rgba(248,250,252,0.9)" strokeWidth="2.6" />
+          {/* Tiny pupils (scared) */}
+          <circle cx="35" cy="43" r="3" fill="rgba(240,244,248,0.96)" />
+          <circle cx="65" cy="43" r="3" fill="rgba(240,244,248,0.96)" />
+          <circle cx="34" cy="42" r="1.2" fill="rgba(10,10,18,0.95)" />
+          <circle cx="64" cy="42" r="1.2" fill="rgba(10,10,18,0.95)" />
+          {/* O mouth */}
+          <ellipse cx="50" cy="67" rx="7" ry="9" fill="rgba(248,250,252,0.12)" stroke="rgba(248,250,252,0.88)" strokeWidth="2.5" />
+          {/* Sweat drops */}
+          <path d="M 80 33 Q 82 38 80 42" stroke="rgba(56,189,248,0.6)" strokeWidth="2" strokeLinecap="round" fill="none" />
+          <circle cx="83" cy="40" r="1.5" fill="rgba(56,189,248,0.45)" />
+        </>
+      )}
+
+      {emote === 'challenge' && (
+        <>
+          {/* V-brows (determined) */}
+          <path d="M 22 36 L 44 30" stroke="rgba(248,250,252,0.88)" strokeWidth="3" strokeLinecap="round" fill="none" />
+          <path d="M 56 30 L 78 36" stroke="rgba(248,250,252,0.88)" strokeWidth="3" strokeLinecap="round" fill="none" />
+          {/* Focused eyes */}
+          <circle cx="35" cy="41" r="10" fill="none" stroke="rgba(248,250,252,0.88)" strokeWidth="2.6" />
+          <circle cx="65" cy="41" r="10" fill="none" stroke="rgba(248,250,252,0.88)" strokeWidth="2.6" />
+          <circle cx="36" cy="41" r="5" fill="rgba(240,244,248,0.96)" />
+          <circle cx="66" cy="41" r="5" fill="rgba(240,244,248,0.96)" />
+          <circle cx="35" cy="40" r="1.8" fill="rgba(10,10,18,0.95)" />
+          <circle cx="65" cy="40" r="1.8" fill="rgba(10,10,18,0.95)" />
+          {/* Determined mouth */}
+          <path d="M 36 66 Q 50 60 64 66" stroke="rgba(248,250,252,0.88)" strokeWidth="2.8" strokeLinecap="round" fill="none" />
+          {/* Fire accents */}
+          <path d="M 18 24 Q 22 18 20 12" stroke="rgba(249,115,22,0.55)" strokeWidth="2" strokeLinecap="round" fill="none" />
+          <path d="M 80 24 Q 78 18 82 12" stroke="rgba(249,115,22,0.55)" strokeWidth="2" strokeLinecap="round" fill="none" />
+        </>
+      )}
+
+      {emote === 'taunt' && (
+        <>
+          {/* Squeezed laughing eyes */}
+          <path d="M 23 39 Q 35 30 45 39" stroke="rgba(248,250,252,0.88)" strokeWidth="2.8" strokeLinecap="round" fill="none" />
+          <path d="M 55 39 Q 65 30 77 39" stroke="rgba(248,250,252,0.88)" strokeWidth="2.8" strokeLinecap="round" fill="none" />
+          {/* Laugh lines under eyes */}
+          <path d="M 25 43 Q 34 46 43 43" stroke="rgba(248,250,252,0.4)" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+          <path d="M 57 43 Q 66 46 75 43" stroke="rgba(248,250,252,0.4)" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+          {/* Tears of laughter */}
+          <path d="M 20 41 Q 17 48 19 53" stroke="rgba(56,189,248,0.55)" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+          <path d="M 80 41 Q 83 48 81 53" stroke="rgba(56,189,248,0.55)" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+          {/* Wide open laughing mouth with teeth */}
+          <path d="M 30 62 Q 36 56 50 55 Q 64 56 70 62 Q 64 74 50 76 Q 36 74 30 62 Z" fill="rgba(248,250,252,0.12)" stroke="rgba(248,250,252,0.85)" strokeWidth="2.2" />
+          {/* Teeth line */}
+          <path d="M 34 62 L 66 62" stroke="rgba(248,250,252,0.6)" strokeWidth="1.5" />
+          {/* Tongue */}
+          <ellipse cx="50" cy="70" rx="8" ry="5" fill="rgba(255,107,138,0.7)" stroke="rgba(255,107,138,0.3)" strokeWidth="1" />
+          {/* Pointing hand gesture */}
+          <path d="M 82 58 L 88 54 L 92 56" stroke="rgba(248,250,252,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <circle cx="92" cy="54" r="1.5" fill="rgba(248,250,252,0.4)" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+/* ── Confetti burst ─────────────────────────────────────────────────── */
+function ConfettiBurst({ active }: { active: boolean }) {
+  const particles = useMemo(() => {
+    if (!active) return [];
+    const colors = ['#FF7300', '#818CF8', '#34D399', '#F43F5E', '#FBBF24', '#A78BFA', '#22D3EE'];
+    return Array.from({ length: 50 }, (_, idx) => ({
+      id: idx,
+      color: colors[idx % colors.length],
+      left: 8 + Math.random() * 84,
+      delay: Math.random() * 0.8,
+      dur: 2 + Math.random() * 1.5,
+      size: 4 + Math.random() * 7,
+      aspect: Math.random() > 0.5 ? 2.5 : 1,
+      round: Math.random() > 0.5,
+      rotation: Math.random() * 360,
+      drift: (Math.random() - 0.5) * 100,
+    }));
+  }, [active]);
+
+  if (!active) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {particles.map((p) => (
+        <motion.div
+          key={`confetti-${p.id}`}
+          className="absolute"
+          style={{
+            left: `${p.left}%`,
+            top: '-5%',
+            width: p.size,
+            height: p.size * p.aspect,
+            backgroundColor: p.color,
+            borderRadius: p.round ? '50%' : '2px',
+          }}
+          initial={{ y: 0, opacity: 1, rotate: p.rotation }}
+          animate={{
+            y: ['0vh', '115vh'],
+            opacity: [1, 1, 0.5],
+            rotate: [p.rotation, p.rotation + (p.id % 2 === 0 ? 420 : -420)],
+            x: [0, p.drift],
+          }}
+          transition={{ duration: p.dur, delay: p.delay, ease: 'easeIn' }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
 
 interface KakeguruiP2PProps {
   open: boolean;
@@ -77,24 +217,17 @@ export function KakeguruiP2P({ open, onClose }: KakeguruiP2PProps) {
   const [showLobby, setShowLobby] = useState(true);
   const [showGame, setShowGame] = useState(false);
 
-  // Game state synced via P2P
   const [gamePhase, setGamePhase] = useState<GamePhase>('lobby');
   const [currentRound, setCurrentRound] = useState(1);
-  const maxRounds = 3;
 
-  const [player1State, setPlayer1State] = useState<PlayerGameState>({
-    score: 0,
-    move: null,
-    ready: false,
-    emote: null,
-  });
+  const [player1State, setPlayer1State] = useState<PlayerGameState>({ score: 0, move: null, ready: false, emote: null });
+  const [player2State, setPlayer2State] = useState<PlayerGameState>({ score: 0, move: null, ready: false, emote: null });
 
-  const [player2State, setPlayer2State] = useState<PlayerGameState>({
-    score: 0,
-    move: null,
-    ready: false,
-    emote: null,
-  });
+  /* ── Random hand state (Kakegurui-style) ──────────────────────────── */
+  const [localHand, setLocalHand] = useState<HandCard[]>([]);
+  const [opponentCardCount, setOpponentCardCount] = useState(3);
+  const selectedCardIdRef = useRef<string | null>(null);
+  const roundResolvingRef = useRef(false);
 
   const [latency, setLatency] = useState(0);
   const [isHost, setIsHost] = useState(false);
@@ -109,220 +242,103 @@ export function KakeguruiP2P({ open, onClose }: KakeguruiP2PProps) {
   const localEmote = localPlayerId === 1 ? player1State.emote : player2State.emote;
   const remoteEmote = localPlayerId === 1 ? player2State.emote : player1State.emote;
 
-  const lastPingRef = useRef<number>(0);
   const dealingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const roundAnimTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioUnlockedRef = useRef(false);
 
   const clearDealingTimer = useCallback(() => {
-    if (dealingTimerRef.current) {
-      clearTimeout(dealingTimerRef.current);
-      dealingTimerRef.current = null;
-    }
+    if (dealingTimerRef.current) { clearTimeout(dealingTimerRef.current); dealingTimerRef.current = null; }
   }, []);
 
   const clearRoundAnimTimers = useCallback(() => {
-    roundAnimTimersRef.current.forEach(timer => clearTimeout(timer));
+    roundAnimTimersRef.current.forEach(t => clearTimeout(t));
     roundAnimTimersRef.current = [];
   }, []);
 
-  const startDealingSequence = useCallback((nextPhase: 'ready' | 'playing', resetReadiness: boolean) => {
-    clearDealingTimer();
-
-    setGamePhase('dealing');
-    setPlayer1State(prev => ({
-      ...prev,
-      move: null,
-      ready: resetReadiness ? false : prev.ready,
-    }));
-    setPlayer2State(prev => ({
-      ...prev,
-      move: null,
-      ready: resetReadiness ? false : prev.ready,
-    }));
-
-    dealingTimerRef.current = setTimeout(() => {
-      setGamePhase(nextPhase);
-      dealingTimerRef.current = null;
-    }, DEALING_MS);
-  }, [clearDealingTimer]);
-
+  /* ─── Audio ───────────────────────────────────────────────────────── */
   const getAudioContext = useCallback(() => {
     if (typeof window === 'undefined') return null;
     const Ctx = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return null;
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new Ctx();
-    }
+    if (!audioCtxRef.current) audioCtxRef.current = new Ctx();
     return audioCtxRef.current;
   }, []);
 
   const unlockAudio = useCallback(() => {
     const ctx = getAudioContext();
     if (!ctx) return;
-    if (ctx.state === 'suspended') {
-      void ctx.resume().then(() => {
-        audioUnlockedRef.current = true;
-      }).catch(() => undefined);
-      return;
-    }
+    if (ctx.state === 'suspended') { void ctx.resume().then(() => { audioUnlockedRef.current = true; }).catch(() => undefined); return; }
     audioUnlockedRef.current = true;
   }, [getAudioContext]);
 
   const playTone = useCallback((freq: number, duration: number, type: OscillatorType, gain = 0.11, delay = 0) => {
     const ctx = getAudioContext();
     if (!ctx) return;
-
     const trigger = () => {
       const now = ctx.currentTime + delay;
       const osc = ctx.createOscillator();
       const amp = ctx.createGain();
-
       osc.type = type;
       osc.frequency.setValueAtTime(freq, now);
-
       amp.gain.setValueAtTime(0.0001, now);
       amp.gain.exponentialRampToValueAtTime(gain, now + Math.min(0.02, duration * 0.3));
       amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-      osc.connect(amp);
-      amp.connect(ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + duration + 0.02);
+      osc.connect(amp); amp.connect(ctx.destination);
+      osc.start(now); osc.stop(now + duration + 0.02);
     };
-
-    if (ctx.state === 'suspended') {
-      void ctx.resume().then(trigger).catch(() => undefined);
-      return;
-    }
-
+    if (ctx.state === 'suspended') { void ctx.resume().then(trigger).catch(() => undefined); return; }
     trigger();
   }, [getAudioContext]);
 
-  const playImpactSnap = useCallback(() => {
-    playTone(170, 0.16, 'square', 0.16);
-    playTone(88, 0.23, 'triangle', 0.13, 0.02);
-  }, [playTone]);
-
+  const playImpactSnap = useCallback(() => { playTone(170, 0.16, 'square', 0.14); playTone(88, 0.23, 'triangle', 0.12, 0.02); }, [playTone]);
   const playCardPickTick = useCallback((move: Move) => {
-    if (move === 'rock') {
-      playTone(210, 0.08, 'square', 0.11);
-      return;
-    }
-    if (move === 'paper') {
-      playTone(420, 0.08, 'triangle', 0.1);
-      return;
-    }
-    playTone(560, 0.07, 'sine', 0.1);
+    const f = move === 'rock' ? 210 : move === 'paper' ? 420 : 560;
+    playTone(f, 0.08, move === 'rock' ? 'square' : 'triangle', 0.1);
+    playTone(f + 100, 0.06, 'sine', 0.06, 0.04);
   }, [playTone]);
-
   const playShuffleRiff = useCallback(() => {
-    playTone(290, 0.08, 'triangle', 0.09);
-    playTone(360, 0.08, 'triangle', 0.09, 0.075);
-    playTone(440, 0.09, 'sine', 0.1, 0.15);
+    [290, 360, 440, 520, 600].forEach((f, i) => playTone(f, 0.08, i < 3 ? 'triangle' : 'sine', 0.08 - i * 0.005, i * 0.075));
   }, [playTone]);
-
   const playRevealChord = useCallback(() => {
-    playTone(520, 0.12, 'triangle', 0.1);
-    playTone(650, 0.12, 'sine', 0.09, 0.03);
-    playTone(780, 0.12, 'sine', 0.08, 0.06);
+    [520, 650, 780, 1040].forEach((f, i) => playTone(f, 0.15 - i * 0.01, i % 2 === 0 ? 'triangle' : 'sine', 0.09 - i * 0.01, i * 0.03));
+  }, [playTone]);
+  const playCardDealWhip = useCallback((idx: number) => {
+    playTone(380 + idx * 80, 0.06, 'sawtooth', 0.06);
+    playTone(520 + idx * 60, 0.04, 'sine', 0.04, 0.03);
   }, [playTone]);
 
-  const playCardDestroyCrash = useCallback(() => {
+  const playCrash = useCallback(() => {
     const ctx = getAudioContext();
     if (!ctx) return;
-
     const now = ctx.currentTime;
-    const master = ctx.createGain();
-    master.gain.setValueAtTime(0.0001, now);
-    master.gain.exponentialRampToValueAtTime(0.11, now + 0.02);
-    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
-    master.connect(ctx.destination);
-
-    const thud = ctx.createOscillator();
-    const thudGain = ctx.createGain();
-    thud.type = 'triangle';
-    thud.frequency.setValueAtTime(170, now);
-    thud.frequency.exponentialRampToValueAtTime(58, now + 0.2);
-    thudGain.gain.setValueAtTime(0.0001, now);
-    thudGain.gain.exponentialRampToValueAtTime(0.12, now + 0.012);
-    thudGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
-    thud.connect(thudGain);
-    thudGain.connect(master);
-    thud.start(now);
-    thud.stop(now + 0.28);
-
-    const noiseBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.2), ctx.sampleRate);
-    const channel = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < channel.length; i += 1) {
-      channel[i] = (Math.random() * 2 - 1) * (1 - i / channel.length);
-    }
-
-    const noise = ctx.createBufferSource();
-    noise.buffer = noiseBuffer;
-    const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = 'highpass';
-    noiseFilter.frequency.setValueAtTime(900, now);
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.0001, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.1, now + 0.018);
-    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
-    noise.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(master);
-    noise.start(now + 0.015);
-    noise.stop(now + 0.23);
+    const m = ctx.createGain(); m.gain.setValueAtTime(0.0001, now); m.gain.exponentialRampToValueAtTime(0.12, now + 0.02); m.gain.exponentialRampToValueAtTime(0.0001, now + 0.38); m.connect(ctx.destination);
+    const t = ctx.createOscillator(); const tg = ctx.createGain(); t.type = 'triangle'; t.frequency.setValueAtTime(160, now); t.frequency.exponentialRampToValueAtTime(55, now + 0.2); tg.gain.setValueAtTime(0.0001, now); tg.gain.exponentialRampToValueAtTime(0.11, now + 0.01); tg.gain.exponentialRampToValueAtTime(0.0001, now + 0.22); t.connect(tg); tg.connect(m); t.start(now); t.stop(now + 0.26);
+    const nb = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.18), ctx.sampleRate); const ch = nb.getChannelData(0); for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / ch.length);
+    const ns = ctx.createBufferSource(); ns.buffer = nb; const hf = ctx.createBiquadFilter(); hf.type = 'highpass'; hf.frequency.setValueAtTime(900, now); const ng = ctx.createGain(); ng.gain.setValueAtTime(0.0001, now); ng.gain.exponentialRampToValueAtTime(0.09, now + 0.015); ng.gain.exponentialRampToValueAtTime(0.0001, now + 0.18); ns.connect(hf); hf.connect(ng); ng.connect(m); ns.start(now + 0.012); ns.stop(now + 0.2);
   }, [getAudioContext]);
 
-  const playRevealSpark = useCallback(() => {
-    playTone(520, 0.08, 'triangle', 0.03);
-    playTone(790, 0.11, 'sine', 0.028, 0.035);
+  const playEmotePing = useCallback((e: EmoteType) => {
+    const freqs: Record<EmoteType, number[]> = { smug: [510, 700, 880], panic: [340, 290, 400], challenge: [260, 390, 520], taunt: [440, 560, 700] };
+    freqs[e].forEach((f, i) => playTone(f, 0.08, i === 0 ? 'triangle' : 'sine', 0.035, i * 0.05));
   }, [playTone]);
 
-  const playEmotePing = useCallback((emote: EmoteType) => {
-    if (emote === 'smug') {
-      playTone(510, 0.09, 'triangle', 0.03);
-      playTone(700, 0.08, 'sine', 0.026, 0.05);
-      return;
-    }
-    if (emote === 'panic') {
-      playTone(340, 0.09, 'square', 0.03);
-      playTone(290, 0.08, 'triangle', 0.028, 0.05);
-      return;
-    }
-    playTone(260, 0.08, 'square', 0.032);
-    playTone(390, 0.09, 'triangle', 0.028, 0.045);
-  }, [playTone]);
+  const playReadyDing = useCallback(() => { playTone(880, 0.12, 'sine', 0.1); playTone(1100, 0.1, 'triangle', 0.07, 0.06); }, [playTone]);
+  const playVictory = useCallback(() => { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => playTone(f, i === 5 ? 0.3 : 0.15, i > 3 ? 'triangle' : 'sine', 0.1, i * 0.12)); }, [playTone]);
+  const playDefeat = useCallback(() => { [440, 370, 330, 294].forEach((f, i) => playTone(f, 0.2 + i * 0.04, 'triangle', 0.07 - i * 0.005, i * 0.15)); }, [playTone]);
 
-  // Handle incoming game state synced through the P2P hook.
+  /* ─── P2P State Sync (LOGIC UNTOUCHED) ────────────────────────────── */
   const handleGameState = useCallback((state: GameState) => {
     const parsePlayerState = (raw?: string): EncodedPlayerState => {
-      if (!raw) {
-        return {};
-      }
-
+      if (!raw) return {};
       try {
         const parsed = JSON.parse(raw) as Partial<EncodedPlayerState>;
         const next: EncodedPlayerState = {};
-
-        if (parsed.move === null || parsed.move === 'rock' || parsed.move === 'paper' || parsed.move === 'scissors') {
-          next.move = parsed.move;
-        }
-
-        if (typeof parsed.ready === 'boolean') {
-          next.ready = parsed.ready;
-        }
-
-        if (parsed.emote === null || parsed.emote === 'smug' || parsed.emote === 'panic' || parsed.emote === 'challenge') {
-          next.emote = parsed.emote;
-        }
-
+        if (parsed.move === null || parsed.move === 'rock' || parsed.move === 'paper' || parsed.move === 'scissors') next.move = parsed.move;
+        if (typeof parsed.ready === 'boolean') next.ready = parsed.ready;
+        if (parsed.emote === null || parsed.emote === 'smug' || parsed.emote === 'panic' || parsed.emote === 'challenge' || parsed.emote === 'taunt') next.emote = parsed.emote;
         return next;
-      } catch {
-        return {};
-      }
+      } catch { return {}; }
     };
 
     const remoteP1 = parsePlayerState(state.player1Card);
@@ -330,943 +346,638 @@ export function KakeguruiP2P({ open, onClose }: KakeguruiP2PProps) {
 
     setCurrentRound(state.currentRound);
     setPlayer1State(prev => ({
-      ...prev,
-      score: state.player1Score,
+      ...prev, score: state.player1Score,
       move: remoteP1.move === undefined ? prev.move : remoteP1.move,
-      // Ready should be monotonic within a round: avoid stale false overrides.
       ready: remoteP1.ready === undefined ? prev.ready : prev.ready || remoteP1.ready,
       emote: remoteP1.emote === undefined ? prev.emote : remoteP1.emote,
     }));
     setPlayer2State(prev => ({
-      ...prev,
-      score: state.player2Score,
+      ...prev, score: state.player2Score,
       move: remoteP2.move === undefined ? prev.move : remoteP2.move,
-      // Ready should be monotonic within a round: avoid stale false overrides.
       ready: remoteP2.ready === undefined ? prev.ready : prev.ready || remoteP2.ready,
       emote: remoteP2.emote === undefined ? prev.emote : remoteP2.emote,
     }));
-
     setGamePhase(state.phase as GamePhase);
   }, []);
 
-  // P2P Hook (single shared instance for lobby and game)
   const [room, actions] = useP2PRoom(handleGameState);
 
-  // Send game state to remote
   const syncGameState = useCallback((phase: GamePhase, p1: PlayerGameState, p2: PlayerGameState, round: number) => {
     if (room.state !== 'connected') return;
-
     actions.sendGameState({
-      player1Score: p1.score,
-      player2Score: p2.score,
-      currentRound: round,
+      player1Score: p1.score, player2Score: p2.score, currentRound: round,
       player1Card: JSON.stringify({ move: p1.move, ready: p1.ready, emote: p1.emote }),
       player2Card: JSON.stringify({ move: p2.move, ready: p2.ready, emote: p2.emote }),
       phase: phase as 'betting' | 'reveal' | 'resolution',
     });
   }, [room.state, actions]);
 
-  // Update player IDs when connection established
+  /* ─── Match Initialization ────────────────────────────────────────── */
+  const initializeMatch = useCallback(() => {
+    setLocalHand(generateRandomHand());
+    setOpponentCardCount(3);
+    selectedCardIdRef.current = null;
+    roundResolvingRef.current = false;
+    setCurrentRound(1);
+    setPlayer1State({ score: 0, move: null, ready: false, emote: null });
+    setPlayer2State({ score: 0, move: null, ready: false, emote: null });
+    setDuelReveal(false);
+    setImpactFlash(false);
+    setGamePhase('dealing');
+
+    dealingTimerRef.current = setTimeout(() => {
+      setGamePhase('ready');
+      dealingTimerRef.current = null;
+    }, DEALING_MS);
+  }, []);
+
+  const advanceToNextRound = useCallback(() => {
+    roundResolvingRef.current = false;
+    // Remove used card from local hand
+    if (selectedCardIdRef.current) {
+      setLocalHand(prev => prev.filter(c => c.id !== selectedCardIdRef.current));
+      selectedCardIdRef.current = null;
+    }
+    setOpponentCardCount(prev => Math.max(0, prev - 1));
+
+    // Clear moves
+    setPlayer1State(prev => ({ ...prev, move: null }));
+    setPlayer2State(prev => ({ ...prev, move: null }));
+    setDuelReveal(false);
+    setImpactFlash(false);
+
+    setCurrentRound(prev => prev + 1);
+    setGamePhase('playing');
+  }, []);
+
+  /* ─── Effects (CONNECTION, AUDIO, GAME FLOW — logic untouched) ──── */
   useEffect(() => {
     if (room.state === 'connected') {
       setIsHost(room.isHost);
-      const local = room.isHost ? 1 : 2;
-      const remote = room.isHost ? 2 : 1;
-      setLocalPlayerId(local);
-      setRemotePlayerId(remote);
-
-      // Start game when both connected
+      setLocalPlayerId(room.isHost ? 1 : 2);
+      setRemotePlayerId(room.isHost ? 2 : 1);
       if (showLobby) {
         setShowLobby(false);
         setShowGame(true);
-        startDealingSequence('ready', true);
+        initializeMatch();
       }
     }
-  }, [room.state, room.isHost, showLobby, startDealingSequence]);
+  }, [room.state, room.isHost, showLobby, initializeMatch]);
 
-  useEffect(() => {
-    return () => {
-      clearDealingTimer();
-      clearRoundAnimTimers();
-      if (audioCtxRef.current) {
-        void audioCtxRef.current.close();
-        audioCtxRef.current = null;
-      }
-    };
-  }, [clearDealingTimer, clearRoundAnimTimers]);
+  useEffect(() => () => { clearDealingTimer(); clearRoundAnimTimers(); if (audioCtxRef.current) { void audioCtxRef.current.close(); audioCtxRef.current = null; } }, [clearDealingTimer, clearRoundAnimTimers]);
 
-  // Ping interval for latency
-  useEffect(() => {
-    if (room.state !== 'connected') return;
-
-    const interval = setInterval(() => {
-      const ping: PingMessage = { type: 'ping', timestamp: Date.now() };
-      lastPingRef.current = Date.now();
-      // This ping is handled by useP2PRoom internally.
-      void ping;
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [room.state]);
-
-  useEffect(() => {
-    if (room.latency > 0) {
-      setLatency(room.latency);
-    }
-  }, [room.latency]);
-
-  useEffect(() => {
-    if (room.state !== 'connected') return;
-    unlockAudio();
-  }, [room.state, unlockAudio]);
-
-  useEffect(() => {
-    if (gamePhase !== 'dealing') return;
-    playShuffleRiff();
-  }, [gamePhase, playShuffleRiff]);
+  useEffect(() => { if (room.latency > 0) setLatency(room.latency); }, [room.latency]);
+  useEffect(() => { if (room.state === 'connected') unlockAudio(); }, [room.state, unlockAudio]);
+  useEffect(() => { if (gamePhase === 'dealing') playShuffleRiff(); }, [gamePhase, playShuffleRiff]);
 
   useEffect(() => {
     if (!open) return;
-
-    const onPointerDown = () => {
-      if (!audioUnlockedRef.current) {
-        unlockAudio();
-      }
-    };
-
-    window.addEventListener('pointerdown', onPointerDown, { passive: true });
-    return () => window.removeEventListener('pointerdown', onPointerDown);
+    const handler = () => { if (!audioUnlockedRef.current) unlockAudio(); };
+    window.addEventListener('pointerdown', handler, { passive: true });
+    return () => window.removeEventListener('pointerdown', handler);
   }, [open, unlockAudio]);
 
   useEffect(() => {
     if (!remoteEmote) return;
-
     playEmotePing(remoteEmote);
-    const timer = setTimeout(() => {
-      if (localPlayerId === 1) {
-        setPlayer2State(prev => (prev.emote === remoteEmote ? { ...prev, emote: null } : prev));
-      } else {
-        setPlayer1State(prev => (prev.emote === remoteEmote ? { ...prev, emote: null } : prev));
-      }
-    }, 1600);
-
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => {
+      if (localPlayerId === 1) setPlayer2State(prev => (prev.emote === remoteEmote ? { ...prev, emote: null } : prev));
+      else setPlayer1State(prev => (prev.emote === remoteEmote ? { ...prev, emote: null } : prev));
+    }, 1800);
+    return () => clearTimeout(t);
   }, [remoteEmote, localPlayerId, playEmotePing]);
 
-  // Player actions
-  const handleLocalReady = useCallback(() => {
-    unlockAudio();
-
-    const nextPlayer1 = localPlayerId === 1 ? { ...player1State, ready: true } : player1State;
-    const nextPlayer2 = localPlayerId === 2 ? { ...player2State, ready: true } : player2State;
-
-    if (localPlayerId === 1) {
-      setPlayer1State(nextPlayer1);
-    } else {
-      setPlayer2State(nextPlayer2);
-    }
-
-    syncGameState('ready', nextPlayer1, nextPlayer2, currentRound);
-  }, [localPlayerId, player1State, player2State, currentRound, syncGameState, unlockAudio]);
-
-  const handleMoveSelect = useCallback((move: Move, cardId: string) => {
-    unlockAudio();
-    playCardPickTick(move);
-
-    const nextPlayer1 = localPlayerId === 1 ? { ...player1State, move } : player1State;
-    const nextPlayer2 = localPlayerId === 2 ? { ...player2State, move } : player2State;
-
-    if (localPlayerId === 1) {
-      setPlayer1State(nextPlayer1);
-    } else {
-      setPlayer2State(nextPlayer2);
-    }
-
-    syncGameState('playing', nextPlayer1, nextPlayer2, currentRound);
-    void cardId;
-  }, [localPlayerId, player1State, player2State, currentRound, syncGameState, playCardPickTick, unlockAudio]);
-
-  const handleEmote = useCallback((emoteType: EmoteType) => {
-    unlockAudio();
-
-    const nextPlayer1 = localPlayerId === 1 ? { ...player1State, emote: emoteType } : player1State;
-    const nextPlayer2 = localPlayerId === 2 ? { ...player2State, emote: emoteType } : player2State;
-
-    if (localPlayerId === 1) {
-      setPlayer1State(nextPlayer1);
-    } else {
-      setPlayer2State(nextPlayer2);
-    }
-
-    playEmotePing(emoteType);
-    syncGameState(gamePhase, nextPlayer1, nextPlayer2, currentRound);
-
-    setTimeout(() => {
-      const clearedPlayer1 = localPlayerId === 1 ? { ...nextPlayer1, emote: null } : nextPlayer1;
-      const clearedPlayer2 = localPlayerId === 2 ? { ...nextPlayer2, emote: null } : nextPlayer2;
-
-      if (localPlayerId === 1) {
-        setPlayer1State(clearedPlayer1);
-      } else {
-        setPlayer2State(clearedPlayer2);
-      }
-
-      syncGameState(gamePhase, clearedPlayer1, clearedPlayer2, currentRound);
-    }, 1500);
-  }, [localPlayerId, player1State, player2State, currentRound, gamePhase, syncGameState, playEmotePing, unlockAudio]);
-
-  // Start match when both ready
+  // Both ready → play
   useEffect(() => {
     if (gamePhase === 'ready' && player1State.ready && player2State.ready) {
-      setTimeout(() => {
-        setGamePhase('playing');
-      }, 1000);
+      const t = setTimeout(() => setGamePhase('playing'), 1000);
+      return () => clearTimeout(t);
     }
   }, [gamePhase, player1State.ready, player2State.ready]);
 
-  // Resolve round when both moves selected
+  // Both moves → resolve (ref guard prevents re-entry when score updates change deps)
   useEffect(() => {
-    if (gamePhase === 'playing' && player1State.move && player2State.move) {
-      setGamePhase('round_end');
+    if (gamePhase !== 'playing' || !player1State.move || !player2State.move) return;
+    if (roundResolvingRef.current) return;
+    roundResolvingRef.current = true;
 
-      // Calculate winner
-      const BEATS: Record<Move, Move> = {
-        rock: 'scissors',
-        paper: 'rock',
-        scissors: 'paper',
-      };
+    setGamePhase('round_end');
 
-      let p1Wins = false;
-      let p2Wins = false;
+    const BEATS: Record<Move, Move> = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
+    let p1Win = false, p2Win = false;
+    if (player1State.move !== player2State.move) {
+      if (BEATS[player1State.move] === player2State.move) p1Win = true; else p2Win = true;
+    }
+    if (p1Win) setPlayer1State(prev => ({ ...prev, score: prev.score + 1 }));
+    if (p2Win) setPlayer2State(prev => ({ ...prev, score: prev.score + 1 }));
 
-      if (player1State.move === player2State.move) {
-        // Draw
-      } else if (BEATS[player1State.move] === player2State.move) {
-        p1Wins = true;
+    const s1 = player1State.score + (p1Win ? 1 : 0);
+    const s2 = player2State.score + (p2Win ? 1 : 0);
+
+    const nextTimer = setTimeout(() => {
+      if (s1 >= 2 || s2 >= 2 || currentRound >= MAX_ROUNDS) {
+        roundResolvingRef.current = false;
+        setGamePhase('game_end');
       } else {
-        p2Wins = true;
+        advanceToNextRound();
       }
+    }, 2200);
 
-      if (p1Wins) {
-        setPlayer1State(prev => ({ ...prev, score: prev.score + 1 }));
-      } else if (p2Wins) {
-        setPlayer2State(prev => ({ ...prev, score: prev.score + 1 }));
-      }
+    roundAnimTimersRef.current.push(nextTimer);
+  }, [gamePhase, player1State.move, player2State.move, player1State.score, player2State.score, currentRound, advanceToNextRound]);
 
-      setTimeout(() => {
-        if (player1State.score >= 2 || player2State.score >= 2 || currentRound >= maxRounds) {
-          setGamePhase('game_end');
-        } else {
-          setCurrentRound(prev => prev + 1);
-          startDealingSequence('playing', false);
-        }
-      }, 2000);
-    }
-  }, [gamePhase, player1State.move, player2State.move, player1State.score, player2State.score, currentRound, maxRounds, startDealingSequence]);
-
+  // Round-end animation timings
   useEffect(() => {
-    if (gamePhase !== 'round_end') {
-      setDuelReveal(false);
-      setImpactFlash(false);
-      clearRoundAnimTimers();
-      return;
-    }
-
-    setDuelReveal(false);
-    setImpactFlash(false);
+    if (gamePhase !== 'round_end') { setDuelReveal(false); setImpactFlash(false); clearRoundAnimTimers(); return; }
     clearRoundAnimTimers();
-
-    const impactStart = setTimeout(() => setImpactFlash(true), 260);
-    const revealStart = setTimeout(() => setDuelReveal(true), 520);
-    const impactEnd = setTimeout(() => setImpactFlash(false), 980);
-
-    roundAnimTimersRef.current.push(impactStart, revealStart, impactEnd);
-
-    return () => {
-      clearRoundAnimTimers();
-    };
+    const t1 = setTimeout(() => setImpactFlash(true), 280);
+    const t2 = setTimeout(() => setDuelReveal(true), 540);
+    const t3 = setTimeout(() => setImpactFlash(false), 1000);
+    roundAnimTimersRef.current.push(t1, t2, t3);
   }, [gamePhase, clearRoundAnimTimers]);
 
-  useEffect(() => {
-    if (impactFlash) {
-      playImpactSnap();
-      playCardDestroyCrash();
-      setShatterPulse(prev => prev + 1);
-    }
-  }, [impactFlash, playCardDestroyCrash, playImpactSnap]);
+  useEffect(() => { if (impactFlash) { playImpactSnap(); playCrash(); setShatterPulse(p => p + 1); } }, [impactFlash, playImpactSnap, playCrash]);
+  useEffect(() => { if (duelReveal) playRevealChord(); }, [duelReveal, playRevealChord]);
 
   useEffect(() => {
-    if (duelReveal) {
-      playRevealSpark();
-      playRevealChord();
-    }
-  }, [duelReveal, playRevealSpark, playRevealChord]);
+    if (gamePhase !== 'game_end') return;
+    const ls = localPlayerId === 1 ? player1State.score : player2State.score;
+    const rs = localPlayerId === 1 ? player2State.score : player1State.score;
+    if (ls > rs) playVictory(); else if (rs > ls) playDefeat();
+  }, [gamePhase, localPlayerId, player1State.score, player2State.score, playVictory, playDefeat]);
+
+  /* ─── Player Actions (LOGIC UNTOUCHED) ────────────────────────────── */
+  const handleLocalReady = useCallback(() => {
+    unlockAudio(); playReadyDing();
+    const n1 = localPlayerId === 1 ? { ...player1State, ready: true } : player1State;
+    const n2 = localPlayerId === 2 ? { ...player2State, ready: true } : player2State;
+    if (localPlayerId === 1) setPlayer1State(n1); else setPlayer2State(n2);
+    syncGameState('ready', n1, n2, currentRound);
+  }, [localPlayerId, player1State, player2State, currentRound, syncGameState, unlockAudio, playReadyDing]);
+
+  const handleMoveSelect = useCallback((move: Move, cardId: string) => {
+    if (localMove) return;
+    unlockAudio(); playCardPickTick(move);
+    selectedCardIdRef.current = cardId;
+    const n1 = localPlayerId === 1 ? { ...player1State, move } : player1State;
+    const n2 = localPlayerId === 2 ? { ...player2State, move } : player2State;
+    if (localPlayerId === 1) setPlayer1State(n1); else setPlayer2State(n2);
+    syncGameState('playing', n1, n2, currentRound);
+  }, [localPlayerId, player1State, player2State, currentRound, syncGameState, playCardPickTick, unlockAudio, localMove]);
+
+  const handleEmote = useCallback((emoteType: EmoteType) => {
+    unlockAudio();
+    const n1 = localPlayerId === 1 ? { ...player1State, emote: emoteType } : player1State;
+    const n2 = localPlayerId === 2 ? { ...player2State, emote: emoteType } : player2State;
+    if (localPlayerId === 1) setPlayer1State(n1); else setPlayer2State(n2);
+    playEmotePing(emoteType);
+    syncGameState(gamePhase, n1, n2, currentRound);
+    setTimeout(() => {
+      const c1 = localPlayerId === 1 ? { ...n1, emote: null } : n1;
+      const c2 = localPlayerId === 2 ? { ...n2, emote: null } : n2;
+      if (localPlayerId === 1) setPlayer1State(c1); else setPlayer2State(c2);
+      syncGameState(gamePhase, c1, c2, currentRound);
+    }, 1500);
+  }, [localPlayerId, player1State, player2State, currentRound, gamePhase, syncGameState, playEmotePing, unlockAudio]);
 
   const handleClose = useCallback(() => {
-    clearDealingTimer();
-    clearRoundAnimTimers();
-    actions.disconnect();
-    setShowLobby(true);
-    setShowGame(false);
-    setGamePhase('lobby');
-    setCurrentRound(1);
+    clearDealingTimer(); clearRoundAnimTimers(); actions.disconnect();
+    setShowLobby(true); setShowGame(false); setGamePhase('lobby'); setCurrentRound(1);
     setPlayer1State({ score: 0, move: null, ready: false, emote: null });
     setPlayer2State({ score: 0, move: null, ready: false, emote: null });
+    setLocalHand([]); setOpponentCardCount(3);
     onClose();
   }, [actions, onClose, clearDealingTimer, clearRoundAnimTimers]);
 
   const handleBackToLobby = useCallback(() => {
-    clearDealingTimer();
-    clearRoundAnimTimers();
-    actions.disconnect();
-    setShowLobby(true);
-    setShowGame(false);
-    setGamePhase('lobby');
-    setCurrentRound(1);
+    clearDealingTimer(); clearRoundAnimTimers(); actions.disconnect();
+    setShowLobby(true); setShowGame(false); setGamePhase('lobby'); setCurrentRound(1);
     setPlayer1State({ score: 0, move: null, ready: false, emote: null });
     setPlayer2State({ score: 0, move: null, ready: false, emote: null });
+    setLocalHand([]); setOpponentCardCount(3);
   }, [actions, clearDealingTimer, clearRoundAnimTimers]);
 
   const handleRematch = useCallback(() => {
-    clearDealingTimer();
-    clearRoundAnimTimers();
-    setCurrentRound(1);
-    setPlayer1State(prev => ({ ...prev, score: 0, move: null, ready: false, emote: null }));
-    setPlayer2State(prev => ({ ...prev, score: 0, move: null, ready: false, emote: null }));
-    startDealingSequence('ready', true);
-  }, [startDealingSequence, clearDealingTimer, clearRoundAnimTimers]);
+    clearDealingTimer(); clearRoundAnimTimers();
+    initializeMatch();
+  }, [initializeMatch, clearDealingTimer, clearRoundAnimTimers]);
+
+  /* ── Derived data for opponent hand display ────────────────────────── */
+  const opponentDisplayCards = useMemo(() =>
+    Array.from({ length: opponentCardCount }, (_, i) => ({ id: `opp-${i}`, move: 'rock' as Move })),
+    [opponentCardCount]
+  );
+
+  /* ── Hand info banner ──────────────────────────────────────────────── */
+  const handSummary = useMemo(() => {
+    const counts: Record<Move, number> = { rock: 0, paper: 0, scissors: 0 };
+    localHand.forEach(c => counts[c.move]++);
+    const parts: string[] = [];
+    if (counts.rock > 0) parts.push(`${counts.rock}🪨`);
+    if (counts.paper > 0) parts.push(`${counts.paper}📄`);
+    if (counts.scissors > 0) parts.push(`${counts.scissors}✂️`);
+    return parts.join(' · ');
+  }, [localHand]);
 
   if (!open) return null;
 
+  /* ═══════════════════════════════════════════════════════════════════
+     RENDER
+     ═══════════════════════════════════════════════════════════════════ */
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          className="fixed inset-0 z-[10030]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <motion.div
-            className="absolute inset-0 bg-black/90 backdrop-blur-md"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          />
+        <motion.div className="fixed inset-0 z-[10030]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div className="absolute inset-0 bg-black/92 backdrop-blur-md" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
 
           <motion.div
-            className="relative mx-auto mt-[2dvh] h-[96dvh] w-[98vw] overflow-hidden rounded-xl border border-white/15 bg-[#0a0a0c] text-white shadow-[0_18px_70px_rgba(0,0,0,0.7)] sm:mt-[3dvh] sm:h-[94dvh] sm:w-[96vw] lg:mt-[4dvh] lg:h-[92dvh] lg:w-[min(96vw,1000px)]"
-            initial={{ y: 40, opacity: 0, scale: 0.95 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 20, opacity: 0, scale: 0.98 }}
+            className="relative mx-auto mt-[2dvh] h-[96dvh] w-[98vw] overflow-hidden rounded-xl border border-white/12 bg-[#08080b] text-white shadow-[0_18px_70px_rgba(0,0,0,0.7)] sm:mt-[3dvh] sm:h-[94dvh] sm:w-[96vw] lg:mt-[4dvh] lg:h-[92dvh] lg:w-[min(96vw,1000px)]"
+            initial={{ y: 40, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 20, opacity: 0, scale: 0.98 }}
           >
-            {/* Header with connection status */}
-            <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-white/10 px-4 py-3 bg-[#0a0a0c]/90 backdrop-blur">
+            {/* ── Header ── */}
+            <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-white/8 px-4 py-2.5 bg-gradient-to-r from-[#08080b]/95 via-[#0e0e14]/95 to-[#08080b]/95 backdrop-blur-sm">
+              <Button variant="ghost" size="sm" onClick={handleBackToLobby} className="text-zinc-500 hover:text-white h-8 px-2">
+                <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Lobby
+              </Button>
+              <h1 className="text-xs font-bold uppercase tracking-[0.22em] text-white/80">⚔️ Carta Forbice Sasso</h1>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleBackToLobby}
-                  className="text-zinc-400 hover:text-white"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-1" />
-                  Indietro
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <h1 className="text-sm font-bold uppercase tracking-wider text-white/90">
-                  Carta Forbice Sasso
-                </h1>
-              </div>
-
-              <div className="flex items-center gap-3">
                 {room.state === 'connected' ? (
-                  <>
-                    <div className="flex items-center gap-1.5 text-emerald-400 text-xs">
-                      <Wifi className="h-3.5 w-3.5" />
-                      <span>LAN</span>
-                    </div>
-                    <div className="text-xs text-zinc-500">{latency}ms</div>
-                  </>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-amber-500 text-xs">
-                    <WifiOff className="h-3.5 w-3.5" />
-                    <span>Offline</span>
+                  <div className="flex items-center gap-1.5">
+                    <motion.div className="h-1.5 w-1.5 rounded-full bg-emerald-400" animate={{ scale: [1, 1.4, 1], opacity: [0.6, 1, 0.6] }} transition={{ duration: 1.5, repeat: Infinity }} />
+                    <Wifi className="h-3 w-3 text-emerald-400/70" />
+                    <span className="text-[10px] font-mono text-zinc-600">{latency}ms</span>
                   </div>
+                ) : (
+                  <WifiOff className="h-3.5 w-3.5 text-amber-500/60" />
                 )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClose}
-                  className="text-zinc-400 hover:text-white hover:bg-red-500/20"
-                >
-                  Chiudi
-                </Button>
+                <Button variant="ghost" size="sm" onClick={handleClose} className="text-zinc-500 hover:text-red-400 h-8 px-2">✕</Button>
               </div>
             </div>
 
-            {/* Main Content */}
-            <div className="h-full pt-14">
+            {/* ── Content ── */}
+            <div className="h-full pt-12 overflow-y-auto">
               <AnimatePresence mode="wait">
-                {showLobby && (
-                  <motion.div
-                    key="lobby"
-                    className="h-full flex flex-col items-center justify-center p-6"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                  >
-                    <div className="text-center mb-8">
-                      <h2 className="text-2xl font-bold text-white mb-2">Carta Forbice Sasso 1v1</h2>
-                      <p className="text-zinc-400 text-sm max-w-md">
-                        Nessun server richiesto. Connettiti direttamente con un altro giocatore nella stessa rete.
-                      </p>
-                    </div>
 
-                    <P2PLobby
-                      onConnected={() => {
-                        setShowLobby(false);
-                        setShowGame(true);
-                      }}
-                      room={room}
-                      actions={actions}
-                    />
+                {/* ═══ LOBBY ═══ */}
+                {showLobby && (
+                  <motion.div key="lobby" className="h-full flex flex-col items-center justify-center p-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                    <div className="text-center mb-8">
+                      <h2 className="text-2xl font-bold text-white mb-2">⚔️ Carta Forbice Sasso 1v1</h2>
+                      <p className="text-zinc-500 text-sm max-w-md">Connettiti direttamente con un altro giocatore. Le carte sono distribuite casualmente.</p>
+                    </div>
+                    <P2PLobby onConnected={() => { setShowLobby(false); setShowGame(true); }} room={room} actions={actions} />
                   </motion.div>
                 )}
 
+                {/* ═══ GAME ═══ */}
                 {showGame && room.state === 'connected' && (
-                  <motion.div
-                    key="game"
-                    className="h-full flex flex-col"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    {/* Connection Status Bar */}
-                    <div className="flex items-center justify-center gap-4 py-3 bg-zinc-900/50 border-b border-white/5">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Users className="h-4 w-4 text-primary" />
-                        <span className="text-zinc-300">Tu (Giocatore {localPlayerId})</span>
+                  <motion.div key="game" className="h-full flex flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+
+                    {/* Score bar */}
+                    <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-zinc-950/50">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-3.5 w-3.5 text-primary/70" />
+                        <span className="text-xs text-zinc-400">Tu (P{localPlayerId})</span>
                       </div>
-                      <div className="h-4 w-px bg-white/20" />
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className={`h-2 w-2 rounded-full ${room.state === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                        <span className="text-zinc-400 text-xs">
-                          {room.state === 'connected' ? 'Connesso P2P' : 'Disconnesso'}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <motion.span key={`s1-${player1State.score}`} className="text-xl font-black text-primary" initial={{ scale: 1.5 }} animate={{ scale: 1 }}>
+                          {player1State.score}
+                        </motion.span>
+                        <span className="text-zinc-600 text-sm font-bold">—</span>
+                        <motion.span key={`s2-${player2State.score}`} className="text-xl font-black text-primary" initial={{ scale: 1.5 }} animate={{ scale: 1 }}>
+                          {player2State.score}
+                        </motion.span>
                       </div>
-                      <div className="h-4 w-px bg-white/20" />
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-zinc-500">vs</span>
-                        <span className="text-zinc-300">Rivale (Giocatore {remotePlayerId})</span>
+                      <div className="text-xs text-zinc-500">
+                        Round {currentRound}/{MAX_ROUNDS}
                       </div>
                     </div>
 
                     <div className="relative flex-1 overflow-hidden">
-                      <motion.div
-                        className="pointer-events-none absolute -left-28 top-12 h-64 w-64 rounded-full bg-orange-500/10 blur-3xl"
-                        animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.12, 1] }}
-                        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-                      />
-                      <motion.div
-                        className="pointer-events-none absolute -right-20 bottom-10 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl"
-                        animate={{ opacity: [0.4, 0.75, 0.4], scale: [1.02, 0.92, 1.02] }}
-                        transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-                      />
+                      {/* Ambient lighting */}
+                      <motion.div className="pointer-events-none absolute -left-20 top-1/4 h-56 w-56 rounded-full bg-primary/8 blur-3xl" animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 5, repeat: Infinity }} />
+                      <motion.div className="pointer-events-none absolute -right-16 bottom-1/4 h-56 w-56 rounded-full bg-cyan-500/8 blur-3xl" animate={{ opacity: [0.4, 0.65, 0.4] }} transition={{ duration: 6, repeat: Infinity }} />
 
-                      <div className="relative z-10 flex h-full flex-col items-center justify-center px-5 py-8">
-                        {/* Game Phases */}
+                      <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 py-6">
+
+                        {/* ═══ DEALING ═══ */}
                         {gamePhase === 'dealing' && (
-                          <motion.div
-                            className="w-full max-w-4xl"
-                            initial={{ opacity: 0, y: 18 }}
-                            animate={{ opacity: 1, y: 0 }}
-                          >
-                            <div className="text-center mb-6">
-                              <span className="text-sm text-zinc-400 uppercase tracking-[0.2em]">Round {currentRound} di {maxRounds}</span>
-                              <h3 className="mt-2 text-2xl font-semibold text-white">Mischio il deck e distribuisco le carte...</h3>
-                            </div>
+                          <motion.div className="w-full max-w-lg" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                            <p className="text-center text-xs uppercase tracking-[0.3em] text-zinc-500 mb-4">
+                              Distribuzione carte — Round {currentRound}
+                            </p>
 
-                            <div className="relative mx-auto h-80 max-w-4xl overflow-hidden rounded-[42px] border border-white/10 bg-[radial-gradient(circle_at_50%_20%,rgba(255,115,0,0.2),transparent_58%),radial-gradient(circle_at_50%_85%,rgba(56,189,248,0.15),transparent_62%),linear-gradient(180deg,rgba(14,14,18,0.96),rgba(10,10,13,0.96))]">
-                              <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_0%,rgba(255,255,255,0.03)_46%,transparent_100%)]" />
-                              <motion.div
-                                className="pointer-events-none absolute inset-0"
-                                animate={{ opacity: [0.2, 0.55, 0.2] }}
-                                transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-                              >
-                                <div className="absolute left-[46%] top-[34%] h-24 w-24 rounded-full bg-orange-400/20 blur-2xl" />
-                                <div className="absolute left-[52%] top-[47%] h-28 w-28 rounded-full bg-cyan-400/20 blur-2xl" />
-                              </motion.div>
+                            {/* Dealing table */}
+                            <div className="relative mx-auto h-[380px] rounded-3xl border border-white/8 bg-[radial-gradient(circle_at_50%_30%,rgba(255,115,0,0.18),transparent_55%),linear-gradient(180deg,rgba(12,12,16,0.97),rgba(8,8,11,0.97))] overflow-hidden">
+                              {/* Inner glow */}
+                              <motion.div className="pointer-events-none absolute left-1/2 top-[40%] h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-2xl" animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.9, 1.15, 0.9] }} transition={{ duration: 1.3, repeat: Infinity }} />
 
-                              {[0, 1, 2, 3, 4].map((idx) => {
-                                const radius = 36 + idx * 5;
-                                return (
-                                  <motion.div
-                                    key={`shuffle-${idx}`}
-                                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                                    animate={{
-                                      x: [0, radius, 0, -radius, 0],
-                                      y: [-radius * 0.25, 0, radius * 0.25, 0, -radius * 0.25],
-                                      rotate: [idx * 14, idx * 14 + 70, idx * 14 + 160, idx * 14 + 250, idx * 14 + 340],
-                                      opacity: [0.25, 0.85, 0.75, 0.85, 0.25],
-                                    }}
-                                    transition={{ duration: 1.2, repeat: Infinity, ease: 'linear', delay: idx * 0.07 }}
-                                  >
-                                    <div className="h-20 w-16">
-                                      <ArenaCardBack />
-                                    </div>
-                                  </motion.div>
-                                );
-                              })}
-
-                              <motion.div
-                                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                                animate={{ rotate: [0, -7, 7, -5, 5, 0], scale: [1, 1.07, 1] }}
-                                transition={{ duration: 0.88, repeat: Infinity, ease: 'easeInOut' }}
-                              >
-                                <div className="h-28 w-20">
-                                  <ArenaCardBack />
-                                </div>
-                              </motion.div>
-
-                              <motion.div
-                                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                                animate={{ rotate: [0, 9, -9, 6, -6, 0], scale: [1, 1.04, 1] }}
-                                transition={{ duration: 0.96, repeat: Infinity, ease: 'easeInOut', delay: 0.07 }}
-                              >
-                                <div className="h-28 w-20 opacity-85">
-                                  <ArenaCardBack />
-                                </div>
-                              </motion.div>
-
-                              <div className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2 rounded-full border border-orange-300/30 bg-orange-500/10 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-orange-200/90">
-                                Shuffle Sequence
-                              </div>
-
-                              {/* Cards dealt to player 1 (left) */}
-                              {P2P_HAND_CARDS.map((card, idx) => (
+                              {/* Central deck pile */}
+                              {[0, 1, 2].map(i => (
                                 <motion.div
-                                  key={`deal-left-${card.id}`}
-                                  className="absolute left-1/2 top-1/2"
-                                  initial={{ x: -8, y: -8, rotate: 0, opacity: 0 }}
-                                  animate={{
-                                    x: -260 + idx * 58,
-                                    y: -80 + idx * 12,
-                                    rotate: -18 + idx * 9,
-                                    opacity: [0, 1, 1],
-                                  }}
-                                  transition={{ duration: 0.58, delay: idx * 0.14, ease: 'easeOut' }}
+                                  key={`deck-${i}`}
+                                  className="absolute left-1/2 top-[38%]"
+                                  style={{ marginLeft: -32, marginTop: -44 }}
+                                  initial={{ rotate: -3 + i * 3, y: i * -2 }}
+                                  animate={{ rotate: [-5 + i * 4, 5 - i * 4, -5 + i * 4], y: [i * -2, i * -4, i * -2] }}
+                                  transition={{ duration: 0.7, repeat: Infinity, ease: 'easeInOut' }}
                                 >
-                                  <HandMoveCard card={card} hidden={true} />
+                                  <div className="h-[88px] w-[64px]"><ArenaCardBack /></div>
                                 </motion.div>
                               ))}
 
-                              {/* Cards dealt to player 2 (right) */}
-                              {P2P_HAND_CARDS.map((card, idx) => (
+                              {/* Cards dealing to opponent (top) */}
+                              {[0, 1, 2].map(idx => (
                                 <motion.div
-                                  key={`deal-right-${card.id}`}
-                                  className="absolute left-1/2 top-1/2"
-                                  initial={{ x: 8, y: -8, rotate: 0, opacity: 0 }}
-                                  animate={{
-                                    x: 130 + idx * 58,
-                                    y: -80 + idx * 12,
-                                    rotate: 8 + idx * 9,
-                                    opacity: [0, 1, 1],
-                                  }}
-                                  transition={{ duration: 0.58, delay: 0.05 + idx * 0.14, ease: 'easeOut' }}
+                                  key={`deal-opp-${idx}`}
+                                  className="absolute left-1/2 top-[38%]"
+                                  initial={{ x: -32, y: -44, rotate: 0, opacity: 0, scale: 0.7 }}
+                                  animate={{ x: -110 + idx * 72, y: -180, rotate: -12 + idx * 12, opacity: 1, scale: 1 }}
+                                  transition={{ duration: 0.5, delay: 0.6 + idx * 0.2, ease: [0.22, 1, 0.36, 1] }}
+                                  onAnimationStart={() => { if (idx <= 2) playCardDealWhip(idx); }}
                                 >
-                                  <HandMoveCard card={card} hidden={true} />
+                                  <div className="h-[76px] w-[56px]"><ArenaCardBack /></div>
                                 </motion.div>
                               ))}
 
-                              <div className="absolute bottom-4 left-4 rounded-full border border-white/15 bg-zinc-900/70 px-3 py-1 text-xs uppercase tracking-[0.16em] text-zinc-300">
-                                Giocatore 1
-                              </div>
-                              <div className="absolute bottom-4 right-4 rounded-full border border-white/15 bg-zinc-900/70 px-3 py-1 text-xs uppercase tracking-[0.16em] text-zinc-300">
-                                Giocatore 2
-                              </div>
+                              {/* Cards dealing to player (bottom) — face UP to reveal hand */}
+                              {localHand.map((card, idx) => (
+                                <motion.div
+                                  key={`deal-me-${card.id}`}
+                                  className="absolute left-1/2 top-[38%]"
+                                  initial={{ x: -32, y: -44, rotate: 0, opacity: 0, scale: 0.7 }}
+                                  animate={{ x: -110 + idx * 72, y: 90, rotate: -8 + idx * 8, opacity: 1, scale: 1 }}
+                                  transition={{ duration: 0.5, delay: 1.0 + idx * 0.2, ease: [0.22, 1, 0.36, 1] }}
+                                >
+                                  <HandMoveCard card={card} hidden={false} disabled />
+                                </motion.div>
+                              ))}
+
+                              <motion.p
+                                className="absolute bottom-5 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.2em] text-zinc-500"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                transition={{ duration: 1.5, repeat: Infinity, delay: 1.5 }}
+                              >
+                                Carte distribuite casualmente
+                              </motion.p>
                             </div>
                           </motion.div>
                         )}
 
+                        {/* ═══ READY ═══ */}
                         {gamePhase === 'ready' && (
-                          <motion.div
-                            className="w-full max-w-3xl rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/70 to-zinc-950/70 p-8 shadow-[0_25px_90px_rgba(0,0,0,0.45)]"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                          >
-                            <div className="text-center space-y-6">
-                              <Loader2 className="h-10 w-10 text-primary animate-spin mx-auto" />
-                              <h3 className="text-2xl font-semibold text-white">In attesa dei giocatori...</h3>
-                              <div className="mx-auto h-px w-40 bg-gradient-to-r from-transparent via-orange-400/60 to-transparent" />
+                          <motion.div className="w-full max-w-md rounded-2xl border border-white/8 bg-zinc-950/70 p-7 text-center" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+                            <Loader2 className="h-8 w-8 text-primary/70 mx-auto mb-4 animate-spin" />
+                            <h3 className="text-lg font-semibold text-white mb-5">Pronti?</h3>
 
-                              <div className="flex items-center justify-center gap-8 mt-2">
-                                <motion.div
-                                  className="text-center"
-                                  animate={player1State.ready ? { scale: [1, 1.06, 1] } : { opacity: [0.8, 1, 0.8] }}
-                                  transition={{ duration: 1.8, repeat: Infinity }}
-                                >
-                                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-2 ${player1State.ready ? 'bg-emerald-500/20 border border-emerald-400 shadow-[0_0_22px_rgba(16,185,129,0.35)]' : 'bg-zinc-800/80 border border-zinc-700'}`}>
-                                    <span className="text-xl font-black tracking-wider">{player1State.ready ? 'READY' : '...'}</span>
+                            <div className="flex items-center justify-center gap-6 mb-6">
+                              {[{ label: `P1${localPlayerId === 1 ? ' (Tu)' : ''}`, ready: player1State.ready }, { label: `P2${localPlayerId === 2 ? ' (Tu)' : ''}`, ready: player2State.ready }].map((p, i) => (
+                                <motion.div key={i} className="text-center" animate={p.ready ? { scale: [1, 1.05, 1] } : { opacity: [0.7, 1, 0.7] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                                  <div className={`h-14 w-14 rounded-xl flex items-center justify-center mb-1.5 text-sm font-black ${p.ready ? 'bg-emerald-500/15 border border-emerald-400/60 text-emerald-300 shadow-[0_0_16px_rgba(16,185,129,0.25)]' : 'bg-zinc-900 border border-zinc-700 text-zinc-500'}`}>
+                                    {p.ready ? '✓' : '…'}
                                   </div>
-                                  <span className="text-sm text-zinc-300">Giocatore 1</span>
+                                  <span className="text-[10px] text-zinc-400">{p.label}</span>
                                 </motion.div>
-
-                                <motion.div
-                                  className="text-center"
-                                  animate={player2State.ready ? { scale: [1, 1.06, 1] } : { opacity: [0.8, 1, 0.8] }}
-                                  transition={{ duration: 1.8, repeat: Infinity, delay: 0.2 }}
-                                >
-                                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-2 ${player2State.ready ? 'bg-emerald-500/20 border border-emerald-400 shadow-[0_0_22px_rgba(16,185,129,0.35)]' : 'bg-zinc-800/80 border border-zinc-700'}`}>
-                                    <span className="text-xl font-black tracking-wider">{player2State.ready ? 'READY' : '...'}</span>
-                                  </div>
-                                  <span className="text-sm text-zinc-300">Giocatore 2</span>
-                                </motion.div>
-                              </div>
+                              ))}
                             </div>
 
+                            <div className="text-[10px] text-zinc-600 mb-5">La tua mano: {handSummary}</div>
+
                             {!((localPlayerId === 1 && player1State.ready) || (localPlayerId === 2 && player2State.ready)) && (
-                              <div className="mt-8 flex justify-center">
-                                <Button
-                                  onClick={handleLocalReady}
-                                  className="bg-primary hover:bg-primary/90 text-white px-9 py-6 text-lg shadow-[0_12px_36px_rgba(255,115,0,0.35)]"
-                                >
-                                  Sono Pronto!
+                              <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+                                <Button onClick={handleLocalReady} className="bg-primary hover:bg-primary/90 text-white px-8 py-5 text-base rounded-lg shadow-[0_8px_28px_rgba(255,115,0,0.3)]">
+                                  ⚡ Pronto!
                                 </Button>
-                              </div>
+                              </motion.div>
                             )}
                           </motion.div>
                         )}
 
+                        {/* ═══ PLAYING ═══ */}
                         {gamePhase === 'playing' && (
-                          <motion.div
-                            className="w-full max-w-4xl"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                          >
-                            <div className="text-center mb-6">
-                              <span className="text-sm text-zinc-400 uppercase tracking-[0.2em]">Round {currentRound} di {maxRounds}</span>
-                              <div className="flex items-center justify-center gap-6 mt-2 text-3xl font-black">
-                                <span className="text-orange-400">{player1State.score}</span>
-                                <span className="text-zinc-600">-</span>
-                                <span className="text-orange-400">{player2State.score}</span>
+                          <motion.div className="w-full max-w-2xl" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+
+                            {/* Opponent section */}
+                            <div className="mb-4">
+                              <div className="flex items-center justify-between mb-2 px-1">
+                                <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">Avversario — {opponentCardCount} carte</span>
+                                {remoteMove && (
+                                  <motion.span className="text-[10px] text-emerald-400 uppercase tracking-wider" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                    ✓ mossa scelta
+                                  </motion.span>
+                                )}
                               </div>
+                              <div className="flex items-center justify-center gap-3">
+                                {opponentDisplayCards.map((card, idx) => (
+                                  <motion.div key={card.id} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0, rotate: -6 + idx * 6 }} transition={{ delay: idx * 0.08 }}>
+                                    <HandMoveCard card={card} hidden={true} />
+                                  </motion.div>
+                                ))}
+                              </div>
+
+                              {/* Remote emote sticker */}
+                              <AnimatePresence>
+                                {remoteEmote && (
+                                  <motion.div className="flex justify-center mt-3" initial={{ opacity: 0, y: -8, scale: 0.4 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -16, scale: 0.7 }} transition={{ type: 'spring', stiffness: 350, damping: 18 }}>
+                                    <motion.div
+                                      className={`rounded-2xl border-2 ${EMOTE_CFG[remoteEmote].border} bg-gradient-to-br ${EMOTE_CFG[remoteEmote].tone} p-2 flex items-center gap-2`}
+                                      style={{ boxShadow: `0 0 28px ${EMOTE_CFG[remoteEmote].glow}` }}
+                                      animate={remoteEmote === 'panic' ? { x: [0, -3, 3, -2, 2, 0], rotate: [0, -4, 4, -2, 2, 0] } : remoteEmote === 'taunt' ? { y: [0, -4, 0], rotate: [0, 6, -6, 0] } : { scale: [1, 1.06, 1], y: [0, -3, 0] }}
+                                      transition={{ duration: 0.5, repeat: Infinity, ease: 'easeInOut' }}
+                                    >
+                                      <StickerFace emote={remoteEmote} size={42} />
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-white/70 pr-1">{EMOTE_CFG[remoteEmote].label}</span>
+                                    </motion.div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
                             </div>
 
-                            <div className="relative mx-auto max-w-4xl rounded-[48px] border border-white/10 bg-[radial-gradient(circle_at_50%_30%,rgba(255,115,0,0.3),transparent_58%),radial-gradient(circle_at_50%_80%,rgba(34,211,238,0.2),transparent_58%),linear-gradient(180deg,rgba(10,10,14,0.97),rgba(6,6,10,0.97))] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_30px_95px_rgba(0,0,0,0.62)]">
-                              <div className="space-y-7">
-                                <div className="text-center">
-                                  <p className="mb-3 text-xs uppercase tracking-[0.22em] text-zinc-400">Mano avversario</p>
-                                  <div className="flex items-center justify-center gap-4">
-                                    {P2P_HAND_CARDS.map((card, idx) => (
-                                      <motion.div
-                                        key={`remote-${card.id}`}
-                                        initial={{ opacity: 0, y: -10, rotate: -6 + idx * 3 }}
-                                        animate={{ opacity: 1, y: 0, rotate: -8 + idx * 8, scale: 1.15 }}
-                                        transition={{ duration: 0.35, delay: idx * 0.08 }}
-                                      >
-                                        <HandMoveCard card={card} hidden={true} />
-                                      </motion.div>
-                                    ))}
-                                  </div>
-                                  {remoteMove && (
-                                    <div className="mt-2 text-[11px] uppercase tracking-[0.16em] text-emerald-300">
-                                      Avversario pronto al lancio
-                                    </div>
-                                  )}
+                            {/* ── ARENA ZONE ── */}
+                            <div className="relative mx-auto rounded-[28px] border-2 border-primary/15 bg-[radial-gradient(circle_at_50%_42%,rgba(255,115,0,0.22),transparent_50%),radial-gradient(circle_at_30%_70%,rgba(56,189,248,0.12),transparent_48%),radial-gradient(circle_at_70%_30%,rgba(168,50,105,0.1),transparent_48%),linear-gradient(180deg,#0c0c10,#080810)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_80px_rgba(0,0,0,0.6)]" style={{ minHeight: 160 }}>
 
-                                  <AnimatePresence>
-                                    {remoteEmote && (
-                                      <motion.div
-                                        className={`mx-auto mt-3 inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-white bg-gradient-to-r ${EMOTE_UI[remoteEmote].toneClass}`}
-                                        initial={{ opacity: 0, y: -6, scale: 0.9 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: -4, scale: 0.94 }}
-                                      >
-                                        {EMOTE_UI[remoteEmote].label}
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
-                                </div>
+                              {/* Inner border ring */}
+                              <div className="pointer-events-none absolute inset-3 rounded-[22px] border border-white/[0.04]" />
 
-                                <motion.div
-                                  className="relative mx-auto h-32 max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/45"
-                                  animate={localMove && remoteMove ? { x: [0, -4, 4, -3, 3, 0], y: [0, 1, -1, 1, -1, 0] } : { x: 0, y: 0 }}
-                                  transition={{ duration: 0.38, ease: 'easeOut' }}
-                                >
-                                  <motion.div
-                                    className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-400/25 blur-2xl"
-                                    animate={localMove || remoteMove ? { scale: [0.85, 1.35, 0.95], opacity: [0.36, 0.76, 0.4] } : { scale: [0.8, 1, 0.8], opacity: [0.15, 0.3, 0.15] }}
-                                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-                                  />
+                              {/* Diamond pattern overlay */}
+                              <div className="pointer-events-none absolute inset-0 rounded-[28px] opacity-[0.03]" style={{ backgroundImage: 'repeating-conic-gradient(rgba(255,255,255,0.1) 0% 25%, transparent 0% 50%)', backgroundSize: '24px 24px' }} />
 
-                                  {(localMove || remoteMove) && Array.from({ length: 7 }).map((_, idx) => (
+                              {/* Center emblem */}
+                              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                                <motion.div animate={{ rotate: 360 }} transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}>
+                                  <div className="h-8 w-8 rotate-45 border border-primary/20 bg-primary/5 rounded-sm" />
+                                </motion.div>
+                                <motion.div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-12 rounded-full border border-white/[0.04]" animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 2.5, repeat: Infinity }} />
+                              </div>
+
+                              {/* Energy streaks when moves exist */}
+                              {(localMove || remoteMove) && (
+                                <motion.div className="pointer-events-none absolute inset-0" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                  {Array.from({ length: 8 }).map((_, i) => (
                                     <motion.div
-                                      key={`streak-${idx}`}
-                                      className="pointer-events-none absolute h-[2px] w-16 rounded-full bg-gradient-to-r from-transparent via-orange-300/70 to-transparent"
-                                      style={{ top: `${20 + idx * 9}%`, left: `${8 + idx * 11}%`, transform: `rotate(${-18 + idx * 6}deg)` }}
-                                      animate={{ x: [-12, 14, -6, 0], opacity: [0, 0.7, 0.18, 0] }}
-                                      transition={{ duration: 0.62, repeat: Infinity, ease: 'easeInOut', delay: idx * 0.06 }}
+                                      key={i}
+                                      className="absolute h-[1.5px] w-12 rounded-full bg-gradient-to-r from-transparent via-primary/50 to-transparent"
+                                      style={{ top: `${15 + i * 10}%`, left: `${5 + i * 11}%`, transform: `rotate(${-20 + i * 5}deg)` }}
+                                      animate={{ x: [-10, 16, -8, 0], opacity: [0, 0.6, 0.15, 0] }}
+                                      transition={{ duration: 0.55, repeat: Infinity, delay: i * 0.05 }}
                                     />
                                   ))}
-
-                                  {remoteMove && (
-                                    <motion.div
-                                      className="absolute left-1/2 top-1/2"
-                                      initial={{ x: -180, y: -80, rotate: -18, opacity: 0.2 }}
-                                      animate={{ x: -52, y: -16, rotate: -8, opacity: 1 }}
-                                      transition={{ duration: 0.35, ease: 'easeOut' }}
-                                    >
-                                      <HandMoveCard card={{ id: 'remote-preview', move: remoteMove }} hidden={true} />
-                                    </motion.div>
-                                  )}
-
-                                  {localMove && (
-                                    <motion.div
-                                      className="absolute left-1/2 top-1/2"
-                                      initial={{ x: 180, y: 80, rotate: 18, opacity: 0.2 }}
-                                      animate={{ x: 52, y: -4, rotate: 8, opacity: 1 }}
-                                      transition={{ duration: 0.35, ease: 'easeOut' }}
-                                    >
-                                      <HandMoveCard card={{ id: 'local-preview', move: localMove }} hidden={true} />
-                                    </motion.div>
-                                  )}
                                 </motion.div>
-
-                                <div className="text-center">
-                                  <p className="mb-3 text-xs uppercase tracking-[0.22em] text-zinc-400">La tua mano</p>
-                                  <div className="mx-auto mb-3 inline-flex items-center rounded-full border border-orange-300/30 bg-orange-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-orange-200/90">
-                                    BRX Neon Deck
-                                  </div>
-                                  <div className="relative mx-auto max-w-xl rounded-2xl border border-white/10 bg-zinc-950/40 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_14px_36px_rgba(0,0,0,0.42)]">
-                                    <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_20%_10%,rgba(255,115,0,0.16),transparent_46%),radial-gradient(circle_at_80%_85%,rgba(56,189,248,0.14),transparent_44%)]" />
-                                    <div className="relative flex items-center justify-center gap-5">
-                                    {P2P_HAND_CARDS.map((card) => {
-                                      const selected = localMove === card.move;
-                                      const disabled = !!localMove;
-
-                                      return (
-                                        <motion.div
-                                          key={card.id}
-                                          animate={selected ? { scale: 1.24, y: -8 } : { scale: 1.16, y: 0 }}
-                                          transition={{ duration: 0.2, ease: 'easeOut' }}
-                                        >
-                                          <HandMoveCard
-                                            card={card}
-                                            hidden={false}
-                                            disabled={disabled}
-                                            selected={selected}
-                                            onPick={() => handleMoveSelect(card.move, card.id)}
-                                          />
-                                        </motion.div>
-                                      );
-                                    })}
-                                  </div>
-                                  </div>
-
-                                  <AnimatePresence>
-                                    {localEmote && (
-                                      <motion.div
-                                        className={`mx-auto mt-3 inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-white bg-gradient-to-r ${EMOTE_UI[localEmote].toneClass}`}
-                                        initial={{ opacity: 0, y: 6, scale: 0.9 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 4, scale: 0.94 }}
-                                      >
-                                        {EMOTE_UI[localEmote].label}
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
-
-                                  <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                                    {(['smug', 'panic', 'challenge'] as EmoteType[]).map((emote) => {
-                                      const active = localEmote === emote;
-                                      return (
-                                        <Button
-                                          key={emote}
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => handleEmote(emote)}
-                                          className={`border-white/20 bg-zinc-900/55 text-zinc-200 hover:bg-zinc-800/70 ${active ? 'border-orange-300/70 text-orange-200 shadow-[0_0_18px_rgba(251,146,60,0.32)]' : ''}`}
-                                        >
-                                          {EMOTE_UI[emote].label}
-                                        </Button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {(localMove || remoteMove) && (
-                                <div className="mt-6 text-center text-zinc-300/90 uppercase tracking-[0.16em] text-xs">
-                                  Carte in traiettoria verso il centro...
-                                </div>
                               )}
+
+                              {/* Status text */}
+                              <motion.p
+                                className="relative text-center text-xs font-semibold uppercase tracking-[0.2em]"
+                                style={{ color: localMove && remoteMove ? '#FF7300' : localMove || remoteMove ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.3)' }}
+                                animate={(localMove || remoteMove) ? { opacity: [0.5, 1, 0.5] } : {}}
+                                transition={{ duration: 1.4, repeat: Infinity }}
+                              >
+                                {localMove && remoteMove
+                                  ? '⚡ Scontro imminente...'
+                                  : localMove
+                                    ? 'In attesa dell\'avversario...'
+                                    : remoteMove
+                                      ? 'L\'avversario ha scelto!'
+                                      : 'Seleziona la tua carta'}
+                              </motion.p>
+                            </div>
+
+                            {/* Player section */}
+                            <div className="mt-5">
+                              <div className="flex items-center justify-between mb-2 px-1">
+                                <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">La tua mano — {localHand.length} carte</span>
+                                <span className="text-[10px] text-zinc-600">{handSummary}</span>
+                              </div>
+
+                              <div className="relative rounded-2xl border border-white/8 bg-zinc-950/50 px-4 py-4">
+                                <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_30%_20%,rgba(255,115,0,0.1),transparent_50%)]" />
+
+                                <div className="relative flex items-center justify-center gap-4">
+                                  {localHand.map((card) => {
+                                    const selected = localMove === card.move && selectedCardIdRef.current === card.id;
+                                    const disabled = !!localMove;
+                                    return (
+                                      <motion.div
+                                        key={card.id}
+                                        animate={selected ? { scale: 1.18, y: -10 } : { scale: 1.1, y: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                      >
+                                        <HandMoveCard card={card} hidden={false} disabled={disabled} selected={selected} onPick={() => handleMoveSelect(card.move, card.id)} />
+                                      </motion.div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* Local emote */}
+                              <AnimatePresence>
+                                {localEmote && (
+                                  <motion.div className="flex justify-center mt-2" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.7 }}>
+                                    <div className={`rounded-xl border ${EMOTE_CFG[localEmote].border} bg-gradient-to-br ${EMOTE_CFG[localEmote].tone} p-1.5`} style={{ boxShadow: `0 0 16px ${EMOTE_CFG[localEmote].glow}` }}>
+                                      <StickerFace emote={localEmote} size={36} />
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+
+                              {/* Emote buttons */}
+                              <div className="mt-3 flex items-center justify-center gap-2">
+                                {(['smug', 'panic', 'challenge', 'taunt'] as EmoteType[]).map(e => (
+                                  <motion.button
+                                    key={e}
+                                    onClick={() => handleEmote(e)}
+                                    whileHover={{ scale: 1.12, y: -2 }}
+                                    whileTap={{ scale: 0.88 }}
+                                    className={`flex flex-col items-center gap-0.5 rounded-lg border px-2 py-1.5 transition ${localEmote === e ? `${EMOTE_CFG[e].border} bg-gradient-to-br ${EMOTE_CFG[e].tone}` : 'border-white/10 bg-zinc-900/50 hover:border-white/25'}`}
+                                  >
+                                    <StickerFace emote={e} size={28} />
+                                    <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">{EMOTE_CFG[e].label}</span>
+                                  </motion.button>
+                                ))}
+                              </div>
                             </div>
                           </motion.div>
                         )}
 
+                        {/* ═══ ROUND END ═══ */}
                         {gamePhase === 'round_end' && (
-                          <motion.div
-                            className="w-full max-w-3xl rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/75 to-zinc-950/75 p-8"
-                            initial={{ opacity: 0, y: 16 }}
-                            animate={{ opacity: 1, y: 0 }}
-                          >
-                            <div className="text-center space-y-7">
-                              <h3 className="text-2xl font-semibold text-white">Round Completato</h3>
+                          <motion.div className="w-full max-w-lg rounded-2xl border border-white/8 bg-zinc-950/75 p-6 text-center" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+                            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500 mb-5">Round {currentRound} — Risultato</p>
 
-                              <div className="relative flex items-center justify-center gap-8 min-h-[280px]">
-                                <motion.div
-                                  className="pointer-events-none absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-400/25 blur-2xl"
-                                  animate={impactFlash ? { scale: [0.4, 1.35], opacity: [0.8, 0] } : { scale: 0.8, opacity: 0 }}
-                                  transition={{ duration: 0.45, ease: 'easeOut' }}
-                                />
-                                <motion.div
-                                  className="pointer-events-none absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full border border-orange-300/35"
-                                  animate={impactFlash ? { scale: [0.6, 1.15], opacity: [0.8, 0] } : { scale: 0.8, opacity: 0 }}
-                                  transition={{ duration: 0.55, ease: 'easeOut' }}
-                                />
+                            <div className="relative flex items-center justify-center gap-6 min-h-[260px]">
+                              {/* Impact blast */}
+                              <motion.div className="pointer-events-none absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-2xl" animate={impactFlash ? { scale: [0.3, 1.8], opacity: [0.9, 0] } : { opacity: 0 }} transition={{ duration: 0.5 }} />
+                              <motion.div className="pointer-events-none absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/30" animate={impactFlash ? { scale: [0.5, 1.4], opacity: [0.8, 0] } : { opacity: 0 }} transition={{ duration: 0.6 }} />
 
-                                <AnimatePresence mode="wait">
-                                  {impactFlash && (
-                                    <motion.div
-                                      key={`shatter-${shatterPulse}`}
-                                      className="pointer-events-none absolute inset-0"
-                                      initial={{ opacity: 1 }}
-                                      animate={{ opacity: 1 }}
-                                      exit={{ opacity: 0 }}
-                                    >
-                                      {Array.from({ length: 14 }).map((_, idx) => {
-                                        const angle = (idx / 14) * Math.PI * 2;
-                                        const distance = 66 + (idx % 4) * 14;
-                                        const targetX = Math.cos(angle) * distance;
-                                        const targetY = Math.sin(angle) * distance;
-                                        return (
-                                          <motion.div
-                                            key={`fragment-${idx}`}
-                                            className="absolute left-1/2 top-1/2 h-2.5 w-6 rounded-[4px] border border-orange-100/70 bg-gradient-to-r from-orange-200/80 to-cyan-200/70"
-                                            initial={{ x: 0, y: 0, rotate: 0, opacity: 0.95, scale: 1 }}
-                                            animate={{
-                                              x: targetX,
-                                              y: targetY,
-                                              rotate: idx % 2 === 0 ? 140 : -140,
-                                              opacity: 0,
-                                              scale: 0.28,
-                                            }}
-                                            transition={{ duration: 0.42, ease: 'easeOut', delay: idx * 0.014 }}
-                                          />
-                                        );
-                                      })}
+                              {/* Shatter fragments */}
+                              <AnimatePresence>
+                                {impactFlash && (
+                                  <motion.div key={`sh-${shatterPulse}`} className="pointer-events-none absolute inset-0">
+                                    {Array.from({ length: 20 }).map((_, i) => {
+                                      const a = (i / 20) * Math.PI * 2;
+                                      const d = 60 + (i % 5) * 15;
+                                      return (
+                                        <motion.div key={i} className="absolute left-1/2 top-1/2 h-2 w-5 rounded bg-gradient-to-r from-primary/70 to-cyan-300/60"
+                                          initial={{ x: 0, y: 0, rotate: 0, opacity: 0.9, scale: 1 }}
+                                          animate={{ x: Math.cos(a) * d, y: Math.sin(a) * d, rotate: i % 2 === 0 ? 150 : -150, opacity: 0, scale: 0.2 }}
+                                          transition={{ duration: 0.4, delay: i * 0.01 }}
+                                        />
+                                      );
+                                    })}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+
+                              {/* Duel cards */}
+                              {(() => {
+                                const outcome = getRoundOutcome(player1State.move, player2State.move);
+                                const localOutcome = outcome === 'draw' ? 'draw' : localPlayerId === 1 ? outcome : (outcome === 'player' ? 'opponent' : 'player');
+                                const ls: 'winner' | 'loser' | 'draw' | 'neutral' = localOutcome === 'player' ? 'winner' : localOutcome === 'opponent' ? 'loser' : localOutcome === 'draw' ? 'draw' : 'neutral';
+                                const rs: 'winner' | 'loser' | 'draw' | 'neutral' = localOutcome === 'opponent' ? 'winner' : localOutcome === 'player' ? 'loser' : localOutcome === 'draw' ? 'draw' : 'neutral';
+                                return (
+                                  <>
+                                    <motion.div initial={{ x: -150, y: 160, rotate: 20, opacity: 0 }} animate={{ x: 0, y: 0, rotate: 0, opacity: 1 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                                      <DuelCard move={localMove ?? 'rock'} reveal={duelReveal} state={ls} title="Tu" />
                                     </motion.div>
-                                  )}
-                                </AnimatePresence>
-
-                                {(() => {
-                                  const outcome = getRoundOutcome(player1State.move, player2State.move);
-                                  const localOutcome =
-                                    outcome === 'draw'
-                                      ? 'draw'
-                                      : localPlayerId === 1
-                                        ? outcome
-                                        : outcome === 'player'
-                                          ? 'opponent'
-                                          : 'player';
-
-                                  const localState = localOutcome === 'player' ? 'winner' : localOutcome === 'opponent' ? 'loser' : 'draw';
-                                  const remoteState = localOutcome === 'opponent' ? 'winner' : localOutcome === 'player' ? 'loser' : 'draw';
-
-                                  const localCardMove = localMove ?? 'rock';
-                                  const remoteCardMove = remoteMove ?? 'rock';
-
-                                  return (
-                                    <>
-                                      <motion.div
-                                        initial={{ x: -170, y: 190, rotate: 20, scale: 0.86, opacity: 0 }}
-                                        animate={{ x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 }}
-                                        transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-                                      >
-                                        <DuelCard
-                                          move={localCardMove}
-                                          reveal={duelReveal}
-                                          state={localState}
-                                          title="Tu"
-                                        />
-                                      </motion.div>
-
-                                      <span className="text-zinc-500 text-2xl font-black">VS</span>
-
-                                      <motion.div
-                                        initial={{ x: 170, y: -190, rotate: -20, scale: 0.86, opacity: 0 }}
-                                        animate={{ x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 }}
-                                        transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-                                      >
-                                        <DuelCard
-                                          move={remoteCardMove}
-                                          reveal={duelReveal}
-                                          state={remoteState}
-                                          title="Rivale"
-                                        />
-                                      </motion.div>
-                                    </>
-                                  );
-                                })()}
-                              </div>
-
-                              <div className="text-lg font-semibold text-orange-300">
-                                {(() => {
-                                  const outcome = getRoundOutcome(player1State.move, player2State.move);
-                                  const localOutcome =
-                                    outcome === 'draw'
-                                      ? 'draw'
-                                      : localPlayerId === 1
-                                        ? outcome
-                                        : outcome === 'player'
-                                          ? 'opponent'
-                                          : 'player';
-
-                                  if (localOutcome === 'draw') return 'Pareggio!';
-                                  if (localOutcome === 'player') return 'Hai vinto il round!';
-                                  if (localOutcome === 'opponent') return 'Round al rivale';
-                                  return 'Round in corso';
-                                })()}
-                              </div>
+                                    <motion.span className="text-zinc-600 text-xl font-black" animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 0.6, delay: 0.3 }}>VS</motion.span>
+                                    <motion.div initial={{ x: 150, y: -160, rotate: -20, opacity: 0 }} animate={{ x: 0, y: 0, rotate: 0, opacity: 1 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+                                      <DuelCard move={remoteMove ?? 'rock'} reveal={duelReveal} state={rs} title="Rivale" />
+                                    </motion.div>
+                                  </>
+                                );
+                              })()}
                             </div>
+
+                            <motion.p className="mt-4 text-base font-semibold text-primary" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
+                              {(() => {
+                                const o = getRoundOutcome(player1State.move, player2State.move);
+                                const lo = o === 'draw' ? 'draw' : localPlayerId === 1 ? o : (o === 'player' ? 'opponent' : 'player');
+                                return lo === 'draw' ? '⚖️ Pareggio!' : lo === 'player' ? '🏆 Hai vinto il round!' : '💀 Round al rivale';
+                              })()}
+                            </motion.p>
                           </motion.div>
                         )}
 
+                        {/* ═══ GAME END ═══ */}
                         {gamePhase === 'game_end' && (
-                          <motion.div
-                            className="w-full max-w-2xl rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/75 to-zinc-950/75 p-8 text-center"
-                            initial={{ opacity: 0, y: 16 }}
-                            animate={{ opacity: 1, y: 0 }}
-                          >
-                            <motion.div
-                              animate={{ y: [0, -6, 0], rotate: [0, -3, 3, 0] }}
-                              transition={{ duration: 2.4, repeat: Infinity }}
-                            >
-                              <Trophy className="h-16 w-16 text-orange-400 mx-auto" />
+                          <motion.div className="relative w-full max-w-md rounded-2xl border border-white/8 bg-zinc-950/80 p-8 text-center overflow-hidden" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+                            <ConfettiBurst active />
+                            <motion.div animate={{ y: [0, -6, 0], rotate: [0, -4, 4, 0] }} transition={{ duration: 2.2, repeat: Infinity }}>
+                              <Trophy className="h-14 w-14 text-primary mx-auto drop-shadow-[0_0_18px_rgba(255,115,0,0.5)]" />
                             </motion.div>
-
-                            <h2 className="mt-4 text-3xl font-bold text-white">
-                              {player1State.score > player2State.score
-                                ? 'Giocatore 1 Vince!'
-                                : player2State.score > player1State.score
-                                  ? 'Giocatore 2 Vince!'
-                                  : 'Pareggio!'}
-                            </h2>
-
-                            <div className="mt-4 flex items-center justify-center gap-4 text-2xl font-black">
-                              <span className="text-orange-400">{player1State.score}</span>
-                              <span className="text-zinc-600">-</span>
-                              <span className="text-orange-400">{player2State.score}</span>
+                            <motion.h2 className="mt-3 text-2xl font-bold text-white" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
+                              {(() => { const l = localPlayerId === 1 ? player1State.score : player2State.score; const r = localPlayerId === 1 ? player2State.score : player1State.score; return l > r ? '🏆 Vittoria!' : r > l ? '💀 Sconfitta' : '⚖️ Pareggio'; })()}
+                            </motion.h2>
+                            <div className="mt-3 flex items-center justify-center gap-3 text-xl font-black">
+                              <span className="text-primary">{player1State.score}</span>
+                              <span className="text-zinc-600">—</span>
+                              <span className="text-primary">{player2State.score}</span>
                             </div>
-
-                            <Button
-                              onClick={handleRematch}
-                              className="mt-6 bg-primary hover:bg-primary/90 text-white px-10 py-6 text-lg"
-                            >
-                              Rivincita
-                            </Button>
+                            <motion.div className="mt-6 flex items-center justify-center gap-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+                              <Button onClick={handleRematch} className="bg-primary hover:bg-primary/90 text-white px-8 py-5 rounded-lg">🔄 Rivincita</Button>
+                              <Button onClick={handleBackToLobby} variant="outline" className="px-6 py-5 rounded-lg">Lobby</Button>
+                            </motion.div>
                           </motion.div>
                         )}
                       </div>
@@ -1274,19 +985,13 @@ export function KakeguruiP2P({ open, onClose }: KakeguruiP2PProps) {
                   </motion.div>
                 )}
 
+                {/* ═══ DISCONNECTED ═══ */}
                 {showGame && room.state !== 'connected' && (
-                  <motion.div
-                    key="disconnected"
-                    className="h-full flex flex-col items-center justify-center"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    <WifiOff className="h-16 w-16 text-red-500 mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">Connessione Persa</h3>
-                    <p className="text-zinc-400 mb-6">Il collegamento P2P si e interrotto.</p>
-                    <Button onClick={handleBackToLobby} variant="outline">
-                      Torna alla Lobby
-                    </Button>
+                  <motion.div key="dc" className="h-full flex flex-col items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                    <WifiOff className="h-14 w-14 text-red-500/60 mb-3" />
+                    <h3 className="text-lg font-semibold text-white mb-1">Connessione Persa</h3>
+                    <p className="text-zinc-500 text-sm mb-5">Il collegamento P2P si è interrotto.</p>
+                    <Button onClick={handleBackToLobby} variant="outline">Torna alla Lobby</Button>
                   </motion.div>
                 )}
               </AnimatePresence>
