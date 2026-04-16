@@ -136,7 +136,9 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     if (!header) return;
     const measure = () => {
       const headerHeight = header.getBoundingClientRect().height;
-      const navHeight = asteNavEl?.getBoundingClientRect().height ?? 56;
+      const rawNavHeight = asteNavEl?.getBoundingClientRect().height ?? 56;
+      // Keep a stable nav height for trigger math even when mobile nav is temporarily hidden.
+      const navHeight = rawNavHeight > 0 ? rawNavHeight : 56;
       setStickyTop(headerHeight);
       setAsteNavHeight(navHeight);
     };
@@ -210,6 +212,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const isOwner = sameUserId(detail.createdByUserId, currentUserId);
   const isEnded = detail.status === 'ended';
   const showBuyerBid = !isOwner && !isEnded;
+  const mobileActionTop = stickyTop + (showStickyHeader ? 0 : asteNavHeight);
   const endsAt = detail.endsAt;
   const msLeft = new Date(endsAt).getTime() - now;
   const mainImg = detailImages[imgIdx] ?? detailImages[0] ?? '';
@@ -228,7 +231,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
-      <div ref={asteNavRef}>
+      <div ref={asteNavRef} className={showStickyHeader ? 'hidden lg:block' : 'block'}>
         <AsteNav />
       </div>
 
@@ -288,25 +291,27 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         </div>
       </section>
 
-      {/* Fixed Mobile Action Bar - Nome prodotto | Preferiti + Condividi */}
+      {/* Fixed Mobile Actions - due pillole glass separate (titolo a sinistra, azioni a destra) */}
       <div
-        className={`fixed left-0 right-0 z-50 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur-sm transition-all duration-200 lg:hidden ${
+        className={`fixed left-0 right-0 z-50 transition-all duration-200 lg:hidden ${
           showStickyHeader
             ? 'pointer-events-auto translate-y-0 opacity-100'
             : 'pointer-events-none -translate-y-2 opacity-0'
         }`}
-        style={{ top: stickyTop + asteNavHeight }}
+        style={{ top: mobileActionTop }}
       >
         <div className="container-content container-content-card-detail py-2">
-          <div className="flex items-center gap-2.5">
-            <h2 className="min-w-0 flex-1 truncate text-[13px] font-bold uppercase tracking-wide text-gray-900">
-              {detail.title}
-            </h2>
-            <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-1.5 py-1 shadow-sm">
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="min-w-0 max-w-[62vw] rounded-full border border-white/45 bg-white/55 px-3 py-2 shadow-[0_10px_24px_rgba(29,49,96,0.15)] ring-1 ring-white/60 backdrop-blur-xl backdrop-saturate-150">
+              <h2 className="truncate text-[12px] font-bold uppercase tracking-wide text-[#1D3160]">
+                {detail.title}
+              </h2>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/45 bg-white/55 px-1.5 py-1 shadow-[0_10px_24px_rgba(29,49,96,0.15)] ring-1 ring-white/60 backdrop-blur-xl backdrop-saturate-150">
               {!isOwner && (
                 <button
                   type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition hover:bg-zinc-100 hover:text-[#FF7300]"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-600 transition hover:bg-white/70 hover:text-[#FF7300]"
                   aria-label={t('auctions.detailSaveLater')}
                 >
                   <Bookmark className="h-4 w-4" />

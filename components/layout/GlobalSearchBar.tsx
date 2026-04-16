@@ -673,9 +673,10 @@ function SearchResultsDropdown({
 
   useLayoutEffect(() => {
     if (!anchorRef.current) return;
+    const anchorEl = anchorRef.current;
     const update = () => {
-      if (anchorRef.current) {
-        const rect = anchorRef.current.getBoundingClientRect();
+      if (anchorEl) {
+        const rect = anchorEl.getBoundingClientRect();
         if (dropdownPosition === 'top') {
           // Dropdown sopra la barra
           setPosition({ top: rect.top, left: rect.left, width: rect.width });
@@ -685,14 +686,23 @@ function SearchResultsDropdown({
         }
       }
     };
+
     update();
+    const rafId = window.requestAnimationFrame(update);
+    const resizeObserver = new ResizeObserver(update);
+    resizeObserver.observe(anchorEl);
+    anchorEl.addEventListener('transitionend', update);
     window.addEventListener('scroll', update, true);
     window.addEventListener('resize', update);
+
     return () => {
+      window.cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
+      anchorEl.removeEventListener('transitionend', update);
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
-  }, [anchorRef, query, dropdownPosition]);
+  }, [anchorRef, dropdownPosition]);
 
   const showInlinePreview = (url: string, name: string, buttonRect: DOMRect) => {
     if (closeTimeoutRef.current) {
