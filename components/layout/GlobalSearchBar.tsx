@@ -400,12 +400,18 @@ function AnimatedCounter({ value }: { value: number }) {
 
 const HOVER_CLOSE_DELAY_MS = 250;
 
-/** Larghezza anteprima carta inline (stile CardTrader) */
-const INLINE_PREVIEW_WIDTH = 220;
+/** Larghezza anteprima carta inline (stile CardTrader) - aumentata per altezza maggiore */
+const INLINE_PREVIEW_WIDTH = 200;
 const INLINE_PREVIEW_MIN_WIDTH = 140;
 const INLINE_PREVIEW_ASPECT_RATIO = 88 / 63;
 const INLINE_PREVIEW_MARGIN = 8;
 const INLINE_PREVIEW_GAP = 8;
+
+/** Rileva se siamo su schermo mobile (sotto i 768px) */
+function isMobileScreen(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768;
+}
 
 function getInlinePreviewLayout(
   anchorRect: DOMRect,
@@ -413,19 +419,46 @@ function getInlinePreviewLayout(
 ): { left: number; top: number; width: number } {
   if (typeof window === 'undefined') {
     return {
-      left: anchorRect.right + INLINE_PREVIEW_GAP,
+      left: anchorRect.left - preferredWidth - INLINE_PREVIEW_GAP,
       top: anchorRect.top,
       width: preferredWidth,
     };
   }
 
-  const availableRight = window.innerWidth - INLINE_PREVIEW_MARGIN - (anchorRect.right + INLINE_PREVIEW_GAP);
-  const width = Math.max(INLINE_PREVIEW_MIN_WIDTH, Math.min(preferredWidth, availableRight));
+  const isMobile = isMobileScreen();
+  const width = Math.max(INLINE_PREVIEW_MIN_WIDTH, Math.min(preferredWidth, anchorRect.width));
   const previewHeight = width * INLINE_PREVIEW_ASPECT_RATIO;
 
-  const left = anchorRect.right + INLINE_PREVIEW_GAP;
+  let left: number;
+  let top: number;
 
-  let top = anchorRect.top + (anchorRect.height - previewHeight) / 2;
+  if (isMobile) {
+    // Su mobile: posiziona sotto il bottone, centrato
+    left = anchorRect.left + (anchorRect.width - width) / 2;
+    top = anchorRect.bottom + INLINE_PREVIEW_GAP;
+
+    // Se non c'è spazio sotto, mettilo sopra
+    if (top + previewHeight > window.innerHeight - INLINE_PREVIEW_MARGIN) {
+      top = anchorRect.top - previewHeight - INLINE_PREVIEW_GAP;
+    }
+
+    // Contenimento orizzontale
+    left = Math.max(
+      INLINE_PREVIEW_MARGIN,
+      Math.min(left, window.innerWidth - width - INLINE_PREVIEW_MARGIN)
+    );
+  } else {
+    // Desktop: posiziona a sinistra del bottone
+    left = anchorRect.left - width - INLINE_PREVIEW_GAP;
+
+    // Se non c'è spazio a sinistra, fallback a destra
+    if (left < INLINE_PREVIEW_MARGIN) {
+      left = anchorRect.right + INLINE_PREVIEW_GAP;
+    }
+
+    top = anchorRect.top + (anchorRect.height - previewHeight) / 2;
+  }
+
   top = Math.max(
     INLINE_PREVIEW_MARGIN,
     Math.min(top, window.innerHeight - previewHeight - INLINE_PREVIEW_MARGIN)
@@ -464,6 +497,7 @@ function CardHit({
   streak?: number;
 }) {
   const cameraButtonRef = useRef<HTMLButtonElement>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const { selectedLang } = useLanguage();
   const fullImage = useMemo(() => {
     const raw = firstNonEmptyString(
@@ -561,11 +595,38 @@ function CardHit({
         onClick={handleCameraClick}
         onMouseEnter={handleCameraMouseEnter}
         onMouseLeave={handleCameraMouseLeave}
-        className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-orange-50 hover:text-orange-500 group-hover:text-orange-500 transition-colors"
+        className="flex-shrink-0 w-8 h-11 rounded-lg overflow-hidden relative group/camera hover:ring-2 hover:ring-orange-400 transition-all"
         aria-label="Anteprima immagine carta"
         title={fullImage ? `Anteprima: ${hit.name}` : 'Immagine non disponibile'}
       >
-        <Camera className="w-4 h-4" />
+        {fullImage ? (
+          <>
+            {/* Shimmer loading effect */}
+            {!imageLoaded && (
+              <div className="absolute inset-0 shimmer-bg animate-pulse" />
+            )}
+            {/* Sfondo: immagine carta sfocata */}
+            <img
+              src={fullImage}
+              alt=""
+              onLoad={() => setImageLoaded(true)}
+              className={`absolute inset-0 w-full h-full object-cover blur-[2px] scale-110 group-hover/camera:blur-[1px] transition-all duration-200 ${
+                imageLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              loading="lazy"
+            />
+            {/* Overlay scuro semi-trasparente */}
+            <div className="absolute inset-0 bg-black/30 group-hover/camera:bg-black/20 transition-colors" />
+            {/* Icona camera centrata */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Camera className="w-4 h-4 text-white drop-shadow-md" />
+            </div>
+          </>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+            <Camera className="w-4 h-4" />
+          </div>
+        )}
       </button>
 
       <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded bg-[#E8E8E8]" title={setName}>
@@ -763,7 +824,7 @@ function SearchResultsDropdown({
         ) : hasHits ? (
           <>
             <div
-              className="overflow-y-auto flex-1"
+              className="overflow-y-auto overflow-x-hidden flex-1"
               onScroll={() => setInlinePreview(null)}
             >
               {hits.map((hit, index) => (
@@ -934,7 +995,7 @@ function SearchPanelBody({
       {!isSearchStalled && hasQuery && hasHits && selectedGame && (
         <>
           <div
-            className="max-h-[260px] overflow-y-auto"
+            className="max-h-[260px] overflow-y-auto overflow-x-hidden"
             onScroll={() => setInlinePreview(null)}
           >
             {hits.map((hit, index) => (

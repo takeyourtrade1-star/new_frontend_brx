@@ -194,6 +194,27 @@
   }
 }
 
+/* Shimmer background effect for image loading */
+.shimmer-bg {
+  background: linear-gradient(
+    90deg,
+    rgba(200, 200, 200, 0.3) 0%,
+    rgba(200, 200, 200, 0.5) 50%,
+    rgba(200, 200, 200, 0.3) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-bg-move 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer-bg-move {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auction-search-top-hit {
     animation: none;
@@ -1258,6 +1279,7 @@
   animation: energy-morph 2s ease-in-out forwards;
   animation-duration: calc(2.2s - var(--velocity, 0) * 0.6s);
   z-index: 0;
+  will-change: opacity, transform;
 }
 
 /* Velocity-reactive shimmer overlay */
@@ -1290,6 +1312,7 @@
   pointer-events: none;
   z-index: 2;
   overflow: hidden;
+  will-change: contents;
 }
 
 /* Individual sparkle particle */
@@ -1301,6 +1324,7 @@
   border-radius: 50%;
   box-shadow: 0 0 8px 2px rgba(255, 180, 80, 0.5);
   animation: sparkle-float 1.2s ease-out forwards;
+  will-change: transform, opacity;
 }
 
 /* Soft Coral */
