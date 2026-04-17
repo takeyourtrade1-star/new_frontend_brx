@@ -7,7 +7,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap, ArrowLeft, Trophy, Check, ChevronDown } from 'lucide-react';
+import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap, ArrowLeft, Trophy, Check, ChevronDown, Clock } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
@@ -948,13 +948,17 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               {/* Timer + cronologia */}
               <div className="flex flex-col gap-5 lg:col-span-3">
                 {/* Note: Stats views/watching moved to hero section */}
-                <div className="hidden rounded-xl border-2 border-gray-100 bg-white p-6 shadow-sm lg:block">
+                {/* Timer Glass Arancio */}
+                <div className="hidden relative flex-col items-center justify-center rounded-2xl border border-[#FF7300]/30 bg-[#FF7300]/10 p-6 backdrop-blur-md shadow-[0_8px_32px_rgba(255,115,0,0.12)] lg:flex overflow-hidden">
+                  {/* Subtle inner highlight to enhance the glass effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
+
                   {isEnded ? (
-                    <div className="flex flex-col items-center justify-center py-2 text-center">
-                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">
+                    <div className="relative z-10 flex flex-col items-center text-center">
+                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-800/60">
                         {t('auctions.detailAuctionClosed')}
                       </p>
-                      <p className="mt-3 text-[13px] font-semibold text-gray-800">
+                      <p className="mt-3 text-[13px] font-semibold text-[#9A3412]">
                         {new Date(endsAt).toLocaleString('it-IT', {
                           day: 'numeric',
                           month: 'long',
@@ -963,36 +967,36 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                           minute: '2-digit',
                         })}
                       </p>
-                      <p className="mt-2 text-xl font-black text-[#FF7300]">
+                      <p className="mt-2 text-2xl font-black text-[#FF7300]">
                         {t('auctions.finalPriceLabel')}: {fmtEur(detail.currentBidEur)}
                       </p>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-1">
-                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#FF7300]">
+                    <div className="relative z-10 flex flex-col items-center text-center">
+                      <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[#FF7300] drop-shadow-sm">
                         {t('auctions.detailClosesIn')}
                       </p>
                       <p
-                        className="mt-2.5 flex items-baseline justify-center gap-1 font-mono text-[42px] font-black tabular-nums tracking-tight text-[#1D3160] leading-none"
+                        className="mt-3 flex items-baseline justify-center gap-1.5 font-mono text-[42px] font-bold tabular-nums tracking-tight text-[#9A3412] leading-none"
                         suppressHydrationWarning
                       >
-                        <span>{formatHMS(msLeft)}</span>
-                        <span className="text-lg font-bold tracking-widest text-gray-400">
-                          {t('auctions.detailHoursSuffix').toLowerCase()}
+                        {formatHMS(msLeft)}
+                        <span className="text-2xl font-black tracking-widest text-orange-800/80">
+                          {t('auctions.detailHoursSuffix').toUpperCase()}
                         </span>
                       </p>
                     </div>
                   )}
                 </div>
 
-                {/* Ultime Offerte — Design Pulito & Solido */}
-                <div className="flex flex-col overflow-hidden rounded-xl border-2 border-gray-100 bg-white shadow-sm">
-                  <div className="flex items-center justify-between border-b-2 border-gray-50 px-5 py-4">
-                    <h3 className="text-[13px] font-black uppercase tracking-[0.1em] text-[#1D3160]">
+                {/* Ultime Offerte — Design Premium Slider */}
+                <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
+                  <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-6 py-4">
+                    <h3 className="text-xs font-black uppercase tracking-[0.15em] text-gray-900">
                       {isOwner ? t('auctions.sellerBidHistoryTitle') : t('auctions.detailBidHistory')}
                     </h3>
-                    <span className="flex h-6 min-w-[24px] items-center justify-center rounded bg-gray-100 px-2 text-[11px] font-bold text-gray-600">
-                      {bidRows.length}
+                    <span className="flex h-6 items-center justify-center rounded bg-[#1D3160] px-2 text-[11px] font-bold text-white shadow-sm">
+                      {bidRows.length} Offerte
                     </span>
                   </div>
 
@@ -1040,22 +1044,24 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                           <div
                             key={b.bidId}
                             style={{ animationDelay }}
-                            className={`flex items-center justify-between px-5 py-3 transition-colors hover:bg-gray-50/80 animate-[fadeInUp_0.4s_ease-out_both] ${i !== visibleBids.length - 1 ? 'border-b border-gray-50' : ''} ${isMine ? 'border-l-4 border-l-[#FF7300] bg-[#FFF4EC] hover:bg-[#FFF4EC]' : 'border-l-4 border-l-transparent'}`}
+                            className={`group flex items-center justify-between px-6 py-3.5 transition-all duration-300 hover:bg-gray-50 animate-[fadeInUp_0.4s_ease-out_both] ${i !== visibleBids.length - 1 ? 'border-b border-gray-50' : ''} ${isMine ? 'border-l-4 border-l-[#FF7300] bg-orange-50/30' : 'border-l-4 border-l-transparent hover:border-l-gray-300'}`}
                           >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <FlagIcon country={bidderCountry} size="sm" />
+                            <div className="flex items-center gap-3 min-w-0 transition-transform duration-300 group-hover:translate-x-1">
+                              <div className="shrink-0 overflow-hidden rounded-sm ring-1 ring-black/5">
+                                <FlagIcon country={bidderCountry} size="sm" />
+                              </div>
                               <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[13px] font-bold text-[#1D3160]">
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-[13px] ${isLeader ? 'font-black text-[#1D3160]' : 'font-bold text-gray-700'}`}>
                                     {b.username}
                                   </span>
                                   {isMine && (
-                                    <span className="rounded bg-orange-200 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-800">
+                                    <span className="rounded bg-[#FF7300] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-white shadow-sm">
                                       Tu
                                     </span>
                                   )}
                                   {showCrown && (
-                                    <Crown className="h-3.5 w-3.5 shrink-0 text-[#FFB800]" aria-hidden />
+                                    <Crown className="h-3.5 w-3.5 shrink-0 text-[#FFB800] drop-shadow-sm" aria-hidden />
                                   )}
                                 </div>
                                 <span suppressHydrationWarning className="block mt-0.5 text-[10px] tracking-wide text-gray-400">
@@ -1063,7 +1069,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                                 </span>
                               </div>
                             </div>
-                            <span className="shrink-0 text-sm font-black text-[#111827]">
+                            <span className="shrink-0 text-[15px] font-black text-gray-900 transition-transform duration-300 group-hover:-translate-x-1">
                               {fmtEur(b.amountEur)}
                             </span>
                           </div>
