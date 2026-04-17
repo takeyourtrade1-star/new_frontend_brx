@@ -83,7 +83,13 @@ export function DemoBanner() {
 
   const t = {
     demo: lang === 'it' ? 'IL SITO È IN DEMO' : 'SITE IN DEMO',
+    demoShort: lang === 'it' ? 'SITO IN DEMO' : 'SITE IN DEMO',
     launch: lang === 'it' ? 'Lancio tra' : 'Launch in',
+    launchShort: lang === 'it' ? 'Lancio' : 'Launch',
+    mobileExclusive:
+      lang === 'it'
+        ? 'SCAMBI ed ASTE presto in arrivo, solo su Ebartex'
+        : 'TRADES AND AUCTIONS COMING SOON EXCLUSIVELY ON EBARTEX',
     mobileTeaser: lang === 'it' ? 'Scambi e aste presto in arrivo' : 'Trades and auctions coming soon',
     comingSoon: lang === 'it' ? 'Presto: Scambi ed Aste' : 'Coming Soon: Trades & Auctions',
     days: lang === 'it' ? 'giorni' : 'days',
@@ -112,24 +118,28 @@ export function DemoBanner() {
   );
 
   return (
-    <div className="w-full bg-gradient-to-r from-primary via-orange-500 to-primary relative overflow-hidden">
+    <div className="w-full bg-orange-500 relative overflow-hidden">
       {/* Animated gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[caret-blink_3s_ease-in-out_infinite]" />
 
       <div className="container-content container-header relative z-10">
         {isCompact ? (
-          <div className="flex items-center justify-between gap-2 py-1 sm:py-1.5">
-            <div className="flex min-w-0 items-center gap-1.5">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.9)]" aria-hidden />
-              <div className="flex items-center rounded-full border border-white/35 bg-white/18 px-2 py-0.5 backdrop-blur-sm">
-                <span className="text-[10px] font-bold uppercase tracking-[0.09em] text-white">{t.demo}</span>
-              </div>
-            </div>
-            {isSlimMobileBanner && (
-              <span className="min-w-0 truncate text-right text-[10px] font-medium tracking-[0.01em] text-white/85 sm:hidden">
-                {t.mobileTeaser}
+          <div className="relative flex items-center justify-start pr-1 pl-0.5 py-1">
+            <div className="flex w-full min-w-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-orange-200 bg-white px-2.5 py-0.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.5),0_4px_12px_rgba(15,23,42,0.16)]">
+              <span className="shrink-0 rounded-full border border-orange-400 bg-orange-500 px-1.5 py-[1px] text-[8px] font-black uppercase tracking-[0.09em] text-white shadow-[0_4px_12px_rgba(255,115,0,0.35)]">
+                {t.demoShort}
               </span>
-            )}
+              <span className="min-w-0 truncate text-center text-[9px] font-semibold uppercase tracking-[0.055em] text-slate-800">
+                {lang === 'it' ? (
+                  <>
+                    <span className="text-orange-500">SCAMBI</span> ed <span className="text-orange-500">ASTE</span>{' '}
+                    presto in arrivo, solo su Ebartex
+                  </>
+                ) : (
+                  t.mobileExclusive
+                )}
+              </span>
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-1.5 py-0.5 sm:flex-row sm:justify-center sm:gap-4 sm:py-1">
@@ -155,11 +165,8 @@ export function DemoBanner() {
               </div>
             </div>
 
-            {/* Coming soon features */}
+            {/* Desktop quick links */}
             <div className="hidden items-center gap-2 sm:flex">
-              <span className="text-[10px] sm:text-xs font-semibold text-white/80">
-                {t.comingSoon}
-              </span>
               <div className="flex items-center gap-2">
                 <Link href="/scambi" className="flex items-center gap-1.5 rounded-md border border-cyan-300/45 bg-cyan-500/20 px-2.5 py-1 backdrop-blur-sm transition-all duration-300 hover:border-cyan-300/70 hover:bg-cyan-500/30 hover:shadow-[0_0_14px_rgba(34,211,238,0.35)] cursor-pointer">
                   <span className="text-xs font-extrabold tracking-wide text-white sm:text-sm">

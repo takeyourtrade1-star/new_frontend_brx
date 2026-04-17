@@ -1492,7 +1492,7 @@ function SearchWithInstantSearch({
       ref={triggerRef}
       className={`search-container flex w-full min-w-[200px] flex-1 items-stretch gap-0 overflow-hidden transition-[background-color,border-color,border-radius] duration-200 h-11 min-h-11 max-h-11 md:h-auto md:min-h-0 md:max-h-none ${
         showOpenStyle
-          ? 'search-container--open rounded-b-none rounded-t-[22px] bg-white'
+          ? 'search-container--open rounded-b-none rounded-t-[14px] md:rounded-t-[22px] bg-white'
           : 'rounded-[50px]'
       }`}
       style={{ zIndex: 1000 }}
