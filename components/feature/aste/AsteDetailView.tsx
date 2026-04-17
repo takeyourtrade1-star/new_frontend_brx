@@ -948,13 +948,13 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               {/* Timer + cronologia */}
               <div className="flex flex-col gap-5 lg:col-span-3">
                 {/* Note: Stats views/watching moved to hero section */}
-                <div className="hidden rounded-xl border border-gray-200 bg-gray-50 p-5 text-center shadow-inner lg:block">
+                <div className="hidden rounded-xl border-2 border-gray-100 bg-white p-6 shadow-sm lg:block">
                   {isEnded ? (
-                    <>
-                      <p className="text-xs font-bold uppercase tracking-[0.25em] text-gray-600">
+                    <div className="flex flex-col items-center justify-center py-2 text-center">
+                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">
                         {t('auctions.detailAuctionClosed')}
                       </p>
-                      <p className="mt-3 text-sm font-semibold text-gray-800">
+                      <p className="mt-3 text-[13px] font-semibold text-gray-800">
                         {new Date(endsAt).toLocaleString('it-IT', {
                           day: 'numeric',
                           month: 'long',
@@ -963,36 +963,35 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                           minute: '2-digit',
                         })}
                       </p>
-                      <p className="mt-2 text-lg font-bold text-[#FF7300]">
+                      <p className="mt-2 text-xl font-black text-[#FF7300]">
                         {t('auctions.finalPriceLabel')}: {fmtEur(detail.currentBidEur)}
                       </p>
-                    </>
+                    </div>
                   ) : (
-                    <>
-                      <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#FF7300]">
+                    <div className="flex flex-col items-center justify-center py-1">
+                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#FF7300]">
                         {t('auctions.detailClosesIn')}
                       </p>
                       <p
-                        className="mt-3 flex flex-wrap items-baseline justify-center gap-1 font-mono text-3xl font-bold tabular-nums tracking-tight text-gray-900 sm:text-4xl"
+                        className="mt-2.5 flex items-baseline justify-center gap-1 font-mono text-[42px] font-black tabular-nums tracking-tight text-[#1D3160] leading-none"
                         suppressHydrationWarning
                       >
                         <span>{formatHMS(msLeft)}</span>
-                        <span className="text-2xl font-bold text-gray-900 sm:text-3xl">
-                          {' '}
-                          {t('auctions.detailHoursSuffix')}
+                        <span className="text-lg font-bold tracking-widest text-gray-400">
+                          {t('auctions.detailHoursSuffix').toLowerCase()}
                         </span>
                       </p>
-                    </>
+                    </div>
                   )}
                 </div>
 
-                {/* Ultime Offerte — Minimal con Crown, evidenza You, animazione */}
-                <div className="rounded-xl border border-gray-200/60 bg-white/90 shadow-sm">
-                  <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
-                    <h3 className="text-sm font-extrabold uppercase tracking-widest text-gray-800">
+                {/* Ultime Offerte — Design Pulito & Solido */}
+                <div className="flex flex-col overflow-hidden rounded-xl border-2 border-gray-100 bg-white shadow-sm">
+                  <div className="flex items-center justify-between border-b-2 border-gray-50 px-5 py-4">
+                    <h3 className="text-[13px] font-black uppercase tracking-[0.1em] text-[#1D3160]">
                       {isOwner ? t('auctions.sellerBidHistoryTitle') : t('auctions.detailBidHistory')}
                     </h3>
-                    <span className="ml-auto rounded-full bg-orange-100 px-2.5 py-1 text-xs font-black text-[#FF7300]">
+                    <span className="flex h-6 min-w-[24px] items-center justify-center rounded bg-gray-100 px-2 text-[11px] font-bold text-gray-600">
                       {bidRows.length}
                     </span>
                   </div>
@@ -1041,13 +1040,13 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                           <div
                             key={b.bidId}
                             style={{ animationDelay }}
-                            className={`flex items-center justify-between px-4 py-2.5 animate-[fadeInUp_0.4s_ease-out_both] ${i !== visibleBids.length - 1 ? 'border-b border-gray-50' : ''} ${showCrown ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/20' : isMine ? 'bg-gradient-to-r from-orange-50/30 to-transparent' : ''}`}
+                            className={`flex items-center justify-between px-5 py-3 transition-colors hover:bg-gray-50/80 animate-[fadeInUp_0.4s_ease-out_both] ${i !== visibleBids.length - 1 ? 'border-b border-gray-50' : ''} ${isMine ? 'border-l-4 border-l-[#FF7300] bg-[#FFF4EC] hover:bg-[#FFF4EC]' : 'border-l-4 border-l-transparent'}`}
                           >
-                            <div className="flex items-center gap-2 min-w-0">
+                            <div className="flex items-center gap-3 min-w-0">
                               <FlagIcon country={bidderCountry} size="sm" />
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
-                                  <span className={`text-sm ${showCrown ? 'font-bold text-gray-900' : isMine ? 'font-bold text-[#FF7300]' : 'font-medium text-gray-700'}`}>
+                                  <span className="text-[13px] font-bold text-[#1D3160]">
                                     {b.username}
                                   </span>
                                   {isMine && (
@@ -1056,15 +1055,15 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                                     </span>
                                   )}
                                   {showCrown && (
-                                    <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Primo posto" />
+                                    <Crown className="h-3.5 w-3.5 shrink-0 text-[#FFB800]" aria-hidden />
                                   )}
                                 </div>
-                                <span suppressHydrationWarning className="block text-[10px] text-gray-400">
+                                <span suppressHydrationWarning className="block mt-0.5 text-[10px] tracking-wide text-gray-400">
                                   {timeStr}
                                 </span>
                               </div>
                             </div>
-                            <span className={`shrink-0 text-sm font-semibold ${showCrown ? 'text-emerald-600' : isMine ? 'text-[#FF7300]' : 'text-gray-600'}`}>
+                            <span className="shrink-0 text-sm font-black text-[#111827]">
                               {fmtEur(b.amountEur)}
                             </span>
                           </div>
