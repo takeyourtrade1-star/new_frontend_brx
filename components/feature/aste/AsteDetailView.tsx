@@ -7,7 +7,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap, ArrowLeft, Trophy } from 'lucide-react';
+import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap, ArrowLeft, Trophy, Check, ChevronDown } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
@@ -129,6 +129,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const heroTitleRef = useRef<HTMLDivElement>(null);
   const asteNavRef = useRef<HTMLDivElement>(null);
+  const [mobileSection, setMobileSection] = useState<string | null>('auction');
+  const [bidsExpanded, setBidsExpanded] = useState(false);
 
   useEffect(() => {
     const header = document.querySelector('header');
@@ -267,45 +269,60 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             {t('auctions.backToAuctions')}
           </Link>
 
-          {/* Titolo prodotto + azioni a destra */}
-          <div ref={heroTitleRef} className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+          {/* Titolo prodotto + azioni */}
+          <div ref={heroTitleRef} className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex-1">
-              <h1 className="break-words text-2xl font-extrabold uppercase tracking-tight text-gray-900 sm:text-3xl md:text-4xl lg:text-5xl">
-                {detail.title}
-              </h1>
-
-              {/* Venditore sotto il titolo */}
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm sm:text-base">
-                {isOwner ? (
-                  <span className="font-semibold text-[#FF7300]">{t('auctions.sellerYouTitle')}</span>
-                ) : (
-                  <>
-                    <span className="text-gray-500">{t('auctions.detailSoldBy')}:</span>
-                    <span className="font-bold text-gray-900">{detail.seller}</span>
-                    <FlagIcon country={detail.sellerCountry} size="md" />
-                    <Shield className="h-4 w-4 text-amber-500" />
-                    <span className="text-amber-500 text-xs">{'★'.repeat(Math.min(5, Math.round((detail.sellerRating / 100) * 5)))}</span>
-                    <span className="text-xs text-gray-500">{detail.sellerRating}%</span>
-                  </>
-                )}
+              {/* Riga Titolo + Azioni Compatte dentro una singola Pill */}
+              <div className="flex w-full items-center justify-between gap-3 rounded-[2rem] border border-gray-100/80 bg-gray-50/80 p-1.5 pl-4 shadow-sm backdrop-blur-sm sm:pl-5">
+                <h1 className="flex-1 break-words py-1 text-[20px] font-black uppercase leading-[1.1] tracking-tight text-gray-900 sm:text-[24px] md:text-[28px] lg:text-3xl">
+                  {detail.title}
+                </h1>
+                
+                {/* Salva per dopo + Condividi (Icon-only compatte a destra) */}
+                <div className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5">
+                  {!isOwner && (
+                    <button 
+                      type="button" 
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-400 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:text-[#FF7300] hover:shadow-md"
+                      aria-label={t('auctions.detailSaveLater')}
+                    >
+                      <Bookmark className="h-4 w-4" />
+                    </button>
+                  )}
+                  <AuctionShareButton auctionTitle={detail.title} compact />
+                </div>
               </div>
 
-              {isOwner && (
-                <p className="mt-3 inline-flex flex-wrap items-center gap-2 rounded-lg border border-[#FF7300]/35 bg-[#FFF4EC] px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#9a3412] sm:text-sm">
-                  {t('auctions.sellerBanner')}
-                </p>
-              )}
-            </div>
+              {/* Venditore / Meta & Stats */}
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                {isOwner ? (
+                  <p className="inline-flex max-w-fit items-center rounded bg-[#FFF4EC] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#9a3412]">
+                    {t('auctions.sellerBanner')}
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-gray-500 sm:text-xs">
+                    <span>{t('auctions.detailSoldBy')}: <span className="font-bold text-gray-900">{detail.seller}</span></span>
+                    <FlagIcon country={detail.sellerCountry} size="sm" />
+                    <span className="text-gray-300">|</span>
+                    <div className="flex items-center">
+                      <span className="text-[12px] tracking-[0.1em] text-[#FFB800] drop-shadow-[0_1px_1px_rgba(255,184,0,0.5)]">{'★'.repeat(Math.min(5, Math.round((detail.sellerRating / 100) * 5)))}</span>
+                      <span className="ml-[2px] font-bold text-gray-700">{detail.sellerRating}%</span>
+                    </div>
+                  </div>
+                )}
 
-            {/* Salva per dopo + Condividi a destra */}
-            <div className="flex w-full shrink-0 flex-wrap items-center gap-3 sm:w-auto sm:justify-end sm:gap-4">
-              {!isOwner && (
-                <button type="button" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 underline decoration-gray-300 hover:text-[#FF7300]">
-                  <Bookmark className="h-4 w-4" />
-                  {t('auctions.detailSaveLater')}
-                </button>
-              )}
-              <AuctionShareButton auctionTitle={detail.title} />
+                {/* Statistiche visualizzazioni & live */}
+                <div className="flex items-center gap-3 text-[11px] sm:text-xs">
+                  <div className="flex items-center gap-1.5" title={t('auctions.statsViews', { count: statsViewsCount })}>
+                    <Eye className="h-4 w-4 text-gray-400" aria-hidden />
+                    <span className="font-bold text-gray-700">{statsViewsCount}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-bold text-[#FF7300]" title={t('auctions.statsWatching', { count: statsWatchingCount })}>
+                    <Users className="h-4 w-4" aria-hidden />
+                    <span>{statsWatchingCount} Live</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -555,14 +572,18 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             <div className="grid gap-6 p-4 sm:gap-8 sm:p-6 lg:grid-cols-12 lg:p-8">
               {/* Galleria */}
               <div className="flex flex-col gap-4 lg:col-span-5">
-                <div className="space-y-3 lg:hidden">
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center shadow-inner">
+                {/* Mobile: Unified Price + Timer Card */}
+                <div className="lg:hidden">
+                  <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white via-white to-orange-50/40 p-4 shadow-sm">
                     {isEnded ? (
-                      <>
-                        <p className="text-xs font-bold uppercase tracking-[0.25em] text-gray-600">
+                      <div className="text-center">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
                           {t('auctions.detailAuctionClosed')}
                         </p>
-                        <p className="mt-2 text-sm font-semibold text-gray-800">
+                        <p className="mt-2 text-2xl font-extrabold text-[#FF7300]">
+                          {fmtEur(detail.currentBidEur)}
+                        </p>
+                        <p className="mt-1.5 text-xs font-medium text-gray-500">
                           {new Date(endsAt).toLocaleString('it-IT', {
                             day: 'numeric',
                             month: 'long',
@@ -571,37 +592,48 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                             minute: '2-digit',
                           })}
                         </p>
-                        <p className="mt-2 text-lg font-bold text-[#FF7300]">
-                          {t('auctions.finalPriceLabel')}: {fmtEur(detail.currentBidEur)}
-                        </p>
-                      </>
+                      </div>
                     ) : (
                       <>
-                        <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#FF7300]">
-                          {t('auctions.detailClosesIn')}
-                        </p>
-                        <p
-                          className="mt-2 flex flex-wrap items-baseline justify-center gap-1 font-mono text-3xl font-bold tabular-nums tracking-tight text-gray-900"
-                          suppressHydrationWarning
-                        >
-                          <span>{formatHMS(msLeft)}</span>
-                          <span className="text-xl font-bold text-gray-900">
-                            {' '}
-                            {t('auctions.detailHoursSuffix')}
+                        <div className="flex items-start justify-between gap-3">
+                          {/* Left: Price */}
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                              {t('auctions.currentBid')}
+                            </p>
+                            <p className="mt-1 text-3xl font-extrabold tracking-tight text-gray-900">
+                              {fmtEur(effectiveCurrentBidEur)}
+                            </p>
+                          </div>
+                          {/* Right: Timer */}
+                          <div className="shrink-0 text-right">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#FF7300]">
+                              {t('auctions.detailClosesIn')}
+                            </p>
+                            <p
+                              className="mt-1 font-mono text-xl font-bold tabular-nums tracking-tight text-gray-900"
+                              suppressHydrationWarning
+                            >
+                              {formatHMS(msLeft)}
+                            </p>
+                            <p className="text-[10px] font-medium text-gray-400">
+                              {t('auctions.detailHoursSuffix')}
+                            </p>
+                          </div>
+                        </div>
+                        {/* Meta row */}
+                        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-100 pt-2.5 text-xs text-gray-500">
+                          <span>{t('auctions.detailFrom')}: <span className="font-semibold text-gray-700">{fmtEur(detail.startingBidEur)}</span></span>
+                          <span className="inline-flex items-center gap-1 text-gray-600">
+                            <span className="font-semibold text-gray-800">{detail.bidCount}</span> offerte
                           </span>
-                        </p>
+                          <span className={`text-[11px] font-medium ${reserveMet ? 'text-emerald-600' : 'text-amber-600'}`}>
+                            {reserveMet ? t('auctions.detailReserveYes') : t('auctions.detailReserveNo')}
+                          </span>
+                        </div>
                       </>
                     )}
                   </div>
-
-                  {showBuyerBid && (
-                    <div className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
-                      <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
-                        {t('auctions.currentBid')}
-                      </p>
-                      <p className="mt-1 text-2xl font-bold text-gray-900">{fmtEur(effectiveCurrentBidEur)}</p>
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex gap-3 sm:gap-4">
@@ -632,30 +664,24 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 border-t border-gray-100 pt-3">
-                  <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-gray-600">
-                    <span className="underline decoration-gray-300 underline-offset-4 hover:text-[#FF7300]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                      <Check className="h-3 w-3" aria-hidden />
                       {t('auctions.excellent')}
                     </span>
-                    <span className="underline decoration-gray-300 underline-offset-4 hover:text-[#FF7300]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700">
+                      <Shield className="h-3 w-3" aria-hidden />
                       {t('auctions.certified')}
                     </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 lg:hidden">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Eye className="h-4 w-4 text-gray-400" />
-                      {t('auctions.statsViews', { count: statsViewsCount })}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 font-semibold text-[#FF7300]">
-                      <Users className="h-4 w-4" />
-                      {t('auctions.statsWatching', { count: statsWatchingCount })}
-                    </span>
-                  </div>
+                  {/* Note: View and live stats moved to hero section */}
                 </div>
               </div>
 
               {/* Info centrale */}
               <div className="flex flex-col gap-5 lg:col-span-4">
-                <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white">
+                {/* Desktop details list — invariato */}
+                <div className="hidden divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white lg:block">
                   <div className="px-4 py-3 text-sm">
                     <span className="text-gray-500">{t('auctions.detailFrom')}: </span>
                     <span className="font-bold text-gray-900">{fmtEur(detail.startingBidEur)}</span>
@@ -692,6 +718,79 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     <span className="text-gray-900">{'Verificata'}</span>
                   </div>
                   <div className="px-4 py-3 text-sm leading-relaxed text-gray-700">{detail.description}</div>
+                </div>
+
+                {/* Mobile details accordion */}
+                <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-100 lg:hidden">
+                  {/* Section: Dettagli Asta */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setMobileSection(mobileSection === 'auction' ? null : 'auction')}
+                      className="flex w-full items-center justify-between px-4 py-3 text-left"
+                    >
+                      <span className="text-xs font-bold uppercase tracking-wide text-gray-700">
+                        {t('auctions.detailEnds').split(':')[0] || 'Dettagli Asta'}
+                      </span>
+                      <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${mobileSection === 'auction' ? 'rotate-180' : ''}`} />
+                    </button>
+                    <div className={`overflow-hidden transition-all duration-300 ${mobileSection === 'auction' ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <div className="space-y-2 px-4 pb-3 text-sm">
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-gray-500">{t('auctions.detailFrom')}</span>
+                          <span className="font-bold text-gray-900">{fmtEur(detail.startingBidEur)}</span>
+                        </div>
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-gray-500">{t('auctions.detailEnds')}</span>
+                          <span className="font-semibold text-gray-900 text-right text-xs">
+                            {new Date(endsAt).toLocaleString('it-IT', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        {isOwner ? (
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-gray-500">{t('auctions.sellerReserveLabel')}</span>
+                            <div className="text-right">
+                              <span className="font-bold text-gray-900">{fmtEur(detail.reservePriceEur)}</span>
+                              <p className="text-[10px] font-medium text-amber-900">
+                                {reserveMet ? t('auctions.sellerReserveMet') : t('auctions.sellerReserveNotMet')}
+                              </p>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section: Condizione & Descrizione */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setMobileSection(mobileSection === 'condition' ? null : 'condition')}
+                      className="flex w-full items-center justify-between px-4 py-3 text-left"
+                    >
+                      <span className="text-xs font-bold uppercase tracking-wide text-gray-700">
+                        {t('auctions.detailCondition')}
+                      </span>
+                      <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${mobileSection === 'condition' ? 'rotate-180' : ''}`} />
+                    </button>
+                    <div className={`overflow-hidden transition-all duration-300 ${mobileSection === 'condition' ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <div className="space-y-2.5 px-4 pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                            <Check className="h-3 w-3" aria-hidden />
+                            {'Verificata'}
+                          </span>
+                        </div>
+                        <p className="text-sm leading-relaxed text-gray-700">{detail.description}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {isOwner && !isEnded && (
@@ -796,40 +895,44 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                       </p>
                     </div>
 
-                    {/* CTA Principale - Scegli Offerta */}
-                    <button
-                      type="button"
-                      onClick={() => setBidModalOpen(true)}
-                      className="btn-orange-glow group relative w-full overflow-hidden rounded-xl border-2 py-3.5 text-center bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] hover:-translate-y-0.5 active:translate-y-0 sm:py-4"
-                    >
-                      {/* Animated gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#FF9A5C] via-[#FF8A3D] to-[#FF7300] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                    {/* Mobile CTA separator */}
+                    <div className="border-t-2 border-dashed border-orange-200/60 pt-4 lg:border-0 lg:pt-0">
 
-                      <div className="relative flex items-center justify-between gap-2 px-4 sm:px-6">
-                        {/* Left - Label */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold sm:text-base">
-                            {t('auctions.bidButtonChoose')}
-                          </span>
-                        </div>
+                      {/* CTA Principale - Scegli Offerta */}
+                      <button
+                        type="button"
+                        onClick={() => setBidModalOpen(true)}
+                        className="btn-orange-glow group relative w-full overflow-hidden rounded-xl border-2 py-3.5 text-center bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] hover:-translate-y-0.5 active:translate-y-0 sm:py-4"
+                      >
+                        {/* Animated gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#FF9A5C] via-[#FF8A3D] to-[#FF7300] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                        {/* Right - Amount + Arrow */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-base font-extrabold sm:text-lg">
-                            {fmtEur(minNextBidEur(effectiveCurrentBidEur))}
-                          </span>
-                          <svg
-                            className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 sm:h-5 sm:w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2.5}
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                          </svg>
+                        <div className="relative flex items-center justify-between gap-2 px-4 sm:px-6">
+                          {/* Left - Label */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold sm:text-base">
+                              {t('auctions.bidButtonChoose')}
+                            </span>
+                          </div>
+
+                          {/* Right - Amount + Arrow */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-base font-extrabold sm:text-lg">
+                              {fmtEur(minNextBidEur(effectiveCurrentBidEur))}
+                            </span>
+                            <svg
+                              className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 sm:h-5 sm:w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2.5}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
-                    </button>
+                      </button>
+                    </div>
 
                     {/* Helper text */}
                     <p className="text-center text-[10px] leading-relaxed text-gray-500 sm:text-[11px]">
@@ -841,18 +944,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
               {/* Timer + cronologia */}
               <div className="flex flex-col gap-5 lg:col-span-3">
-                {/* Stats views/watching — sopra il timer */}
-                <div className="hidden flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs text-gray-600 sm:text-sm lg:flex">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Eye className="h-4 w-4 text-gray-400" />
-                    {t('auctions.statsViews', { count: statsViewsCount })}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-[#FF7300]">
-                    <Users className="h-4 w-4" />
-                    {t('auctions.statsWatching', { count: statsWatchingCount })}
-                  </span>
-                </div>
-
+                {/* Note: Stats views/watching moved to hero section */}
                 <div className="hidden rounded-xl border border-gray-200 bg-gray-50 p-5 text-center shadow-inner lg:block">
                   {isEnded ? (
                     <>
@@ -894,11 +986,10 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                 {/* Ultime Offerte — Minimal con Crown, evidenza You, animazione */}
                 <div className="rounded-xl border border-gray-200/60 bg-white/90 shadow-sm">
                   <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
-                    <TrendingUp className="h-4 w-4 text-[#FF7300]" aria-hidden />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600">
+                    <h3 className="text-sm font-extrabold uppercase tracking-widest text-gray-800">
                       {isOwner ? t('auctions.sellerBidHistoryTitle') : t('auctions.detailBidHistory')}
                     </h3>
-                    <span className="ml-auto rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-[#FF7300]">
+                    <span className="ml-auto rounded-full bg-orange-100 px-2.5 py-1 text-xs font-black text-[#FF7300]">
                       {bidRows.length}
                     </span>
                   </div>
@@ -925,7 +1016,9 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     {/* Bids List */}
                     {(() => {
                       let crownShown = false;
-                      return bidRows.map((b, i) => {
+                      const visibleBids = bidsExpanded ? bidRows : bidRows.slice(0, 3);
+                      
+                      return visibleBids.map((b, i) => {
                         const isLeader = sameUserId(b.userId, detail.highestBidderId);
                         const showCrown = isLeader && !crownShown;
                         if (showCrown) crownShown = true;
@@ -945,7 +1038,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                           <div
                             key={b.bidId}
                             style={{ animationDelay }}
-                            className={`flex items-center justify-between px-4 py-2.5 animate-[fadeInUp_0.4s_ease-out_both] ${i !== bidRows.length - 1 ? 'border-b border-gray-50' : ''} ${showCrown ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/20' : isMine ? 'bg-gradient-to-r from-orange-50/30 to-transparent' : ''}`}
+                            className={`flex items-center justify-between px-4 py-2.5 animate-[fadeInUp_0.4s_ease-out_both] ${i !== visibleBids.length - 1 ? 'border-b border-gray-50' : ''} ${showCrown ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/20' : isMine ? 'bg-gradient-to-r from-orange-50/30 to-transparent' : ''}`}
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <FlagIcon country={bidderCountry} size="sm" />
@@ -975,18 +1068,80 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         );
                       });
                     })()}
+
+                    {/* Expand/Collapse Toggle */}
+                    {bidRows.length > 3 && (
+                      <button
+                        type="button"
+                        onClick={() => setBidsExpanded(!bidsExpanded)}
+                        className="flex w-full items-center justify-center gap-1.5 border-t border-gray-100 bg-gray-50/50 py-2.5 text-xs font-extrabold uppercase tracking-wide text-gray-500 transition-colors hover:bg-gray-50 hover:text-[#FF7300]"
+                      >
+                        {bidsExpanded ? 'Vedi meno' : `Vedi tutte (${bidRows.length})`}
+                        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${bidsExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Oggetti simili — layout pulito: immagine full-height a sinistra, info a destra */}
+          {/* Oggetti simili — carousel mobile, grid desktop */}
           <div className="mt-10 sm:mt-12">
             <h2 className="mb-5 text-lg font-bold uppercase tracking-wide text-gray-900 sm:text-xl">
               {t('auctions.similarTitle')}
             </h2>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+            {/* Mobile: horizontal scroll carousel */}
+            <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 scrollbar-hide lg:hidden">
+              {similarCards.map((a) => {
+                const fmtEur = (n: number) =>
+                  n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+                const timeLeft = formatBannerCountdown(a.hoursFromNow);
+                return (
+                  <Link
+                    key={a.id}
+                    href={auctionDetailPath(a.id)}
+                    prefetch
+                    scroll
+                    className="group w-[220px] shrink-0 snap-start overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md transition-all duration-300 hover:border-[#FF7300] hover:shadow-lg hover:-translate-y-1"
+                  >
+                    {/* Immagine verticale */}
+                    <div className="relative aspect-[3/4] w-full overflow-hidden bg-gray-50">
+                      <Image
+                        src={a.image}
+                        alt=""
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        sizes="220px"
+                        unoptimized
+                      />
+                    </div>
+                    {/* Info sotto */}
+                    <div className="p-3">
+                      <p className="line-clamp-2 text-sm font-bold uppercase leading-tight text-gray-900">
+                        {a.title}
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        {a.seller}
+                      </p>
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-base font-extrabold text-[#FF7300]">
+                          {fmtEur(a.currentBidEur)}
+                        </p>
+                        <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+                          {timeLeft}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Desktop: grid 3 colonne (invariato) */}
+            <div className="hidden gap-5 sm:grid-cols-2 lg:grid lg:grid-cols-3">
               {similarCards.map((a) => {
                 const fmtEur = (n: number) =>
                   n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
@@ -999,19 +1154,16 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     scroll
                     className="group flex h-[180px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md transition hover:border-[#FF7300] hover:shadow-lg"
                   >
-                    {/* Immagine — altezza totale, spazio a sinistra */}
                     <div className="relative h-full w-[45%] shrink-0 overflow-hidden">
                       <Image
                         src={a.image}
                         alt=""
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="(max-width: 1024px) 45vw, 160px"
+                        sizes="160px"
                         unoptimized
                       />
                     </div>
-
-                    {/* Info — a destra */}
                     <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
                       <div>
                         <p className="line-clamp-2 text-sm font-bold uppercase leading-tight text-gray-900">
@@ -1037,54 +1189,53 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             </div>
           </div>
 
-          {/* Tabella / scambi — layout orizzontale: immagine a sinistra, info a destra */}
+          {/* Tabella / scambi */}
           <div className="mt-10 sm:mt-12">
             <h2 className="mb-5 text-lg font-bold uppercase tracking-wide text-gray-900 sm:text-xl">
               {t('auctions.tableExchangeTitle')}
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-2 lg:space-y-3">
               {similarCards.slice(0, 5).map((row, i) => (
                 <div
                   key={row.id}
-                  className={`group relative isolate flex h-[110px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].border} hover:${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].shadow} hover:shadow-md`}
+                  className={`group relative isolate flex h-[80px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 lg:h-[110px] hover:border-primary/40 hover:shadow-sm lg:hover:-translate-y-0.5 lg:hover:${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].border} lg:hover:${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].shadow} lg:hover:shadow-md`}
                 >
-                  {/* Gradient background on hover */}
-                  <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  {/* Gradient background on hover — desktop only */}
+                  <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 hidden lg:block">
                     <div className={`absolute inset-0 bg-gradient-to-r ${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].gradient}`} />
-                    {/* Animated shimmer sweep */}
                     <div className="absolute inset-y-0 -left-full w-full -skew-x-12 bg-gradient-to-r from-transparent via-white/50 to-transparent transition-all duration-700 ease-out group-hover:left-full" />
-                    {/* Secondary subtle pulse */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 animate-pulse" />
                   </div>
 
-                  {/* Immagine — altezza totale, spazio a sinistra */}
-                  <div className="relative h-full w-1/6 shrink-0 overflow-hidden">
+                  {/* Immagine */}
+                  <div className="relative h-full w-[70px] shrink-0 overflow-hidden lg:w-1/6">
                     <Image
                       src={row.image}
                       alt=""
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                      sizes="(max-width: 1024px) 16vw, 72px"
+                      sizes="(max-width: 1024px) 70px, 72px"
                       unoptimized
                     />
                   </div>
 
-                  {/* Info — a destra */}
-                  <div className="relative z-[1] flex min-w-0 flex-1 flex-col justify-between p-3">
-                    <div>
-                      <p className="line-clamp-2 text-xs font-bold uppercase leading-tight text-gray-900 sm:text-sm">
+                  {/* Info */}
+                  <div className="relative z-[1] flex min-w-0 flex-1 items-center justify-between gap-2 p-2.5 lg:flex-col lg:items-start lg:justify-between lg:p-3">
+                    <div className="min-w-0">
+                      <p className="line-clamp-1 text-xs font-bold uppercase leading-tight text-gray-900 sm:text-sm lg:line-clamp-2">
                         {row.title}
                       </p>
-                      <p className="mt-1 flex items-center gap-1.5 text-[11px] text-gray-500 sm:text-xs">
+                      <p className="mt-0.5 flex items-center gap-1.5 text-[10px] text-gray-500 lg:mt-1 lg:text-xs">
                         <FlagIcon country={row.sellerCountry} size="xs" />
                         <span className="font-medium text-gray-700">{row.seller}</span>
                         <span className="text-amber-500">★</span>
                         <span className="text-[10px] text-gray-400">{row.sellerRating}%</span>
                       </p>
                     </div>
+                    {/* Mobile: Pill CTA | Desktop: underline CTA */}
                     <button
                       type="button"
-                      className="self-start text-[11px] font-bold uppercase tracking-wide text-gray-800 underline decoration-gray-300 underline-offset-2 hover:text-primary sm:text-xs"
+                      className="shrink-0 rounded-full bg-gray-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-primary transition-colors hover:bg-primary hover:text-white lg:self-start lg:rounded-none lg:bg-transparent lg:px-0 lg:py-0 lg:text-[11px] lg:text-gray-800 lg:underline lg:decoration-gray-300 lg:underline-offset-2 lg:hover:bg-transparent lg:hover:text-primary"
                     >
                       {t('auctions.exchangeRequestCta')}
                     </button>
