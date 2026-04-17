@@ -253,7 +253,10 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
-      <div ref={asteNavRef} className={showStickyHeader ? 'hidden lg:block' : 'block'}>
+      <div 
+        ref={asteNavRef} 
+        className={`transition-opacity duration-200 ${showStickyHeader ? 'max-lg:pointer-events-none max-lg:opacity-0' : ''}`}
+      >
         <AsteNav />
       </div>
 
