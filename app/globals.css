@@ -1957,21 +1957,55 @@
   animation: blink-caret 0.75s step-end infinite;
 }
 
-/* ========== ORANGE PRIMARY BUTTON - Reusable glow style ========== */
+/* ========== SHINY CTA ANIMATIONS (Property & Keyframes) ========== */
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes gradient-angle-spin {
+  0% { --gradient-angle: 0deg; }
+  100% { --gradient-angle: 360deg; }
+}
+
+@keyframes shiny-pulse {
+  0%, 100% { box-shadow: inset 0 0 0px rgba(255,115,0,0); }
+  50% { box-shadow: inset 0 0 12px rgba(255,255,255,0.25); }
+}
+
+@keyframes shiny-breathe {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 115, 0, 0.4)); }
+  50% { filter: drop-shadow(0 0 16px rgba(255, 115, 0, 0.7)); }
+}
+
+/* ========== ORANGE PRIMARY BUTTON - Shiny CTA glow style ========== */
 .btn-orange-glow {
-  background-color: #FF7300;
-  border-color: #878787;
+  position: relative;
+  border: 1px solid transparent; /* Required for border-box gradient */
   color: #ffffff;
   font-size: 15px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.025em;
   transition: all 200ms ease;
+  background: 
+    linear-gradient(#FF7300, #FF7300) padding-box,
+    conic-gradient(
+      from var(--gradient-angle), 
+      #FF7300 0%, 
+      #FF7300 80%, 
+      rgba(255,255,255,0.7) 95%, 
+      #FF7300 100%
+    ) border-box;
+  animation: gradient-angle-spin 5s linear infinite;
+  box-shadow: 0 4px 15px rgba(255, 115, 0, 0.3);
 }
 
 .btn-orange-glow:hover {
-  box-shadow: 0 0 16px rgba(255, 115, 0, 0.5);
-  filter: brightness(1.1);
+  filter: brightness(1.05);
+  box-shadow: 0 6px 20px rgba(255, 115, 0, 0.45);
+  animation: gradient-angle-spin 2s linear infinite;
 }
 
 .btn-orange-glow:active {
@@ -1983,6 +2017,8 @@
   outline: 2px solid #FF7300;
   outline-offset: 2px;
 }
+
+
 
 /* ========== INFINITE HORIZONTAL SCROLL ANIMATION ========== */
 @keyframes marquee {

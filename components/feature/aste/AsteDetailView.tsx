@@ -948,7 +948,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               {/* Timer + cronologia */}
               <div className="flex flex-col gap-5 lg:col-span-3">
                 {/* Note: Stats views/watching moved to hero section */}
-                {/* Timer Glass Arancio */}
+                {/* Timer Glass Arancio (No Shiny) */}
                 <div className="hidden relative flex-col items-center justify-center rounded-2xl border border-[#FF7300]/30 bg-[#FF7300]/10 p-6 backdrop-blur-md shadow-[0_8px_32px_rgba(255,115,0,0.12)] lg:flex overflow-hidden">
                   {/* Subtle inner highlight to enhance the glass effect */}
                   <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
