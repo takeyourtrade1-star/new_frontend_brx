@@ -25,7 +25,7 @@ export function GameHomeLayout({ gameSlug }: GameHomeLayoutProps) {
         <GameHeroSection gameSlug={gameSlug} />
       </section>
 
-      <div className="relative z-10 -mt-[62vh]">
+      <div className="relative z-10 -mt-[54vh] sm:-mt-[56vh] md:-mt-[58vh] lg:-mt-[62vh]">
         <FeaturesSection useUnifiedBackground />
 
         <MarketplaceDashboard gameSlug={gameSlug} useUnifiedBackground />

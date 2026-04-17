@@ -24,14 +24,14 @@ export function FeaturesSection({ useUnifiedBackground = false }: { useUnifiedBa
   return (
     <section
       className={cn(
-        'w-full py-3 font-sans md:py-4',
+        'w-full py-2.5 font-sans md:py-4',
         useUnifiedBackground
           ? 'bg-transparent text-slate-100'
           : "bg-[#F1F5F9] bg-[linear-gradient(rgba(241,245,249,0.8),rgba(241,245,249,0.8)),url('/brx-sfondo-logo-tile.svg')] bg-[length:100%_100%,162px_162px] bg-repeat"
       )}
     >
       <div className="container-content px-4 sm:px-6">
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
           {features.map(({ titleKey, Icon }) => (
             <div
               key={titleKey}

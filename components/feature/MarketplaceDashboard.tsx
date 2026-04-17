@@ -94,9 +94,32 @@ function MagicSearchCard({ hit }: { hit: SearchHit }) {
       ) : (
         <div className="w-full aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
       )}
-      <p className="mt-1 line-clamp-1 text-center text-xs font-medium text-gray-900">{hit.name}</p>
-      <p className="line-clamp-1 text-center text-[11px] font-normal text-gray-500">{hit.set_name}</p>
+      <p className="mt-1.5 line-clamp-1 text-center text-xs font-semibold text-slate-900">{hit.name}</p>
+      <p className="line-clamp-1 text-center text-[11px] font-medium text-gray-600">{hit.set_name}</p>
     </Link>
+  );
+}
+
+function BestSellerRankRow({ hit, rank }: { hit: SearchHit; rank: number }) {
+
+  return (
+    <li key={hit.id} className="group/row flex items-center gap-3.5 rounded-xl px-3 py-2.5 text-sm transition-colors hover:bg-orange-50/80 md:px-3.5 md:py-3">
+      <span className="w-6 shrink-0 text-sm font-bold text-gray-500">{rank}.</span>
+      {(() => {
+        const cardSrc = getCardImageUrl(hit.image ?? null);
+        return cardSrc ? (
+          <div className="relative h-10 w-8 shrink-0 overflow-hidden rounded shadow-sm">
+            <Image src={cardSrc} alt={hit.name} fill className="object-cover" unoptimized />
+          </div>
+        ) : (
+          <div className="h-10 w-8 shrink-0 rounded bg-gray-200" aria-hidden />
+        );
+      })()}
+      <Link href={`/products/${hit.id}`} className="flex-1 truncate font-medium text-slate-900 transition-colors group-hover/row:text-[#ff7300]">
+        {hit.name}
+      </Link>
+      <span className="truncate text-[11px] text-gray-600">{hit.set_name}</span>
+    </li>
   );
 }
 
@@ -253,18 +276,18 @@ export function MarketplaceDashboard({
     return () => clearInterval(timer);
   }, [magicHits.length]);
 
-  const pickThreeCards = useCallback(
-    (start: number): SearchHit[] => {
+  const pickCards = useCallback(
+    (start: number, count: number): SearchHit[] => {
       if (magicHits.length === 0) return [];
-      return [0, 1, 2].map((i) => magicHits[(start + i) % magicHits.length]);
+      return Array.from({ length: count }, (_, i) => magicHits[(start + i) % magicHits.length]);
     },
     [magicHits]
   );
 
-  const buyTopCards = pickThreeCards(magicOffset);
-  const tradeTopCards = pickThreeCards(magicOffset + 3);
-  const buyListCards = pickThreeCards(magicOffset + 6);
-  const tradeListCards = pickThreeCards(magicOffset + 9);
+  const orderedBestSellerCards = useMemo(() => pickCards(magicOffset, 12), [pickCards, magicOffset]);
+  const topBestSellerCards = orderedBestSellerCards.slice(0, 6);
+  const buyListCards = orderedBestSellerCards.slice(6, 9);
+  const tradeListCards = orderedBestSellerCards.slice(9, 12);
 
   return (
     <div
@@ -274,22 +297,34 @@ export function MarketplaceDashboard({
           : "bg-[#F1F5F9] bg-[linear-gradient(rgba(241,245,249,0.8),rgba(241,245,249,0.8)),url('/brx-sfondo-logo-tile.svg')] bg-[length:100%_100%,162px_162px] bg-repeat"
       }`}
     >
-      <div className="container-content space-y-5 pb-6 pt-4 md:space-y-8 md:pb-10 md:pt-6">
+      <div className="container-content space-y-4 pb-5 pt-2 md:space-y-8 md:pb-10 md:pt-6">
         {/* MOBILE: Layout semplificato - 1 carta principale + 5 sotto */}
         <div className="block lg:hidden">
           {/* Titolo sezione Best Sellers - Mobile */}
-          <div className="flex items-center px-4 py-2 mb-3">
+          <div className="mb-2.5 flex items-center px-4 py-1.5">
             <div className="flex flex-col">
-              <h2 className={`text-xl font-bold uppercase tracking-wider font-display ${useUnifiedBackground ? 'text-slate-100' : 'text-gray-800'}`}>Best Sellers</h2>
+              <h2 className={`text-xl font-black uppercase tracking-wide font-sans ${useUnifiedBackground ? 'text-slate-100 drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]' : 'text-slate-900'}`}>Best Sellers</h2>
               <div className="mt-1.5 h-1 w-16 rounded-full bg-gradient-to-r from-[#ff7300] to-[#ff9900]" />
             </div>
           </div>
           <div
-            className="flex flex-col overflow-hidden rounded-2xl shadow-lg border border-primary/40 ring-1 ring-primary/30"
-            style={{ borderRadius: SECTION_RADIUS, backgroundColor: '#ffffff', boxShadow: '0 0 25px rgba(255, 115, 0, 0.12), 0 4px 20px rgba(0,0,0,0.08)' }}
+            className={`relative isolate flex flex-col overflow-hidden rounded-2xl ${
+              useUnifiedBackground
+                ? 'border border-white/55 bg-white/30 backdrop-blur-[6px] backdrop-saturate-130 shadow-[0_10px_28px_rgba(15,23,42,0.16)]'
+                : 'border border-gray-200/55 bg-white/30 backdrop-blur-[4px] shadow-[0_8px_24px_rgba(15,23,42,0.12)]'
+            }`}
+            style={{ borderRadius: SECTION_RADIUS }}
           >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[56%] bg-gradient-to-b from-slate-950/55 via-slate-900/35 to-transparent"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent"
+            />
             {/* Card principale */}
-            <div className="p-4">
+            <div className="relative z-10 p-3">
               {magicHits.length > 0 ? (
                 <Link
                   href={`/products/${magicHits[0]?.id}`}
@@ -321,7 +356,7 @@ export function MarketplaceDashboard({
             </div>
 
             {/* Lista 5 carte sotto */}
-            <div className="border-t border-[#ff7300]/20 px-4 py-3">
+            <div className="relative z-10 border-t border-[#ff7300]/20 px-4 py-2.5">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#ff7300]">
                 Altre carte
               </p>
@@ -362,131 +397,96 @@ export function MarketplaceDashboard({
         <div className="hidden lg:grid lg:grid-cols-3 lg:gap-6">
           {/* ═══ Card VENDITE ═══ */}
           <div
-            className={`flex min-h-[437px] flex-col justify-between overflow-hidden rounded-2xl lg:col-span-2 ${
+            className={`relative isolate flex min-h-[437px] flex-col justify-between overflow-hidden rounded-2xl lg:col-span-2 ${
               useUnifiedBackground
-                ? 'border border-white/65 bg-white/72 backdrop-blur-[3px] backdrop-saturate-115 shadow-[0_10px_28px_rgba(15,23,42,0.12)]'
-                : 'backdrop-blur-[1px]'
+                ? 'border border-white/55 bg-white/30 backdrop-blur-[6px] backdrop-saturate-130 shadow-[0_10px_28px_rgba(15,23,42,0.16)]'
+                : 'border border-gray-200/55 bg-white/30 backdrop-blur-[4px] shadow-[0_8px_24px_rgba(15,23,42,0.12)]'
             }`}
           >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[56%] bg-gradient-to-b from-slate-950/55 via-slate-900/35 to-transparent"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent"
+            />
             {/* Titolo sezione VENDITE */}
-            <div className="flex items-center px-6 py-3">
+            <div className="relative z-10 flex items-start justify-between gap-4 px-6 py-3">
               <div className="flex flex-col">
-                <h2 className={`text-3xl font-bold uppercase tracking-wider font-display ${useUnifiedBackground ? 'text-slate-100' : 'text-gray-800'}`}>Best Sellers</h2>
+                <h2 className="text-3xl font-black uppercase tracking-wide font-sans text-slate-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.42)]">Best Sellers</h2>
                 <div className="mt-2 h-1 w-20 rounded-full bg-gradient-to-r from-[#ff7300] to-[#ff9900]" />
               </div>
-            </div>
-            <div className="flex min-h-0 flex-1">
-              {/* ── Colonna sinistra ── */}
-              <div className="flex min-w-0 flex-1 flex-col p-5 md:p-6">
-                <div className="grid grid-cols-3 gap-3">
-                  {buyTopCards.length > 0
-                    ? buyTopCards.map((hit) => <MagicSearchCard key={hit.id} hit={hit} />)
-                    : Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
-                      ))}
-                </div>
-                <ul className="mt-4 flex-1 space-y-0">
-                  {(buyListCards.length > 0 ? buyListCards : []).map((hit, i) => (
-                    <li
-                      key={hit.id}
-                      className="group/row flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-800 transition-colors hover:bg-orange-50/60"
-                    >
-                      <span className="w-5 shrink-0 text-xs font-bold text-gray-400 group-hover/row:text-[#ff7300]">{i + 4}.</span>
-                      {(() => {
-                        const cardSrc = getCardImageUrl(hit.image ?? null);
-                        return cardSrc ? (
-                          <div className="relative h-9 w-7 shrink-0 overflow-hidden rounded shadow-sm">
-                            <Image src={cardSrc} alt={hit.name} fill className="object-cover" unoptimized />
-                          </div>
-                        ) : (
-                          <div className="h-9 w-7 shrink-0 rounded bg-gray-200" aria-hidden />
-                        );
-                      })()}
-                      <Link href={`/products/${hit.id}`} className="flex-1 truncate font-medium group-hover/row:text-[#ff7300] transition-colors">
-                        {hit.name}
-                      </Link>
-                      <span className="truncate text-[11px] text-gray-400">{hit.set_name}</span>
-                    </li>
-                  ))}
-                  {!magicLoading && buyListCards.length === 0 && (
-                    <li className="text-sm text-gray-500">{t('marketplace.noSingles')}</li>
-                  )}
-                </ul>
-              </div>
-
-              {/* Divider verticale sottile */}
-              <div className="flex shrink-0 flex-col py-6" aria-hidden>
-                <div className={`w-px flex-1 min-h-0 ${useUnifiedBackground ? 'bg-header-bg/20' : 'bg-gray-200'}`} />
-              </div>
-
-              {/* ── Colonna destra ── */}
-              <div className="flex min-w-0 flex-1 flex-col p-5 md:p-6">
-                <div className="grid grid-cols-3 gap-3">
-                  {tradeTopCards.length > 0
-                    ? tradeTopCards.map((hit) => <MagicSearchCard key={hit.id} hit={hit} />)
-                    : Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
-                      ))}
-                </div>
-                <ul className="mt-4 flex-1 space-y-0">
-                  {(tradeListCards.length > 0 ? tradeListCards : []).map((hit, i) => (
-                    <li
-                      key={hit.id}
-                      className="group/row flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-800 transition-colors hover:bg-orange-50/60"
-                    >
-                      <span className="w-5 shrink-0 text-xs font-bold text-gray-400 group-hover/row:text-[#ff7300]">{i + 4}.</span>
-                      {(() => {
-                        const cardSrc = getCardImageUrl(hit.image ?? null);
-                        return cardSrc ? (
-                          <div className="relative h-9 w-7 shrink-0 overflow-hidden rounded shadow-sm">
-                            <Image src={cardSrc} alt={hit.name} fill className="object-cover" unoptimized />
-                          </div>
-                        ) : (
-                          <div className="h-9 w-7 shrink-0 rounded bg-gray-200" aria-hidden />
-                        );
-                      })()}
-                      <Link href={`/products/${hit.id}`} className="flex-1 truncate font-medium group-hover/row:text-[#ff7300] transition-colors">
-                        {hit.name}
-                      </Link>
-                      <span className="truncate text-[11px] text-gray-400">{hit.set_name}</span>
-                    </li>
-                  ))}
-                  {!magicLoading && tradeListCards.length === 0 && (
-                    <li className="text-sm text-gray-500">{t('marketplace.noSingles')}</li>
-                  )}
-                </ul>
-              </div>
-            </div>
-            {/* Link unico centrato per tutta la card */}
-            <div className="px-6 py-3 text-center">
               <Link
                 href="/search"
-                className="inline-flex items-center gap-1 text-sm font-semibold uppercase tracking-wide text-[#ff7300] hover:text-orange-600 transition-colors"
+                className="inline-flex items-center text-sm font-semibold uppercase tracking-wide text-[#ff7300] transition-colors hover:text-orange-600"
               >
                 {t('marketplace.seeAll')}
               </Link>
+            </div>
+            <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+              <div className="px-5 pt-5 md:px-6 md:pt-6">
+                <div className="grid grid-cols-6 gap-3">
+                  {topBestSellerCards.length > 0
+                    ? topBestSellerCards.map((hit) => <MagicSearchCard key={hit.id} hit={hit} />)
+                    : Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
+                      ))}
+                </div>
+              </div>
+
+              <div className="grid min-h-0 flex-1 grid-cols-2 gap-4 px-5 pb-6 pt-5 md:gap-5 md:px-6 md:pb-7 md:pt-6">
+                <div className="flex min-w-0 flex-col">
+                  <ul className="flex-1 space-y-1">
+                    {(buyListCards.length > 0 ? buyListCards : []).map((hit, i) => {
+                      return <BestSellerRankRow key={hit.id} hit={hit} rank={i + 7} />;
+                    })}
+                    {!magicLoading && buyListCards.length === 0 && (
+                      <li className="text-sm text-gray-600">{t('marketplace.noSingles')}</li>
+                    )}
+                  </ul>
+                </div>
+
+                <div className="flex min-w-0 flex-col">
+                  <ul className="flex-1 space-y-1">
+                    {(tradeListCards.length > 0 ? tradeListCards : []).map((hit, i) => {
+                      return <BestSellerRankRow key={hit.id} hit={hit} rank={i + 10} />;
+                    })}
+                    {!magicLoading && tradeListCards.length === 0 && (
+                      <li className="text-sm text-gray-600">{t('marketplace.noSingles')}</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* ═══ Card ASTE IN CORSO ═══ */}
           <div
-            className={`relative flex flex-col justify-between rounded-2xl ${
+            className={`relative isolate flex flex-col justify-between rounded-2xl ${
               useUnifiedBackground
-                ? 'border border-white/65 bg-white/72 backdrop-blur-[3px] backdrop-saturate-115 shadow-[0_10px_28px_rgba(15,23,42,0.12)]'
-                : 'border border-gray-200/60 backdrop-blur-[1px]'
+                ? 'border border-white/55 bg-white/30 backdrop-blur-[6px] backdrop-saturate-130 shadow-[0_10px_28px_rgba(15,23,42,0.16)]'
+                : 'border border-gray-200/55 bg-white/30 backdrop-blur-[4px] shadow-[0_8px_24px_rgba(15,23,42,0.12)]'
             }`}
           >
-            <div className="relative flex min-h-[380px] flex-1 flex-col overflow-hidden md:min-h-[437px]">
-              <AsteInCorsoCarousel useLightText={useUnifiedBackground} />
-            </div>
-            {/* Link allineato con "Vedi tutto" a sinistra */}
-            <div className="px-6 py-3 text-center">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[56%] bg-gradient-to-b from-slate-950/55 via-slate-900/35 to-transparent"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent"
+            />
+            <div className="absolute right-6 top-3 z-20">
               <Link
                 href="/aste"
-                className="inline-flex items-center gap-1 text-sm font-semibold uppercase tracking-wide text-[#ff7300] hover:text-orange-600 transition-colors"
+                className="inline-flex items-center text-sm font-semibold uppercase tracking-wide text-[#ff7300] transition-colors hover:text-orange-600"
               >
-                {t('auctions.discoverAll')} ➔
+                {t('marketplace.seeAll')}
               </Link>
+            </div>
+            <div className="relative z-10 flex min-h-[380px] flex-1 flex-col overflow-hidden md:min-h-[437px]">
+              <AsteInCorsoCarousel useLightText />
             </div>
           </div>
         </div>

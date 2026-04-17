@@ -3,57 +3,44 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock3 } from 'lucide-react';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { MOCK_AUCTIONS, type AuctionMock, isEndingSoon, isAuctionEnded } from './mock-auctions';
+import { useAuctionList } from '@/lib/hooks/use-auctions';
+import { apiToAuctionUI, isAuctionEndedUI, isEndingSoonUI, type AuctionUI } from '@/lib/auction/auction-adapter';
 
 /* ─────────────────────────────────────────────────────── */
 /*  Constants                                              */
 /* ─────────────────────────────────────────────────────── */
 
-const CARD_WIDTH = 170;
-const CARD_GAP = 16;
+const CARD_WIDTH = 186;
+const CARD_GAP = 12;
 const SCROLL_STEP = (CARD_WIDTH + CARD_GAP) * 1.5;
 const AUTOPLAY_MS = 5000;
-const ENDING_SOON_H = 48;
 const SWIPE_THRESHOLD = 50; // min px for swipe detection
-const CARDS_PER_PAGE = 4;
 
-/* Generate additional mock auctions for infinite scroll simulation */
-function generateMoreAuctions(startIndex: number, count: number): AuctionMock[] {
-  const titles = [
-    'Mox Pearl — Alpha', 'Time Walk — Beta', 'Ancestral Recall', 'Tropical Island',
-    'Underground Sea', 'Volcanic Island', 'Tundra', 'Badlands', 'Bayou', 'Savannah',
-    'Scrubland', 'Taiga', 'Plateau', 'Karplusan Forest', 'Serra Angel — Revised'
-  ];
-  
-  return Array.from({ length: count }, (_, i) => {
-    const idx = startIndex + i;
-    const seed = `brxscroll${idx}`;
-    return {
-      id: `scroll-${idx}`,
-      title: titles[idx % titles.length] || `Carta Rara #${idx}`,
-      image: `https://picsum.photos/seed/${seed}/400/560`,
-      hoursFromNow: 24 + (idx * 12) % 336,
-      currentBidEur: Math.floor(Math.random() * 500) + 20,
-      bidCount: Math.floor(Math.random() * 30) + 1,
-      seller: `Seller${idx}`,
-      sellerCountry: ['IT', 'US', 'DE', 'FR', 'ES', 'GB'][idx % 6],
-      sellerRating: 95 + Math.floor(Math.random() * 5),
-      sellerReviewCount: Math.floor(Math.random() * 500) + 10,
-      game: ['mtg', 'pokemon', 'lorcana', 'op', 'ygo'][idx % 5] as AuctionMock['game'],
-      startingBidEur: Math.floor(Math.random() * 100) + 5,
-      reservePriceEur: Math.floor(Math.random() * 400) + 15,
-    };
-  });
+function formatCountdown(hoursFromNow: number): string {
+  const totalMinutes = Math.max(1, Math.round(hoursFromNow * 60));
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) {
+    return hours > 0 ? `${days}g ${hours}h` : `${days}g`;
+  }
+
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+
+  return `${minutes}m`;
 }
 
 /* ─────────────────────────────────────────────────────── */
 /*  Image Preloader Hook                                   */
 /* ─────────────────────────────────────────────────────── */
-function usePrefetchImages(items: typeof MOCK_AUCTIONS, containerRef: React.RefObject<HTMLDivElement | null>) {
+function usePrefetchImages(items: AuctionUI[], containerRef: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -99,60 +86,32 @@ function usePrefetchImages(items: typeof MOCK_AUCTIONS, containerRef: React.RefO
 export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: boolean } = {}) {
   const { t, locale } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const [auctions, setAuctions] = useState<AuctionMock[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
+  const { data: listData, isLoading } = useAuctionList({ status: 'ACTIVE', limit: 60, offset: 0 });
 
-  /* Initial load - get live auctions */
-  useEffect(() => {
-    const liveAuctions = MOCK_AUCTIONS.filter((a) => !isAuctionEnded(a));
-    setAuctions(liveAuctions.slice(0, CARDS_PER_PAGE * 2));
-    setPage(2);
-  }, []);
+  const liveAuctions = useMemo(() => {
+    const rows = (listData?.data ?? [])
+      .map((a) => apiToAuctionUI(a))
+      .filter((a) => !isAuctionEndedUI(a));
+    return rows.sort((a, b) => a.hoursFromNow - b.hoursFromNow);
+  }, [listData]);
 
-  /* Load more auctions simulation */
-  const loadMoreAuctions = useCallback(async () => {
-    if (isLoading || !hasMore) return;
-    setIsLoading(true);
-    
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    
-    const newAuctions = generateMoreAuctions(page * CARDS_PER_PAGE, CARDS_PER_PAGE);
-    
-    if (page > 8) {
-      setHasMore(false);
-    } else {
-      setAuctions((prev) => [...prev, ...newAuctions]);
-      setPage((p) => p + 1);
-    }
-    setIsLoading(false);
-  }, [page, isLoading, hasMore]);
+  const featuredAuctionIds = useMemo(() => {
+    return liveAuctions
+      .filter((a) => isEndingSoonUI(a.hoursFromNow))
+      .slice(0, 3)
+      .map((a) => a.id);
+  }, [liveAuctions]);
 
-  /* Intersection Observer for infinite scroll */
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading) {
-          loadMoreAuctions();
-        }
-      },
-      { threshold: 0.1, rootMargin: '100px' }
-    );
-
-    const el = loadMoreRef.current;
-    if (el) observer.observe(el);
-
-    return () => {
-      if (el) observer.unobserve(el);
-    };
-  }, [loadMoreAuctions, hasMore, isLoading]);
+  const auctions = useMemo(() => {
+    const featuredSet = new Set(featuredAuctionIds);
+    const featuredRows = liveAuctions.filter((a) => featuredSet.has(a.id));
+    const otherRows = liveAuctions.filter((a) => !featuredSet.has(a.id));
+    return [...featuredRows, ...otherRows];
+  }, [liveAuctions, featuredAuctionIds]);
 
   /* ── Scroll-state check ── */
   const updateScrollState = useCallback(() => {
@@ -183,7 +142,7 @@ export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: b
   useEffect(() => {
     if (isPaused) return;
     const el = scrollRef.current;
-    if (!el || !hasMore) return;
+    if (!el || auctions.length < 2) return;
 
     const id = setInterval(() => {
       const maxScroll = el.scrollWidth - el.clientWidth;
@@ -193,7 +152,7 @@ export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: b
     }, AUTOPLAY_MS);
 
     return () => clearInterval(id);
-  }, [isPaused, hasMore]);
+  }, [isPaused, auctions.length]);
 
   /* ── Listen to scroll position ── */
   useEffect(() => {
@@ -246,7 +205,7 @@ export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: b
       {/* ── Header ── */}
       <div className="flex items-center px-6 py-3">
         <div className="flex flex-col">
-          <h2 className={cn('text-3xl font-bold uppercase tracking-wider font-display', useLightText ? 'text-slate-100' : 'text-gray-800')}>
+          <h2 className={cn('text-3xl font-black uppercase tracking-wide font-sans text-slate-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.42)]')}>
             {t('auctions.liveAuctionsTitle')}
           </h2>
           <div className="mt-2 h-1 w-20 rounded-full bg-gradient-to-r from-primary to-[#ff9900]" />
@@ -294,15 +253,21 @@ export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: b
         {/* Scrollable row */}
         <div
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto px-6 pb-3 scrollbar-hide"
+          className="flex items-start gap-3 overflow-x-auto px-6 pb-4 scrollbar-hide"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {auctions.map((item) => (
-            <AuctionCard key={item.id} item={item} locale={locale} />
-          ))}
-          {/* Loading skeletons - replace simple loader with card placeholders */}
+          {auctions.map((item) => {
+            const featured = featuredAuctionIds.includes(item.id);
+            return (
+              <div key={item.id} className="w-[186px] shrink-0 md:w-[210px]">
+                <AuctionCard item={item} locale={locale} featured={featured} />
+                <AuctionCardMeta item={item} locale={locale} featured={featured} />
+              </div>
+            );
+          })}
+
           {isLoading && (
             <>
               <AuctionCardSkeleton />
@@ -310,12 +275,12 @@ export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: b
               <AuctionCardSkeleton />
             </>
           )}
-          {/* Invisible load more trigger */}
-          <div
-            ref={loadMoreRef}
-            className="flex w-[1px] shrink-0 opacity-0"
-            aria-hidden="true"
-          />
+
+          {!isLoading && auctions.length === 0 && (
+            <div className="mx-2 flex min-h-[200px] w-full items-center justify-center rounded-2xl border border-white/20 bg-slate-900/40 px-4 text-sm font-medium text-white/90">
+              Nessuna asta attiva al momento
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -328,47 +293,88 @@ export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: b
 
 function AuctionCardSkeleton() {
   return (
-    <div
-      className="relative w-[170px] shrink-0 overflow-hidden rounded-lg aspect-[1/2.4] bg-gray-200"
-      aria-hidden="true"
-    >
-      {/* Image placeholder with shimmer */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-      
-      {/* Gradient overlay placeholder */}
-      <div className="absolute inset-0 bg-gradient-to-t from-gray-400/50 via-gray-300/30 to-transparent" />
-      
-      {/* Badge placeholder */}
-      <div className="absolute right-1.5 top-1.5 z-[1] h-4 w-12 rounded-full bg-gray-300/80 animate-pulse" />
-      
-      {/* Bottom content placeholders */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center p-2.5 gap-2">
-        {/* Title placeholder - 2 lines */}
-        <div className="w-full space-y-1">
-          <div className="mx-auto h-3 w-[90%] rounded bg-gray-300/80 animate-pulse" />
-          <div className="mx-auto h-3 w-[60%] rounded bg-gray-300/80 animate-pulse" />
+    <div className="w-[186px] shrink-0 md:w-[210px]" aria-hidden="true">
+      <div className="relative overflow-hidden rounded-2xl border border-white/20 aspect-[1/1.95] bg-slate-800/40">
+        {/* Image placeholder with shimmer */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-700 animate-pulse" />
+
+        {/* Gradient overlay placeholder */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/20 to-transparent" />
+
+        {/* Top chips placeholder */}
+        <div className="absolute left-2 right-2 top-2 z-[1] flex flex-wrap gap-1.5">
+          <div className="h-4 w-14 rounded-full bg-slate-300/30 animate-pulse" />
+          <div className="h-4 w-10 rounded-full bg-slate-300/30 animate-pulse" />
+          <div className="h-4 w-12 rounded-full bg-slate-300/30 animate-pulse" />
         </div>
-        {/* Price placeholder */}
-        <div className="h-3 w-16 rounded bg-primary/30 animate-pulse" />
+
+        {/* Timer badge placeholder */}
+        <div className="absolute inset-x-2 bottom-2 z-[1] h-9 rounded-xl border border-slate-200/20 bg-slate-300/25 px-2">
+          <div className="mt-[9px] flex items-center justify-between gap-2">
+            <div className="h-4 w-4 rounded-md bg-slate-200/45 animate-pulse" />
+            <div className="h-3 w-12 rounded bg-slate-200/45 animate-pulse" />
+            <div className="h-4 w-11 rounded-md bg-slate-200/45 animate-pulse" />
+          </div>
+        </div>
+      </div>
+
+      <div className="relative mt-2 overflow-hidden rounded-2xl border border-white/55 bg-[linear-gradient(160deg,rgba(255,255,255,0.88),rgba(243,248,255,0.68)_56%,rgba(224,233,247,0.5))] px-3 py-3 shadow-[0_10px_22px_rgba(15,23,42,0.18)]">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-white/45 to-transparent" />
+        <div className="w-full space-y-1.5">
+          <div className="h-3 w-[96%] rounded bg-slate-300/45 animate-pulse" />
+          <div className="h-3 w-[70%] rounded bg-slate-300/35 animate-pulse" />
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <div className="h-4 w-14 rounded bg-orange-300/45 animate-pulse" />
+          <div className="h-4 w-12 rounded-full bg-slate-300/40 animate-pulse" />
+        </div>
       </div>
     </div>
   );
 }
 
 type AuctionCardProps = {
-  item: typeof MOCK_AUCTIONS[number];
+  item: AuctionUI;
   locale: string;
+  featured?: boolean;
 };
 
-function AuctionCard({ item, locale }: AuctionCardProps) {
+function AuctionCard({ item, locale, featured = false }: AuctionCardProps) {
   const { t } = useTranslation();
-  const endingSoon = isEndingSoon(item.hoursFromNow);
+  const endingSoon = isEndingSoonUI(item.hoursFromNow);
+  const roundedHoursLeft = Math.max(1, Math.round(item.hoursFromNow));
+  const timeLeftLabel = roundedHoursLeft >= 24 ? `${Math.ceil(roundedHoursLeft / 24)}g` : `${roundedHoursLeft}h`;
+  const countdownLabel = formatCountdown(item.hoursFromNow);
+  const gameLabel =
+    item.game === 'mtg'
+      ? 'MTG'
+      : item.game === 'pokemon'
+        ? 'Pokemon'
+        : item.game === 'op'
+          ? 'One Piece'
+          : item.game === 'ygo'
+            ? 'Yu-Gi-Oh'
+            : item.game === 'lorcana'
+              ? 'Lorcana'
+              : String(item.game).toUpperCase();
+
+  const topPillBaseClass =
+    'inline-flex h-5 items-center justify-center rounded-full border px-2.5 text-[9px] font-black uppercase tracking-[0.08em] backdrop-blur-md shadow-[0_3px_10px_rgba(15,23,42,0.25)]';
+
+  const gameChipClass = cn(
+    topPillBaseClass,
+    item.game === 'mtg' && 'border-blue-200/65 bg-blue-500/35 text-blue-50',
+    item.game === 'pokemon' && 'border-amber-200/65 bg-amber-500/35 text-amber-50',
+    item.game === 'op' && 'border-rose-200/65 bg-rose-500/35 text-rose-50',
+    item.game === 'ygo' && 'border-violet-200/65 bg-violet-500/35 text-violet-50',
+    item.game === 'lorcana' && 'border-cyan-200/65 bg-cyan-500/35 text-cyan-50'
+  );
   
   return (
     <Link
       href={auctionDetailPath(item.id)}
       data-auction-card
-      className="group/card relative w-[170px] shrink-0 overflow-hidden rounded-lg aspect-[1/2.4] transition-transform duration-300 hover:scale-[1.04] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
+      className="group/card relative block overflow-hidden rounded-2xl border border-white/20 aspect-[1/1.95] bg-slate-950/35 shadow-[0_8px_24px_rgba(15,23,42,0.24)] transition-all duration-500 hover:-translate-y-1 hover:border-white/35 hover:shadow-[0_14px_36px_rgba(15,23,42,0.34)] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
       aria-label={t('auctions.auctionAriaLabel', { title: item.title })}
     >
       {/* Background image with prefetch support */}
@@ -376,38 +382,105 @@ function AuctionCard({ item, locale }: AuctionCardProps) {
         src={item.image}
         alt=""
         fill
-        className="object-cover transition-transform duration-500 group-hover/card:scale-110"
-        sizes="170px"
+        className="object-cover saturate-[1.08]"
+        sizes="(min-width: 768px) 210px, 186px"
         unoptimized
         priority={false}
         data-src={item.image}
       />
 
-      {/* Gradient overlay */}
-      <div
-        className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"
-        aria-hidden
-      />
+      {/* Layered overlays for cinematic contrast */}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-900/8 to-slate-950/10" aria-hidden />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/28 to-transparent" aria-hidden />
+      <div className="absolute inset-0 bg-gradient-to-br from-orange-300/10 via-transparent to-cyan-300/10" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover/card:opacity-100" aria-hidden>
+        <div className="h-full w-full bg-[linear-gradient(120deg,transparent_20%,rgba(255,255,255,0.13)_50%,transparent_80%)] bg-[length:200%_100%] animate-[flowBeam_2.6s_linear_infinite]" />
+      </div>
 
-      {/* Ending soon badge */}
-      {endingSoon && (
-        <span className="absolute right-1.5 top-1.5 z-[1] rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold leading-tight text-white shadow-md">
-          {t('auctions.endingSoonBadge')}
-        </span>
+      {/* Top meta pills */}
+      <div className="absolute left-2 right-2 top-2 z-[2]">
+        <div className="flex flex-wrap items-start gap-1.5">
+          {featured && (
+            <span className={cn(topPillBaseClass, 'border-amber-200/75 bg-amber-500/45 text-amber-50')}>
+              In evidenza
+            </span>
+          )}
+          <span className={gameChipClass}>{gameLabel}</span>
+          {endingSoon ? (
+            <span className={cn(topPillBaseClass, 'border-red-200/75 bg-red-500/80 text-white')}>
+              {t('auctions.endingSoonBadge')}
+            </span>
+          ) : (
+            <span className={cn(topPillBaseClass, 'border-white/45 bg-black/45 text-white/95')}>
+              {timeLeftLabel}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Prominent expiration timer */}
+      <div className="absolute inset-x-2 bottom-2 z-[2]">
+        <div
+          className={cn(
+            'flex h-9 items-center rounded-xl border pl-1.5 pr-2 shadow-[0_10px_22px_rgba(2,6,23,0.48)] ring-1 ring-black/20 backdrop-blur-md',
+            endingSoon
+              ? 'border-red-200/80 bg-[linear-gradient(135deg,rgba(239,68,68,0.96),rgba(185,28,28,0.93))] text-white'
+              : 'border-cyan-100/35 bg-[linear-gradient(135deg,rgba(15,23,42,0.92),rgba(30,41,59,0.9))] text-slate-50'
+          )}
+        >
+          <span
+            className={cn(
+              'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border shadow-[0_3px_8px_rgba(0,0,0,0.25)]',
+              endingSoon ? 'border-white/45 bg-white/18' : 'border-cyan-100/35 bg-cyan-300/18'
+            )}
+          >
+            <Clock3 className="h-3.5 w-3.5" />
+          </span>
+          <div className="ml-2 flex min-w-0 flex-col leading-none">
+            <span className="text-[8px] font-bold uppercase tracking-[0.11em] text-white/78">Scadenza</span>
+            <span className="text-[11px] font-black uppercase tracking-[0.07em] text-white">Scade tra</span>
+          </div>
+          <span
+            className={cn(
+              'ml-auto rounded-md border px-2 py-1 text-[12px] font-black tracking-[0.08em] tabular-nums',
+              endingSoon ? 'border-white/40 bg-white/16 text-white' : 'border-cyan-100/35 bg-black/28 text-cyan-50'
+            )}
+          >
+            {countdownLabel}
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function AuctionCardMeta({ item, locale, featured = false }: AuctionCardProps) {
+  return (
+    <Link
+      href={auctionDetailPath(item.id)}
+      className={cn(
+        'relative mt-2 block overflow-hidden rounded-2xl border px-3 py-3 backdrop-blur-[10px] shadow-[0_10px_22px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5',
+        featured
+          ? 'border-amber-300/55 bg-[linear-gradient(160deg,rgba(255,247,220,0.94),rgba(255,233,190,0.72)_60%,rgba(255,206,127,0.5))] hover:border-amber-300/75'
+          : 'border-white/55 bg-[linear-gradient(160deg,rgba(255,255,255,0.9),rgba(243,248,255,0.7)_56%,rgba(224,233,247,0.52))] hover:border-white/75'
       )}
-
-      {/* Bottom content */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center p-2.5">
-        <p className="text-center text-xs font-bold leading-tight text-white drop-shadow-md line-clamp-2">
-          {item.title}
-        </p>
-        <p className="mt-1 text-[11px] font-semibold text-primary">
+      aria-label={`Dettagli asta ${item.title}`}
+    >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-white/50 to-transparent" />
+      <p className="line-clamp-2 text-[13px] font-extrabold leading-tight text-slate-900">
+        {item.title}
+      </p>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <p className="text-[14px] font-black tracking-tight text-[#FF8A00]">
           {item.currentBidEur.toLocaleString(locale, {
             style: 'currency',
             currency: 'EUR',
             maximumFractionDigits: 0,
           })}
         </p>
+        <span className="inline-flex min-w-[86px] items-center justify-center rounded-full border border-slate-500/45 bg-white/62 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.07em] text-slate-700">
+          {item.bidCount} offerte
+        </span>
       </div>
     </Link>
   );
