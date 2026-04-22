@@ -463,6 +463,25 @@
   }
 }
 
+/* Sfumatura graduale e armoniosa dell'header dal blu a trasparente */
+.header-gradient {
+  background: linear-gradient(
+    to bottom,
+    #1D3160 0%,
+    #1D3160 98%,
+    rgba(29, 49, 96, 0.98) 98.3%,
+    rgba(29, 49, 96, 0.94) 98.6%,
+    rgba(29, 49, 96, 0.88) 98.9%,
+    rgba(29, 49, 96, 0.80) 99.1%,
+    rgba(29, 49, 96, 0.70) 99.3%,
+    rgba(29, 49, 96, 0.56) 99.5%,
+    rgba(29, 49, 96, 0.40) 99.65%,
+    rgba(29, 49, 96, 0.24) 99.8%,
+    rgba(29, 49, 96, 0.10) 99.9%,
+    transparent 100%
+  );
+}
+
 /* Animazione modale export collezione */
 @keyframes export-modal-in {
   from {

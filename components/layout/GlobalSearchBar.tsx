@@ -1749,7 +1749,6 @@ export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOp
     <div
       className="flex w-full justify-center py-0 z-[99] font-sans h-full min-h-0"
       style={{
-        backgroundColor: '#1D3160',
         overflow: 'visible',
       }}
     >
