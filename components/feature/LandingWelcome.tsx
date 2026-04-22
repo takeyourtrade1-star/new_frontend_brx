@@ -351,7 +351,7 @@ export function LandingWelcome() {
             {/* ──── CTA + REGISTRATI — only if NOT authenticated ──── */}
             {!isAuthenticated && (
               <div
-                className="bento-entry col-span-1 lg:col-span-1 flex flex-col items-center justify-center gap-2.5 sm:gap-2.5 rounded-2xl border border-white/10 p-4 sm:p-4 md:p-5 h-24 sm:h-24 md:h-28 lg:h-32"
+                className="bento-entry col-span-1 lg:col-span-2 flex flex-col items-center justify-center gap-2.5 sm:gap-2.5 rounded-2xl border border-white/10 p-4 sm:p-4 md:p-5 min-h-[100px] sm:min-h-[100px] md:min-h-[110px] lg:min-h-[130px]"
                 style={{
                   animationDelay: '260ms',
                   background: 'linear-gradient(135deg, rgba(255,115,0,0.04) 0%, rgba(15,23,42,0.35) 100%)',
