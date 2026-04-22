@@ -67,7 +67,7 @@ export function ProfiloContent() {
         <Separator />
         <ProfiloRow labelKey="accountPage.profileRegDate" value="28.01.2026" />
         <Separator />
-        <ProfiloRow labelKey="accountPage.profileBirth" value="19.03.2000" />
+        <ProfiloRow labelKey="accountPage.profileBirth" value="—" />
         <Separator />
         <ProfiloRow labelKey="accountPage.profileEmail" value={email} />
         <Separator />

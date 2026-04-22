@@ -1648,8 +1648,25 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase text-gray-600">Solo foil?</span>
-                    <button type="button" role="switch" aria-checked={soloFoil} onClick={() => setSoloFoil(!soloFoil)} className={cn('relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 transition-colors', soloFoil ? 'border-[#FF8800] bg-[#FF8800]' : 'border-gray-300 bg-gray-200')}>
-                      <span className={cn('pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition', soloFoil ? 'translate-x-5' : 'translate-x-1')} />
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={soloFoil}
+                      onClick={() => setSoloFoil(!soloFoil)}
+                      className={cn(
+                        'relative inline-flex h-7 w-[52px] shrink-0 cursor-pointer items-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8800]/40',
+                        soloFoil
+                          ? 'bg-[#FF8800] shadow-[inset_0_1px_2px_rgba(0,0,0,0.15),0_0_12px_rgba(255,136,0,0.45)]'
+                          : 'bg-gray-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'inline-block h-6 w-6 transform rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.22),0_0_2px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] will-change-transform',
+                          soloFoil ? 'translate-x-6' : 'translate-x-0.5'
+                        )}
+                        aria-hidden
+                      />
                     </button>
                   </div>
                 </div>
@@ -2138,18 +2155,15 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
           {/* Immagine */}
           <div
-            className="relative w-full h-full flex items-center justify-center p-4 sm:p-8"
+            className="relative flex items-center justify-center max-w-[90vw] max-h-[80vh] md:max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {!showImagePlaceholder && cardImages[currentImageIndex] && (
-              <Image
+              <img
                 src={cardImages[currentImageIndex]}
                 alt={card?.name ?? title}
-                fill
-                className="object-contain"
-                sizes="100vw"
-                unoptimized
-                priority
+                className="max-w-full max-h-full object-contain rounded-sm shadow-2xl"
+                draggable={false}
               />
             )}
             {showImagePlaceholder && (
@@ -2158,6 +2172,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   src={EBARTEX_LOGO_PLACEHOLDER}
                   alt="Ebartex"
                   className="w-24 h-24 object-contain opacity-50"
+                  draggable={false}
                 />
                 <p className="mt-4 text-sm">Immagine non disponibile</p>
               </div>
