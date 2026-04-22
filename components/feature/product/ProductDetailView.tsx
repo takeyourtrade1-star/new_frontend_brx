@@ -824,7 +824,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             >
               <div
                 className={cn(
-                  'relative flex w-full shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md sm:max-w-[160px] sm:max-h-[240px] md:max-w-[200px] md:max-h-[280px]',
+                  'relative flex w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md sm:max-w-[180px] sm:max-h-[300px] md:max-w-[200px] md:max-h-[360px] lg:max-w-[220px] lg:max-h-[420px]',
                   mobileDetailsOpen ? 'max-w-[144px] max-h-[201px]' : 'max-w-[96px] max-h-[134px]'
                 )}
                 style={{ aspectRatio: '63/88' }}
@@ -2150,7 +2150,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       {hoverPreviewOpen && (
         <div
           className="hidden sm:block fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60]"
-          style={{ maxWidth: 'min(800px, 65vw)', maxHeight: 'min(1100px, 85vh)' }}
+          style={{ maxWidth: 'min(1100px, 72vw)', maxHeight: 'min(1400px, 92vh)' }}
           onMouseEnter={handleHoverPreviewCancelClose}
           onMouseLeave={handleHoverPreviewClose}
         >
@@ -2158,7 +2158,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             <img
               src={cardImages[currentImageIndex]}
               alt={card?.name ?? title}
-              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+              className="max-w-full max-h-[92vh] object-contain rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
               draggable={false}
             />
           )}
@@ -2202,14 +2202,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
           {/* Immagine */}
           <div
-            className="relative flex items-center justify-center max-w-[96vw] max-h-[92vh] md:max-w-[90vw] md:max-h-[88vh]"
+            className="relative flex items-center justify-center w-[98vw] h-[96vh] md:w-[94vw] md:h-[94vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {!showImagePlaceholder && cardImages[currentImageIndex] && (
               <img
                 src={cardImages[currentImageIndex]}
                 alt={card?.name ?? title}
-                className="max-w-full max-h-full object-contain rounded-sm shadow-2xl"
+                className="w-full h-full object-contain rounded-sm shadow-2xl"
                 draggable={false}
               />
             )}
