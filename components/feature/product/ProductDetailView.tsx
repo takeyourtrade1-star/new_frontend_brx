@@ -2150,7 +2150,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       {hoverPreviewOpen && (
         <div
           className="hidden sm:block fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60]"
-          style={{ maxWidth: 'min(520px, 45vw)', maxHeight: 'min(720px, 75vh)' }}
+          style={{ maxWidth: 'min(800px, 65vw)', maxHeight: 'min(1100px, 85vh)' }}
           onMouseEnter={handleHoverPreviewCancelClose}
           onMouseLeave={handleHoverPreviewClose}
         >
@@ -2158,7 +2158,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             <img
               src={cardImages[currentImageIndex]}
               alt={card?.name ?? title}
-              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
               draggable={false}
             />
           )}
