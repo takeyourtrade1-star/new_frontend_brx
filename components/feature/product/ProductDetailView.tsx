@@ -818,7 +818,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             {/* Colonna sinistra: immagine carta compatta */}
             <aside
               className={cn(
-                'flex w-full flex-shrink-0 flex-col items-center justify-center bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60 p-3 sm:h-full sm:w-[180px] sm:max-w-none sm:justify-start sm:border-b-0 sm:border-r sm:border-zinc-200/50 sm:p-4 md:w-[200px] lg:w-[220px]',
+                'flex w-full flex-shrink-0 flex-col items-center justify-center bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60 p-3 sm:h-full sm:w-[180px] sm:max-w-none sm:justify-center sm:border-b-0 sm:border-r sm:border-zinc-200/50 sm:p-4 md:w-[200px] lg:w-[220px]',
                 mobileDetailsOpen ? 'border-b border-zinc-200/50' : 'border-b-0'
               )}
             >
