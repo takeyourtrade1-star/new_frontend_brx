@@ -3686,7 +3686,7 @@ export function CardMascotte() {
           transform-origin: center;
         }
         .face-fixed-neon svg {
-          filter: drop-shadow(0 0 1px ${selectedFaceColor.glowStrong}) drop-shadow(0 0 7px ${selectedFaceColor.glowMid}) drop-shadow(0 0 14px ${selectedFaceColor.glowSoft});
+          filter: drop-shadow(0 0 1px ${selectedFaceColor.glowStrong}) drop-shadow(0 0 3px ${selectedFaceColor.glowMid}) drop-shadow(0 0 6px ${selectedFaceColor.glowSoft});
         }
         .face-fixed-neon .face-halo {
           opacity: 1;
