@@ -1234,24 +1234,18 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     </div>
                   </div>
 
-                  <div className="rounded-xl bg-white p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Prezzi mercato</span>
-                      <span className="text-[10px] font-medium text-zinc-400">Grafico su desktop</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-xl bg-amber-50/80 p-2.5 text-center">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/80">Trend</p>
+                      <p className="mt-0.5 text-sm font-extrabold text-amber-700">{formatEuro(trendPriceValue)}</p>
                     </div>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <div className="rounded-lg bg-amber-50/70 p-1.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/80">Trend</p>
-                        <p className="mt-0.5 text-xs font-extrabold text-amber-700">{formatEuro(trendPriceValue)}</p>
-                      </div>
-                      <div className="rounded-lg bg-sky-50/60 p-1.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600/80">Vend.</p>
-                        <p className="mt-0.5 text-xs font-extrabold text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
-                      </div>
-                      <div className="rounded-lg bg-zinc-100/60 p-1.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Media</p>
-                        <p className="mt-0.5 text-xs font-extrabold text-zinc-800">{formatEuro(averageSalePriceValue)}</p>
-                      </div>
+                    <div className="rounded-xl bg-sky-50/70 p-2.5 text-center">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600/80">Vend.</p>
+                      <p className="mt-0.5 text-sm font-extrabold text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                    </div>
+                    <div className="rounded-xl bg-zinc-100/70 p-2.5 text-center">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Media</p>
+                      <p className="mt-0.5 text-sm font-extrabold text-zinc-800">{formatEuro(averageSalePriceValue)}</p>
                     </div>
                   </div>
                 </div>
@@ -1378,58 +1372,57 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     </div>
                   </div>
 
-                  {/* RIGHT: Market pricing context */}
-                  <div className="flex min-h-0 flex-col rounded-2xl bg-white ring-1 ring-zinc-900/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-3.5 pt-3 pb-2">
-                      <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Prezzi di mercato</span>
+                  {/* RIGHT: Market pricing context — uniformato a tab INFO */}
+                  <div className={cn('flex min-h-0 flex-col rounded-xl bg-white/85 sm:col-span-2 md:col-span-2 lg:col-span-1', showChart ? 'p-2.5' : 'p-3')}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{trendRangeLabel}</span>
                       <button
                         type="button"
                         onClick={() => setShowChart((v) => !v)}
-                        className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/5"
+                        className="flex items-center gap-1 rounded-full bg-zinc-100/80 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10"
                       >
                         {showChart ? <><EyeOff className="h-3 w-3" /> Nascondi</> : <><Eye className="h-3 w-3" /> Grafico</>}
                       </button>
                     </div>
 
-                    {/* Trend price hero + supporting stats */}
-                    <div className="flex items-end gap-3 px-3.5 pb-2">
-                      <div>
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/70">Trend</p>
-                        <p className="text-xl font-extrabold tabular-nums leading-tight text-zinc-900">{formatEuro(trendPriceValue)}</p>
-                      </div>
-                      <div className="mb-0.5 flex gap-3">
-                        <div>
-                          <p className="text-[8px] font-bold uppercase tracking-wider text-sky-500/70">Vendute</p>
-                          <p className="text-sm font-extrabold tabular-nums text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                    {showChart ? (
+                      <div className="grid grid-cols-3 gap-1">
+                        <div className="flex items-center justify-between gap-1 rounded-md border border-amber-200/70 bg-amber-50/70 px-1.5 py-1">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-amber-700/80">Trend</span>
+                          <span className="text-[11px] font-extrabold tabular-nums text-amber-700">{formatEuro(trendPriceValue)}</span>
                         </div>
-                        <div>
-                          <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-400">Media</p>
-                          <p className="text-sm font-extrabold tabular-nums text-zinc-700">{formatEuro(averageSalePriceValue)}</p>
+                        <div className="flex items-center justify-between gap-1 rounded-md border border-sky-200/70 bg-sky-50/60 px-1.5 py-1">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-sky-700/80">Vendute</span>
+                          <span className="text-[11px] font-extrabold tabular-nums text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-1 rounded-md border border-zinc-200/80 bg-zinc-100/60 px-1.5 py-1">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">Prezzo medio</span>
+                          <span className="text-[11px] font-extrabold tabular-nums text-zinc-800">{formatEuro(averageSalePriceValue)}</span>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="rounded-lg border border-amber-200/70 bg-amber-50/70 px-3 py-2">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700/80">Trend</p>
+                          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-amber-700">{formatEuro(trendPriceValue)}</p>
+                        </div>
+                        <div className="rounded-lg border border-sky-200/70 bg-sky-50/60 px-3 py-2">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-sky-700/80">Vendute</p>
+                          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                        </div>
+                        <div className="rounded-lg border border-zinc-200/80 bg-zinc-100/60 px-3 py-2">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Prezzo medio</p>
+                          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-zinc-800">{formatEuro(averageSalePriceValue)}</p>
+                        </div>
+                      </div>
+                    )}
 
-                    {/* Chart area */}
-                    <div className="mx-3 mb-3 flex-1 min-h-0 overflow-hidden rounded-xl bg-zinc-50/70 ring-1 ring-zinc-100">
-                      {showChart ? (
-                        <div className="h-full min-h-[100px] animate-in fade-in duration-300">
-                          <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
-                        </div>
-                      ) : (
-                        <div className="flex h-full flex-col items-center justify-center px-4 text-center">
-                          <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
-                            <Eye className="h-3.5 w-3.5 text-primary/60" />
+                    <div className={cn('transition-all duration-500 ease-out overflow-hidden', showChart ? 'opacity-100 max-h-[270px] mt-1.5' : 'opacity-0 max-h-0')}>
+                      {showChart && (
+                        <div className="animate-in fade-in duration-300">
+                          <div className="h-[250px] w-full rounded-lg bg-white/60">
+                            <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
                           </div>
-                          <p className="text-[11px] font-semibold text-zinc-600">Posiziona meglio il prezzo</p>
-                          <p className="mt-0.5 text-[10px] text-zinc-400">{trendRangeLabel}</p>
-                          <button
-                            type="button"
-                            onClick={() => setShowChart(true)}
-                            className="mt-2 rounded-md bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary transition-colors hover:bg-primary/15"
-                          >
-                            Mostra grafico
-                          </button>
                         </div>
                       )}
                     </div>
