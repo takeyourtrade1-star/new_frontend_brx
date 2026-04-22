@@ -417,6 +417,8 @@ export function CardMascotte() {
   const [flipCount, setFlipCount] = useState(0);
   const [showAchievement, setShowAchievement] = useState<string | null>(null);
   const [flipParticles, setFlipParticles] = useState<Array<{ id: number; x: number; y: number; dx: number; dy: number; size: number; color: string }>>([]);
+  const [dressingSparkles, setDressingSparkles] = useState<Array<{ id: number; left: number; top: number; delay: number; size: number; color: string }>>([]);
+  const dressingSparklesTimeoutRef = useRef<number | null>(null);
   const [backVariant, setBackVariant] = useState(0);
   const [comboCount, setComboCount] = useState(0);
   const [showCombo, setShowCombo] = useState(false);
@@ -497,12 +499,6 @@ export function CardMascotte() {
       // Ignore write errors in restricted browsing modes.
     }
   }, [equippedItems]);
-
-  useEffect(() => {
-    if (!isFlipped) {
-      setIsWardrobeOpen(false);
-    }
-  }, [isFlipped]);
 
   useEffect(() => {
     if (!isWardrobeOpen) {
@@ -685,57 +681,64 @@ export function CardMascotte() {
     try {
       const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       const now = ctx.currentTime;
-      const basePitch = 800 + combo * 100;
 
-      // Layer 1: Swoosh (noise-like sweep)
-      const swoosh = ctx.createOscillator();
-      const swooshG = ctx.createGain();
-      swoosh.connect(swooshG); swooshG.connect(ctx.destination);
-      swoosh.type = 'sawtooth';
-      swoosh.frequency.setValueAtTime(basePitch * 2, now);
-      swoosh.frequency.exponentialRampToValueAtTime(basePitch * 0.3, now + 0.1);
-      swooshG.gain.setValueAtTime(0, now);
-      swooshG.gain.linearRampToValueAtTime(0.06, now + 0.01);
-      swooshG.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-      swoosh.start(now); swoosh.stop(now + 0.14);
+      // Paper whisper: filtered white noise, gentle descending sweep, no thud
+      const noiseDuration = 0.36;
+      const bufferSize = Math.floor(ctx.sampleRate * noiseDuration);
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
 
-      // Layer 2: Snap (short percussive click)
-      const snap = ctx.createOscillator();
-      const snapG = ctx.createGain();
-      snap.connect(snapG); snapG.connect(ctx.destination);
-      snap.type = 'square';
-      snap.frequency.setValueAtTime(basePitch * 3, now + 0.02);
-      snap.frequency.exponentialRampToValueAtTime(basePitch, now + 0.05);
-      snapG.gain.setValueAtTime(0, now + 0.02);
-      snapG.gain.linearRampToValueAtTime(0.08, now + 0.025);
-      snapG.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-      snap.start(now + 0.02); snap.stop(now + 0.07);
+      // Bandpass centered high (paper rustle zone), narrow sweep
+      const bandpass = ctx.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.frequency.setValueAtTime(1800, now);
+      bandpass.frequency.exponentialRampToValueAtTime(900, now + 0.3);
+      bandpass.Q.value = 0.45;
 
-      // Layer 3: Chime (melodic ring)
-      const chime = ctx.createOscillator();
-      const chimeG = ctx.createGain();
-      chime.connect(chimeG); chimeG.connect(ctx.destination);
-      chime.type = 'triangle';
-      chime.frequency.setValueAtTime(basePitch, now + 0.04);
-      chime.frequency.exponentialRampToValueAtTime(basePitch * 1.5, now + 0.12);
-      chime.frequency.exponentialRampToValueAtTime(basePitch * 0.8, now + 0.22);
-      chimeG.gain.setValueAtTime(0, now + 0.04);
-      chimeG.gain.linearRampToValueAtTime(0.14, now + 0.06);
-      chimeG.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-      chime.start(now + 0.04); chime.stop(now + 0.28);
+      // Highpass to cut any rumble (removes low-end "thud" feel)
+      const highpass = ctx.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.setValueAtTime(400, now);
+      highpass.Q.value = 0.5;
 
-      // Layer 4 (combo >= 2): Harmonic overtone
+      // Soft lowpass ceiling
+      const lowpass = ctx.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.setValueAtTime(2600, now);
+      lowpass.frequency.exponentialRampToValueAtTime(1200, now + 0.3);
+      lowpass.Q.value = 0.4;
+
+      // Very gentle envelope
+      const noiseG = ctx.createGain();
+      noiseG.gain.setValueAtTime(0, now);
+      noiseG.gain.linearRampToValueAtTime(0.055, now + 0.045);
+      noiseG.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+
+      noise.connect(highpass);
+      highpass.connect(bandpass);
+      bandpass.connect(lowpass);
+      lowpass.connect(noiseG);
+      noiseG.connect(ctx.destination);
+      noise.start(now);
+      noise.stop(now + noiseDuration);
+
+      // Combo >= 2: Gentle sine bell reward (melodic, soft)
       if (combo >= 2) {
-        const harm = ctx.createOscillator();
-        const harmG = ctx.createGain();
-        harm.connect(harmG); harmG.connect(ctx.destination);
-        harm.type = 'sine';
-        harm.frequency.setValueAtTime(basePitch * 2, now + 0.06);
-        harm.frequency.exponentialRampToValueAtTime(basePitch * 1.2, now + 0.2);
-        harmG.gain.setValueAtTime(0, now + 0.06);
-        harmG.gain.linearRampToValueAtTime(0.07, now + 0.08);
-        harmG.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-        harm.start(now + 0.06); harm.stop(now + 0.32);
+        const bell = ctx.createOscillator();
+        const bellG = ctx.createGain();
+        bell.connect(bellG); bellG.connect(ctx.destination);
+        bell.type = 'sine';
+        const bellPitch = 330 + combo * 40;
+        bell.frequency.setValueAtTime(bellPitch, now + 0.08);
+        bellG.gain.setValueAtTime(0, now + 0.08);
+        bellG.gain.linearRampToValueAtTime(0.035, now + 0.1);
+        bellG.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        bell.start(now + 0.08); bell.stop(now + 0.42);
       }
     } catch {}
   }, []);
@@ -988,6 +991,7 @@ export function CardMascotte() {
     const elapsed = Date.now() - touchStartRef.current.time;
     touchStartRef.current = null;
     if (Math.abs(dx) > 30 && dy < 60 && elapsed < 400) {
+      setIsWardrobeOpen(false);
       doFlip();
     }
   };
@@ -996,8 +1000,9 @@ export function CardMascotte() {
   const handleFlipButtonClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    setIsWardrobeOpen(false);
     doFlip();
-  }, [doFlip]);
+  }, [doFlip, setIsWardrobeOpen]);
 
   // 3D Tilt parallax: track mouse relative to card center
   const handleCardMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -2429,7 +2434,7 @@ export function CardMascotte() {
       )}
 
       {/* Wardrobe Panel */}
-      {isWardrobeOpen && isFlipped && (
+      {isWardrobeOpen && (
         <div
           className="fixed"
           style={{
@@ -2663,6 +2668,40 @@ export function CardMascotte() {
                 backgroundColor: p.color,
               } as React.CSSProperties}
             />
+          ))}
+        </div>
+      )}
+
+      {/* Dressing Sparkles — shown when opening wardrobe (front view) */}
+      {dressingSparkles.length > 0 && (
+        <div
+          className="fixed pointer-events-none"
+          style={{
+            zIndex: Z_INDEX.tooltip + 1,
+            bottom: isStickyBarVisible ? '80px' : '20px',
+            right: '48px',
+            width: '96px',
+            height: '128px',
+          }}
+          aria-hidden="true"
+        >
+          {dressingSparkles.map((s) => (
+            <svg
+              key={s.id}
+              className="dressing-sparkle absolute"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              style={{
+                left: `${s.left}%`,
+                top: `${s.top}%`,
+                width: `${s.size}px`,
+                height: `${s.size}px`,
+                animationDelay: `${s.delay}ms`,
+                color: s.color,
+              }}
+            >
+              <path d="M12 2 L13.7 10.3 L22 12 L13.7 13.7 L12 22 L10.3 13.7 L2 12 L10.3 10.3 Z" />
+            </svg>
           ))}
         </div>
       )}
@@ -3023,7 +3062,32 @@ export function CardMascotte() {
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowGameModeMenu(false);
-                  setIsWardrobeOpen((prev) => !prev);
+                  setIsWardrobeOpen((prev) => {
+                    const next = !prev;
+                    if (next) {
+                      setIsFlipping(true);
+                      setIsFlipped(false);
+                      window.setTimeout(() => setIsFlipping(false), 650);
+                      const palette = ['#FF7300', '#FFA246', '#FFB26B', '#fcd34d', '#ffffff'];
+                      const sparkles = Array.from({ length: 6 }, (_, i) => ({
+                        id: Date.now() + i,
+                        left: 18 + Math.random() * 60,
+                        top: 12 + Math.random() * 74,
+                        delay: i * 55 + Math.floor(Math.random() * 60),
+                        size: 9 + Math.random() * 7,
+                        color: palette[Math.floor(Math.random() * palette.length)],
+                      }));
+                      setDressingSparkles(sparkles);
+                      if (dressingSparklesTimeoutRef.current !== null) {
+                        window.clearTimeout(dressingSparklesTimeoutRef.current);
+                      }
+                      dressingSparklesTimeoutRef.current = window.setTimeout(() => {
+                        setDressingSparkles([]);
+                        dressingSparklesTimeoutRef.current = null;
+                      }, 1300);
+                    }
+                    return next;
+                  });
                 }}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white transition hover:scale-105 hover:bg-black/50"
                 title="Apri guardaroba"
@@ -3792,6 +3856,19 @@ export function CardMascotte() {
           animation: flipParticleBurst 600ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
           filter: blur(0.5px);
           box-shadow: 0 0 4px currentColor;
+        }
+        @keyframes dressingSparkle {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(0deg); }
+          20% { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(90deg); }
+          65% { opacity: 1; transform: translate(-50%, -50%) scale(0.9) rotate(200deg); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(320deg); }
+        }
+        .dressing-sparkle {
+          animation: dressingSparkle 950ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          filter: drop-shadow(0 0 5px currentColor) drop-shadow(0 0 10px currentColor);
+          transform-origin: center;
+          opacity: 0;
+          will-change: transform, opacity;
         }
         @keyframes achievementIn {
           0% { opacity: 0; transform: translateY(12px) scale(0.9); }

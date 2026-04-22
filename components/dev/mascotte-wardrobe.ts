@@ -1249,8 +1249,41 @@ export const OBJECT_ITEMS: WardrobeItem[] = [
     position: 'hands',
     zIndex: 10025,
     svg: `<svg viewBox="0 0 28 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="2" width="24" height="40" rx="4" fill="#1f2937" stroke="#4b5563" stroke-width="0.8"/>
-      <rect x="4" y="5" width="20" height="33" rx="2.5" fill="#3b82f6"/>
+      <defs>
+        <linearGradient id="phoneChassis" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#4b5563"/>
+          <stop offset="45%" style="stop-color:#1f2937"/>
+          <stop offset="100%" style="stop-color:#030712"/>
+        </linearGradient>
+        <linearGradient id="phoneScreen" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#60a5fa"/>
+          <stop offset="45%" style="stop-color:#3b82f6"/>
+          <stop offset="100%" style="stop-color:#1e3a8a"/>
+        </linearGradient>
+        <linearGradient id="phoneGloss" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.45"/>
+          <stop offset="55%" style="stop-color:#ffffff;stop-opacity:0.05"/>
+          <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
+        </linearGradient>
+      </defs>
+      <rect x="2" y="2" width="24" height="40" rx="4" fill="url(#phoneChassis)" stroke="#030712" stroke-width="0.8"/>
+      <rect x="2.3" y="2.3" width="23.4" height="1.2" rx="0.6" fill="#9ca3af" opacity="0.55"/>
+      <rect x="4" y="5" width="20" height="33" rx="2.5" fill="url(#phoneScreen)" stroke="#0b1636" stroke-width="0.3"/>
+      <rect x="4" y="5" width="20" height="18" rx="2.5" fill="url(#phoneGloss)"/>
+      <rect x="11" y="5.5" width="6" height="2" rx="1" fill="#030712"/>
+      <circle cx="15.5" cy="6.5" r="0.5" fill="#60a5fa" opacity="0.7"/>
+      <rect x="11" y="39.5" width="6" height="1" rx="0.5" fill="#d1d5db" opacity="0.8"/>
+      <rect x="6.5" y="11" width="11" height="6" rx="0.8" fill="#ffffff" opacity="0.12"/>
+      <rect x="6.5" y="11" width="5" height="1.5" rx="0.3" fill="#ffffff" opacity="0.35"/>
+      <rect x="6.5" y="20" width="4" height="4" rx="0.6" fill="#ef4444" opacity="0.8"/>
+      <rect x="12" y="20" width="4" height="4" rx="0.6" fill="#10b981" opacity="0.8"/>
+      <rect x="17.5" y="20" width="4" height="4" rx="0.6" fill="#f59e0b" opacity="0.8"/>
+      <rect x="6.5" y="26" width="4" height="4" rx="0.6" fill="#a855f7" opacity="0.8"/>
+      <rect x="12" y="26" width="4" height="4" rx="0.6" fill="#06b6d4" opacity="0.8"/>
+      <rect x="17.5" y="26" width="4" height="4" rx="0.6" fill="#ec4899" opacity="0.8"/>
+      <rect x="1" y="10" width="1.2" height="4" rx="0.4" fill="#1f2937" stroke="#030712" stroke-width="0.2"/>
+      <rect x="1" y="16" width="1.2" height="6" rx="0.4" fill="#1f2937" stroke="#030712" stroke-width="0.2"/>
+      <rect x="25.8" y="14" width="1.2" height="8" rx="0.4" fill="#1f2937" stroke="#030712" stroke-width="0.2"/>
     </svg>`
   },
   {
@@ -1260,8 +1293,43 @@ export const OBJECT_ITEMS: WardrobeItem[] = [
     position: 'hands',
     zIndex: 10025,
     svg: `<svg viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M5 10 L3.5 36 Q14 40 24.5 36 L23 10 Z" fill="#fff" stroke="#ccc" stroke-width="0.8"/>
-      <rect x="4" y="22" width="20" height="10" rx="1" fill="#ef4444"/>
+      <defs>
+        <linearGradient id="cupBodyG" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#e5e7eb"/>
+          <stop offset="30%" style="stop-color:#ffffff"/>
+          <stop offset="70%" style="stop-color:#f3f4f6"/>
+          <stop offset="100%" style="stop-color:#9ca3af"/>
+        </linearGradient>
+        <linearGradient id="cupBand" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#f87171"/>
+          <stop offset="50%" style="stop-color:#dc2626"/>
+          <stop offset="100%" style="stop-color:#7f1d1d"/>
+        </linearGradient>
+        <radialGradient id="coffeeSurface" cx="50%" cy="30%" r="65%">
+          <stop offset="0%" style="stop-color:#d97706"/>
+          <stop offset="55%" style="stop-color:#78350f"/>
+          <stop offset="100%" style="stop-color:#3b1608"/>
+        </radialGradient>
+      </defs>
+      <path d="M5 10 L3.5 36 Q14 40 24.5 36 L23 10 Z" fill="url(#cupBodyG)" stroke="#6b7280" stroke-width="0.8"/>
+      <path d="M5 10 Q14 12 23 10" stroke="#6b7280" stroke-width="0.5" fill="none" opacity="0.6"/>
+      <ellipse cx="14" cy="10" rx="9.5" ry="1.5" fill="url(#coffeeSurface)"/>
+      <ellipse cx="14" cy="10" rx="9" ry="1" fill="#c49a6c" opacity="0.5"/>
+      <ellipse cx="11" cy="9.5" rx="1.2" ry="0.4" fill="#fef3c7" opacity="0.6"/>
+      <path d="M4 22 L24 22" stroke="#7f1d1d" stroke-width="0.4" opacity="0.7"/>
+      <rect x="4" y="22" width="20" height="10" rx="1" fill="url(#cupBand)"/>
+      <rect x="4" y="22" width="20" height="2" fill="#fecaca" opacity="0.45"/>
+      <path d="M4 32 L24 32" stroke="#7f1d1d" stroke-width="0.4" opacity="0.8"/>
+      <path d="M8 26 L10 26" stroke="#ffffff" stroke-width="0.9" opacity="0.85"/>
+      <path d="M12 26 L14 26" stroke="#ffffff" stroke-width="0.9" opacity="0.85"/>
+      <path d="M16 26 L17 26" stroke="#ffffff" stroke-width="0.6" opacity="0.65"/>
+      <circle cx="20" cy="27" r="1" fill="#ffffff" opacity="0.85"/>
+      <circle cx="20" cy="27" r="0.4" fill="#dc2626"/>
+      <path d="M25 18 Q29 22 27 26 Q25 30 28 34" stroke="#6b7280" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.85"/>
+      <path d="M25 18 Q29 22 27 26 Q25 30 28 34" stroke="#ffffff" stroke-width="0.5" fill="none" stroke-linecap="round" opacity="0.5" transform="translate(-0.3,-0.2)"/>
+      <path d="M9 6 Q7 3 10 1" stroke="#cbd5e1" stroke-width="0.9" fill="none" stroke-linecap="round" opacity="0.55"/>
+      <path d="M14 5 Q12 2 15 0" stroke="#cbd5e1" stroke-width="0.9" fill="none" stroke-linecap="round" opacity="0.5"/>
+      <path d="M19 6 Q17 3 20 1" stroke="#cbd5e1" stroke-width="0.9" fill="none" stroke-linecap="round" opacity="0.55"/>
     </svg>`
   },
   {
@@ -1271,8 +1339,47 @@ export const OBJECT_ITEMS: WardrobeItem[] = [
     position: 'hands',
     zIndex: 10025,
     svg: `<svg viewBox="0 0 38 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="0" width="34" height="20" rx="2" fill="#d1d5db" stroke="#6b7280" stroke-width="0.8"/>
-      <path d="M0 20 L38 20 L35 26.5 L3 26.5 Z" fill="#9ca3af" stroke="#9ca3af" stroke-width="0.5"/>
+      <defs>
+        <linearGradient id="laptopLid" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#e5e7eb"/>
+          <stop offset="50%" style="stop-color:#9ca3af"/>
+          <stop offset="100%" style="stop-color:#4b5563"/>
+        </linearGradient>
+        <linearGradient id="laptopBase" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#6b7280"/>
+          <stop offset="50%" style="stop-color:#9ca3af"/>
+          <stop offset="100%" style="stop-color:#4b5563"/>
+        </linearGradient>
+        <linearGradient id="screenBg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#1e3a8a"/>
+          <stop offset="40%" style="stop-color:#3b82f6"/>
+          <stop offset="100%" style="stop-color:#7c3aed"/>
+        </linearGradient>
+        <linearGradient id="screenGloss" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.35"/>
+          <stop offset="60%" style="stop-color:#ffffff;stop-opacity:0.04"/>
+          <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
+        </linearGradient>
+      </defs>
+      <rect x="2" y="0" width="34" height="20" rx="2" fill="url(#laptopLid)" stroke="#4b5563" stroke-width="0.8"/>
+      <rect x="2" y="0" width="34" height="1.5" fill="#f3f4f6" opacity="0.5" rx="0.5"/>
+      <rect x="3.5" y="1.5" width="31" height="17" rx="1" fill="#030712" stroke="#1f2937" stroke-width="0.4"/>
+      <rect x="4" y="2" width="30" height="16" rx="0.8" fill="url(#screenBg)"/>
+      <rect x="4" y="2" width="30" height="9" rx="0.8" fill="url(#screenGloss)"/>
+      <rect x="6" y="4" width="6" height="4" rx="0.4" fill="#ffffff" opacity="0.22"/>
+      <rect x="6" y="4" width="6" height="0.8" rx="0.3" fill="#ffffff" opacity="0.55"/>
+      <circle cx="7" cy="4.4" r="0.2" fill="#ef4444"/>
+      <circle cx="7.8" cy="4.4" r="0.2" fill="#f59e0b"/>
+      <circle cx="8.6" cy="4.4" r="0.2" fill="#10b981"/>
+      <rect x="14" y="4" width="14" height="3" rx="0.3" fill="#ffffff" opacity="0.18"/>
+      <rect x="14" y="9" width="14" height="2" rx="0.3" fill="#ffffff" opacity="0.14"/>
+      <rect x="14" y="12" width="10" height="1.5" rx="0.3" fill="#ffffff" opacity="0.12"/>
+      <circle cx="19" cy="19.2" r="0.4" fill="#4b5563"/>
+      <path d="M0 20 L38 20 L35 26.5 L3 26.5 Z" fill="url(#laptopBase)" stroke="#374151" stroke-width="0.5"/>
+      <rect x="0" y="20" width="38" height="1" fill="#374151" opacity="0.7"/>
+      <rect x="3" y="21" width="32" height="4" rx="0.5" fill="#1f2937" opacity="0.4"/>
+      <rect x="12" y="25" width="14" height="1.2" rx="0.3" fill="#030712" opacity="0.55"/>
+      <path d="M0 20 L38 20" stroke="#f3f4f6" stroke-width="0.3" opacity="0.6"/>
     </svg>`
   },
   {
@@ -1282,7 +1389,52 @@ export const OBJECT_ITEMS: WardrobeItem[] = [
     position: 'hands',
     zIndex: 10025,
     svg: `<svg viewBox="0 0 30 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="0" width="24" height="35" rx="2" fill="#92400e" stroke="#451a03" stroke-width="1"/>
+      <defs>
+        <linearGradient id="bookCover" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#b45309"/>
+          <stop offset="45%" style="stop-color:#78350f"/>
+          <stop offset="100%" style="stop-color:#3b1608"/>
+        </linearGradient>
+        <linearGradient id="bookSpine" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#3b1608"/>
+          <stop offset="50%" style="stop-color:#78350f"/>
+          <stop offset="100%" style="stop-color:#451a03"/>
+        </linearGradient>
+        <linearGradient id="pagesG" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#fef3c7"/>
+          <stop offset="50%" style="stop-color:#fde68a"/>
+          <stop offset="100%" style="stop-color:#d4a574"/>
+        </linearGradient>
+        <linearGradient id="goldLabel" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#fef3c7"/>
+          <stop offset="50%" style="stop-color:#fbbf24"/>
+          <stop offset="100%" style="stop-color:#92400e"/>
+        </linearGradient>
+      </defs>
+      <rect x="26" y="1" width="3" height="33" rx="0.4" fill="url(#pagesG)" stroke="#92400e" stroke-width="0.3"/>
+      <line x1="27" y1="3" x2="27" y2="33" stroke="#d4a574" stroke-width="0.3" opacity="0.8"/>
+      <line x1="28" y1="3" x2="28" y2="33" stroke="#d4a574" stroke-width="0.3" opacity="0.8"/>
+      <rect x="2" y="0" width="24" height="35" rx="2" fill="url(#bookCover)" stroke="#3b1608" stroke-width="1"/>
+      <rect x="2" y="0" width="4" height="35" rx="2" fill="url(#bookSpine)"/>
+      <line x1="4" y1="2" x2="4" y2="33" stroke="#fbbf24" stroke-width="0.3" opacity="0.7"/>
+      <rect x="2.5" y="4" width="3" height="1" fill="#fbbf24" opacity="0.85"/>
+      <rect x="2.5" y="30" width="3" height="1" fill="#fbbf24" opacity="0.85"/>
+      <rect x="4" y="0" width="22" height="1.5" fill="#fef3c7" opacity="0.35"/>
+      <rect x="8" y="3" width="14" height="1" fill="#fbbf24" opacity="0.6"/>
+      <rect x="8" y="33.5" width="14" height="1" fill="#fbbf24" opacity="0.6"/>
+      <path d="M6 3 L8 3 L7 5 Z" fill="#fbbf24" opacity="0.8"/>
+      <path d="M24 3 L22 3 L23 5 Z" fill="#fbbf24" opacity="0.8"/>
+      <path d="M6 32 L8 32 L7 30 Z" fill="#fbbf24" opacity="0.8"/>
+      <path d="M24 32 L22 32 L23 30 Z" fill="#fbbf24" opacity="0.8"/>
+      <rect x="9" y="11" width="12" height="8" rx="1" fill="url(#goldLabel)" stroke="#78350f" stroke-width="0.4"/>
+      <rect x="9" y="11" width="12" height="2" fill="#fef3c7" opacity="0.55"/>
+      <circle cx="15" cy="15" r="2" fill="none" stroke="#78350f" stroke-width="0.5"/>
+      <path d="M14 14 L16 16 M14 16 L16 14" stroke="#78350f" stroke-width="0.5"/>
+      <rect x="17" y="0" width="3" height="10" fill="#dc2626" stroke="#7f1d1d" stroke-width="0.4"/>
+      <rect x="17" y="0" width="1.2" height="10" fill="#f87171" opacity="0.65"/>
+      <path d="M17 10 L20 10 L18.5 13 Z" fill="#dc2626" stroke="#7f1d1d" stroke-width="0.4"/>
+      <rect x="5" y="8" width="20" height="0.4" fill="#3b1608" opacity="0.4"/>
+      <rect x="5" y="22" width="20" height="0.4" fill="#3b1608" opacity="0.4"/>
     </svg>`
   },
   {
@@ -1292,8 +1444,55 @@ export const OBJECT_ITEMS: WardrobeItem[] = [
     position: 'hands',
     zIndex: 10025,
     svg: `<svg viewBox="0 0 36 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="6" width="32" height="18" rx="2" fill="#374151" stroke="#1f2937" stroke-width="0.8"/>
-      <circle cx="20" cy="15" r="8" fill="#1f2937" stroke="#4b5563" stroke-width="1.5"/>
+      <defs>
+        <linearGradient id="camBody" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#4b5563"/>
+          <stop offset="45%" style="stop-color:#1f2937"/>
+          <stop offset="100%" style="stop-color:#030712"/>
+        </linearGradient>
+        <linearGradient id="camLeather" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#78350f"/>
+          <stop offset="50%" style="stop-color:#451a03"/>
+          <stop offset="100%" style="stop-color:#1c0d03"/>
+        </linearGradient>
+        <radialGradient id="lensG" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" style="stop-color:#60a5fa"/>
+          <stop offset="40%" style="stop-color:#1e40af"/>
+          <stop offset="75%" style="stop-color:#1e293b"/>
+          <stop offset="100%" style="stop-color:#030712"/>
+        </radialGradient>
+        <radialGradient id="flashG" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" style="stop-color:#fffbeb"/>
+          <stop offset="50%" style="stop-color:#fcd34d"/>
+          <stop offset="100%" style="stop-color:#92400e"/>
+        </radialGradient>
+      </defs>
+      <rect x="2" y="6" width="32" height="18" rx="2" fill="url(#camBody)" stroke="#030712" stroke-width="0.8"/>
+      <rect x="2" y="6" width="32" height="1.3" rx="0.5" fill="#6b7280" opacity="0.55"/>
+      <rect x="4" y="11" width="28" height="11" rx="0.8" fill="url(#camLeather)"/>
+      <circle cx="6" cy="13" r="0.2" fill="#78350f" opacity="0.7"/>
+      <circle cx="10" cy="13" r="0.2" fill="#78350f" opacity="0.7"/>
+      <circle cx="6" cy="17" r="0.2" fill="#78350f" opacity="0.7"/>
+      <circle cx="10" cy="17" r="0.2" fill="#78350f" opacity="0.7"/>
+      <circle cx="30" cy="13" r="0.2" fill="#78350f" opacity="0.7"/>
+      <circle cx="30" cy="17" r="0.2" fill="#78350f" opacity="0.7"/>
+      <circle cx="20" cy="15" r="8" fill="#030712" stroke="#030712" stroke-width="0.6"/>
+      <circle cx="20" cy="15" r="7" fill="#1f2937" stroke="#4b5563" stroke-width="0.4"/>
+      <circle cx="20" cy="15" r="5.5" fill="url(#lensG)" stroke="#030712" stroke-width="0.4"/>
+      <circle cx="20" cy="15" r="3.5" fill="#030712" stroke="#3b82f6" stroke-width="0.3"/>
+      <circle cx="20" cy="15" r="2" fill="#030712"/>
+      <ellipse cx="18" cy="13" rx="1.5" ry="1" fill="#ffffff" opacity="0.65"/>
+      <ellipse cx="17.5" cy="13" rx="0.5" ry="0.3" fill="#ffffff" opacity="0.9"/>
+      <circle cx="22" cy="17" r="0.4" fill="#3b82f6" opacity="0.6"/>
+      <rect x="4" y="2" width="7" height="5" rx="0.8" fill="url(#camBody)" stroke="#030712" stroke-width="0.4"/>
+      <rect x="5" y="3" width="5" height="3" rx="0.4" fill="url(#flashG)"/>
+      <rect x="5" y="3" width="5" height="1" rx="0.3" fill="#fffbeb" opacity="0.7"/>
+      <circle cx="30" cy="4" r="1.5" fill="#dc2626" stroke="#7f1d1d" stroke-width="0.4"/>
+      <circle cx="29.5" cy="3.5" r="0.4" fill="#fecaca" opacity="0.85"/>
+      <rect x="23" y="3" width="6" height="3" rx="0.4" fill="#030712" stroke="#4b5563" stroke-width="0.3"/>
+      <rect x="23.5" y="3.5" width="5" height="0.6" rx="0.2" fill="#4b5563" opacity="0.7"/>
+      <rect x="0" y="8" width="2" height="1.5" rx="0.3" fill="#1f2937"/>
+      <rect x="34" y="8" width="2" height="1.5" rx="0.3" fill="#1f2937"/>
     </svg>`
   },
   {
@@ -1303,8 +1502,36 @@ export const OBJECT_ITEMS: WardrobeItem[] = [
     position: 'hands',
     zIndex: 10025,
     svg: `<svg viewBox="0 0 30 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="15" cy="19" rx="13.5" ry="18" fill="#f87171"/>
-      <path d="M15 38 Q17 42 15 44 Q13 46 15 48 Q17 50 15 52" stroke="#d4d4d4" stroke-width="0.8" fill="none"/>
+      <defs>
+        <radialGradient id="balloonBody" cx="32%" cy="25%" r="75%">
+          <stop offset="0%" style="stop-color:#fca5a5"/>
+          <stop offset="30%" style="stop-color:#f87171"/>
+          <stop offset="70%" style="stop-color:#dc2626"/>
+          <stop offset="100%" style="stop-color:#7f1d1d"/>
+        </radialGradient>
+        <radialGradient id="balloonShine" cx="32%" cy="22%" r="25%">
+          <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.85"/>
+          <stop offset="55%" style="stop-color:#ffffff;stop-opacity:0.3"/>
+          <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
+        </radialGradient>
+        <linearGradient id="balloonKnot" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#dc2626"/>
+          <stop offset="100%" style="stop-color:#7f1d1d"/>
+        </linearGradient>
+      </defs>
+      <ellipse cx="15" cy="19" rx="13.5" ry="18" fill="url(#balloonBody)" stroke="#7f1d1d" stroke-width="0.5"/>
+      <ellipse cx="11" cy="12" rx="3.5" ry="5" fill="url(#balloonShine)"/>
+      <ellipse cx="10.5" cy="11" rx="1.4" ry="2" fill="#ffffff" opacity="0.85"/>
+      <ellipse cx="19" cy="28" rx="2" ry="3" fill="#7f1d1d" opacity="0.3"/>
+      <ellipse cx="15" cy="36" rx="6" ry="1.2" fill="#7f1d1d" opacity="0.25"/>
+      <path d="M12 36 L18 36 L16.5 40 L13.5 40 Z" fill="url(#balloonKnot)" stroke="#7f1d1d" stroke-width="0.4"/>
+      <path d="M13 36.5 L17 36.5" stroke="#fecaca" stroke-width="0.3" opacity="0.55"/>
+      <path d="M14.5 38 L15.5 38" stroke="#450a0a" stroke-width="0.3"/>
+      <path d="M15 40 Q17 42 15 44 Q13 46 15 48 Q17 50 15 52" stroke="#e5e7eb" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+      <path d="M15 40 Q17 42 15 44 Q13 46 15 48 Q17 50 15 52" stroke="#ffffff" stroke-width="0.4" fill="none" stroke-linecap="round" opacity="0.7" transform="translate(-0.3,0)"/>
+      <path d="M15 40 Q17 42 15 44 Q13 46 15 48 Q17 50 15 52" stroke="#9ca3af" stroke-width="0.3" fill="none" stroke-linecap="round" opacity="0.6" transform="translate(0.3,0)"/>
+      <circle cx="20" cy="10" r="0.4" fill="#ffffff" opacity="0.9"/>
+      <circle cx="8" cy="22" r="0.3" fill="#ffffff" opacity="0.7"/>
     </svg>`
   },
   {
@@ -1314,8 +1541,49 @@ export const OBJECT_ITEMS: WardrobeItem[] = [
     position: 'hands',
     zIndex: 10025,
     svg: `<svg viewBox="0 0 30 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M8 14 Q8 4 15 2 Q22 4 22 14" stroke="#d4af37" stroke-width="2.5" fill="none"/>
-      <rect x="2" y="14" width="26" height="20" rx="3" fill="#a855f7" stroke="#6d28d9" stroke-width="0.8"/>
+      <defs>
+        <linearGradient id="bagHandleG" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#fef3c7"/>
+          <stop offset="35%" style="stop-color:#fcd34d"/>
+          <stop offset="75%" style="stop-color:#d4af37"/>
+          <stop offset="100%" style="stop-color:#92400e"/>
+        </linearGradient>
+        <linearGradient id="bagBody" x1="25%" y1="0%" x2="75%" y2="100%">
+          <stop offset="0%" style="stop-color:#c084fc"/>
+          <stop offset="40%" style="stop-color:#a855f7"/>
+          <stop offset="100%" style="stop-color:#581c87"/>
+        </linearGradient>
+        <radialGradient id="bagHL" cx="30%" cy="25%" r="60%">
+          <stop offset="0%" style="stop-color:#e9d5ff;stop-opacity:0.55"/>
+          <stop offset="100%" style="stop-color:#e9d5ff;stop-opacity:0"/>
+        </radialGradient>
+        <pattern id="quiltP" x="0" y="0" width="5" height="5" patternUnits="userSpaceOnUse">
+          <path d="M0 0 L5 5 M5 0 L0 5" stroke="#581c87" stroke-width="0.3" opacity="0.4"/>
+        </pattern>
+        <radialGradient id="bagBtnG" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" style="stop-color:#fffbeb"/>
+          <stop offset="50%" style="stop-color:#fbbf24"/>
+          <stop offset="100%" style="stop-color:#78350f"/>
+        </radialGradient>
+      </defs>
+      <path d="M8 14 Q8 4 15 2 Q22 4 22 14" stroke="url(#bagHandleG)" stroke-width="2.5" fill="none"/>
+      <path d="M8 14 Q8 4 15 2 Q22 4 22 14" stroke="#fef3c7" stroke-width="0.5" fill="none" opacity="0.6" transform="translate(-0.3,-0.3)"/>
+      <path d="M8 14 Q8 4 15 2 Q22 4 22 14" stroke="#78350f" stroke-width="0.35" fill="none" opacity="0.55" transform="translate(0.3,0.3)"/>
+      <rect x="2" y="14" width="26" height="20" rx="3" fill="url(#bagBody)" stroke="#581c87" stroke-width="0.8"/>
+      <rect x="2" y="14" width="26" height="20" rx="3" fill="url(#quiltP)" opacity="0.6"/>
+      <rect x="2" y="14" width="26" height="20" rx="3" fill="url(#bagHL)"/>
+      <rect x="2" y="14" width="26" height="2" rx="1" fill="#581c87" opacity="0.55"/>
+      <path d="M2 14 Q15 17 28 14" stroke="#e9d5ff" stroke-width="0.35" fill="none" opacity="0.55"/>
+      <circle cx="8" cy="15.5" r="1" fill="url(#bagBtnG)" stroke="#78350f" stroke-width="0.3"/>
+      <circle cx="7.7" cy="15.2" r="0.25" fill="#fffbeb" opacity="0.9"/>
+      <circle cx="22" cy="15.5" r="1" fill="url(#bagBtnG)" stroke="#78350f" stroke-width="0.3"/>
+      <circle cx="21.7" cy="15.2" r="0.25" fill="#fffbeb" opacity="0.9"/>
+      <rect x="12" y="22" width="6" height="5" rx="0.6" fill="url(#bagBtnG)" stroke="#78350f" stroke-width="0.4"/>
+      <rect x="12.5" y="22.4" width="5" height="1.2" rx="0.3" fill="#fef3c7" opacity="0.6"/>
+      <rect x="13.5" y="24" width="3" height="2.2" rx="0.3" fill="#78350f" opacity="0.6"/>
+      <path d="M13.5 24.3 Q15 23.5 16.5 24.3" stroke="#fbbf24" stroke-width="0.35" fill="none"/>
+      <rect x="2" y="30" width="26" height="0.8" fill="#581c87" opacity="0.55"/>
+      <rect x="4" y="33" width="22" height="1" rx="0.4" fill="#c084fc" opacity="0.4"/>
     </svg>`
   },
   {
@@ -1325,9 +1593,60 @@ export const OBJECT_ITEMS: WardrobeItem[] = [
     position: 'hands',
     zIndex: 10025,
     svg: `<svg viewBox="0 0 26 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M6 26 L13 48 L20 26" fill="#f59e0b"/>
-      <circle cx="13" cy="23" r="10" fill="#fef08a"/>
-      <circle cx="13" cy="14" r="8" fill="#f9a8d4"/>
+      <defs>
+        <linearGradient id="coneG" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#fbbf24"/>
+          <stop offset="45%" style="stop-color:#d97706"/>
+          <stop offset="100%" style="stop-color:#78350f"/>
+        </linearGradient>
+        <pattern id="waffleP" x="0" y="0" width="3" height="3" patternUnits="userSpaceOnUse">
+          <path d="M0 0 L3 3 M3 0 L0 3" stroke="#78350f" stroke-width="0.4" opacity="0.7"/>
+        </pattern>
+        <radialGradient id="scoopVan" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" style="stop-color:#fffbeb"/>
+          <stop offset="55%" style="stop-color:#fef08a"/>
+          <stop offset="100%" style="stop-color:#ca8a04"/>
+        </radialGradient>
+        <radialGradient id="scoopStraw" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" style="stop-color:#fce7f3"/>
+          <stop offset="55%" style="stop-color:#f9a8d4"/>
+          <stop offset="100%" style="stop-color:#be185d"/>
+        </radialGradient>
+        <radialGradient id="cherryG" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" style="stop-color:#fca5a5"/>
+          <stop offset="55%" style="stop-color:#dc2626"/>
+          <stop offset="100%" style="stop-color:#7f1d1d"/>
+        </radialGradient>
+      </defs>
+      <path d="M6 26 L13 48 L20 26 Z" fill="url(#coneG)" stroke="#78350f" stroke-width="0.5"/>
+      <path d="M6 26 L13 48 L20 26 Z" fill="url(#waffleP)" opacity="0.85"/>
+      <path d="M7 27 L19 27" stroke="#78350f" stroke-width="0.5" opacity="0.6"/>
+      <path d="M8 30 L18 30" stroke="#78350f" stroke-width="0.35" opacity="0.55"/>
+      <path d="M9 34 L17 34" stroke="#78350f" stroke-width="0.35" opacity="0.55"/>
+      <path d="M10 38 L16 38" stroke="#78350f" stroke-width="0.3" opacity="0.55"/>
+      <path d="M11 42 L15 42" stroke="#78350f" stroke-width="0.3" opacity="0.55"/>
+      <path d="M3 24 Q5 28 4 32 L6 32 L6 26 Z" fill="url(#scoopVan)" opacity="0.95"/>
+      <path d="M23 24 Q21 28 22 32 L20 32 L20 26 Z" fill="url(#scoopVan)" opacity="0.95"/>
+      <circle cx="13" cy="23" r="10" fill="url(#scoopVan)" stroke="#ca8a04" stroke-width="0.5"/>
+      <ellipse cx="9" cy="19" rx="3" ry="2.5" fill="#fffbeb" opacity="0.65"/>
+      <circle cx="8" cy="18" r="0.9" fill="#ffffff" opacity="0.9"/>
+      <path d="M5 30 Q5 32 6 32" stroke="#ca8a04" stroke-width="0.4" fill="none" opacity="0.6"/>
+      <path d="M21 30 Q21 32 20 32" stroke="#ca8a04" stroke-width="0.4" fill="none" opacity="0.6"/>
+      <circle cx="13" cy="14" r="8" fill="url(#scoopStraw)" stroke="#be185d" stroke-width="0.5"/>
+      <ellipse cx="10" cy="10" rx="2.5" ry="2" fill="#fce7f3" opacity="0.7"/>
+      <circle cx="9" cy="9" r="0.8" fill="#ffffff" opacity="0.95"/>
+      <path d="M5 18 Q5 22 7 22" stroke="#be185d" stroke-width="0.4" fill="none" opacity="0.6"/>
+      <path d="M21 18 Q21 22 19 22" stroke="#be185d" stroke-width="0.4" fill="none" opacity="0.6"/>
+      <circle cx="11" cy="16" r="0.4" fill="#dc2626"/>
+      <circle cx="15" cy="15" r="0.4" fill="#84cc16"/>
+      <circle cx="13" cy="18" r="0.4" fill="#3b82f6"/>
+      <circle cx="16" cy="12" r="0.4" fill="#fbbf24"/>
+      <circle cx="10" cy="19" r="0.4" fill="#a855f7"/>
+      <circle cx="14" cy="22" r="0.4" fill="#06b6d4"/>
+      <circle cx="13" cy="5" r="1.8" fill="url(#cherryG)" stroke="#7f1d1d" stroke-width="0.4"/>
+      <circle cx="12.5" cy="4.5" r="0.5" fill="#fecaca" opacity="0.85"/>
+      <path d="M13 3.5 Q14 1 16 0" stroke="#166534" stroke-width="0.6" fill="none" stroke-linecap="round"/>
+      <path d="M14.5 1.5 Q15.5 0.5 17 1" fill="#16a34a" stroke="#166534" stroke-width="0.3"/>
     </svg>`
   },
   {
@@ -1337,8 +1656,53 @@ export const OBJECT_ITEMS: WardrobeItem[] = [
     position: 'hands',
     zIndex: 10025,
     svg: `<svg viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M7 6 Q7 24 18 26 Q29 24 29 6" fill="#fbbf24" stroke="#b45309" stroke-width="0.6"/>
-      <rect x="7" y="37" width="22" height="4" rx="1.5" fill="#5c3d00"/>
+      <defs>
+        <linearGradient id="trophyCup" x1="20%" y1="0%" x2="80%" y2="100%">
+          <stop offset="0%" style="stop-color:#fef3c7"/>
+          <stop offset="30%" style="stop-color:#fcd34d"/>
+          <stop offset="65%" style="stop-color:#d4af37"/>
+          <stop offset="100%" style="stop-color:#78350f"/>
+        </linearGradient>
+        <radialGradient id="trophyHL" cx="30%" cy="25%" r="55%">
+          <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.75"/>
+          <stop offset="55%" style="stop-color:#fef3c7;stop-opacity:0.15"/>
+          <stop offset="100%" style="stop-color:#fef3c7;stop-opacity:0"/>
+        </radialGradient>
+        <linearGradient id="trophyBase" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#78350f"/>
+          <stop offset="45%" style="stop-color:#451a03"/>
+          <stop offset="100%" style="stop-color:#1c0d03"/>
+        </linearGradient>
+        <linearGradient id="trophyMarble" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#1f2937"/>
+          <stop offset="30%" style="stop-color:#4b5563"/>
+          <stop offset="70%" style="stop-color:#374151"/>
+          <stop offset="100%" style="stop-color:#111827"/>
+        </linearGradient>
+      </defs>
+      <path d="M4 8 Q2 12 4 18 Q6 22 10 22 L8 16 L8 8 Z" fill="url(#trophyCup)" stroke="#78350f" stroke-width="0.5"/>
+      <path d="M32 8 Q34 12 32 18 Q30 22 26 22 L28 16 L28 8 Z" fill="url(#trophyCup)" stroke="#78350f" stroke-width="0.5"/>
+      <path d="M7 6 Q7 24 18 26 Q29 24 29 6 Z" fill="url(#trophyCup)" stroke="#78350f" stroke-width="0.6"/>
+      <path d="M7 6 Q7 24 18 26 Q29 24 29 6 Z" fill="url(#trophyHL)"/>
+      <path d="M9 7 Q9 10 9 13" stroke="#fef3c7" stroke-width="0.6" fill="none" opacity="0.7"/>
+      <path d="M27 7 Q27 10 27 13" stroke="#78350f" stroke-width="0.4" fill="none" opacity="0.55"/>
+      <rect x="6" y="5" width="24" height="1.5" rx="0.6" fill="#fef3c7" opacity="0.5"/>
+      <rect x="6" y="5" width="24" height="0.6" rx="0.3" fill="#fffbeb" opacity="0.9"/>
+      <path d="M18 10 L19.5 14 L24 14.3 L20.4 17 L21.8 21.3 L18 19 L14.2 21.3 L15.6 17 L12 14.3 L16.5 14 Z" fill="#fef3c7" stroke="#92400e" stroke-width="0.4" opacity="0.85"/>
+      <path d="M18 11 L19 14 L22 14 L20 15.5 L20.8 18 L18 17 L15.2 18 L16 15.5 L14 14 L17 14 Z" fill="#fbbf24" opacity="0.95"/>
+      <path d="M14 26 Q18 28 22 26 L22 30 Q18 32 14 30 Z" fill="url(#trophyCup)" stroke="#78350f" stroke-width="0.5"/>
+      <path d="M14 26 Q18 28 22 26" stroke="#fef3c7" stroke-width="0.35" fill="none" opacity="0.7"/>
+      <rect x="13" y="30" width="10" height="7" rx="0.5" fill="url(#trophyMarble)" stroke="#030712" stroke-width="0.5"/>
+      <path d="M14 31 L22 31" stroke="#9ca3af" stroke-width="0.3" opacity="0.55"/>
+      <path d="M14 35 L22 35" stroke="#9ca3af" stroke-width="0.2" opacity="0.4"/>
+      <rect x="15" y="32" width="6" height="3" rx="0.4" fill="url(#trophyCup)" stroke="#78350f" stroke-width="0.3"/>
+      <text x="18" y="34.4" text-anchor="middle" fill="#78350f" font-size="2.4" font-weight="bold" font-family="sans-serif">#1</text>
+      <rect x="7" y="37" width="22" height="4" rx="1.5" fill="url(#trophyBase)" stroke="#1c0d03" stroke-width="0.5"/>
+      <rect x="7" y="37" width="22" height="0.8" fill="#a16207" opacity="0.55"/>
+      <rect x="7" y="40" width="22" height="0.6" fill="#1c0d03" opacity="0.6"/>
+      <path d="M10 15 L10 19" stroke="#fffbeb" stroke-width="0.3" opacity="0.6"/>
+      <path d="M26 15 L26 19" stroke="#78350f" stroke-width="0.25" opacity="0.5"/>
+      <circle cx="18" cy="39" r="0.4" fill="#fef3c7" opacity="0.8"/>
     </svg>`
   },
   {
@@ -1348,8 +1712,63 @@ export const OBJECT_ITEMS: WardrobeItem[] = [
     position: 'hands',
     zIndex: 10025,
     svg: `<svg viewBox="-6 -2 58 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M-4 19 L0 12 L4 10 L33 9 L35 12 L35 28 L33 31 L4 30 L0 28 L-4 21 Z" fill="#d1d5db" stroke="#9ca3af" stroke-width="0.7"/>
-      <circle cx="40" cy="20" r="10" fill="#e5e7eb" stroke="#9ca3af" stroke-width="0.8"/>
+      <defs>
+        <linearGradient id="bladeMetal" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#f3f4f6"/>
+          <stop offset="25%" style="stop-color:#d1d5db"/>
+          <stop offset="55%" style="stop-color:#9ca3af"/>
+          <stop offset="100%" style="stop-color:#374151"/>
+        </linearGradient>
+        <linearGradient id="bladeShine" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.75"/>
+          <stop offset="60%" style="stop-color:#ffffff;stop-opacity:0"/>
+        </linearGradient>
+        <linearGradient id="energyBand" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#1e40af"/>
+          <stop offset="50%" style="stop-color:#06b6d4"/>
+          <stop offset="100%" style="stop-color:#1e40af"/>
+        </linearGradient>
+        <radialGradient id="gemCore" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" style="stop-color:#fef08a"/>
+          <stop offset="30%" style="stop-color:#fbbf24"/>
+          <stop offset="65%" style="stop-color:#dc2626"/>
+          <stop offset="100%" style="stop-color:#7f1d1d"/>
+        </radialGradient>
+        <linearGradient id="cardSlotG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#6366f1"/>
+          <stop offset="50%" style="stop-color:#3730a3"/>
+          <stop offset="100%" style="stop-color:#1e1b4b"/>
+        </linearGradient>
+      </defs>
+      <path d="M-4 19 L0 12 L4 10 L33 9 L35 12 L35 28 L33 31 L4 30 L0 28 L-4 21 Z" fill="url(#bladeMetal)" stroke="#030712" stroke-width="0.7"/>
+      <path d="M-4 19 L0 12 L4 10 L33 9 L35 12 L35 19 L33 19 L0 18 L-4 19 Z" fill="url(#bladeShine)"/>
+      <path d="M-2 19 L0 15 L33 15 L33 17 L0 17 L-2 19" fill="url(#energyBand)" opacity="0.75"/>
+      <path d="M-2 21 L0 24 L33 23 L33 25 L0 25 L-2 21" fill="url(#energyBand)" opacity="0.65"/>
+      <path d="M-2 19 L0 15 L33 15" stroke="#67e8f9" stroke-width="0.3" fill="none" opacity="0.85"/>
+      <path d="M4 11 L32 10 L32 12 L4 13 Z" fill="#030712" opacity="0.3"/>
+      <path d="M4 28 L32 28 L32 30 L4 30 Z" fill="#030712" opacity="0.3"/>
+      <rect x="5" y="12" width="7" height="16" rx="0.8" fill="url(#cardSlotG)" stroke="#1e1b4b" stroke-width="0.4"/>
+      <rect x="5.5" y="12.5" width="6" height="15" rx="0.5" fill="#1e1b4b"/>
+      <path d="M5.5 12.5 L11.5 12.5" stroke="#818cf8" stroke-width="0.4" opacity="0.65"/>
+      <circle cx="8.5" cy="16" r="0.9" fill="#f59e0b" stroke="#7c2d12" stroke-width="0.2"/>
+      <circle cx="8.5" cy="20" r="0.9" fill="#3b82f6" stroke="#1e3a8a" stroke-width="0.2"/>
+      <circle cx="8.5" cy="24" r="0.9" fill="#dc2626" stroke="#7f1d1d" stroke-width="0.2"/>
+      <rect x="14" y="12" width="7" height="16" rx="0.8" fill="url(#cardSlotG)" stroke="#1e1b4b" stroke-width="0.4" opacity="0.65"/>
+      <rect x="23" y="12" width="7" height="16" rx="0.8" fill="url(#cardSlotG)" stroke="#1e1b4b" stroke-width="0.4" opacity="0.45"/>
+      <path d="M15 14 L20 14 M15 18 L20 18 M15 22 L20 22" stroke="#818cf8" stroke-width="0.3" opacity="0.5"/>
+      <circle cx="40" cy="20" r="10.5" fill="#030712" stroke="#030712" stroke-width="0.5"/>
+      <circle cx="40" cy="20" r="9.5" fill="url(#bladeMetal)" stroke="#4b5563" stroke-width="0.4"/>
+      <circle cx="40" cy="20" r="7" fill="#1e1b4b" stroke="#030712" stroke-width="0.4"/>
+      <circle cx="40" cy="20" r="5.5" fill="url(#gemCore)" stroke="#7f1d1d" stroke-width="0.5"/>
+      <circle cx="40" cy="20" r="3.5" fill="url(#gemCore)" opacity="0.85"/>
+      <ellipse cx="38" cy="18" rx="1.6" ry="1.2" fill="#ffffff" opacity="0.75"/>
+      <circle cx="37.5" cy="17.5" r="0.5" fill="#ffffff"/>
+      <path d="M40 11 L40 13 M40 27 L40 29 M31 20 L33 20 M47 20 L49 20" stroke="#67e8f9" stroke-width="0.5" opacity="0.85"/>
+      <path d="M34 14 L35.5 15.5 M44.5 24.5 L46 26 M34 26 L35.5 24.5 M44.5 15.5 L46 14" stroke="#67e8f9" stroke-width="0.35" opacity="0.65"/>
+      <circle cx="40" cy="12" r="0.4" fill="#67e8f9"/>
+      <circle cx="40" cy="28" r="0.4" fill="#67e8f9"/>
+      <circle cx="32" cy="20" r="0.4" fill="#67e8f9"/>
+      <circle cx="48" cy="20" r="0.4" fill="#67e8f9"/>
     </svg>`
   }
 ];

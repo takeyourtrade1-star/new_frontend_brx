@@ -620,11 +620,7 @@ export function KakeguruiP2P({ open, onClose }: KakeguruiP2PProps) {
 
                 {/* ═══ LOBBY ═══ */}
                 {showLobby && (
-                  <motion.div key="lobby" className="h-full flex flex-col items-center justify-center p-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                    <div className="text-center mb-8">
-                      <h2 className="text-2xl font-bold text-white mb-2">⚔️ Carta Forbice Sasso 1v1</h2>
-                      <p className="text-zinc-500 text-sm max-w-md">Connettiti direttamente con un altro giocatore. Le carte sono distribuite casualmente.</p>
-                    </div>
+                  <motion.div key="lobby" className="h-full flex items-center justify-center p-3 sm:p-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                     <P2PLobby onConnected={() => { setShowLobby(false); setShowGame(true); }} room={room} actions={actions} />
                   </motion.div>
                 )}
