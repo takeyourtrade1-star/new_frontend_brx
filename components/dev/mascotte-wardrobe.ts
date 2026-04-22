@@ -828,19 +828,49 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
     zIndex: 10020,
     svg: `<svg viewBox="0 0 96 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="lensGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#1f1f1f"/><stop offset="50%" style="stop-color:#000"/><stop offset="100%" style="stop-color:#1f1f1f"/>
+        <linearGradient id="lensGradWF" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#2a2a2a"/>
+          <stop offset="45%" style="stop-color:#050505"/>
+          <stop offset="100%" style="stop-color:#1f1f1f"/>
         </linearGradient>
+        <linearGradient id="lensShineWF" x1="10%" y1="0%" x2="40%" y2="80%">
+          <stop offset="0%" style="stop-color:#6e6e6e;stop-opacity:0.85"/>
+          <stop offset="60%" style="stop-color:#3a3a3a;stop-opacity:0.2"/>
+          <stop offset="100%" style="stop-color:#000;stop-opacity:0"/>
+        </linearGradient>
+        <linearGradient id="frameGradWF" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#2a2a2a"/>
+          <stop offset="50%" style="stop-color:#090909"/>
+          <stop offset="100%" style="stop-color:#000"/>
+        </linearGradient>
+        <radialGradient id="hingeWF" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" style="stop-color:#b8b8b8"/>
+          <stop offset="55%" style="stop-color:#666"/>
+          <stop offset="100%" style="stop-color:#1f1f1f"/>
+        </radialGradient>
       </defs>
-      <rect x="17" y="3" width="20" height="14" rx="3" fill="url(#lensGrad)" stroke="#000" stroke-width="1.5"/>
-      <rect x="19" y="5" width="8" height="5" rx="1.5" fill="#333" opacity="0.3"/>
-      <rect x="55" y="3" width="20" height="14" rx="3" fill="url(#lensGrad)" stroke="#000" stroke-width="1.5"/>
-      <rect x="57" y="5" width="8" height="5" rx="1.5" fill="#333" opacity="0.3"/>
-      <path d="M37 8 Q48 12 55 8" stroke="#0f0f0f" stroke-width="2.5" fill="none"/>
-      <rect x="17" y="2" width="20" height="3" rx="1" fill="#111"/><rect x="55" y="2" width="20" height="3" rx="1" fill="#111"/>
-      <line x1="17" y1="8" x2="6" y2="7" stroke="#111" stroke-width="2" stroke-linecap="round"/>
-      <line x1="75" y1="8" x2="90" y2="7" stroke="#111" stroke-width="2" stroke-linecap="round"/>
-      <circle cx="17" cy="8" r="1.2" fill="#666"/><circle cx="75" cy="8" r="1.2" fill="#666"/>
+      <rect x="17" y="3" width="20" height="14" rx="3" fill="url(#lensGradWF)" stroke="#000" stroke-width="1.5"/>
+      <rect x="18" y="4" width="18" height="12" rx="2.4" fill="url(#lensShineWF)"/>
+      <rect x="19" y="4.5" width="7" height="4" rx="1.2" fill="#fafafa" opacity="0.35"/>
+      <rect x="20" y="5" width="3" height="1.5" rx="0.6" fill="#fff" opacity="0.55"/>
+      <rect x="55" y="3" width="20" height="14" rx="3" fill="url(#lensGradWF)" stroke="#000" stroke-width="1.5"/>
+      <rect x="56" y="4" width="18" height="12" rx="2.4" fill="url(#lensShineWF)"/>
+      <rect x="57" y="4.5" width="7" height="4" rx="1.2" fill="#fafafa" opacity="0.35"/>
+      <rect x="58" y="5" width="3" height="1.5" rx="0.6" fill="#fff" opacity="0.55"/>
+      <path d="M37 8 Q48 12 55 8" stroke="url(#frameGradWF)" stroke-width="2.5" fill="none"/>
+      <path d="M37 7.3 Q48 11 55 7.3" stroke="#4a4a4a" stroke-width="0.4" fill="none" opacity="0.75"/>
+      <rect x="17" y="2" width="20" height="3" rx="1" fill="url(#frameGradWF)"/>
+      <rect x="55" y="2" width="20" height="3" rx="1" fill="url(#frameGradWF)"/>
+      <rect x="18" y="2.3" width="18" height="0.7" rx="0.4" fill="#5a5a5a" opacity="0.55"/>
+      <rect x="56" y="2.3" width="18" height="0.7" rx="0.4" fill="#5a5a5a" opacity="0.55"/>
+      <line x1="17" y1="8" x2="6" y2="7" stroke="url(#frameGradWF)" stroke-width="2.2" stroke-linecap="round"/>
+      <line x1="75" y1="8" x2="90" y2="7" stroke="url(#frameGradWF)" stroke-width="2.2" stroke-linecap="round"/>
+      <line x1="15" y1="7.6" x2="8" y2="6.8" stroke="#4a4a4a" stroke-width="0.5" opacity="0.7"/>
+      <line x1="77" y1="7.6" x2="88" y2="6.8" stroke="#4a4a4a" stroke-width="0.5" opacity="0.7"/>
+      <circle cx="17" cy="8" r="1.4" fill="url(#hingeWF)" stroke="#000" stroke-width="0.3"/>
+      <circle cx="16.7" cy="7.7" r="0.4" fill="#f0f0f0" opacity="0.85"/>
+      <circle cx="75" cy="8" r="1.4" fill="url(#hingeWF)" stroke="#000" stroke-width="0.3"/>
+      <circle cx="74.7" cy="7.7" r="0.4" fill="#f0f0f0" opacity="0.85"/>
     </svg>`
   },
   {
@@ -851,14 +881,46 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
     zIndex: 10017,
     svg: `<svg viewBox="0 0 96 32" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="capGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1e40af"/><stop offset="100%" style="stop-color:#1e3a8a"/></linearGradient>
-        <linearGradient id="visorGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#2563eb"/><stop offset="100%" style="stop-color:#1d4ed8"/></linearGradient>
+        <linearGradient id="capBodyG" x1="25%" y1="0%" x2="75%" y2="100%">
+          <stop offset="0%" style="stop-color:#3b82f6"/>
+          <stop offset="40%" style="stop-color:#1e40af"/>
+          <stop offset="100%" style="stop-color:#172554"/>
+        </linearGradient>
+        <radialGradient id="capHL" cx="30%" cy="25%" r="55%">
+          <stop offset="0%" style="stop-color:#93c5fd;stop-opacity:0.55"/>
+          <stop offset="60%" style="stop-color:#60a5fa;stop-opacity:0.08"/>
+          <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:0"/>
+        </radialGradient>
+        <linearGradient id="visorG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#2563eb"/>
+          <stop offset="55%" style="stop-color:#1d4ed8"/>
+          <stop offset="100%" style="stop-color:#1e3a8a"/>
+        </linearGradient>
+        <linearGradient id="visorHL" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#bfdbfe;stop-opacity:0.55"/>
+          <stop offset="100%" style="stop-color:#bfdbfe;stop-opacity:0"/>
+        </linearGradient>
+        <radialGradient id="capButton" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" style="stop-color:#60a5fa"/>
+          <stop offset="55%" style="stop-color:#1e40af"/>
+          <stop offset="100%" style="stop-color:#0b1636"/>
+        </radialGradient>
       </defs>
-      <path d="M14 24 Q14 4 48 2 Q82 4 82 24" fill="url(#capGrad)" stroke="#1e3a8a" stroke-width="1"/>
-      <path d="M48 3 L48 24" stroke="#1e3a8a" stroke-width="0.5" opacity="0.5"/>
-      <circle cx="48" cy="3" r="2.5" fill="#1e3a8a"/>
-      <path d="M14 24 Q48 28 82 24 L88 29 Q48 36 8 29 Z" fill="url(#visorGrad)" stroke="#1e3a8a" stroke-width="0.8"/>
-      <path d="M14 26 Q48 30 82 26" stroke="#60a5fa" stroke-width="0.5" stroke-dasharray="2,2" fill="none"/>
+      <path d="M14 24 Q14 4 48 2 Q82 4 82 24" fill="url(#capBodyG)" stroke="#172554" stroke-width="1"/>
+      <path d="M14 24 Q14 4 48 2 Q82 4 82 24" fill="url(#capHL)"/>
+      <path d="M48 3 L48 24" stroke="#172554" stroke-width="0.5" opacity="0.7"/>
+      <path d="M28 6 Q30 14 30 23" stroke="#172554" stroke-width="0.35" fill="none" opacity="0.55"/>
+      <path d="M68 6 Q66 14 66 23" stroke="#172554" stroke-width="0.35" fill="none" opacity="0.55"/>
+      <circle cx="48" cy="3" r="2.5" fill="url(#capButton)" stroke="#0b1636" stroke-width="0.4"/>
+      <circle cx="47.3" cy="2.3" r="0.8" fill="#bfdbfe" opacity="0.85"/>
+      <path d="M14 24 Q48 28 82 24 L88 29 Q48 36 8 29 Z" fill="url(#visorG)" stroke="#172554" stroke-width="0.8"/>
+      <path d="M14 24 Q48 27.5 82 24 L85 26.5 Q48 30 11 26.5 Z" fill="url(#visorHL)"/>
+      <path d="M14 26 Q48 30 82 26" stroke="#93c5fd" stroke-width="0.5" stroke-dasharray="2,2" fill="none"/>
+      <path d="M12 28 Q48 32 84 28" stroke="#172554" stroke-width="0.35" stroke-dasharray="1.5,1" fill="none" opacity="0.7"/>
+      <circle cx="24" cy="12" r="0.4" fill="#172554" opacity="0.6"/>
+      <circle cx="72" cy="12" r="0.4" fill="#172554" opacity="0.6"/>
+      <circle cx="36" cy="8" r="0.4" fill="#172554" opacity="0.6"/>
+      <circle cx="60" cy="8" r="0.4" fill="#172554" opacity="0.6"/>
     </svg>`
   },
   {
@@ -868,9 +930,29 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
     position: 'head',
     zIndex: 10020,
     svg: `<svg viewBox="0 0 96 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs><linearGradient id="goldGradEar" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#fcd34d"/><stop offset="100%" style="stop-color:#f59e0b"/></linearGradient></defs>
+      <defs>
+        <linearGradient id="goldGradEar" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#fef3c7"/>
+          <stop offset="30%" style="stop-color:#fcd34d"/>
+          <stop offset="65%" style="stop-color:#f59e0b"/>
+          <stop offset="100%" style="stop-color:#92400e"/>
+        </linearGradient>
+        <radialGradient id="pearlEarR" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" style="stop-color:#ffffff"/>
+          <stop offset="55%" style="stop-color:#fef3c7"/>
+          <stop offset="100%" style="stop-color:#d97706"/>
+        </radialGradient>
+      </defs>
       <circle cx="5" cy="14" r="6" stroke="url(#goldGradEar)" stroke-width="2.5" fill="none"/>
+      <circle cx="4.65" cy="13.65" r="6" stroke="#fef3c7" stroke-width="0.6" fill="none" opacity="0.55"/>
+      <circle cx="5.3" cy="14.3" r="6" stroke="#78350f" stroke-width="0.4" fill="none" opacity="0.6"/>
+      <circle cx="5" cy="8" r="1" fill="url(#pearlEarR)" stroke="#92400e" stroke-width="0.3"/>
+      <circle cx="4.7" cy="7.7" r="0.3" fill="#fff" opacity="0.9"/>
       <circle cx="91" cy="14" r="6" stroke="url(#goldGradEar)" stroke-width="2.5" fill="none"/>
+      <circle cx="90.65" cy="13.65" r="6" stroke="#fef3c7" stroke-width="0.6" fill="none" opacity="0.55"/>
+      <circle cx="91.3" cy="14.3" r="6" stroke="#78350f" stroke-width="0.4" fill="none" opacity="0.6"/>
+      <circle cx="91" cy="8" r="1" fill="url(#pearlEarR)" stroke="#92400e" stroke-width="0.3"/>
+      <circle cx="90.7" cy="7.7" r="0.3" fill="#fff" opacity="0.9"/>
     </svg>`
   },
   {
@@ -881,12 +963,36 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
     zIndex: 10015,
     svg: `<svg viewBox="0 0 96 36" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="chainGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#c0c0c0"/><stop offset="100%" style="stop-color:#c0c0c0"/></linearGradient>
-        <linearGradient id="pendantGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#60a5fa"/><stop offset="100%" style="stop-color:#2563eb"/></linearGradient>
+        <linearGradient id="chainGradNK" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#6b6b6b"/>
+          <stop offset="25%" style="stop-color:#e0e0e0"/>
+          <stop offset="50%" style="stop-color:#ffffff"/>
+          <stop offset="75%" style="stop-color:#e0e0e0"/>
+          <stop offset="100%" style="stop-color:#6b6b6b"/>
+        </linearGradient>
+        <radialGradient id="pendantBezelNK" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" style="stop-color:#e8e8e8"/>
+          <stop offset="55%" style="stop-color:#a0a0a0"/>
+          <stop offset="100%" style="stop-color:#404040"/>
+        </radialGradient>
+        <radialGradient id="pendantGemNK" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" style="stop-color:#dbeafe"/>
+          <stop offset="40%" style="stop-color:#60a5fa"/>
+          <stop offset="75%" style="stop-color:#2563eb"/>
+          <stop offset="100%" style="stop-color:#1e3a8a"/>
+        </radialGradient>
       </defs>
-      <path d="M28 0 Q48 22 68 0" stroke="url(#chainGrad)" stroke-width="1.5" fill="none" stroke-dasharray="3,1"/>
-      <ellipse cx="48" cy="22" rx="7" ry="9" fill="#c0c0c0" stroke="#a0a0a0"/>
-      <ellipse cx="48" cy="22" rx="5" ry="7" fill="url(#pendantGrad)"/>
+      <path d="M28 0 Q48 22 68 0" stroke="url(#chainGradNK)" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <path d="M28 0 Q48 22 68 0" stroke="#0f0f0f" stroke-width="0.5" fill="none" stroke-dasharray="1.5,1.2" opacity="0.7"/>
+      <path d="M28 0 Q48 22 68 0" stroke="#ffffff" stroke-width="0.35" fill="none" opacity="0.55" transform="translate(-0.3,-0.3)"/>
+      <circle cx="48" cy="12" r="1.2" fill="none" stroke="url(#pendantBezelNK)" stroke-width="0.8"/>
+      <ellipse cx="48" cy="22" rx="7" ry="9" fill="url(#pendantBezelNK)" stroke="#2a2a2a" stroke-width="0.5"/>
+      <ellipse cx="48" cy="22" rx="5" ry="7" fill="url(#pendantGemNK)" stroke="#1e3a8a" stroke-width="0.4"/>
+      <ellipse cx="46.5" cy="19.5" rx="1.4" ry="2.2" fill="#ffffff" opacity="0.7"/>
+      <path d="M45 21 L48 18 L51 21" stroke="#dbeafe" stroke-width="0.35" fill="none" opacity="0.75"/>
+      <path d="M45 24 L48 27 L51 24" stroke="#1e3a8a" stroke-width="0.35" fill="none" opacity="0.7"/>
+      <circle cx="46" cy="19" r="0.3" fill="#ffffff"/>
+      <circle cx="50" cy="26" r="0.25" fill="#dbeafe" opacity="0.8"/>
     </svg>`
   },
   {
@@ -896,9 +1002,34 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
     position: 'head',
     zIndex: 10021,
     svg: `<svg viewBox="0 0 50 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M23 10 Q8 2 4 12 Q8 24 23 16" fill="#f472b6" stroke="#be185d" stroke-width="0.8"/>
-      <path d="M27 10 Q42 2 46 12 Q42 24 27 16" fill="#ec4899" stroke="#be185d" stroke-width="0.8"/>
-      <rect x="23" y="10" width="4" height="6" rx="1.5" fill="#db2777"/>
+      <defs>
+        <linearGradient id="bowSatinL" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#fbcfe8"/>
+          <stop offset="40%" style="stop-color:#f472b6"/>
+          <stop offset="100%" style="stop-color:#be185d"/>
+        </linearGradient>
+        <linearGradient id="bowSatinR" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#fbcfe8"/>
+          <stop offset="40%" style="stop-color:#ec4899"/>
+          <stop offset="100%" style="stop-color:#9d174d"/>
+        </linearGradient>
+        <radialGradient id="bowKnot" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" style="stop-color:#f9a8d4"/>
+          <stop offset="55%" style="stop-color:#db2777"/>
+          <stop offset="100%" style="stop-color:#831843"/>
+        </radialGradient>
+      </defs>
+      <path d="M23 10 Q8 2 4 12 Q8 24 23 16" fill="url(#bowSatinL)" stroke="#831843" stroke-width="0.8"/>
+      <path d="M20 10 Q12 6 8 12" stroke="#fce7f3" stroke-width="0.4" fill="none" opacity="0.75"/>
+      <path d="M20 16 Q12 20 8 14" stroke="#831843" stroke-width="0.3" fill="none" opacity="0.55"/>
+      <path d="M22 13 Q12 14 5 13" stroke="#ffffff" stroke-width="0.25" fill="none" opacity="0.4"/>
+      <path d="M27 10 Q42 2 46 12 Q42 24 27 16" fill="url(#bowSatinR)" stroke="#831843" stroke-width="0.8"/>
+      <path d="M30 10 Q38 6 42 12" stroke="#fce7f3" stroke-width="0.4" fill="none" opacity="0.75"/>
+      <path d="M30 16 Q38 20 42 14" stroke="#831843" stroke-width="0.3" fill="none" opacity="0.55"/>
+      <path d="M28 13 Q38 14 45 13" stroke="#ffffff" stroke-width="0.25" fill="none" opacity="0.4"/>
+      <rect x="23" y="10" width="4" height="6" rx="1.5" fill="url(#bowKnot)" stroke="#831843" stroke-width="0.5"/>
+      <rect x="23.5" y="10.5" width="3" height="1.5" rx="0.6" fill="#f9a8d4" opacity="0.7"/>
+      <path d="M23 13 Q25 12.5 27 13" stroke="#831843" stroke-width="0.3" fill="none" opacity="0.85"/>
     </svg>`
   },
   {
@@ -908,9 +1039,50 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
     position: 'head',
     zIndex: 10018,
     svg: `<svg viewBox="0 0 96 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10 38 Q10 4 48 0 Q86 4 86 38" stroke="#374151" stroke-width="5" fill="none" stroke-linecap="round"/>
-      <rect x="2" y="32" width="14" height="18" rx="4" fill="#1f2937" stroke="#374151"/>
-      <rect x="80" y="32" width="14" height="18" rx="4" fill="#1f2937" stroke="#374151"/>
+      <defs>
+        <linearGradient id="hpBandG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#6b7280"/>
+          <stop offset="50%" style="stop-color:#374151"/>
+          <stop offset="100%" style="stop-color:#111827"/>
+        </linearGradient>
+        <linearGradient id="hpCupG" x1="25%" y1="0%" x2="75%" y2="100%">
+          <stop offset="0%" style="stop-color:#4b5563"/>
+          <stop offset="50%" style="stop-color:#1f2937"/>
+          <stop offset="100%" style="stop-color:#030712"/>
+        </linearGradient>
+        <radialGradient id="hpCupHL" cx="35%" cy="25%" r="60%">
+          <stop offset="0%" style="stop-color:#9ca3af;stop-opacity:0.65"/>
+          <stop offset="60%" style="stop-color:#4b5563;stop-opacity:0.08"/>
+          <stop offset="100%" style="stop-color:#030712;stop-opacity:0"/>
+        </radialGradient>
+        <radialGradient id="hpCushion" cx="50%" cy="50%" r="50%">
+          <stop offset="55%" style="stop-color:#030712;stop-opacity:0"/>
+          <stop offset="100%" style="stop-color:#030712;stop-opacity:0.8"/>
+        </radialGradient>
+      </defs>
+      <path d="M10 38 Q10 4 48 0 Q86 4 86 38" stroke="url(#hpBandG)" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M10 38 Q10 4 48 0 Q86 4 86 38" stroke="#6b7280" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.55" transform="translate(0,-1)"/>
+      <path d="M14 32 Q14 8 48 4 Q82 8 82 32" stroke="#111827" stroke-width="0.6" fill="none" opacity="0.7"/>
+      <rect x="2" y="32" width="14" height="18" rx="4" fill="url(#hpCupG)" stroke="#030712" stroke-width="0.6"/>
+      <rect x="2" y="32" width="14" height="18" rx="4" fill="url(#hpCupHL)"/>
+      <rect x="4" y="34" width="10" height="14" rx="3" fill="#0f172a" stroke="#374151" stroke-width="0.5"/>
+      <rect x="4" y="34" width="10" height="14" rx="3" fill="url(#hpCushion)"/>
+      <circle cx="9" cy="38" r="0.4" fill="#4b5563"/>
+      <circle cx="9" cy="41" r="0.4" fill="#4b5563"/>
+      <circle cx="9" cy="44" r="0.4" fill="#4b5563"/>
+      <circle cx="7" cy="39.5" r="0.3" fill="#4b5563" opacity="0.6"/>
+      <circle cx="11" cy="39.5" r="0.3" fill="#4b5563" opacity="0.6"/>
+      <rect x="80" y="32" width="14" height="18" rx="4" fill="url(#hpCupG)" stroke="#030712" stroke-width="0.6"/>
+      <rect x="80" y="32" width="14" height="18" rx="4" fill="url(#hpCupHL)"/>
+      <rect x="82" y="34" width="10" height="14" rx="3" fill="#0f172a" stroke="#374151" stroke-width="0.5"/>
+      <rect x="82" y="34" width="10" height="14" rx="3" fill="url(#hpCushion)"/>
+      <circle cx="87" cy="38" r="0.4" fill="#4b5563"/>
+      <circle cx="87" cy="41" r="0.4" fill="#4b5563"/>
+      <circle cx="87" cy="44" r="0.4" fill="#4b5563"/>
+      <circle cx="85" cy="39.5" r="0.3" fill="#4b5563" opacity="0.6"/>
+      <circle cx="89" cy="39.5" r="0.3" fill="#4b5563" opacity="0.6"/>
+      <circle cx="9" cy="48" r="0.45" fill="#22d3ee"/>
+      <circle cx="87" cy="48" r="0.45" fill="#22d3ee"/>
     </svg>`
   },
   {
@@ -920,8 +1092,32 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
     position: 'head',
     zIndex: 10016,
     svg: `<svg viewBox="0 0 96 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M8 18 Q48 0 88 18" stroke="#d4af37" stroke-width="2" fill="none"/>
-      <circle cx="48" cy="4" r="3.5" fill="#fff" stroke="#c0c0c0" stroke-width="0.5"/>
+      <defs>
+        <linearGradient id="hbGoldG" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#fef3c7"/>
+          <stop offset="35%" style="stop-color:#fcd34d"/>
+          <stop offset="75%" style="stop-color:#d4af37"/>
+          <stop offset="100%" style="stop-color:#92400e"/>
+        </linearGradient>
+        <radialGradient id="hbPearlG" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" style="stop-color:#ffffff"/>
+          <stop offset="45%" style="stop-color:#f5f5f4"/>
+          <stop offset="85%" style="stop-color:#d4d4d8"/>
+          <stop offset="100%" style="stop-color:#737373"/>
+        </radialGradient>
+      </defs>
+      <path d="M8 18 Q48 0 88 18" stroke="url(#hbGoldG)" stroke-width="2.2" fill="none"/>
+      <path d="M8 18 Q48 0 88 18" stroke="#fef3c7" stroke-width="0.5" fill="none" opacity="0.65" transform="translate(0,-0.5)"/>
+      <path d="M8 18 Q48 0 88 18" stroke="#78350f" stroke-width="0.4" fill="none" opacity="0.6" transform="translate(0,0.5)"/>
+      <circle cx="48" cy="4" r="3.8" fill="url(#hbPearlG)" stroke="#92400e" stroke-width="0.5"/>
+      <circle cx="46.8" cy="2.8" r="1.2" fill="#ffffff" opacity="0.9"/>
+      <circle cx="49.5" cy="5.5" r="0.6" fill="#78350f" opacity="0.4"/>
+      <circle cx="30" cy="9" r="1.4" fill="url(#hbPearlG)" stroke="#92400e" stroke-width="0.3"/>
+      <circle cx="29.6" cy="8.6" r="0.4" fill="#ffffff" opacity="0.85"/>
+      <circle cx="66" cy="9" r="1.4" fill="url(#hbPearlG)" stroke="#92400e" stroke-width="0.3"/>
+      <circle cx="65.6" cy="8.6" r="0.4" fill="#ffffff" opacity="0.85"/>
+      <circle cx="18" cy="14" r="0.9" fill="url(#hbPearlG)" stroke="#92400e" stroke-width="0.25"/>
+      <circle cx="78" cy="14" r="0.9" fill="url(#hbPearlG)" stroke="#92400e" stroke-width="0.25"/>
     </svg>`
   },
   {
@@ -931,9 +1127,39 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
     position: 'head',
     zIndex: 10020,
     svg: `<svg viewBox="0 0 96 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="27" cy="12" r="11" fill="none" stroke="#8b4513" stroke-width="2.5"/>
-      <circle cx="65" cy="12" r="11" fill="none" stroke="#8b4513" stroke-width="2.5"/>
-      <path d="M38 10 Q48 6 54 10" stroke="#654321" stroke-width="2" fill="none"/>
+      <defs>
+        <radialGradient id="tortoiseR" cx="35%" cy="35%" r="70%">
+          <stop offset="0%" style="stop-color:#d97706"/>
+          <stop offset="50%" style="stop-color:#8b4513"/>
+          <stop offset="100%" style="stop-color:#3b1608"/>
+        </radialGradient>
+        <pattern id="tortoiseP" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="0.6" fill="#3b1608" opacity="0.7"/>
+          <circle cx="3" cy="2.5" r="0.45" fill="#78350f" opacity="0.6"/>
+          <circle cx="2" cy="3.5" r="0.3" fill="#fbbf24" opacity="0.5"/>
+        </pattern>
+        <radialGradient id="lensTintR" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" style="stop-color:#fef3c7;stop-opacity:0.5"/>
+          <stop offset="60%" style="stop-color:#fcd34d;stop-opacity:0.15"/>
+          <stop offset="100%" style="stop-color:#92400e;stop-opacity:0.12"/>
+        </radialGradient>
+      </defs>
+      <circle cx="27" cy="12" r="11" fill="url(#lensTintR)" stroke="url(#tortoiseR)" stroke-width="2.5"/>
+      <circle cx="27" cy="12" r="11" fill="url(#tortoiseP)" opacity="0.35" stroke="none"/>
+      <circle cx="27" cy="12" r="11" fill="none" stroke="#3b1608" stroke-width="0.5"/>
+      <path d="M20 6 Q24 4 30 5" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity="0.65" fill="none"/>
+      <path d="M22 8 Q25 6 29 7" stroke="#fff" stroke-width="0.5" stroke-linecap="round" opacity="0.55" fill="none"/>
+      <circle cx="65" cy="12" r="11" fill="url(#lensTintR)" stroke="url(#tortoiseR)" stroke-width="2.5"/>
+      <circle cx="65" cy="12" r="11" fill="url(#tortoiseP)" opacity="0.35" stroke="none"/>
+      <circle cx="65" cy="12" r="11" fill="none" stroke="#3b1608" stroke-width="0.5"/>
+      <path d="M58 6 Q62 4 68 5" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity="0.65" fill="none"/>
+      <path d="M60 8 Q63 6 67 7" stroke="#fff" stroke-width="0.5" stroke-linecap="round" opacity="0.55" fill="none"/>
+      <path d="M38 10 Q48 6 54 10" stroke="url(#tortoiseR)" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M38 10 Q48 7 54 10" stroke="#fbbf24" stroke-width="0.4" fill="none" opacity="0.55"/>
+      <circle cx="38" cy="12" r="0.6" fill="#78350f"/>
+      <circle cx="54" cy="12" r="0.6" fill="#78350f"/>
+      <line x1="16" y1="12" x2="6" y2="11" stroke="url(#tortoiseR)" stroke-width="2" stroke-linecap="round"/>
+      <line x1="76" y1="12" x2="90" y2="11" stroke="url(#tortoiseR)" stroke-width="2" stroke-linecap="round"/>
     </svg>`
   },
   {
@@ -943,7 +1169,30 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
     position: 'head',
     zIndex: 10015,
     svg: `<svg viewBox="0 0 96 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M4 6 Q48 0 92 6 L92 15 Q48 8 4 15 Z" fill="#dc2626" stroke="#991b1b" stroke-width="0.8"/>
+      <defs>
+        <linearGradient id="bandanaG" x1="20%" y1="0%" x2="80%" y2="100%">
+          <stop offset="0%" style="stop-color:#ef4444"/>
+          <stop offset="45%" style="stop-color:#dc2626"/>
+          <stop offset="100%" style="stop-color:#7f1d1d"/>
+        </linearGradient>
+        <radialGradient id="bandanaHL" cx="35%" cy="30%" r="60%">
+          <stop offset="0%" style="stop-color:#fecaca;stop-opacity:0.55"/>
+          <stop offset="100%" style="stop-color:#fecaca;stop-opacity:0"/>
+        </radialGradient>
+        <pattern id="paisleyP" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2" r="0.7" fill="#fef2f2" opacity="0.6"/>
+          <circle cx="2" cy="2" r="0.3" fill="#7f1d1d"/>
+          <path d="M6 5 Q8 4 9 6 Q8 8 6 7" stroke="#fef2f2" stroke-width="0.4" fill="none" opacity="0.6"/>
+          <circle cx="8" cy="8.5" r="0.5" fill="#fef2f2" opacity="0.5"/>
+        </pattern>
+      </defs>
+      <path d="M4 6 Q48 0 92 6 L92 15 Q48 8 4 15 Z" fill="url(#bandanaG)" stroke="#7f1d1d" stroke-width="0.8"/>
+      <path d="M4 6 Q48 0 92 6 L92 15 Q48 8 4 15 Z" fill="url(#paisleyP)" opacity="0.7"/>
+      <path d="M4 6 Q48 0 92 6 L92 15 Q48 8 4 15 Z" fill="url(#bandanaHL)"/>
+      <path d="M6 6.5 Q48 1 90 6.5" stroke="#fecaca" stroke-width="0.4" fill="none" opacity="0.6"/>
+      <path d="M6 14 Q48 8.5 90 14" stroke="#7f1d1d" stroke-width="0.35" fill="none" opacity="0.65"/>
+      <path d="M86 8 L94 6 L94 16 L86 14 Z" fill="#991b1b" stroke="#7f1d1d" stroke-width="0.5"/>
+      <path d="M88 9 L92 8" stroke="#fecaca" stroke-width="0.3" opacity="0.55"/>
     </svg>`
   },
   {
@@ -953,8 +1202,41 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
     position: 'head',
     zIndex: 10020,
     svg: `<svg viewBox="0 0 96 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="14" y="4" width="68" height="22" rx="10" fill="#1f2937" stroke="#000" stroke-width="1"/>
-      <path d="M16 6 Q48 2 80 6 Q84 8 84 14 Q84 22 80 24 Q48 28 16 24 Q12 22 12 14 Q12 8 16 6" fill="#06b6d4" stroke="#374151" stroke-width="0.8"/>
+      <defs>
+        <linearGradient id="sgFrameG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#374151"/>
+          <stop offset="50%" style="stop-color:#1f2937"/>
+          <stop offset="100%" style="stop-color:#030712"/>
+        </linearGradient>
+        <linearGradient id="sgLensG" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#06b6d4"/>
+          <stop offset="40%" style="stop-color:#0891b2"/>
+          <stop offset="75%" style="stop-color:#1e40af"/>
+          <stop offset="100%" style="stop-color:#7c3aed"/>
+        </linearGradient>
+        <linearGradient id="sgLensShine" x1="10%" y1="0%" x2="30%" y2="100%">
+          <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.75"/>
+          <stop offset="60%" style="stop-color:#ffffff;stop-opacity:0.15"/>
+          <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
+        </linearGradient>
+        <linearGradient id="sgStrapG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#e11d48"/>
+          <stop offset="100%" style="stop-color:#9f1239"/>
+        </linearGradient>
+      </defs>
+      <rect x="14" y="4" width="68" height="22" rx="10" fill="url(#sgFrameG)" stroke="#000" stroke-width="1"/>
+      <path d="M16 6 Q48 2 80 6 Q84 8 84 14 Q84 22 80 24 Q48 28 16 24 Q12 22 12 14 Q12 8 16 6" fill="url(#sgLensG)" stroke="#1f2937" stroke-width="0.8"/>
+      <path d="M20 8 Q40 5 58 7 L56 13 Q38 11 22 13 Z" fill="url(#sgLensShine)"/>
+      <path d="M22 22 Q48 24 74 22" stroke="#fbbf24" stroke-width="0.5" fill="none" opacity="0.55"/>
+      <path d="M22 23 Q48 25 74 23" stroke="#f87171" stroke-width="0.35" fill="none" opacity="0.5"/>
+      <path d="M42 21 Q48 24 54 21" stroke="#030712" stroke-width="0.6" fill="none" opacity="0.55"/>
+      <rect x="14" y="4" width="68" height="2" rx="1" fill="#6b7280" opacity="0.45"/>
+      <rect x="0" y="12" width="14" height="6" rx="1" fill="url(#sgStrapG)" stroke="#7f1d1d" stroke-width="0.5"/>
+      <rect x="0" y="13" width="14" height="1" fill="#fda4af" opacity="0.55"/>
+      <rect x="82" y="12" width="14" height="6" rx="1" fill="url(#sgStrapG)" stroke="#7f1d1d" stroke-width="0.5"/>
+      <rect x="82" y="13" width="14" height="1" fill="#fda4af" opacity="0.55"/>
+      <circle cx="35" cy="11" r="0.3" fill="#ffffff"/>
+      <circle cx="60" cy="15" r="0.25" fill="#ffffff" opacity="0.8"/>
     </svg>`
   }
 ];
