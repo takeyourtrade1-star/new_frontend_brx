@@ -214,6 +214,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   /* Toggle grafico - nascosto di default su tutti i device */
   const [showChart, setShowChart] = useState(false);
   const [chartStats, setChartStats] = useState<ProductPriceStats | null>(null);
+  const suppressHoverRef = useRef(false);
   const [reprints, setReprints] = useState<ReprintCard[]>([]);
   const [reprintsLoading, setReprintsLoading] = useState(false);
 
@@ -645,6 +646,16 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
   const handleLightboxOpen = () => setIsLightboxOpen(true);
   const handleLightboxClose = () => setIsLightboxOpen(false);
+  const handleLightboxOpenHover = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) return;
+    if (suppressHoverRef.current) return;
+    setIsLightboxOpen(true);
+  };
+  const handleLightboxCloseHover = () => {
+    suppressHoverRef.current = true;
+    setIsLightboxOpen(false);
+    window.setTimeout(() => { suppressHoverRef.current = false; }, 350);
+  };
 
   const handlePrevImage = () => {
     setCurrentImageIndex((prev: number) => (prev === 0 ? cardImages.length - 1 : prev - 1));
@@ -807,6 +818,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 )}
                 style={{ aspectRatio: '63/88' }}
                 onClick={handleLightboxOpen}
+                onMouseEnter={handleLightboxOpenHover}
                 role="button"
                 aria-label="Clicca per ingrandire l'immagine"
               >
@@ -2150,6 +2162,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           <div
             className="relative flex items-center justify-center max-w-[90vw] max-h-[80vh] md:max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
+            onMouseLeave={handleLightboxCloseHover}
           >
             {!showImagePlaceholder && cardImages[currentImageIndex] && (
               <img
