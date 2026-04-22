@@ -2202,7 +2202,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
           {/* Immagine */}
           <div
-            className="relative flex items-center justify-center max-w-[90vw] max-h-[80vh] md:max-h-[85vh]"
+            className="relative flex items-center justify-center max-w-[96vw] max-h-[92vh] md:max-w-[90vw] md:max-h-[88vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {!showImagePlaceholder && cardImages[currentImageIndex] && (
