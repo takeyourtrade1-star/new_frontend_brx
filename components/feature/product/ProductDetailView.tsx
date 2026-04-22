@@ -214,7 +214,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   /* Toggle grafico - nascosto di default su tutti i device */
   const [showChart, setShowChart] = useState(false);
   const [chartStats, setChartStats] = useState<ProductPriceStats | null>(null);
-  const suppressHoverRef = useRef(false);
+  const [hoverPreviewOpen, setHoverPreviewOpen] = useState(false);
+  const hoverPreviewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [reprints, setReprints] = useState<ReprintCard[]>([]);
   const [reprintsLoading, setReprintsLoading] = useState(false);
 
@@ -646,15 +647,25 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
   const handleLightboxOpen = () => setIsLightboxOpen(true);
   const handleLightboxClose = () => setIsLightboxOpen(false);
-  const handleLightboxOpenHover = () => {
+  const handleHoverPreviewOpen = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 640) return;
-    if (suppressHoverRef.current) return;
-    setIsLightboxOpen(true);
+    if (hoverPreviewTimeoutRef.current) {
+      clearTimeout(hoverPreviewTimeoutRef.current);
+      hoverPreviewTimeoutRef.current = null;
+    }
+    setHoverPreviewOpen(true);
   };
-  const handleLightboxCloseHover = () => {
-    suppressHoverRef.current = true;
-    setIsLightboxOpen(false);
-    window.setTimeout(() => { suppressHoverRef.current = false; }, 350);
+  const handleHoverPreviewClose = () => {
+    hoverPreviewTimeoutRef.current = setTimeout(() => {
+      setHoverPreviewOpen(false);
+    }, 250);
+  };
+  const handleHoverPreviewCancelClose = () => {
+    if (hoverPreviewTimeoutRef.current) {
+      clearTimeout(hoverPreviewTimeoutRef.current);
+      hoverPreviewTimeoutRef.current = null;
+    }
+    setHoverPreviewOpen(true);
   };
 
   const handlePrevImage = () => {
@@ -818,7 +829,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 )}
                 style={{ aspectRatio: '63/88' }}
                 onClick={handleLightboxOpen}
-                onMouseEnter={handleLightboxOpenHover}
+                onMouseEnter={handleHoverPreviewOpen}
+                onMouseLeave={handleHoverPreviewClose}
                 role="button"
                 aria-label="Clicca per ingrandire l'immagine"
               >
@@ -2134,6 +2146,36 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           </div>
         </div>
       )}
+      {/* Desktop hover preview: immagine ingrandita al centro, sfondo trasparente */}
+      {hoverPreviewOpen && (
+        <div
+          className="hidden sm:block fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60]"
+          style={{ maxWidth: 'min(520px, 45vw)', maxHeight: 'min(720px, 75vh)' }}
+          onMouseEnter={handleHoverPreviewCancelClose}
+          onMouseLeave={handleHoverPreviewClose}
+        >
+          {!showImagePlaceholder && cardImages[currentImageIndex] && (
+            <img
+              src={cardImages[currentImageIndex]}
+              alt={card?.name ?? title}
+              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+              draggable={false}
+            />
+          )}
+          {showImagePlaceholder && (
+            <div className="flex flex-col items-center justify-center text-zinc-700">
+              <img
+                src={EBARTEX_LOGO_PLACEHOLDER}
+                alt="Ebartex"
+                className="w-24 h-24 object-contain opacity-50"
+                draggable={false}
+              />
+              <p className="mt-4 text-sm">Immagine non disponibile</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Lightbox Modal per immagine carta fullscreen */}
       {isLightboxOpen && (
         <div
@@ -2162,7 +2204,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           <div
             className="relative flex items-center justify-center max-w-[90vw] max-h-[80vh] md:max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
-            onMouseLeave={handleLightboxCloseHover}
           >
             {!showImagePlaceholder && cardImages[currentImageIndex] && (
               <img
