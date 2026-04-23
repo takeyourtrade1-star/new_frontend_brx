@@ -1245,60 +1245,164 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
     category: 'accessories',
     position: 'head',
     zIndex: 10022,
-    svg: `<svg viewBox="0 0 96 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+    svg: `<svg viewBox="0 0 130 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .flame-core { animation: flameFlicker 0.18s ease-in-out infinite alternate; transform-origin: 12px 28px; }
+        .flame-mid { animation: flameFlicker 0.24s ease-in-out infinite alternate-reverse; transform-origin: 12px 28px; }
+        .flame-outer { animation: flameFlicker 0.32s ease-in-out infinite alternate; transform-origin: 12px 28px; }
+        .smoke-wisp { animation: smokeRise 2.8s ease-out infinite; }
+        .smoke-wisp:nth-child(2) { animation-delay: 0.7s; }
+        .spark { animation: sparkDrift 1.4s ease-out infinite; }
+        .spark:nth-child(2) { animation-delay: 0.4s; }
+        @keyframes flameFlicker {
+          0% { transform: scale(1) rotate(-2deg); opacity: 0.9; }
+          50% { transform: scale(1.2) rotate(1deg); opacity: 1; }
+          100% { transform: scale(0.95) rotate(-1deg); opacity: 0.85; }
+        }
+        @keyframes smokeRise {
+          0% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+          60% { opacity: 0.3; }
+          100% { transform: translate(-6px, -18px) scale(1.6); opacity: 0; }
+        }
+        @keyframes sparkDrift {
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(-4px, -12px) scale(0.3); opacity: 0; }
+        }
+      </style>
       <defs>
         <linearGradient id="mjPaper" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style="stop-color:#f5ebc8"/>
-          <stop offset="25%" style="stop-color:#e8d9a0"/>
-          <stop offset="70%" style="stop-color:#d4c48a"/>
-          <stop offset="100%" style="stop-color:#c2b078"/>
+          <stop offset="0%" style="stop-color:#f0e6c0"/>
+          <stop offset="20%" style="stop-color:#e2d5a3"/>
+          <stop offset="55%" style="stop-color:#d4c48a"/>
+          <stop offset="85%" style="stop-color:#c9b87a"/>
+          <stop offset="100%" style="stop-color:#b5a56a"/>
         </linearGradient>
         <linearGradient id="mjPaperHL" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" style="stop-color:#fff;stop-opacity:0.5"/>
-          <stop offset="40%" style="stop-color:#fff;stop-opacity:0.05"/>
-          <stop offset="100%" style="stop-color:#fff;stop-opacity:0"/>
+          <stop offset="0%" style="stop-color:#fff;stop-opacity:0.6"/>
+          <stop offset="30%" style="stop-color:#fff;stop-opacity:0.15"/>
+          <stop offset="70%" style="stop-color:#fff;stop-opacity:0"/>
         </linearGradient>
-        <radialGradient id="mjEmber" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" style="stop-color:#ffaa00;stop-opacity:0.95"/>
-          <stop offset="35%" style="stop-color:#ff6600;stop-opacity:0.7"/>
-          <stop offset="70%" style="stop-color:#ff2200;stop-opacity:0.35"/>
+        <linearGradient id="mjPaperShadow" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#a09050;stop-opacity:0.35"/>
+          <stop offset="100%" style="stop-color:#a09050;stop-opacity:0"/>
+        </linearGradient>
+        <linearGradient id="mjFilter" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#b88860"/>
+          <stop offset="50%" style="stop-color:#9a7050"/>
+          <stop offset="100%" style="stop-color:#7a5840"/>
+        </linearGradient>
+        <linearGradient id="mjFilterHL" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#d4a880;stop-opacity:0.7"/>
+          <stop offset="100%" style="stop-color:#d4a880;stop-opacity:0"/>
+        </linearGradient>
+        <radialGradient id="mjEmber" cx="45%" cy="55%" r="55%">
+          <stop offset="0%" style="stop-color:#ffcc00;stop-opacity:0.98"/>
+          <stop offset="25%" style="stop-color:#ff8800;stop-opacity:0.85"/>
+          <stop offset="55%" style="stop-color:#ff3300;stop-opacity:0.55"/>
           <stop offset="100%" style="stop-color:#ff0000;stop-opacity:0"/>
         </radialGradient>
-        <linearGradient id="mjFilter" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style="stop-color:#a07850"/>
-          <stop offset="50%" style="stop-color:#8a6840"/>
-          <stop offset="100%" style="stop-color:#6b5030"/>
+        <linearGradient id="mjTipBurn" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#5a4530"/>
+          <stop offset="50%" style="stop-color:#4a3828"/>
+          <stop offset="100%" style="stop-color:#3d2e20"/>
         </linearGradient>
         <linearGradient id="mjSmoke" x1="0%" y1="100%" x2="0%" y2="0%">
-          <stop offset="0%" style="stop-color:#e0e0e0;stop-opacity:0.55"/>
+          <stop offset="0%" style="stop-color:#e8e8e8;stop-opacity:0.45"/>
           <stop offset="100%" style="stop-color:#fff;stop-opacity:0"/>
         </linearGradient>
-        <filter id="mjShadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="1.2" dy="2.2" stdDeviation="1.8" flood-color="#1a1200" flood-opacity="0.45"/>
+        <filter id="mjShadow" x="-25%" y="-25%" width="150%" height="150%">
+          <feDropShadow dx="2" dy="3.5" stdDeviation="2.5" flood-color="#1a1200" flood-opacity="0.5"/>
         </filter>
-        <filter id="mjGlow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3.5" result="blur"/>
+        <filter id="mjGlow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="5" result="blur"/>
           <feMerge>
             <feMergeNode in="blur"/>
             <feMergeNode in="SourceGraphic"/>
           </feMerge>
         </filter>
       </defs>
-      <path d="M 74 6 Q 78 0 84 3 Q 88 7 86 13 Q 82 17 78 15" stroke="url(#mjSmoke)" stroke-width="3.5" fill="none" opacity="0.4" filter="url(#mjShadow)"/>
-      <path d="M 76 8 Q 80 2 88 5 Q 92 11 90 17" stroke="url(#mjSmoke)" stroke-width="2.2" fill="none" opacity="0.25" filter="url(#mjShadow)"/>
-      <rect x="18" y="20" width="56" height="11" rx="5.5" fill="url(#mjPaper)" stroke="#5a4a32" stroke-width="1" filter="url(#mjShadow)" transform="rotate(-6 46 25.5)"/>
-      <rect x="20" y="21.5" width="52" height="3" rx="1.5" fill="url(#mjPaperHL)" transform="rotate(-6 46 25.5)"/>
-      <path d="M 34 20.5 L 36 30.5 M 48 19.5 L 50 31.5 M 62 18.5 L 64 32" stroke="#b8a060" stroke-width="0.8" opacity="0.65" transform="rotate(-6 46 25.5)"/>
-      <rect x="70" y="19.5" width="11" height="12" rx="2" fill="url(#mjFilter)" stroke="#4a3720" stroke-width="0.9" transform="rotate(-6 75.5 25.5)" filter="url(#mjShadow)"/>
-      <rect x="71" y="21" width="2" height="9" rx="1" fill="#b89870" opacity="0.6" transform="rotate(-6 75.5 25.5)"/>
-      <circle cx="18" cy="26" r="5" fill="url(#mjEmber)" filter="url(#mjGlow)"/>
-      <circle cx="17.2" cy="25.2" r="2.8" fill="#ff5500" opacity="0.85" filter="url(#mjGlow)"/>
-      <circle cx="16.5" cy="24.5" r="1.2" fill="#ffcc00" opacity="0.9"/>
-      <circle cx="14" cy="23" r="0.7" fill="#bbb" opacity="0.7"/>
-      <circle cx="13.5" cy="28" r="0.5" fill="#aaa" opacity="0.6"/>
-      <circle cx="15" cy="29.5" r="0.4" fill="#ccc" opacity="0.5"/>
-      <path d="M 12 20 Q 8 14 12 10 Q 16 7 14 3" stroke="#eee" stroke-width="2" fill="none" opacity="0.3" filter="url(#mjShadow)"/>
-      <path d="M 10 22 Q 5 16 9 12" stroke="#ddd" stroke-width="1.5" fill="none" opacity="0.2"/>
+
+      <!-- Smoke wisps behind -->
+      <path class="smoke-wisp" d="M 6 16 Q 0 10 4 4 Q 8 0 6 -6" stroke="url(#mjSmoke)" stroke-width="4" fill="none" opacity="0.35" filter="url(#mjShadow)"/>
+      <path class="smoke-wisp" d="M 10 14 Q 4 6 10 0 Q 14 -4 12 -10" stroke="url(#mjSmoke)" stroke-width="2.8" fill="none" opacity="0.25" filter="url(#mjShadow)"/>
+
+      <!-- Main conical body (filter narrow → widens → tip) -->
+      <path d="M 78 20 
+               C 65 19, 42 17.5, 22 20 
+               C 12 21.5, 6 24, 4 26.5 
+               C 6 29, 12 31.5, 22 33 
+               C 42 35.5, 65 34, 78 32 
+               Z" 
+            fill="url(#mjPaper)" stroke="#5a4a32" stroke-width="0.9" filter="url(#mjShadow)"/>
+
+      <!-- Paper highlight band -->
+      <path d="M 74 21.5 
+               C 62 20.5, 42 19, 24 21 
+               C 14 22, 8 24, 6 26 
+               C 8 27.5, 14 29.5, 24 30.5 
+               C 42 32.5, 62 31.5, 74 30.5 
+               Z" 
+            fill="url(#mjPaperHL)" opacity="0.7"/>
+
+      <!-- Paper shadow depth -->
+      <path d="M 78 20 
+               C 65 19, 42 17.5, 22 20 
+               C 12 21.5, 6 24, 4 26.5 
+               C 6 25.5, 12 23.5, 22 22.5 
+               C 42 20.5, 65 21, 78 22 
+               Z" 
+            fill="url(#mjPaperShadow)" opacity="0.5"/>
+
+      <!-- Green herb fill visible through paper -->
+      <path d="M 72 21.5 
+               C 60 20.8, 40 19.5, 24 21.2 
+               C 16 22, 10 23.8, 8 25.5 
+               C 10 27, 16 28.5, 24 29.2 
+               C 40 30.5, 60 29.5, 72 28.5 
+               Z" 
+            fill="#4a7c3c" opacity="0.18" stroke="#3d6b30" stroke-width="0.3"/>
+      <path d="M 65 23 L 67 29 M 55 22 L 57 30 M 45 22.5 L 47 29.5 M 35 23 L 37 28" 
+            stroke="#5a9a48" stroke-width="0.5" opacity="0.35"/>
+
+      <!-- Tip: burnt/ash end -->
+      <path d="M 4 26.5 
+               C 2.5 25.5, 1 26, 0.5 27.5 
+               C 0 29, 0.5 30.5, 1.5 31.5 
+               C 2.5 32.5, 4 32, 5 31 
+               C 6 29.5, 5.5 28, 4 26.5 
+               Z" 
+            fill="url(#mjTipBurn)" stroke="#3d2e20" stroke-width="0.5" filter="url(#mjShadow)"/>
+      <path d="M 2 27 Q 3 28.5 2 30" stroke="#8a7a60" stroke-width="0.4" fill="none" opacity="0.6"/>
+
+      <!-- Filter mouthpiece (narrow, at right) -->
+      <rect x="76" y="19" width="14" height="14" rx="5" fill="url(#mjFilter)" stroke="#5a3a20" stroke-width="0.9" filter="url(#mjShadow)"/>
+      <rect x="77" y="20" width="3" height="12" rx="1.5" fill="url(#mjFilterHL)" opacity="0.8"/>
+      <line x1="78" y1="22" x2="78" y2="30" stroke="#d4a880" stroke-width="0.5" opacity="0.5"/>
+      <line x1="80" y1="22" x2="80" y2="30" stroke="#d4a880" stroke-width="0.4" opacity="0.4"/>
+
+      <!-- Paper seam spiral detail -->
+      <path d="M 70 21 Q 55 19.5, 40 20.5 T 15 24" stroke="#b5a56a" stroke-width="0.5" fill="none" opacity="0.55"/>
+      <path d="M 68 31 Q 53 32.5, 38 31.5 T 13 28" stroke="#a09050" stroke-width="0.4" fill="none" opacity="0.45"/>
+
+      <!-- Flame layers (animated) -->
+      <g class="flame-outer" filter="url(#mjGlow)">
+        <path d="M 2 27 Q -3 22, -6 26 Q -8 30, -4 32 Q -1 30, 2 27" fill="#ff4400" opacity="0.55"/>
+      </g>
+      <g class="flame-mid" filter="url(#mjGlow)">
+        <path d="M 1.5 27.5 Q -2 24, -5 27 Q -6.5 30, -3 31.5 Q -0.5 29.5, 1.5 27.5" fill="#ff7700" opacity="0.75"/>
+      </g>
+      <g class="flame-core" filter="url(#mjGlow)">
+        <ellipse cx="-1" cy="28.5" rx="2.5" ry="3.5" fill="url(#mjEmber)" opacity="0.95"/>
+        <ellipse cx="-1.5" cy="27.5" rx="1.2" ry="1.8" fill="#ffee88" opacity="0.9"/>
+      </g>
+
+      <!-- Floating sparks -->
+      <circle class="spark" cx="-2" cy="25" r="0.6" fill="#ffcc00" opacity="0.9"/>
+      <circle class="spark" cx="-4" cy="23" r="0.4" fill="#ffaa00" opacity="0.8"/>
+      <circle cx="0.5" cy="29" r="0.3" fill="#ffeeaa" opacity="0.7"/>
+
+      <!-- Front smoke trail -->
+      <path class="smoke-wisp" d="M -3 20 Q -8 14, -5 8 Q -2 4, -6 -2" stroke="url(#mjSmoke)" stroke-width="2.5" fill="none" opacity="0.3"/>
     </svg>`
   }
 ];
@@ -1872,7 +1976,7 @@ export function getItemOverlayStyle(
     if (item.id === 'hair-bow') return { ...base, top: '-8px', right: '-10px', width: '44px', height: '36px' };
     if (item.id === 'earrings-hoop') return { ...base, top: '36px', left: '-6px', width: '108px', height: '40px' };
     if (item.id === 'ski-goggles') return { ...base, top: '36px', left: '-4px', width: '104px', height: '30px' };
-    if (item.id === 'mega-joint') return { ...base, top: '54px', left: '-2px', width: '100px', height: '42px', transform: 'rotate(-8deg)', transformOrigin: 'center center' };
+    if (item.id === 'mega-joint') return { ...base, top: '56px', left: '-22px', width: '130px', height: '58px', transform: 'rotate(-6deg)', transformOrigin: 'center center' };
   }
 
   if (item.id === 'yugioh-deck') {
