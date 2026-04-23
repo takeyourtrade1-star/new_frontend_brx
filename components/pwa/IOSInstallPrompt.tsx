@@ -56,11 +56,13 @@ export function IOSInstallPrompt() {
                   <X className="w-4 h-4 text-white/70" />
                 </button>
 
-                {/* Icona */}
+                {/* Logo EbarteX */}
                 <div className="flex justify-center mb-4">
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#FF7300] to-[#CC5C00] flex items-center justify-center shadow-lg">
-                    <Smartphone className="w-7 h-7 text-white" />
-                  </div>
+                  <img
+                    src="/logo-pwa.svg"
+                    alt="EbarteX"
+                    className="w-16 h-16 rounded-2xl shadow-lg"
+                  />
                 </div>
 
                 {/* Testo */}

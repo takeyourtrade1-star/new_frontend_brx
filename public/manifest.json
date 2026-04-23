@@ -12,7 +12,7 @@
   "categories": ["shopping", "games"],
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "/logo-pwa.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
