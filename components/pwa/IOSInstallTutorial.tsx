@@ -1,7 +1,17 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Share, PlusSquare, CheckCircle, Home } from 'lucide-react';
+import {
+  X,
+  Share,
+  PlusSquare,
+  CheckCircle,
+  Home,
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Layers,
+} from 'lucide-react';
 
 interface IOSInstallTutorialProps {
   isOpen: boolean;
@@ -28,6 +38,112 @@ const steps = [
     color: 'from-[#FF7300] to-[#CC5C00]',
   },
 ];
+
+function SafariMockAnimation() {
+  return (
+    <div className="relative w-full mx-auto max-w-xs select-none pointer-events-none">
+      {/* Area "schermo" safari */}
+      <div className="relative rounded-xl overflow-hidden border border-white/10 bg-[#0F172A]">
+        {/* Fake contenuto pagina */}
+        <div className="h-24 flex flex-col items-center justify-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-[#FF7300]" />
+          <div className="w-24 h-2 rounded bg-white/10" />
+        </div>
+
+        {/* Barra Safari bottom */}
+        <div className="relative h-12 bg-[#1C1C1E] border-t border-white/5 flex items-center justify-between px-6">
+          <div className="flex items-center gap-6 text-white/60">
+            <ArrowLeft className="w-5 h-5" />
+            <ArrowRight className="w-5 h-5" />
+            <BookOpen className="w-5 h-5" />
+          </div>
+
+          {/* Bottone condividi — target dell'animazione */}
+          <div className="flex items-center gap-6 text-white/60">
+            <div className="relative flex items-center justify-center w-6 h-6">
+              <Share className="w-5 h-5" />
+
+              {/* Tap indicator */}
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{
+                  scale: [0, 1.3, 1, 1.3, 0],
+                  opacity: [0, 1, 1, 1, 0],
+                }}
+                transition={{
+                  duration: 1.2,
+                  delay: 0.6,
+                  times: [0, 0.25, 0.5, 0.75, 1],
+                  ease: 'easeInOut',
+                }}
+                className="absolute inset-0 rounded-full border-2 border-white/80 bg-white/20"
+              />
+            </div>
+            <Layers className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Share Sheet (menu) */}
+        <motion.div
+          initial={{ y: '100%' }}
+          animate={{ y: ['100%', '0%', '0%', '0%', '-5%', '-5%', '-5%', '0%'] }}
+          transition={{
+            duration: 4.2,
+            delay: 1.8,
+            times: [0, 0.18, 0.35, 0.52, 0.7, 0.85, 0.95, 1],
+            ease: 'easeInOut',
+          }}
+          className="absolute bottom-0 left-0 right-0 bg-[#2C2C2E] rounded-t-xl border-t border-white/10 overflow-hidden"
+        >
+          <div className="px-4 pt-3 pb-2 flex justify-center">
+            <div className="w-10 h-1 rounded-full bg-white/20" />
+          </div>
+          <div className="px-4 pb-4 space-y-2">
+            {/* Voce finta 1 */}
+            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/5">
+              <div className="w-8 h-8 rounded-lg bg-[#3D65C6]/30 flex items-center justify-center">
+                <Share className="w-4 h-4 text-[#3D65C6]" />
+              </div>
+              <span className="text-sm text-white/60">Invia a…</span>
+            </div>
+
+            {/* Voce finta 2 — target */}
+            <div className="relative flex items-center gap-3 px-3 py-2 rounded-lg bg-white/5">
+              <div className="w-8 h-8 rounded-lg bg-[#FF7300]/20 flex items-center justify-center">
+                <PlusSquare className="w-4 h-4 text-[#FF7300]" />
+              </div>
+              <span className="text-sm text-white">Aggiungi alla schermata Home</span>
+
+              {/* Tap indicator voce menu */}
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{
+                  scale: [0, 1.2, 0.9, 1.2, 0],
+                  opacity: [0, 1, 1, 1, 0],
+                }}
+                transition={{
+                  duration: 1,
+                  delay: 2.4,
+                  times: [0, 0.2, 0.4, 0.6, 1],
+                  ease: 'easeInOut',
+                }}
+                className="absolute inset-0 rounded-lg border-2 border-[#FF7300]/80 bg-[#FF7300]/10"
+              />
+            </div>
+
+            {/* Voce finta 3 */}
+            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/5">
+              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                <BookOpen className="w-4 h-4 text-white/50" />
+              </div>
+              <span className="text-sm text-white/60">Aggiungi ai Preferiti</span>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
 
 export function IOSInstallTutorial({ isOpen, onClose }: IOSInstallTutorialProps) {
   return (
@@ -77,37 +193,52 @@ export function IOSInstallTutorial({ isOpen, onClose }: IOSInstallTutorialProps)
               </button>
             </div>
 
-            {/* Steps */}
-            <div className="px-6 py-6 space-y-5">
-              {steps.map((step, index) => (
-                <motion.div
-                  key={step.label}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.15 + index * 0.15, type: 'spring', stiffness: 200 }}
-                  className="flex items-start gap-4"
-                >
-                  {/* Step Number + Icon */}
-                  <div className="flex flex-col items-center gap-1.5">
-                    <div
-                      className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg shrink-0`}
-                    >
-                      <step.icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="w-0.5 h-8 bg-white/10 rounded-full" />
-                  </div>
+            <div className="px-6 py-6 space-y-6">
+              {/* Mini animazione */}
+              <SafariMockAnimation />
 
-                  {/* Text */}
-                  <div className="pt-1">
-                    <h4 className="font-semibold text-white text-base">
-                      {index + 1}. {step.label}
-                    </h4>
-                    <p className="text-sm text-white/60 mt-1 leading-relaxed">
-                      {step.description}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
+              <p className="text-center text-sm text-white/50">
+                Guarda l&apos;anteprima sopra e segui i passaggi qui sotto
+              </p>
+
+              {/* Steps */}
+              <div className="space-y-5">
+                {steps.map((step, index) => (
+                  <motion.div
+                    key={step.label}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{
+                      delay: 0.15 + index * 0.15,
+                      type: 'spring',
+                      stiffness: 200,
+                    }}
+                    className="flex items-start gap-4"
+                  >
+                    {/* Step Number + Icon */}
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div
+                        className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg shrink-0`}
+                      >
+                        <step.icon className="w-6 h-6 text-white" />
+                      </div>
+                      {index < steps.length - 1 && (
+                        <div className="w-0.5 h-8 bg-white/10 rounded-full" />
+                      )}
+                    </div>
+
+                    {/* Text */}
+                    <div className="pt-1">
+                      <h4 className="font-semibold text-white text-base">
+                        {index + 1}. {step.label}
+                      </h4>
+                      <p className="text-sm text-white/60 mt-1 leading-relaxed">
+                        {step.description}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
 
               {/* Final CTA */}
               <motion.div
