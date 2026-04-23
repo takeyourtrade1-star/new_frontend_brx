@@ -1007,7 +1007,7 @@ export function SearchResults({
                                     />
                                   </div>
                                   {/* Overlay + camera al centro */}
-                                  <span className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" aria-hidden />
+                                  <span className="absolute inset-0 bg-black/30" aria-hidden />
                               <Camera
                                     className="absolute inset-0 m-auto h-4 w-4 text-white"
                                     strokeWidth={1.5}
