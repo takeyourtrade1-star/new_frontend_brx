@@ -60,6 +60,7 @@ const getComingSoonGames = (): {
   homeHref?: string;
   comingSoon?: boolean;
   gameSlug?: LandingGameSlug;
+  waitlistCount: number;
 }[] => [
   {
     src: getCdnImageUrl('loghi-giochi/pokèmon.png'),
@@ -67,6 +68,7 @@ const getComingSoonGames = (): {
     homeHref: '/home/pokemon',
     gameSlug: 'pokemon',
     comingSoon: true,
+    waitlistCount: 1247,
   },
   {
     src: getCdnImageUrl('loghi-giochi/yu-gi-oh.png'),
@@ -74,13 +76,15 @@ const getComingSoonGames = (): {
     homeHref: '/home',
     gameSlug: 'clear',
     comingSoon: true,
+    waitlistCount: 892,
   },
-  { src: getCdnImageUrl('loghi-giochi/One_Piece_Card_Game_Logo%201.png'), alt: 'One Piece Card Game', comingSoon: true },
-  { src: getCdnImageUrl('loghi-giochi/Disney_Lorcana_480x480%201.png'), alt: 'Disney Lorcana', comingSoon: true },
+  { src: getCdnImageUrl('loghi-giochi/One_Piece_Card_Game_Logo%201.png'), alt: 'One Piece Card Game', comingSoon: true, waitlistCount: 1563 },
+  { src: getCdnImageUrl('loghi-giochi/Disney_Lorcana_480x480%201.png'), alt: 'Disney Lorcana', comingSoon: true, waitlistCount: 634 },
   {
     src: getCdnImageUrl('star_wars.jpg'),
     alt: 'Star Wars: Unlimited',
     comingSoon: true,
+    waitlistCount: 2105,
   },
 ];
 
@@ -131,12 +135,15 @@ export function LandingWelcome() {
   const { isAuthenticated } = useAuth();
 
   /* ─── state ─── */
-  const [notifyGame, setNotifyGame] = useState<{ src: string; alt: string } | null>(null);
-  const [fullscreenGame, setFullscreenGame] = useState<{ src: string; alt: string; bgImage: string } | null>(null);
+  const [notifyGame, setNotifyGame] = useState<{ src: string; alt: string; waitlistCount: number } | null>(null);
+  const [fullscreenGame, setFullscreenGame] = useState<{ src: string; alt: string; bgImage: string; waitlistCount: number } | null>(null);
   const [isFullscreenClosing, setIsFullscreenClosing] = useState(false);
   const [email, setEmail] = useState('');
   const [isNotifySuccess, setIsNotifySuccess] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [waitlistCounts, setWaitlistCounts] = useState<Record<string, number>>(() =>
+    Object.fromEntries(getComingSoonGames().map((g) => [g.alt, g.waitlistCount]))
+  );
 
   /* ─── handlers ─── */
   const handleCloseFullscreen = useCallback(() => {
@@ -154,24 +161,36 @@ export function LandingWelcome() {
     if (!email) return;
     setTimeout(() => {
       setIsNotifySuccess(true);
+      if (notifyGame) {
+        setWaitlistCounts((prev) => ({
+          ...prev,
+          [notifyGame.alt]: (prev[notifyGame.alt] ?? notifyGame.waitlistCount) + 1,
+        }));
+      }
       setTimeout(() => {
         setNotifyGame(null);
         setIsNotifySuccess(false);
         setEmail('');
       }, 2000);
     }, 800);
-  }, [email]);
+  }, [email, notifyGame]);
 
   const handleFullscreenNotifySubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setTimeout(() => {
       setIsNotifySuccess(true);
+      if (fullscreenGame) {
+        setWaitlistCounts((prev) => ({
+          ...prev,
+          [fullscreenGame.alt]: (prev[fullscreenGame.alt] ?? fullscreenGame.waitlistCount) + 1,
+        }));
+      }
       setTimeout(() => {
         handleCloseFullscreen();
       }, 2000);
     }, 800);
-  }, [email, handleCloseFullscreen]);
+  }, [email, handleCloseFullscreen, fullscreenGame]);
 
   const handleScrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -244,7 +263,15 @@ export function LandingWelcome() {
             />
             <div className="h-8 w-px bg-white/20 hidden sm:block" />
             <h1 className="text-xs font-medium uppercase tracking-[0.06em] text-white/80 sm:text-sm md:text-base lg:text-lg">
-              L&apos;unico marketplace dove <span className="font-bold text-[#38BDF8]">Scambi</span> e metti all&apos;<span className="font-bold text-[#FB923C]">Asta</span> le tue carte
+              L&apos;unico marketplace dove{' '}
+              <Link href="/scambi" className="font-bold text-[#38BDF8] hover:underline">
+                Scambi
+              </Link>{' '}
+              e metti all&apos;
+              <Link href="/aste" className="font-bold text-[#FB923C] hover:underline">
+                Asta
+              </Link>{' '}
+              le tue carte
             </h1>
           </div>
         </header>
@@ -515,10 +542,11 @@ export function LandingWelcome() {
                     className="group flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 items-center justify-center rounded-full cursor-pointer overflow-hidden bg-white/10 border border-white/20 transition-transform duration-300 hover:scale-110 flex-shrink-0"
                     onClick={() => {
                       const bgImage = GAME_FULLSCREEN_IMAGES[game.alt];
+                      const count = waitlistCounts[game.alt] ?? game.waitlistCount;
                       if (bgImage) {
-                        setFullscreenGame({ src: game.src, alt: game.alt, bgImage });
+                        setFullscreenGame({ src: game.src, alt: game.alt, bgImage, waitlistCount: count });
                       } else {
-                        setNotifyGame({ src: game.src, alt: game.alt });
+                        setNotifyGame({ src: game.src, alt: game.alt, waitlistCount: count });
                       }
                     }}
                   >
@@ -669,6 +697,11 @@ export function LandingWelcome() {
                   <img src={notifyGame.src} alt="" className="h-10 w-10 object-contain" />
                 </div>
 
+                <div className="mb-3 flex items-center gap-2 rounded-full bg-[#FF7300]/90 px-4 py-2 text-white shadow-lg">
+                  <Users className="h-4 w-4" />
+                  <span className="text-sm font-semibold">{notifyGame.waitlistCount.toLocaleString('it-IT')} in lista d&apos;attesa</span>
+                </div>
+
                 <h3 className="mb-3 text-lg font-bold uppercase tracking-tight text-white sm:text-xl">
                   Ti interessa {notifyGame.alt}?
                 </h3>
@@ -705,6 +738,9 @@ export function LandingWelcome() {
                 <h3 className="mb-2 text-xl font-bold text-white">GRAZIE!</h3>
                 <p className="text-sm text-white/70">
                   Abbiamo registrato la tua email. <br/>A presto!
+                </p>
+                <p className="mt-4 text-sm text-white/60">
+                  Ora ci sono <span className="text-[#FF7300] font-bold">{(notifyGame.waitlistCount + 1).toLocaleString('it-IT')}</span> utenti in lista!
                 </p>
               </div>
             )}
@@ -744,7 +780,7 @@ export function LandingWelcome() {
             style={{ willChange: 'transform, opacity', animationDelay: isFullscreenClosing ? '0ms' : '100ms' }}
           >
             <Users className="h-4 w-4" />
-            <span className="text-sm font-semibold">1,247 in lista d&apos;attesa</span>
+            <span className="text-sm font-semibold">{fullscreenGame.waitlistCount.toLocaleString('it-IT')} in lista d&apos;attesa</span>
           </div>
 
           {/* Content area */}
@@ -807,7 +843,7 @@ export function LandingWelcome() {
                   Abbiamo registrato la tua email.<br/>A presto!
                 </p>
                 <p className={`mt-4 text-sm text-white/60 ${isFullscreenClosing ? 'animate-landing-fade-exit' : 'animate-landing-fade-in'}`} style={{ animationDelay: isFullscreenClosing ? '50ms' : '200ms' }}>
-                  Ora ci sono <span className="text-[#FF7300] font-bold">1,248</span> utenti in lista!
+                  Ora ci sono <span className="text-[#FF7300] font-bold">{(fullscreenGame.waitlistCount + 1).toLocaleString('it-IT')}</span> utenti in lista!
                 </p>
               </div>
             )}

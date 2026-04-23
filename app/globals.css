@@ -468,9 +468,9 @@
   background: linear-gradient(
     to bottom,
     #1D3160 0%,
-    #1D3160 45%,
-    rgba(29, 49, 96, 0.55) 72%,
-    transparent 100%
+    #1D3160 98%,
+    rgba(29, 49, 96, 0.97) 99%,
+    rgba(29, 49, 96, 0.95) 100%
   );
 }
 
