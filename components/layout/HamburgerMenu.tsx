@@ -233,7 +233,7 @@ export function HamburgerMenu() {
         <nav className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 overflow-y-auto pb-2">
           {/* GIOCHI: sempre in cima, solo MTG (come desktop) */}
-          <div className="relative border-b border-gray-100 md:hidden" ref={gameMenuRef}>
+          <div className="relative border-b border-orange-100 md:hidden" ref={gameMenuRef}>
             <p className="px-5 pb-1.5 pt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
               {t('game.label')}
             </p>
@@ -299,7 +299,7 @@ export function HamburgerMenu() {
           </div>
 
           {!isAuthenticated && (
-            <div className="border-b border-gray-100 px-5 py-5">
+            <div className="border-b border-orange-100 bg-gray-100 px-5 py-5">
               <form onSubmit={handleSubmit(onDrawerLogin)} className="space-y-5" noValidate>
                 <div>
                   <div className="mb-1 flex items-center justify-between gap-2">
@@ -415,7 +415,7 @@ export function HamburgerMenu() {
           )}
 
           {isAuthenticated && (
-            <div className="relative border-b border-gray-100 md:hidden" ref={accountDropdownRef}>
+            <div className="relative border-b border-orange-100 bg-gray-50/70 md:hidden" ref={accountDropdownRef}>
               {/* Account Dropdown Trigger */}
               <button
                 type="button"
@@ -510,7 +510,7 @@ export function HamburgerMenu() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className={cn(navLinkClass, 'border-b border-gray-100')}
+                className={cn(navLinkClass, 'border-b border-orange-100')}
               >
                 <IconComponent className="h-5 w-5 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
                 {item.label}
@@ -518,35 +518,36 @@ export function HamburgerMenu() {
             );
           })}
 
-          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
-            <span className="text-[13px] font-semibold uppercase tracking-wide text-gray-400">
-              {t('common.darkMode')}
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={false}
-              disabled
-              className={cn(
-                'relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 focus:outline-none cursor-not-allowed opacity-50',
-                'bg-gray-300'
-              )}
-            >
-              <span
+          <div className="bg-gray-50/50">
+            <div className="flex items-center justify-between border-b border-orange-100 px-5 py-3.5">
+              <span className="text-[13px] font-semibold uppercase tracking-wide text-gray-400">
+                {t('common.darkMode')}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={false}
+                disabled
                 className={cn(
-                  'absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow transition-[left] duration-200',
-                  'left-1'
+                  'relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 focus:outline-none cursor-not-allowed opacity-50',
+                  'bg-gray-300'
                 )}
-              />
-            </button>
-          </div>
+              >
+                <span
+                  className={cn(
+                    'absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow transition-[left] duration-200',
+                    'left-1'
+                  )}
+                />
+              </button>
+            </div>
 
-          <Link href="/aiuto" onClick={() => setOpen(false)} className={cn(navLinkClass, 'border-b border-gray-100')}>
-            <HelpCircle className="h-5 w-5 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
-            {t('common.help')}
-          </Link>
+            <Link href="/aiuto" onClick={() => setOpen(false)} className={cn(navLinkClass, 'border-b border-orange-100')}>
+              <HelpCircle className="h-5 w-5 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
+              {t('common.help')}
+            </Link>
 
-          <div ref={linguaDropdownRef} className="relative border-b border-gray-100">
+            <div ref={linguaDropdownRef} className="relative border-b border-orange-100">
             <button
               type="button"
               onClick={() => setLinguaDropdownOpen((v) => !v)}
@@ -603,6 +604,7 @@ export function HamburgerMenu() {
                 ))}
               </ul>
             )}
+          </div>
           </div>
           </div>
 
