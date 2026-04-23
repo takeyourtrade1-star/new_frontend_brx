@@ -518,10 +518,10 @@ export function CardMascotte() {
     }
   }, [equippedItems]);
 
-  // Force shocked expression when mega-joint is equipped (mouth becomes O)
+  // Force shocked expression when cigar-xl is equipped (mouth becomes O)
   useEffect(() => {
-    const hasJoint = equippedItems.accessories.includes('mega-joint');
-    if (hasJoint) {
+    const hasCigar = equippedItems.accessories.includes('cigar-xl');
+    if (hasCigar) {
       setMascotteExpression('shocked');
     } else if (mascotteExpression === 'shocked') {
       setMascotteExpression('normal');

@@ -1240,8 +1240,8 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
     </svg>`
   },
   {
-    id: 'mega-joint',
-    name: 'Mega Blunt',
+    id: 'cigar-xl',
+    name: 'Sigaro XL',
     category: 'accessories',
     position: 'head',
     zIndex: 10022,
@@ -1976,7 +1976,7 @@ export function getItemOverlayStyle(
     if (item.id === 'hair-bow') return { ...base, top: '-8px', right: '-10px', width: '44px', height: '36px' };
     if (item.id === 'earrings-hoop') return { ...base, top: '36px', left: '-6px', width: '108px', height: '40px' };
     if (item.id === 'ski-goggles') return { ...base, top: '36px', left: '-4px', width: '104px', height: '30px' };
-    if (item.id === 'mega-joint') return { ...base, top: '56px', left: '-22px', width: '130px', height: '58px', transform: 'rotate(-6deg)', transformOrigin: 'center center' };
+    if (item.id === 'cigar-xl') return { ...base, top: '56px', left: '-22px', width: '130px', height: '58px', transform: 'rotate(-6deg)', transformOrigin: 'center center' };
   }
 
   if (item.id === 'yugioh-deck') {
