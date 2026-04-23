@@ -508,9 +508,9 @@ export function LandingWelcome() {
               {/* Fade dx */}
               <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-black/10 to-transparent z-10" />
               <div className="flex gap-4 sm:gap-5 md:gap-6 animate-marquee">
-                {COMING_SOON_GAMES.map((game) => (
+                {[...COMING_SOON_GAMES, ...COMING_SOON_GAMES].map((game, index) => (
                   <button
-                    key={game.alt}
+                    key={`${game.alt}-${index}`}
                     type="button"
                     className="group flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 items-center justify-center rounded-full cursor-pointer overflow-hidden bg-white/10 border border-white/20 transition-transform duration-300 hover:scale-110 flex-shrink-0"
                     onClick={() => {

@@ -76,7 +76,10 @@ export function ProdottiMenu() {
         ref={btnRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-11 w-11 shrink-0 items-center justify-center gap-2 rounded-[50px] border border-stroke-grey bg-primary px-0 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] font-sans md:h-auto md:min-h-11 md:w-auto md:px-5 md:py-2"
+        className={cn(
+          'flex h-11 w-11 shrink-0 items-center justify-center gap-2 rounded-[50px] border border-primary/45 px-0 text-sm font-medium text-white shadow-lg ring-1 ring-white/20 backdrop-blur-md backdrop-saturate-150 transition-opacity hover:bg-primary/40 hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] font-sans md:h-auto md:min-h-11 md:w-auto md:px-5 md:py-2',
+          open ? 'bg-primary/50' : 'bg-primary/30'
+        )}
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={t('products.menuAria')}

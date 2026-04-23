@@ -2149,8 +2149,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       {/* Desktop hover preview: immagine ingrandita al centro, sfondo trasparente */}
       {hoverPreviewOpen && (
         <div
-          className="hidden sm:block fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60]"
-          style={{ maxWidth: 'min(1100px, 72vw)', maxHeight: 'min(1400px, 92vh)' }}
+          className="hidden sm:block fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] max-w-[85vw] max-h-[90vh]"
           onMouseEnter={handleHoverPreviewCancelClose}
           onMouseLeave={handleHoverPreviewClose}
         >
@@ -2158,7 +2157,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             <img
               src={cardImages[currentImageIndex]}
               alt={card?.name ?? title}
-              className="max-w-full max-h-[92vh] object-contain rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+              className="h-auto w-auto max-w-full max-h-[90vh] object-contain rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
               draggable={false}
             />
           )}
@@ -2202,14 +2201,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
           {/* Immagine */}
           <div
-            className="relative flex items-center justify-center w-[98vw] h-[96vh] md:w-[94vw] md:h-[94vh]"
+            className="relative flex items-center justify-center w-full h-full max-w-[90vw] max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {!showImagePlaceholder && cardImages[currentImageIndex] && (
               <img
                 src={cardImages[currentImageIndex]}
                 alt={card?.name ?? title}
-                className="w-full h-full object-contain rounded-sm shadow-2xl"
+                className="max-w-full max-h-full object-contain rounded-sm shadow-2xl"
                 draggable={false}
               />
             )}

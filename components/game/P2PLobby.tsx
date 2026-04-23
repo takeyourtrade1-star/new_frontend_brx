@@ -181,7 +181,7 @@ export function P2PLobby({ onConnected, room, actions }: P2PLobbyProps) {
       setJoinSignal(code);
       await actions.joinRoom(code);
     } else if (target === 'answer') {
-      setAnswerSignal('');
+      setAnswerSignal(code);
       await actions.submitAnswer(code);
     }
   }, [scannerTarget, actions]);
