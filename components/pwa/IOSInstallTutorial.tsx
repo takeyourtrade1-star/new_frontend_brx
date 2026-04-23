@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -11,6 +12,7 @@ import {
   ArrowRight,
   BookOpen,
   Layers,
+  ChevronDown,
 } from 'lucide-react';
 
 interface IOSInstallTutorialProps {
@@ -146,6 +148,8 @@ function SafariMockAnimation() {
 }
 
 export function IOSInstallTutorial({ isOpen, onClose }: IOSInstallTutorialProps) {
+  const [showSteps, setShowSteps] = useState(false);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -176,7 +180,7 @@ export function IOSInstallTutorial({ isOpen, onClose }: IOSInstallTutorialProps)
               stiffness: 350,
               mass: 0.8,
             }}
-            className="relative w-full max-w-lg mx-0 sm:mx-4 bg-gradient-to-b from-[#1e293b] to-[#0F172A] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto overflow-x-hidden"
+            className="relative w-full max-w-lg mx-0 sm:mx-4 bg-gradient-to-b from-[#1e293b] to-[#0F172A] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/10 overflow-x-hidden"
           >
             {/* Header */}
             <div className="sticky top-0 bg-[#0F172A]/90 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center justify-between z-10">
@@ -193,59 +197,85 @@ export function IOSInstallTutorial({ isOpen, onClose }: IOSInstallTutorialProps)
               </button>
             </div>
 
-            <div className="px-6 py-6 space-y-6">
-              {/* Mini animazione */}
+            <div className="px-6 pt-6 pb-8 space-y-5">
+              {/* Animazione in bella vista */}
               <SafariMockAnimation />
 
-              <p className="text-center text-sm text-white/50">
-                Guarda l&apos;anteprima sopra e segui i passaggi qui sotto
-              </p>
+              {/* Toggle passaggi */}
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowSteps((s) => !s)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+              >
+                <span className="text-sm font-medium text-white/80">
+                  {showSteps ? 'Nascondi passaggi' : 'Mostra passaggi dettagliati'}
+                </span>
+                <motion.div
+                  animate={{ rotate: showSteps ? 180 : 0 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <ChevronDown className="w-4 h-4 text-white/60" />
+                </motion.div>
+              </motion.button>
 
-              {/* Steps */}
-              <div className="space-y-5">
-                {steps.map((step, index) => (
+              {/* Passaggi scritti (collassabili) */}
+              <AnimatePresence initial={false}>
+                {showSteps && (
                   <motion.div
-                    key={step.label}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{
-                      delay: 0.15 + index * 0.15,
-                      type: 'spring',
-                      stiffness: 200,
-                    }}
-                    className="flex items-start gap-4"
+                    key="steps"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ type: 'spring', damping: 24, stiffness: 280 }}
+                    className="overflow-hidden"
                   >
-                    {/* Step Number + Icon */}
-                    <div className="flex flex-col items-center gap-1.5">
-                      <div
-                        className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg shrink-0`}
-                      >
-                        <step.icon className="w-6 h-6 text-white" />
-                      </div>
-                      {index < steps.length - 1 && (
-                        <div className="w-0.5 h-8 bg-white/10 rounded-full" />
-                      )}
-                    </div>
+                    <div className="space-y-5 pb-2">
+                      {steps.map((step, index) => (
+                        <motion.div
+                          key={step.label}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{
+                            delay: 0.1 + index * 0.1,
+                            type: 'spring',
+                            stiffness: 200,
+                          }}
+                          className="flex items-start gap-4"
+                        >
+                          {/* Step Number + Icon */}
+                          <div className="flex flex-col items-center gap-1.5">
+                            <div
+                              className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg shrink-0`}
+                            >
+                              <step.icon className="w-6 h-6 text-white" />
+                            </div>
+                            {index < steps.length - 1 && (
+                              <div className="w-0.5 h-8 bg-white/10 rounded-full" />
+                            )}
+                          </div>
 
-                    {/* Text */}
-                    <div className="pt-1">
-                      <h4 className="font-semibold text-white text-base">
-                        {index + 1}. {step.label}
-                      </h4>
-                      <p className="text-sm text-white/60 mt-1 leading-relaxed">
-                        {step.description}
-                      </p>
+                          {/* Text */}
+                          <div className="pt-1">
+                            <h4 className="font-semibold text-white text-base">
+                              {index + 1}. {step.label}
+                            </h4>
+                            <p className="text-sm text-white/60 mt-1 leading-relaxed">
+                              {step.description}
+                            </p>
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
                   </motion.div>
-                ))}
-              </div>
+                )}
+              </AnimatePresence>
 
-              {/* Final CTA */}
+              {/* CTA sempre visibile */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="pt-4 text-center"
+                transition={{ delay: 0.3 }}
+                className="pt-2 text-center"
               >
                 <p className="text-sm text-white/50 mb-4">
                   Perfetto, ora avrai EbarteX sulla tua schermata principale!
