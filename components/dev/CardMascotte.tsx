@@ -295,6 +295,24 @@ const faceSleepSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="rou
   <ellipse cx="78" cy="52" rx="5" ry="3" fill="#ff9999" stroke="none" opacity="0.4"/>
 </svg>`;
 
+const faceShockedSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Eyes: huge shocked circles -->
+  <circle class="face-halo" cx="35" cy="38" r="13" stroke="#faf9f6" stroke-width="3.5"/>
+  <circle class="face-halo" cx="65" cy="38" r="13" stroke="#faf9f6" stroke-width="3.5"/>
+  <circle class="face-line" cx="35" cy="38" r="13" stroke="#4a5548" stroke-width="2.5"/>
+  <circle class="face-line" cx="65" cy="38" r="13" stroke="#4a5548" stroke-width="2.5"/>
+  <!-- Pupils: tiny for shock -->
+  <circle class="pupil" cx="35" cy="38" r="3.5" fill="#4a5548" stroke="none"/>
+  <circle class="pupil-highlight" cx="32.5" cy="35.5" r="1.8" fill="#faf9f6" stroke="none"/>
+  <circle class="pupil" cx="65" cy="38" r="3.5" fill="#4a5548" stroke="none"/>
+  <circle class="pupil-highlight" cx="62.5" cy="35.5" r="1.8" fill="#faf9f6" stroke="none"/>
+  <!-- Mouth: O shape -->
+  <ellipse class="face-halo" cx="50" cy="68" rx="10" ry="9" stroke="#faf9f6" stroke-width="4" fill="none"/>
+  <ellipse class="face-line" cx="50" cy="68" rx="10" ry="9" stroke="#4a5548" stroke-width="3" fill="none"/>
+  <!-- Inner mouth depth -->
+  <ellipse cx="50" cy="68" rx="6" ry="5.5" fill="#4a5548" stroke="none" opacity="0.12"/>
+</svg>`;
+
 export function CardMascotte() {
   const authUser = useAuthStore((s) => s.user);
 
@@ -359,7 +377,7 @@ export function CardMascotte() {
   const wardrobeDoneTimeoutRef = useRef<number | null>(null);
 
   // Mascotte expression state
-  const [mascotteExpression, setMascotteExpression] = useState<'normal' | 'bugReport' | 'bugFocus' | 'wink' | 'coding' | 'sleeping'>('normal');
+  const [mascotteExpression, setMascotteExpression] = useState<'normal' | 'bugReport' | 'bugFocus' | 'wink' | 'coding' | 'sleeping' | 'shocked'>('normal');
 
   // Sleep mode state - triggered after 15s of mouse inactivity
   const [isSleeping, setIsSleeping] = useState(false);
@@ -499,6 +517,17 @@ export function CardMascotte() {
       // Ignore write errors in restricted browsing modes.
     }
   }, [equippedItems]);
+
+  // Force shocked expression when mega-joint is equipped (mouth becomes O)
+  useEffect(() => {
+    const hasJoint = equippedItems.accessories.includes('mega-joint');
+    if (hasJoint) {
+      setMascotteExpression('shocked');
+    } else if (mascotteExpression === 'shocked') {
+      setMascotteExpression('normal');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [equippedItems.accessories]);
 
   useEffect(() => {
     if (!isWardrobeOpen) {
@@ -2961,6 +2990,7 @@ export function CardMascotte() {
                       mascotteExpression === 'wink' ? faceWinkSVG :
                       mascotteExpression === 'coding' ? faceCodingSVG :
                       mascotteExpression === 'sleeping' ? faceSleepSVG :
+                      mascotteExpression === 'shocked' ? faceShockedSVG :
                       faceSVG
             }}
           />

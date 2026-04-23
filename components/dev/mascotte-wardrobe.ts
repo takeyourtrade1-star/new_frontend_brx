@@ -1238,6 +1238,68 @@ export const ACCESSORY_ITEMS: WardrobeItem[] = [
       <circle cx="35" cy="11" r="0.3" fill="#ffffff"/>
       <circle cx="60" cy="15" r="0.25" fill="#ffffff" opacity="0.8"/>
     </svg>`
+  },
+  {
+    id: 'mega-joint',
+    name: 'Mega Blunt',
+    category: 'accessories',
+    position: 'head',
+    zIndex: 10022,
+    svg: `<svg viewBox="0 0 96 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="mjPaper" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#f5ebc8"/>
+          <stop offset="25%" style="stop-color:#e8d9a0"/>
+          <stop offset="70%" style="stop-color:#d4c48a"/>
+          <stop offset="100%" style="stop-color:#c2b078"/>
+        </linearGradient>
+        <linearGradient id="mjPaperHL" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#fff;stop-opacity:0.5"/>
+          <stop offset="40%" style="stop-color:#fff;stop-opacity:0.05"/>
+          <stop offset="100%" style="stop-color:#fff;stop-opacity:0"/>
+        </linearGradient>
+        <radialGradient id="mjEmber" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" style="stop-color:#ffaa00;stop-opacity:0.95"/>
+          <stop offset="35%" style="stop-color:#ff6600;stop-opacity:0.7"/>
+          <stop offset="70%" style="stop-color:#ff2200;stop-opacity:0.35"/>
+          <stop offset="100%" style="stop-color:#ff0000;stop-opacity:0"/>
+        </radialGradient>
+        <linearGradient id="mjFilter" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#a07850"/>
+          <stop offset="50%" style="stop-color:#8a6840"/>
+          <stop offset="100%" style="stop-color:#6b5030"/>
+        </linearGradient>
+        <linearGradient id="mjSmoke" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" style="stop-color:#e0e0e0;stop-opacity:0.55"/>
+          <stop offset="100%" style="stop-color:#fff;stop-opacity:0"/>
+        </linearGradient>
+        <filter id="mjShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="1.2" dy="2.2" stdDeviation="1.8" flood-color="#1a1200" flood-opacity="0.45"/>
+        </filter>
+        <filter id="mjGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3.5" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <path d="M 74 6 Q 78 0 84 3 Q 88 7 86 13 Q 82 17 78 15" stroke="url(#mjSmoke)" stroke-width="3.5" fill="none" opacity="0.4" filter="url(#mjShadow)"/>
+      <path d="M 76 8 Q 80 2 88 5 Q 92 11 90 17" stroke="url(#mjSmoke)" stroke-width="2.2" fill="none" opacity="0.25" filter="url(#mjShadow)"/>
+      <rect x="18" y="20" width="56" height="11" rx="5.5" fill="url(#mjPaper)" stroke="#5a4a32" stroke-width="1" filter="url(#mjShadow)" transform="rotate(-6 46 25.5)"/>
+      <rect x="20" y="21.5" width="52" height="3" rx="1.5" fill="url(#mjPaperHL)" transform="rotate(-6 46 25.5)"/>
+      <path d="M 34 20.5 L 36 30.5 M 48 19.5 L 50 31.5 M 62 18.5 L 64 32" stroke="#b8a060" stroke-width="0.8" opacity="0.65" transform="rotate(-6 46 25.5)"/>
+      <rect x="70" y="19.5" width="11" height="12" rx="2" fill="url(#mjFilter)" stroke="#4a3720" stroke-width="0.9" transform="rotate(-6 75.5 25.5)" filter="url(#mjShadow)"/>
+      <rect x="71" y="21" width="2" height="9" rx="1" fill="#b89870" opacity="0.6" transform="rotate(-6 75.5 25.5)"/>
+      <circle cx="18" cy="26" r="5" fill="url(#mjEmber)" filter="url(#mjGlow)"/>
+      <circle cx="17.2" cy="25.2" r="2.8" fill="#ff5500" opacity="0.85" filter="url(#mjGlow)"/>
+      <circle cx="16.5" cy="24.5" r="1.2" fill="#ffcc00" opacity="0.9"/>
+      <circle cx="14" cy="23" r="0.7" fill="#bbb" opacity="0.7"/>
+      <circle cx="13.5" cy="28" r="0.5" fill="#aaa" opacity="0.6"/>
+      <circle cx="15" cy="29.5" r="0.4" fill="#ccc" opacity="0.5"/>
+      <path d="M 12 20 Q 8 14 12 10 Q 16 7 14 3" stroke="#eee" stroke-width="2" fill="none" opacity="0.3" filter="url(#mjShadow)"/>
+      <path d="M 10 22 Q 5 16 9 12" stroke="#ddd" stroke-width="1.5" fill="none" opacity="0.2"/>
+    </svg>`
   }
 ];
 
@@ -1810,6 +1872,7 @@ export function getItemOverlayStyle(
     if (item.id === 'hair-bow') return { ...base, top: '-8px', right: '-10px', width: '44px', height: '36px' };
     if (item.id === 'earrings-hoop') return { ...base, top: '36px', left: '-6px', width: '108px', height: '40px' };
     if (item.id === 'ski-goggles') return { ...base, top: '36px', left: '-4px', width: '104px', height: '30px' };
+    if (item.id === 'mega-joint') return { ...base, top: '54px', left: '-2px', width: '100px', height: '42px', transform: 'rotate(-8deg)', transformOrigin: 'center center' };
   }
 
   if (item.id === 'yugioh-deck') {
