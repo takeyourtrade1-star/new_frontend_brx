@@ -3,6 +3,7 @@ import './globals.css';
 import { Providers } from '@/components/providers';
 import { Footer } from '@/components/layout/Footer';
 import { CardMascotteGate } from '@/components/dev/CardMascotteGate';
+import { IOSInstallPrompt } from '@/components/pwa/IOSInstallPrompt';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
@@ -74,6 +75,11 @@ export default function RootLayout({
   return (
     <html lang="it" suppressHydrationWarning>
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#FF7300" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="EbarteX" />
         {/* Preload font principale SF Compact (tutti i pesi) per evitare FOUT */}
         <link
           rel="preload"
@@ -109,6 +115,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased min-h-screen flex flex-col">
+        <IOSInstallPrompt />
         <Providers>
           <div className="flex-1 flex flex-col" id="main-content">
             {children}

@@ -1,0 +1,29 @@
+{
+  "name": "EbarteX",
+  "short_name": "EbarteX",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#FF7300",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "it",
+  "description": "Compra, vendi e scambia carte collezionabili. Aste, trattative e boutique ufficiale EbarteX.",
+  "categories": ["shopping", "games"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/brx_bg.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ]
+}
