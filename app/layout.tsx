@@ -33,7 +33,7 @@ export const metadata: Metadata = {
       follow: true,
     },
   },
-  icons: { icon: '/icon.svg' },
+  icons: { icon: '/logo-pwa.svg' },
   openGraph: {
     type: 'website',
     locale: 'it_IT',
