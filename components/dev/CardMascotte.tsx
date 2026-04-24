@@ -16,7 +16,9 @@ import {
   DEFAULT_FACE_COLOR_ID,
   FACE_COLOR_OPTIONS,
   OBJECT_ITEMS,
+  getItemRenderClassName,
   getItemOverlayStyle,
+  getItemRenderEnhancementStyle,
   type Category,
   type EquippedItems,
   type FaceColorId,
@@ -479,6 +481,19 @@ export function CardMascotte() {
   const [menuPosition, setMenuPosition] = useState<{top: number; left: number} | null>(null);
   const matchmakingTicketRef = useRef<string | null>(null);
   const matchmakingPollRef = useRef<number | null>(null);
+
+  const closeMascottePanels = useCallback(() => {
+    setShowAlbum(false);
+    setIsWardrobeOpen(false);
+    setShowGameModeMenu(false);
+    setMenuPosition(null);
+    setShowChatModal(false);
+    setIsModalOpen(false);
+    setIsArenaOpen(false);
+    setIsP2POpen(false);
+    setIsCheckingArenaPlayers(false);
+    setIsFlipped(false);
+  }, []);
 
   // Close game mode menu when clicking outside
   useEffect(() => {
@@ -2530,7 +2545,7 @@ export function CardMascotte() {
             </div>
 
             {wardrobeCategory === 'color' ? (
-              <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/10 bg-black/15 p-1.5">
+              <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/10 bg-black/15 p-1.5 sm:grid-cols-3">
                 {FACE_COLOR_OPTIONS.map((option) => {
                   const isActive = equippedItems.faceColor === option.id;
 
@@ -2581,11 +2596,12 @@ export function CardMascotte() {
                         }}
                         className={`group flex min-h-[78px] flex-col items-center justify-center gap-1 rounded-lg border px-1 py-1.5 text-center transition ${
                           equipped
-                            ? 'border-[#FFB26B]/80 bg-[#FF7300]/30 text-white shadow-[0_8px_18px_rgba(255,115,0,0.25)]'
-                            : 'border-white/15 bg-black/20 text-white/85 hover:border-white/30 hover:bg-white/10'
+                            ? 'border-[#FFB26B]/80 bg-[linear-gradient(155deg,rgba(255,150,70,0.38)_0%,rgba(255,115,0,0.28)_55%,rgba(0,0,0,0.38)_100%)] text-white shadow-[0_10px_22px_rgba(255,115,0,0.28)]'
+                            : 'border-white/15 bg-[linear-gradient(160deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.02)_45%,rgba(0,0,0,0.32)_100%)] text-white/85 hover:border-white/30 hover:bg-white/10'
                         }`}
                       >
-                        <span className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border ${equipped ? 'border-white/40 bg-white/25' : 'border-white/20 bg-white/10'}`}>
+                        <span className={`relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border ${equipped ? 'border-white/40 bg-white/25' : 'border-white/20 bg-white/10'}`}>
+                          <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_58%)]" />
                           {thumbSrc ? (
                             <img
                               src={thumbSrc}
@@ -2600,6 +2616,9 @@ export function CardMascotte() {
                           )}
                         </span>
                         <span className="w-full truncate text-[8px] font-semibold leading-tight">{item.name}</span>
+                        <span className="text-[7px] uppercase tracking-wide text-white/50">
+                          {item.category === 'clothing' ? 'Tessuto' : item.category === 'accessories' ? 'Dettaglio' : 'Prop'}
+                        </span>
                       </button>
                     );
                   })}
@@ -2651,7 +2670,7 @@ export function CardMascotte() {
       )}
 
       {/* Sleep Bubbles - Floating when sleeping */}
-      {isSleeping && !isOverlayVisible && !isFlipped && (
+      {isSleeping && !isOverlayVisible && !isFlipped && !isMobileView && (
         <div
           className="fixed pointer-events-none sleep-bubbles-wrapper"
           style={{
@@ -2741,25 +2760,24 @@ export function CardMascotte() {
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            console.log('X button clicked, setting isMobileHidden to true');
+            closeMascottePanels();
             setIsMobileHidden(true);
-            console.log('isMobileHidden state updated');
           }}
-          className="sm:hidden fixed flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm border border-white/20 shadow-lg hover:bg-white/20 transition-colors"
+          className="sm:hidden fixed flex items-center justify-center rounded-full border border-white/50 bg-black/45 text-white shadow-[0_4px_12px_rgba(0,0,0,0.24)] ring-1 ring-black/15 backdrop-blur-md transition-all hover:scale-105 hover:bg-black/55 active:scale-95"
           style={{
             zIndex: Z_INDEX.mascotteBase + 2,
-            bottom: isStickyBarVisible ? '80px' : '20px',
-            right: '150px',
-            width: '28px',
-            height: '28px',
+            bottom: isStickyBarVisible ? '182px' : '122px',
+            right: '42px',
+            width: '30px',
+            height: '30px',
           }}
-          aria-label="Nascondi mascotte"
+          aria-label="Chiudi Asso"
         >
-          <X className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+          <X className="h-4 w-4" strokeWidth={2.25} />
         </button>
       )}
 
-      {/* Peek animation when mascot is hidden on mobile */}
+      {/* Mobile launcher when Asso is hidden */}
       {isMobileHidden && (
         <button
           type="button"
@@ -2767,17 +2785,20 @@ export function CardMascotte() {
             e.stopPropagation();
             setIsMobileHidden(false);
           }}
-          className="sm:hidden fixed flex items-center justify-center rounded-l-lg bg-white/10 backdrop-blur-sm border-l border-y border-white/20 shadow-lg hover:bg-white/20 transition-all"
+          className="sm:hidden fixed flex items-center justify-center rounded-full border border-white/40 bg-gradient-to-br from-[#FF7300] to-[#FF9A40] text-white shadow-[0_10px_24px_rgba(255,115,0,0.4)] transition-all hover:scale-105 active:scale-95"
           style={{
             zIndex: Z_INDEX.mascotteBase + 2,
             bottom: isStickyBarVisible ? '80px' : '20px',
-            right: 0,
-            width: '8px',
-            height: '40px',
-            animation: 'peekPulse 2s ease-in-out infinite',
+            right: '16px',
+            width: '56px',
+            height: '56px',
+            animation: 'promoPulse 2.2s ease-in-out infinite',
           }}
-          aria-label="Ripristina mascotte"
-        />
+          aria-label="Apri Asso"
+          title="Apri Asso"
+        >
+          <span className="font-comodo text-[11px] font-bold tracking-[0.18em]">ASSO</span>
+        </button>
       )}
 
       {/* Golden Confetti — Easter Egg at 100 flips */}
@@ -2839,8 +2860,8 @@ export function CardMascotte() {
           // Hide mascot when external modal is open (AuctionBidModal)
           opacity: isExternalModalOpen ? 0 : 1,
           pointerEvents: isExternalModalOpen ? 'none' : 'auto',
-          // Move 80% off-screen to the right on mobile when hidden
-          transform: isMobileHidden ? 'translateX(120%)' : 'translateX(0)',
+          // On mobile, hide Asso completely and show circular launcher
+          transform: isMobileHidden ? 'translateX(calc(100% + 84px))' : 'translateX(0)',
         }}
         role="button"
         tabIndex={0}
@@ -3003,22 +3024,46 @@ export function CardMascotte() {
               style={getItemOverlayStyle(item, equippedItems.objects)}
             >
               <div
-                style={{ width: '100%', height: '100%' }}
+                className={`equipped-item-layer ${
+                  item.category === 'objects'
+                    ? 'equipped-item-float'
+                    : item.category === 'accessories'
+                    ? 'equipped-item-breathe'
+                    : ''
+                } ${getItemRenderClassName(item)}`}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  ...getItemRenderEnhancementStyle(item),
+                }}
                 dangerouslySetInnerHTML={{ __html: item.svg }}
               />
             </div>
           ))}
 
-          {/* Desktop flip button — appears on hover */}
-          {isCardHovered && !isFlipped && (
+          {/* Flip button: desktop on hover, mobile always visible when not flipped */}
+          {(isMobileView ? !isFlipped : isCardHovered && !isFlipped) && (
             <button
               onClick={handleFlipButtonClick}
-              className="mascotte-flip-btn absolute z-[11] flex h-5 w-5 items-center justify-center rounded-full border border-white/20 bg-zinc-900/60 text-white/70 shadow-md backdrop-blur-sm transition-all hover:scale-110 hover:bg-zinc-800/80 hover:text-white"
-              style={{ bottom: '3px', left: '3px' }}
+              className={`mascotte-flip-btn absolute z-[11] flex items-center justify-center rounded-full border text-white shadow-md backdrop-blur-sm transition-all hover:scale-110 hover:text-white ${
+                isMobileView
+                  ? 'h-8 w-8 border-white/45 bg-black/55 text-white'
+                  : 'h-5 w-5 border-white/20 bg-zinc-900/60 text-white/70 hover:bg-zinc-800/80'
+              }`}
+              style={isMobileView ? { bottom: '6px', left: '6px' } : { bottom: '3px', left: '3px' }}
               title="Gira la carta"
               aria-label="Gira la carta"
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width={isMobileView ? '14' : '10'}
+                height={isMobileView ? '14' : '10'}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={isMobileView ? '2.2' : '2.5'}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" />
               </svg>
             </button>
@@ -4163,6 +4208,65 @@ export function CardMascotte() {
         @keyframes sleepTwinkle {
           0%, 100% { opacity: 0.5; transform: scale(0.9); }
           50% { opacity: 1; transform: scale(1.1); }
+        }
+        /* Equipped wardrobe realism layers */
+        .equipped-item-layer {
+          position: relative;
+          transition: filter 220ms ease, transform 220ms ease, opacity 220ms ease;
+        }
+        .equipped-item-layer::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          border-radius: 10px;
+          background:
+            radial-gradient(circle at 22% 16%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.08) 20%, rgba(255,255,255,0) 52%),
+            linear-gradient(165deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 35%, rgba(0,0,0,0.07) 100%);
+          mix-blend-mode: screen;
+          opacity: 0.62;
+        }
+        .equipped-item-layer::after {
+          content: '';
+          position: absolute;
+          inset: -1px;
+          pointer-events: none;
+          border-radius: 11px;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.24),
+            inset 0 -1px 0 rgba(0,0,0,0.2);
+          opacity: 0.6;
+        }
+        @keyframes equippedItemFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-1.8px); }
+        }
+        @keyframes equippedItemBreathe {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.015); }
+        }
+        .equipped-item-float {
+          animation: equippedItemFloat 3.8s ease-in-out infinite;
+        }
+        .equipped-item-breathe {
+          animation: equippedItemBreathe 4.6s ease-in-out infinite;
+        }
+        .equipped-item-metallic::before {
+          opacity: 0.78;
+          background:
+            linear-gradient(130deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.04) 42%, rgba(0,0,0,0.12) 100%),
+            radial-gradient(circle at 28% 18%, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0) 70%);
+        }
+        .equipped-item-glass::before {
+          opacity: 0.74;
+          background:
+            linear-gradient(150deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.07) 30%, rgba(255,255,255,0.01) 55%, rgba(0,0,0,0.14) 100%);
+        }
+        .equipped-item-tech::after {
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.18),
+            inset 0 -1px 0 rgba(0,0,0,0.24),
+            0 0 0 1px rgba(34,211,238,0.15);
         }
         /* Peek animation for hidden mascot on mobile */
         @keyframes peekPulse {

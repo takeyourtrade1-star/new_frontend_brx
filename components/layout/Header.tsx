@@ -6,7 +6,13 @@ import GlobalSearchBar from './GlobalSearchBar';
 import { ProdottiMenu } from './ProdottiMenu';
 import { DemoBanner } from './DemoBanner';
 
-export function Header({ transparent = false }: { transparent?: boolean }) {
+export function Header({
+  transparent = false,
+  reserveSpace = true,
+}: {
+  transparent?: boolean;
+  reserveSpace?: boolean;
+}) {
   const headerRef = useRef<HTMLElement | null>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -56,7 +62,7 @@ export function Header({ transparent = false }: { transparent?: boolean }) {
       </div>
       </header>
       {/* Spacer per compensare l'header fixed */}
-      {headerHeight > 0 ? <div style={{ height: headerHeight }} aria-hidden /> : null}
+      {reserveSpace && headerHeight > 0 ? <div style={{ height: headerHeight }} aria-hidden /> : null}
     </>
   );
 }

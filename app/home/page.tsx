@@ -24,21 +24,23 @@ export default function HomePage() {
       }}
     >
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
-        <Header />
+        <Header reserveSpace={false} />
       </Suspense>
-      <Suspense fallback={<div className="p-8 flex justify-center"><MascotteLoader size="md" /></div>}>
-        <section className="w-full transition-colors duration-300">
-          <HeroCarousel />
-        </section>
+      <div className="pt-[88px] md:pt-[104px]">
+        <Suspense fallback={<div className="p-8 flex justify-center"><MascotteLoader size="md" /></div>}>
+          <section className="w-full transition-colors duration-300">
+            <HeroCarousel />
+          </section>
 
-        <FeaturesSection />
+          <FeaturesSection />
 
-        <MarketplaceDashboard />
+          <MarketplaceDashboard />
 
-        <CategoriesGrid />
+          <CategoriesGrid />
 
-        <EbartexProductsSection />
-      </Suspense>
+          <EbartexProductsSection />
+        </Suspense>
+      </div>
     </main>
   );
 }

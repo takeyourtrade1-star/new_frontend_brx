@@ -18,9 +18,11 @@ function ScambiPageContent() {
   return (
     <>
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
-        <Header />
+        <Header reserveSpace={false} />
       </Suspense>
-      <ScambiLandingPage />
+      <div className="pt-[88px] md:pt-[104px]">
+        <ScambiLandingPage />
+      </div>
     </>
   );
 }
