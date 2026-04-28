@@ -75,7 +75,7 @@ export function DemoBanner() {
             {/* 3 buttons - CENTER */}
             <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 sm:gap-3">
               <span className="text-[9px] sm:text-[10px] font-medium text-white/70 uppercase tracking-wider">{t.onlyOn}</span>
-              <Link href="/tcg-express" className="rounded px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+              <Link href="/brx-express" className="rounded px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-white hover:bg-white/20 transition-colors">
                 BRX Express
               </Link>
               <span className="text-white/40">|</span>
@@ -83,7 +83,7 @@ export function DemoBanner() {
                 {lang === 'it' ? 'Aste' : 'Auctions'}
               </Link>
               <span className="text-white/40">|</span>
-              <Link href="/tornei" className="rounded px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+              <Link href="/tcg-express" className="rounded px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-white hover:bg-white/20 transition-colors">
                 {lang === 'it' ? 'Tornei' : 'Tournaments'}
               </Link>
             </div>

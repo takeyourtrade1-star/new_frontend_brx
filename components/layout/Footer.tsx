@@ -30,7 +30,7 @@ export function Footer() {
       links: [
         { label: t('footer.link.buy'), href: '/search' },
         { label: t('footer.link.sell'), href: '/vendi' },
-        { label: 'BRX Express', href: '/tcg-express' },
+        { label: 'BRX Express', href: '/brx-express' },
         { label: 'Spedizione 24h', href: '/brx-express' },
         { label: t('footer.link.auctions'), href: '/aste' },
         { label: t('footer.link.sync'), href: '/account/sincronizzazione' },

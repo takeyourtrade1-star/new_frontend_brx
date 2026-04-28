@@ -233,18 +233,18 @@ export function LandingWelcome() {
   return (
     <div className="relative w-full overflow-x-hidden text-white">
 
-      {/* ══════ BACKGROUND VIDEO (Fixed - full height) ══════ */}
+      {/* ══════ BACKGROUND VIDEO (Absolute within content flow) ══════ */}
       <video
         ref={videoRef}
         src={getCdnVideoUrl(LANDING_BG_VIDEO)}
-        className="pointer-events-none fixed inset-0 w-full h-full object-cover object-center"
+        className="pointer-events-none absolute inset-0 w-full h-full object-cover object-center"
         autoPlay loop muted playsInline
         disablePictureInPicture disableRemotePlayback aria-hidden
       />
 
       {/* Overlay gradient */}
       <div
-        className="pointer-events-none fixed inset-0 z-[1]"
+        className="pointer-events-none absolute inset-0 z-[1]"
         style={{
           background: 'linear-gradient(180deg, rgba(15,23,42,0.65) 0%, rgba(29,49,96,0.50) 40%, rgba(15,23,42,0.72) 100%)',
         }}
@@ -254,7 +254,7 @@ export function LandingWelcome() {
       <div className="relative z-10 flex flex-col">
 
         {/* ────── LOGO + TAGLINE — same row ────── */}
-        <header className="bento-entry flex items-center justify-center px-4 pt-1 pb-1 sm:pt-2 sm:pb-2 md:pt-3" style={{ animationDelay: '0ms' }}>
+        <header className="bento-entry flex items-center justify-center px-4 pt-3 pb-3 sm:pt-3 sm:pb-3 md:pt-3 md:pb-2" style={{ animationDelay: '0ms' }}>
           <div className="flex w-full max-w-6xl items-center justify-center gap-3 sm:gap-5 md:gap-6">
             <Image
               src={getCdnImageUrl('Logo%20Principale%20EBARTEX.png')}
@@ -284,8 +284,8 @@ export function LandingWelcome() {
         {/* ═══════════════════════════════════════════════
             HERO — Card Magic (left) + Feature Carousel (right)
             ═══════════════════════════════════════════════ */}
-        <section className="px-4 pt-2 pb-4 sm:px-4 sm:pt-2 sm:pb-4 md:px-6 md:pt-2 md:pb-5">
-          <div className="mx-auto grid w-full max-w-6xl gap-3 sm:gap-3 grid-cols-1 lg:grid-cols-2">
+        <section className="px-4 pt-5 pb-6 sm:px-4 sm:pt-5 sm:pb-6 md:px-6 md:pt-3 md:pb-5">
+          <div className="mx-auto grid w-full max-w-6xl gap-4 sm:gap-4 md:gap-3 grid-cols-1 lg:grid-cols-2">
 
             {/* ──── LEFT: MAGIC CARD ──── */}
             <Link
@@ -451,7 +451,7 @@ export function LandingWelcome() {
         {/* ═══════════════════════════════════════════════
             COMING SOON GAMES — infinite horizontal scroll
             ═══════════════════════════════════════════════ */}
-        <section className="bento-entry px-4 pb-4 sm:px-6 sm:pb-6" style={{ animationDelay: '480ms' }}>
+        <section className="bento-entry px-4 pb-6 sm:px-6 sm:pb-8" style={{ animationDelay: '480ms' }}>
           <div className="mx-auto max-w-md">
             <p className="mb-3 sm:mb-4 text-center text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-white/40">
               Presto in arrivo
@@ -492,7 +492,7 @@ export function LandingWelcome() {
         {/* ═══════════════════════════════════════════════
             FEATURES + BOUTIQUE (below the fold)
             ═══════════════════════════════════════════════ */}
-        <section className="relative w-full overflow-hidden px-4 pt-6 pb-6 sm:px-5 sm:pt-8 sm:pb-7 md:pt-10 md:pb-8 z-[2]">
+        <section className="relative w-full overflow-hidden px-4 pt-10 pb-10 sm:px-5 sm:pt-12 sm:pb-12 md:pt-10 md:pb-8 z-[2]">
           <div className="relative z-10 mx-auto max-w-4xl">
 
             {/* ─── KPI / Features grid ─── */}
@@ -506,7 +506,7 @@ export function LandingWelcome() {
                 </h2>
               </div>
 
-              <div className="grid w-full grid-cols-2 md:grid-cols-3 gap-x-2 sm:gap-x-3 md:gap-x-6 gap-y-3 sm:gap-y-4 md:gap-y-8">
+              <div className="grid w-full grid-cols-2 md:grid-cols-3 gap-x-3 sm:gap-x-3 md:gap-x-6 gap-y-5 sm:gap-y-5 md:gap-y-8">
                 {FEATURES.map((f) => {
                   const IconComponent = FEATURE_ICONS[f.iconKey];
                   return (
@@ -527,15 +527,15 @@ export function LandingWelcome() {
             </div>
 
             {/* Divider */}
-            <div className="mx-auto my-4 sm:my-6 md:my-8 h-px w-2/3 max-w-lg bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+            <div className="mx-auto my-6 sm:my-6 md:my-8 h-px w-2/3 max-w-lg bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
             {/* ─── Boutique Cards ─── */}
-            <div className="mt-6 sm:mt-8 md:mt-12 text-center">
-              <h3 className="mb-3 sm:mb-4 md:mb-6 text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-widest text-white/90">
+            <div className="mt-8 sm:mt-10 md:mt-12 text-center">
+              <h3 className="mb-4 sm:mb-4 md:mb-6 text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-widest text-white/90">
                 La Nostra Boutique
               </h3>
 
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3 md:gap-4 max-w-5xl mx-auto px-1 sm:px-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-3 md:gap-4 max-w-5xl mx-auto px-1 sm:px-2">
                 {BOUTIQUE_CATEGORIES.map((cat, index) => {
                   const glowColor = BOUTIQUE_GLOW_COLORS[cat.id] || '255,255,255';
                   return (
@@ -575,7 +575,7 @@ export function LandingWelcome() {
             </div>
 
             {/* ─── Signed & Altered Collections Showcase ─── */}
-            <div className="mt-8 sm:mt-10 md:mt-12">
+            <div className="mt-10 sm:mt-12 md:mt-14">
               <SignedAlteredShowcase />
             </div>
 
