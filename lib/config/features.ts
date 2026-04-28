@@ -5,7 +5,7 @@
 
 export const FEATURES = {
   /** Se true, mostra la tab SCAMBIA nel dettaglio prodotto e il link Scambi nel nav.
-   *  Se false, la tab diventa TORNEI LIVE e il link diventa TCG Express. */
+   *  Se false, la tab diventa TORNEI LIVE e il link diventa BRX Express. */
   scambiEnabled: false,
 
   /** Se true, mostra la route /scambi. Se false, reindirizza a /tcg-express. */

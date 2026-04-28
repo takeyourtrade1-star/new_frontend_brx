@@ -7,6 +7,7 @@ export const fr: Record<MessageKey, string> = {
   'common.darkMode': 'Mode sombre',
   'common.help': 'Aide',
   'common.cancel': 'Annuler',
+  'common.close': 'Fermer',
   'common.loading.shufflingCards': 'Nous mélangeons les cartes',
 
   'nav.userSearch': 'Recherche utilisateur',
@@ -85,7 +86,7 @@ export const fr: Record<MessageKey, string> = {
 
   'nav.sell': 'VENDRE',
   
-  'nav.tcgExpress': 'TCG Express',
+  'nav.tcgExpress': 'BRX Express',
   'nav.auctions': 'ENCHÈRES',
   'nav.cartAria': 'Panier {total}',
 
@@ -107,7 +108,7 @@ export const fr: Record<MessageKey, string> = {
   'footer.link.buy': 'Acheter',
   'footer.link.sell': 'Vendre',
   
-  'footer.link.tcgExpress': 'TCG Express',
+  'footer.link.tcgExpress': 'BRX Express',
   'footer.link.auctions': 'Enchères',
   'footer.link.sync': 'Synchroniser',
   'footer.link.terms': 'Conditions d’utilisation',
@@ -690,7 +691,7 @@ export const fr: Record<MessageKey, string> = {
   'breadcrumb.cart': 'Panier',
   'breadcrumb.aste': 'Enchères',
   
-  'breadcrumb.tcgExpress': 'TCG Express',
+  'breadcrumb.tcgExpress': 'BRX Express',
   'breadcrumb.aiuto': 'Aide',
   'breadcrumb.contatti': 'Contact',
   'breadcrumb.legal': 'Légal',
@@ -1061,6 +1062,10 @@ export const fr: Record<MessageKey, string> = {
   'auctions.shareMenuTitle': 'Partager via',
   'auctions.shareCopyLink': 'Copier le lien',
   'auctions.shareText': '{title} — Ebartex',
+  'auctions.qrCode': 'Code QR',
+  'auctions.qrCodeTitle': 'Scannez pour ouvrir',
+  'auctions.qrCodeSubtitle': 'Utilisez votre téléphone pour scanner le code et ouvrir cette enchère',
+  'auctions.qrCodeHint': 'Scannez avec l\'appareil photo de votre téléphone ou une app QR',
   'auctions.statsViews': '{count} vues',
   'auctions.statsWatching': '{count} regardent en direct',
   'auctions.finalPriceLabel': 'Offre finale',

@@ -1748,7 +1748,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </button>
                   );
                 })}
-                {/* Tab TCG Express — design premium */}
+                {/* Tab BRX Express — design premium */}
                 <button
                   type="button"
                   onClick={() => setSellerSubTab('TCG_EXPRESS')}
@@ -1760,7 +1760,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   )}
                 >
                   <Zap className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden />
-                  <span className="truncate">TCG Express</span>
+                  <span className="truncate">BRX Express</span>
                   <span className="inline-flex items-center rounded-full bg-emerald-500 px-1.5 py-[2px] text-[9px] font-bold text-white shadow-sm animate-pulse">
                     NUOVO
                   </span>
@@ -2020,7 +2020,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-400 shadow-md shadow-orange-500/20">
                       <Zap className="h-6 w-6 text-white" aria-hidden />
                     </div>
-                    <p className="text-sm font-extrabold uppercase tracking-wide text-orange-700">TCG Express</p>
+                    <p className="text-sm font-extrabold uppercase tracking-wide text-orange-700">BRX Express</p>
                     <p className="mt-1 text-sm text-orange-600/80">Spedizione ultra-rapida per le tue carte. Presto disponibile.</p>
                   </div>
                 </div>

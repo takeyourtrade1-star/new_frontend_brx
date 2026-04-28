@@ -8,6 +8,7 @@ export const en = {
   'common.darkMode': 'Dark mode',
   'common.help': 'Help',
   'common.cancel': 'Cancel',
+  'common.close': 'Close',
   'common.loading.shufflingCards': 'Shuffling the cards',
 
   'nav.userSearch': 'User search',
@@ -86,7 +87,7 @@ export const en = {
 
   'nav.sell': 'Sell',
   
-  'nav.tcgExpress': 'TCG Express',
+  'nav.tcgExpress': 'BRX Express',
   'nav.auctions': 'Auctions',
   'nav.cartAria': 'Cart {total}',
 
@@ -108,7 +109,7 @@ export const en = {
   'footer.link.buy': 'Buy',
   'footer.link.sell': 'Sell',
   
-  'footer.link.tcgExpress': 'TCG Express',
+  'footer.link.tcgExpress': 'BRX Express',
   'footer.link.auctions': 'Auctions',
   'footer.link.sync': 'Sync',
   'footer.link.terms': 'Terms of use',
@@ -689,7 +690,7 @@ export const en = {
   'breadcrumb.cart': 'Cart',
   'breadcrumb.aste': 'Auctions',
   
-  'breadcrumb.tcgExpress': 'TCG Express',
+  'breadcrumb.tcgExpress': 'BRX Express',
   'breadcrumb.aiuto': 'Help',
   'breadcrumb.contatti': 'Contact',
   'breadcrumb.legal': 'Legal',
@@ -1058,6 +1059,10 @@ export const en = {
   'auctions.shareMenuTitle': 'Share via',
   'auctions.shareCopyLink': 'Copy link',
   'auctions.shareText': '{title} — Ebartex',
+  'auctions.qrCode': 'QR Code',
+  'auctions.qrCodeTitle': 'Scan to open',
+  'auctions.qrCodeSubtitle': 'Use your phone to scan the code and open this auction',
+  'auctions.qrCodeHint': 'Scan with your phone camera or a QR app',
   'auctions.statsViews': '{count} views',
   'auctions.statsWatching': '{count} watching now',
   'auctions.finalPriceLabel': 'Final bid',

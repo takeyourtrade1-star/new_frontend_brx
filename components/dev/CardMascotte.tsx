@@ -1982,7 +1982,7 @@ export function CardMascotte() {
   const promoHints = useMemo(() => [
     {
       id: 'tcg-express',
-      text: 'Lo sai cosa ci rende unici? Tornei live e logistica decentralizzata con TCG Express!',
+      text: 'Lo sai cosa ci rende unici? Tornei live e logistica decentralizzata con BRX Express!',
       route: '/tcg-express',
       // Glass tint color (accent only, not solid)
       accent: '#10B981',

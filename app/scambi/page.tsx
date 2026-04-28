@@ -1,7 +1,7 @@
 import { permanentRedirect } from 'next/navigation';
 
 export const metadata = {
-  title: 'TCG Express | Ebartex',
+  title: 'BRX Express | Ebartex',
   robots: { index: false, follow: false },
 };
 

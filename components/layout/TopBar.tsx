@@ -847,7 +847,7 @@ export function TopBar() {
               {/* 4. TORNEI LIVE - solo desktop */}
               <Link
                 href="/tcg-express"
-                className="order-4 hidden items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex md:px-2"
+                className="order-3 hidden items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-5 md:flex md:px-2"
                 aria-label="Tornei live"
               >
                 <span
@@ -882,7 +882,7 @@ export function TopBar() {
               {/* 5. ASTE - solo desktop */}
               <Link
                 href="/aste"
-                className="order-3 hidden items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-5 md:flex md:px-2"
+                className="order-4 hidden items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex md:px-2"
                 aria-label={t('nav.auctions')}
               >
                 <span

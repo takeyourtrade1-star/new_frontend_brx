@@ -14,6 +14,7 @@ import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { roundMoney, minNextBidEur } from '@/lib/auction/bid-math';
 import { AuctionBidModal } from '@/components/feature/aste/AuctionBidModal';
 import { AuctionShareButton } from '@/components/feature/aste/AuctionShareButton';
+import { AuctionQrButton } from '@/components/feature/aste/AuctionQrButton';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { useAuctionDetail, useAuctionBids, useAuctionList, useAuctionWebSocket } from '@/lib/hooks/use-auctions';
@@ -292,6 +293,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                       <Bookmark className="h-4 w-4" />
                     </button>
                   )}
+                  <AuctionQrButton auctionTitle={detail.title} compact />
                   <AuctionShareButton auctionTitle={detail.title} compact />
                 </div>
               </div>
@@ -358,6 +360,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     <Bookmark className="h-4 w-4" />
                   </button>
                 )}
+                <AuctionQrButton auctionTitle={detail.title} compact />
                 <AuctionShareButton auctionTitle={detail.title} compact />
               </div>
               <div

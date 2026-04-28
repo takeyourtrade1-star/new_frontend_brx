@@ -7,6 +7,7 @@ export const de: Record<MessageKey, string> = {
   'common.darkMode': 'Dunkelmodus',
   'common.help': 'Hilfe',
   'common.cancel': 'Abbrechen',
+  'common.close': 'Schließen',
   'common.loading.shufflingCards': 'Wir mischen die Karten',
 
   'nav.userSearch': 'Benutzersuche',
@@ -85,7 +86,7 @@ export const de: Record<MessageKey, string> = {
 
   'nav.sell': 'VERKAUFEN',
   
-  'nav.tcgExpress': 'TCG Express',
+  'nav.tcgExpress': 'BRX Express',
   'nav.auctions': 'AUKTIONEN',
   'nav.cartAria': 'Warenkorb {total}',
 
@@ -107,7 +108,7 @@ export const de: Record<MessageKey, string> = {
   'footer.link.buy': 'Kaufen',
   'footer.link.sell': 'Verkaufen',
   
-  'footer.link.tcgExpress': 'TCG Express',
+  'footer.link.tcgExpress': 'BRX Express',
   'footer.link.auctions': 'Auktionen',
   'footer.link.sync': 'Synchronisieren',
   'footer.link.terms': 'Nutzungsbedingungen',
@@ -690,7 +691,7 @@ export const de: Record<MessageKey, string> = {
   'breadcrumb.cart': 'Warenkorb',
   'breadcrumb.aste': 'Auktionen',
   
-  'breadcrumb.tcgExpress': 'TCG Express',
+  'breadcrumb.tcgExpress': 'BRX Express',
   'breadcrumb.aiuto': 'Hilfe',
   'breadcrumb.contatti': 'Kontakt',
   'breadcrumb.legal': 'Rechtliches',
@@ -1061,6 +1062,10 @@ export const de: Record<MessageKey, string> = {
   'auctions.shareMenuTitle': 'Teilen über',
   'auctions.shareCopyLink': 'Link kopieren',
   'auctions.shareText': '{title} — Ebartex',
+  'auctions.qrCode': 'QR-Code',
+  'auctions.qrCodeTitle': 'Zum Öffnen scannen',
+  'auctions.qrCodeSubtitle': 'Nutze dein Handy, um den Code zu scannen und diese Auktion zu öffnen',
+  'auctions.qrCodeHint': 'Scanne mit der Handy-Kamera oder einer QR-App',
   'auctions.statsViews': '{count} Aufrufe',
   'auctions.statsWatching': '{count} sehen live zu',
   'auctions.finalPriceLabel': 'Schlussgebot',
