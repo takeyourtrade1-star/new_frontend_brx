@@ -15,6 +15,7 @@ import {
   ArrowRight,
   CheckCircle2,
 } from "lucide-react";
+import { ReadyOneDayMockup } from "./ReadyOneDayMockup";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -156,12 +157,44 @@ export function BrxExpressLandingPage() {
         </motion.div>
       </motion.section>
 
+      {/* READY ONE DAY MOCKUP */}
+      <motion.section
+        className="py-10 md:py-16"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.1 }}
+      >
+        <motion.div variants={fadeUp} custom={0}>
+          <SectionKicker>Simulazione Live</SectionKicker>
+        </motion.div>
+        
+        <motion.h2
+          variants={fadeUp}
+          custom={0.1}
+          className="mt-2 text-2xl font-extrabold text-zinc-900 sm:text-3xl"
+        >
+          Esplora la Control Tower
+        </motion.h2>
+        
+        <motion.p
+          variants={fadeUp}
+          custom={0.2}
+          className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-600 sm:text-base mb-8"
+        >
+          Prova l'interfaccia usata dai venditori per instradare lo stock e gestire il routing europeo.
+        </motion.p>
+
+        <motion.div variants={fadeUp} custom={0.3}>
+          <ReadyOneDayMockup />
+        </motion.div>
+      </motion.section>
+
       {/* PERCHÉ BRX EXPRESS */}
       <motion.section
         className="py-10 md:py-16"
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
+        viewport={{ once: true, margin: "-50px" }}
       >
         <motion.div variants={fadeUp} custom={0}>
           <SectionKicker>I Vantaggi</SectionKicker>
@@ -229,7 +262,7 @@ export function BrxExpressLandingPage() {
         className="py-10 md:py-16"
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
+        viewport={{ once: true, margin: "-50px" }}
       >
         <div className="grid gap-8 lg:grid-cols-2">
           <div>
@@ -329,7 +362,7 @@ export function BrxExpressLandingPage() {
         className="py-10 md:py-16"
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
+        viewport={{ once: true, margin: "-50px" }}
       >
         <motion.div variants={fadeUp} custom={0}>
           <SectionKicker>Analisi Competitiva</SectionKicker>
@@ -401,7 +434,7 @@ export function BrxExpressLandingPage() {
         className="py-10 md:pb-20 md:pt-16"
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
+        viewport={{ once: true, margin: "-50px" }}
       >
         <motion.div variants={fadeUp} custom={0}>
           <SectionKicker>Modello Economico</SectionKicker>
@@ -453,6 +486,8 @@ export function BrxExpressLandingPage() {
           </div>
         </motion.div>
       </motion.section>
+
+
     </div>
   );
 }

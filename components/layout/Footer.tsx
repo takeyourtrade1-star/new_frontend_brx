@@ -31,7 +31,6 @@ export function Footer() {
         { label: t('footer.link.buy'), href: '/search' },
         { label: t('footer.link.sell'), href: '/vendi' },
         { label: 'BRX Express', href: '/brx-express' },
-        { label: 'Spedizione 24h', href: '/brx-express' },
         { label: t('footer.link.auctions'), href: '/aste' },
         { label: t('footer.link.sync'), href: '/account/sincronizzazione' },
       ],
@@ -65,7 +64,7 @@ export function Footer() {
   ];
 
   return (
-    <footer className="w-full bg-white text-gray-900">
+    <footer className="relative z-10 w-full bg-white text-gray-900">
       <div
         className="flex items-center justify-center px-4 py-3 md:py-4"
         style={{ backgroundColor: FOOTER_BAND_BG }}

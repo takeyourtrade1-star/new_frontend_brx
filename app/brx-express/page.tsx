@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import { BrxExpressLandingPage } from '@/components/feature/brx-express/BrxExpressLandingPage';
 import type { Metadata } from 'next';
 
@@ -29,7 +28,6 @@ export default function BrxExpressPage() {
           </Suspense>
         </div>
       </main>
-      <Footer />
     </>
   );
 }
