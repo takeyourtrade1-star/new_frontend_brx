@@ -12,7 +12,7 @@ import { LOCALE_TO_INTL } from '@/lib/i18n/locales';
 import type { UiLocale } from '@/lib/i18n/locales';
 
 const ORANGE_GLASS_CART_CLASS =
-  'absolute left-1/2 top-full z-[110] mt-1.5 min-w-[280px] -translate-x-1/2 rounded-2xl border border-primary/45 bg-primary/30 px-0 py-0 text-white backdrop-blur-2xl backdrop-saturate-150 shadow-2xl ring-1 ring-white/20 animate-orange-menu-enter';
+  'hidden md:block absolute left-1/2 top-full z-[110] mt-1.5 min-w-[280px] -translate-x-1/2 rounded-2xl border border-primary/45 bg-primary/30 px-0 py-0 text-white backdrop-blur-2xl backdrop-saturate-150 shadow-2xl ring-1 ring-white/20 animate-orange-menu-enter';
 
 export function CartDropdown() {
   const { t, locale } = useTranslation();
