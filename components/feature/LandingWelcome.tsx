@@ -13,6 +13,7 @@ import { useGame } from '@/lib/contexts/GameContext';
 import type { GameSlug } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { SignedAlteredShowcase } from './SignedAlteredShowcase';
 
 /* ═══════════════════════════════════════════════════════════
    CONSTANTS
@@ -126,6 +127,37 @@ const BOUTIQUE_CATEGORIES = [
 ];
 
 /* ═══════════════════════════════════════════════════════════
+   PARALLAX VIDEO HOOK
+   ═══════════════════════════════════════════════════════════ */
+
+function useParallaxVideo() {
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    let rafId: number;
+    let currentScrollY = 0;
+
+    const handleScroll = () => {
+      currentScrollY = window.scrollY;
+      if (!rafId) {
+        rafId = requestAnimationFrame(() => {
+          setScrollY(currentScrollY);
+          rafId = 0;
+        });
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  return scrollY;
+}
+
+/* ═══════════════════════════════════════════════════════════
    COMPONENT
    ═══════════════════════════════════════════════════════════ */
 
@@ -133,6 +165,7 @@ export function LandingWelcome() {
   const { t } = useTranslation();
   const { setSelectedGame } = useGame();
   const { isAuthenticated } = useAuth();
+  const scrollY = useParallaxVideo();
 
   /* ─── state ─── */
   const [notifyGame, setNotifyGame] = useState<{ src: string; alt: string; waitlistCount: number } | null>(null);
@@ -228,25 +261,36 @@ export function LandingWelcome() {
 
   /* ─── render ─── */
   return (
-    <div className="relative w-full overflow-x-hidden overflow-y-visible text-white">
+    <div className="relative w-full overflow-x-hidden text-white">
 
-      {/* ══════ Background video ══════ */}
-      <video
-        ref={videoRef}
-        src={getCdnVideoUrl(LANDING_BG_VIDEO)}
-        className="pointer-events-none absolute inset-0 h-full min-h-full w-full object-cover object-center"
-        autoPlay loop muted playsInline
-        disablePictureInPicture disableRemotePlayback aria-hidden
-      />
+      {/* ══════ BACKGROUND LAYER (extends full height) ══════ */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Background video (Parallax) */}
+        <video
+          ref={videoRef}
+          src={getCdnVideoUrl(LANDING_BG_VIDEO)}
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
+          style={{
+            transform: `translateY(${scrollY * 0.3}px)`,
+            willChange: 'transform',
+          }}
+          autoPlay loop muted playsInline
+          disablePictureInPicture disableRemotePlayback aria-hidden
+        />
 
-      {/* Overlay gradient */}
-      <div
-        className="absolute inset-0 z-[1]"
-        style={{ background: 'linear-gradient(180deg, rgba(15,23,42,0.65) 0%, rgba(29,49,96,0.50) 40%, rgba(15,23,42,0.72) 100%)' }}
-      />
+        {/* Overlay gradient (Parallax) */}
+        <div
+          className="absolute inset-0 z-[1] h-full"
+          style={{
+            background: 'linear-gradient(180deg, rgba(15,23,42,0.65) 0%, rgba(29,49,96,0.50) 40%, rgba(15,23,42,0.72) 100%)',
+            transform: `translateY(${scrollY * 0.3}px)`,
+            willChange: 'transform',
+          }}
+        />
+      </div>
 
       {/* ══════ CONTENT LAYER ══════ */}
-      <div className="relative z-10 flex min-h-0 flex-col">
+      <div className="relative z-10 flex flex-col">
 
         {/* ────── LOGO + TAGLINE — same row ────── */}
         <header className="bento-entry flex items-center justify-center px-4 pt-1 pb-1 sm:pt-2 sm:pb-2 md:pt-3" style={{ animationDelay: '0ms' }}>
@@ -265,7 +309,7 @@ export function LandingWelcome() {
             <h1 className="text-xs font-medium uppercase tracking-[0.06em] text-white/80 sm:text-sm md:text-base lg:text-lg">
               L&apos;unico marketplace con spedizione{' '}
               <Link href="/tcg-express" className="font-bold text-[#38BDF8] hover:underline">
-                TCG Express
+                BRX Express
               </Link>{' '}
               in 24h e{' '}
               <Link href="/aste" className="font-bold text-[#FB923C] hover:underline">
@@ -401,11 +445,11 @@ export function LandingWelcome() {
               </div>
             )}
 
-            {/* ═══ ROW 2: TCG EXPRESS + ASTE + Presto disponibili text ═══ */}
+            {/* ═══ ROW 2: BRX EXPRESS + ASTE + Presto disponibili text ═══ */}
 
             <div className="order-2 sm:order-none col-span-1 md:col-span-2 lg:col-span-5 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3">
 
-            {/* ──── TCG EXPRESS CARD ──── */}
+            {/* ──── BRX EXPRESS CARD ──── */}
             <Link
               href="/tcg-express"
               id="hero-tcg-express-card"
@@ -423,7 +467,7 @@ export function LandingWelcome() {
               {/* Content */}
               <div className="relative z-10 flex flex-col gap-1 sm:gap-1.5">
                 <h2 className="font-display text-xl sm:text-2xl md:text-3xl lg:text-[2rem] font-bold uppercase tracking-tight text-white drop-shadow-lg">
-                  TCG Express
+                  BRX Express
                 </h2>
                 <p className="max-w-sm text-[10px] sm:text-[11px] md:text-xs leading-relaxed text-white/60">
                   Tornei live, logistica decentralizzata e il futuro del trading card game.
@@ -433,7 +477,7 @@ export function LandingWelcome() {
               {/* CTA — text only, no icon */}
               <div className="relative z-10 mt-2 sm:mt-3">
                 <span className="inline-flex items-center rounded-full border border-[#38BDF8]/30 bg-[#38BDF8]/10 px-3.5 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-[#38BDF8] transition-all duration-300 group-hover:bg-[#38BDF8]/20 group-hover:border-[#38BDF8]/50 group-hover:shadow-[0_0_16px_rgba(56,189,248,0.15)]">
-                  Scopri TCG Express
+                  Scopri BRX Express
                 </span>
               </div>
             </Link>
@@ -673,8 +717,23 @@ export function LandingWelcome() {
               </div>
             </div>
 
+            {/* ─── Signed & Altered Collections Showcase ─── */}
+            <div className="mt-8 sm:mt-10 md:mt-12">
+              <SignedAlteredShowcase />
+            </div>
+
           </div>
         </section>
+
+        {/* ══════ Parallax Curtain: covers fixed video before footer ══════ */}
+        <div
+          className="relative z-[2] w-full bg-[#1D3160]"
+          style={{
+            marginTop: '-1px',
+            height: '120px',
+            background: 'linear-gradient(to bottom, #1D3160 0%, #152040 100%)',
+          }}
+        />
       </div>
 
       {/* ══════ MODAL: Notify (small glass) ══════ */}
