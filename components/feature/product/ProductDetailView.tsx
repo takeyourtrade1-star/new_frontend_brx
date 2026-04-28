@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Loader2, Minus, Pencil, Plus, X, ChevronLeft, ChevronRight, Heart, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Minus, Pencil, Plus, X, ChevronLeft, ChevronRight, Heart, Eye, EyeOff, Zap } from 'lucide-react';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 import { getCardImageUrl } from '@/lib/assets';
@@ -92,8 +92,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   }));
   const imageSrc = props.imageSrc ?? (card?.image != null ? getCardImageUrl(card.image) : null) ?? getCdnImageUrl('kyurem.png');
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'INFO' | 'VENDI' | 'SCAMBIA' | 'ASTA'>('INFO');
-  const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'SCAMBIO' | 'ASTA'>('VENDITORI');
+  const [activeTab, setActiveTab] = useState<'INFO' | 'VENDI' | 'TORNEI' | 'ASTA'>('INFO');
+  const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'ASTA' | 'TCG_EXPRESS'>('VENDITORI');
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [soloFoil, setSoloFoil] = useState(false);
@@ -728,8 +728,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const tabs = [
     { id: 'INFO' as const, label: 'INFO', mobileLabel: 'INFO' },
     { id: 'VENDI' as const, label: 'VENDI', mobileLabel: 'VENDI' },
-    { id: 'SCAMBIA' as const, label: 'SCAMBIA', mobileLabel: 'SCAMBIA' },
     { id: 'ASTA' as const, label: "METTI ALL'ASTA", mobileLabel: 'ASTA' },
+    { id: 'TORNEI' as const, label: 'TORNEI LIVE', mobileLabel: 'TORNEI' },
   ];
 
   return (
@@ -1455,21 +1455,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               </>
             )}
 
-            {/* Tab SCAMBIA: elegant empty state */}
-            {activeTab === 'SCAMBIA' && (
-              <div className="flex flex-1 flex-col items-center justify-center p-6 min-w-0 w-full">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 mb-3" aria-hidden>
-                  <svg className="w-5 h-5 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <polyline points="17 1 21 5 17 9" />
-                    <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-                    <polyline points="7 23 3 19 7 15" />
-                    <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-                  </svg>
-                </div>
-                <h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-800">Scambio</h3>
-                <p className="mt-1.5 text-xs text-zinc-400 max-w-[200px] text-center leading-relaxed">Funzionalità in arrivo prossimamente.</p>
-              </div>
-            )}
             {/* Tab METTI ALL'ASTA: flusso creazione asta compatta */}
             {activeTab === 'ASTA' && card && blueprintIdForAuction && (
               <div className="min-h-0 bg-zinc-50/30 p-2 sm:p-2.5">
@@ -1499,12 +1484,47 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 </p>
               </div>
             )}
+            {/* Tab TORNEI LIVE: mock tornei */}
+            {activeTab === 'TORNEI' && (
+              <div className="flex flex-1 flex-col p-4 min-w-0 w-full gap-3">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-800">Tornei in diretta</h3>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-600">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                    LIVE
+                  </span>
+                </div>
+                {[
+                  { name: 'Weekly Modern League', game: 'MTG', players: 32, prize: '€150', time: 'In corso' },
+                  { name: 'Pokémon Standard Cup', game: 'Pokémon', players: 24, prize: '€100', time: 'In corso' },
+                  { name: 'Commander Night', game: 'MTG', players: 16, prize: 'Carte promozionali', time: 'Tra 2h' },
+                ].map((t) => (
+                  <div key={t.name} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-zinc-900">{t.name}</p>
+                      <p className="text-[11px] text-zinc-500">{t.game} · {t.players} giocatori · {t.prize}</p>
+                    </div>
+                    <span className="shrink-0 rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600">
+                      {t.time}
+                    </span>
+                  </div>
+                ))}
+                <p className="text-center text-[11px] text-zinc-400 mt-1">Partecipa e vinci carte esclusive — prossimamente su Ebartex</p>
+              </div>
+            )}
           </div>
         </div>
         </div>
       </section>
 
-      {/* Sezione FILTRI a fianco della tabella (sinistra) + tab IN VENDITA | DISPONIBILI ALLO SCAMBIO | DISPONIBILI ALL'ASTA + tabella – filtri in striscia stretta quando chiusi, pannello pieno quando aperti */}
+      {/* Sezione FILTRI a fianco della tabella (sinistra) + tab IN VENDITA | DISPONIBILI ALL'ASTA + tabella – filtri in striscia stretta quando chiusi, pannello pieno quando aperti */}
       <section className="w-full bg-[#F0F0F0] border-t border-gray-300">
         <div className="container-content container-content-card-detail py-2.5 sm:py-3 lg:py-4">
           <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch">
@@ -1691,11 +1711,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               )}
             </aside>
 
-            {/* Tabella Venditori / Scambio / Asta – subito a destra dei filtri */}
+            {/* Tabella Venditori / Asta – subito a destra dei filtri */}
             <div className="flex-1 min-w-0 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
               <div className="flex gap-1 border-b border-gray-200 bg-gray-100 p-1 overflow-x-auto scrollbar-hide">
-                {(['VENDITORI', 'SCAMBIO', 'ASTA'] as const).map((tab) => {
-                  const tabLabel = tab === 'VENDITORI' ? 'IN VENDITA' : tab === 'SCAMBIO' ? 'SCAMBIO' : 'ASTA';
+                {(['VENDITORI', 'ASTA'] as const).map((tab) => {
+                  const tabLabel = tab === 'VENDITORI' ? 'IN VENDITA' : 'ASTA';
                   const iconClass = 'h-4 w-4 sm:h-5 sm:w-5 shrink-0';
                   return (
                   <button
@@ -1715,14 +1735,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                         <line x1="7" y1="7" x2="7.01" y2="7" />
                       </svg>
                     )}
-                    {tab === 'SCAMBIO' && (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden>
-                        <polyline points="17 1 21 5 17 9" />
-                        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-                        <polyline points="7 23 3 19 7 15" />
-                        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-                      </svg>
-                    )}
                     {tab === 'ASTA' && (
                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden>
                         <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8" />
@@ -1736,9 +1748,26 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </button>
                   );
                 })}
+                {/* Tab TCG Express — design premium */}
+                <button
+                  type="button"
+                  onClick={() => setSellerSubTab('TCG_EXPRESS')}
+                  className={cn(
+                    'relative flex flex-1 min-w-[110px] sm:min-w-0 min-h-[36px] sm:min-h-[44px] items-center justify-center gap-1 sm:gap-2 rounded-md px-2 sm:px-4 py-1.5 sm:py-2.5 text-[10px] sm:text-sm font-extrabold uppercase transition-all whitespace-nowrap overflow-hidden',
+                    sellerSubTab === 'TCG_EXPRESS'
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/25 ring-1 ring-orange-300'
+                      : 'bg-transparent text-orange-600 hover:bg-orange-50'
+                  )}
+                >
+                  <Zap className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden />
+                  <span className="truncate">TCG Express</span>
+                  <span className="inline-flex items-center rounded-full bg-emerald-500 px-1.5 py-[2px] text-[9px] font-bold text-white shadow-sm animate-pulse">
+                    NUOVO
+                  </span>
+                </button>
               </div>
               {sellerSubTab === 'VENDITORI' && (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto animate-in fade-in slide-in-from-bottom-2 duration-300">
                   {listingActionMessage && (
                     <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">{listingActionMessage}</div>
                   )}
@@ -1977,19 +2006,22 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
                 </div>
               )}
-              {sellerSubTab === 'SCAMBIO' && (
-                <div className="p-6 sm:p-8">
-                  <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-6 text-center">
-                    <p className="text-sm font-semibold uppercase tracking-wide text-gray-700">Scambio</p>
-                    <p className="mt-1 text-sm text-gray-500">Contenuto in preparazione per Scambio.</p>
-                  </div>
-                </div>
-              )}
               {sellerSubTab === 'ASTA' && (
-                <div className="p-6 sm:p-8">
+                <div className="p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-6 text-center">
                     <p className="text-sm font-semibold uppercase tracking-wide text-gray-700">Asta</p>
                     <p className="mt-1 text-sm text-gray-500">Contenuto in preparazione per Vedi all&apos;asta.</p>
+                  </div>
+                </div>
+              )}
+              {sellerSubTab === 'TCG_EXPRESS' && (
+                <div className="p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50/60 p-6 text-center">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-400 shadow-md shadow-orange-500/20">
+                      <Zap className="h-6 w-6 text-white" aria-hidden />
+                    </div>
+                    <p className="text-sm font-extrabold uppercase tracking-wide text-orange-700">TCG Express</p>
+                    <p className="mt-1 text-sm text-orange-600/80">Spedizione ultra-rapida per le tue carte. Presto disponibile.</p>
                   </div>
                 </div>
               )}

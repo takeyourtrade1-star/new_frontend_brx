@@ -11,8 +11,6 @@ const TABS_LEFT = [
   { id: 'pagato', label: 'PAGATO' },
   { id: 'inviato', label: 'INVIATO' },
   { id: 'ricevuto', label: 'RICEVUTO' },
-  { id: 'scambi-in-corso', label: 'SCAMBI IN CORSO' },
-  { id: 'scambi-effettuati', label: 'SCAMBI EFFETTUATI' },
   { id: 'acquisti-asta', label: 'ACQUISTI ASTA' },
 ] as const;
 
@@ -34,16 +32,6 @@ const EMPTY_STATE_BY_TAB: Record<string, EmptyState> = {
   pagato: { message: 'SPIACENTE, NON HAI NESSUN ACQUISTO' },
   inviato: { message: 'SPIACENTE, NON HAI NESSUN ACQUISTO' },
   ricevuto: { message: 'SPIACENTE, NON HAI NESSUN ACQUISTO' },
-  'scambi-in-corso': {
-    message: 'SPIACENTE, NON HAI NESSUNO SCAMBIO',
-    linkText: 'SCOPRI COME FARE GLI SCAMBI',
-    linkHref: '/aiuto',
-  },
-  'scambi-effettuati': {
-    message: 'SPIACENTE, NON HAI NESSUNO SCAMBIO',
-    linkText: 'SCOPRI COME FARE GLI SCAMBI',
-    linkHref: '/aiuto',
-  },
   'acquisti-asta': {
     message: 'SPIACENTE, NON HAI NESSUN ACQUISTO',
     linkText: 'SCOPRI COME PARTECIPARE ALLE ASTE',

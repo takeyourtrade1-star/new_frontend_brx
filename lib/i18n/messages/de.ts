@@ -84,7 +84,8 @@ export const de: Record<MessageKey, string> = {
   'purchases.wishlist': 'WUNSCHLISTE',
 
   'nav.sell': 'VERKAUFEN',
-  'nav.exchanges': 'TAUSCH',
+  
+  'nav.tcgExpress': 'TCG Express',
   'nav.auctions': 'AUKTIONEN',
   'nav.cartAria': 'Warenkorb {total}',
 
@@ -105,7 +106,8 @@ export const de: Record<MessageKey, string> = {
   'footer.col.games': 'Spiele',
   'footer.link.buy': 'Kaufen',
   'footer.link.sell': 'Verkaufen',
-  'footer.link.swap': 'Tauschen',
+  
+  'footer.link.tcgExpress': 'TCG Express',
   'footer.link.auctions': 'Auktionen',
   'footer.link.sync': 'Synchronisieren',
   'footer.link.terms': 'Nutzungsbedingungen',
@@ -687,7 +689,8 @@ export const de: Record<MessageKey, string> = {
   'breadcrumb.search': 'Suche',
   'breadcrumb.cart': 'Warenkorb',
   'breadcrumb.aste': 'Auktionen',
-  'breadcrumb.scambi': 'Tausch',
+  
+  'breadcrumb.tcgExpress': 'TCG Express',
   'breadcrumb.aiuto': 'Hilfe',
   'breadcrumb.contatti': 'Kontakt',
   'breadcrumb.legal': 'Rechtliches',
@@ -987,10 +990,10 @@ export const de: Record<MessageKey, string> = {
   'auctions.excellent': 'Hervorragender Zustand',
   'auctions.similarTitle': 'Ähnliche Artikel',
   'auctions.similarStartsIn': 'Start in {time}',
-  'auctions.tableExchangeTitle': 'Tauschangebote',
+  'auctions.tableExchangeTitle': 'Empfohlene Auktionen',
   'auctions.tableSeller': 'Verkäufer',
   'auctions.tableProduct': 'Produkt',
-  'auctions.tableQtyTrade': 'Menge / Tausch',
+  'auctions.tableQtyTrade': 'Menge / Angebot',
   'auctions.detailHoursSuffix': 'Std.',
   'auctions.share': 'Teilen',
   'auctions.similarEndsIn': 'Endet in {time}',

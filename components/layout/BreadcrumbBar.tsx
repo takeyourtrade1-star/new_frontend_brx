@@ -32,7 +32,7 @@ const SEGMENT_TO_KEY: Record<string, MessageKey> = {
   search: 'breadcrumb.search',
   cart: 'breadcrumb.cart',
   aste: 'breadcrumb.aste',
-  scambi: 'breadcrumb.scambi',
+  'tcg-express': 'breadcrumb.tcgExpress',
   aiuto: 'breadcrumb.aiuto',
   contatti: 'breadcrumb.contatti',
   legal: 'breadcrumb.legal',

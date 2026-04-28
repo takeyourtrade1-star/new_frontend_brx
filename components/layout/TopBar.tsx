@@ -23,6 +23,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { LOCALE_TO_INTL } from '@/lib/i18n/locales';
 import type { UiLocale } from '@/lib/i18n/locales';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
+import { FEATURES } from '@/lib/config/features';
 
 const GAME_HOME_PATH: Record<GameSlug, string> = {
   mtg: '/home/magic',
@@ -683,7 +684,7 @@ export function TopBar() {
                 )}
               </div>
 
-              {/* 3. VENDI - Su mobile è un dropdown con Vendi/Scambia/Aste; su desktop Link diretto */}
+              {/* 3. VENDI - Su mobile è un dropdown con Vendi/Aste; su desktop Link diretto */}
               <div
                 className="relative order-2 flex items-center gap-2 md:order-3"
                 ref={vendiMenuRef}
@@ -765,15 +766,15 @@ export function TopBar() {
                         </Link>
                       </div>
 
-                      {/* Solo su mobile, includiamo anche Scambi e Aste che su desktop hanno link diretti */}
+                      {/* Solo su mobile, includiamo anche TCG Express e Aste che su desktop hanno link diretti */}
                       <div className="md:hidden">
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                         <Link
-                          href="/scambi"
+                          href="/tcg-express"
                           className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
                           onClick={() => setVendiMenuOpen(false)}
                         >
-                          {t('nav.exchanges')}
+                          TCG Express
                         </Link>
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                         <Link
@@ -843,11 +844,11 @@ export function TopBar() {
                 </button>
               </div>
 
-              {/* 4. SCAMBI - solo desktop */}
+              {/* 4. TCG EXPRESS - solo desktop */}
               <Link
-                href="/scambi"
+                href="/tcg-express"
                 className="order-4 hidden items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex md:px-2"
-                aria-label={t('nav.exchanges')}
+                aria-label="TCG Express"
               >
                 <span
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
@@ -872,7 +873,7 @@ export function TopBar() {
                   </svg>
                 </span>
                 <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
-                  {t('nav.exchanges')}
+                  TCG Express
                 </span>
               </Link>
 

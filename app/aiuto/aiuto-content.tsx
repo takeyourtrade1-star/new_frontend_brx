@@ -221,11 +221,6 @@ function AiutoContentInner() {
       question: 'Posso vendere le mie carte su Ebartex?',
       answer: 'Certo! Registra un account business, sincronizza il tuo inventario con i maggiori marketplace o carica manualmente le tue carte. Puoi gestire prezzi, disponibilità e spedizioni dal pannello venditore.',
     },
-    {
-      icon: <MessageSquare className="h-5 w-5" />,
-      question: 'Come funzionano gli scambi tra utenti?',
-      answer: 'Trova carte che ti interessano, avvia una proposta di scambio con un altro utente. Potete negoziare direttamente sulla piattaforma. Una volta accettato, entrambi spedite le carte e confermate la ricezione.',
-    },
   ];
 
   const handleBugSubmit = (e: React.FormEvent) => {

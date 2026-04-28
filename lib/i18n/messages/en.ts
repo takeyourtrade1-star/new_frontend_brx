@@ -85,7 +85,8 @@ export const en = {
   'purchases.wishlist': 'Wishlist',
 
   'nav.sell': 'Sell',
-  'nav.exchanges': 'Trades',
+  
+  'nav.tcgExpress': 'TCG Express',
   'nav.auctions': 'Auctions',
   'nav.cartAria': 'Cart {total}',
 
@@ -106,7 +107,8 @@ export const en = {
   'footer.col.games': 'Games',
   'footer.link.buy': 'Buy',
   'footer.link.sell': 'Sell',
-  'footer.link.swap': 'Trade',
+  
+  'footer.link.tcgExpress': 'TCG Express',
   'footer.link.auctions': 'Auctions',
   'footer.link.sync': 'Sync',
   'footer.link.terms': 'Terms of use',
@@ -686,7 +688,8 @@ export const en = {
   'breadcrumb.search': 'Search',
   'breadcrumb.cart': 'Cart',
   'breadcrumb.aste': 'Auctions',
-  'breadcrumb.scambi': 'Trades',
+  
+  'breadcrumb.tcgExpress': 'TCG Express',
   'breadcrumb.aiuto': 'Help',
   'breadcrumb.contatti': 'Contact',
   'breadcrumb.legal': 'Legal',
@@ -984,10 +987,10 @@ export const en = {
   'auctions.excellent': 'Excellent condition',
   'auctions.similarTitle': 'Similar items',
   'auctions.similarStartsIn': 'Starts in {time}',
-  'auctions.tableExchangeTitle': 'Exchange listings',
+  'auctions.tableExchangeTitle': 'Featured auctions',
   'auctions.tableSeller': 'Seller',
   'auctions.tableProduct': 'Product',
-  'auctions.tableQtyTrade': 'Qty / trade',
+  'auctions.tableQtyTrade': 'Qty / offer',
   'auctions.detailHoursSuffix': 'h',
   'auctions.share': 'Share',
   'auctions.similarEndsIn': 'Ends in {time}',

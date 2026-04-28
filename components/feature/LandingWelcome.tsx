@@ -263,15 +263,15 @@ export function LandingWelcome() {
             />
             <div className="h-8 w-px bg-white/20 hidden sm:block" />
             <h1 className="text-xs font-medium uppercase tracking-[0.06em] text-white/80 sm:text-sm md:text-base lg:text-lg">
-              L&apos;unico marketplace dove{' '}
-              <Link href="/scambi" className="font-bold text-[#38BDF8] hover:underline">
-                Scambi
+              L&apos;unico marketplace con spedizione{' '}
+              <Link href="/tcg-express" className="font-bold text-[#38BDF8] hover:underline">
+                TCG Express
               </Link>{' '}
-              e metti all&apos;
+              in 24h e{' '}
               <Link href="/aste" className="font-bold text-[#FB923C] hover:underline">
-                Asta
+                Aste
               </Link>{' '}
-              le tue carte
+              per le tue carte
             </h1>
           </div>
         </header>
@@ -359,7 +359,7 @@ export function LandingWelcome() {
                   Magic: The Gathering
                 </h2>
                 <p className="max-w-md text-[10px] sm:text-[11px] md:text-xs text-white/50">
-                  Compra, vendi, scambia e metti all&apos;asta le tue carte. Inizia subito.
+                  Compra, vendi e metti all&apos;asta le tue carte. Inizia subito.
                 </p>
               </div>
 
@@ -401,14 +401,14 @@ export function LandingWelcome() {
               </div>
             )}
 
-            {/* ═══ ROW 2: SCAMBI + ASTE + Presto disponibili text ═══ */}
+            {/* ═══ ROW 2: TCG EXPRESS + ASTE + Presto disponibili text ═══ */}
 
             <div className="order-2 sm:order-none col-span-1 md:col-span-2 lg:col-span-5 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3">
 
-            {/* ──── SCAMBI CARD ──── */}
+            {/* ──── TCG EXPRESS CARD ──── */}
             <Link
-              href="/scambi"
-              id="hero-scambi-card"
+              href="/tcg-express"
+              id="hero-tcg-express-card"
               className="bento-entry bento-card group relative col-span-1 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-4 md:p-5 lg:p-6 min-h-[120px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[170px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
               style={{
                 animationDelay: '320ms',
@@ -423,17 +423,17 @@ export function LandingWelcome() {
               {/* Content */}
               <div className="relative z-10 flex flex-col gap-1 sm:gap-1.5">
                 <h2 className="font-display text-xl sm:text-2xl md:text-3xl lg:text-[2rem] font-bold uppercase tracking-tight text-white drop-shadow-lg">
-                  Scambi
+                  TCG Express
                 </h2>
                 <p className="max-w-sm text-[10px] sm:text-[11px] md:text-xs leading-relaxed text-white/60">
-                  Proponi e accetta scambi. Nessun altro marketplace lo offre.
+                  Tornei live, logistica decentralizzata e il futuro del trading card game.
                 </p>
               </div>
 
               {/* CTA — text only, no icon */}
               <div className="relative z-10 mt-2 sm:mt-3">
                 <span className="inline-flex items-center rounded-full border border-[#38BDF8]/30 bg-[#38BDF8]/10 px-3.5 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-[#38BDF8] transition-all duration-300 group-hover:bg-[#38BDF8]/20 group-hover:border-[#38BDF8]/50 group-hover:shadow-[0_0_16px_rgba(56,189,248,0.15)]">
-                  Scopri gli Scambi
+                  Scopri TCG Express
                 </span>
               </div>
             </Link>

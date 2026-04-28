@@ -1981,9 +1981,9 @@ export function CardMascotte() {
   // Promotional hints - glassmorphism style matching mascot
   const promoHints = useMemo(() => [
     {
-      id: 'scambi',
-      text: 'Lo sai cosa ci rende unici? Poter scambiare sulla piattaforma!',
-      route: '/account/scambi',
+      id: 'tcg-express',
+      text: 'Lo sai cosa ci rende unici? Tornei live e logistica decentralizzata con TCG Express!',
+      route: '/tcg-express',
       // Glass tint color (accent only, not solid)
       accent: '#10B981',
       icon: 'swap',

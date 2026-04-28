@@ -394,7 +394,7 @@ export function CardLoader({ onComplete, duration = 3900 }: CardLoaderProps) {
         }}
       >
         <span className="font-comodo text-[1.4rem] font-extrabold tracking-tight text-zinc-100 drop-shadow-[0_2px_20px_rgba(255,115,0,0.6)]">
-          Vendite, Scambi ed Aste solo su <span className="text-primary">Ebartex</span>
+          Vendite, Tornei ed Aste solo su <span className="text-primary">Ebartex</span>
         </span>
       </div>
 

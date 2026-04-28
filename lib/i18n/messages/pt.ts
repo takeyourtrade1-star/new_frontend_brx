@@ -84,7 +84,8 @@ export const pt: Record<MessageKey, string> = {
   'purchases.wishlist': 'LISTA DE DESEJOS',
 
   'nav.sell': 'VENDER',
-  'nav.exchanges': 'TROCAS',
+  
+  'nav.tcgExpress': 'TCG Express',
   'nav.auctions': 'LEILÕES',
   'nav.cartAria': 'Carrinho {total}',
 
@@ -105,7 +106,8 @@ export const pt: Record<MessageKey, string> = {
   'footer.col.games': 'Jogos',
   'footer.link.buy': 'Comprar',
   'footer.link.sell': 'Vender',
-  'footer.link.swap': 'Trocar',
+  
+  'footer.link.tcgExpress': 'TCG Express',
   'footer.link.auctions': 'Leilões',
   'footer.link.sync': 'Sincronizar',
   'footer.link.terms': 'Termos de utilização',
@@ -687,7 +689,8 @@ export const pt: Record<MessageKey, string> = {
   'breadcrumb.search': 'Pesquisa',
   'breadcrumb.cart': 'Carrinho',
   'breadcrumb.aste': 'Leilões',
-  'breadcrumb.scambi': 'Trocas',
+  
+  'breadcrumb.tcgExpress': 'TCG Express',
   'breadcrumb.aiuto': 'Ajuda',
   'breadcrumb.contatti': 'Contacto',
   'breadcrumb.legal': 'Legal',
@@ -999,10 +1002,10 @@ export const pt: Record<MessageKey, string> = {
   'auctions.excellent': 'Excelente estado',
   'auctions.similarTitle': 'Itens semelhantes',
   'auctions.similarStartsIn': 'Começa em {time}',
-  'auctions.tableExchangeTitle': 'Trocas em destaque',
+  'auctions.tableExchangeTitle': 'Leilões em destaque',
   'auctions.tableSeller': 'Vendedor',
   'auctions.tableProduct': 'Produto',
-  'auctions.tableQtyTrade': 'Qtd / troca',
+  'auctions.tableQtyTrade': 'Qtd / oferta',
   'auctions.detailHoursSuffix': 'h',
   'auctions.share': 'Partilhar',
   'auctions.similarEndsIn': 'Termina em {time}',

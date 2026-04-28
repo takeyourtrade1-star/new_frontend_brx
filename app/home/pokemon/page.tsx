@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Pokémon TCG | Marketplace Carte Collezionabili',
   description:
-    'Compra, vendi e scambia carte Pokémon TCG. Booster box, bustine, carte singole e aste dedicate.',
+    'Compra e vendi carte Pokémon TCG. Booster box, bustine, carte singole e aste dedicate.',
 };
 
 /** Home dedicata a Pokémon — stessa struttura delle altre home, hero con logo Pokémon. */

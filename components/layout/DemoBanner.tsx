@@ -88,10 +88,10 @@ export function DemoBanner() {
     launchShort: lang === 'it' ? 'Lancio' : 'Launch',
     mobileExclusive:
       lang === 'it'
-        ? 'SCAMBI ed ASTE presto in arrivo, solo su Ebartex'
-        : 'TRADES AND AUCTIONS COMING SOON EXCLUSIVELY ON EBARTEX',
-    mobileTeaser: lang === 'it' ? 'Scambi e aste presto in arrivo' : 'Trades and auctions coming soon',
-    comingSoon: lang === 'it' ? 'Presto: Scambi ed Aste' : 'Coming Soon: Trades & Auctions',
+        ? 'TCG EXPRESS ed ASTE presto in arrivo, solo su Ebartex'
+        : 'TCG EXPRESS AND AUCTIONS COMING SOON EXCLUSIVELY ON EBARTEX',
+    mobileTeaser: lang === 'it' ? 'TCG Express e aste presto in arrivo' : 'TCG Express and auctions coming soon',
+    comingSoon: lang === 'it' ? 'Presto: TCG Express ed Aste' : 'Coming Soon: TCG Express & Auctions',
     days: lang === 'it' ? 'giorni' : 'days',
     hours: lang === 'it' ? 'ore' : 'hours',
     minutes: lang === 'it' ? 'min' : 'min',
@@ -132,7 +132,7 @@ export function DemoBanner() {
               <span className="min-w-0 truncate text-center text-[9px] font-semibold uppercase tracking-[0.055em] text-slate-800">
                 {lang === 'it' ? (
                   <>
-                    <span className="text-orange-500">SCAMBI</span> ed <span className="text-orange-500">ASTE</span>{' '}
+                    <span className="text-orange-500">TCG EXPRESS</span> ed <span className="text-orange-500">ASTE</span>{' '}
                     presto in arrivo, solo su Ebartex
                   </>
                 ) : (
@@ -168,9 +168,9 @@ export function DemoBanner() {
             {/* Desktop quick links */}
             <div className="hidden items-center gap-2 sm:flex">
               <div className="flex items-center gap-2">
-                <Link href="/scambi" className="flex items-center gap-1.5 rounded-md border border-cyan-300/45 bg-cyan-500/20 px-2.5 py-1 backdrop-blur-sm transition-all duration-300 hover:border-cyan-300/70 hover:bg-cyan-500/30 hover:shadow-[0_0_14px_rgba(34,211,238,0.35)] cursor-pointer">
+                <Link href="/tcg-express" className="flex items-center gap-1.5 rounded-md border border-cyan-300/45 bg-cyan-500/20 px-2.5 py-1 backdrop-blur-sm transition-all duration-300 hover:border-cyan-300/70 hover:bg-cyan-500/30 hover:shadow-[0_0_14px_rgba(34,211,238,0.35)] cursor-pointer">
                   <span className="text-xs font-extrabold tracking-wide text-white sm:text-sm">
-                    {lang === 'it' ? 'Scambi' : 'Trades'}
+                    TCG Express
                   </span>
                 </Link>
                 <Link href="/aste" className="flex items-center gap-1.5 rounded-md border border-amber-300/45 bg-amber-500/20 px-2.5 py-1 backdrop-blur-sm transition-all duration-300 hover:border-amber-300/70 hover:bg-amber-500/30 hover:shadow-[0_0_14px_rgba(251,191,36,0.35)] cursor-pointer">

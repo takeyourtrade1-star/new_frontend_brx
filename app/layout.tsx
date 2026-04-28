@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     template: '%s | Ebartex',
   },
   description:
-    'Compra, vendi e scambia carte collezionabili di Magic: The Gathering, Pokémon, One Piece e altri giochi. Aste, trattative e boutique ufficiale Ebartex.',
+    'Compra e vendi carte collezionabili di Magic: The Gathering, Pokémon, One Piece e altri giochi. Aste, trattative e boutique ufficiale Ebartex.',
   keywords: [
     'carte collezionabili',
     'Magic The Gathering',
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     siteName: 'Ebartex',
     title: 'Ebartex | Marketplace di Carte Collezionabili',
     description:
-      'Compra, vendi e scambia carte collezionabili. Aste, trattative e boutique ufficiale.',
+      'Compra e vendi carte collezionabili. Aste, trattative e boutique ufficiale.',
     images: [
       {
         url: '/brx_bg.png',
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Ebartex | Marketplace di Carte Collezionabili',
-    description: 'Compra, vendi e scambia carte collezionabili.',
+    description: 'Compra e vendi carte collezionabili.',
     images: ['/brx_bg.png'],
   },
 };
