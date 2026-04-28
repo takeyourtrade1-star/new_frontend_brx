@@ -637,6 +637,211 @@ export function HeroLiveSectionAdapted() {
               </div>
             </>
           )}
+
+          {/* Decklist content */}
+          {activeSection === "decklist" && (
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-zinc-900">Decklist Manager</h3>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#FF7300] px-3 py-1.5 text-xs font-medium text-white"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  New Deck
+                </button>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { name: "Esper Midrange", format: "Standard", cards: 60 },
+                  { name: "Rakdos Sacrifice", format: "Standard", cards: 60 },
+                  { name: "Mono Red Aggro", format: "Standard", cards: 60 },
+                ].map((deck, idx) => (
+                  <div key={idx} className="rounded-lg border border-zinc-200 bg-white p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-zinc-900">{deck.name}</p>
+                        <p className="text-[10px] text-zinc-500">{deck.format} • {deck.cards} cards</p>
+                      </div>
+                      <Layers className="h-4 w-4 text-zinc-400" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Create Tournament content */}
+          {activeSection === "createTournament" && (
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6">
+              <h3 className="text-sm font-semibold text-zinc-900 mb-4">Create Tournament</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-700 mb-1">Tournament Name</label>
+                  <input
+                    type="text"
+                    placeholder="Enter tournament name"
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-xs text-zinc-900"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-medium text-zinc-700 mb-1">Format</label>
+                    <select className="w-full rounded-md border border-zinc-300 px-3 py-2 text-xs text-zinc-900">
+                      <option>Standard</option>
+                      <option>Pioneer</option>
+                      <option>Modern</option>
+                      <option>Commander</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-zinc-700 mb-1">Max Players</label>
+                    <input
+                      type="number"
+                      placeholder="64"
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-xs text-zinc-900"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="w-full rounded-md bg-[#FF7300] px-4 py-2 text-xs font-medium text-white"
+                >
+                  Create Tournament
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Live Tournaments content */}
+          {activeSection === "liveTournaments" && (
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6">
+              <h3 className="text-sm font-semibold text-zinc-900 mb-4">Live Tournaments</h3>
+              <div className="space-y-3">
+                {[
+                  { name: "Neo Tactical Finals", format: "Standard", status: "LIVE", viewers: "4.6K" },
+                  { name: "Mythic Pro League", format: "Modern", status: "LIVE", viewers: "2.3K" },
+                  { name: "Cardmarket Weekly", format: "Pioneer", status: "In 35m", viewers: "-" },
+                ].map((tournament, idx) => (
+                  <div key={idx} className="rounded-lg border border-zinc-200 bg-white p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-zinc-900">{tournament.name}</p>
+                        <p className="text-[10px] text-zinc-500">{tournament.format}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-[10px] font-semibold ${tournament.status === "LIVE" ? "text-emerald-600" : "text-zinc-500"}`}>
+                          {tournament.status}
+                        </p>
+                        <p className="text-[10px] text-zinc-400">{tournament.viewers} viewers</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Marketplace content */}
+          {activeSection === "marketplace" && (
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-zinc-900">Vault Marketplace</h3>
+                <div className="flex items-center gap-2">
+                  <Search className="h-3.5 w-3.5 text-zinc-400" />
+                  <input
+                    type="text"
+                    placeholder="Search cards..."
+                    className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { name: "Black Lotus", price: "€12,500" },
+                  { name: "Force of Will", price: "€95" },
+                  { name: "Sheoldred", price: "€12" },
+                ].map((card, idx) => (
+                  <div key={idx} className="rounded-lg border border-zinc-200 bg-white p-3 text-center">
+                    <div className="h-16 bg-zinc-100 rounded mb-2" />
+                    <p className="text-[10px] font-medium text-zinc-900 truncate">{card.name}</p>
+                    <p className="text-[10px] text-[#FF7300] font-semibold">{card.price}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cart content */}
+          {activeSection === "cart" && (
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-zinc-900">Shopping Cart</h3>
+                <ShoppingCart className="h-4 w-4 text-zinc-400" />
+              </div>
+              <div className="space-y-3">
+                {[
+                  { name: "Sheoldred, the Apocalypse", qty: 2, price: "€24" },
+                  { name: "Fable of the Mirror-Breaker", qty: 1, price: "€18" },
+                ].map((item, idx) => (
+                  <div key={idx} className="rounded-lg border border-zinc-200 bg-white p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-zinc-900">{item.name}</p>
+                        <p className="text-[10px] text-zinc-500">Qty: {item.qty}</p>
+                      </div>
+                      <p className="text-xs font-semibold text-zinc-900">{item.price}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t border-zinc-200">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-medium text-zinc-700">Total</p>
+                  <p className="text-sm font-bold text-zinc-900">€42</p>
+                </div>
+                <button
+                  type="button"
+                  className="w-full rounded-md bg-[#FF7300] px-4 py-2 text-xs font-medium text-white"
+                >
+                  Checkout
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Ready One Day content */}
+          {activeSection === "readyOneDay" && (
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-zinc-900">Ready One Day</h3>
+                <PackageOpen className="h-4 w-4 text-zinc-400" />
+              </div>
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 mb-4">
+                <p className="text-[11px] text-emerald-800 font-medium mb-2">24h Dispatch Guarantee</p>
+                <p className="text-[10px] text-emerald-700">
+                  Cards graded, verified and shipped from local hubs within 24 hours.
+                </p>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { zone: "Italy Hub", status: "Active", cards: 234 },
+                  { zone: "Germany Hub", status: "Active", cards: 189 },
+                  { zone: "France Hub", status: "Active", cards: 156 },
+                ].map((hub, idx) => (
+                  <div key={idx} className="rounded-lg border border-zinc-200 bg-white p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-zinc-900">{hub.zone}</p>
+                        <p className="text-[10px] text-zinc-500">{hub.cards} cards ready</p>
+                      </div>
+                      <span className="text-[10px] text-emerald-600 font-semibold">{hub.status}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
