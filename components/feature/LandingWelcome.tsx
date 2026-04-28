@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useCallback, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -8,7 +8,7 @@ import {
   ArrowRightLeft, Scale, Package, TrendingUp, X, Mail,
   CheckCircle2, ArrowLeft, BellRing, Users, ChevronUp,
 } from 'lucide-react';
-import { getCdnImageUrl } from '@/lib/config';
+import { getCdnImageUrl, getCdnVideoUrl } from '@/lib/config';
 import { useGame } from '@/lib/contexts/GameContext';
 import type { GameSlug } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -19,6 +19,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 /* ═══════════════════════════════════════════════════════════
    CONSTANTS
    ═══════════════════════════════════════════════════════════ */
+
+const LANDING_BG_VIDEO = 'videos/sfondo_carte.mp4';
 
 type LandingGameSlug = GameSlug | 'clear';
 
@@ -221,20 +223,32 @@ export function LandingWelcome() {
 
   const MAIN_GAMES = getMainGames();
   const COMING_SOON_GAMES = getComingSoonGames();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    videoRef.current?.play().catch(() => {});
+  }, []);
 
   /* ─── render ─── */
   return (
-    <div className="relative w-full overflow-x-hidden text-white bg-[#0B1326]">
+    <div className="relative w-full overflow-x-hidden text-white">
 
-      {/* ══════ STATIC BACKGROUND ══════ */}
+      {/* ══════ BACKGROUND VIDEO ══════ */}
+      <video
+        ref={videoRef}
+        src={getCdnVideoUrl(LANDING_BG_VIDEO)}
+        className="pointer-events-none fixed inset-0 h-full w-full object-cover"
+        style={{ zIndex: -1 }}
+        autoPlay loop muted playsInline
+        disablePictureInPicture disableRemotePlayback aria-hidden
+      />
+
+      {/* Overlay gradient */}
       <div
-        className="pointer-events-none fixed inset-0 z-0"
+        className="pointer-events-none fixed inset-0"
         style={{
-          background: `
-            radial-gradient(ellipse 80% 50% at 50% -10%, rgba(29,49,96,0.55) 0%, transparent 70%),
-            radial-gradient(ellipse 60% 40% at 80% 90%, rgba(15,23,42,0.7) 0%, transparent 60%),
-            linear-gradient(180deg, #0f172a 0%, #0B1326 40%, #0a0f1e 100%)
-          `,
+          zIndex: -1,
+          background: 'linear-gradient(180deg, rgba(15,23,42,0.65) 0%, rgba(29,49,96,0.50) 40%, rgba(15,23,42,0.72) 100%)',
         }}
         aria-hidden
       />
