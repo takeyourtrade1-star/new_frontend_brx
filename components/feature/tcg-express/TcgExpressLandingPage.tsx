@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Gauge, HeartHandshake, ShieldCheck, Sparkles, TimerReset, Truck, Users, Trophy, Layers, TrendingUp, Zap, Globe } from "lucide-react";
 import { NeoTactileMockup } from "./NeoTactileMockup";
-import { HeroLiveSectionAdapted } from "./HeroLiveSectionAdapted";
+import { HeroLiveSection } from "./HeroLiveSectionOriginal";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -101,7 +101,7 @@ export function TcgExpressLandingPage() {
         </motion.div>
       </motion.section>
 
-      <HeroLiveSectionAdapted />
+      <HeroLiveSection />
 
       {/* SLIDE 2 — Acquisition Funnel */}
       <motion.section
