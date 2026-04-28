@@ -770,7 +770,15 @@ export function TopBar() {
                       <div className="md:hidden">
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                         <Link
-                          href="/tcg-express"
+                          href="/aste"
+                          className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                          onClick={() => setVendiMenuOpen(false)}
+                        >
+                          {t('nav.auctions')}
+                        </Link>
+                        <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
+                        <Link
+                          href="/tornei-live"
                           className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
                           onClick={() => setVendiMenuOpen(false)}
                         >
@@ -783,14 +791,6 @@ export function TopBar() {
                           onClick={() => setVendiMenuOpen(false)}
                         >
                           BRX Express
-                        </Link>
-                        <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                        <Link
-                          href="/aste"
-                          className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                          onClick={() => setVendiMenuOpen(false)}
-                        >
-                          {t('nav.auctions')}
                         </Link>
                       </div>
                     </nav>
@@ -854,7 +854,7 @@ export function TopBar() {
 
               {/* 4. TORNEI LIVE - solo desktop */}
               <Link
-                href="/tcg-express"
+                href="/tornei-live"
                 className="order-3 hidden items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-5 md:flex md:px-2"
                 aria-label="Tornei live"
               >
