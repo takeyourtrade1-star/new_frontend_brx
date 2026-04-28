@@ -489,32 +489,6 @@ export function LandingWelcome() {
           </div>
         </section>
 
-        {/* ══════ Glass blur layers before features ══════ */}
-        <div
-          className="absolute inset-x-0 bottom-0 backdrop-blur-md pointer-events-none z-[1]"
-          style={{
-            top: 'calc(100% - 520px)',
-            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 10%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.55) 45%, black 65%)',
-            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 10%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.55) 45%, black 65%)',
-          }}
-        />
-        <div
-          className="absolute inset-x-0 bottom-0 backdrop-blur-xl pointer-events-none z-[1]"
-          style={{
-            top: 'calc(100% - 420px)',
-            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0.5) 40%, black 65%)',
-            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0.5) 40%, black 65%)',
-          }}
-        />
-        <div
-          className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent via-header-bg/35 to-header-bg/80 backdrop-blur-2xl pointer-events-none z-[1]"
-          style={{
-            top: 'calc(100% - 320px)',
-            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.6) 45%, black 70%)',
-            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.6) 45%, black 70%)',
-          }}
-        />
-
         {/* ═══════════════════════════════════════════════
             FEATURES + BOUTIQUE (below the fold)
             ═══════════════════════════════════════════════ */}
@@ -608,15 +582,9 @@ export function LandingWelcome() {
           </div>
         </section>
 
-        {/* ══════ Parallax Curtain: covers fixed video before footer ══════ */}
-        <div
-          className="relative z-[2] w-full bg-[#1D3160]"
-          style={{
-            marginTop: '-1px',
-            height: '120px',
-            background: 'linear-gradient(to bottom, #1D3160 0%, #152040 100%)',
-          }}
-        />
+        {/* ─── Bottom solid layer to cover fixed video before footer ─── */}
+        <div className="relative z-[2] w-full bg-[#1D3160]" style={{ height: '1px' }} />
+
       </div>
 
       {/* ══════ MODAL: Notify (small glass) ══════ */}

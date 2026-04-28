@@ -16,7 +16,9 @@ export default function LandingPage() {
         <Header reserveSpace={true} />
       </Suspense>
       <LandingWelcome />
-      <Footer />
+      <div className="relative z-20">
+        <Footer />
+      </div>
     </>
   );
 }
