@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { Monitor, Radio, Video, Mic, Bolt, Bell, Users, Dices, ExternalLink } from "lucide-react";
+import { Monitor, Radio, Video, Mic, Bolt, Bell, Users, Dices, ExternalLink, Crown, Layers, ListPlus, Trophy, ShoppingBag, ShoppingCart, PackageOpen, CheckCircle2 } from "lucide-react";
 
 const fu={hidden:{opacity:0,y:20},visible:(d=0)=>({opacity:1,y:0,transition:{duration:0.6,delay:d}})};
 function Dot({c}:{c:string}){return <span className={`h-2.5 w-2.5 rounded-full ${c}`}/>}
@@ -36,13 +36,13 @@ export function NeoTactileMockup(){
             <div className="w-full border-r border-zinc-100 bg-zinc-50/60 p-3 md:w-52">
               <p className="mb-2 px-2 text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-400">Workspace</p>
               <div className="space-y-0.5">
-                <M i={<Monitor className="h-3.5 w-3.5"/>} l="Match Center" a/>
-                <M i={<span className="h-3.5 w-3.5 rounded-sm border border-zinc-300"/>} l="Decklist"/>
-                <M i={<span className="h-3.5 w-3.5 rounded-sm border border-zinc-300"/>} l="Crea Torneo"/>
-                <M i={<Radio className="h-3.5 w-3.5"/>} l="Tornei Live"/>
-                <M i={<span className="h-3.5 w-3.5 rounded-sm border border-zinc-300"/>} l="Marketplace"/>
-                <M i={<span className="h-3.5 w-3.5 rounded-sm border border-zinc-300"/>} l="Carrello"/>
-                <M i={<span className="h-3.5 w-3.5 rounded-sm border border-zinc-300"/>} l="Ready One Day"/>
+                <M i={<Crown className="h-3.5 w-3.5"/>} l="Match Center" a/>
+                <M i={<Layers className="h-3.5 w-3.5"/>} l="Decklist"/>
+                <M i={<ListPlus className="h-3.5 w-3.5"/>} l="Crea Torneo"/>
+                <M i={<Trophy className="h-3.5 w-3.5"/>} l="Tornei Live"/>
+                <M i={<ShoppingBag className="h-3.5 w-3.5"/>} l="Marketplace"/>
+                <M i={<ShoppingCart className="h-3.5 w-3.5"/>} l="Carrello"/>
+                <M i={<PackageOpen className="h-3.5 w-3.5"/>} l="Ready One Day"/>
               </div>
             </div>
             {/* Center stage */}
@@ -103,6 +103,14 @@ export function NeoTactileMockup(){
               <div>
                 <div className="mb-2 flex items-center justify-between"><span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Chat spettatori</span><ExternalLink className="h-3.5 w-3.5 text-zinc-400"/></div>
                 <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-2"><p className="text-[10px] text-zinc-600"><span className="font-semibold text-zinc-800">Alex_M:</span> Klare Linie, nächster Zug ist lethal.</p></div>
+              </div>
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
+                <p className="text-[10px] font-semibold text-emerald-800">Valore Cardmarket</p>
+                <div className="mt-1.5 space-y-1 text-[10px] text-emerald-700">
+                  <div className="flex items-start gap-1"><CheckCircle2 className="h-3 w-3 shrink-0 mt-0.5"/><span>Riduzione esposizione spedizioni UPU</span></div>
+                  <div className="flex items-start gap-1"><CheckCircle2 className="h-3 w-3 shrink-0 mt-0.5"/><span>Ready One Day: dispatch 24h da hub locali</span></div>
+                  <div className="flex items-start gap-1"><CheckCircle2 className="h-3 w-3 shrink-0 mt-0.5"/><span>Zero CAPEX: margine extra con fulfillment gestito</span></div>
+                </div>
               </div>
             </div>
           </div>
