@@ -233,24 +233,21 @@ export function LandingWelcome() {
   return (
     <div className="relative w-full overflow-x-hidden text-white">
 
-      {/* ══════ BACKGROUND VIDEO ══════ */}
+      {/* ══════ BACKGROUND VIDEO (Fixed - full height) ══════ */}
       <video
         ref={videoRef}
         src={getCdnVideoUrl(LANDING_BG_VIDEO)}
-        className="pointer-events-none fixed inset-0 h-full w-full object-cover"
-        style={{ zIndex: -1 }}
+        className="pointer-events-none fixed inset-0 w-full h-full object-cover object-center"
         autoPlay loop muted playsInline
         disablePictureInPicture disableRemotePlayback aria-hidden
       />
 
       {/* Overlay gradient */}
       <div
-        className="pointer-events-none fixed inset-0"
+        className="pointer-events-none fixed inset-0 z-[1]"
         style={{
-          zIndex: -1,
           background: 'linear-gradient(180deg, rgba(15,23,42,0.65) 0%, rgba(29,49,96,0.50) 40%, rgba(15,23,42,0.72) 100%)',
         }}
-        aria-hidden
       />
 
       {/* ══════ CONTENT LAYER ══════ */}
@@ -492,10 +489,36 @@ export function LandingWelcome() {
           </div>
         </section>
 
+        {/* ══════ Glass blur layers before features ══════ */}
+        <div
+          className="absolute inset-x-0 bottom-0 backdrop-blur-md pointer-events-none z-[1]"
+          style={{
+            top: 'calc(100% - 520px)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 10%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.55) 45%, black 65%)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 10%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.55) 45%, black 65%)',
+          }}
+        />
+        <div
+          className="absolute inset-x-0 bottom-0 backdrop-blur-xl pointer-events-none z-[1]"
+          style={{
+            top: 'calc(100% - 420px)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0.5) 40%, black 65%)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0.5) 40%, black 65%)',
+          }}
+        />
+        <div
+          className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent via-header-bg/35 to-header-bg/80 backdrop-blur-2xl pointer-events-none z-[1]"
+          style={{
+            top: 'calc(100% - 320px)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.6) 45%, black 70%)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.6) 45%, black 70%)',
+          }}
+        />
+
         {/* ═══════════════════════════════════════════════
             FEATURES + BOUTIQUE (below the fold)
             ═══════════════════════════════════════════════ */}
-        <section className="relative w-full overflow-hidden px-4 pt-6 pb-6 sm:px-5 sm:pt-8 sm:pb-7 md:pt-10 md:pb-8 z-[2] bg-[#0B1326]/80 backdrop-blur-sm">
+        <section className="relative w-full overflow-hidden px-4 pt-6 pb-6 sm:px-5 sm:pt-8 sm:pb-7 md:pt-10 md:pb-8 z-[2]">
           <div className="relative z-10 mx-auto max-w-4xl">
 
             {/* ─── KPI / Features grid ─── */}
@@ -585,6 +608,15 @@ export function LandingWelcome() {
           </div>
         </section>
 
+        {/* ══════ Parallax Curtain: covers fixed video before footer ══════ */}
+        <div
+          className="relative z-[2] w-full bg-[#1D3160]"
+          style={{
+            marginTop: '-1px',
+            height: '120px',
+            background: 'linear-gradient(to bottom, #1D3160 0%, #152040 100%)',
+          }}
+        />
       </div>
 
       {/* ══════ MODAL: Notify (small glass) ══════ */}
