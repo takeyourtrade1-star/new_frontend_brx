@@ -37,36 +37,8 @@ import {
   Expand,
   X,
 } from "lucide-react";
-import { useLanguage as useLanguageContext } from "@/lib/contexts/LanguageContext";
-
-type Language = "de" | "en" | "it";
-
-function useLanguage() {
-  const ctx = useLanguageContext();
-  const selectedLang = ctx.selectedLang;
-  const language = (["de", "en", "it"].includes(selectedLang) ? selectedLang : "en") as Language;
-  return {
-    language,
-    t: {
-      slides: {
-        s1: {
-          title:
-            language === "it"
-              ? "Più di un Marketplace — La Casa della Community"
-              : language === "de"
-                ? "Mehr als ein Marktplatz – Die Heimat der Community"
-                : "More Than a Marketplace — The Home of the Community",
-          description:
-            language === "it"
-              ? "Il cuore della piattaforma non è solo la vendita, ma un ecosistema phygital con tornei ufficiali via webcam."
-              : language === "de"
-                ? "Der Kern unserer Plattform ist nicht nur der Verkauf, sondern ein echtes Phygital-Ökosystem mit offiziellen Webcam-Turnieren."
-                : "Our platform is not just commerce. It is a phygital ecosystem powered by official webcam tournaments.",
-        },
-      },
-    },
-  };
-}
+import { useLanguage } from "@/components/feature/tornei-live/i18n/LanguageProvider";
+import type { Language } from "@/components/feature/tornei-live/i18n/translations";
 
 const cannedMessagesByLanguage: Record<Language, readonly string[]> = {
   de: [

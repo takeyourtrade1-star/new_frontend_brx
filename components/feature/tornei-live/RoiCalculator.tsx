@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { animate } from "framer-motion";
-import { useLanguage } from "@/components/feature/tcg-express/i18n/LanguageProvider";
+import { useLanguage } from "@/components/feature/tornei-live/i18n/LanguageProvider";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("it-IT", {

@@ -2,11 +2,11 @@
 
 import { motion } from "framer-motion";
 import { Gauge, HeartHandshake, ShieldCheck, Sparkles, TimerReset, Truck, Users } from "lucide-react";
-import { useLanguage } from "@/components/feature/tcg-express/i18n/LanguageProvider";
-import { ScrollytellingSection } from "@/components/feature/tcg-express/ScrollytellingSection";
-import { RoiCalculator } from "@/components/feature/tcg-express/RoiCalculator";
-import { HeroLiveSection } from "@/components/feature/tcg-express/HeroLiveSection";
-import { TournamentAcquisitionSection } from "@/components/feature/tcg-express/TournamentAcquisitionSection";
+import { useLanguage } from "@/components/feature/tornei-live/i18n/LanguageProvider";
+import { ScrollytellingSection } from "@/components/feature/tornei-live/ScrollytellingSection";
+import { RoiCalculator } from "@/components/feature/tornei-live/RoiCalculator";
+import { HeroLiveSection } from "@/components/feature/tornei-live/HeroLiveSection";
+import { TournamentAcquisitionSection } from "@/components/feature/tornei-live/TournamentAcquisitionSection";
 
 function StatusQuoSection() {
   const { t, language } = useLanguage();

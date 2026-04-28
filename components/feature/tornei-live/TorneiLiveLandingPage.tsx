@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ShieldCheck, Sparkles, Users, Trophy, Layers, Zap, ListPlus, Play } from "lucide-react";
+import { ShieldCheck, Trophy, ListPlus, Play } from "lucide-react";
 import { NeoTactileMockup } from "./NeoTactileMockup";
 import { HeroLiveSection } from "./HeroLiveSectionOriginal";
 
@@ -18,10 +18,11 @@ function SectionKicker({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function TcgExpressLandingPage() {
+export function TorneiLiveLandingPage() {
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10 sm:px-10 lg:px-16">
-      {/* SLIDE 1 — Hero Tornei Live */}
+    <>
+      <div className="mx-auto max-w-6xl px-6 py-10 sm:px-10 lg:px-16">
+        {/* SLIDE 1 — Hero Tornei Live */}
       <motion.section
         className="py-8 md:py-14"
         initial="hidden"
@@ -92,66 +93,9 @@ export function TcgExpressLandingPage() {
         </motion.div>
       </motion.section>
 
+      </div>
+
       <HeroLiveSection />
-
-      {/* SLIDE 2 — Acquisition Funnel (ultima slide) */}
-      <motion.section
-        className="py-10 md:py-16"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-      >
-        <motion.div variants={fadeUp} custom={0}>
-          <SectionKicker>Funnel di Acquisizione</SectionKicker>
-        </motion.div>
-        <motion.h2
-          variants={fadeUp}
-          custom={0.1}
-          className="mt-2 text-2xl font-extrabold text-zinc-900 sm:text-3xl"
-        >
-          I Tornei come Motore di Acquisizione Clienti
-        </motion.h2>
-        <motion.p
-          variants={fadeUp}
-          custom={0.2}
-          className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-600 sm:text-base"
-        >
-          Il sistema di live-play funge da enorme funnel di acquisizione. I giocatori e gli spettatori
-          attratti dai tornei sono naturalmente spinti a sincronizzare il proprio inventario con la nostra
-          piattaforma.
-        </motion.p>
-
-        <motion.div variants={fadeUp} custom={0.3} className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-zinc-200 bg-white p-5">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-rose-50">
-              <Users className="h-5 w-5 text-rose-600" />
-            </div>
-            <h3 className="text-sm font-bold text-zinc-900">Acquisizione</h3>
-            <p className="mt-1 text-xs text-zinc-500">
-              Migliaia di utenti altamente profilati entrano per giocare o guardare.
-            </p>
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-5">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-50">
-              <Layers className="h-5 w-5 text-cyan-600" />
-            </div>
-            <h3 className="text-sm font-bold text-zinc-900">Sincronizzazione API</h3>
-            <p className="mt-1 text-xs text-zinc-500">
-              I venditori sincronizzano tutto il loro stock tramite la nostra connessione API.
-            </p>
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-5">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
-              <Sparkles className="h-5 w-5 text-emerald-600" />
-            </div>
-            <h3 className="text-sm font-bold text-zinc-900">Vetrina Ready</h3>
-            <p className="mt-1 text-xs text-zinc-500">
-              Le carte inviate al Vault appaiono in un catalogo pronto per la spedizione immediata.
-            </p>
-          </div>
-        </motion.div>
-      </motion.section>
-
-    </div>
+    </>
   );
 }

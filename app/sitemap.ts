@@ -78,7 +78,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
-      url: url('/tcg-express'),
+      url: url('/tornei-live'),
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.7,

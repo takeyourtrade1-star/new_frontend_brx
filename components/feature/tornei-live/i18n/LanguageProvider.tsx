@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { translations, type Language } from "@/components/feature/tcg-express/i18n/translations";
+import { translations, type Language } from "@/components/feature/tornei-live/i18n/translations";
 
 type LanguageContextValue = {
   language: Language;

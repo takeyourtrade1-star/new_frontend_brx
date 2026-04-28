@@ -1,7 +1,7 @@
 "use client";
 
 import { Euro, ShieldCheck, Timer, Truck } from "lucide-react";
-import { useLanguage } from "@/components/feature/tcg-express/i18n/LanguageProvider";
+import { useLanguage } from "@/components/feature/tornei-live/i18n/LanguageProvider";
 
 export function BentoGridSection() {
   const { t, language } = useLanguage();

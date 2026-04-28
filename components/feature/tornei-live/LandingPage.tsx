@@ -1,8 +1,8 @@
 "use client";
 
-import { Header } from "@/components/feature/tcg-express/Header";
-import { LanguageProvider } from "@/components/feature/tcg-express/i18n/LanguageProvider";
-import { PresentationDeck } from "@/components/feature/tcg-express/PresentationDeck";
+import { Header } from "@/components/feature/tornei-live/Header";
+import { LanguageProvider } from "@/components/feature/tornei-live/i18n/LanguageProvider";
+import { PresentationDeck } from "@/components/feature/tornei-live/PresentationDeck";
 
 export function LandingPage() {
   return (

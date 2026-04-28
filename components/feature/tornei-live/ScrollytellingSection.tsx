@@ -10,7 +10,7 @@ import {
   ScanLine,
   ShieldCheck,
 } from "lucide-react";
-import { useLanguage } from "@/components/feature/tcg-express/i18n/LanguageProvider";
+import { useLanguage } from "@/components/feature/tornei-live/i18n/LanguageProvider";
 
 type ViewId = 0 | 1 | 2;
 

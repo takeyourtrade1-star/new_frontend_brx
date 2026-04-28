@@ -1981,9 +1981,9 @@ export function CardMascotte() {
   // Promotional hints - glassmorphism style matching mascot
   const promoHints = useMemo(() => [
     {
-      id: 'tcg-express',
+      id: 'tornei-live',
       text: 'Lo sai cosa ci rende unici? Tornei live e logistica decentralizzata con BRX Express!',
-      route: '/tcg-express',
+      route: '/tornei-live',
       // Glass tint color (accent only, not solid)
       accent: '#10B981',
       icon: 'swap',

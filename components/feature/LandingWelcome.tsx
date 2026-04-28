@@ -224,6 +224,32 @@ export function LandingWelcome() {
   const MAIN_GAMES = getMainGames();
   const COMING_SOON_GAMES = getComingSoonGames();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const parallaxRef = useRef<HTMLDivElement>(null);
+
+  /* ─── parallax scroll effect ─── */
+  useEffect(() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) return;
+
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(() => {
+          if (parallaxRef.current) {
+            const scrollY = window.scrollY;
+            // Subtle zoom as you scroll → depth parallax feel
+            const scale = 1 + scrollY * 0.00005;
+            parallaxRef.current.style.transform = `scale(${scale})`;
+          }
+          ticking = false;
+        });
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     videoRef.current?.play().catch(() => {});
@@ -231,30 +257,34 @@ export function LandingWelcome() {
 
   /* ─── render ─── */
   return (
-    <div className="relative w-full overflow-x-hidden text-white">
+    <div className="relative w-full overflow-x-hidden text-white bg-[#0F172A]">
 
-      {/* ══════ BACKGROUND VIDEO (Absolute within content flow) ══════ */}
-      <video
-        ref={videoRef}
-        src={getCdnVideoUrl(LANDING_BG_VIDEO)}
-        className="pointer-events-none absolute inset-0 w-full h-full object-cover object-center"
-        autoPlay loop muted playsInline
-        disablePictureInPicture disableRemotePlayback aria-hidden
-      />
-
-      {/* Overlay gradient */}
+      {/* ══════ BACKGROUND VIDEO — parallax scroll effect ══════ */}
       <div
-        className="pointer-events-none absolute inset-0 z-[1]"
-        style={{
-          background: 'linear-gradient(180deg, rgba(15,23,42,0.65) 0%, rgba(29,49,96,0.50) 40%, rgba(15,23,42,0.72) 100%)',
-        }}
-      />
+        ref={parallaxRef}
+        className="pointer-events-none fixed inset-0 z-0 h-screen w-screen will-change-transform"
+      >
+        <video
+          ref={videoRef}
+          src={getCdnVideoUrl(LANDING_BG_VIDEO)}
+          className="absolute inset-0 w-full h-full object-cover object-center"
+          autoPlay loop muted playsInline
+          disablePictureInPicture disableRemotePlayback aria-hidden
+        />
+        {/* Dark overlay */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(180deg, rgba(15,23,42,0.55) 0%, rgba(29,49,96,0.40) 50%, rgba(15,23,42,0.65) 100%)',
+          }}
+        />
+      </div>
 
       {/* ══════ CONTENT LAYER ══════ */}
-      <div className="relative z-10 flex flex-col">
+      <div className="relative z-[2] flex flex-col">
 
         {/* ────── LOGO + TAGLINE — same row ────── */}
-        <header className="bento-entry flex items-center justify-center px-4 pt-3 pb-3 sm:pt-3 sm:pb-3 md:pt-3 md:pb-2" style={{ animationDelay: '0ms' }}>
+        <header className="bento-entry flex items-center justify-center px-4 pt-6 pb-4 sm:pt-6 sm:pb-5 md:pt-5 md:pb-3" style={{ animationDelay: '0ms' }}>
           <div className="flex w-full max-w-6xl items-center justify-center gap-3 sm:gap-5 md:gap-6">
             <Image
               src={getCdnImageUrl('Logo%20Principale%20EBARTEX.png')}
@@ -268,15 +298,18 @@ export function LandingWelcome() {
             />
             <div className="h-8 w-px bg-white/20 hidden sm:block" />
             <h1 className="text-xs font-medium uppercase tracking-[0.06em] text-white/80 sm:text-sm md:text-base lg:text-lg">
-              L&apos;unico marketplace con spedizione{' '}
-              <Link href="/tcg-express" className="font-bold text-[#38BDF8] hover:underline">
+              Colleziona, competi e vinci —{' '}
+              <Link href="/tornei-live" className="font-bold text-[#38BDF8] hover:underline">
                 BRX Express
               </Link>{' '}
-              in 24h e{' '}
+              in 24h,{' '}
               <Link href="/aste" className="font-bold text-[#FB923C] hover:underline">
                 Aste
               </Link>{' '}
-              per le tue carte
+              e{' '}
+              <Link href="/tornei-live" className="font-bold text-[#A78BFA] hover:underline">
+                Tornei Live
+              </Link>
             </h1>
           </div>
         </header>
@@ -284,14 +317,14 @@ export function LandingWelcome() {
         {/* ═══════════════════════════════════════════════
             HERO — Card Magic (left) + Feature Carousel (right)
             ═══════════════════════════════════════════════ */}
-        <section className="px-4 pt-5 pb-6 sm:px-4 sm:pt-5 sm:pb-6 md:px-6 md:pt-3 md:pb-5">
-          <div className="mx-auto grid w-full max-w-6xl gap-4 sm:gap-4 md:gap-3 grid-cols-1 lg:grid-cols-2">
+        <section className="px-4 pt-4 pb-8 sm:px-5 sm:pt-5 sm:pb-10 md:px-6 md:pt-4 md:pb-8">
+          <div className="mx-auto grid w-full max-w-6xl gap-5 sm:gap-6 md:gap-5 grid-cols-1 lg:grid-cols-2">
 
             {/* ──── LEFT: MAGIC CARD ──── */}
             <Link
               href="/home/magic"
               id="hero-magic-card"
-              className="bento-entry bento-card group relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/15 p-4 sm:p-4 md:p-5 lg:p-6 min-h-[130px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[220px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
+              className="bento-entry bento-card group relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/15 p-5 sm:p-6 md:p-7 lg:p-8 min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
               style={{
                 animationDelay: '180ms',
                 background: 'linear-gradient(135deg, rgba(167,139,250,0.08) 0%, rgba(15,23,42,0.40) 40%, rgba(99,102,241,0.04) 100%)',
@@ -310,18 +343,18 @@ export function LandingWelcome() {
               <div className="pointer-events-none absolute -left-12 -top-12 h-48 w-48 rounded-full bg-indigo-500/8 blur-3xl" />
 
               {/* Left side: Text */}
-              <div className="relative z-10 flex flex-col gap-0.5 sm:gap-1">
-                <h2 className="font-display text-base sm:text-lg md:text-xl lg:text-2xl font-bold uppercase tracking-tight text-white drop-shadow-lg">
+              <div className="relative z-10 flex flex-col gap-1 sm:gap-1.5">
+                <h2 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold uppercase tracking-tight text-white drop-shadow-lg">
                   Magic: The Gathering
                 </h2>
-                <p className="max-w-md text-[10px] sm:text-[11px] md:text-xs text-white/50">
+                <p className="max-w-md text-[11px] sm:text-xs md:text-sm text-white/50">
                   Compra, vendi e metti all&apos;asta le tue carte. Inizia subito.
                 </p>
               </div>
 
               {/* Right side: Game logo */}
               <div className="relative z-10 flex shrink-0 items-center justify-center">
-                <div className="relative h-16 w-28 sm:h-20 sm:w-36 md:h-24 md:w-44 lg:h-32 lg:w-56 transition-transform duration-500 group-hover:scale-110">
+                <div className="relative h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 lg:h-36 lg:w-64 transition-transform duration-500 group-hover:scale-110">
                   <img
                     src={MAIN_GAMES[0].src}
                     alt={MAIN_GAMES[0].alt}
@@ -332,9 +365,9 @@ export function LandingWelcome() {
             </Link>
 
             {/* ──── RIGHT: FEATURE CAROUSEL ──── */}
-            <div className="flex flex-col gap-3 min-h-[130px] sm:min-h-[140px] md:min-h-[160px] lg:min-h-[220px]">
+            <div className="flex flex-col gap-3 sm:gap-4 min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px]">
               {/* 3 Buttons */}
-              <div className="flex gap-2 sm:gap-3">
+              <div className="flex gap-2.5 sm:gap-3">
                 {(['aste', 'tornei', 'brx'] as const).map((key) => {
                   const isActive = activeFeature === key;
                   const labels: Record<string, string> = { aste: 'Scopri le aste', tornei: 'Tornei Live', brx: 'BRX Express' };
@@ -358,7 +391,7 @@ export function LandingWelcome() {
                       key={key}
                       type="button"
                       onClick={() => setActiveFeature(key)}
-                      className={`bento-entry flex-1 rounded-xl border px-2 py-2.5 sm:px-3 sm:py-3 text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-wider text-white transition-all duration-300 hover:scale-[1.02] ${isActive ? activeBorders[key] : borders[key]} ${isActive ? 'bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.08)]' : 'bg-white/5'}`}
+                      className={`bento-entry flex-1 rounded-xl border px-3 py-3 sm:px-4 sm:py-3.5 text-[10px] sm:text-[11px] md:text-xs font-bold uppercase tracking-wider text-white transition-all duration-300 hover:scale-[1.02] ${isActive ? activeBorders[key] : borders[key]} ${isActive ? 'bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.08)]' : 'bg-white/5'}`}
                       style={{
                         animationDelay: key === 'aste' ? '200ms' : key === 'tornei' ? '260ms' : '320ms',
                         background: isActive ? gradients[key] : undefined,
@@ -382,18 +415,37 @@ export function LandingWelcome() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col justify-between p-4 sm:p-5"
+                      className="absolute inset-0 flex flex-col p-4 sm:p-5"
                     >
-                      <div>
-                        <h3 className="text-sm sm:text-base md:text-lg font-bold uppercase tracking-tight text-white drop-shadow-lg">
-                          Aste
-                        </h3>
-                        <p className="mt-1.5 text-[10px] sm:text-[11px] md:text-xs leading-relaxed text-white/60">
-                          Metti all&apos;asta le tue carte o fai offerte su quelle disponibili. Trova il prezzo giusto per le tue collezionabili in modo sicuro e trasparente.
-                        </p>
+                      {/* Top: icon accent */}
+                      <div className="mb-2 sm:mb-3 flex items-start justify-between">
+                        <div>
+                          <div className="mb-1 flex items-center gap-2">
+                            <span className="h-2.5 w-2.5 rounded-full bg-[#FB923C]" />
+                            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#FB923C]">
+                              Funzionalità
+                            </span>
+                          </div>
+                          <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold uppercase tracking-tight text-white">
+                            Aste
+                          </h3>
+                        </div>
+                        <span className="text-3xl sm:text-4xl opacity-15 select-none" aria-hidden>🔨</span>
                       </div>
-                      <Link href="/aste" className="mt-3 inline-flex items-center gap-1.5 self-start rounded-full border border-[#FB923C]/30 bg-[#FB923C]/10 px-3.5 py-1.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-[#FB923C] transition-all duration-300 hover:bg-[#FB923C]/20 hover:border-[#FB923C]/50 hover:shadow-[0_0_16px_rgba(251,146,60,0.15)]">
-                        Esplora le Aste
+
+                      {/* Description */}
+                      <p className="flex-1 text-[11px] sm:text-xs md:text-sm leading-relaxed text-white/75">
+                        Metti all&apos;asta le tue carte o fai offerte su quelle disponibili.
+                        Trova il prezzo giusto per le tue collezionabili in modo sicuro e trasparente.
+                      </p>
+
+                      {/* CTA */}
+                      <Link
+                        href="/aste"
+                        className="mt-3 flex items-center justify-between rounded-xl border border-[#FB923C]/40 bg-[#FB923C]/15 px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#FB923C] transition-all duration-300 hover:bg-[#FB923C]/25 hover:border-[#FB923C]/60 hover:shadow-[0_0_20px_rgba(251,146,60,0.2)]"
+                      >
+                        <span>Esplora le Aste</span>
+                        <span className="text-sm">→</span>
                       </Link>
                     </motion.div>
                   )}
@@ -404,18 +456,34 @@ export function LandingWelcome() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col justify-between p-4 sm:p-5"
+                      className="absolute inset-0 flex flex-col p-4 sm:p-5"
                     >
-                      <div>
-                        <h3 className="text-sm sm:text-base md:text-lg font-bold uppercase tracking-tight text-white drop-shadow-lg">
-                          Tornei Live
-                        </h3>
-                        <p className="mt-1.5 text-[10px] sm:text-[11px] md:text-xs leading-relaxed text-white/60">
-                          Partecipa ai tornei live, competi con altri giocatori e scala le classifiche in tempo reale. Montepremi garantiti e community attiva.
-                        </p>
+                      <div className="mb-2 sm:mb-3 flex items-start justify-between">
+                        <div>
+                          <div className="mb-1 flex items-center gap-2">
+                            <span className="h-2.5 w-2.5 rounded-full bg-[#A78BFA]" />
+                            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#A78BFA]">
+                              Funzionalità
+                            </span>
+                          </div>
+                          <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold uppercase tracking-tight text-white">
+                            Tornei Live
+                          </h3>
+                        </div>
+                        <span className="text-3xl sm:text-4xl opacity-15 select-none" aria-hidden>🏆</span>
                       </div>
-                      <Link href="/tcg-express" className="mt-3 inline-flex items-center gap-1.5 self-start rounded-full border border-[#A78BFA]/30 bg-[#A78BFA]/10 px-3.5 py-1.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-[#A78BFA] transition-all duration-300 hover:bg-[#A78BFA]/20 hover:border-[#A78BFA]/50 hover:shadow-[0_0_16px_rgba(167,139,250,0.15)]">
-                        Scopri i Tornei
+
+                      <p className="flex-1 text-[11px] sm:text-xs md:text-sm leading-relaxed text-white/75">
+                        Partecipa ai tornei live, competi con altri giocatori e scala le classifiche
+                        in tempo reale. Montepremi garantiti e community attiva.
+                      </p>
+
+                      <Link
+                        href="/tornei-live"
+                        className="mt-3 flex items-center justify-between rounded-xl border border-[#A78BFA]/40 bg-[#A78BFA]/15 px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#A78BFA] transition-all duration-300 hover:bg-[#A78BFA]/25 hover:border-[#A78BFA]/60 hover:shadow-[0_0_20px_rgba(167,139,250,0.2)]"
+                      >
+                        <span>Scopri i Tornei</span>
+                        <span className="text-sm">→</span>
                       </Link>
                     </motion.div>
                   )}
@@ -426,18 +494,34 @@ export function LandingWelcome() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col justify-between p-4 sm:p-5"
+                      className="absolute inset-0 flex flex-col p-4 sm:p-5"
                     >
-                      <div>
-                        <h3 className="text-sm sm:text-base md:text-lg font-bold uppercase tracking-tight text-white drop-shadow-lg">
-                          BRX Express
-                        </h3>
-                        <p className="mt-1.5 text-[10px] sm:text-[11px] md:text-xs leading-relaxed text-white/60">
-                          Logistica decentralizzata e spedizione in 24h. Il futuro del trading card game è qui: consegna rapida, sicura e tracciata.
-                        </p>
+                      <div className="mb-2 sm:mb-3 flex items-start justify-between">
+                        <div>
+                          <div className="mb-1 flex items-center gap-2">
+                            <span className="h-2.5 w-2.5 rounded-full bg-[#38BDF8]" />
+                            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#38BDF8]">
+                              Funzionalità
+                            </span>
+                          </div>
+                          <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold uppercase tracking-tight text-white">
+                            BRX Express
+                          </h3>
+                        </div>
+                        <span className="text-3xl sm:text-4xl opacity-15 select-none" aria-hidden>⚡</span>
                       </div>
-                      <Link href="/tcg-express" className="mt-3 inline-flex items-center gap-1.5 self-start rounded-full border border-[#38BDF8]/30 bg-[#38BDF8]/10 px-3.5 py-1.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-[#38BDF8] transition-all duration-300 hover:bg-[#38BDF8]/20 hover:border-[#38BDF8]/50 hover:shadow-[0_0_16px_rgba(56,189,248,0.15)]">
-                        Scopri BRX Express
+
+                      <p className="flex-1 text-[11px] sm:text-xs md:text-sm leading-relaxed text-white/75">
+                        Logistica decentralizzata e spedizione in 24h. Il futuro del trading card game
+                        è qui: consegna rapida, sicura e tracciata.
+                      </p>
+
+                      <Link
+                        href="/tornei-live"
+                        className="mt-3 flex items-center justify-between rounded-xl border border-[#38BDF8]/40 bg-[#38BDF8]/15 px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#38BDF8] transition-all duration-300 hover:bg-[#38BDF8]/25 hover:border-[#38BDF8]/60 hover:shadow-[0_0_20px_rgba(56,189,248,0.2)]"
+                      >
+                        <span>Scopri BRX Express</span>
+                        <span className="text-sm">→</span>
                       </Link>
                     </motion.div>
                   )}
@@ -451,7 +535,7 @@ export function LandingWelcome() {
         {/* ═══════════════════════════════════════════════
             COMING SOON GAMES — infinite horizontal scroll
             ═══════════════════════════════════════════════ */}
-        <section className="bento-entry px-4 pb-6 sm:px-6 sm:pb-8" style={{ animationDelay: '480ms' }}>
+        <section className="bento-entry px-4 pb-8 sm:px-6 sm:pb-10" style={{ animationDelay: '480ms' }}>
           <div className="mx-auto max-w-md">
             <p className="mb-3 sm:mb-4 text-center text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-white/40">
               Presto in arrivo
@@ -490,9 +574,9 @@ export function LandingWelcome() {
         </section>
 
         {/* ═══════════════════════════════════════════════
-            FEATURES + BOUTIQUE (below the fold)
+            FEATURES + BOUTIQUE (below the fold) — video shows through
             ═══════════════════════════════════════════════ */}
-        <section className="relative w-full overflow-hidden px-4 pt-10 pb-10 sm:px-5 sm:pt-12 sm:pb-12 md:pt-10 md:pb-8 z-[2]">
+        <section className="relative w-full overflow-hidden px-4 pt-12 pb-12 sm:px-5 sm:pt-14 sm:pb-14 md:pt-12 md:pb-10 z-[2]">
           <div className="relative z-10 mx-auto max-w-4xl">
 
             {/* ─── KPI / Features grid ─── */}
@@ -506,7 +590,7 @@ export function LandingWelcome() {
                 </h2>
               </div>
 
-              <div className="grid w-full grid-cols-2 md:grid-cols-3 gap-x-3 sm:gap-x-3 md:gap-x-6 gap-y-5 sm:gap-y-5 md:gap-y-8">
+              <div className="grid w-full grid-cols-2 md:grid-cols-3 gap-x-4 sm:gap-x-5 md:gap-x-6 gap-y-6 sm:gap-y-7 md:gap-y-8">
                 {FEATURES.map((f) => {
                   const IconComponent = FEATURE_ICONS[f.iconKey];
                   return (
@@ -527,15 +611,15 @@ export function LandingWelcome() {
             </div>
 
             {/* Divider */}
-            <div className="mx-auto my-6 sm:my-6 md:my-8 h-px w-2/3 max-w-lg bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+            <div className="mx-auto my-8 sm:my-10 md:my-10 h-px w-2/3 max-w-lg bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
             {/* ─── Boutique Cards ─── */}
-            <div className="mt-8 sm:mt-10 md:mt-12 text-center">
-              <h3 className="mb-4 sm:mb-4 md:mb-6 text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-widest text-white/90">
+            <div className="mt-10 sm:mt-12 md:mt-14 text-center">
+              <h3 className="mb-5 sm:mb-6 md:mb-8 text-xs sm:text-sm md:text-base font-semibold uppercase tracking-widest text-white/90">
                 La Nostra Boutique
               </h3>
 
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-3 md:gap-4 max-w-5xl mx-auto px-1 sm:px-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 sm:gap-4 md:gap-5 max-w-5xl mx-auto px-2 sm:px-3">
                 {BOUTIQUE_CATEGORIES.map((cat, index) => {
                   const glowColor = BOUTIQUE_GLOW_COLORS[cat.id] || '255,255,255';
                   return (
@@ -575,15 +659,15 @@ export function LandingWelcome() {
             </div>
 
             {/* ─── Signed & Altered Collections Showcase ─── */}
-            <div className="mt-10 sm:mt-12 md:mt-14">
+            <div className="mt-12 sm:mt-14 md:mt-16">
               <SignedAlteredShowcase />
             </div>
 
           </div>
         </section>
 
-        {/* ─── Bottom solid layer to cover fixed video before footer ─── */}
-        <div className="relative z-[2] w-full bg-[#1D3160]" style={{ height: '1px' }} />
+        {/* ─── Transition zone before footer ─── */}
+        <div className="relative z-[2] w-full h-20 sm:h-28 bg-gradient-to-b from-transparent via-[#0F172A]/80 to-[#1D3160]" />
 
       </div>
 

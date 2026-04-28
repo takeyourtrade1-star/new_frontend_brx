@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function ScambiPage() {
-  permanentRedirect('/tcg-express');
+  permanentRedirect('/tornei-live');
 }

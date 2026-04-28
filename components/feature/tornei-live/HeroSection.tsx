@@ -2,7 +2,7 @@
 
 import { ArrowRight, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
-import { useLanguage } from "@/components/feature/tcg-express/i18n/LanguageProvider";
+import { useLanguage } from "@/components/feature/tornei-live/i18n/LanguageProvider";
 
 export function HeroSection() {
   const { t } = useLanguage();

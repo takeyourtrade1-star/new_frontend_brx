@@ -1,8 +1,8 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useLanguage } from "@/components/feature/tcg-express/i18n/LanguageProvider";
-import { languages, type Language } from "@/components/feature/tcg-express/i18n/translations";
+import { useLanguage } from "@/components/feature/tornei-live/i18n/LanguageProvider";
+import { languages, type Language } from "@/components/feature/tornei-live/i18n/translations";
 
 const languageLabel: Record<Language, string> = {
   de: "DE",

@@ -37,8 +37,36 @@ import {
   Expand,
   X,
 } from "lucide-react";
-import { useLanguage } from "@/components/feature/tcg-express/i18n/LanguageProvider";
-import type { Language } from "@/components/feature/tcg-express/i18n/translations";
+import { useLanguage as useLanguageContext } from "@/lib/contexts/LanguageContext";
+
+type Language = "de" | "en" | "it";
+
+function useLanguage() {
+  const ctx = useLanguageContext();
+  const selectedLang = ctx.selectedLang;
+  const language = (["de", "en", "it"].includes(selectedLang) ? selectedLang : "en") as Language;
+  return {
+    language,
+    t: {
+      slides: {
+        s1: {
+          title:
+            language === "it"
+              ? "Più di un Marketplace — La Casa della Community"
+              : language === "de"
+                ? "Mehr als ein Marktplatz – Die Heimat der Community"
+                : "More Than a Marketplace — The Home of the Community",
+          description:
+            language === "it"
+              ? "Il cuore della piattaforma non è solo la vendita, ma un ecosistema phygital con tornei ufficiali via webcam."
+              : language === "de"
+                ? "Der Kern unserer Plattform ist nicht nur der Verkauf, sondern ein echtes Phygital-Ökosystem mit offiziellen Webcam-Turnieren."
+                : "Our platform is not just commerce. It is a phygital ecosystem powered by official webcam tournaments.",
+        },
+      },
+    },
+  };
+}
 
 const cannedMessagesByLanguage: Record<Language, readonly string[]> = {
   de: [
@@ -276,9 +304,6 @@ const appSections: { key: AppSection; labelKey: AppSection; icon: ComponentType<
   { key: "decklist", labelKey: "decklist", icon: Layers },
   { key: "createTournament", labelKey: "createTournament", icon: ListPlus },
   { key: "liveTournaments", labelKey: "liveTournaments", icon: Trophy },
-  { key: "marketplace", labelKey: "marketplace", icon: ShoppingBag },
-  { key: "cart", labelKey: "cart", icon: ShoppingCart },
-  { key: "readyOneDay", labelKey: "readyOneDay", icon: PackageOpen },
 ];
 
 const desktopTranslations: Record<
@@ -2806,7 +2831,7 @@ function DesktopWindow() {
       case "matchCenter":
       default:
         return (
-          <div className="relative h-fit min-h-[560px] self-start space-y-3 rounded-xl border border-zinc-200 bg-zinc-950 p-3 pb-4">
+          <div className="relative h-fit min-h-[560px] self-start space-y-3 rounded-xl border border-white/8 bg-[#0a0e14] p-3 pb-4">
             <div className="mb-1 flex items-center justify-between rounded-xl border border-white/15 bg-white/8 px-3 py-2 backdrop-blur-xl">
               <div className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-black/25 px-2 py-1 text-xs text-zinc-200">
                 <Camera className="h-3.5 w-3.5 text-emerald-300" />
@@ -2900,7 +2925,7 @@ function DesktopWindow() {
   return (
     <div
       ref={desktopRef}
-      className="relative overflow-visible rounded-[28px] border border-zinc-200 bg-white shadow-[0_35px_120px_rgba(15,23,42,0.18)]"
+      className="relative overflow-visible rounded-[28px] border border-white/10 bg-[#0d1219] shadow-[0_35px_120px_rgba(0,0,0,0.55)]"
     >
       {showSyncModal ? (
         <div className="absolute inset-0 z-[120] flex items-center justify-center rounded-[28px] bg-zinc-950/35 p-6 backdrop-blur-[2px]">
@@ -2950,22 +2975,22 @@ function DesktopWindow() {
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2.5">
+      <div className="flex items-center justify-between border-b border-white/10 bg-[#1D3160] px-4 py-2.5">
         <div className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
           <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-          <span className="ml-2 text-xs text-zinc-500">{ui.topTitle}</span>
+          <span className="ml-2 text-xs text-white/60">{ui.topTitle}</span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-zinc-600">
-          <Bell className="h-3.5 w-3.5 text-zinc-500" />
+        <div className="flex items-center gap-2 text-xs text-white/50">
+          <Bell className="h-3.5 w-3.5 text-white/40" />
           {ui.roundLabel}
         </div>
       </div>
 
       <div className="grid grid-cols-[0.17fr_0.83fr] gap-3 p-3">
-        <aside className="rounded-xl border border-zinc-200 bg-zinc-50 p-2.5">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">{tx.workspace}</p>
+        <aside className="rounded-xl border border-white/8 bg-[#111827] p-2.5">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">{tx.workspace}</p>
           <div className="mt-3 space-y-1.5">
             {appSections.map((item) => {
               const Icon = item.icon;
@@ -2977,11 +3002,11 @@ function DesktopWindow() {
                 onClick={() => setActiveSection(item.key)}
                 className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition ${
                   active
-                    ? "bg-white text-zinc-900 shadow-sm"
-                    : "text-zinc-600 hover:bg-white/70"
+                    ? "bg-[#FF7300]/15 text-[#FF7300]"
+                    : "text-white/50 hover:bg-white/5 hover:text-white/80"
                 }`}
               >
-                <Icon className={`h-3.5 w-3.5 ${active ? "text-blue-600" : "text-zinc-400"}`} />
+                <Icon className={`h-3.5 w-3.5 ${active ? "text-[#FF7300]" : "text-white/30"}`} />
                 {tx.sectionLabels[item.labelKey]}
               </button>
               );
@@ -2998,12 +3023,12 @@ function DesktopWindow() {
 
           {activeSection === "matchCenter" ? (
             <div className="space-y-3">
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="rounded-xl border border-white/8 bg-[#111827] p-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-zinc-700">{ui.judgeFeed}</p>
-                  <Shield className="h-3.5 w-3.5 text-blue-500" />
+                  <p className="text-xs font-medium text-white/70">{ui.judgeFeed}</p>
+                  <Shield className="h-3.5 w-3.5 text-[#FF7300]" />
                 </div>
-                <div className="mt-2 overflow-hidden rounded-md border border-zinc-200">
+                <div className="mt-2 overflow-hidden rounded-md border border-white/10">
                   <video
                     autoPlay
                     loop
@@ -3013,55 +3038,55 @@ function DesktopWindow() {
                     className="h-22 w-full bg-zinc-900 object-cover"
                     src={judgeCameraVideo}
                   />
-                  <p className="bg-white px-2 py-1.5 text-[11px] leading-5 text-zinc-600">
+                  <p className="bg-[#0a0e14] px-2 py-1.5 text-[11px] leading-5 text-white/60">
                     {ui.judgeOnline}
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="rounded-xl border border-white/8 bg-[#111827] p-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-zinc-700">{ui.liveScoreboard}</p>
-                  <Users className="h-3.5 w-3.5 text-zinc-500" />
+                  <p className="text-xs font-medium text-white/70">{ui.liveScoreboard}</p>
+                  <Users className="h-3.5 w-3.5 text-white/40" />
                 </div>
                 <div className="mt-2 space-y-1.5 text-[11px]">
                   {score.map((row) => (
-                    <div key={row.player} className="rounded-md bg-white px-2 py-1.5 text-zinc-700">
+                    <div key={row.player} className="rounded-md border border-white/5 bg-[#0a0e14] px-2 py-1.5 text-white/80">
                       <div className="flex justify-between">
                         <span>{row.player}</span>
                         <span>HP {row.hp}</span>
                       </div>
-                      <p className="mt-0.5 text-[10px] text-zinc-500">Energy {row.energy}</p>
+                      <p className="mt-0.5 text-[10px] text-white/40">Energy {row.energy}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="rounded-xl border border-white/8 bg-[#111827] p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-medium text-zinc-700">{ui.spectatorChat}</p>
-                  <MessageSquare className="h-3.5 w-3.5 text-zinc-500" />
+                  <p className="text-xs font-medium text-white/70">{ui.spectatorChat}</p>
+                  <MessageSquare className="h-3.5 w-3.5 text-white/40" />
                 </div>
-                <div className="space-y-1.5 text-[11px] text-zinc-700">
+                <div className="space-y-1.5 text-[11px] text-white/70">
                   {messages.map((message) => (
-                    <p key={message} className="rounded-md bg-white px-2 py-1.5 leading-5">
+                    <p key={message} className="rounded-md border border-white/5 bg-[#0a0e14] px-2 py-1.5 leading-5">
                       {message}
                     </p>
                   ))}
                   {typing ? (
-                    <p className="rounded-md border border-blue-300 bg-blue-50 px-2 py-1.5 text-blue-700">
+                    <p className="rounded-md border border-[#FF7300]/20 bg-[#FF7300]/10 px-2 py-1.5 text-[#FF7300]">
                       {ui.typing}
                     </p>
                   ) : null}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                <p className="text-xs font-semibold text-emerald-800">{ui.cardmarketValue}</p>
-                <div className="mt-2 space-y-1.5 text-[11px] text-emerald-700">
+              <div className="rounded-xl border border-[#FF7300]/20 bg-[#FF7300]/8 p-3">
+                <p className="text-xs font-semibold text-[#FF7300]">{ui.cardmarketValue}</p>
+                <div className="mt-2 space-y-1.5 text-[11px] text-[#FF7300]/80">
                   {ui.valueBullets.map((item) => (
                     <div key={item} className="flex items-start gap-1.5">
-                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#FF7300]" />
                       <span>{item}</span>
                     </div>
                   ))}
@@ -3121,11 +3146,11 @@ function DesktopWindow() {
               height: win.height,
               zIndex: win.zIndex,
             }}
-            className="absolute overflow-hidden rounded-xl border border-zinc-300/80 bg-zinc-950/96 shadow-[0_30px_60px_rgba(0,0,0,0.35)]"
+            className="absolute overflow-hidden rounded-xl border border-white/15 bg-[#0d1219]/96 shadow-[0_30px_60px_rgba(0,0,0,0.55)]"
             onMouseDown={() => bringToFront(key)}
           >
             <div
-              className="flex cursor-move items-center justify-between border-b border-white/10 bg-zinc-900/55 px-2.5 py-1.5 backdrop-blur-lg"
+              className="flex cursor-move items-center justify-between border-b border-white/10 bg-[#1D3160]/40 px-2.5 py-1.5 backdrop-blur-lg"
               onMouseDown={(event) => startDrag(event, key)}
             >
               <div className="flex items-center gap-2">
@@ -3144,14 +3169,14 @@ function DesktopWindow() {
                   onClick={() => toggleMaximize(key)}
                   className="h-2.5 w-2.5 rounded-full bg-emerald-400"
                 />
-                <p className="ml-1 text-[11px] text-zinc-200">{title}</p>
+                <p className="ml-1 text-[11px] text-white/80">{title}</p>
               </div>
               <div />
             </div>
-            <div className="relative h-[calc(100%-38px)] bg-zinc-900">
+            <div className="relative h-[calc(100%-38px)] bg-[#0a0e14]">
               {key === "watchLive" ? (
-                <div className="h-full space-y-2 overflow-y-auto bg-zinc-950 p-2.5">
-                  <div className="flex items-center justify-between rounded-lg border border-white/15 bg-white/8 px-2.5 py-1.5 text-[11px] text-zinc-200">
+                <div className="h-full space-y-2 overflow-y-auto bg-[#0a0e14] p-2.5">
+                  <div className="flex items-center justify-between rounded-lg border border-white/15 bg-white/8 px-2.5 py-1.5 text-[11px] text-white/80">
                     <span className="inline-flex items-center gap-1.5">
                       <Camera className="h-3.5 w-3.5 text-emerald-300" />
                       {watchEvent?.format ?? "Standard"} • {watchEvent?.round ?? "Live round"}
@@ -3169,10 +3194,10 @@ function DesktopWindow() {
                         autoPlay
                         muted
                         playsInline
-                        className="h-20 w-full bg-zinc-900 object-cover"
+                        className="h-20 w-full bg-[#0d1219] object-cover"
                       />
                     ) : (
-                      <div className="flex h-20 w-full items-center justify-center bg-zinc-900 text-[10px] text-zinc-400">
+                      <div className="flex h-20 w-full items-center justify-center bg-[#0d1219] text-[10px] text-white/40">
                         Camera off
                       </div>
                     ),
@@ -3189,7 +3214,7 @@ function DesktopWindow() {
                         muted
                         playsInline
                         preload="metadata"
-                        className="h-20 w-full bg-zinc-900 object-cover"
+                        className="h-20 w-full bg-[#0d1219] object-cover"
                         src={playerWebcamVideo}
                       />
                     ),
@@ -4539,8 +4564,8 @@ export function HeroLiveSection() {
   const { t } = useLanguage();
 
   return (
-    <section className="px-6 py-8 sm:px-10 lg:px-16 md:snap-start md:min-h-[calc(100vh-72px)]">
-      <div className="mx-auto flex min-h-full max-w-6xl flex-col pb-6">
+    <section className="px-4 py-8 sm:px-6 lg:px-10 xl:px-16 md:snap-start md:min-h-[calc(100vh-72px)]">
+      <div className="mx-auto flex min-h-full w-full max-w-[1600px] flex-col pb-6">
         <div className="mb-5 max-w-4xl">
           <p className="text-sm font-medium tracking-wide text-blue-700">
             Neo-Tactile TCG Arena
@@ -4561,7 +4586,7 @@ export function HeroLiveSection() {
         >
           <div className="absolute -top-8 left-16 h-28 w-28 rounded-full bg-blue-300/35 blur-3xl" />
           <div className="absolute right-10 -bottom-6 h-32 w-32 rounded-full bg-emerald-300/35 blur-3xl" />
-          <div className="relative mx-auto w-full max-w-[1280px]">
+          <div className="relative mx-auto w-full max-w-[1600px]">
             <span className="absolute top-28 -left-1.5 h-12 w-1.5 rounded-r-full bg-zinc-300/85 shadow-sm md:h-16 lg:h-12" />
             <span className="absolute top-44 -left-1.5 h-16 w-1.5 rounded-r-full bg-zinc-300/85 shadow-sm md:h-24 lg:h-20" />
             <span className="absolute top-36 -right-1.5 h-20 w-1.5 rounded-l-full bg-zinc-300/85 shadow-sm md:h-26 lg:h-22" />
