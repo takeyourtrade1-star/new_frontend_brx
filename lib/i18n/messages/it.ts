@@ -84,7 +84,7 @@ export const it: Record<MessageKey, string> = {
   'purchases.myPurchases': 'I MIEI ACQUISTI',
   'purchases.wishlist': 'LISTA DESIDERI',
 
-  'nav.sell': 'VENDI',
+  'nav.sell': 'VENDITE',
   
   'nav.tcgExpress': 'BRX Express',
   'nav.auctions': 'ASTE',
