@@ -766,7 +766,7 @@ export function TopBar() {
                         </Link>
                       </div>
 
-                      {/* Solo su mobile, includiamo anche Tornei live e Aste che su desktop hanno link diretti */}
+                      {/* Solo su mobile, includiamo anche Tornei live, Aste e BRX Express che su desktop hanno link diretti */}
                       <div className="md:hidden">
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                         <Link
@@ -775,6 +775,14 @@ export function TopBar() {
                           onClick={() => setVendiMenuOpen(false)}
                         >
                           Tornei live
+                        </Link>
+                        <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
+                        <Link
+                          href="/brx-express"
+                          className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                          onClick={() => setVendiMenuOpen(false)}
+                        >
+                          BRX Express
                         </Link>
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                         <Link
