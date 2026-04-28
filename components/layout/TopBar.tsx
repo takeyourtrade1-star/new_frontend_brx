@@ -766,7 +766,7 @@ export function TopBar() {
                         </Link>
                       </div>
 
-                      {/* Solo su mobile, includiamo anche TCG Express e Aste che su desktop hanno link diretti */}
+                      {/* Solo su mobile, includiamo anche Tornei live e Aste che su desktop hanno link diretti */}
                       <div className="md:hidden">
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                         <Link
@@ -774,7 +774,7 @@ export function TopBar() {
                           className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
                           onClick={() => setVendiMenuOpen(false)}
                         >
-                          TCG Express
+                          Tornei live
                         </Link>
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                         <Link
@@ -844,11 +844,11 @@ export function TopBar() {
                 </button>
               </div>
 
-              {/* 4. TCG EXPRESS - solo desktop */}
+              {/* 4. TORNEI LIVE - solo desktop */}
               <Link
                 href="/tcg-express"
                 className="order-4 hidden items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex md:px-2"
-                aria-label="TCG Express"
+                aria-label="Tornei live"
               >
                 <span
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
@@ -866,14 +866,16 @@ export function TopBar() {
                     strokeLinejoin="round"
                     className="h-5 w-5"
                   >
-                    <polyline points="17 1 21 5 17 9"></polyline>
-                    <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
-                    <polyline points="7 23 3 19 7 15"></polyline>
-                    <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                    <path d="M4 22h16"></path>
+                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
                   </svg>
                 </span>
                 <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
-                  TCG Express
+                  Tornei live
                 </span>
               </Link>
 
