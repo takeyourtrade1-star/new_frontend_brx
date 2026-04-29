@@ -1387,7 +1387,7 @@ function AnimatedSearchPlaceholder({ visible, isDark }: { visible: boolean; isDa
 
   return (
     <div
-      className={`pointer-events-none absolute inset-0 flex items-center px-3 py-0 md:px-4 md:py-2.5 text-[16px] leading-normal md:text-sm font-sans select-none transition-opacity duration-300 ${
+      className={`pointer-events-none absolute inset-0 flex items-center whitespace-nowrap overflow-hidden px-3 py-0 md:px-4 md:py-2.5 text-[16px] leading-normal md:text-sm font-sans select-none transition-opacity duration-300 ${
         visible ? 'opacity-100' : 'opacity-0'
       }`}
       aria-hidden="true"
