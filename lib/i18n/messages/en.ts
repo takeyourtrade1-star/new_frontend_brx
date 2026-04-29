@@ -689,6 +689,7 @@ export const en = {
   'breadcrumb.search': 'Search',
   'breadcrumb.cart': 'Cart',
   'breadcrumb.aste': 'Auctions',
+  'breadcrumb.torneiLive': 'Live Tournaments',
   
   'breadcrumb.tcgExpress': 'BRX Express',
   'breadcrumb.aiuto': 'Help',

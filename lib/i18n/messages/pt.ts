@@ -690,6 +690,7 @@ export const pt: Record<MessageKey, string> = {
   'breadcrumb.search': 'Pesquisa',
   'breadcrumb.cart': 'Carrinho',
   'breadcrumb.aste': 'Leilões',
+  'breadcrumb.torneiLive': 'Torneios ao vivo',
   
   'breadcrumb.tcgExpress': 'BRX Express',
   'breadcrumb.aiuto': 'Ajuda',
