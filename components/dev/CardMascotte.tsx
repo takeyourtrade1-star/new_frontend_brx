@@ -2808,7 +2808,7 @@ export function CardMascotte() {
             <div className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-[#FF7300] border-2 border-white" />
           </div>
           
-          <div className="absolute -bottom-2 px-2.5 py-0.5 rounded-full bg-[#FF7300] text-white text-[9px] font-bold tracking-[0.2em] border border-white shadow-md z-10 font-comodo">
+          <div className="absolute -bottom-2 px-2.5 py-0.5 rounded-full bg-[#FF7300] text-white text-[9px] font-bold tracking-[0.2em] border border-white shadow-md z-10 font-comodo animate-asso-text">
             ASSO
           </div>
         </button>
@@ -4159,6 +4159,13 @@ export function CardMascotte() {
         @keyframes asso-pulse-intense-gray {
           0%, 100% { box-shadow: 0 -1px 6px rgba(75,85,99,0.3), inset 0 -1px 0 rgba(255,255,255,0.3), 0 0 12px rgba(156,163,175,0.4); }
           50% { box-shadow: 0 -1px 10px rgba(75,85,99,0.5), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 18px rgba(156,163,175,0.6), 0 0 24px rgba(75,85,99,0.25); }
+        }
+        @keyframes asso-text-glow {
+          0%, 100% { text-shadow: 0 0 2px rgba(255, 255, 255, 0.4), 0 0 4px rgba(255, 255, 255, 0.2); }
+          50% { text-shadow: 0 0 6px rgba(255, 255, 255, 0.9), 0 0 12px rgba(255, 255, 255, 0.7); }
+        }
+        .animate-asso-text {
+          animation: asso-text-glow 2.5s ease-in-out infinite;
         }
         @keyframes asso-pulse-intense-pink {
           0%, 100% { box-shadow: 0 -1px 6px rgba(236,72,153,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(244,114,182,0.5); }
