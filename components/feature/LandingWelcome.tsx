@@ -147,6 +147,19 @@ export function LandingWelcome() {
     Object.fromEntries(getComingSoonGames().map((g) => [g.alt, g.waitlistCount]))
   );
   const [activeFeature, setActiveFeature] = useState<'aste' | 'tornei' | 'brx'>('aste');
+  const [isFeatureHovered, setIsFeatureHovered] = useState(false);
+
+  useEffect(() => {
+    if (isFeatureHovered) return;
+    const features: Array<'aste' | 'tornei' | 'brx'> = ['aste', 'tornei', 'brx'];
+    const timer = setTimeout(() => {
+      setActiveFeature((prev) => {
+        const currentIndex = features.indexOf(prev);
+        return features[(currentIndex + 1) % features.length];
+      });
+    }, 7000);
+    return () => clearTimeout(timer);
+  }, [activeFeature, isFeatureHovered]);
 
   /* ─── handlers ─── */
   const handleCloseFullscreen = useCallback(() => {
@@ -365,7 +378,11 @@ export function LandingWelcome() {
             </Link>
 
             {/* ──── RIGHT: FEATURE CAROUSEL ──── */}
-            <div className="flex flex-col gap-3 sm:gap-4 min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px]">
+            <div 
+              className="flex flex-col gap-3 sm:gap-4 min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px]"
+              onMouseEnter={() => setIsFeatureHovered(true)}
+              onMouseLeave={() => setIsFeatureHovered(false)}
+            >
               {/* 3 Buttons */}
               <div className="flex gap-2.5 sm:gap-3">
                 {(['aste', 'tornei', 'brx'] as const).map((key) => {

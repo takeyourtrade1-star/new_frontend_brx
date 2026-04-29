@@ -321,10 +321,10 @@ export function CardMascotte() {
   // Safe mount check
   const [isMounted, setIsMounted] = useState(false);
   const [hasError] = useState(false);
-  
+
   useEffect(() => {
     setIsMounted(true);
-    
+
     // Check if user has interacted with Asso before
     try {
       const hasSeenBefore = localStorage.getItem('brx_asso_interacted');
@@ -339,22 +339,22 @@ export function CardMascotte() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [hasConsoleLogs, setHasConsoleLogs] = useState(false);
-  
+
   // Flash animation state for screenshot
   const [showFlash, setShowFlash] = useState(false);
-  
+
   // Screenshot preview thumbnail state
   const [showScreenshotPreview, setShowScreenshotPreview] = useState(false);
 
   // Chat flow state
   const [chatStep, setChatStep] = useState<'greeting' | 'menu' | 'bug' | 'contact'>('greeting');
-  const [chatMessages, setChatMessages] = useState<Array<{type: 'asso' | 'user', text: string}>>([]);
+  const [chatMessages, setChatMessages] = useState<Array<{ type: 'asso' | 'user', text: string }>>([]);
   const [showChatModal, setShowChatModal] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  
+
   // First interaction tracking for personalized greetings
   const [hasInteractedBefore, setHasInteractedBefore] = useState(false);
-  
+
   // Typewriter effect state
   const [typewriterText, setTypewriterText] = useState('');
   const [isTypewriting, setIsTypewriting] = useState(false);
@@ -478,7 +478,7 @@ export function CardMascotte() {
   const backFaceRef = useRef<HTMLDivElement>(null);
   const gameModeMenuRef = useRef<HTMLDivElement>(null);
   const playButtonRef = useRef<HTMLButtonElement>(null);
-  const [menuPosition, setMenuPosition] = useState<{top: number; left: number} | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const matchmakingTicketRef = useRef<string | null>(null);
   const matchmakingPollRef = useRef<number | null>(null);
 
@@ -498,13 +498,13 @@ export function CardMascotte() {
   // Close game mode menu when clicking outside
   useEffect(() => {
     if (!showGameModeMenu) return;
-    
+
     const handleClickOutside = (event: MouseEvent) => {
       if (gameModeMenuRef.current && !gameModeMenuRef.current.contains(event.target as Node)) {
         setShowGameModeMenu(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showGameModeMenu]);
@@ -541,7 +541,7 @@ export function CardMascotte() {
     } else if (mascotteExpression === 'shocked') {
       setMascotteExpression('normal');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [equippedItems.accessories]);
 
   useEffect(() => {
@@ -678,7 +678,7 @@ export function CardMascotte() {
   };
 
   const vibrate = useCallback((pattern: number | number[]) => {
-    try { navigator?.vibrate?.(pattern); } catch {}
+    try { navigator?.vibrate?.(pattern); } catch { }
   }, []);
 
   const FLIP_STORAGE_KEY = 'brx_mascotte_flips';
@@ -718,7 +718,7 @@ export function CardMascotte() {
     try {
       const stored = localStorage.getItem(FLIP_STORAGE_KEY);
       if (stored) setFlipCount(parseInt(stored, 10) || 0);
-    } catch {}
+    } catch { }
   }, []);
 
   const playFlipSound = useCallback((combo: number) => {
@@ -784,7 +784,7 @@ export function CardMascotte() {
         bellG.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
         bell.start(now + 0.08); bell.stop(now + 0.42);
       }
-    } catch {}
+    } catch { }
   }, []);
 
   const playAchievementSound = useCallback(() => {
@@ -802,7 +802,7 @@ export function CardMascotte() {
         g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
         osc.start(now + i * 0.1); osc.stop(now + i * 0.1 + 0.35);
       });
-    } catch {}
+    } catch { }
   }, []);
 
   const playUnlockSound = useCallback(() => {
@@ -820,7 +820,7 @@ export function CardMascotte() {
         g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.4);
         osc.start(now + i * 0.08); osc.stop(now + i * 0.08 + 0.45);
       });
-    } catch {}
+    } catch { }
   }, []);
 
   const playFanfareSound = useCallback(() => {
@@ -854,7 +854,7 @@ export function CardMascotte() {
         g.gain.exponentialRampToValueAtTime(0.01, t + 1.2);
         osc.start(t); osc.stop(t + 1.3);
       });
-    } catch {}
+    } catch { }
   }, []);
 
   const spawnGoldenConfetti = useCallback(() => {
@@ -896,7 +896,7 @@ export function CardMascotte() {
         g.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
         osc.start(t); osc.stop(t + 0.4);
       });
-    } catch {}
+    } catch { }
   }, []);
 
   // Spawn particles — more particles for higher combos
@@ -960,7 +960,7 @@ export function CardMascotte() {
 
     const newCount = flipCount + 1;
     setFlipCount(newCount);
-    try { localStorage.setItem(FLIP_STORAGE_KEY, String(newCount)); } catch {}
+    try { localStorage.setItem(FLIP_STORAGE_KEY, String(newCount)); } catch { }
 
     // Pick random unlocked variant
     const available = BACK_VARIANTS.filter(v => newCount >= v.unlock);
@@ -985,7 +985,7 @@ export function CardMascotte() {
             unlockTimeoutRef.current = null;
           }, 3000);
         }
-      } catch {}
+      } catch { }
     }
 
     // Check achievements
@@ -1018,7 +1018,7 @@ export function CardMascotte() {
         setCopiedShare(true);
         setTimeout(() => setCopiedShare(false), 1800);
       }
-    } catch {}
+    } catch { }
   }, [flipCount, getCurrentTitle, vibrate]);
 
   // ── Touch swipe (mobile) ──
@@ -1302,10 +1302,10 @@ export function CardMascotte() {
   // Mobile hide state (mascotte moves 80% off-screen when hidden)
   const [isMobileHidden, setIsMobileHidden] = useState(false);
   const hasInitializedMobileHide = useRef(false);
-  
+
   // Mobile detection state for flip behavior
   const [isMobileView, setIsMobileView] = useState(false);
-  
+
   useEffect(() => {
     const checkMobile = () => {
       const isMobile = window.innerWidth < 640;
@@ -1376,11 +1376,11 @@ export function CardMascotte() {
 
     setIsTypewriting(true);
     setTypewriterText('');
-    
+
     let currentIndex = 0;
     // Use code points instead of split('') to avoid broken glyphs while typing.
     const chars = Array.from(fullText);
-    
+
     const typeNextChar = () => {
       if (sequenceId !== typewriterSequenceRef.current) {
         return;
@@ -1389,11 +1389,11 @@ export function CardMascotte() {
       if (currentIndex < chars.length) {
         setTypewriterText(chars.slice(0, currentIndex + 1).join(''));
         currentIndex++;
-        
+
         // Variable typing speed for natural feel (faster for spaces, slower for punctuation)
         const char = chars[currentIndex - 1];
         const delay = char === ' ' ? 20 : char === '.' || char === '!' || char === '?' ? 120 : 35;
-        
+
         typewriterTimeoutRef.current = window.setTimeout(typeNextChar, delay);
       } else {
         typewriterTimeoutRef.current = null;
@@ -1401,7 +1401,7 @@ export function CardMascotte() {
         onComplete();
       }
     };
-    
+
     typewriterTimeoutRef.current = window.setTimeout(typeNextChar, 150);
   }, []);
 
@@ -1415,10 +1415,10 @@ export function CardMascotte() {
     setChatStep('greeting');
     // Reset messages immediately to prevent showing stale messages from previous session
     setChatMessages([]);
-    
+
     // Select random welcome message
     const selectedMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
-    
+
     // Show typing indicator briefly, then start typewriter
     setIsTyping(true);
 
@@ -1426,18 +1426,18 @@ export function CardMascotte() {
       window.clearTimeout(greetingTimeoutRef.current);
       greetingTimeoutRef.current = null;
     }
-    
+
     greetingTimeoutRef.current = window.setTimeout(() => {
       greetingTimeoutRef.current = null;
       setIsTyping(false);
-      
+
       // Start typewriter effect
       startTypewriterEffect(selectedMessage, () => {
         // After typewriter completes, show the full message in chat and proceed to menu
         setChatMessages([{ type: 'asso', text: selectedMessage }]);
         setTimeout(() => setChatStep('menu'), 600);
       });
-      
+
       // Mark as interacted for future visits
       try {
         localStorage.setItem('brx_asso_interacted', 'true');
@@ -1487,24 +1487,24 @@ export function CardMascotte() {
   const playOpenSound = () => {
     try {
       const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-      
+
       // Create oscillator for a pleasant "pop" sound
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
+
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
+
       // Sound configuration - soft pop
       oscillator.type = 'sine';
       oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
       oscillator.frequency.exponentialRampToValueAtTime(300, audioContext.currentTime + 0.15);
-      
+
       // Volume envelope
       gainNode.gain.setValueAtTime(0, audioContext.currentTime);
       gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.02);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-      
+
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.15);
     } catch {
@@ -1515,28 +1515,28 @@ export function CardMascotte() {
   const playSuccessSound = () => {
     try {
       const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-      
+
       // Create oscillators for a pleasant "success" chord
       const osc1 = audioContext.createOscillator();
       const osc2 = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
+
       osc1.connect(gainNode);
       osc2.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
+
       // Success chord - C major (523.25Hz + 659.25Hz)
       osc1.type = 'sine';
       osc1.frequency.setValueAtTime(523.25, audioContext.currentTime);
-      
+
       osc2.type = 'sine';
       osc2.frequency.setValueAtTime(659.25, audioContext.currentTime);
-      
+
       // Volume envelope - brighter and longer than open sound
       gainNode.gain.setValueAtTime(0, audioContext.currentTime);
       gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.05);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-      
+
       osc1.start(audioContext.currentTime);
       osc2.start(audioContext.currentTime);
       osc1.stop(audioContext.currentTime + 0.4);
@@ -1564,17 +1564,17 @@ export function CardMascotte() {
       }
       const noise = audioContext.createBufferSource();
       noise.buffer = noiseBuffer;
-      
+
       // Sharper bandpass filter
       const noiseFilter = audioContext.createBiquadFilter();
       noiseFilter.type = 'bandpass';
       noiseFilter.frequency.value = 4000;
       noiseFilter.Q.value = 0.8;
-      
+
       const noiseGain = audioContext.createGain();
       noiseGain.gain.setValueAtTime(0.9, now);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-      
+
       noise.connect(noiseFilter);
       noiseFilter.connect(noiseGain);
       noiseGain.connect(masterGain);
@@ -1586,16 +1586,16 @@ export function CardMascotte() {
       clickOsc.type = 'square';
       clickOsc.frequency.setValueAtTime(2800, now);
       clickOsc.frequency.exponentialRampToValueAtTime(1200, now + 0.025);
-      
+
       const clickFilter = audioContext.createBiquadFilter();
       clickFilter.type = 'highpass';
       clickFilter.frequency.value = 2000;
-      
+
       const clickGain = audioContext.createGain();
       clickGain.gain.setValueAtTime(0, now);
       clickGain.gain.linearRampToValueAtTime(0.9, now + 0.0003);
       clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
-      
+
       clickOsc.connect(clickFilter);
       clickFilter.connect(clickGain);
       clickGain.connect(masterGain);
@@ -1607,16 +1607,16 @@ export function CardMascotte() {
       thudOsc.type = 'sawtooth';
       thudOsc.frequency.setValueAtTime(200, now + 0.002);
       thudOsc.frequency.exponentialRampToValueAtTime(80, now + 0.02);
-      
+
       const thudFilter = audioContext.createBiquadFilter();
       thudFilter.type = 'lowpass';
       thudFilter.frequency.value = 500;
-      
+
       const thudGain = audioContext.createGain();
       thudGain.gain.setValueAtTime(0, now + 0.002);
       thudGain.gain.linearRampToValueAtTime(0.7, now + 0.003);
       thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
-      
+
       thudOsc.connect(thudFilter);
       thudFilter.connect(thudGain);
       thudGain.connect(masterGain);
@@ -1628,12 +1628,12 @@ export function CardMascotte() {
       transientOsc.type = 'sine';
       transientOsc.frequency.setValueAtTime(4000, now);
       transientOsc.frequency.exponentialRampToValueAtTime(2000, now + 0.01);
-      
+
       const transientGain = audioContext.createGain();
       transientGain.gain.setValueAtTime(0, now);
       transientGain.gain.linearRampToValueAtTime(0.4, now + 0.0005);
       transientGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
-      
+
       transientOsc.connect(transientGain);
       transientGain.connect(masterGain);
       transientOsc.start(now);
@@ -1644,16 +1644,16 @@ export function CardMascotte() {
       click2Osc.type = 'square';
       click2Osc.frequency.setValueAtTime(3000, now + 0.008);
       click2Osc.frequency.exponentialRampToValueAtTime(1500, now + 0.02);
-      
+
       const click2Filter = audioContext.createBiquadFilter();
       click2Filter.type = 'highpass';
       click2Filter.frequency.value = 2500;
-      
+
       const click2Gain = audioContext.createGain();
       click2Gain.gain.setValueAtTime(0, now + 0.008);
       click2Gain.gain.linearRampToValueAtTime(0.6, now + 0.0085);
       click2Gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
-      
+
       click2Osc.connect(click2Filter);
       click2Filter.connect(click2Gain);
       click2Gain.connect(masterGain);
@@ -1719,7 +1719,7 @@ export function CardMascotte() {
       const dy = Math.sin(angle) * maxOffset * factor;
 
       const pupils = faceContainerRef.current.querySelectorAll('.pupil');
-      
+
       pupils.forEach((pupil) => {
         (pupil as SVGElement).style.transition = 'transform 0.12s ease-out';
         (pupil as SVGElement).style.transform = `translate(${dx}px, ${dy}px)`;
@@ -1727,7 +1727,7 @@ export function CardMascotte() {
     };
 
     document.addEventListener('mousemove', handleMouseMove);
-    
+
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
     };
@@ -1740,7 +1740,7 @@ export function CardMascotte() {
     setCodingStatus('received');
 
     setSubmitted(true);
-    
+
     // Clear stored data
     try {
       localStorage.removeItem(BUG_REPORT_STORAGE.SCREENSHOT);
@@ -1750,7 +1750,7 @@ export function CardMascotte() {
     } catch (e) {
       console.error('Failed to clear storage:', e);
     }
-    
+
     if (submitFeedbackTimeoutRef.current !== null) {
       window.clearTimeout(submitFeedbackTimeoutRef.current);
     }
@@ -1808,7 +1808,7 @@ export function CardMascotte() {
       // Temporarily hide the modal and mascot for clean screenshot
       const modalWasOpen = isModalOpen;
       setIsModalOpen(false);
-      
+
       // Hide mascot elements
       if (cardRef.current) {
         cardRef.current.style.visibility = 'hidden';
@@ -1896,14 +1896,14 @@ export function CardMascotte() {
   // Keep expression in sync with current overlay state + sleep mode
   useEffect(() => {
     // Priority: sleep > coding > modal > chat > normal
-    const nextExpression = isSleeping 
-      ? 'sleeping' 
-      : isCodingTransition 
-        ? 'bugReport' 
-        : isModalOpen 
-          ? (isBugFormFocused ? 'bugFocus' : 'bugReport') 
-          : showChatModal 
-            ? 'wink' 
+    const nextExpression = isSleeping
+      ? 'sleeping'
+      : isCodingTransition
+        ? 'bugReport'
+        : isModalOpen
+          ? (isBugFormFocused ? 'bugFocus' : 'bugReport')
+          : showChatModal
+            ? 'wink'
             : 'normal';
 
     if (mascotteExpression === nextExpression) {
@@ -1945,7 +1945,7 @@ export function CardMascotte() {
       const wasOpen = isExternalModalOpen;
       const isOpen = document.body.classList.contains('auction-bid-modal-open');
       setIsExternalModalOpen(isOpen);
-      
+
       // Trigger reappear animation when modal closes
       if (wasOpen && !isOpen) {
         setJustReappeared(true);
@@ -2143,37 +2143,37 @@ export function CardMascotte() {
     try {
       const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       const now = ctx.currentTime;
-      
+
       // Create oscillator for gentle hum
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       const filter = ctx.createBiquadFilter();
-      
+
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(ctx.destination);
-      
+
       // Low frequency for sleep breathing effect
       osc.type = 'sine';
       osc.frequency.setValueAtTime(120, now);
       osc.frequency.exponentialRampToValueAtTime(80, now + 2);
-      
+
       // Lowpass filter for muffled sound
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(400, now);
-      
+
       // Gentle volume envelope - rhythmic breathing
       gain.gain.setValueAtTime(0, now);
       gain.gain.linearRampToValueAtTime(0.03, now + 0.5);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
-      
+
       osc.start(now);
       osc.stop(now + 2.5);
-      
+
       // Store refs for stopping
       snoreOscillatorRef.current = osc;
       snoreGainRef.current = gain;
-    } catch {}
+    } catch { }
   }, [isSleepMuted]);
 
   // Stop snore sound
@@ -2183,7 +2183,7 @@ export function CardMascotte() {
         snoreOscillatorRef.current.stop();
         snoreOscillatorRef.current = null;
       }
-    } catch {}
+    } catch { }
   }, []);
 
   // Mouse inactivity tracking for sleep mode - defined after isOverlayVisible and isFlipped
@@ -2199,7 +2199,7 @@ export function CardMascotte() {
           setTotalSleepMs(newTotal);
           try {
             localStorage.setItem('brx_asso_sleep_ms', String(newTotal));
-          } catch {}
+          } catch { }
           sleepStartTimeRef.current = null;
         }
         setIsSleeping(false);
@@ -2249,7 +2249,7 @@ export function CardMascotte() {
     setIsSleepMuted(newMuted);
     try {
       localStorage.setItem('brx_asso_sleep_muted', String(newMuted));
-    } catch {}
+    } catch { }
     vibrate(10);
   }, [isSleepMuted, vibrate]);
 
@@ -2465,9 +2465,9 @@ export function CardMascotte() {
                       </p>
                     </div>
                     {unlocked ? (
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
                     ) : (
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#52525b" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#52525b" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
                     )}
                   </div>
                 );
@@ -2493,138 +2493,135 @@ export function CardMascotte() {
             <div className="pointer-events-none absolute -bottom-10 -right-8 h-28 w-28 rounded-full bg-[#ff7300]/25 blur-2xl" />
 
             <div className="relative z-[1]">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/85">Guardaroba</span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    clearWardrobeItems();
-                  }}
-                  className="rounded-full border border-white/35 bg-white/15 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white/90 transition hover:bg-white/25"
-                >
-                  Reset
-                </button>
-                <button
-                  type="button"
-                  onClick={handleWardrobeDone}
-                  className="rounded-full border border-[#FFB26B]/70 bg-gradient-to-r from-[#FF7300]/95 to-[#FFA246]/90 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white shadow-[0_6px_14px_rgba(255,115,0,0.35)] transition hover:brightness-110"
-                >
-                  Fatto
-                </button>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/85">Guardaroba</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearWardrobeItems();
+                    }}
+                    className="rounded-full border border-white/35 bg-white/15 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white/90 transition hover:bg-white/25"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleWardrobeDone}
+                    className="rounded-full border border-[#FFB26B]/70 bg-gradient-to-r from-[#FF7300]/95 to-[#FFA246]/90 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white shadow-[0_6px_14px_rgba(255,115,0,0.35)] transition hover:brightness-110"
+                  >
+                    Fatto
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="mb-2 grid grid-cols-4 gap-1">
-              {(['clothing', 'accessories', 'objects', 'color'] as const).map((category) => (
-                <button
-                  key={category}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setWardrobeCategory(category);
-                  }}
-                  className={`min-w-0 overflow-hidden rounded-lg border px-1 py-1 text-[7px] font-bold uppercase leading-none tracking-[0.01em] transition ${
-                    wardrobeCategory === category
-                      ? 'border-white/40 bg-gradient-to-r from-[#FF7300]/95 to-[#FFA246]/90 text-white shadow-[0_6px_16px_rgba(255,115,0,0.35)]'
-                      : 'border-white/15 bg-black/20 text-white/75 hover:border-white/30 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  <span className="block w-full truncate">
-                    {category === 'clothing'
-                      ? 'Abiti'
-                      : category === 'accessories'
-                      ? 'Accessori'
-                      : category === 'objects'
-                      ? 'Oggetti'
-                      : 'Colore'}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            {wardrobeCategory === 'color' ? (
-              <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/10 bg-black/15 p-1.5 sm:grid-cols-3">
-                {FACE_COLOR_OPTIONS.map((option) => {
-                  const isActive = equippedItems.faceColor === option.id;
-
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isActive) return;
-                        pendingStyleReactionSourceRef.current = 'color';
-                        setEquippedItems((prev) => ({ ...prev, faceColor: option.id }));
-                      }}
-                      className={`flex items-center rounded-lg border px-2 py-1.5 text-left transition ${
-                        isActive
-                          ? 'border-[#FFB26B]/80 bg-[#FF7300]/30 text-white shadow-[0_8px_18px_rgba(255,115,0,0.25)]'
-                          : 'border-white/15 bg-black/20 text-white/85 hover:border-white/30 hover:bg-white/10'
+              <div className="mb-2 grid grid-cols-4 gap-1">
+                {(['clothing', 'accessories', 'objects', 'color'] as const).map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setWardrobeCategory(category);
+                    }}
+                    className={`min-w-0 overflow-hidden rounded-lg border px-1 py-1 text-[7px] font-bold uppercase leading-none tracking-[0.01em] transition ${wardrobeCategory === category
+                        ? 'border-white/40 bg-gradient-to-r from-[#FF7300]/95 to-[#FFA246]/90 text-white shadow-[0_6px_16px_rgba(255,115,0,0.35)]'
+                        : 'border-white/15 bg-black/20 text-white/75 hover:border-white/30 hover:bg-white/10 hover:text-white'
                       }`}
-                    >
-                      <span className="flex items-center gap-1.5 truncate text-[9px] font-semibold">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{
-                            backgroundColor: option.line,
-                            boxShadow: `0 0 8px ${option.glowMid}`,
-                          }}
-                        />
-                        {option.name}
-                      </span>
-                    </button>
-                  );
-                })}
+                  >
+                    <span className="block w-full truncate">
+                      {category === 'clothing'
+                        ? 'Abiti'
+                        : category === 'accessories'
+                          ? 'Accessori'
+                          : category === 'objects'
+                            ? 'Oggetti'
+                            : 'Colore'}
+                    </span>
+                  </button>
+                ))}
               </div>
-            ) : (
-              <div className="max-h-[250px] overflow-y-auto rounded-xl border border-white/10 bg-black/15 p-1.5 pr-1">
-                <div className="grid grid-cols-3 gap-1.5">
-                  {visibleWardrobeItems.map((item) => {
-                    const equipped = isWardrobeItemEquipped(item);
-                    const thumbSrc = wardrobeThumbById.get(item.id);
+
+              {wardrobeCategory === 'color' ? (
+                <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/10 bg-black/15 p-1.5 sm:grid-cols-3">
+                  {FACE_COLOR_OPTIONS.map((option) => {
+                    const isActive = equippedItems.faceColor === option.id;
 
                     return (
                       <button
-                        key={item.id}
+                        key={option.id}
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleWardrobeItem(item);
+                          if (isActive) return;
+                          pendingStyleReactionSourceRef.current = 'color';
+                          setEquippedItems((prev) => ({ ...prev, faceColor: option.id }));
                         }}
-                        className={`group flex min-h-[78px] flex-col items-center justify-center gap-1 rounded-lg border px-1 py-1.5 text-center transition ${
-                          equipped
-                            ? 'border-[#FFB26B]/80 bg-[linear-gradient(155deg,rgba(255,150,70,0.38)_0%,rgba(255,115,0,0.28)_55%,rgba(0,0,0,0.38)_100%)] text-white shadow-[0_10px_22px_rgba(255,115,0,0.28)]'
-                            : 'border-white/15 bg-[linear-gradient(160deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.02)_45%,rgba(0,0,0,0.32)_100%)] text-white/85 hover:border-white/30 hover:bg-white/10'
-                        }`}
+                        className={`flex items-center rounded-lg border px-2 py-1.5 text-left transition ${isActive
+                            ? 'border-[#FFB26B]/80 bg-[#FF7300]/30 text-white shadow-[0_8px_18px_rgba(255,115,0,0.25)]'
+                            : 'border-white/15 bg-black/20 text-white/85 hover:border-white/30 hover:bg-white/10'
+                          }`}
                       >
-                        <span className={`relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border ${equipped ? 'border-white/40 bg-white/25' : 'border-white/20 bg-white/10'}`}>
-                          <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_58%)]" />
-                          {thumbSrc ? (
-                            <img
-                              src={thumbSrc}
-                              alt=""
-                              aria-hidden="true"
-                              className="h-8 w-8 object-contain"
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          ) : (
-                            <Sparkles className="h-4 w-4 text-white/80" />
-                          )}
-                        </span>
-                        <span className="w-full truncate text-[8px] font-semibold leading-tight">{item.name}</span>
-                        <span className="text-[7px] uppercase tracking-wide text-white/50">
-                          {item.category === 'clothing' ? 'Tessuto' : item.category === 'accessories' ? 'Dettaglio' : 'Prop'}
+                        <span className="flex items-center gap-1.5 truncate text-[9px] font-semibold">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{
+                              backgroundColor: option.line,
+                              boxShadow: `0 0 8px ${option.glowMid}`,
+                            }}
+                          />
+                          {option.name}
                         </span>
                       </button>
                     );
                   })}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="max-h-[250px] overflow-y-auto rounded-xl border border-white/10 bg-black/15 p-1.5 pr-1">
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {visibleWardrobeItems.map((item) => {
+                      const equipped = isWardrobeItemEquipped(item);
+                      const thumbSrc = wardrobeThumbById.get(item.id);
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleWardrobeItem(item);
+                          }}
+                          className={`group flex min-h-[78px] flex-col items-center justify-center gap-1 rounded-lg border px-1 py-1.5 text-center transition ${equipped
+                              ? 'border-[#FFB26B]/80 bg-[linear-gradient(155deg,rgba(255,150,70,0.38)_0%,rgba(255,115,0,0.28)_55%,rgba(0,0,0,0.38)_100%)] text-white shadow-[0_10px_22px_rgba(255,115,0,0.28)]'
+                              : 'border-white/15 bg-[linear-gradient(160deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.02)_45%,rgba(0,0,0,0.32)_100%)] text-white/85 hover:border-white/30 hover:bg-white/10'
+                            }`}
+                        >
+                          <span className={`relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border ${equipped ? 'border-white/40 bg-white/25' : 'border-white/20 bg-white/10'}`}>
+                            <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_58%)]" />
+                            {thumbSrc ? (
+                              <img
+                                src={thumbSrc}
+                                alt=""
+                                aria-hidden="true"
+                                className="h-8 w-8 object-contain"
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            ) : (
+                              <Sparkles className="h-4 w-4 text-white/80" />
+                            )}
+                          </span>
+                          <span className="w-full truncate text-[8px] font-semibold leading-tight">{item.name}</span>
+                          <span className="text-[7px] uppercase tracking-wide text-white/50">
+                            {item.category === 'clothing' ? 'Tessuto' : item.category === 'accessories' ? 'Dettaglio' : 'Prop'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2794,22 +2791,55 @@ export function CardMascotte() {
           aria-label="Apri Asso"
           title="Apri Asso"
         >
-          <div className="relative flex items-center justify-center rounded-full border border-orange-200 bg-white/95 backdrop-blur-md shadow-[0_8px_24px_rgba(255,115,0,0.3)] w-[56px] h-[56px]">
-            {/* Subtle orange glow inside */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#FF7300]/10 to-transparent pointer-events-none" />
-            
-            {/* Outer ring animation */}
-            <div className="absolute inset-0 rounded-full border border-[#FF7300]/40" style={{ animation: 'promoPulse 2s ease-in-out infinite' }} />
-
-            {/* Face wrapper */}
-            <div className="relative w-10 h-10 mt-1 drop-shadow-sm" dangerouslySetInnerHTML={{ __html: faceSVG }} />
-
-            {/* Unread indicator */}
-            <div className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-[#FF7300] border-2 border-white" />
+          {/* ── LIQUID GRADIENT ORB AURA ── */}
+          <div className="absolute pointer-events-none" style={{ inset: '-24px', overflow: 'visible' }}>
+            {/* Blob primario */}
+            <div 
+              className="absolute"
+              style={{
+                width: '72px',
+                height: '72px',
+                left: '50%',
+                top: '50%',
+                marginLeft: '-36px',
+                marginTop: '-36px',
+                background: 'radial-gradient(circle at 40% 40%, #FFBA6B, #FF7300 55%, #E65C00)',
+                filter: 'blur(8px)',
+                animation: 'assoOrbMorph1 5s ease-in-out infinite',
+              }}
+            />
+            {/* Blob secondario */}
+            <div 
+              className="absolute"
+              style={{
+                width: '64px',
+                height: '64px',
+                left: '50%',
+                top: '50%',
+                marginLeft: '-32px',
+                marginTop: '-32px',
+                background: 'radial-gradient(circle at 65% 65%, #FFD699, #FF9A40 55%, #FF7300)',
+                filter: 'blur(6px)',
+                animation: 'assoOrbMorph2 6s ease-in-out infinite',
+              }}
+            />
           </div>
-          
-          <div className="absolute -bottom-2 px-2.5 py-0.5 rounded-full bg-[#FF7300] text-white text-[9px] font-bold tracking-[0.2em] border border-white shadow-md z-10 font-comodo animate-asso-text">
-            ASSO
+
+          {/* Corpicino sfumato arancione */}
+          <div className="relative flex items-center justify-center rounded-full w-[56px] h-[56px] bg-gradient-to-br from-[#FF9A40] via-[#FF7300] to-[#E65C00] overflow-hidden border border-white/20" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}>
+            
+            {/* Riflesso di luce interno */}
+            <div className="absolute -top-1 -left-1 w-10 h-10 bg-white/20 rounded-full blur-xl" />
+
+            {/* Solo occhietti carini */}
+            <div className="relative w-12 h-12 drop-shadow-md">
+              <svg viewBox="0 0 100 100" fill="none">
+                <ellipse cx="38" cy="46" rx="6.5" ry="11" fill="rgba(0,0,0,0.15)" />
+                <ellipse cx="62" cy="46" rx="6.5" ry="11" fill="rgba(0,0,0,0.15)" />
+                <ellipse cx="38" cy="44" rx="6.5" ry="11" fill="#ffffff" />
+                <ellipse cx="62" cy="44" rx="6.5" ry="11" fill="#ffffff" />
+              </svg>
+            </div>
           </div>
         </button>
       )}
@@ -2893,369 +2923,367 @@ export function CardMascotte() {
           }}
         >
 
-        {/* ── FRONT FACE ── */}
-        <div
-          className="mascotte-flip-face absolute inset-0"
-          style={{ 
-            backfaceVisibility: isMobileView && isFlipped ? 'visible' : 'hidden', 
-            pointerEvents: isFlipped ? 'none' : 'auto',
-            opacity: isMobileView && isFlipped ? 0.3 : 1,
-            transform: isMobileView && isFlipped ? 'rotateY(-30deg)' : 'rotateY(0deg)',
-            transition: isMobileView ? 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease' : 'none',
-          }}
-        >
-        {/* Card container — soft charm style */}
-        <div
-          className="relative h-full w-full overflow-visible rounded-2xl"
-          style={{ background: 'transparent' }}
-        >
-          {/* Soft warm glow */}
+          {/* ── FRONT FACE ── */}
           <div
-            className="pointer-events-none absolute rounded-2xl"
+            className="mascotte-flip-face absolute inset-0"
             style={{
-              inset: '-3px',
-              zIndex: 0,
-              boxShadow: isShiny
-                ? '0 0 28px rgba(168,85,247,0.5), 0 0 56px rgba(59,130,246,0.3), 0 0 84px rgba(236,72,153,0.2)'
-                : `0 6px 24px ${selectedFaceColor.glowSoft}, 0 2px 8px rgba(0,0,0,0.15)`,
-              transition: 'box-shadow 300ms ease',
+              backfaceVisibility: isMobileView && isFlipped ? 'visible' : 'hidden',
+              pointerEvents: isFlipped ? 'none' : 'auto',
+              opacity: isMobileView && isFlipped ? 0.3 : 1,
+              transform: isMobileView && isFlipped ? 'rotateY(-30deg)' : 'rotateY(0deg)',
+              transition: isMobileView ? 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease' : 'none',
             }}
-          />
-
-          {/* Shiny rainbow border overlay */}
-          {isShiny && (
-            <div
-              className="pointer-events-none absolute shiny-border-anim"
-              style={{
-                inset: '-3px',
-                zIndex: 12,
-                borderRadius: '18px',
-                padding: '2.5px',
-                background: 'conic-gradient(from var(--shiny-angle, 0deg), #f43f5e, #f59e0b, #22c55e, #3b82f6, #a855f7, #ec4899, #f43f5e)',
-                WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                WebkitMaskComposite: 'xor',
-                maskComposite: 'exclude',
-              }}
-            />
-          )}
-
-          {/* Thin soft border */}
-          <div
-            className="pointer-events-none absolute rounded-2xl"
-            style={{
-              inset: '0px',
-              zIndex: 2,
-              padding: '1.5px',
-              background: `linear-gradient(160deg, ${selectedFaceColor.glowMid} 0%, ${selectedFaceColor.glowStrong} 50%, ${selectedFaceColor.glowMid} 100%)`,
-              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-              WebkitMaskComposite: 'xor',
-              maskComposite: 'exclude',
-            }}
-          />
-
-          {/* Bottom pill badge — ASSO */}
-          <div
-            className={`pointer-events-none absolute left-1/2 -translate-x-1/2 ${isCardHovered ? 'asso-pill-hovered' : ''}`}
-            style={{ bottom: '5px', zIndex: 8 }}
           >
+            {/* Card container — soft charm style */}
             <div
-              className={`relative flex items-center justify-center overflow-full asso-pill-${mascotteExpression}`}
-              style={{
-                height: '14px',
-                paddingInline: '8px',
-                background: mascotteExpression === 'bugReport' || mascotteExpression === 'bugFocus'
-                  ? 'linear-gradient(180deg, #DC2626 0%, #EF4444 100%)'
-                  : mascotteExpression === 'coding'
-                  ? 'linear-gradient(180deg, #7C3AED 0%, #A78BFA 100%)'
-                  : mascotteExpression === 'sleeping'
-                  ? 'linear-gradient(180deg, #4B5563 0%, #9CA3AF 100%)'
-                  : mascotteExpression === 'wink'
-                  ? 'linear-gradient(180deg, #EC4899 0%, #F472B6 100%)'
-                  : 'linear-gradient(180deg, #FF7300 0%, #FF9A40 100%)',
-                boxShadow: mascotteExpression === 'bugReport' || mascotteExpression === 'bugFocus'
-                  ? '0 -1px 4px rgba(220,38,38,0.3), inset 0 -1px 0 rgba(255,255,255,0.25)'
-                  : mascotteExpression === 'coding'
-                  ? '0 -1px 4px rgba(124,58,237,0.3), inset 0 -1px 0 rgba(255,255,255,0.25)'
-                  : mascotteExpression === 'sleeping'
-                  ? '0 -1px 4px rgba(75,85,99,0.2), inset 0 -1px 0 rgba(255,255,255,0.2)'
-                  : mascotteExpression === 'wink'
-                  ? '0 -1px 4px rgba(236,72,153,0.3), inset 0 -1px 0 rgba(255,255,255,0.25)'
-                  : '0 -1px 4px rgba(255,100,0,0.2), inset 0 -1px 0 rgba(255,255,255,0.25)',
-                animation: 'asso-pulse 3s ease-in-out infinite',
-                borderRadius: '9999px',
-              }}
+              className="relative h-full w-full overflow-visible rounded-2xl"
+              style={{ background: 'transparent' }}
             >
-              <span
-                className="font-comodo text-[7.5px] font-bold leading-none"
-                style={{
-                  color: '#fff',
-                  textShadow: mascotteExpression === 'sleeping'
-                    ? '0 1px 1px rgba(30,30,30,0.35)'
-                    : '0 1px 1px rgba(100,30,0,0.45)',
-                  letterSpacing: '0.2em',
-                  marginLeft: '0.1em',
-                }}
-              >
-                {mascotteExpression === 'sleeping' ? 'Zzz' : 'ASSO'}
-              </span>
-            </div>
-          </div>
-
-          {/* Face SVG — parallax offset on hover */}
-          <div
-            ref={faceContainerRef}
-            className={`absolute flex items-center justify-center ${isModalOpen ? 'face-glint-active' : ''} face-fixed-neon`}
-            style={{
-              top: '4px',
-              bottom: '4px',
-              left: '3px',
-              right: '3px',
-              zIndex: 5,
-              transition: 'transform 120ms ease-out, opacity 500ms ease-in-out',
-              transform: mascotteExpression === 'wink'
-                ? `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2 - 2}px) rotate(-2deg)`
-                : `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2}px)`,
-              opacity: mascotteExpression === 'sleeping' ? 0.85 : 1,
-              filter: 'none',
-            }}
-            dangerouslySetInnerHTML={{
-              __html: mascotteExpression === 'bugFocus' ? faceBugFocusSVG :
-                      mascotteExpression === 'bugReport' ? faceBugReportSVG :
-                      mascotteExpression === 'wink' ? faceWinkSVG :
-                      mascotteExpression === 'coding' ? faceCodingSVG :
-                      mascotteExpression === 'sleeping' ? faceSleepSVG :
-                      mascotteExpression === 'shocked' ? faceShockedSVG :
-                      faceSVG
-            }}
-          />
-
-          {/* Wardrobe overlays aligned to 96x128 mascot base */}
-          {equippedWardrobeItems.map((item) => (
-            <div
-              key={item.id}
-              aria-hidden="true"
-              style={getItemOverlayStyle(item, equippedItems.objects)}
-            >
+              {/* Soft warm glow */}
               <div
-                className={`equipped-item-layer ${
-                  item.category === 'objects'
-                    ? 'equipped-item-float'
-                    : item.category === 'accessories'
-                    ? 'equipped-item-breathe'
-                    : ''
-                } ${getItemRenderClassName(item)}`}
+                className="pointer-events-none absolute rounded-2xl"
                 style={{
-                  width: '100%',
-                  height: '100%',
-                  ...getItemRenderEnhancementStyle(item),
-                }}
-                dangerouslySetInnerHTML={{ __html: item.svg }}
-              />
-            </div>
-          ))}
-
-          {/* Flip button: desktop on hover, mobile always visible when not flipped */}
-          {(isMobileView ? !isFlipped : isCardHovered && !isFlipped) && (
-            <button
-              onClick={handleFlipButtonClick}
-              className={`mascotte-flip-btn absolute z-[11] flex items-center justify-center rounded-full border text-white shadow-md backdrop-blur-sm transition-all hover:scale-110 hover:text-white ${
-                isMobileView
-                  ? 'h-8 w-8 border-white/45 bg-black/55 text-white'
-                  : 'h-5 w-5 border-white/20 bg-zinc-900/60 text-white/70 hover:bg-zinc-800/80'
-              }`}
-              style={isMobileView ? { bottom: '6px', left: '6px' } : { bottom: '3px', left: '3px' }}
-              title="Gira la carta"
-              aria-label="Gira la carta"
-            >
-              <svg
-                width={isMobileView ? '14' : '10'}
-                height={isMobileView ? '14' : '10'}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={isMobileView ? '2.2' : '2.5'}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" />
-              </svg>
-            </button>
-          )}
-        </div>
-        </div>{/* end front face */}
-
-        {/* ── BACK FACE ── */}
-        <div
-          ref={backFaceRef}
-          className="mascotte-flip-face absolute inset-0"
-          style={{ 
-            backfaceVisibility: isMobileView ? 'visible' : 'hidden', 
-            transform: isMobileView 
-              ? (isFlipped ? 'translateX(0)' : 'translateX(120%)')
-              : 'rotateY(180deg)',
-            opacity: isMobileView ? (isFlipped ? 1 : 0) : 1,
-            pointerEvents: isFlipped ? 'auto' : 'none',
-            transition: isMobileView 
-              ? 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 220ms ease' 
-              : 'none',
-          }}
-        >
-          <div
-            className="relative h-full w-full overflow-hidden rounded-2xl"
-            style={{ background: BACK_VARIANTS[backVariant].gradient }}
-          >
-            {/* Holographic overlay — GOLD only */}
-            {BACK_VARIANTS[backVariant].label === 'GOLD' && (
-              <div
-                className="pointer-events-none absolute inset-0 rounded-2xl holo-overlay"
-                style={{
-                  background: `radial-gradient(circle at ${holoPos.x}% ${holoPos.y}%, rgba(255,255,255,0.35) 0%, rgba(168,85,247,0.2) 20%, rgba(59,130,246,0.2) 40%, rgba(16,185,129,0.15) 60%, rgba(245,158,11,0.1) 80%, transparent 100%)`,
-                  mixBlendMode: 'overlay',
-                  transition: 'background 150ms ease-out',
+                  inset: '-3px',
+                  zIndex: 0,
+                  boxShadow: isShiny
+                    ? '0 0 28px rgba(168,85,247,0.5), 0 0 56px rgba(59,130,246,0.3), 0 0 84px rgba(236,72,153,0.2)'
+                    : `0 6px 24px ${selectedFaceColor.glowSoft}, 0 2px 8px rgba(0,0,0,0.15)`,
+                  transition: 'box-shadow 300ms ease',
                 }}
               />
-            )}
 
-            {/* Flip counter badge (top-right) */}
-            <div className="absolute right-2 top-2 inline-flex h-6 min-w-[28px] items-center justify-center rounded-full bg-white/25 px-2 backdrop-blur-sm">
-              <span className="text-[9px] font-bold text-white">{flipCount}</span>
-            </div>
-
-            {/* Album button (top-left) */}
-            <button
-              onClick={handleAlbumToggle}
-              className={`absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full backdrop-blur-sm transition-all hover:scale-110 ${showAlbum ? 'bg-white/40' : 'bg-white/25'}`}
-              title="Collezione"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            </button>
-
-            {/* Title block */}
-            <div className="pointer-events-none absolute inset-x-2 top-8 flex flex-col items-center text-center">
-              <svg className="mascotte-back-sparkle mb-1" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" fill="white" fillOpacity="0.95" />
-              </svg>
-              <span className="font-comodo text-[12px] font-bold tracking-wide text-white/95">
-                {BACK_VARIANTS[backVariant].label}
-              </span>
-              <span className="mt-0.5 text-[7px] font-medium uppercase tracking-[0.2em] text-white/70">
-                {BACK_VARIANTS[backVariant].sub}
-              </span>
-            </div>
-
-            {/* Action buttons */}
-            <div className="absolute inset-x-2 bottom-2.5 flex items-center justify-center gap-1.5">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowGameModeMenu(false);
-                  setIsWardrobeOpen((prev) => {
-                    const next = !prev;
-                    if (next) {
-                      setIsFlipping(true);
-                      setIsFlipped(false);
-                      window.setTimeout(() => setIsFlipping(false), 650);
-                      const palette = ['#FF7300', '#FFA246', '#FFB26B', '#fcd34d', '#ffffff'];
-                      const sparkles = Array.from({ length: 6 }, (_, i) => ({
-                        id: Date.now() + i,
-                        left: 18 + Math.random() * 60,
-                        top: 12 + Math.random() * 74,
-                        delay: i * 55 + Math.floor(Math.random() * 60),
-                        size: 9 + Math.random() * 7,
-                        color: palette[Math.floor(Math.random() * palette.length)],
-                      }));
-                      setDressingSparkles(sparkles);
-                      if (dressingSparklesTimeoutRef.current !== null) {
-                        window.clearTimeout(dressingSparklesTimeoutRef.current);
-                      }
-                      dressingSparklesTimeoutRef.current = window.setTimeout(() => {
-                        setDressingSparkles([]);
-                        dressingSparklesTimeoutRef.current = null;
-                      }, 1300);
-                    }
-                    return next;
-                  });
-                }}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white transition hover:scale-105 hover:bg-black/50"
-                title="Apri guardaroba"
-                aria-label="Apri guardaroba"
-              >
-                <Shirt className="h-4 w-4" />
-                <span className="sr-only">Apri guardaroba</span>
-              </button>
-
-              <button
-                ref={playButtonRef}
-                type="button"
-                onClick={() => {
-                  if (!showGameModeMenu && playButtonRef.current) {
-                    const rect = playButtonRef.current.getBoundingClientRect();
-                    setMenuPosition({
-                      top: rect.bottom + 8,
-                      left: rect.left + rect.width / 2
-                    });
-                  }
-                  setShowGameModeMenu(prev => !prev);
-                }}
-                disabled={isCheckingArenaPlayers}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white transition hover:scale-105 hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
-                title="Avvia mini-gioco"
-                aria-label="Avvia mini-gioco"
-              >
-                {isCheckingArenaPlayers ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                <span className="sr-only">Avvia mini-gioco</span>
-              </button>
-              
-              {/* Game Mode Selector Dropdown - Ported to body to escape 3D context */}
-              {showGameModeMenu && menuPosition && typeof document !== 'undefined' && createPortal(
-                <div 
-                  ref={gameModeMenuRef}
-                  className="fixed w-48 rounded-lg border border-white/20 bg-black/95 backdrop-blur-md shadow-2xl overflow-hidden"
+              {/* Shiny rainbow border overlay */}
+              {isShiny && (
+                <div
+                  className="pointer-events-none absolute shiny-border-anim"
                   style={{
-                    bottom: window.innerHeight - menuPosition.top + 8,
-                    left: menuPosition.left,
-                    transform: 'translateX(-50%)',
-                    zIndex: 2147483647 // Maximum safe z-index
+                    inset: '-3px',
+                    zIndex: 12,
+                    borderRadius: '18px',
+                    padding: '2.5px',
+                    background: 'conic-gradient(from var(--shiny-angle, 0deg), #f43f5e, #f59e0b, #22c55e, #3b82f6, #a855f7, #ec4899, #f43f5e)',
+                    WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                    WebkitMaskComposite: 'xor',
+                    maskComposite: 'exclude',
+                  }}
+                />
+              )}
+
+              {/* Thin soft border */}
+              <div
+                className="pointer-events-none absolute rounded-2xl"
+                style={{
+                  inset: '0px',
+                  zIndex: 2,
+                  padding: '1.5px',
+                  background: `linear-gradient(160deg, ${selectedFaceColor.glowMid} 0%, ${selectedFaceColor.glowStrong} 50%, ${selectedFaceColor.glowMid} 100%)`,
+                  WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                  WebkitMaskComposite: 'xor',
+                  maskComposite: 'exclude',
+                }}
+              />
+
+              {/* Bottom pill badge — ASSO */}
+              <div
+                className={`pointer-events-none absolute left-1/2 -translate-x-1/2 ${isCardHovered ? 'asso-pill-hovered' : ''}`}
+                style={{ bottom: '5px', zIndex: 8 }}
+              >
+                <div
+                  className={`relative flex items-center justify-center overflow-full asso-pill-${mascotteExpression}`}
+                  style={{
+                    height: '14px',
+                    paddingInline: '8px',
+                    background: mascotteExpression === 'bugReport' || mascotteExpression === 'bugFocus'
+                      ? 'linear-gradient(180deg, #DC2626 0%, #EF4444 100%)'
+                      : mascotteExpression === 'coding'
+                        ? 'linear-gradient(180deg, #7C3AED 0%, #A78BFA 100%)'
+                        : mascotteExpression === 'sleeping'
+                          ? 'linear-gradient(180deg, #4B5563 0%, #9CA3AF 100%)'
+                          : mascotteExpression === 'wink'
+                            ? 'linear-gradient(180deg, #EC4899 0%, #F472B6 100%)'
+                            : 'linear-gradient(180deg, #FF7300 0%, #FF9A40 100%)',
+                    boxShadow: mascotteExpression === 'bugReport' || mascotteExpression === 'bugFocus'
+                      ? '0 -1px 4px rgba(220,38,38,0.3), inset 0 -1px 0 rgba(255,255,255,0.25)'
+                      : mascotteExpression === 'coding'
+                        ? '0 -1px 4px rgba(124,58,237,0.3), inset 0 -1px 0 rgba(255,255,255,0.25)'
+                        : mascotteExpression === 'sleeping'
+                          ? '0 -1px 4px rgba(75,85,99,0.2), inset 0 -1px 0 rgba(255,255,255,0.2)'
+                          : mascotteExpression === 'wink'
+                            ? '0 -1px 4px rgba(236,72,153,0.3), inset 0 -1px 0 rgba(255,255,255,0.25)'
+                            : '0 -1px 4px rgba(255,100,0,0.2), inset 0 -1px 0 rgba(255,255,255,0.25)',
+                    animation: 'asso-pulse 3s ease-in-out infinite',
+                    borderRadius: '9999px',
                   }}
                 >
-                  <div className="p-2 space-y-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowGameModeMenu(false);
-                        handlePlayArena();
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-[11px] text-white/90 hover:bg-white/10 transition"
-                    >
-                      <span className="text-base">🎮</span>
-                      <div>
-                        <div className="font-semibold">Single Player</div>
-                        <div className="text-[9px] text-white/50">vs CPU locale</div>
-                      </div>
-                    </button>
-                    <div className="h-px bg-white/10" />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowGameModeMenu(false);
-                        setIsP2POpen(true);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-[11px] text-white/90 hover:bg-primary/20 transition group"
-                    >
-                      <span className="text-base group-hover:scale-110 transition">⚔️</span>
-                      <div>
-                        <div className="font-semibold text-primary">1v1 LAN</div>
-                        <div className="text-[9px] text-white/50">vs Amico in rete</div>
-                      </div>
-                    </button>
-                  </div>
-                </div>,
-                document.body
+                  <span
+                    className="font-comodo text-[7.5px] font-bold leading-none"
+                    style={{
+                      color: '#fff',
+                      textShadow: mascotteExpression === 'sleeping'
+                        ? '0 1px 1px rgba(30,30,30,0.35)'
+                        : '0 1px 1px rgba(100,30,0,0.45)',
+                      letterSpacing: '0.2em',
+                      marginLeft: '0.1em',
+                    }}
+                  >
+                    {mascotteExpression === 'sleeping' ? 'Zzz' : 'ASSO'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Face SVG — parallax offset on hover */}
+              <div
+                ref={faceContainerRef}
+                className={`absolute flex items-center justify-center ${isModalOpen ? 'face-glint-active' : ''} face-fixed-neon`}
+                style={{
+                  top: '4px',
+                  bottom: '4px',
+                  left: '3px',
+                  right: '3px',
+                  zIndex: 5,
+                  transition: 'transform 120ms ease-out, opacity 500ms ease-in-out',
+                  transform: mascotteExpression === 'wink'
+                    ? `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2 - 2}px) rotate(-2deg)`
+                    : `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2}px)`,
+                  opacity: mascotteExpression === 'sleeping' ? 0.85 : 1,
+                  filter: 'none',
+                }}
+                dangerouslySetInnerHTML={{
+                  __html: mascotteExpression === 'bugFocus' ? faceBugFocusSVG :
+                    mascotteExpression === 'bugReport' ? faceBugReportSVG :
+                      mascotteExpression === 'wink' ? faceWinkSVG :
+                        mascotteExpression === 'coding' ? faceCodingSVG :
+                          mascotteExpression === 'sleeping' ? faceSleepSVG :
+                            mascotteExpression === 'shocked' ? faceShockedSVG :
+                              faceSVG
+                }}
+              />
+
+              {/* Wardrobe overlays aligned to 96x128 mascot base */}
+              {equippedWardrobeItems.map((item) => (
+                <div
+                  key={item.id}
+                  aria-hidden="true"
+                  style={getItemOverlayStyle(item, equippedItems.objects)}
+                >
+                  <div
+                    className={`equipped-item-layer ${item.category === 'objects'
+                        ? 'equipped-item-float'
+                        : item.category === 'accessories'
+                          ? 'equipped-item-breathe'
+                          : ''
+                      } ${getItemRenderClassName(item)}`}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      ...getItemRenderEnhancementStyle(item),
+                    }}
+                    dangerouslySetInnerHTML={{ __html: item.svg }}
+                  />
+                </div>
+              ))}
+
+              {/* Flip button: desktop on hover, mobile always visible when not flipped */}
+              {(isMobileView ? !isFlipped : isCardHovered && !isFlipped) && (
+                <button
+                  onClick={handleFlipButtonClick}
+                  className={`mascotte-flip-btn absolute z-[11] flex items-center justify-center rounded-full border text-white shadow-md backdrop-blur-sm transition-all hover:scale-110 hover:text-white ${isMobileView
+                      ? 'h-8 w-8 border-white/45 bg-black/55 text-white'
+                      : 'h-5 w-5 border-white/20 bg-zinc-900/60 text-white/70 hover:bg-zinc-800/80'
+                    }`}
+                  style={isMobileView ? { bottom: '6px', left: '6px' } : { bottom: '3px', left: '3px' }}
+                  title="Gira la carta"
+                  aria-label="Gira la carta"
+                >
+                  <svg
+                    width={isMobileView ? '14' : '10'}
+                    height={isMobileView ? '14' : '10'}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={isMobileView ? '2.2' : '2.5'}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" />
+                  </svg>
+                </button>
               )}
             </div>
-          </div>
-        </div>{/* end back face */}
+          </div>{/* end front face */}
+
+          {/* ── BACK FACE ── */}
+          <div
+            ref={backFaceRef}
+            className="mascotte-flip-face absolute inset-0"
+            style={{
+              backfaceVisibility: isMobileView ? 'visible' : 'hidden',
+              transform: isMobileView
+                ? (isFlipped ? 'translateX(0)' : 'translateX(120%)')
+                : 'rotateY(180deg)',
+              opacity: isMobileView ? (isFlipped ? 1 : 0) : 1,
+              pointerEvents: isFlipped ? 'auto' : 'none',
+              transition: isMobileView
+                ? 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 220ms ease'
+                : 'none',
+            }}
+          >
+            <div
+              className="relative h-full w-full overflow-hidden rounded-2xl"
+              style={{ background: BACK_VARIANTS[backVariant].gradient }}
+            >
+              {/* Holographic overlay — GOLD only */}
+              {BACK_VARIANTS[backVariant].label === 'GOLD' && (
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-2xl holo-overlay"
+                  style={{
+                    background: `radial-gradient(circle at ${holoPos.x}% ${holoPos.y}%, rgba(255,255,255,0.35) 0%, rgba(168,85,247,0.2) 20%, rgba(59,130,246,0.2) 40%, rgba(16,185,129,0.15) 60%, rgba(245,158,11,0.1) 80%, transparent 100%)`,
+                    mixBlendMode: 'overlay',
+                    transition: 'background 150ms ease-out',
+                  }}
+                />
+              )}
+
+              {/* Flip counter badge (top-right) */}
+              <div className="absolute right-2 top-2 inline-flex h-6 min-w-[28px] items-center justify-center rounded-full bg-white/25 px-2 backdrop-blur-sm">
+                <span className="text-[9px] font-bold text-white">{flipCount}</span>
+              </div>
+
+              {/* Album button (top-left) */}
+              <button
+                onClick={handleAlbumToggle}
+                className={`absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full backdrop-blur-sm transition-all hover:scale-110 ${showAlbum ? 'bg-white/40' : 'bg-white/25'}`}
+                title="Collezione"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
+              </button>
+
+              {/* Title block */}
+              <div className="pointer-events-none absolute inset-x-2 top-8 flex flex-col items-center text-center">
+                <svg className="mascotte-back-sparkle mb-1" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" fill="white" fillOpacity="0.95" />
+                </svg>
+                <span className="font-comodo text-[12px] font-bold tracking-wide text-white/95">
+                  {BACK_VARIANTS[backVariant].label}
+                </span>
+                <span className="mt-0.5 text-[7px] font-medium uppercase tracking-[0.2em] text-white/70">
+                  {BACK_VARIANTS[backVariant].sub}
+                </span>
+              </div>
+
+              {/* Action buttons */}
+              <div className="absolute inset-x-2 bottom-2.5 flex items-center justify-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowGameModeMenu(false);
+                    setIsWardrobeOpen((prev) => {
+                      const next = !prev;
+                      if (next) {
+                        setIsFlipping(true);
+                        setIsFlipped(false);
+                        window.setTimeout(() => setIsFlipping(false), 650);
+                        const palette = ['#FF7300', '#FFA246', '#FFB26B', '#fcd34d', '#ffffff'];
+                        const sparkles = Array.from({ length: 6 }, (_, i) => ({
+                          id: Date.now() + i,
+                          left: 18 + Math.random() * 60,
+                          top: 12 + Math.random() * 74,
+                          delay: i * 55 + Math.floor(Math.random() * 60),
+                          size: 9 + Math.random() * 7,
+                          color: palette[Math.floor(Math.random() * palette.length)],
+                        }));
+                        setDressingSparkles(sparkles);
+                        if (dressingSparklesTimeoutRef.current !== null) {
+                          window.clearTimeout(dressingSparklesTimeoutRef.current);
+                        }
+                        dressingSparklesTimeoutRef.current = window.setTimeout(() => {
+                          setDressingSparkles([]);
+                          dressingSparklesTimeoutRef.current = null;
+                        }, 1300);
+                      }
+                      return next;
+                    });
+                  }}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white transition hover:scale-105 hover:bg-black/50"
+                  title="Apri guardaroba"
+                  aria-label="Apri guardaroba"
+                >
+                  <Shirt className="h-4 w-4" />
+                  <span className="sr-only">Apri guardaroba</span>
+                </button>
+
+                <button
+                  ref={playButtonRef}
+                  type="button"
+                  onClick={() => {
+                    if (!showGameModeMenu && playButtonRef.current) {
+                      const rect = playButtonRef.current.getBoundingClientRect();
+                      setMenuPosition({
+                        top: rect.bottom + 8,
+                        left: rect.left + rect.width / 2
+                      });
+                    }
+                    setShowGameModeMenu(prev => !prev);
+                  }}
+                  disabled={isCheckingArenaPlayers}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white transition hover:scale-105 hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
+                  title="Avvia mini-gioco"
+                  aria-label="Avvia mini-gioco"
+                >
+                  {isCheckingArenaPlayers ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                  <span className="sr-only">Avvia mini-gioco</span>
+                </button>
+
+                {/* Game Mode Selector Dropdown - Ported to body to escape 3D context */}
+                {showGameModeMenu && menuPosition && typeof document !== 'undefined' && createPortal(
+                  <div
+                    ref={gameModeMenuRef}
+                    className="fixed w-48 rounded-lg border border-white/20 bg-black/95 backdrop-blur-md shadow-2xl overflow-hidden"
+                    style={{
+                      bottom: window.innerHeight - menuPosition.top + 8,
+                      left: menuPosition.left,
+                      transform: 'translateX(-50%)',
+                      zIndex: 2147483647 // Maximum safe z-index
+                    }}
+                  >
+                    <div className="p-2 space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowGameModeMenu(false);
+                          handlePlayArena();
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-[11px] text-white/90 hover:bg-white/10 transition"
+                      >
+                        <span className="text-base">🎮</span>
+                        <div>
+                          <div className="font-semibold">Single Player</div>
+                          <div className="text-[9px] text-white/50">vs CPU locale</div>
+                        </div>
+                      </button>
+                      <div className="h-px bg-white/10" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowGameModeMenu(false);
+                          setIsP2POpen(true);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-[11px] text-white/90 hover:bg-primary/20 transition group"
+                      >
+                        <span className="text-base group-hover:scale-110 transition">⚔️</span>
+                        <div>
+                          <div className="font-semibold text-primary">1v1 LAN</div>
+                          <div className="text-[9px] text-white/50">vs Amico in rete</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>,
+                  document.body
+                )}
+              </div>
+            </div>
+          </div>{/* end back face */}
 
         </div>{/* end flip inner */}
 
@@ -3489,13 +3517,12 @@ export function CardMascotte() {
                     {showConsoleLogs && capturedLogs.length > 0 && (
                       <div className="mt-2 max-h-48 overflow-y-auto rounded border border-blue-200 bg-white p-2 font-mono text-xs">
                         {getRecentLogs(60).map((log, i) => (
-                          <div 
-                            key={i} 
-                            className={`mb-1 border-b border-gray-100 pb-1 last:border-0 ${
-                              log.type === 'error' ? 'text-red-600' : 
-                              log.type === 'warn' ? 'text-yellow-600' : 
-                              'text-gray-700'
-                            }`}
+                          <div
+                            key={i}
+                            className={`mb-1 border-b border-gray-100 pb-1 last:border-0 ${log.type === 'error' ? 'text-red-600' :
+                                log.type === 'warn' ? 'text-yellow-600' :
+                                  'text-gray-700'
+                              }`}
                           >
                             <span className="text-gray-400">[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
                             <span className="opacity-75">[{log.type.toUpperCase()}]</span>{' '}
@@ -3595,17 +3622,16 @@ export function CardMascotte() {
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
                   <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                      msg.type === 'asso'
+                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${msg.type === 'asso'
                         ? 'rounded-tl-none bg-white text-zinc-800 border border-zinc-200'
                         : 'rounded-tr-none bg-primary text-white'
-                    }`}
+                      }`}
                   >
                     {msg.text}
                   </div>
                 </div>
               ))}
-              
+
               {/* Typing Indicator - shows when Asso is typing */}
               {isTyping && (
                 <div className="mb-3 flex justify-start chat-message-in">
@@ -3618,7 +3644,7 @@ export function CardMascotte() {
                   </div>
                 </div>
               )}
-              
+
               {/* Typewriter effect - live text being typed */}
               {isTypewriting && typewriterText && (
                 <div className="mb-3 flex justify-start chat-message-in">
@@ -3628,7 +3654,7 @@ export function CardMascotte() {
                   </div>
                 </div>
               )}
-              
+
               {/* Menu Options - Animated staggered entrance */}
               {chatStep === 'menu' && (
                 <div className="mt-4 space-y-2">
@@ -3651,7 +3677,7 @@ export function CardMascotte() {
                       <p className="text-xs text-zinc-500">Trova risposte rapide</p>
                     </div>
                   </button>
-                  
+
                   <button
                     onClick={() => {
                       setChatMessages(prev => [...prev, { type: 'user', text: 'Voglio segnalare un bug' }]);
@@ -3682,7 +3708,7 @@ export function CardMascotte() {
                       <p className="text-xs text-zinc-500">Descrivi un problema tecnico</p>
                     </div>
                   </button>
-                  
+
                   <button
                     onClick={() => {
                       setChatMessages(prev => [...prev, { type: 'user', text: 'Voglio contattare il supporto' }]);
@@ -3738,7 +3764,8 @@ export function CardMascotte() {
       />
 
       {/* Float animation */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes mascotteFloat {
           0%, 100% { transform: translateY(0) rotate(0deg); }
           25% { transform: translateY(-4px) rotate(1deg); }
@@ -4292,6 +4319,21 @@ export function CardMascotte() {
         @keyframes peekPulse {
           0%, 100% { opacity: 0.6; width: 8px; }
           50% { opacity: 1; width: 12px; }
+        }
+        /* ── ASSO Liquid Gradient Orb ── */
+        @keyframes assoOrbMorph1 {
+          0%   { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; transform: translate(-8px, -6px) scale(1); opacity: 0.6; }
+          25%  { border-radius: 65% 35% 30% 70% / 60% 70% 30% 40%; transform: translate(12px, -2px) scale(1.15); opacity: 0.75; }
+          50%  { border-radius: 40% 60% 70% 30% / 40% 40% 60% 60%; transform: translate(4px, 12px) scale(0.9); opacity: 0.55; }
+          75%  { border-radius: 70% 30% 40% 60% / 30% 60% 40% 70%; transform: translate(-10px, 8px) scale(1.1); opacity: 0.7; }
+          100% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; transform: translate(-8px, -6px) scale(1); opacity: 0.6; }
+        }
+        @keyframes assoOrbMorph2 {
+          0%   { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: translate(10px, 8px) scale(1); opacity: 0.45; }
+          25%  { border-radius: 30% 70% 70% 30% / 30% 60% 40% 70%; transform: translate(-12px, 4px) scale(1.1); opacity: 0.6; }
+          50%  { border-radius: 70% 30% 40% 60% / 60% 40% 60% 40%; transform: translate(-4px, -12px) scale(0.85); opacity: 0.4; }
+          75%  { border-radius: 40% 60% 60% 40% / 30% 70% 30% 70%; transform: translate(12px, -6px) scale(1.05); opacity: 0.55; }
+          100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: translate(10px, 8px) scale(1); opacity: 0.45; }
         }
       `}} />
     </>
