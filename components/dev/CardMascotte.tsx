@@ -2785,19 +2785,32 @@ export function CardMascotte() {
             e.stopPropagation();
             setIsMobileHidden(false);
           }}
-          className="sm:hidden fixed flex items-center justify-center rounded-full border border-white/40 bg-gradient-to-br from-[#FF7300] to-[#FF9A40] text-white shadow-[0_10px_24px_rgba(255,115,0,0.4)] transition-all hover:scale-105 active:scale-95"
+          className="sm:hidden fixed flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 group"
           style={{
             zIndex: Z_INDEX.mascotteBase + 2,
             bottom: isStickyBarVisible ? '80px' : '20px',
             right: '16px',
-            width: '56px',
-            height: '56px',
-            animation: 'promoPulse 2.2s ease-in-out infinite',
           }}
           aria-label="Apri Asso"
           title="Apri Asso"
         >
-          <span className="font-comodo text-[11px] font-bold tracking-[0.18em]">ASSO</span>
+          <div className="relative flex items-center justify-center rounded-full border border-orange-200 bg-white/95 backdrop-blur-md shadow-[0_8px_24px_rgba(255,115,0,0.3)] w-[56px] h-[56px]">
+            {/* Subtle orange glow inside */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#FF7300]/10 to-transparent pointer-events-none" />
+            
+            {/* Outer ring animation */}
+            <div className="absolute inset-0 rounded-full border border-[#FF7300]/40" style={{ animation: 'promoPulse 2s ease-in-out infinite' }} />
+
+            {/* Face wrapper */}
+            <div className="relative w-10 h-10 mt-1 drop-shadow-sm" dangerouslySetInnerHTML={{ __html: faceSVG }} />
+
+            {/* Unread indicator */}
+            <div className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-[#FF7300] border-2 border-white" />
+          </div>
+          
+          <div className="absolute -bottom-2 px-2.5 py-0.5 rounded-full bg-[#FF7300] text-white text-[9px] font-bold tracking-[0.2em] border border-white shadow-md z-10 font-comodo">
+            ASSO
+          </div>
         </button>
       )}
 

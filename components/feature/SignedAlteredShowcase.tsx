@@ -55,6 +55,60 @@ const FEATURED_CARDS: SignedAlteredCard[] = [
     alterationType: 'altered',
     price: '€320',
   },
+  {
+    id: 'both-1',
+    name: 'Force of Will',
+    set_name: 'Alliances',
+    image: null,
+    artist: 'Terese Nielsen',
+    alterationType: 'both',
+    price: '€1,200',
+  },
+  {
+    id: 'signed-3',
+    name: 'Tarmogoyf',
+    set_name: 'Future Sight',
+    image: null,
+    artist: 'Ryan Barger',
+    alterationType: 'signed',
+    price: '€150',
+  },
+  {
+    id: 'altered-3',
+    name: 'Sol Ring',
+    set_name: 'Commander',
+    image: null,
+    artist: 'Custom Alter',
+    alterationType: 'altered',
+    price: '€80',
+  },
+  {
+    id: 'signed-4',
+    name: 'Ancestral Recall',
+    set_name: 'Beta',
+    image: null,
+    artist: 'Mark Poole',
+    alterationType: 'signed',
+    price: '€9,500',
+  },
+  {
+    id: 'altered-4',
+    name: 'Birds of Paradise',
+    set_name: 'Revised',
+    image: null,
+    artist: 'Forest Alter',
+    alterationType: 'altered',
+    price: '€200',
+  },
+  {
+    id: 'both-2',
+    name: 'Mana Drain',
+    set_name: 'Legends',
+    image: null,
+    artist: 'Mark Tedin',
+    alterationType: 'both',
+    price: '€850',
+  },
 ];
 
 const BADGE_CONFIG: Record<string, { icon: React.ReactNode; label: string; color: string; glow: string }> = {
@@ -104,11 +158,6 @@ export function SignedAlteredShowcase({ featuredCards }: SignedAlteredShowcasePr
         {/* Header row */}
         <div className="mb-4 sm:mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Amber/Violet dual-glow icon */}
-            <div className="relative flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 to-violet-500/20 border border-white/10">
-              <PenTool className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-300" />
-              <Sparkles className="absolute -right-1 -top-1 h-3 w-3 text-violet-400" />
-            </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.14em] text-amber-300">
@@ -126,15 +175,15 @@ export function SignedAlteredShowcase({ featuredCards }: SignedAlteredShowcasePr
           </div>
           <Link
             href="/collezioni-firmate-alterate"
-            className="group flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-white/60 transition-all duration-300 hover:border-white/25 hover:bg-white/10 hover:text-white hover:shadow-[0_0_20px_rgba(255,255,255,0.06)]"
+            className="group flex items-center gap-1.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-white/60 transition-colors hover:text-white"
           >
             Vedi tutte
             <ArrowRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5" />
           </Link>
         </div>
 
-        {/* Cards grid — 2 cols on mobile, 4 on sm+ */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3.5 md:gap-4">
+        {/* Cards grid — Horizontal scroll */}
+        <div className="flex gap-3 sm:gap-3.5 md:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {cards.map((card, index) => {
             const imgUrl = getCardImageUrl(card.image ?? null);
             const badge = BADGE_CONFIG[card.alterationType || 'signed'];
@@ -145,6 +194,7 @@ export function SignedAlteredShowcase({ featuredCards }: SignedAlteredShowcasePr
                 whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="w-[140px] sm:w-[160px] md:w-[180px] shrink-0 snap-start"
               >
                 <Link
                   href={`/products/${card.id}`}

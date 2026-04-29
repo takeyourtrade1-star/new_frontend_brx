@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Tag, RefreshCw, Gavel, CircleDollarSign, ShieldCheck,
   ArrowRightLeft, Scale, Package, TrendingUp, X, Mail,
-  CheckCircle2, ArrowLeft, BellRing, Users, ChevronUp,
+  CheckCircle2, ArrowLeft, BellRing, Users, ChevronUp, ArrowRight,
 } from 'lucide-react';
 import { getCdnImageUrl, getCdnVideoUrl } from '@/lib/config';
 import { useGame } from '@/lib/contexts/GameContext';
@@ -415,38 +415,36 @@ export function LandingWelcome() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col p-4 sm:p-5"
+                      className="absolute inset-0 flex flex-col p-4 sm:p-5 group/card cursor-pointer hover:bg-white/5 transition-colors"
                     >
-                      {/* Top: icon accent */}
-                      <div className="mb-2 sm:mb-3 flex items-start justify-between">
-                        <div>
-                          <div className="mb-1 flex items-center gap-2">
-                            <span className="h-2.5 w-2.5 rounded-full bg-[#FB923C]" />
-                            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#FB923C]">
-                              Funzionalità
-                            </span>
-                          </div>
-                          <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold uppercase tracking-tight text-white">
-                            Aste
-                          </h3>
-                        </div>
-                        <span className="text-3xl sm:text-4xl opacity-15 select-none" aria-hidden>🔨</span>
+                      <Link href="/aste" className="absolute inset-0 z-10" aria-label="Esplora le Aste" />
+
+                      {/* Top: Title & Mobile Arrow */}
+                      <div className="mb-2 sm:mb-3 flex items-center justify-between relative z-20 pointer-events-none">
+                        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-tight text-white group-hover/card:text-[#FB923C] transition-colors">
+                          Aste
+                        </h3>
+                        {/* Mobile Arrow */}
+                        <motion.div
+                          animate={{ x: [0, 4, 0] }}
+                          transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                          className="sm:hidden text-[#FB923C]"
+                        >
+                          <ArrowRight className="h-5 w-5" />
+                        </motion.div>
                       </div>
 
                       {/* Description */}
-                      <p className="flex-1 text-[11px] sm:text-xs md:text-sm leading-relaxed text-white/75">
+                      <p className="flex-1 text-xs sm:text-sm md:text-base leading-relaxed text-white/80 relative z-20 pointer-events-none pr-1">
                         Metti all&apos;asta le tue carte o fai offerte su quelle disponibili.
                         Trova il prezzo giusto per le tue collezionabili in modo sicuro e trasparente.
                       </p>
 
-                      {/* CTA */}
-                      <Link
-                        href="/aste"
-                        className="mt-3 flex items-center justify-between rounded-xl border border-[#FB923C]/40 bg-[#FB923C]/15 px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#FB923C] transition-all duration-300 hover:bg-[#FB923C]/25 hover:border-[#FB923C]/60 hover:shadow-[0_0_20px_rgba(251,146,60,0.2)]"
-                      >
+                      {/* Desktop CTA */}
+                      <div className="mt-3 hidden sm:flex items-center justify-between rounded-xl border border-[#FB923C]/40 bg-[#FB923C]/15 px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#FB923C] transition-all duration-300 group-hover/card:bg-[#FB923C]/25 group-hover/card:border-[#FB923C]/60 group-hover/card:shadow-[0_0_20px_rgba(251,146,60,0.2)] relative z-20 pointer-events-none">
                         <span>Esplora le Aste</span>
                         <span className="text-sm">→</span>
-                      </Link>
+                      </div>
                     </motion.div>
                   )}
                   {activeFeature === 'tornei' && (
@@ -456,35 +454,36 @@ export function LandingWelcome() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col p-4 sm:p-5"
+                      className="absolute inset-0 flex flex-col p-4 sm:p-5 group/card cursor-pointer hover:bg-white/5 transition-colors"
                     >
-                      <div className="mb-2 sm:mb-3 flex items-start justify-between">
-                        <div>
-                          <div className="mb-1 flex items-center gap-2">
-                            <span className="h-2.5 w-2.5 rounded-full bg-[#A78BFA]" />
-                            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#A78BFA]">
-                              Funzionalità
-                            </span>
-                          </div>
-                          <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold uppercase tracking-tight text-white">
-                            Tornei Live
-                          </h3>
-                        </div>
-                        <span className="text-3xl sm:text-4xl opacity-15 select-none" aria-hidden>🏆</span>
+                      <Link href="/tornei-live" className="absolute inset-0 z-10" aria-label="Scopri i Tornei" />
+
+                      {/* Top: Title & Mobile Arrow */}
+                      <div className="mb-2 sm:mb-3 flex items-center justify-between relative z-20 pointer-events-none">
+                        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-tight text-white group-hover/card:text-[#A78BFA] transition-colors">
+                          Tornei Live
+                        </h3>
+                        {/* Mobile Arrow */}
+                        <motion.div
+                          animate={{ x: [0, 4, 0] }}
+                          transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                          className="sm:hidden text-[#A78BFA]"
+                        >
+                          <ArrowRight className="h-5 w-5" />
+                        </motion.div>
                       </div>
 
-                      <p className="flex-1 text-[11px] sm:text-xs md:text-sm leading-relaxed text-white/75">
+                      {/* Description */}
+                      <p className="flex-1 text-xs sm:text-sm md:text-base leading-relaxed text-white/80 relative z-20 pointer-events-none pr-1">
                         Partecipa ai tornei live, competi con altri giocatori e scala le classifiche
                         in tempo reale. Montepremi garantiti e community attiva.
                       </p>
 
-                      <Link
-                        href="/tornei-live"
-                        className="mt-3 flex items-center justify-between rounded-xl border border-[#A78BFA]/40 bg-[#A78BFA]/15 px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#A78BFA] transition-all duration-300 hover:bg-[#A78BFA]/25 hover:border-[#A78BFA]/60 hover:shadow-[0_0_20px_rgba(167,139,250,0.2)]"
-                      >
+                      {/* Desktop CTA */}
+                      <div className="mt-3 hidden sm:flex items-center justify-between rounded-xl border border-[#A78BFA]/40 bg-[#A78BFA]/15 px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#A78BFA] transition-all duration-300 group-hover/card:bg-[#A78BFA]/25 group-hover/card:border-[#A78BFA]/60 group-hover/card:shadow-[0_0_20px_rgba(167,139,250,0.2)] relative z-20 pointer-events-none">
                         <span>Scopri i Tornei</span>
                         <span className="text-sm">→</span>
-                      </Link>
+                      </div>
                     </motion.div>
                   )}
                   {activeFeature === 'brx' && (
@@ -494,35 +493,36 @@ export function LandingWelcome() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col p-4 sm:p-5"
+                      className="absolute inset-0 flex flex-col p-4 sm:p-5 group/card cursor-pointer hover:bg-white/5 transition-colors"
                     >
-                      <div className="mb-2 sm:mb-3 flex items-start justify-between">
-                        <div>
-                          <div className="mb-1 flex items-center gap-2">
-                            <span className="h-2.5 w-2.5 rounded-full bg-[#38BDF8]" />
-                            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#38BDF8]">
-                              Funzionalità
-                            </span>
-                          </div>
-                          <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold uppercase tracking-tight text-white">
-                            BRX Express
-                          </h3>
-                        </div>
-                        <span className="text-3xl sm:text-4xl opacity-15 select-none" aria-hidden>⚡</span>
+                      <Link href="/tornei-live" className="absolute inset-0 z-10" aria-label="Scopri BRX Express" />
+
+                      {/* Top: Title & Mobile Arrow */}
+                      <div className="mb-2 sm:mb-3 flex items-center justify-between relative z-20 pointer-events-none">
+                        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-tight text-white group-hover/card:text-[#38BDF8] transition-colors">
+                          BRX Express
+                        </h3>
+                        {/* Mobile Arrow */}
+                        <motion.div
+                          animate={{ x: [0, 4, 0] }}
+                          transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                          className="sm:hidden text-[#38BDF8]"
+                        >
+                          <ArrowRight className="h-5 w-5" />
+                        </motion.div>
                       </div>
 
-                      <p className="flex-1 text-[11px] sm:text-xs md:text-sm leading-relaxed text-white/75">
+                      {/* Description */}
+                      <p className="flex-1 text-xs sm:text-sm md:text-base leading-relaxed text-white/80 relative z-20 pointer-events-none pr-1">
                         Logistica decentralizzata e spedizione in 24h. Il futuro del trading card game
                         è qui: consegna rapida, sicura e tracciata.
                       </p>
 
-                      <Link
-                        href="/tornei-live"
-                        className="mt-3 flex items-center justify-between rounded-xl border border-[#38BDF8]/40 bg-[#38BDF8]/15 px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#38BDF8] transition-all duration-300 hover:bg-[#38BDF8]/25 hover:border-[#38BDF8]/60 hover:shadow-[0_0_20px_rgba(56,189,248,0.2)]"
-                      >
+                      {/* Desktop CTA */}
+                      <div className="mt-3 hidden sm:flex items-center justify-between rounded-xl border border-[#38BDF8]/40 bg-[#38BDF8]/15 px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#38BDF8] transition-all duration-300 group-hover/card:bg-[#38BDF8]/25 group-hover/card:border-[#38BDF8]/60 group-hover/card:shadow-[0_0_20px_rgba(56,189,248,0.2)] relative z-20 pointer-events-none">
                         <span>Scopri BRX Express</span>
                         <span className="text-sm">→</span>
-                      </Link>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
