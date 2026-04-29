@@ -6,8 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { FloatingLabelField } from '@/components/ui/floating-label-field';
 import { AuthErrorAlert } from '@/components/ui/AuthErrorAlert';
 import { useLogin } from '@/lib/hooks/use-auth';
 import { useAuthError } from '@/lib/errors/useAuthError';
@@ -15,9 +13,8 @@ import { loginSchema, type LoginValues } from '@/lib/validations/auth';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
 
-/** Input: bordo grigio, focus arancione Ebartex */
-const loginInputClass =
-  'h-16 w-full rounded-xl border border-gray-300 bg-white pt-7 pb-2 px-3 text-lg text-[#0F172A] focus-visible:outline-none focus-visible:border-[#FF7300] focus-visible:ring-1 focus-visible:ring-[#FF7300] focus-visible:ring-offset-0 transition-colors disabled:cursor-not-allowed disabled:opacity-50';
+const appleInputClass =
+  'h-[52px] w-full rounded-2xl border border-black/10 bg-black/5 px-4 text-[15px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/20 transition-all disabled:opacity-50';
 
 export function LoginForm() {
   const { t } = useTranslation();
@@ -28,7 +25,6 @@ export function LoginForm() {
 
   const {
     register,
-    watch,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginValues>({
@@ -44,86 +40,82 @@ export function LoginForm() {
         password: data.password,
       });
 
-      // Se MFA è richiesto, vai subito al form codice Authenticator (replace: non tornare al login con «Indietro»)
       if (result.mfaRequired) {
         router.replace('/login/verify-mfa');
       } else {
-        // Login completato con successo
         router.push('/');
       }
     } catch (err: any) {
-      // Usa il nuovo sistema di gestione errori con i18n
       authError.setError(err);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <FloatingLabelField
-          label={t('loginForm.email')}
-          id="email"
-          value={watch('email')}
+        <input
           type="email"
           autoComplete="email"
-          inputClassName={loginInputClass}
-          floatingLabelBg="white"
+          placeholder={t('loginForm.email')}
+          className={appleInputClass}
           {...register('email')}
         />
         {errors.email && (
-          <p className="mt-1 text-sm text-red-500">{translateZodMessage(errors.email.message, t)}</p>
+          <p className="mt-1.5 pl-1 text-[12px] text-red-500">{translateZodMessage(errors.email.message, t)}</p>
         )}
       </div>
+
       <div>
         <div className="relative">
-          <FloatingLabelField
-            label={t('auth.password')}
-            id="password"
-            value={watch('password')}
+          <input
             type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
-            inputClassName={loginInputClass}
-            floatingLabelBg="white"
+            placeholder={t('auth.password')}
+            className={`${appleInputClass} pr-11`}
             {...register('password')}
           />
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => setShowPassword((p) => !p)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 hover:bg-gray-100"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-lg p-1 text-[#86868b] hover:text-[#1d1d1f] transition-colors"
             aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
           >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
         {errors.password && (
-          <p className="mt-1 text-sm text-red-500">{translateZodMessage(errors.password.message, t)}</p>
+          <p className="mt-1.5 pl-1 text-[12px] text-red-500">{translateZodMessage(errors.password.message, t)}</p>
         )}
       </div>
-      
-      {/* Error Alert - Elegant UI with i18n support */}
-      <AuthErrorAlert error={authError} />
-      
-      <div className="pt-3">
-        <Button
-          type="submit"
-          disabled={loginMutation.isPending || authError.isRateLimitError}
-          className="h-14 w-full rounded-xl text-xl font-semibold text-white hover:opacity-95 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ backgroundColor: '#FF7300' }}
-        >
-          {loginMutation.isPending ? t('loginForm.submitting') : t('auth.login')}
-        </Button>
-      </div>
-      <p className="text-center text-sm">
+
+      <div className="flex justify-end">
         <Link
           href="/recupera-credenziali"
-          className="text-[#FF7300] hover:underline"
+          className="text-[13px] font-medium text-[#0066cc] hover:underline"
         >
           {t('auth.recoverCredentials')}
+        </Link>
+      </div>
+
+      <AuthErrorAlert error={authError} />
+
+      <div className="pt-2">
+        <button
+          type="submit"
+          disabled={loginMutation.isPending || authError.isRateLimitError}
+          className="w-full rounded-full bg-[#1d1d1f] py-3.5 text-[15px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+        >
+          {loginMutation.isPending ? t('loginForm.submitting') : t('auth.login')}
+        </button>
+      </div>
+
+      <p className="pt-1 text-center text-[13px] text-[#515154]">
+        <Link
+          href="/login?accesso=1&otp=1"
+          className="font-medium text-[#0066cc] hover:underline"
+        >
+          Accedi con codice monouso
         </Link>
       </p>
     </form>

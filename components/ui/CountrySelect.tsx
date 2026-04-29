@@ -24,19 +24,19 @@ interface CountrySelectProps {
 
 const sizeClasses = {
   sm: {
-    trigger: 'h-10 px-3 text-sm',
+    trigger: 'h-10 pl-3 pr-3 text-sm',
     flag: 'sm' as const,
     item: 'px-3 py-2 text-sm',
     list: 'mt-1',
   },
   md: {
-    trigger: 'h-14 px-4 text-base',
+    trigger: 'h-14 pl-4 pr-4 text-base',
     flag: 'md' as const,
     item: 'px-4 py-2.5 text-sm',
     list: 'mt-1.5',
   },
   lg: {
-    trigger: 'h-16 px-5 text-lg',
+    trigger: 'h-16 pl-5 pr-5 text-lg',
     flag: 'lg' as const,
     item: 'px-5 py-3 text-base',
     list: 'mt-2',
@@ -125,12 +125,12 @@ export function CountrySelect({
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         className={cn(
-          'flex w-full items-center justify-between gap-3 rounded-xl border transition-all duration-150',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40 focus-visible:ring-offset-0',
+          'flex w-full items-center justify-between gap-2 rounded-2xl border transition-all duration-150',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066cc]/20 focus-visible:ring-offset-0',
           sizes.trigger,
           disabled
-            ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
-            : 'cursor-pointer border-gray-200 bg-white text-gray-900 hover:border-[#FF7300]/50 hover:shadow-sm'
+            ? 'cursor-not-allowed border-black/10 bg-black/5 text-gray-400'
+            : 'cursor-pointer border-black/10 bg-black/5 text-gray-900 hover:border-[#0066cc]/40 hover:bg-black/[0.07]'
         )}
       >
         <span className="flex items-center gap-3">
@@ -148,6 +148,7 @@ export function CountrySelect({
             'h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200',
             isOpen && 'rotate-180'
           )}
+          aria-hidden
         />
       </button>
 

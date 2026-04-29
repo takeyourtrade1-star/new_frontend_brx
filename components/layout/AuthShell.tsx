@@ -24,7 +24,7 @@ export function AuthShell({ children }: AuthShellProps) {
         style={{ backgroundImage: `url("${carouselBg}")` }}
         aria-hidden
       />
-      <div className="absolute inset-0 bg-[#2d2d2d]/40" aria-hidden />
+      <div className="absolute inset-0 bg-[#2d2d2d]/30 backdrop-blur-sm" aria-hidden />
 
       <div className="relative z-10 flex min-h-screen flex-col pt-8">
         <div className="flex justify-center px-4">

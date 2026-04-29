@@ -5,14 +5,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { z } from 'zod';
-import { Mail } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { FloatingLabelField } from '@/components/ui/floating-label-field';
+import { CheckCircle } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
 
-const inputClass =
-  'h-16 w-full rounded-xl border border-gray-300 bg-white pt-7 pb-2 px-3 text-lg text-[#0F172A] focus-visible:outline-none focus-visible:border-[#FF7300] focus-visible:ring-1 focus-visible:ring-[#FF7300] focus-visible:ring-offset-0 transition-colors';
+const appleInputClass =
+  'h-[52px] w-full rounded-2xl border border-black/10 bg-black/5 px-4 text-[15px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/20 transition-all';
 
 export function RecuperaCredenzialiForm() {
   const { t } = useTranslation();
@@ -29,7 +27,6 @@ export function RecuperaCredenzialiForm() {
 
   const {
     register,
-    watch,
     handleSubmit,
     formState: { errors, isSubmitSuccessful },
   } = useForm<RecuperaValues>({
@@ -43,14 +40,17 @@ export function RecuperaCredenzialiForm() {
 
   if (isSubmitSuccessful) {
     return (
-      <div className="space-y-6 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#FF7300]/10">
-          <Mail className="h-8 w-8 text-[#FF7300]" />
+      <div className="flex flex-col items-center gap-5 py-4 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#1d1d1f]/5">
+          <CheckCircle className="h-8 w-8 text-[#1d1d1f]" strokeWidth={1.5} />
         </div>
-        <p className="text-gray-800 font-medium">{t('recoverForm.success')}</p>
+        <div className="space-y-1">
+          <p className="text-[17px] font-semibold text-[#1d1d1f]">{t('recoverForm.success')}</p>
+          <p className="text-[14px] text-[#86868b]">Controlla la tua casella email.</p>
+        </div>
         <Link
-          href="/login"
-          className="inline-block text-[#FF7300] font-medium hover:underline"
+          href="/login?accesso=1"
+          className="mt-2 rounded-full bg-[#1d1d1f] px-8 py-3 text-[15px] font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
           {t('recoverForm.backLogin')}
         </Link>
@@ -59,37 +59,30 @@ export function RecuperaCredenzialiForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <FloatingLabelField
-          label={t('loginForm.email')}
-          id="email"
+        <input
           type="email"
-          value={watch('email')}
           autoComplete="email"
-          inputClassName={inputClass}
-          floatingLabelBg="white"
+          placeholder={t('loginForm.email')}
+          className={appleInputClass}
           {...register('email')}
         />
         {errors.email && (
-          <p className="mt-1 text-sm text-red-500">{translateZodMessage(errors.email.message, t)}</p>
+          <p className="mt-1.5 pl-1 text-[12px] text-red-500">{translateZodMessage(errors.email.message, t)}</p>
         )}
       </div>
-      <p className="text-sm text-gray-700 font-medium leading-relaxed">{t('recoverForm.hint')}</p>
-      <div className="pt-3">
-        <Button
+
+      <p className="text-[13px] leading-relaxed text-[#86868b]">{t('recoverForm.hint')}</p>
+
+      <div className="pt-2">
+        <button
           type="submit"
-          className="h-14 w-full rounded-xl text-xl font-semibold text-white hover:opacity-95 transition-opacity"
-          style={{ backgroundColor: '#FF7300' }}
+          className="w-full rounded-full bg-[#1d1d1f] py-3.5 text-[15px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
           {t('recoverForm.submit')}
-        </Button>
+        </button>
       </div>
-      <p className="text-center text-base">
-        <Link href="/login" className="text-[#FF7300] hover:underline">
-          {t('recoverForm.backLogin')}
-        </Link>
-      </p>
     </form>
   );
 }

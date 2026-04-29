@@ -933,7 +933,7 @@ export function TopBar() {
                 asChild
                 className="btn-orange-glow rounded-full border px-5 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Link href="/registrati">{t('auth.registerUpper')}</Link>
+                <Link href="/login">{t('auth.registerUpper')}</Link>
               </Button>
             </div>
           )}

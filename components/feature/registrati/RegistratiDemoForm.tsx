@@ -195,7 +195,7 @@ export function RegistratiDemoForm() {
           type="text"
           value={watch('username')}
           floatingLabelBg="rgba(255,255,255,0.75)"
-          inputClassName="h-14 pt-7 text-base bg-transparent border border-gray-100/30 focus-visible:border-[#FF7300] focus-visible:ring-2 focus-visible:ring-[#FF7300]/40"
+          inputClassName="h-14 pt-7 text-base bg-black/5 border border-black/10 focus-visible:bg-white focus-visible:border-[#0066cc] focus-visible:ring-4 focus-visible:ring-[#0066cc]/20 transition-all"
           autoComplete="username"
           {...register('username')}
         />
@@ -211,7 +211,7 @@ export function RegistratiDemoForm() {
           type="email"
           value={watch('email')}
           floatingLabelBg="rgba(255,255,255,0.75)"
-          inputClassName="h-14 pt-7 text-base bg-transparent border border-gray-100/30 focus-visible:border-[#FF7300] focus-visible:ring-2 focus-visible:ring-[#FF7300]/40"
+          inputClassName="h-14 pt-7 text-base bg-black/5 border border-black/10 focus-visible:bg-white focus-visible:border-[#0066cc] focus-visible:ring-4 focus-visible:ring-[#0066cc]/20 transition-all"
           autoComplete="email"
           {...register('email')}
         />
@@ -227,7 +227,7 @@ export function RegistratiDemoForm() {
           type={showPassword ? 'text' : 'password'}
           value={watch('password')}
           floatingLabelBg="rgba(255,255,255,0.75)"
-          inputClassName="h-14 pt-7 text-base pr-10 bg-transparent border border-gray-100/30 focus-visible:border-[#FF7300] focus-visible:ring-2 focus-visible:ring-[#FF7300]/40"
+          inputClassName="h-14 pt-7 text-base pr-10 bg-black/5 border border-black/10 focus-visible:bg-white focus-visible:border-[#0066cc] focus-visible:ring-4 focus-visible:ring-[#0066cc]/20 transition-all"
           autoComplete="new-password"
           {...register('password')}
         />
@@ -266,7 +266,7 @@ export function RegistratiDemoForm() {
             type="tel"
             value={watch('phone')}
             floatingLabelBg="rgba(255,255,255,0.75)"
-            inputClassName="h-14 pt-7 text-base bg-transparent border border-gray-100/30 focus-visible:border-[#FF7300] focus-visible:ring-2 focus-visible:ring-[#FF7300]/40"
+            inputClassName="h-14 pt-7 text-base bg-black/5 border border-black/10 focus-visible:bg-white focus-visible:border-[#0066cc] focus-visible:ring-4 focus-visible:ring-[#0066cc]/20 transition-all"
             autoComplete="tel-national"
             {...register('phone')}
           />
@@ -331,13 +331,13 @@ export function RegistratiDemoForm() {
         <p className="text-sm text-red-500">{error}</p>
       )}
 
-      <div className="pt-3 flex justify-center">
+      <div className="pt-4 flex justify-center">
         <Button
           type="submit"
           disabled={isLoading}
-          className="btn-orange-glow h-12 max-w-xs rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full h-[52px] rounded-full bg-[#1d1d1f] hover:bg-black text-[15px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
-          {isLoading ? t('registerForm.registrationLoading') : t('auth.registerUpper')}
+          {isLoading ? t('registerForm.registrationLoading') : t('auth.register')}
         </Button>
       </div>
     </form>

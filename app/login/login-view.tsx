@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { LoginForm } from '@/components/feature/login/login-form';
 import { AuthShell, AUTH_GLASS_CLASS, AUTH_GLASS_LIGHT } from '@/components/layout/AuthShell';
 import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-
+import { FlagIcon } from '@/components/ui/FlagIcon';
 export function LoginView() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -30,119 +30,110 @@ export function LoginView() {
   return (
     <AuthShell>
           {showLoginForm ? (
-            <>
-              <h1 className="mb-6 text-center text-3xl font-bold uppercase tracking-wide text-white">
-                {t('pages.login.title')}
-              </h1>
-              <div className={AUTH_GLASS_CLASS} style={AUTH_GLASS_LIGHT}>
-                <div className="p-8 sm:p-12">
-                  <LoginForm />
-                  <div className="mt-6 border-t border-white/20 pt-6 text-center">
+            <div className="relative w-full max-w-[480px] mx-auto overflow-hidden rounded-[40px] bg-white/85 backdrop-blur-[60px] shadow-[0_32px_64px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,0.8)] border border-white/50">
+              <div className="p-8 sm:p-10 flex flex-col">
+                <button 
+                  onClick={() => setShowLoginForm(false)} 
+                  className="self-start text-[#86868b] hover:text-[#1d1d1f] mb-6 flex items-center gap-1 text-[13px] font-medium transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Indietro
+                </button>
+                <h1 className="text-center text-[26px] sm:text-[32px] font-bold tracking-tight text-[#1d1d1f] mb-8">
+                  {t('pages.login.title')}
+                </h1>
+                <LoginForm />
+                <div className="mt-8 pt-6 border-t border-gray-200/50 text-center">
+                  <p className="text-[14px] text-[#515154]">
+                    {t('pages.login.noAccount')} <Link href="/registrati" className="font-semibold text-[#0066cc] hover:underline">Registrati</Link>
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="relative w-full max-w-[440px] mx-auto overflow-hidden rounded-[40px] bg-white/85 backdrop-blur-[60px] shadow-[0_32px_64px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,0.8)] border border-white/50">
+              <div className="p-8 sm:p-10 flex flex-col items-center">
+                {/* Header / Language Selector Centered */}
+                <div className="w-full flex justify-center mb-8">
+                  <div className="relative flex items-center justify-center rounded-full bg-white/60 border border-gray-200/80 shadow-sm hover:bg-white/90 transition-colors pl-4 pr-3.5 py-1.5 backdrop-blur-md">
+                    <div className="flex items-center gap-2.5 pointer-events-none">
+                      <span className="text-[11px] font-semibold tracking-wide text-gray-500/90 uppercase pt-[1px]">
+                        {t('pages.login.demoLanding.languagePrompt')}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <FlagIcon 
+                          country={selectedLang === 'en' ? 'GB' : selectedLang.toUpperCase()} 
+                          size="xs" 
+                          className="opacity-90 shadow-sm" 
+                        />
+                        <span className="text-[13px] font-semibold text-gray-800 pt-[1px]">
+                          {LANGUAGE_NAMES[selectedLang] ?? selectedLang}
+                        </span>
+                      </div>
+                      <svg className="w-3.5 h-3.5 text-gray-500 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                    <select
+                      id="demo_lang"
+                      value={selectedLang}
+                      onChange={(e) => setSelectedLang(e.target.value)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      aria-label={t('common.languageSelectAria')}
+                    >
+                      {availableLangs.map((lang) => (
+                        <option key={lang} value={lang}>
+                          {LANGUAGE_NAMES[lang] ?? lang}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <h1 className="text-center text-[26px] sm:text-[32px] font-bold tracking-tight text-[#1d1d1f] mb-4">
+                  {t('pages.login.demoLanding.title')}
+                </h1>
+
+                <p className="text-center text-[15px] leading-[1.45] text-[#515154] mb-4">
+                  Qui puoi esplorare la piattaforma e farti un&apos;idea di come funzioneranno aste,
+                  acquisti e gestione del tuo account. Tutto è in fase di sviluppo e potresti
+                  incontrare bug o piccole imperfezioni.
+                </p>
+
+                <p className="text-center text-[14px] text-[#86868b] mb-10">
+                  Problemi? Scrivici a <br className="sm:hidden" />
+                  <a href="mailto:ebartex.service@gmail.com" className="font-medium text-[#0066cc] hover:underline transition-colors">
+                    ebartex.service@gmail.com
+                  </a>
+                </p>
+
+                <div className="w-full flex flex-col gap-3.5">
+                  <div className="grid grid-cols-2 gap-3.5">
+                    <button
+                      type="button"
+                      onClick={goToLoginForm}
+                      className="w-full rounded-full bg-white border border-gray-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)] px-4 py-3.5 text-center text-[15px] font-semibold text-[#1d1d1f] transition-all hover:bg-gray-50 active:scale-[0.98]"
+                    >
+                      Accedi
+                    </button>
                     <Link
                       href="/registrati"
-                      className="inline-flex items-center gap-1.5 text-base font-semibold text-[#FF7300] hover:underline"
+                      className="w-full rounded-full bg-[#1d1d1f] px-4 py-3.5 text-center text-[15px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
                     >
-                      {t('pages.login.noAccount')}
-                      <ArrowRight className="h-4 w-4" />
+                      Registrati
                     </Link>
                   </div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className={AUTH_GLASS_CLASS} style={AUTH_GLASS_LIGHT}>
-                <div className="p-5 sm:p-6 md:p-7 flex flex-col items-center">
-                  <h1 className="text-center text-xl sm:text-2xl font-bold tracking-tight text-gray-900">
-                    {t('pages.login.demoLanding.title')}
-                  </h1>
 
-                  <div className="mt-4 w-full max-w-md text-center">
-                    <label
-                      htmlFor="demo_lang"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      {t('pages.login.demoLanding.languagePrompt')}
-                    </label>
-                    <div className="mt-2 mx-auto flex w-full max-w-sm items-center justify-center rounded-xl border border-gray-100/50 bg-white/70 px-3 py-2 backdrop-blur-md">
-                      <select
-                        id="demo_lang"
-                        value={selectedLang}
-                        onChange={(e) => setSelectedLang(e.target.value)}
-                        className="w-full min-w-[12rem] bg-transparent text-sm font-semibold text-gray-900 outline-none"
-                        aria-label={t('common.languageSelectAria')}
-                      >
-                        {availableLangs.map((lang) => (
-                          <option key={lang} value={lang}>
-                            {LANGUAGE_NAMES[lang] ?? lang}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <Link
-                    href="/demo"
-                    className="mt-5 w-full block rounded-2xl border border-gray-100/40 bg-white/65 p-4 transition-all hover:scale-[1.01] active:scale-[0.995]"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-orange-100/60 bg-orange-50/70 text-[#FF7300]">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <polyline points="4 17 10 11 4 5" />
-                          <line x1="12" y1="19" x2="20" y2="19" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="mt-1.5 text-lg font-semibold text-gray-900">
-                          {t('pages.login.demoLanding.cardTitle')}
-                        </p>
-                        <p className="mt-1.5 text-xs leading-relaxed text-gray-700/80">
-                          {t('pages.login.demoLanding.cardSubtitle')}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-center">
-                      <span className="btn-orange-glow inline-flex items-center justify-center rounded-full px-7 py-2">
-                        {t('pages.login.demoLanding.ctaDemo')}
-                      </span>
-                    </div>
-                  </Link>
-                </div>
-              </div>
-
-              <div className="mt-4 w-full flex items-center justify-center relative z-20">
-                <div className="flex items-center justify-center gap-2 rounded-full border border-gray-100/50 bg-white/65 px-3 py-1.5 backdrop-blur-md shadow-[0_8px_20px_rgba(0,0,0,0.08)]">
                   <Link
                     href="/"
-                    className="rounded-full border border-orange-100/60 bg-orange-50/60 px-3 py-1 text-xs font-semibold text-[#FF7300] transition-all duration-200 hover:bg-orange-50 hover:scale-[1.02] active:scale-95"
+                    className="mt-3 w-full text-center text-[14px] font-medium text-[#86868b] hover:text-[#1d1d1f] transition-colors"
                   >
-                    {t('pages.login.demoLanding.ctaViewSite')}
+                    Esplora il sito
                   </Link>
-                  <span className="text-[#FF7300]/70 select-none text-xs" aria-hidden>
-                    |
-                  </span>
-                  <button
-                    type="button"
-                    onClick={goToLoginForm}
-                    className="btn-orange-glow rounded-full px-3 py-1 text-xs"
-                  >
-                    {t('pages.login.demoLanding.ctaLoginNow')}
-                  </button>
                 </div>
+                
+                <p className="mt-8 text-center text-[12px] font-medium text-[#86868b]">
+                  La demo potrebbe cambiare mentre lavoriamo su nuove funzionalità.
+                </p>
               </div>
-            </>
+            </div>
           )}
     </AuthShell>
   );
