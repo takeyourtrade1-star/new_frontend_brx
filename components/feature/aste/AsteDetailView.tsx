@@ -94,6 +94,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   useAuctionWebSocket(Number.isNaN(numericId) ? 0 : numericId);
   const currentUser = useAuthStore((s) => s.user);
   const currentUserId = currentUser?.id ?? null;
+  const isAuthenticated = currentUser != null;
 
   const detail = useMemo(() => {
     if (!detailRes?.data) return null;
@@ -904,40 +905,49 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     {/* Mobile CTA separator */}
                     <div className="border-t-2 border-dashed border-orange-200/60 pt-4 lg:border-0 lg:pt-0">
 
-                      {/* CTA Principale - Scegli Offerta */}
-                      <button
-                        type="button"
-                        onClick={() => setBidModalOpen(true)}
-                        className="btn-orange-glow group relative w-full overflow-hidden rounded-xl border-2 py-3.5 text-center bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] hover:-translate-y-0.5 active:translate-y-0 sm:py-4"
-                      >
-                        {/* Animated gradient overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#FF9A5C] via-[#FF8A3D] to-[#FF7300] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-
-                        <div className="relative flex items-center justify-between gap-2 px-4 sm:px-6">
-                          {/* Left - Label */}
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold sm:text-base">
-                              {t('auctions.bidButtonChoose')}
-                            </span>
+                      {/* CTA Principale — condizionata all'autenticazione */}
+                      {isAuthenticated ? (
+                        <button
+                          type="button"
+                          onClick={() => setBidModalOpen(true)}
+                          className="btn-orange-glow group relative w-full overflow-hidden rounded-xl border-2 py-3.5 text-center bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] hover:-translate-y-0.5 active:translate-y-0 sm:py-4"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-[#FF9A5C] via-[#FF8A3D] to-[#FF7300] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                          <div className="relative flex items-center justify-between gap-2 px-4 sm:px-6">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-white sm:text-base">
+                                {t('auctions.bidButtonChoose')}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-base font-extrabold text-white sm:text-lg">
+                                {fmtEur(minNextBidEur(effectiveCurrentBidEur))}
+                              </span>
+                              <svg
+                                className="h-4 w-4 text-white transition-transform duration-300 group-hover:translate-x-0.5 sm:h-5 sm:w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2.5}
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                              </svg>
+                            </div>
                           </div>
-
-                          {/* Right - Amount + Arrow */}
-                          <div className="flex items-center gap-2">
-                            <span className="text-base font-extrabold sm:text-lg">
-                              {fmtEur(minNextBidEur(effectiveCurrentBidEur))}
-                            </span>
-                            <svg
-                              className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 sm:h-5 sm:w-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2.5}
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
-                          </div>
-                        </div>
-                      </button>
+                        </button>
+                      ) : (
+                        <Link
+                          href="/login"
+                          className="group flex w-full items-center justify-center gap-3 rounded-xl border-2 border-slate-900 bg-slate-900 py-3.5 text-center transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 sm:py-4"
+                        >
+                          <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                          </svg>
+                          <span className="text-sm font-bold uppercase tracking-wide text-white sm:text-base">
+                            Accedi o Registrati per offrire
+                          </span>
+                        </Link>
+                      )}
                     </div>
 
                     {/* Helper text */}

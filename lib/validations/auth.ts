@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-/** Pagina Login: email + password (messaggi = chiavi i18n) */
+/** Pagina Login: email/username + password (messaggi = chiavi i18n) */
 export const loginSchema = z.object({
-  email: z.string().min(1, 'validation.emailRequired').email('validation.emailInvalid'),
+  identifier: z.string().min(1, 'validation.emailRequired'),
   password: z.string().min(1, 'validation.passwordRequired'),
 });
 

@@ -29,16 +29,20 @@ export function LoginForm() {
     formState: { errors },
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { identifier: '', password: '' },
   });
 
   async function onSubmit(data: LoginValues) {
     authError.clearError();
     try {
-      const result = await loginMutation.mutateAsync({
-        email: data.email,
-        password: data.password,
-      });
+      const input = data.identifier.trim();
+      const isEmail = input.includes('@');
+      
+      const credentials = isEmail
+        ? { email: input, password: data.password }
+        : { username: input, password: data.password };
+
+      const result = await loginMutation.mutateAsync(credentials);
 
       if (result.mfaRequired) {
         router.replace('/login/verify-mfa');
@@ -54,14 +58,14 @@ export function LoginForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
         <input
-          type="email"
-          autoComplete="email"
-          placeholder={t('loginForm.email')}
+          type="text"
+          autoComplete="username"
+          placeholder={t('auth.usernameOrEmail')}
           className={appleInputClass}
-          {...register('email')}
+          {...register('identifier')}
         />
-        {errors.email && (
-          <p className="mt-1.5 pl-1 text-[12px] text-red-500">{translateZodMessage(errors.email.message, t)}</p>
+        {errors.identifier && (
+          <p className="mt-1.5 pl-1 text-[12px] text-red-500">{translateZodMessage(errors.identifier.message, t)}</p>
         )}
       </div>
 

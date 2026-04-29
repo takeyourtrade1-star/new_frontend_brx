@@ -227,43 +227,59 @@ export function TopBar() {
 
   return (
     <>
-      {/* Toast successo: centrato su mobile, a destra su desktop */}
+      <style>{`
+        @keyframes toast-spring-in {
+          0% { transform: translate(-50%, -150%) scale(0.9); opacity: 0; }
+          50% { transform: translate(-50%, 10%) scale(1.02); opacity: 1; }
+          100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+        }
+        @keyframes toast-spring-out {
+          0% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+          100% { transform: translate(-50%, -150%) scale(0.9); opacity: 0; }
+        }
+        .toast-spring-enter {
+          animation: toast-spring-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .toast-spring-exit {
+          animation: toast-spring-out 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+        }
+      `}</style>
+
+      {/* Toast successo: Premium Glassmorphism Colorato */}
       {(flashMessage || toastExiting) && (
         <div
           className={cn(
-            'fixed z-[60] flex items-center gap-3 rounded-xl border border-gray-200/80 bg-white px-4 py-3 shadow-[0_4px_24px_rgba(0,0,0,0.12)]',
-            'left-1/2 -translate-x-1/2 md:left-auto md:right-6 md:translate-x-0',
-            toastExiting ? 'toast-exit' : 'toast-enter'
+            'fixed left-1/2 top-6 z-[110] flex items-center gap-3 rounded-full border bg-emerald-50/90 px-5 py-3 backdrop-blur-2xl backdrop-saturate-150',
+            'border-emerald-500/20 shadow-[0_8px_30px_-4px_rgba(16,185,129,0.3)]',
+            toastExiting ? 'toast-spring-exit' : 'toast-spring-enter'
           )}
-          style={{ top: 200, borderLeft: '4px solid #22c55e' }}
           role="status"
           aria-live="polite"
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-            <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-          </span>
-          <span className="text-sm font-medium text-gray-800">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[inset_0_-2px_4px_rgba(0,0,0,0.2)]">
+            <Check className="h-4 w-4" strokeWidth={3} aria-hidden />
+          </div>
+          <span className="text-sm font-bold text-emerald-900 tracking-wide">
             {flashMessage ?? lastFlashRef.current}
           </span>
         </div>
       )}
 
-      {/* Toast errore (credenziali sbagliate ecc.): centrato su mobile, a destra su desktop */}
+      {/* Toast errore: Premium Glassmorphism Colorato */}
       {(loginError || errorExiting) && (
         <div
           className={cn(
-            'fixed z-[60] flex items-center gap-3 rounded-xl border border-gray-200/80 bg-white px-4 py-3 shadow-[0_4px_24px_rgba(0,0,0,0.12)]',
-            'left-1/2 -translate-x-1/2 md:left-auto md:right-6 md:translate-x-0',
-            errorExiting ? 'toast-exit' : 'toast-enter'
+            'fixed left-1/2 top-6 z-[110] flex items-center gap-3 rounded-full border bg-red-50/90 px-5 py-3 backdrop-blur-2xl backdrop-saturate-150',
+            'border-red-500/20 shadow-[0_8px_30px_-4px_rgba(239,68,68,0.3)]',
+            errorExiting ? 'toast-spring-exit' : 'toast-spring-enter'
           )}
-          style={{ top: 200, borderLeft: '4px solid #ef4444' }}
           role="alert"
           aria-live="assertive"
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500 text-white shadow-[inset_0_-2px_4px_rgba(0,0,0,0.2)]">
             <AlertCircle className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-          </span>
-          <span className="text-sm font-medium text-gray-800">
+          </div>
+          <span className="text-sm font-bold text-red-900 tracking-wide">
             {loginError ?? lastErrorRef.current}
           </span>
         </div>
@@ -928,14 +944,27 @@ export function TopBar() {
               </div>
             </>
           ) : (
-            <div className="hidden shrink-0 md:block">
-              <Button
-                asChild
-                className="btn-orange-glow rounded-full border px-5 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Link href="/login">{t('auth.registerUpper')}</Link>
-              </Button>
-            </div>
+            <>
+              {/* Link testo pulito visibile solo su mobile */}
+              <div className="flex shrink-0 items-center md:hidden mr-2 sm:mr-4">
+                <Link 
+                  href="/login" 
+                  className="text-[13px] font-semibold tracking-wide text-white/95 hover:text-white transition-colors uppercase"
+                >
+                  Accedi o Registrati
+                </Link>
+              </div>
+
+              {/* Pulsante pieno visibile solo su desktop */}
+              <div className="hidden shrink-0 md:block">
+                <Button
+                  asChild
+                  className="btn-orange-glow rounded-full border px-5 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Link href="/login">{t('auth.registerUpper')}</Link>
+                </Button>
+              </div>
+            </>
           )}
           <div className="flex shrink-0 items-center" aria-label={t('header.menuAria')}>
             <HamburgerMenu />

@@ -261,9 +261,8 @@ export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: b
           {auctions.map((item) => {
             const featured = featuredAuctionIds.includes(item.id);
             return (
-              <div key={item.id} className="w-[186px] shrink-0 md:w-[210px]">
+              <div key={item.id} className="w-[200px] shrink-0 md:w-[240px]">
                 <AuctionCard item={item} locale={locale} featured={featured} />
-                <AuctionCardMeta item={item} locale={locale} featured={featured} />
               </div>
             );
           })}
@@ -293,40 +292,17 @@ export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: b
 
 function AuctionCardSkeleton() {
   return (
-    <div className="w-[186px] shrink-0 md:w-[210px]" aria-hidden="true">
-      <div className="relative overflow-hidden rounded-2xl border border-white/20 aspect-[1/1.95] bg-slate-800/40">
-        {/* Image placeholder with shimmer */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-700 animate-pulse" />
-
-        {/* Gradient overlay placeholder */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/20 to-transparent" />
-
-        {/* Top chips placeholder */}
-        <div className="absolute left-2 right-2 top-2 z-[1] flex flex-wrap gap-1.5">
-          <div className="h-4 w-14 rounded-full bg-slate-300/30 animate-pulse" />
-          <div className="h-4 w-10 rounded-full bg-slate-300/30 animate-pulse" />
-          <div className="h-4 w-12 rounded-full bg-slate-300/30 animate-pulse" />
-        </div>
-
-        {/* Timer badge placeholder */}
-        <div className="absolute inset-x-2 bottom-2 z-[1] h-9 rounded-xl border border-slate-200/20 bg-slate-300/25 px-2">
-          <div className="mt-[9px] flex items-center justify-between gap-2">
-            <div className="h-4 w-4 rounded-md bg-slate-200/45 animate-pulse" />
-            <div className="h-3 w-12 rounded bg-slate-200/45 animate-pulse" />
-            <div className="h-4 w-11 rounded-md bg-slate-200/45 animate-pulse" />
-          </div>
+    <div className="flex w-[200px] shrink-0 flex-col gap-3 md:w-[240px]" aria-hidden="true">
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl bg-slate-200 animate-pulse">
+        <div className="absolute left-2.5 top-2.5 flex gap-2">
+          <div className="h-5 w-20 rounded-full bg-slate-300/50" />
         </div>
       </div>
-
-      <div className="relative mt-2 overflow-hidden rounded-2xl border border-white/55 bg-[linear-gradient(160deg,rgba(255,255,255,0.88),rgba(243,248,255,0.68)_56%,rgba(224,233,247,0.5))] px-3 py-3 shadow-[0_10px_22px_rgba(15,23,42,0.18)]">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-white/45 to-transparent" />
-        <div className="w-full space-y-1.5">
-          <div className="h-3 w-[96%] rounded bg-slate-300/45 animate-pulse" />
-          <div className="h-3 w-[70%] rounded bg-slate-300/35 animate-pulse" />
-        </div>
-        <div className="mt-2 flex items-center justify-between">
-          <div className="h-4 w-14 rounded bg-orange-300/45 animate-pulse" />
-          <div className="h-4 w-12 rounded-full bg-slate-300/40 animate-pulse" />
+      <div className="flex flex-col px-1">
+        <div className="h-4 w-3/4 rounded bg-slate-200 animate-pulse" />
+        <div className="mt-2.5 flex items-center justify-between">
+          <div className="h-5 w-16 rounded bg-slate-200 animate-pulse" />
+          <div className="h-5 w-16 rounded-full bg-slate-200 animate-pulse" />
         </div>
       </div>
     </div>
@@ -342,145 +318,69 @@ type AuctionCardProps = {
 function AuctionCard({ item, locale, featured = false }: AuctionCardProps) {
   const { t } = useTranslation();
   const endingSoon = isEndingSoonUI(item.hoursFromNow);
-  const roundedHoursLeft = Math.max(1, Math.round(item.hoursFromNow));
-  const timeLeftLabel = roundedHoursLeft >= 24 ? `${Math.ceil(roundedHoursLeft / 24)}g` : `${roundedHoursLeft}h`;
   const countdownLabel = formatCountdown(item.hoursFromNow);
-  const gameLabel =
-    item.game === 'mtg'
-      ? 'MTG'
-      : item.game === 'pokemon'
-        ? 'Pokemon'
-        : item.game === 'op'
-          ? 'One Piece'
-          : item.game === 'ygo'
-            ? 'Yu-Gi-Oh'
-            : item.game === 'lorcana'
-              ? 'Lorcana'
-              : String(item.game).toUpperCase();
 
-  const topPillBaseClass =
-    'inline-flex h-5 items-center justify-center rounded-full border px-2.5 text-[9px] font-black uppercase tracking-[0.08em] backdrop-blur-md shadow-[0_3px_10px_rgba(15,23,42,0.25)]';
-
-  const gameChipClass = cn(
-    topPillBaseClass,
-    item.game === 'mtg' && 'border-blue-200/65 bg-blue-500/35 text-blue-50',
-    item.game === 'pokemon' && 'border-amber-200/65 bg-amber-500/35 text-amber-50',
-    item.game === 'op' && 'border-rose-200/65 bg-rose-500/35 text-rose-50',
-    item.game === 'ygo' && 'border-violet-200/65 bg-violet-500/35 text-violet-50',
-    item.game === 'lorcana' && 'border-cyan-200/65 bg-cyan-500/35 text-cyan-50'
-  );
-  
   return (
     <Link
       href={auctionDetailPath(item.id)}
       data-auction-card
-      className="group/card relative block overflow-hidden rounded-2xl border border-white/20 aspect-[1/1.95] bg-slate-950/35 shadow-[0_8px_24px_rgba(15,23,42,0.24)] transition-all duration-500 hover:-translate-y-1 hover:border-white/35 hover:shadow-[0_14px_36px_rgba(15,23,42,0.34)] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
+      className="group flex flex-col gap-3"
       aria-label={t('auctions.auctionAriaLabel', { title: item.title })}
     >
-      {/* Background image with prefetch support */}
-      <Image
-        src={item.image}
-        alt=""
-        fill
-        className="object-cover saturate-[1.08]"
-        sizes="(min-width: 768px) 210px, 186px"
-        unoptimized
-        priority={false}
-        data-src={item.image}
-      />
+      {/* Immagine */}
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl bg-slate-100 shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_12px_24px_rgba(0,0,0,0.12)]">
+        <Image
+          src={item.image}
+          alt=""
+          fill
+          className="object-cover"
+          sizes="(min-width: 768px) 240px, 200px"
+          unoptimized
+          priority={false}
+          data-src={item.image}
+        />
+        
+        {/* Sfumatura in alto per rendere leggibili le pillole */}
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/60 to-transparent" />
 
-      {/* Layered overlays for cinematic contrast */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-900/8 to-slate-950/10" aria-hidden />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/28 to-transparent" aria-hidden />
-      <div className="absolute inset-0 bg-gradient-to-br from-orange-300/10 via-transparent to-cyan-300/10" aria-hidden />
-      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover/card:opacity-100" aria-hidden>
-        <div className="h-full w-full bg-[linear-gradient(120deg,transparent_20%,rgba(255,255,255,0.13)_50%,transparent_80%)] bg-[length:200%_100%] animate-[flowBeam_2.6s_linear_infinite]" />
-      </div>
-
-      {/* Top meta pills */}
-      <div className="absolute left-2 right-2 top-2 z-[2]">
-        <div className="flex flex-wrap items-start gap-1.5">
+        {/* Pillole in alto in stile Dark Glassmorphism Premium */}
+        <div className="absolute left-2.5 right-2.5 top-2.5 flex flex-col items-start gap-1.5">
           {featured && (
-            <span className={cn(topPillBaseClass, 'border-amber-200/75 bg-amber-500/45 text-amber-50')}>
+            <span className="flex items-center gap-1.5 rounded-full border border-amber-300/30 bg-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400 shadow-sm backdrop-blur-md">
+              <span aria-hidden="true" className="text-[10px]">✨</span>
               In evidenza
             </span>
           )}
-          <span className={gameChipClass}>{gameLabel}</span>
-          {endingSoon ? (
-            <span className={cn(topPillBaseClass, 'border-red-200/75 bg-red-500/80 text-white')}>
+          {endingSoon && (
+            <span className="flex items-center gap-1.5 rounded-full border border-red-400/30 bg-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-400 shadow-sm backdrop-blur-md">
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
+              </span>
               {t('auctions.endingSoonBadge')}
             </span>
-          ) : (
-            <span className={cn(topPillBaseClass, 'border-white/45 bg-black/45 text-white/95')}>
-              {timeLeftLabel}
-            </span>
           )}
         </div>
       </div>
 
-      {/* Prominent expiration timer */}
-      <div className="absolute inset-x-2 bottom-2 z-[2]">
-        <div
-          className={cn(
-            'flex h-9 items-center rounded-xl border pl-1.5 pr-2 shadow-[0_10px_22px_rgba(2,6,23,0.48)] ring-1 ring-black/20 backdrop-blur-md',
-            endingSoon
-              ? 'border-red-200/80 bg-[linear-gradient(135deg,rgba(239,68,68,0.96),rgba(185,28,28,0.93))] text-white'
-              : 'border-cyan-100/35 bg-[linear-gradient(135deg,rgba(15,23,42,0.92),rgba(30,41,59,0.9))] text-slate-50'
-          )}
-        >
-          <span
-            className={cn(
-              'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border shadow-[0_3px_8px_rgba(0,0,0,0.25)]',
-              endingSoon ? 'border-white/45 bg-white/18' : 'border-cyan-100/35 bg-cyan-300/18'
-            )}
-          >
-            <Clock3 className="h-3.5 w-3.5" />
-          </span>
-          <div className="ml-2 flex min-w-0 flex-col leading-none">
-            <span className="text-[8px] font-bold uppercase tracking-[0.11em] text-white/78">Scadenza</span>
-            <span className="text-[11px] font-black uppercase tracking-[0.07em] text-white">Scade tra</span>
-          </div>
-          <span
-            className={cn(
-              'ml-auto rounded-md border px-2 py-1 text-[12px] font-black tracking-[0.08em] tabular-nums',
-              endingSoon ? 'border-white/40 bg-white/16 text-white' : 'border-cyan-100/35 bg-black/28 text-cyan-50'
-            )}
-          >
-            {countdownLabel}
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-function AuctionCardMeta({ item, locale, featured = false }: AuctionCardProps) {
-  return (
-    <Link
-      href={auctionDetailPath(item.id)}
-      className={cn(
-        'relative mt-2 block overflow-hidden rounded-2xl border px-3 py-3 backdrop-blur-[10px] shadow-[0_10px_22px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5',
-        featured
-          ? 'border-amber-300/55 bg-[linear-gradient(160deg,rgba(255,247,220,0.94),rgba(255,233,190,0.72)_60%,rgba(255,206,127,0.5))] hover:border-amber-300/75'
-          : 'border-white/55 bg-[linear-gradient(160deg,rgba(255,255,255,0.9),rgba(243,248,255,0.7)_56%,rgba(224,233,247,0.52))] hover:border-white/75'
-      )}
-      aria-label={`Dettagli asta ${item.title}`}
-    >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-white/50 to-transparent" />
-      <p className="line-clamp-2 text-[13px] font-extrabold leading-tight text-slate-900">
-        {item.title}
-      </p>
-      <div className="mt-2 flex items-end justify-between gap-2">
-        <p className="text-[14px] font-black tracking-tight text-[#FF8A00]">
-          {item.currentBidEur.toLocaleString(locale, {
-            style: 'currency',
-            currency: 'EUR',
-            maximumFractionDigits: 0,
-          })}
+      {/* Testo (nient'altro che nome, prezzo, tempo rimanente) */}
+      <div className="flex flex-col px-1">
+        <p className="line-clamp-1 text-sm font-semibold text-slate-800 transition-colors group-hover:text-[#ff7300]">
+          {item.title}
         </p>
-        <span className="inline-flex min-w-[86px] items-center justify-center rounded-full border border-slate-500/45 bg-white/62 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.07em] text-slate-700">
-          {item.bidCount} offerte
-        </span>
+        <div className="mt-1.5 flex items-center justify-between">
+          <p className="text-lg font-bold text-slate-900">
+            {item.currentBidEur.toLocaleString(locale, {
+              style: 'currency',
+              currency: 'EUR',
+              maximumFractionDigits: 0,
+            })}
+          </p>
+          <div className="flex items-center gap-1.5 rounded-full bg-slate-200/60 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+            <Clock3 className="h-3 w-3" />
+            <span>{countdownLabel}</span>
+          </div>
+        </div>
       </div>
     </Link>
   );

@@ -114,8 +114,11 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center border-t border-gray-200 bg-white py-5 text-center">
-        <span className="text-sm text-gray-700">
+      <div className="flex flex-col items-center justify-center border-t border-gray-200 bg-white px-4 py-6 text-center md:px-6">
+        <p className="mb-3 max-w-5xl text-xs leading-relaxed text-gray-500">
+          Tutti i marchi, i nomi dei giochi e le immagini delle carte sono di proprietà dei rispettivi titolari. Ebartex è un servizio indipendente e non è affiliato, sponsorizzato o approvato da Wizards of the Coast, Nintendo o altri produttori.
+        </p>
+        <span className="text-sm font-medium text-gray-700">
           {t('footer.copyright', { year: new Date().getFullYear() })}
         </span>
       </div>

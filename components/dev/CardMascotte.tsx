@@ -2335,71 +2335,126 @@ export function CardMascotte() {
             pointerEvents: isHintVisible ? 'auto' : 'none',
           }}
         >
-          {/* Glassmorphism bubble - matches mascot style */}
-          <div
-            className="relative rounded-xl px-4 py-3 text-center backdrop-blur-md overflow-hidden"
-            style={{
-              background: currentHintAccent
-                ? `linear-gradient(135deg, ${currentHintAccent}15 0%, rgba(39,39,42,0.85) 100%)`
-                : 'rgba(39,39,42,0.85)',
-              border: currentHintAccent
-                ? `1px solid ${currentHintAccent}40`
-                : '1px solid rgba(255,255,255,0.15)',
-              boxShadow: currentHintAccent
-                ? `0 4px 20px ${currentHintAccent}25, 0 2px 8px rgba(0,0,0,0.2)`
-                : '0 4px 16px rgba(0,0,0,0.2)',
-            }}
-          >
-            {/* Subtle accent glow for non-bug hints */}
-            {currentHintAccent && (
+          {isSleeping ? (
+            /* ── DREAM BUBBLE (nuvoletta dei sogni) ── */
+            <div className="relative">
+              {/* Corpo della nuvoletta — più compatta */}
               <div
-                className="absolute inset-0 opacity-20 blur-md"
+                className="relative rounded-[24px] px-3 py-2 text-center"
                 style={{
-                  background: currentHintAccent,
+                  background: 'linear-gradient(135deg, #ede9fe 0%, #ddd6fe 60%, #c4b5fd 100%)',
+                  border: '1.5px solid rgba(167,139,250,0.45)',
+                  boxShadow: '0 3px 14px rgba(124,58,237,0.15), 0 1px 6px rgba(0,0,0,0.06)',
+                  minWidth: '160px',
+                  maxWidth: '200px',
+                }}
+              >
+                {/* Messaggio promozionale */}
+                <p
+                  className="text-violet-900 font-semibold leading-snug"
+                  style={{ fontSize: '11px' }}
+                >
+                  {currentHintText}
+                </p>
+                {/* CTA */}
+                {!isStyleReactionActive && (
+                  <div className="mt-1.5 flex items-center justify-center gap-1">
+                    <span className="text-[9px] font-medium text-violet-500">Scopri nel sogno</span>
+                    <ArrowRight className="h-2.5 w-2.5 text-violet-400 transition-transform group-hover:translate-x-0.5" />
+                  </div>
+                )}
+              </div>
+              {/* Coda nuvoletta — tre cerchietti */}
+              <span
+                className="absolute"
+                style={{
+                  bottom: '-8px',
+                  right: '24px',
+                  width: '11px',
+                  height: '11px',
+                  borderRadius: '50%',
+                  background: '#ddd6fe',
+                  border: '1.5px solid rgba(167,139,250,0.4)',
                 }}
               />
-            )}
-            {/* Sleep emoji indicator when sleeping */}
-            {isSleeping && (
-              <span className="absolute -top-1 -left-1 text-lg" style={{ animation: 'sleepTwinkle 2s ease-in-out infinite' }}>💤</span>
-            )}
-            {/* Text content */}
-            <p
-              className="relative text-white font-semibold leading-tight"
+              <span
+                className="absolute"
+                style={{
+                  bottom: '-15px',
+                  right: '15px',
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  background: '#ede9fe',
+                  border: '1px solid rgba(167,139,250,0.3)',
+                }}
+              />
+              <span
+                className="absolute"
+                style={{
+                  bottom: '-20px',
+                  right: '9px',
+                  width: '4px',
+                  height: '4px',
+                  borderRadius: '50%',
+                  background: '#f5f3ff',
+                  border: '1px solid rgba(167,139,250,0.2)',
+                }}
+              />
+            </div>
+          ) : (
+            /* ── NORMAL GLASSMORPHISM BUBBLE (invariata) ── */
+            <div
+              className="relative rounded-xl px-4 py-3 text-center backdrop-blur-md overflow-hidden"
               style={{
-                fontSize: '11px',
-                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                background: currentHintAccent
+                  ? `linear-gradient(135deg, ${currentHintAccent}15 0%, rgba(39,39,42,0.85) 100%)`
+                  : 'rgba(39,39,42,0.85)',
+                border: currentHintAccent
+                  ? `1px solid ${currentHintAccent}40`
+                  : '1px solid rgba(255,255,255,0.15)',
+                boxShadow: currentHintAccent
+                  ? `0 4px 20px ${currentHintAccent}25, 0 2px 8px rgba(0,0,0,0.2)`
+                  : '0 4px 16px rgba(0,0,0,0.2)',
               }}
             >
-              {currentHintText}
-            </p>
-            {/* CTA arrow */}
-            {!isStyleReactionActive && (
-              <div className="mt-2 flex items-center justify-center gap-1">
-                <span className="text-[9px] font-medium text-white/90">
-                  {isSleeping ? 'Scopri nel sogno' : 'Scopri di più'}
-                </span>
-                <ArrowRight className="h-3 w-3 text-white/90 transition-transform group-hover:translate-x-1" />
-              </div>
-            )}
-            {/* Glass arrow pointer */}
-            <span
-              className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
-              style={{
-                width: '8px',
-                height: '8px',
-                background: currentHintAccent
-                  ? `linear-gradient(135deg, ${currentHintAccent}20 0%, rgba(39,39,42,0.9) 100%)`
-                  : 'rgba(39,39,42,0.9)',
-                borderBottom: currentHintAccent
-                  ? `1px solid ${currentHintAccent}50`
-                  : '1px solid rgba(255,255,255,0.15)',
-                borderRight: currentHintAccent
-                  ? `1px solid ${currentHintAccent}50`
-                  : '1px solid rgba(255,255,255,0.15)',
-              }}
-            />
-          </div>
+              {currentHintAccent && (
+                <div
+                  className="absolute inset-0 opacity-20 blur-md"
+                  style={{ background: currentHintAccent }}
+                />
+              )}
+              <p
+                className="relative text-white font-semibold leading-tight"
+                style={{ fontSize: '11px', textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}
+              >
+                {currentHintText}
+              </p>
+              {!isStyleReactionActive && (
+                <div className="mt-2 flex items-center justify-center gap-1">
+                  <span className="text-[9px] font-medium text-white/90">Scopri di più</span>
+                  <ArrowRight className="h-3 w-3 text-white/90 transition-transform group-hover:translate-x-1" />
+                </div>
+              )}
+              {/* Glass arrow pointer */}
+              <span
+                className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  background: currentHintAccent
+                    ? `linear-gradient(135deg, ${currentHintAccent}20 0%, rgba(39,39,42,0.9) 100%)`
+                    : 'rgba(39,39,42,0.9)',
+                  borderBottom: currentHintAccent
+                    ? `1px solid ${currentHintAccent}50`
+                    : '1px solid rgba(255,255,255,0.15)',
+                  borderRight: currentHintAccent
+                    ? `1px solid ${currentHintAccent}50`
+                    : '1px solid rgba(255,255,255,0.15)',
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -4081,18 +4136,18 @@ export function CardMascotte() {
             opacity: 0;
             transform: translateY(0) translateX(0) scale(0.7);
           }
-          15% {
-            opacity: 0.9;
+          20% {
+            opacity: 0.55;
           }
           50% {
-            opacity: 1;
+            opacity: 0.65;
           }
-          85% {
-            opacity: 0.7;
+          80% {
+            opacity: 0.4;
           }
           100% {
             opacity: 0;
-            transform: translateY(-35px) translateX(8px) scale(1.05);
+            transform: translateY(-30px) translateX(6px) scale(1.02);
           }
         }
         @keyframes sleepBubbleWobble {
@@ -4114,12 +4169,11 @@ export function CardMascotte() {
           align-items: center;
           justify-content: center;
           background: linear-gradient(145deg, #e0e7ff 0%, #c7d2fe 50%, #a5b4fc 100%);
-          border: 1.5px solid rgba(99, 102, 241, 0.3);
+          border: 1.5px solid rgba(99, 102, 241, 0.25);
           box-shadow: 
-            0 2px 8px rgba(99, 102, 241, 0.25),
-            0 4px 12px rgba(99, 102, 241, 0.15),
-            inset 0 1px 2px rgba(255, 255, 255, 0.6);
-          animation: sleepBubbleFloat 2.8s ease-in-out infinite;
+            0 2px 6px rgba(99, 102, 241, 0.15),
+            inset 0 1px 2px rgba(255, 255, 255, 0.5);
+          animation: sleepBubbleFloat 5s ease-in-out infinite;
         }
         .sleep-bubble-large {
           width: 42px;
@@ -4138,11 +4192,12 @@ export function CardMascotte() {
           border-radius: 50%;
         }
         .sleep-bubble-small {
-          width: 26px;
-          height: 20px;
-          border-radius: 14px 14px 14px 4px;
+          width: 22px;
+          height: 16px;
+          border-radius: 12px 12px 12px 4px;
           margin-left: 18px;
-          animation-delay: 1.2s;
+          animation-delay: 2.5s;
+          opacity: 0.7;
         }
         .sleep-bubble-small::after {
           content: '';
