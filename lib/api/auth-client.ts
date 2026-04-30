@@ -70,6 +70,9 @@ class AuthApiClient {
       url.includes('/api/auth/login/code/request') ||
       url.includes('/api/auth/login/code/verify') ||
       url.includes('/api/auth/password/reset/request') ||
+      url.includes('/api/auth/password/reset/verify-code') ||
+      url.includes('/api/auth/password/reset/confirm-init') ||
+      url.includes('/api/auth/password/reset/confirm-final') ||
       url.includes('/api/auth/password/reset/confirm')
     );
   }
@@ -152,9 +155,10 @@ class AuthApiClient {
           !originalRequest.url?.includes('/api/auth/verify-mfa') &&
           !originalRequest.url?.includes('/api/auth/login/code/request') &&
           !originalRequest.url?.includes('/api/auth/login/code/verify') &&
-          !originalRequest.url?.includes(
-            '/api/auth/password/reset/request'
-          ) &&
+          !originalRequest.url?.includes('/api/auth/password/reset/request') &&
+          !originalRequest.url?.includes('/api/auth/password/reset/verify-code') &&
+          !originalRequest.url?.includes('/api/auth/password/reset/confirm-init') &&
+          !originalRequest.url?.includes('/api/auth/password/reset/confirm-final') &&
           !originalRequest.url?.includes('/api/auth/password/reset/confirm')
         ) {
           originalRequest._retry = true; // Marca per evitare loop infiniti
@@ -405,6 +409,56 @@ class AuthApiClient {
         new_password: newPassword,
       }
     );
+  }
+
+  /**
+   * Reset password Step 1: richiede invio OTP1.
+   * POST /api/auth/password/reset/request — body: { email }
+   */
+  async requestPasswordReset(email: string): Promise<OtpFlowMessageResponse> {
+    return this.post<OtpFlowMessageResponse>('/api/auth/password/reset/request', { email });
+  }
+
+  /**
+   * Reset password Step 2: verifica OTP1 e riceve reset_token.
+   * POST /api/auth/password/reset/verify-code — body: { email, code }
+   */
+  async verifyPasswordResetCode(
+    email: string,
+    code: string
+  ): Promise<{ token: string; token_type: 'password_reset'; expires_in_seconds: number }> {
+    return this.post<{ token: string; token_type: 'password_reset'; expires_in_seconds: number }>(
+      '/api/auth/password/reset/verify-code',
+      { email, code }
+    );
+  }
+
+  /**
+   * Reset password Step 3: invia nuova password e riceve confirm_token.
+   * POST /api/auth/password/reset/confirm-init — body: { reset_token, new_password }
+   */
+  async confirmPasswordResetInit(
+    resetToken: string,
+    newPassword: string
+  ): Promise<{ token: string; token_type: 'password_reset_confirm'; expires_in_seconds: number }> {
+    return this.post<{ token: string; token_type: 'password_reset_confirm'; expires_in_seconds: number }>(
+      '/api/auth/password/reset/confirm-init',
+      { reset_token: resetToken, new_password: newPassword }
+    );
+  }
+
+  /**
+   * Reset password Step 4: verifica OTP2 e completa il reset.
+   * POST /api/auth/password/reset/confirm-final — body: { confirm_token, code }
+   */
+  async confirmPasswordResetFinal(
+    confirmToken: string,
+    code: string
+  ): Promise<OtpFlowMessageResponse> {
+    return this.post<OtpFlowMessageResponse>('/api/auth/password/reset/confirm-final', {
+      confirm_token: confirmToken,
+      code,
+    });
   }
 }
 

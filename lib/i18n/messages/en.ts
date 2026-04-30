@@ -1424,6 +1424,7 @@ export const en = {
   'loginCode.sending': 'Sending…',
   'loginCode.checkEmail': 'Check your email',
   'loginCode.codeLabel': 'Enter the 8-character code',
+  'loginCode.codeHint': "If you're registered, you'll receive the code by email. Check your spam folder too.",
   'loginCode.login': 'Log in',
   'loginCode.loggingIn': 'Logging in…',
   'loginCode.resendCode': 'Resend code',
@@ -1443,6 +1444,42 @@ export const en = {
 
   // Breadcrumb
   'breadcrumb.login-code': 'Log in with code',
+
+  // Password Reset Flow
+  'passwordReset.step1Title': 'Recover credentials',
+  'passwordReset.step1Subtitle': 'Enter your email and we will send you a reset code.',
+  'passwordReset.step1Submit': 'Send code',
+  'passwordReset.step2Title': 'Enter reset code',
+  'passwordReset.step2Subtitle': 'We sent an 8-character code to your email.',
+  'passwordReset.step2Placeholder': '8-character code',
+  'passwordReset.step2Submit': 'Verify code',
+  'passwordReset.step3Title': 'New password',
+  'passwordReset.step3Subtitle': 'Choose a secure password.',
+  'passwordReset.newPasswordLabel': 'New password',
+  'passwordReset.confirmPasswordLabel': 'Confirm password',
+  'passwordReset.passwordHint': 'Min 12 characters, at least 1 uppercase, 1 lowercase, 1 number',
+  'passwordReset.step3Submit': 'Continue',
+  'passwordReset.step4Title': 'Enter confirmation code',
+  'passwordReset.step4Subtitle': 'We sent a 6-digit code to your email to confirm the change.',
+  'passwordReset.step4Submit': 'Reset password',
+  'passwordReset.countdownLabel': 'Code expires in {time}',
+  'passwordReset.countdownExpired': 'Code expired. Please restart the flow.',
+  'passwordReset.restartFlow': 'Restart',
+  'passwordReset.successTitle': 'Password updated',
+  'passwordReset.successMessage': 'Your password has been updated successfully. You will be redirected to login.',
+  'passwordReset.backLogin': 'Back to login',
+  'passwordReset.error401': 'Reset session expired or invalid. Please restart.',
+  'passwordReset.error422': 'Invalid input. Please check the fields.',
+  'passwordReset.error429': 'Too many attempts. Please wait before trying again.',
+  'passwordReset.error423': 'Account locked. Please contact support.',
+  'passwordReset.errorGeneric': 'Something went wrong. Please restart the process.',
+
+  // Validation - password reset
+  'validation.otp1Format': 'Code must be 8 lowercase letters or numbers',
+  'validation.otp2Format': 'Code must be 6 digits',
+  'validation.passwordMinLength12': 'Password must be at least 12 characters long',
+  'validation.confirmPasswordRequired': 'Confirm your password',
+  'validation.passwordMismatch': 'Passwords do not match',
 } as const;
 
 export type MessageKey = keyof typeof en;

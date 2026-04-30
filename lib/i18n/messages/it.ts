@@ -1427,6 +1427,7 @@ export const it: Record<MessageKey, string> = {
   'loginCode.sending': 'Invio in corso…',
   'loginCode.checkEmail': 'Controlla la tua email',
   'loginCode.codeLabel': 'Inserisci il codice di 8 caratteri',
+  'loginCode.codeHint': 'Se sei registrato, riceverai il codice via email. Controlla anche la cartella spam.',
   'loginCode.login': 'Accedi',
   'loginCode.loggingIn': 'Accesso in corso…',
   'loginCode.resendCode': 'Reinvia codice',
@@ -1446,4 +1447,40 @@ export const it: Record<MessageKey, string> = {
 
   // Breadcrumb
   'breadcrumb.login-code': 'Accedi con codice',
+
+  // Password Reset Flow
+  'passwordReset.step1Title': 'Recupera credenziali',
+  'passwordReset.step1Subtitle': 'Inserisci la tua email e ti invieremo un codice di ripristino.',
+  'passwordReset.step1Submit': 'Invia codice',
+  'passwordReset.step2Title': 'Inserisci il codice di ripristino',
+  'passwordReset.step2Subtitle': 'Abbiamo inviato un codice di 8 caratteri alla tua email.',
+  'passwordReset.step2Placeholder': 'Codice di 8 caratteri',
+  'passwordReset.step2Submit': 'Verifica codice',
+  'passwordReset.step3Title': 'Nuova password',
+  'passwordReset.step3Subtitle': 'Scegli una password sicura.',
+  'passwordReset.newPasswordLabel': 'Nuova password',
+  'passwordReset.confirmPasswordLabel': 'Conferma password',
+  'passwordReset.passwordHint': 'Min 12 caratteri, almeno 1 maiuscola, 1 minuscola, 1 numero',
+  'passwordReset.step3Submit': 'Continua',
+  'passwordReset.step4Title': 'Inserisci il codice di conferma',
+  'passwordReset.step4Subtitle': 'Abbiamo inviato un codice a 6 cifre alla tua email per confermare il cambio.',
+  'passwordReset.step4Submit': 'Reimposta password',
+  'passwordReset.countdownLabel': 'Il codice scade tra {time}',
+  'passwordReset.countdownExpired': 'Codice scaduto. Ricomincia il flusso.',
+  'passwordReset.restartFlow': 'Ricomincia',
+  'passwordReset.successTitle': 'Password aggiornata',
+  'passwordReset.successMessage': 'La tua password è stata aggiornata con successo. Verrai reindirizzato al login.',
+  'passwordReset.backLogin': 'Torna al login',
+  'passwordReset.error401': 'Sessione di reset scaduta o non valida. Ricomincia.',
+  'passwordReset.error422': 'Input non valido. Controlla i campi.',
+  'passwordReset.error429': 'Troppi tentativi. Attendi prima di riprovare.',
+  'passwordReset.error423': 'Account bloccato. Contatta il supporto.',
+  'passwordReset.errorGeneric': 'Qualcosa è andato storto. Ricomincia il processo.',
+
+  // Validation - password reset
+  'validation.otp1Format': 'Il codice deve essere di 8 caratteri alfanumerici minuscoli',
+  'validation.otp2Format': 'Il codice deve essere di 6 cifre',
+  'validation.passwordMinLength12': 'La password deve contenere almeno 12 caratteri',
+  'validation.confirmPasswordRequired': 'Conferma la password',
+  'validation.passwordMismatch': 'Le password non coincidono',
 };

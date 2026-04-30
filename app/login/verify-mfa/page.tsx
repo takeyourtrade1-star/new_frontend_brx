@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Shield, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { OtpSixBoxes } from '@/components/ui/otp-six-boxes';
 import { AuthShell } from '@/components/layout/AuthShell';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useVerifyMFA } from '@/lib/hooks/use-auth';
@@ -51,14 +52,6 @@ export default function VerifyMFAPage() {
     resolver: zodResolver(mfaSchema),
     defaultValues: { mfa_code: '' },
   });
-
-  const mfaValue = watch('mfa_code');
-  const otpDigits = useMemo(() => {
-    const raw = (mfaValue ?? '').replace(/\D/g, '').slice(0, 6);
-    return raw.padEnd(6, ' ').split('').slice(0, 6);
-  }, [mfaValue]);
-
-  const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   useEffect(() => {
     return () => { clearError(); };
@@ -174,55 +167,13 @@ export default function VerifyMFAPage() {
                 {t('mfa.codeLabel')}
               </p>
 
-              {/* OTP boxes */}
-              <div className="flex items-center justify-between gap-2">
-                {otpDigits.map((digit, idx) => {
-                  const filled = digit.trim().length > 0;
-                  return (
-                    <input
-                      key={idx}
-                      ref={(el) => { otpRefs.current[idx] = el; }}
-                      value={filled ? digit : ''}
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      aria-label={t('mfa.digitAria').replace('{n}', String(idx + 1))}
-                      disabled={isPending}
-                      className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl border border-black/10 bg-black/5 text-center text-2xl font-semibold text-[#1d1d1f] focus:outline-none focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/20 transition-all disabled:opacity-50"
-                      onChange={(e) => {
-                        const nextDigit = e.target.value.replace(/\D/g, '').slice(-1);
-                        if (!nextDigit) {
-                          const arr = otpDigits.map((d, i) => (i === idx ? ' ' : d));
-                          setValue('mfa_code', arr.map((d) => d.trim()).join('').replace(/\s/g, ''));
-                          return;
-                        }
-                        const arr = otpDigits.map((d, i) => {
-                          if (i === idx) return nextDigit;
-                          return d.trim() ? d.trim() : ' ';
-                        });
-                        setValue('mfa_code', arr.map((d) => d.trim()).join('').replace(/\s/g, '').slice(0, 6), { shouldValidate: true });
-                        if (idx < 5) otpRefs.current[idx + 1]?.focus();
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Backspace') {
-                          const current = otpDigits[idx]?.trim();
-                          if (!current && idx > 0) otpRefs.current[idx - 1]?.focus();
-                        }
-                      }}
-                      onPaste={(e) => {
-                        const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-                        if (!pasted.length) return;
-                        setValue('mfa_code', pasted, { shouldValidate: true });
-                        otpRefs.current[Math.min(5, pasted.length - 1)]?.focus();
-                        e.preventDefault();
-                      }}
-                    />
-                  );
-                })}
-              </div>
-
-              {errors.mfa_code && (
-                <p className="text-[12px] text-red-500 text-center">{errors.mfa_code.message}</p>
-              )}
+              <OtpSixBoxes
+                value={watch('mfa_code')}
+                onChange={(v) => setValue('mfa_code', v, { shouldValidate: true })}
+                disabled={isPending}
+                error={errors.mfa_code?.message}
+                ariaLabelPrefix="MFA digit"
+              />
 
               {/* Ricorda dispositivo */}
               <div className="flex items-center gap-2.5 pt-1">
