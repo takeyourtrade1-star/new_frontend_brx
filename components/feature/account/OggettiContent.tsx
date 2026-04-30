@@ -907,8 +907,8 @@ function OggettiTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-stroke-grey bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-      <div className="overflow-x-auto">
+    <div className="max-w-full overflow-hidden rounded-2xl border border-stroke-grey bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+      <div className="max-w-full overflow-x-auto">
         <table className="w-full min-w-[900px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-stroke-grey bg-gray-50/80">

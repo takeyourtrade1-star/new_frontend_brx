@@ -137,6 +137,7 @@ export function AuctionCreateWizard({
   const [isAtFormBottom, setIsAtFormBottom] = useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const wizardShellRef = useRef<HTMLDivElement>(null);
+  const formCardRef = useRef<HTMLDivElement>(null);
   const stepContentRef = useRef<HTMLDivElement>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
 
@@ -591,7 +592,7 @@ export function AuctionCreateWizard({
     };
   }, [showStickyNav, stepId]);
 
-  // Detect when user scrolls to bottom of form for mobile button docking
+  // Detect when user scrolls to bottom of form for button docking
   useEffect(() => {
     if (!showStickyNav) {
       setIsAtFormBottom(false);
@@ -602,15 +603,14 @@ export function AuctionCreateWizard({
     const updateBottomState = () => {
       if (rafId) window.cancelAnimationFrame(rafId);
       rafId = window.requestAnimationFrame(() => {
-        const shell = wizardShellRef.current;
-        if (!shell) {
+        const card = formCardRef.current;
+        if (!card) {
           setIsAtFormBottom(false);
           return;
         }
-        const rect = shell.getBoundingClientRect();
-        // Consider "at bottom" when the bottom of the wizard is within viewport or above it
+        const rect = card.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
-        const atBottom = rect.bottom <= viewportHeight + 20; // 20px tolerance
+        const atBottom = rect.bottom <= viewportHeight + 40; // 40px tolerance
         setIsAtFormBottom((prev) => (prev === atBottom ? prev : atBottom));
       });
     };
@@ -808,7 +808,7 @@ export function AuctionCreateWizard({
       </div>
       )}
 
-      <div className={cn('relative rounded-2xl border border-gray-200 bg-white shadow-sm', isEmbedded && 'rounded-xl border-zinc-200/70 bg-white/95 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.08)]')}>
+      <div ref={formCardRef} className={cn('relative rounded-2xl border border-gray-200 bg-white shadow-sm', isEmbedded && 'rounded-xl border-zinc-200/70 bg-white/95 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.08)]')}>
         <div
           className={cn(
             'relative border-b border-gray-100 px-5 py-4 sm:px-8 sm:py-5',
@@ -1600,12 +1600,72 @@ export function AuctionCreateWizard({
         )}
 
       </div>
+
+      {/* Static footer nav – appears when scrolled to the bottom of the form */}
+      {showStickyNav && (
+        <div
+          className={cn(
+            'transition-all duration-300 ease-out',
+            isAtFormBottom
+              ? 'mt-4 max-h-[200px] opacity-100 sm:mt-6'
+              : 'pointer-events-none max-h-0 overflow-hidden opacity-0'
+          )}
+          aria-hidden={!isAtFormBottom}
+        >
+          <div
+            className={cn(
+              'flex items-center justify-between gap-3 rounded-2xl border border-zinc-200/80 bg-white px-4 py-3 shadow-sm sm:gap-4 sm:px-6 sm:py-4',
+              isEmbedded && 'rounded-xl px-3 py-2.5'
+            )}
+          >
+            <button
+              type="button"
+              onClick={goBack}
+              className={cn(
+                'inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white font-semibold uppercase tracking-wide text-[#1D3160] transition hover:bg-zinc-50',
+                'min-h-[48px] flex-1 px-5 py-2.5 text-sm sm:min-h-[52px] sm:flex-none sm:px-8 sm:text-base'
+              )}
+            >
+              <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
+              {t('auctions.createBack')}
+            </button>
+
+            {!isLastStep ? (
+              <button
+                type="button"
+                disabled={continueDisabled}
+                title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
+                onClick={goNext}
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition',
+                  'min-h-[48px] flex-1 sm:min-h-[52px] sm:flex-none sm:px-8 sm:text-base',
+                  continueDisabled
+                    ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
+                    : 'bg-[#FF7300] hover:bg-[#e86800]'
+                )}
+              >
+                {t('auctions.createContinue')}
+                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={openPublishConfirm}
+                className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-[#FF7300] px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800] sm:min-h-[52px] sm:flex-none sm:px-8 sm:text-base"
+              >
+                <Gavel className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
+                {t('auctions.createSubmit')}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
 
     {showStickyNav && (
       <>
         {/* Desktop: visibili solo nel range dei campi del wizard */}
-        {showDesktopFloatingNav && (
+        {showDesktopFloatingNav && !isAtFormBottom && (
           <>
             <button
               type="button"
@@ -1655,7 +1715,8 @@ export function AuctionCreateWizard({
           </>
         )}
 
-        {/* Mobile: pillola fluttuante o ancorata in base allo scroll */}
+        {/* Mobile: pillola fluttuante quando non in fondo */}
+        {!isAtFormBottom && (
         <div
           className={cn(
             'pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-1 sm:hidden',
@@ -1758,6 +1819,7 @@ export function AuctionCreateWizard({
             )}
           </footer>
         </div>
+        )}
 
         {publishConfirmOpen && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">

@@ -16,7 +16,7 @@ export default function AccountLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F5F4F0' }}>
+    <div className="min-h-screen overflow-x-hidden" style={{ backgroundColor: '#F5F4F0' }}>
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
       </Suspense>

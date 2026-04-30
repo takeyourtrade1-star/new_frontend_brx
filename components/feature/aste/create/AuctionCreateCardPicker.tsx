@@ -228,7 +228,7 @@ export function AuctionCreateCardPicker({
   }, [inventoryItems, collectionQuery]);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 overflow-x-hidden">
       <section className="space-y-4">
         <div className="flex items-start gap-3">
           <span

@@ -34,7 +34,7 @@ export function AuctionCreatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] pb-4 pt-6">
+    <div className="min-h-screen overflow-x-hidden bg-[#f5f5f5] pb-4 pt-6">
       <AsteNav />
       <div className="container-content">
         <AppBreadcrumb
