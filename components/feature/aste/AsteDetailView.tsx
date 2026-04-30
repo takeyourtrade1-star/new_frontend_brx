@@ -372,7 +372,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               <Link
                 href="/aste/nuova"
                 className="flex h-10 items-center gap-1.5 rounded-full border border-white/45 bg-white/55 px-3 shadow-[0_10px_24px_rgba(29,49,96,0.15)] ring-1 ring-white/60 backdrop-blur-xl backdrop-saturate-150"
-                aria-label={t('auctions.navCreate')}
+                aria-label={t('auctions.createAuctionAria')}
               >
                 <PlusCircle className="h-4 w-4 text-[#FF7300]" aria-hidden />
               </Link>
