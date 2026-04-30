@@ -130,11 +130,11 @@ export function EmailCodeInput({
   );
 
   const slotClass = cn(
-    'h-9 w-9',
-    'rounded-xl border border-gray-300/60 bg-white/60',
+    'h-10 w-10',
+    'rounded-2xl border border-black/10 bg-black/5',
     'text-center text-base font-semibold text-[#1d1d1f]',
     'shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]',
-    'focus:outline-none focus:bg-white/90 focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/15',
+    'focus:outline-none focus:bg-white/90 focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/20',
     'transition-all duration-150',
     'disabled:opacity-40 disabled:cursor-not-allowed'
   );
@@ -144,7 +144,7 @@ export function EmailCodeInput({
       id={id}
       className={cn('w-full px-4', className)}
     >
-      <div className="flex items-center justify-center gap-1.5">
+      <div className="flex items-center justify-center gap-2">
         {Array.from({ length: 8 }).map((_, i) => (
           <input
             key={i}

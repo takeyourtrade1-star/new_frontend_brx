@@ -1233,6 +1233,48 @@ function OggettiTable({
   );
 }
 
+/* ---- Custom KPI Icons (stroke-only, orange via currentColor) ---- */
+function IconBox({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16V8z" />
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+      <line x1="12" y1="22.08" x2="12" y2="12" />
+    </svg>
+  );
+}
+
+function IconStack({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2" />
+      <polyline points="2 17 12 22 22 17" />
+      <polyline points="2 12 12 17 22 12" />
+    </svg>
+  );
+}
+
+function IconWallet({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" />
+      <path d="M16 11a2 2 0 110 4 2 2 0 010-4z" />
+      <path d="M20 7V5a2 2 0 00-2-2H6a2 2 0 00-2 2v2" />
+    </svg>
+  );
+}
+
+function IconCard({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
+      <line x1="7" y1="15" x2="7.01" y2="15" />
+      <line x1="11" y1="15" x2="13" y2="15" />
+    </svg>
+  );
+}
+
 export function OggettiContent() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
@@ -1737,92 +1779,80 @@ export function OggettiContent() {
   return (
     <div className="text-gray-900 space-y-6">
 
-      {/* KPI Cards - Modern Design */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* Card 1 - Oggetti Unici */}
-        <div className="group relative overflow-hidden rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-300 hover:shadow-[0_8px_24px_rgba(249,115,22,0.12)] hover:-translate-y-0.5 border-l-4 border-primary">
-          <div className="relative flex items-start justify-between">
-            <div className="flex-1">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Package className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-medium text-gray-500">{t('accountPage.itemsKpiUnique')}</p>
-              <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-gray-900">
-                {loading ? '—' : totalUnique.toLocaleString('it-IT')}
-              </p>
-              <p className="mt-1 text-xs text-gray-400">
-                {kindFilter !== 'all' || inventorySearchQuery.trim()
-                  ? t('accountPage.itemsKpiUniqueSubFiltered')
-                  : t('accountPage.itemsKpiUniqueSubTotal')}
-              </p>
-            </div>
+        <div className="group flex items-center gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-300 hover:border-gray-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+            <IconBox className="h-5 w-5" />
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/80 to-primary/40" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{t('accountPage.itemsKpiUnique')}</p>
+            <p className="text-lg font-bold tabular-nums tracking-tight text-gray-900">
+              {loading ? '—' : totalUnique.toLocaleString('it-IT')}
+            </p>
+            <p className="text-[11px] text-gray-400">
+              {kindFilter !== 'all' || inventorySearchQuery.trim()
+                ? t('accountPage.itemsKpiUniqueSubFiltered')
+                : t('accountPage.itemsKpiUniqueSubTotal')}
+            </p>
+          </div>
         </div>
 
         {/* Card 2 - Totale Quantità */}
-        <div className="group relative overflow-hidden rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-300 hover:shadow-[0_8px_24px_rgba(59,130,246,0.12)] hover:-translate-y-0.5 border-l-4 border-blue-500">
-          <div className="relative flex items-start justify-between">
-            <div className="flex-1">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
-                <Layers className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-medium text-gray-500">{t('accountPage.itemsKpiTotal')}</p>
-              <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-gray-900">
-                {loading ? '—' : totalQuantity.toLocaleString('it-IT')}
-              </p>
-              <p className="mt-1 text-xs text-gray-400">
-                {kindFilter !== 'all' || inventorySearchQuery.trim()
-                  ? t('accountPage.itemsKpiTotalSubFiltered')
-                  : t('accountPage.itemsKpiTotalSubSum')}
-              </p>
-            </div>
+        <div className="group flex items-center gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-300 hover:border-gray-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <IconStack className="h-5 w-5" />
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/80 to-blue-500/40" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{t('accountPage.itemsKpiTotal')}</p>
+            <p className="text-lg font-bold tabular-nums tracking-tight text-gray-900">
+              {loading ? '—' : totalQuantity.toLocaleString('it-IT')}
+            </p>
+            <p className="text-[11px] text-gray-400">
+              {kindFilter !== 'all' || inventorySearchQuery.trim()
+                ? t('accountPage.itemsKpiTotalSubFiltered')
+                : t('accountPage.itemsKpiTotalSubSum')}
+            </p>
+          </div>
         </div>
 
         {/* Card 3 - Valore Totale */}
-        <div className="group relative overflow-hidden rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-300 hover:shadow-[0_8px_24px_rgba(16,185,129,0.12)] hover:-translate-y-0.5 border-l-4 border-emerald-500">
-          <div className="relative flex items-start justify-between">
-            <div className="flex-1">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
-                <Wallet className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-medium text-gray-500">{t('accountPage.itemsKpiValue')}</p>
-              <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-gray-900">
-                {loading ? '—' : totalValueFormatted}
-              </p>
-              <p className="mt-1 text-xs text-gray-400">
-                {kindFilter !== 'all' || inventorySearchQuery.trim()
-                  ? t('accountPage.itemsKpiValueSubFiltered')
-                  : t('accountPage.itemsKpiValueSubCalc')}
-              </p>
-            </div>
+        <div className="group flex items-center gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-300 hover:border-gray-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+            <IconWallet className="h-5 w-5" />
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500/80 to-emerald-500/40" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{t('accountPage.itemsKpiValue')}</p>
+            <p className="text-lg font-bold tabular-nums tracking-tight text-gray-900">
+              {loading ? '—' : totalValueFormatted}
+            </p>
+            <p className="text-[11px] text-gray-400">
+              {kindFilter !== 'all' || inventorySearchQuery.trim()
+                ? t('accountPage.itemsKpiValueSubFiltered')
+                : t('accountPage.itemsKpiValueSubCalc')}
+            </p>
+          </div>
         </div>
 
         {/* Card 4 - Carte in Inventario */}
-        <div className="group relative overflow-hidden rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-300 hover:shadow-[0_8px_24px_rgba(139,92,246,0.12)] hover:-translate-y-0.5 border-l-4 border-violet-500">
-          <div className="relative flex items-start justify-between">
-            <div className="flex-1">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600">
-                <CreditCard className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-medium text-gray-500">{t('accountPage.itemsKpiCards')}</p>
-              <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-gray-900">
-                {loading ? '—' : cardsInView.toLocaleString('it-IT')}
-              </p>
-              <p className="mt-1 text-xs text-gray-400">
-                {kindFilter === 'singole'
-                  ? t('accountPage.itemsKpiCardsSubSingles')
-                  : kindFilter === 'all'
-                    ? t('accountPage.itemsKpiCardsSubAll')
-                    : '—'}
-              </p>
-            </div>
+        <div className="group flex items-center gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-300 hover:border-gray-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+            <IconCard className="h-5 w-5" />
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500/80 to-violet-500/40" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{t('accountPage.itemsKpiCards')}</p>
+            <p className="text-lg font-bold tabular-nums tracking-tight text-gray-900">
+              {loading ? '—' : cardsInView.toLocaleString('it-IT')}
+            </p>
+            <p className="text-[11px] text-gray-400">
+              {kindFilter === 'singole'
+                ? t('accountPage.itemsKpiCardsSubSingles')
+                : kindFilter === 'all'
+                  ? t('accountPage.itemsKpiCardsSubAll')
+                  : '—'}
+            </p>
+          </div>
         </div>
       </div>
 

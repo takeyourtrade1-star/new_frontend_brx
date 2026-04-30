@@ -1425,6 +1425,7 @@ export const pt: Record<MessageKey, string> = {
   'loginCode.sending': 'A enviar…',
   'loginCode.checkEmail': 'Verifique o seu e-mail',
   'loginCode.codeLabel': 'Introduza o código de 8 caracteres',
+  'loginCode.codeHint': 'Se estiver registado, receberá o código por e-mail. Verifique também a pasta de spam.',
   'loginCode.login': 'Entrar',
   'loginCode.loggingIn': 'A entrar…',
   'loginCode.resendCode': 'Reenviar código',

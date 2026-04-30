@@ -22,7 +22,7 @@ const appleInputClass =
   'h-[52px] w-full rounded-2xl border border-black/10 bg-black/5 px-4 text-[15px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/20 transition-all disabled:opacity-50';
 
 const APPLE_MODAL =
-  'relative w-full max-w-[420px] mx-auto overflow-hidden rounded-[32px] bg-white/85 backdrop-blur-[60px] shadow-[0_24px_48px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.8)] border border-white/50';
+  'relative w-full max-w-[480px] mx-auto overflow-hidden rounded-[32px] bg-white/85 backdrop-blur-[60px] shadow-[0_24px_48px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.8)] border border-white/50';
 
 export function LoginCodeForm() {
   const { t } = useTranslation();
@@ -125,7 +125,7 @@ export function LoginCodeForm() {
 
   return (
     <div className={APPLE_MODAL}>
-      <div className="p-6 sm:p-8 flex flex-col">
+      <div className="p-8 sm:p-10 flex flex-col">
         {/* Indietro */}
         <Link
           href="/login?accesso=1"
@@ -136,11 +136,11 @@ export function LoginCodeForm() {
 
         {/* Header */}
         <div className="flex flex-col items-center text-center mb-6 gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/5">
-            <Mail className="h-5 w-5 text-[#1d1d1f]" strokeWidth={1.5} />
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/5">
+            <Mail className="h-6 w-6 text-[#1d1d1f]" strokeWidth={1.5} />
           </div>
           <div>
-            <h1 className="text-[22px] sm:text-[26px] font-bold tracking-tight text-[#1d1d1f]">
+            <h1 className="text-[26px] font-bold tracking-tight text-[#1d1d1f]">
               {t('loginCode.title')}
             </h1>
             <p className="mt-1 text-[13px] text-[#86868b]">
@@ -187,7 +187,7 @@ export function LoginCodeForm() {
             <button
               type="submit"
               disabled={isRequestPending}
-              className="w-full rounded-full bg-[#1d1d1f] py-2.5 text-[14px] font-medium text-white shadow-[0_2px_8px_rgba(0,0,0,0.1)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="w-full rounded-full bg-[#1d1d1f] py-3.5 text-[15px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {isRequestPending
                 ? t('loginCode.sending')
@@ -211,6 +211,10 @@ export function LoginCodeForm() {
             <div className="space-y-3">
               <p className="text-[10px] font-medium tracking-wide text-[#86868b]/80 text-center">
                 {t('loginCode.codeLabel')}
+              </p>
+
+              <p className="text-[12px] text-[#86868b] text-center leading-relaxed">
+                {t('loginCode.codeHint')}
               </p>
 
               <EmailCodeInput
@@ -262,7 +266,7 @@ export function LoginCodeForm() {
                 if (code.length === 8) handleVerify(code);
               }}
               disabled={isVerifyPending || codeValue.length !== 8}
-              className="w-full rounded-full bg-[#1d1d1f] py-2.5 text-[14px] font-medium text-white shadow-[0_2px_8px_rgba(0,0,0,0.1)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="w-full rounded-full bg-[#1d1d1f] py-3.5 text-[15px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {isVerifyPending
                 ? t('loginCode.loggingIn')

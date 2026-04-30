@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Loader2, Minus, Pencil, Plus, X, ChevronLeft, ChevronRight, Heart, Eye, EyeOff, Zap } from 'lucide-react';
+import { Loader2, Minus, Pencil, Plus, X, ChevronLeft, ChevronRight, Heart, Eye, EyeOff, Zap, Bookmark, Share2, ShoppingCart } from 'lucide-react';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 import { getCardImageUrl } from '@/lib/assets';
@@ -26,6 +26,8 @@ import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadc
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { CountrySelect, type CountryOption } from '@/components/ui/CountrySelect';
 import { useUserCountry } from '@/lib/hooks/use-user-country';
+import { useFlyToCart } from '@/lib/hooks/use-fly-to-cart';
+import { useCartStore } from '@/lib/stores/cart-store';
 
 const PRIMARY_BLUE = '#1D3160';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -103,11 +105,45 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [quantita, setQuantita] = useState(33);
   const [posizioneVenditore, setPosizioneVenditore] = useState<string>(() => COUNTRIES[0].code);
 
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const header = document.querySelector('header');
+      if (header) {
+        setHeaderHeight(header.getBoundingClientRect().height);
+      }
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
   const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore(
     (s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
   );
+  const flyToCart = useFlyToCart();
+  const addToCartStore = useCartStore((s) => s.addItem);
   const detectedCountry = useUserCountry();
+
+  // Popup quantità per aggiunta al carrello
+  const [qtyPopup, setQtyPopup] = useState<{ open: boolean; item?: ListingItem; sourceEl?: HTMLElement; imageSrc?: string }>({ open: false });
+  const [qtyValue, setQtyValue] = useState(1);
+  const qtyInputRef = useRef<HTMLInputElement>(null);
+
+  const openQtyPopup = useCallback((item: ListingItem, sourceEl: HTMLElement, imageSrc?: string) => {
+    setQtyPopup({ open: true, item, sourceEl, imageSrc });
+    setQtyValue(1);
+    setTimeout(() => qtyInputRef.current?.focus(), 50);
+  }, []);
+
+  const confirmQty = useCallback(() => {
+    if (!qtyPopup.item || !qtyPopup.sourceEl) return;
+    flyToCart(qtyPopup.sourceEl, { imageSrc: qtyPopup.imageSrc });
+    addToCartStore(`mock-${qtyPopup.item.item_id}-${Date.now()}`);
+    setQtyPopup({ open: false });
+  }, [qtyPopup, flyToCart, addToCartStore]);
 
   const blueprintIdForAuction = useMemo(() => {
     const raw = card?.cardtrader_id;
@@ -1867,13 +1903,12 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                               ) : (
                                 <button
                                   type="button"
-                                  onClick={() => {
+                                  onClick={(e) => {
                                     if (!user || !accessToken) {
                                       setListingActionMessage('Accedi per aggiungere al carrello.');
                                       return;
                                     }
-                                    setPurchaseListing(item);
-                                    setPurchaseQty(1);
+                                    openQtyPopup(item, e.currentTarget, cardImages[currentImageIndex]);
                                   }}
                                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#FF8800]/40 bg-white shadow-sm transition hover:bg-orange-50"
                                   aria-label="Aggiungi al carrello"
@@ -1985,13 +2020,12 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           ) : (
                             <button
                               type="button"
-                              onClick={() => {
+                              onClick={(e) => {
                                 if (!user || !accessToken) {
                                   setListingActionMessage('Accedi per aggiungere al carrello.');
                                   return;
                                 }
-                                setPurchaseListing(item);
-                                setPurchaseQty(1);
+                                openQtyPopup(item, e.currentTarget, cardImages[currentImageIndex]);
                               }}
                               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#FF8800]/40 bg-white shadow-sm transition hover:bg-orange-50"
                               aria-label="Aggiungi al carrello"
@@ -2181,7 +2215,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       {/* Desktop hover preview: immagine ingrandita al centro, sfondo trasparente */}
       {hoverPreviewOpen && (
         <div
-          className="hidden sm:block fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] max-w-[85vw] max-h-[90vh]"
+          className="hidden sm:flex fixed left-1/2 -translate-x-1/2 z-[60] items-center justify-center"
+          style={{ top: `calc(${headerHeight}px + 5vh)`, bottom: '5vh' }}
           onMouseEnter={handleHoverPreviewCancelClose}
           onMouseLeave={handleHoverPreviewClose}
         >
@@ -2189,7 +2224,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             <img
               src={cardImages[currentImageIndex]}
               alt={card?.name ?? title}
-              className="h-auto w-auto max-w-full max-h-[90vh] object-contain rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+              className="h-full w-auto max-w-[85vw] object-contain rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
               draggable={false}
             />
           )}
@@ -2211,41 +2246,43 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       {isLightboxOpen && (
         <div
           ref={lightboxRef}
-          className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/95"
           onClick={handleLightboxClose}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Header con chiusura e indicatore */}
-          <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 z-10">
-            <span className="text-white/70 text-sm font-medium">
-              {cardImages.length > 1 ? `${currentImageIndex + 1} / ${cardImages.length}` : ''}
-            </span>
-            <button
-              onClick={handleLightboxClose}
-              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-              aria-label="Chiudi"
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
-
-          {/* Immagine */}
-          <div
-            className="relative flex items-center justify-center w-full h-full max-w-[90vw] max-h-[85vh]"
-            onClick={(e) => e.stopPropagation()}
+          {/* X chiusura - visibile su tutti i device */}
+          <button
+            onClick={(e) => { e.stopPropagation(); handleLightboxClose(); }}
+            className="absolute top-5 right-5 p-2.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/40 text-white transition-colors z-[100] shadow-lg"
+            aria-label="Chiudi"
           >
+            <X className="h-6 w-6 drop-shadow-md" />
+          </button>
+
+          {/* Desktop: stile preview, rispetta header + margini */}
+          <div
+            className="hidden sm:flex fixed left-1/2 -translate-x-1/2 items-center justify-center"
+            style={{ top: `calc(${headerHeight}px + 5vh)`, bottom: '5vh' }}
+            onClick={handleLightboxClose}
+          >
+            {cardImages.length > 1 && (
+              <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium">
+                {currentImageIndex + 1} / {cardImages.length}
+              </span>
+            )}
             {!showImagePlaceholder && cardImages[currentImageIndex] && (
               <img
                 src={cardImages[currentImageIndex]}
                 alt={card?.name ?? title}
-                className="max-w-full max-h-full object-contain rounded-sm shadow-2xl"
+                className="h-full w-auto max-w-[85vw] object-contain rounded-sm shadow-2xl"
                 draggable={false}
+                onClick={(e) => e.stopPropagation()}
               />
             )}
             {showImagePlaceholder && (
-              <div className="flex flex-col items-center justify-center text-white/70">
+              <div className="flex flex-col items-center justify-center text-white/70" onClick={(e) => e.stopPropagation()}>
                 <img
                   src={EBARTEX_LOGO_PLACEHOLDER}
                   alt="Ebartex"
@@ -2255,6 +2292,62 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 <p className="mt-4 text-sm">Immagine non disponibile</p>
               </div>
             )}
+          </div>
+
+          {/* Mobile: lightbox con barra azioni glass bubble */}
+          <div
+            className="sm:hidden fixed inset-0 flex flex-col items-center justify-center"
+            onClick={handleLightboxClose}
+          >
+            <div className="flex flex-col items-center gap-5" onClick={(e) => e.stopPropagation()}>
+              {/* Immagine */}
+              {!showImagePlaceholder && cardImages[currentImageIndex] && (
+                <img
+                  src={cardImages[currentImageIndex]}
+                  alt={card?.name ?? title}
+                  className="max-w-[90vw] max-h-[72vh] w-auto h-auto object-contain rounded-sm shadow-2xl"
+                  draggable={false}
+                />
+              )}
+              {showImagePlaceholder && (
+                <div className="flex flex-col items-center justify-center text-white/70">
+                  <img
+                    src={EBARTEX_LOGO_PLACEHOLDER}
+                    alt="Ebartex"
+                    className="w-24 h-24 object-contain opacity-50"
+                    draggable={false}
+                  />
+                  <p className="mt-4 text-sm">Immagine non disponibile</p>
+                </div>
+              )}
+
+              {/* Barra azioni glass bubble */}
+              <div className="flex items-center gap-3">
+                <button
+                  className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/20 bg-white/10 ring-1 ring-white/10 backdrop-blur-xl text-white transition-all hover:bg-white/20 active:scale-95"
+                  aria-label="Salva"
+                >
+                  <Bookmark className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    openQtyPopup({ item_id: 0, seller_id: 'lightbox', seller_display_name: '', country: null, quantity: 1, price_cents: 0, condition: null, mtg_language: null }, e.currentTarget, cardImages[currentImageIndex]);
+                  }}
+                  className="flex h-12 items-center justify-center gap-2 rounded-full border-2 border-[#FF7300]/40 bg-[#FF7300]/20 px-6 text-sm font-bold uppercase tracking-wide text-white ring-1 ring-[#FF7300]/20 backdrop-blur-xl transition-all hover:bg-[#FF7300]/30 active:scale-95"
+                  aria-label="Compra"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  <span>Compra</span>
+                </button>
+                <button
+                  onClick={handleShare}
+                  className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/20 bg-white/10 ring-1 ring-white/10 backdrop-blur-xl text-white transition-all hover:bg-white/20 active:scale-95"
+                  aria-label="Condividi"
+                >
+                  <Share2 className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Controlli navigazione (visibili solo se più immagini) */}
@@ -2276,10 +2369,49 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               </button>
             </>
           )}
+        </div>
+      )}
 
-          {/* Istruzione swipe */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-xs">
-            {cardImages.length > 1 ? 'Swipe per cambiare immagine' : 'Tocca per chiudere'}
+      {/* Popup quantità */}
+      {qtyPopup.open && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setQtyPopup({ open: false })}>
+          <div
+            className="flex flex-col items-center gap-4 rounded-2xl border border-white/20 bg-white/10 px-6 py-5 backdrop-blur-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold uppercase tracking-wide text-white">Quantità</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setQtyValue((v) => Math.max(1, v - 1))}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <input
+                ref={qtyInputRef}
+                type="number"
+                min={1}
+                value={qtyValue}
+                onChange={(e) => setQtyValue(Math.max(1, parseInt(e.target.value || '1', 10)))}
+                onKeyDown={(e) => { if (e.key === 'Enter') confirmQty(); }}
+                className="h-10 w-16 rounded-lg border border-white/20 bg-white/5 text-center text-lg font-bold text-white outline-none focus:border-[#FF7300]/60"
+              />
+              <button
+                type="button"
+                onClick={() => setQtyValue((v) => v + 1)}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={confirmQty}
+              className="mt-1 flex h-10 items-center justify-center rounded-full bg-[#FF7300] px-6 text-sm font-bold uppercase tracking-wide text-white shadow-lg transition hover:bg-[#FF8800] active:scale-95"
+            >
+              Conferma
+            </button>
           </div>
         </div>
       )}
