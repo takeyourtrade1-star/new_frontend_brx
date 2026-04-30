@@ -7,7 +7,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap, ArrowLeft, Trophy, Check, ChevronDown, Clock } from 'lucide-react';
+import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap, ArrowLeft, Trophy, Check, ChevronDown, Clock, PlusCircle } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
@@ -369,14 +369,13 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                 <AuctionQrButton auctionTitle={detail.title} compact />
                 <AuctionShareButton auctionTitle={detail.title} compact />
               </div>
-              <div
+              <Link
+                href="/aste/nuova"
                 className="flex h-10 items-center gap-1.5 rounded-full border border-white/45 bg-white/55 px-3 shadow-[0_10px_24px_rgba(29,49,96,0.15)] ring-1 ring-white/60 backdrop-blur-xl backdrop-saturate-150"
-                role="status"
-                aria-label={t('auctions.statsWatching', { count: statsWatchingCount })}
+                aria-label={t('auctions.navCreate')}
               >
-                <Users className="h-4 w-4 text-[#FF7300]" aria-hidden />
-                <span className="text-[12px] font-bold tabular-nums text-[#1D3160]">{statsWatchingCount}</span>
-              </div>
+                <PlusCircle className="h-4 w-4 text-[#FF7300]" aria-hidden />
+              </Link>
             </div>
           </div>
         </div>
