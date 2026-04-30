@@ -130,41 +130,39 @@ export function EmailCodeInput({
   );
 
   const slotClass = cn(
-    'h-10 w-10 sm:h-11 sm:w-11',
-    'rounded-xl border border-black/10 bg-black/5',
-    'text-center text-lg font-semibold text-[#1d1d1f]',
-    'uppercase tracking-wider',
-    'focus:outline-none focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/20',
+    'h-9 w-9',
+    'rounded-xl border border-gray-300/60 bg-white/60',
+    'text-center text-base font-semibold text-[#1d1d1f]',
+    'shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]',
+    'focus:outline-none focus:bg-white/90 focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/15',
     'transition-all duration-150',
-    'disabled:opacity-40 disabled:cursor-not-allowed',
-    'placeholder:text-[#86868b]/30'
+    'disabled:opacity-40 disabled:cursor-not-allowed'
   );
 
   return (
     <div
       id={id}
-      className={cn(
-        'flex w-full items-center justify-center gap-2 sm:gap-2.5',
-        className
-      )}
+      className={cn('w-full px-4', className)}
     >
-      {Array.from({ length: 8 }).map((_, i) => (
-        <input
-          key={i}
-          ref={(el) => { inputRefs.current[i] = el; }}
-          type="text"
-          inputMode="text"
-          autoComplete="one-time-code"
-          maxLength={1}
-          disabled={disabled}
-          value={chars[i] || ''}
-          onChange={(e) => handleChange(e, i)}
-          onKeyDown={(e) => handleKeyDown(e, i)}
-          onPaste={handlePaste}
-          className={slotClass}
-          aria-label={`Code character ${i + 1}`}
-        />
-      ))}
+      <div className="flex items-center justify-center gap-1.5">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <input
+            key={i}
+            ref={(el) => { inputRefs.current[i] = el; }}
+            type="text"
+            inputMode="text"
+            autoComplete="one-time-code"
+            maxLength={1}
+            disabled={disabled}
+            value={chars[i] || ''}
+            onChange={(e) => handleChange(e, i)}
+            onKeyDown={(e) => handleKeyDown(e, i)}
+            onPaste={handlePaste}
+            className={slotClass}
+            aria-label={`Code character ${i + 1}`}
+          />
+        ))}
+      </div>
     </div>
   );
 }

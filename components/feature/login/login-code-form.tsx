@@ -208,8 +208,8 @@ export function LoginCodeForm() {
         {/* Step B — Verifica codice */}
         {step === 'verify' && (
           <div className="space-y-4">
-            <div className="space-y-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#86868b] text-center">
+            <div className="space-y-3">
+              <p className="text-[10px] font-medium tracking-wide text-[#86868b]/80 text-center">
                 {t('loginCode.codeLabel')}
               </p>
 
