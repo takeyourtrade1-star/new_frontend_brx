@@ -1416,4 +1416,32 @@ export const es: Record<MessageKey, string> = {
   // Generic Errors
   'errors.generic.unknown': 'Ha ocurrido un error inesperado. Por favor, inténtalo más tarde.',
   'errors.generic.message': 'Algo ha salido mal. Por favor, inténtalo de nuevo.',
+
+  // Login Code
+  'loginCode.title': 'Iniciar sesión con código',
+  'loginCode.emailLabel': 'Correo',
+  'loginCode.emailPlaceholder': 'tu@correo.com',
+  'loginCode.sendCode': 'Enviar código',
+  'loginCode.sending': 'Enviando…',
+  'loginCode.checkEmail': 'Revisa tu correo',
+  'loginCode.codeLabel': 'Introduce el código de 8 caracteres',
+  'loginCode.login': 'Acceder',
+  'loginCode.loggingIn': 'Accediendo…',
+  'loginCode.resendCode': 'Reenviar código',
+  'loginCode.resendTimer': 'Reenviar en {seconds}s',
+  'loginCode.resendHint': '¿No recibiste el código?',
+  'loginCode.backToLogin': 'Volver al inicio de sesión',
+  'loginCode.codeFormatError': 'El código debe tener 8 letras minúsculas o números',
+  'loginCode.invalidCode': 'Código no válido o caducado',
+  'loginCode.accountLocked': 'Cuenta bloqueada. Inténtalo más tarde',
+  'loginCode.rateLimit': 'Demasiados intentos. Inténtalo más tarde',
+  'loginCode.genericError': 'Algo ha salido mal. Inténtalo de nuevo',
+  'loginCode.noAccount': '¿Sin cuenta? Regístrate',
+
+  // Validation - code
+  'validation.codeRequired': 'Introduce el código',
+  'validation.codeFormat': 'El código debe tener 8 letras minúsculas o números',
+
+  // Breadcrumb
+  'breadcrumb.login-code': 'Iniciar sesión con código',
 };

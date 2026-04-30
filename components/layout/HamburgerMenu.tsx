@@ -394,7 +394,7 @@ export function HamburgerMenu() {
                     className="h-10 w-full rounded-sm border border-[#878787] bg-white text-sm font-bold uppercase tracking-wide text-[#1D3160] shadow-none hover:bg-gray-50"
                   >
                     <Link
-                      href="/login?accesso=1&otp=1"
+                      href="/login/code"
                       onClick={() => setOpen(false)}
                     >
                       Accedi con codice monouso

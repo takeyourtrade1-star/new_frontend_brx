@@ -1402,7 +1402,35 @@ export const fr: Record<MessageKey, string> = {
   // Generic Errors
   'errors.generic.unknown': 'Une erreur inattendue s\'est produite. Veuillez réessayer plus tard.',
   'errors.generic.message': 'Quelque chose s\'est mal passé. Veuillez réessayer.',
-  
+
+  // Login Code
+  'loginCode.title': 'Connexion avec code',
+  'loginCode.emailLabel': 'E-mail',
+  'loginCode.emailPlaceholder': 'votre@email.com',
+  'loginCode.sendCode': 'Envoyer le code',
+  'loginCode.sending': 'Envoi en cours…',
+  'loginCode.checkEmail': 'Vérifiez votre e-mail',
+  'loginCode.codeLabel': 'Saisissez le code de 8 caractères',
+  'loginCode.login': 'Se connecter',
+  'loginCode.loggingIn': 'Connexion en cours…',
+  'loginCode.resendCode': 'Renvoyer le code',
+  'loginCode.resendTimer': 'Renvoyer dans {seconds}s',
+  'loginCode.resendHint': 'Vous n\'avez pas reçu le code ?',
+  'loginCode.backToLogin': 'Retour à la connexion',
+  'loginCode.codeFormatError': 'Le code doit comporter 8 lettres minuscules ou chiffres',
+  'loginCode.invalidCode': 'Code non valide ou expiré',
+  'loginCode.accountLocked': 'Compte verrouillé. Veuillez réessayer plus tard',
+  'loginCode.rateLimit': 'Trop de tentatives. Veuillez réessayer plus tard',
+  'loginCode.genericError': 'Quelque chose s\'est mal passé. Veuillez réessayer',
+  'loginCode.noAccount': 'Pas de compte ? Inscrivez-vous',
+
+  // Validation - code
+  'validation.codeRequired': 'Saisissez le code',
+  'validation.codeFormat': 'Le code doit comporter 8 lettres minuscules ou chiffres',
+
+  // Breadcrumb
+  'breadcrumb.login-code': 'Connexion avec code',
+
   // Auth Errors - Titles for UI
   'errors.titles.invalidCredentials': "Identifiants invalides",
   'errors.titles.accountLocked': 'Compte verrouillé',

@@ -1416,4 +1416,32 @@ export const de: Record<MessageKey, string> = {
   // Generic Errors
   'errors.generic.unknown': 'Ein unerwarteter Fehler ist aufgetreten. Bitte später erneut versuchen.',
   'errors.generic.message': 'Etwas ist schief gelaufen. Bitte erneut versuchen.',
+
+  // Login Code
+  'loginCode.title': 'Mit Code anmelden',
+  'loginCode.emailLabel': 'E-Mail',
+  'loginCode.emailPlaceholder': 'ihre@email.com',
+  'loginCode.sendCode': 'Code senden',
+  'loginCode.sending': 'Wird gesendet…',
+  'loginCode.checkEmail': 'Überprüfen Sie Ihre E-Mail',
+  'loginCode.codeLabel': 'Geben Sie den 8-stelligen Code ein',
+  'loginCode.login': 'Anmelden',
+  'loginCode.loggingIn': 'Wird angemeldet…',
+  'loginCode.resendCode': 'Code erneut senden',
+  'loginCode.resendTimer': 'Erneut senden in {seconds}s',
+  'loginCode.resendHint': 'Code nicht erhalten?',
+  'loginCode.backToLogin': 'Zurück zum Login',
+  'loginCode.codeFormatError': 'Der Code muss 8 Kleinbuchstaben oder Zahlen sein',
+  'loginCode.invalidCode': 'Ungültiger oder abgelaufener Code',
+  'loginCode.accountLocked': 'Konto gesperrt. Bitte später erneut versuchen',
+  'loginCode.rateLimit': 'Zu viele Versuche. Bitte später erneut versuchen',
+  'loginCode.genericError': 'Etwas ist schief gelaufen. Bitte erneut versuchen',
+  'loginCode.noAccount': 'Noch kein Konto? Registrieren',
+
+  // Validation - code
+  'validation.codeRequired': 'Geben Sie den Code ein',
+  'validation.codeFormat': 'Der Code muss 8 Kleinbuchstaben oder Zahlen sein',
+
+  // Breadcrumb
+  'breadcrumb.login-code': 'Mit Code anmelden',
 };

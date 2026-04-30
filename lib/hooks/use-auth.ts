@@ -164,6 +164,33 @@ export function useLogout() {
 }
 
 /**
+ * Hook per richiedere il codice login via email
+ */
+export function useRequestLoginCode() {
+  const requestLoginCode = useAuthStore((s) => s.requestLoginCode);
+
+  return useMutation({
+    mutationFn: (email: string) => requestLoginCode(email),
+  });
+}
+
+/**
+ * Hook per verificare il codice login via email
+ */
+export function useVerifyLoginCode() {
+  const verifyLoginCode = useAuthStore((s) => s.verifyLoginCode);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ email, code }: { email: string; code: string }) =>
+      verifyLoginCode(email, code),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'user'] });
+    },
+  });
+}
+
+/**
  * Hook per accedere direttamente allo store (per valori sincroni)
  */
 export function useAuth() {

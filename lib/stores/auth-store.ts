@@ -92,6 +92,11 @@ interface AuthState {
   fetchUser: () => Promise<User | null>;
   handleSessionExpired: () => void;
   setSessionExpired: (value: boolean) => void;
+  requestLoginCode: (email: string) => Promise<void>;
+  verifyLoginCode: (
+    email: string,
+    code: string
+  ) => Promise<{ mfaRequired: boolean; preAuthToken?: string }>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -651,6 +656,122 @@ export const useAuthStore = create<AuthState>()(
       },
       setSessionExpired: (value: boolean) => {
         set({ sessionExpired: value });
+      },
+
+      // Request login code (passwordless)
+      requestLoginCode: async (email: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          await authApi.requestLoginCode(email);
+          set({ isLoading: false, error: null });
+        } catch (error: any) {
+          const parsed = parseAuthError(error);
+          set({ isLoading: false, error: parsed.message });
+          throw error;
+        }
+      },
+
+      // Verify login code (passwordless)
+      verifyLoginCode: async (email: string, code: string) => {
+        clearMfaPreAuthToken();
+        set({
+          isLoading: true,
+          error: null,
+          mfaRequired: false,
+          preAuthToken: null,
+          sessionExpired: false,
+        });
+
+        try {
+          const raw = (await authApi.verifyLoginCode(email, code)) as
+            | TokenResponse
+            | PreAuthTokenResponse
+            | Record<string, unknown>;
+
+          const response = (raw as { data?: unknown }).data ?? raw;
+
+          // Handle MFA response
+          if (
+            response &&
+            typeof response === 'object' &&
+            'mfa_required' in response &&
+            (response as PreAuthTokenResponse).mfa_required === true &&
+            'pre_auth_token' in response &&
+            typeof (response as PreAuthTokenResponse).pre_auth_token === 'string'
+          ) {
+            const pre = (response as PreAuthTokenResponse).pre_auth_token;
+            authApi.clearToken();
+            saveMfaPreAuthToken(pre);
+            set({
+              preAuthToken: pre,
+              mfaRequired: true,
+              isLoading: false,
+              error: null,
+              isAuthenticated: false,
+              user: null,
+              accessToken: null,
+            });
+            return { mfaRequired: true, preAuthToken: pre };
+          }
+
+          // Handle direct login response
+          if (
+            response &&
+            typeof response === 'object' &&
+            'access_token' in response &&
+            'refresh_token' in response
+          ) {
+            const { access_token, refresh_token } = response as TokenResponse;
+
+            if (access_token && refresh_token) {
+              authApi.setToken(access_token, refresh_token);
+
+              let userToSet: UserResponse | null = null;
+              try {
+                const meResponse = (await authApi.get('/api/auth/me')) as any;
+                userToSet =
+                  meResponse.user ||
+                  meResponse.data?.user ||
+                  meResponse.data ||
+                  meResponse;
+              } catch {
+                // ignore
+              }
+
+              const normalized = userToSet ? normalizeUser(userToSet) : null;
+              if (normalized && typeof window !== 'undefined') {
+                localStorage.setItem(
+                  config.auth.userKey,
+                  JSON.stringify(normalized)
+                );
+              }
+              set({
+                user: normalized,
+                accessToken: access_token,
+                isAuthenticated: true,
+                isLoading: false,
+                error: null,
+                flashMessage: 'Login avvenuto con successo',
+              });
+              return { mfaRequired: false };
+            } else {
+              throw new Error('Login fallito: token mancanti');
+            }
+          } else {
+            throw new Error('Risposta login non valida');
+          }
+        } catch (error: any) {
+          const parsed = parseAuthError(error);
+          clearMfaPreAuthToken();
+          set({
+            isLoading: false,
+            error: parsed.message,
+            isAuthenticated: false,
+            mfaRequired: false,
+            preAuthToken: null,
+          });
+          throw error;
+        }
       },
 
     }),

@@ -19,6 +19,8 @@ const AUTH_API_URL = (
 
 const ALLOWED_AUTH_PATHS = [
   'login',
+  'login/code/request',
+  'login/code/verify',
   'register',
   'refresh',
   'me',

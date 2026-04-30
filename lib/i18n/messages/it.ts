@@ -1418,4 +1418,32 @@ export const it: Record<MessageKey, string> = {
   // Generic Errors
   'errors.generic.unknown': 'Si è verificato un errore imprevisto. Riprova più tardi.',
   'errors.generic.message': 'Qualcosa è andato storto. Riprova.',
+
+  // Login Code
+  'loginCode.title': 'Accedi con codice',
+  'loginCode.emailLabel': 'Email',
+  'loginCode.emailPlaceholder': 'tu@email.com',
+  'loginCode.sendCode': 'Invia codice',
+  'loginCode.sending': 'Invio in corso…',
+  'loginCode.checkEmail': 'Controlla la tua email',
+  'loginCode.codeLabel': 'Inserisci il codice di 8 caratteri',
+  'loginCode.login': 'Accedi',
+  'loginCode.loggingIn': 'Accesso in corso…',
+  'loginCode.resendCode': 'Reinvia codice',
+  'loginCode.resendTimer': 'Reinvia tra {seconds}s',
+  'loginCode.resendHint': 'Non hai ricevuto il codice?',
+  'loginCode.backToLogin': 'Torna al login',
+  'loginCode.codeFormatError': 'Il codice deve essere di 8 caratteri alfanumerici minuscoli',
+  'loginCode.invalidCode': 'Codice non valido o scaduto',
+  'loginCode.accountLocked': 'Account bloccato. Riprova più tardi',
+  'loginCode.rateLimit': 'Troppi tentativi. Riprova più tardi',
+  'loginCode.genericError': 'Qualcosa è andato storto. Riprova',
+  'loginCode.noAccount': 'Non hai un account? Registrati',
+
+  // Validation - code
+  'validation.codeRequired': 'Inserisci il codice',
+  'validation.codeFormat': 'Il codice deve essere di 8 caratteri alfanumerici minuscoli',
+
+  // Breadcrumb
+  'breadcrumb.login-code': 'Accedi con codice',
 };

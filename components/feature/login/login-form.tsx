@@ -116,7 +116,7 @@ export function LoginForm() {
 
       <p className="pt-1 text-center text-[13px] text-[#515154]">
         <Link
-          href="/login?accesso=1&otp=1"
+          href="/login/code"
           className="font-medium text-[#0066cc] hover:underline"
         >
           Accedi con codice monouso

@@ -1415,6 +1415,34 @@ export const en = {
   // Generic Errors
   'errors.generic.unknown': 'An unexpected error occurred. Please try again later.',
   'errors.generic.message': 'Something went wrong. Please try again.',
+
+  // Login Code
+  'loginCode.title': 'Log in with code',
+  'loginCode.emailLabel': 'Email',
+  'loginCode.emailPlaceholder': 'your@email.com',
+  'loginCode.sendCode': 'Send code',
+  'loginCode.sending': 'Sending…',
+  'loginCode.checkEmail': 'Check your email',
+  'loginCode.codeLabel': 'Enter the 8-character code',
+  'loginCode.login': 'Log in',
+  'loginCode.loggingIn': 'Logging in…',
+  'loginCode.resendCode': 'Resend code',
+  'loginCode.resendTimer': 'Resend in {seconds}s',
+  'loginCode.resendHint': "Didn't receive the code?",
+  'loginCode.backToLogin': 'Back to login',
+  'loginCode.codeFormatError': 'The code must be 8 lowercase letters or numbers',
+  'loginCode.invalidCode': 'Invalid or expired code',
+  'loginCode.accountLocked': 'Account locked. Try again later',
+  'loginCode.rateLimit': 'Too many attempts. Try again later',
+  'loginCode.genericError': 'Something went wrong. Try again',
+  'loginCode.noAccount': 'No account? Sign up',
+
+  // Validation - code
+  'validation.codeRequired': 'Enter the code',
+  'validation.codeFormat': 'Code must be 8 lowercase letters or numbers',
+
+  // Breadcrumb
+  'breadcrumb.login-code': 'Log in with code',
 } as const;
 
 export type MessageKey = keyof typeof en;
