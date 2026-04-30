@@ -14,6 +14,10 @@ export type AuctionCreateCardSelection = {
   /** Selezionato dalla collezione Sync (inventario) */
   inventoryItemId?: number;
   blueprintId?: number;
+  /** Dati inventario per prefill condizione / lingua / prezzo. */
+  condition?: string;
+  cardLanguage?: string;
+  startingBidEur?: string;
 };
 
 export type AuctionCreateDraft = {

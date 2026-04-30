@@ -41,6 +41,15 @@ function hitToSelection(hit: SearchHit): AuctionCreateCardSelection {
 function inventoryToSelection(item: InventoryWithCard): AuctionCreateCardSelection | null {
   const card = item.card;
   if (!card) return null;
+  const props = item.properties as Record<string, unknown> | undefined;
+  const condition = typeof props?.condition === 'string' ? props.condition : '';
+  const language =
+    typeof props?.mtg_language === 'string'
+      ? props.mtg_language
+      : typeof props?.language === 'string'
+        ? props.language
+        : '';
+  const priceEur = item.price_cents > 0 ? (item.price_cents / 100).toFixed(2) : '';
   return {
     id: card.id ?? String(item.blueprint_id),
     title: card.name ?? '',
@@ -49,6 +58,9 @@ function inventoryToSelection(item: InventoryWithCard): AuctionCreateCardSelecti
     gameSlug: card.game_slug,
     inventoryItemId: item.id,
     blueprintId: item.blueprint_id,
+    condition,
+    cardLanguage: language,
+    startingBidEur: priceEur,
   };
 }
 
@@ -425,7 +437,12 @@ export function AuctionCreateCardPicker({
               const cardName = row.card?.name ?? '—';
               const props = row.properties as Record<string, unknown> | undefined;
               const condition = typeof props?.condition === 'string' ? props.condition : '';
-              const language = typeof props?.language === 'string' ? props.language : '';
+              const language =
+                typeof props?.mtg_language === 'string'
+                  ? props.mtg_language
+                  : typeof props?.language === 'string'
+                    ? props.language
+                    : '';
               return (
                 <div
                   key={row.id}
@@ -470,7 +487,12 @@ export function AuctionCreateCardPicker({
               const cardName = row.card?.name ?? '—';
               const props = row.properties as Record<string, unknown> | undefined;
               const condition = typeof props?.condition === 'string' ? props.condition : '';
-              const language = typeof props?.language === 'string' ? props.language : '';
+              const language =
+                typeof props?.mtg_language === 'string'
+                  ? props.mtg_language
+                  : typeof props?.language === 'string'
+                    ? props.language
+                    : '';
               return (
                 <li key={row.id}>
                   <div

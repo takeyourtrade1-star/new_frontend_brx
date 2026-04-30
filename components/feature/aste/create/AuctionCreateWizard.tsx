@@ -16,11 +16,16 @@ import {
   AUCTION_LISTING_PHOTO_MIN,
   auctionConditionLabelKey,
   conditionSelectValue,
+  normalizeAuctionCardLanguage,
   type AuctionCreateCardSelection,
   type AuctionCreateDraft,
   searchGameSlugToAuctionGame,
 } from '@/lib/auction/auction-create-draft';
-import { createEmbeddedDraftFromProduct, mergeInventoryIntoAuctionDraft } from '@/lib/auction/auction-embedded-draft';
+import {
+  createEmbeddedDraftFromProduct,
+  mergeInventoryIntoAuctionDraft,
+  inventoryConditionToWizardValue,
+} from '@/lib/auction/auction-embedded-draft';
 import type { CardDocument } from '@/lib/product-detail';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCardImageUrl } from '@/lib/assets';
@@ -129,6 +134,7 @@ export function AuctionCreateWizard({
   } | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showDesktopFloatingNav, setShowDesktopFloatingNav] = useState(false);
+  const [isAtFormBottom, setIsAtFormBottom] = useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const wizardShellRef = useRef<HTMLDivElement>(null);
   const stepContentRef = useRef<HTMLDivElement>(null);
@@ -322,16 +328,32 @@ export function AuctionCreateWizard({
   const handleCardSelect = useCallback((sel: AuctionCreateCardSelection) => {
     const img =
       getCardImageUrl(sel.image) ?? (sel.image.trim().startsWith('http') ? sel.image : '');
-    setDraft((d) => ({
-      ...d,
-      cardSelection: sel,
-      title: sel.title,
-      description: '',
-      imageUrl: img,
-      game: searchGameSlugToAuctionGame(sel.gameSlug),
-      isCard: true,
-      nonCardCategory: '',
-    }));
+    setDraft((d): AuctionCreateDraft => {
+      const base = {
+        ...d,
+        cardSelection: sel,
+        title: sel.title,
+        description: '',
+        imageUrl: img,
+        game: searchGameSlugToAuctionGame(sel.gameSlug),
+        isCard: true,
+        nonCardCategory: '' as const,
+      };
+      if (sel.inventoryItemId != null) {
+        return {
+          ...base,
+          condition: inventoryConditionToWizardValue(sel.condition),
+          cardLanguage: normalizeAuctionCardLanguage(sel.cardLanguage) || '',
+          startingBidEur: sel.startingBidEur || '',
+          selectedInventoryItemId: String(sel.inventoryItemId),
+        };
+      }
+      return {
+        ...base,
+        selectedInventoryItemId: null,
+        startingBidEur: '',
+      };
+    });
     setError(null);
   }, []);
 
@@ -569,6 +591,41 @@ export function AuctionCreateWizard({
     };
   }, [showStickyNav, stepId]);
 
+  // Detect when user scrolls to bottom of form for mobile button docking
+  useEffect(() => {
+    if (!showStickyNav) {
+      setIsAtFormBottom(false);
+      return;
+    }
+
+    let rafId = 0;
+    const updateBottomState = () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      rafId = window.requestAnimationFrame(() => {
+        const shell = wizardShellRef.current;
+        if (!shell) {
+          setIsAtFormBottom(false);
+          return;
+        }
+        const rect = shell.getBoundingClientRect();
+        // Consider "at bottom" when the bottom of the wizard is within viewport or above it
+        const viewportHeight = window.innerHeight;
+        const atBottom = rect.bottom <= viewportHeight + 20; // 20px tolerance
+        setIsAtFormBottom((prev) => (prev === atBottom ? prev : atBottom));
+      });
+    };
+
+    updateBottomState();
+    window.addEventListener('scroll', updateBottomState, { passive: true });
+    window.addEventListener('resize', updateBottomState);
+
+    return () => {
+      window.removeEventListener('scroll', updateBottomState);
+      window.removeEventListener('resize', updateBottomState);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, [showStickyNav, stepId]);
+
   const formatDateTimeLong = useCallback((iso: string) => {
     const d = new Date(iso);
     if (!Number.isFinite(d.getTime())) return '—';
@@ -585,16 +642,12 @@ export function AuctionCreateWizard({
     return `${y}-${m}-${d}`;
   }, []);
 
-  // On every step change, bring the wizard into view (standalone) and focus the first actionable field.
+  // On every step change, scroll to top of page (at title level) and focus the first actionable field.
   useEffect(() => {
-    const shell = wizardShellRef.current;
-    if (shell && !isEmbedded) {
-      // Calcola la posizione assoluta del top del wizard nel documento
-      const top = shell.getBoundingClientRect().top + window.scrollY;
-      // Scrolls al wizard con ampio padding superiore per visualizzare completamente lo step indicator
-      const offset = 80; // Padding generoso per mostrare gli step indicators
+    if (!isEmbedded) {
+      // Scrolla in cima alla pagina, all'altezza del titolo "Crea asta"
       window.scrollTo({
-        top: Math.max(0, top - offset),
+        top: 0,
         behavior: 'smooth',
       });
     }
@@ -778,9 +831,6 @@ export function AuctionCreateWizard({
           >
             {stepHeading}
           </h1>
-          {stepHint && !isEmbedded ? (
-            <p className={cn('mt-1 text-sm text-gray-500', isEmbedded && 'mt-0 text-[11px] leading-snug text-zinc-400')}>{stepHint}</p>
-          ) : null}
         </div>
 
         <div ref={stepContentRef} className={cn('px-5 py-6 sm:px-8 sm:py-8', isEmbedded && 'px-3 py-2 sm:px-3.5 sm:py-2.5')}>
@@ -1605,33 +1655,56 @@ export function AuctionCreateWizard({
           </>
         )}
 
-        {/* Mobile: pillola fissa in basso */}
+        {/* Mobile: pillola fluttuante o ancorata in base allo scroll */}
         <div
           className={cn(
             'pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-1 sm:hidden',
-            isEmbedded && 'px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]'
+            isEmbedded && 'px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]',
+            // Quando ancorata, usa padding minore e togli il pt-1
+            isAtFormBottom && '!pb-[max(0.5rem,env(safe-area-inset-bottom))] !pt-0'
           )}
           role="presentation"
         >
           <footer
             className={cn(
-              'pointer-events-auto inline-flex max-w-full items-center gap-1.5 rounded-[1.35rem] border border-white/55 bg-white/40 px-1.5 py-1 shadow-[0_8px_32px_-4px_rgba(29,49,96,0.18),inset_0_1px_0_rgba(255,255,255,0.65)] backdrop-blur-2xl backdrop-saturate-150',
-              isEmbedded && 'gap-1 py-0.5'
+              'pointer-events-auto inline-flex max-w-full items-center transition-all duration-300 ease-out',
+              // Stato fluttuante (default)
+              !isAtFormBottom && [
+                'gap-1.5 rounded-[1.35rem] border border-white/55 bg-white/40 px-1.5 py-1 shadow-[0_8px_32px_-4px_rgba(29,49,96,0.18),inset_0_1px_0_rgba(255,255,255,0.65)] backdrop-blur-2xl backdrop-saturate-150',
+                isEmbedded && 'gap-1 py-0.5',
+              ],
+              // Stato ancorato (quando in fondo)
+              isAtFormBottom && [
+                'w-full gap-3 rounded-t-2xl border-x border-t border-zinc-200/80 bg-white/95 px-4 py-3 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.1)]',
+                isEmbedded && 'gap-2 px-3 py-2.5',
+              ]
             )}
-            style={{ WebkitBackdropFilter: 'blur(20px) saturate(180%)' }}
+            style={!isAtFormBottom ? { WebkitBackdropFilter: 'blur(20px) saturate(180%)' } : undefined}
           >
             <button
               type="button"
               onClick={goBack}
               className={cn(
-                'inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160]/85 transition hover:bg-white/50 active:scale-[0.98]',
-                isEmbedded && 'min-h-[32px] px-2.5 py-1'
+                'inline-flex shrink-0 items-center gap-1 font-semibold uppercase tracking-wide text-[#1D3160] transition active:scale-[0.98]',
+                // Stato fluttuante
+                !isAtFormBottom && [
+                  'min-h-[36px] rounded-xl px-3 py-1.5 text-[11px] hover:bg-white/50',
+                  isEmbedded && 'min-h-[32px] px-2.5 py-1',
+                ],
+                // Stato ancorato (più grande)
+                isAtFormBottom && [
+                  'min-h-[48px] flex-1 justify-center rounded-xl border border-zinc-300 bg-white px-6 text-sm hover:bg-zinc-50',
+                  isEmbedded && 'min-h-[40px] px-4 text-[13px]',
+                ]
               )}
             >
-              <ChevronLeft className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+              <ChevronLeft className={cn('shrink-0', isAtFormBottom ? 'h-4 w-4' : 'h-3.5 w-3.5 opacity-80')} aria-hidden />
               {t('auctions.createBack')}
             </button>
-            <span className="h-5 w-px shrink-0 bg-[#1D3160]/10" aria-hidden />
+
+            {/* Divider solo in stato fluttuante */}
+            {!isAtFormBottom && <span className="h-5 w-px shrink-0 bg-[#1D3160]/10" aria-hidden />}
+
             {!isLastStep ? (
               <button
                 type="button"
@@ -1639,26 +1712,47 @@ export function AuctionCreateWizard({
                 title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
                 onClick={goNext}
                 className={cn(
-                  'inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-[1.1rem] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition active:scale-[0.98]',
-                  isEmbedded && 'min-h-[32px] px-3 py-1',
-                  continueDisabled
-                    ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
-                    : 'bg-[#FF7300] hover:bg-[#e86800]'
+                  'inline-flex shrink-0 items-center gap-1 font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition active:scale-[0.98]',
+                  // Stato fluttuante
+                  !isAtFormBottom && [
+                    'min-h-[36px] rounded-[1.1rem] px-3.5 py-1.5 text-[11px]',
+                    isEmbedded && 'min-h-[32px] px-3 py-1',
+                    continueDisabled
+                      ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
+                      : 'bg-[#FF7300] hover:bg-[#e86800]',
+                  ],
+                  // Stato ancorato (più grande)
+                  isAtFormBottom && [
+                    'min-h-[48px] flex-1 justify-center rounded-xl px-6 text-sm',
+                    isEmbedded && 'min-h-[40px] text-[13px]',
+                    continueDisabled
+                      ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
+                      : 'bg-[#FF7300] hover:bg-[#e86800]',
+                  ]
                 )}
               >
                 {t('auctions.createContinue')}
-                <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <ChevronRight className={cn('shrink-0', isAtFormBottom ? 'h-4 w-4' : 'h-3.5 w-3.5')} aria-hidden />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={openPublishConfirm}
                 className={cn(
-                  'inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-[1.1rem] bg-[#FF7300] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition hover:bg-[#e86800] active:scale-[0.98]',
-                  isEmbedded && 'min-h-[32px] px-3 py-1'
+                  'inline-flex shrink-0 items-center gap-1.5 font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition hover:bg-[#e86800] active:scale-[0.98]',
+                  // Stato fluttuante
+                  !isAtFormBottom && [
+                    'min-h-[36px] rounded-[1.1rem] bg-[#FF7300] px-3.5 py-1.5 text-[11px]',
+                    isEmbedded && 'min-h-[32px] px-3 py-1',
+                  ],
+                  // Stato ancorato (più grande)
+                  isAtFormBottom && [
+                    'min-h-[48px] flex-1 justify-center rounded-xl bg-[#FF7300] px-6 text-sm',
+                    isEmbedded && 'min-h-[40px] text-[13px]',
+                  ]
                 )}
               >
-                <Gavel className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <Gavel className={cn('shrink-0', isAtFormBottom ? 'h-4 w-4' : 'h-3.5 w-3.5')} aria-hidden />
                 {t('auctions.createSubmit')}
               </button>
             )}

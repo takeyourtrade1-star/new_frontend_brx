@@ -169,6 +169,11 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     return () => window.clearTimeout(id);
   }, [showMaxBidRemovedToast]);
 
+  // Reset sticky header state when auction changes
+  useEffect(() => {
+    setShowStickyHeader(false);
+  }, [numericId]);
+
   useEffect(() => {
     const titleElement = heroTitleRef.current;
     if (!titleElement) return;
@@ -186,7 +191,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     );
     observer.observe(titleElement);
     return () => observer.disconnect();
-  }, [stickyTop, asteNavHeight]);
+  }, [stickyTop, asteNavHeight, numericId]);
 
   const { data: similarData } = useAuctionList({ limit: 3 });
   const similarCards = useMemo(() => {

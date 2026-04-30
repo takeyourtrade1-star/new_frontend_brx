@@ -249,8 +249,8 @@ export function TopBar() {
       {(flashMessage || toastExiting) && (
         <div
           className={cn(
-            'fixed left-1/2 top-6 z-[110] flex items-center gap-3 rounded-full border bg-emerald-50/90 px-5 py-3 backdrop-blur-2xl backdrop-saturate-150',
-            'border-emerald-500/20 shadow-[0_8px_30px_-4px_rgba(16,185,129,0.3)]',
+            'fixed left-1/2 top-6 z-[110] flex items-center gap-2 sm:gap-3 rounded-full border bg-emerald-50/90 px-3 sm:px-5 py-2 sm:py-3 backdrop-blur-2xl backdrop-saturate-150',
+            'border-emerald-500/20 shadow-[0_8px_30px_-4px_rgba(16,185,129,0.3)] max-w-[90vw]',
             toastExiting ? 'toast-spring-exit' : 'toast-spring-enter'
           )}
           role="status"
@@ -259,9 +259,7 @@ export function TopBar() {
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[inset_0_-2px_4px_rgba(0,0,0,0.2)]">
             <Check className="h-4 w-4" strokeWidth={3} aria-hidden />
           </div>
-          <span className="text-sm font-bold text-emerald-900 tracking-wide">
-            {flashMessage ?? lastFlashRef.current}
-          </span>
+          <span className="text-xs sm:text-sm font-semibold text-emerald-900 truncate">{flashMessage ?? lastFlashRef.current}</span>
         </div>
       )}
 
@@ -269,8 +267,8 @@ export function TopBar() {
       {(loginError || errorExiting) && (
         <div
           className={cn(
-            'fixed left-1/2 top-6 z-[110] flex items-center gap-3 rounded-full border bg-red-50/90 px-5 py-3 backdrop-blur-2xl backdrop-saturate-150',
-            'border-red-500/20 shadow-[0_8px_30px_-4px_rgba(239,68,68,0.3)]',
+            'fixed left-1/2 top-6 z-[110] flex items-center gap-2 sm:gap-3 rounded-full border bg-red-50/90 px-3 sm:px-5 py-2 sm:py-3 backdrop-blur-2xl backdrop-saturate-150',
+            'border-red-500/20 shadow-[0_8px_30px_-4px_rgba(239,68,68,0.3)] max-w-[90vw]',
             errorExiting ? 'toast-spring-exit' : 'toast-spring-enter'
           )}
           role="alert"
@@ -279,9 +277,7 @@ export function TopBar() {
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500 text-white shadow-[inset_0_-2px_4px_rgba(0,0,0,0.2)]">
             <AlertCircle className="h-4 w-4" strokeWidth={2.5} aria-hidden />
           </div>
-          <span className="text-sm font-bold text-red-900 tracking-wide">
-            {loginError ?? lastErrorRef.current}
-          </span>
+          <span className="text-xs sm:text-sm font-semibold text-red-900 truncate">{loginError ?? lastErrorRef.current}</span>
         </div>
       )}
 

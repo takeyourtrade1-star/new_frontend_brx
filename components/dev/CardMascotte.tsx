@@ -2880,17 +2880,20 @@ export function CardMascotte() {
             />
           </div>
 
-          {/* Corpicino sfumato arancione */}
-          <div className="relative flex items-center justify-center rounded-full w-[56px] h-[56px] bg-gradient-to-br from-[#FF9A40] via-[#FF7300] to-[#E65C00] overflow-hidden border border-white/20" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}>
-            
-            {/* Riflesso di luce interno */}
-            <div className="absolute -top-1 -left-1 w-10 h-10 bg-white/20 rounded-full blur-xl" />
+          {/* Corpicino trasparente con solo bordo - usa il colore selezionato */}
+          <div
+            className="relative flex items-center justify-center rounded-full w-[56px] h-[56px] bg-transparent overflow-hidden border-2"
+            style={{
+              borderColor: `${selectedFaceColor.line}80`,
+              boxShadow: `0 4px 16px rgba(0,0,0,0.25), inset 0 0 12px ${selectedFaceColor.glowSoft}`,
+            }}
+          >
 
-            {/* Solo occhietti carini */}
+            {/* Solo occhietti carini - colorati con il colore selezionato */}
             <div className="relative w-12 h-12 drop-shadow-md">
               <svg viewBox="0 0 100 100" fill="none">
-                <ellipse cx="38" cy="46" rx="6.5" ry="11" fill="rgba(0,0,0,0.15)" />
-                <ellipse cx="62" cy="46" rx="6.5" ry="11" fill="rgba(0,0,0,0.15)" />
+                <ellipse cx="38" cy="46" rx="6.5" ry="11" fill={selectedFaceColor.glowSoft} />
+                <ellipse cx="62" cy="46" rx="6.5" ry="11" fill={selectedFaceColor.glowSoft} />
                 <ellipse cx="38" cy="44" rx="6.5" ry="11" fill="#ffffff" />
                 <ellipse cx="62" cy="44" rx="6.5" ry="11" fill="#ffffff" />
               </svg>
