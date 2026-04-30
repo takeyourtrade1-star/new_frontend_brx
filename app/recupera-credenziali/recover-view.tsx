@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { RecuperaCredenzialiForm } from '@/components/feature/login/recupera-credenziali-form';
 import { AuthShell } from '@/components/layout/AuthShell';
@@ -9,6 +10,11 @@ import { usePasswordResetStore } from '@/lib/stores/password-reset-store';
 export function RecoverView() {
   const { t } = useTranslation();
   const step = usePasswordResetStore((s) => s.step);
+  const resetFlow = usePasswordResetStore((s) => s.resetFlow);
+
+  useEffect(() => {
+    resetFlow();
+  }, [resetFlow]);
 
   const titleKey =
     step === 'otp1_requested'
