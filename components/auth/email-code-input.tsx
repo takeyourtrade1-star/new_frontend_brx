@@ -1,12 +1,6 @@
 'use client';
 
 import * as React from 'react';
-
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from '@/components/ui/input-otp';
 import { cn } from '@/lib/utils';
 
 export interface EmailCodeInputProps {
@@ -18,11 +12,11 @@ export interface EmailCodeInputProps {
   id?: string;
 }
 
-const REGEXP_ALPHANUM_LOWER = /^[a-z0-9]*$/;
+const REGEXP_ALPHANUM_LOWER = /^[a-z0-9]$/;
 
 /**
- * 8 caratteri alfanumerici minuscoli — stile Apple (celle grandi, spaziatura generosa).
- * Auto-submit su onComplete quando l'utente completa gli 8 caratteri.
+ * 8 caratteri alfanumerici minuscoli — input nativi per massima affidabilità
+ * e dimensioni perfettamente controllate.
  */
 export function EmailCodeInput({
   value,
@@ -32,37 +26,145 @@ export function EmailCodeInput({
   className,
   id,
 }: EmailCodeInputProps) {
-  const handleChange = React.useCallback(
-    (next: string) => {
-      const lowered = next.toLowerCase();
-      if (!REGEXP_ALPHANUM_LOWER.test(lowered)) return;
-      onChange(lowered);
-      if (lowered.length === 8) {
-        onComplete?.(lowered);
+  const inputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
+
+  const chars = React.useMemo(() => {
+    const raw = value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8);
+    return raw.split('');
+  }, [value]);
+
+  const focusIdx = React.useCallback((idx: number) => {
+    inputRefs.current[idx]?.focus();
+    inputRefs.current[idx]?.select();
+  }, []);
+
+  const updateValue = React.useCallback((nextChars: string[]) => {
+    const joined = nextChars.join('').slice(0, 8);
+    onChange(joined);
+    if (joined.length === 8) {
+      onComplete?.(joined);
+    }
+  }, [onChange, onComplete]);
+
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>, idx: number) => {
+      if (disabled) return;
+
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        if (chars[idx]) {
+          const next = [...chars];
+          next[idx] = '';
+          updateValue(next);
+          focusIdx(idx);
+        } else if (idx > 0) {
+          const next = [...chars];
+          next[idx - 1] = '';
+          updateValue(next);
+          focusIdx(idx - 1);
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowLeft' && idx > 0) {
+        e.preventDefault();
+        focusIdx(idx - 1);
+        return;
+      }
+
+      if (e.key === 'ArrowRight' && idx < 7) {
+        e.preventDefault();
+        focusIdx(idx + 1);
+        return;
       }
     },
-    [onChange, onComplete]
+    [chars, disabled, focusIdx, updateValue]
+  );
+
+  const handleChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
+      if (disabled) return;
+      const raw = e.target.value;
+      const lastChar = raw.slice(-1);
+
+      if (!lastChar) {
+        // empty input (user deleted)
+        const next = [...chars];
+        next[idx] = '';
+        updateValue(next);
+        return;
+      }
+
+      if (!REGEXP_ALPHANUM_LOWER.test(lastChar)) return;
+
+      const lowered = lastChar.toLowerCase();
+      const next = [...chars];
+      next[idx] = lowered;
+      updateValue(next);
+
+      if (idx < 7) {
+        focusIdx(idx + 1);
+      }
+    },
+    [chars, disabled, focusIdx, updateValue]
+  );
+
+  const handlePaste = React.useCallback(
+    (e: React.ClipboardEvent<HTMLInputElement>) => {
+      if (disabled) return;
+      e.preventDefault();
+      const pasted = e.clipboardData
+        .getData('text')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .slice(0, 8);
+
+      const next = pasted.split('').slice(0, 8);
+      updateValue(next);
+
+      // Focus sul campo successivo all'ultimo carattere incollato
+      const focusIndex = Math.min(7, next.length);
+      setTimeout(() => focusIdx(focusIndex), 0);
+    },
+    [disabled, focusIdx, updateValue]
+  );
+
+  const slotClass = cn(
+    'h-10 w-10 sm:h-11 sm:w-11',
+    'rounded-xl border border-black/10 bg-black/5',
+    'text-center text-lg font-semibold text-[#1d1d1f]',
+    'uppercase tracking-wider',
+    'focus:outline-none focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/20',
+    'transition-all duration-150',
+    'disabled:opacity-40 disabled:cursor-not-allowed',
+    'placeholder:text-[#86868b]/30'
   );
 
   return (
-    <div className={cn('flex w-full justify-center', className)}>
-      <InputOTP
-        id={id}
-        maxLength={8}
-        pattern={REGEXP_ALPHANUM_LOWER.source}
-        inputMode="text"
-        autoComplete="one-time-code"
-        value={value}
-        onChange={handleChange}
-        disabled={disabled}
-        containerClassName="group flex w-full max-w-md items-center justify-center"
-      >
-        <InputOTPGroup className="w-full justify-center gap-2 sm:gap-3">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <InputOTPSlot key={i} index={i} />
-          ))}
-        </InputOTPGroup>
-      </InputOTP>
+    <div
+      id={id}
+      className={cn(
+        'flex w-full items-center justify-center gap-2 sm:gap-2.5',
+        className
+      )}
+    >
+      {Array.from({ length: 8 }).map((_, i) => (
+        <input
+          key={i}
+          ref={(el) => { inputRefs.current[i] = el; }}
+          type="text"
+          inputMode="text"
+          autoComplete="one-time-code"
+          maxLength={1}
+          disabled={disabled}
+          value={chars[i] || ''}
+          onChange={(e) => handleChange(e, i)}
+          onKeyDown={(e) => handleKeyDown(e, i)}
+          onPaste={handlePaste}
+          className={slotClass}
+          aria-label={`Code character ${i + 1}`}
+        />
+      ))}
     </div>
   );
 }
