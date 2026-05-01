@@ -901,6 +901,7 @@ export const en = {
   'auctions.createShippingSellerHint': 'Shipping cost is included in your price strategy.',
   'auctions.createShippingFlatLabel': 'Shipping cost (€)',
   'auctions.createBack': 'Back',
+  'auctions.navCreate': 'Create auction',
   'auctions.createContinue': 'Continue',
   'auctions.createContinueDisabledFooter': 'Complete the step above to continue.',
   'auctions.createSubmit': 'Publish listing',

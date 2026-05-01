@@ -903,6 +903,7 @@ export const it: Record<MessageKey, string> = {
   'auctions.createShippingSellerHint': 'Il costo è incluso nella tua strategia di prezzo.',
   'auctions.createShippingFlatLabel': 'Costo spedizione (€)',
   'auctions.createBack': 'Indietro',
+  'auctions.navCreate': 'Crea asta',
   'auctions.createContinue': 'Continua',
   'auctions.createContinueDisabledFooter': 'Completa prima la scelta sopra per continuare.',
   'auctions.createSubmit': 'Pubblica inserzione',
