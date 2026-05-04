@@ -1,23 +1,19 @@
-'use client';
+import { Suspense } from 'react';
+import { Header } from '@/components/layout/Header';
+import { ScambiPageClient } from './scambi-page-client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
-import { ScambiLandingPage } from '@/components/feature/scambi/ScambiLandingPage';
+export const metadata = {
+  title: 'Scambi | Ebartex',
+  description: 'Scambia carte collezionabili in totale sicurezza su Ebartex',
+};
 
 export default function ScambiPage() {
-  const router = useRouter();
-  const scambiVisible = useScambiVisibility();
-
-  useEffect(() => {
-    if (!scambiVisible) {
-      router.replace('/tornei-live');
-    }
-  }, [scambiVisible, router]);
-
-  if (!scambiVisible) {
-    return null;
-  }
-
-  return <ScambiLandingPage />;
+  return (
+    <main className="min-h-screen bg-white">
+      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+        <Header />
+      </Suspense>
+      <ScambiPageClient />
+    </main>
+  );
 }
