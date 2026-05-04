@@ -758,54 +758,19 @@ export function AuctionCreateWizard({
           </div>
         </div>
       ) : (
-      <div className="mb-8">
-        <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
-          {t('auctions.createProgress', { current: currentStepNumber, total: totalSteps })}
-        </p>
-        <div className={cn('mt-4 flex items-center justify-between gap-1 px-1 sm:gap-2', isEmbedded && 'mt-2 gap-0.5 px-0')}>
-          {stepperLabels.map((label, i) => {
-            const active = i === activeStepIndex;
-            const complete = i < activeStepIndex;
-            return (
-              <div
-                key={`${label}-${i}`}
-                className={cn('flex min-w-0 flex-1 flex-col items-center gap-1.5', isEmbedded && 'gap-1')}
-              >
-                <div
-                  className={cn(
-                    'flex shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors',
-                    isEmbedded ? 'h-7 w-7 text-[10px] sm:h-8 sm:w-8' : 'h-9 w-9 sm:h-10 sm:w-10',
-                    complete && 'bg-[#FF7300] text-white',
-                    active && !complete && 'bg-[#1D3160] text-white',
-                    active && !complete && (isEmbedded ? 'ring-1 ring-[#FF7300] ring-offset-1' : 'ring-2 ring-[#FF7300] ring-offset-2'),
-                    !active && !complete && 'border-2 border-gray-200 bg-white text-gray-400'
-                  )}
-                  aria-current={active ? 'step' : undefined}
-                >
-                  {complete ? (
-                    <Check
-                      className={cn(isEmbedded ? 'h-3.5 w-3.5' : 'h-4 w-4 sm:h-5 sm:w-5')}
-                      strokeWidth={2.5}
-                      aria-hidden
-                    />
-                  ) : (
-                    i + 1
-                  )}
-                </div>
-                <span
-                  className={cn(
-                    'hidden text-center font-semibold uppercase leading-tight tracking-wide sm:block',
-                    isEmbedded ? 'text-[8px] sm:text-[9px]' : 'text-[10px]',
-                    active ? 'text-[#1D3160]' : 'text-gray-400'
-                  )}
-                >
-                  {label}
-                </span>
-              </div>
-            );
-          })}
+        <div className="mb-6">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+            {stepperLabels[activeStepIndex] ?? ''}
+          </p>
+          <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-gray-200">
+            <div
+              className="h-full rounded-full bg-[#FF7300] transition-[width] duration-700 ease-out"
+              style={{
+                width: `${totalSteps > 1 ? (activeStepIndex / (totalSteps - 1)) * 100 : 100}%`,
+              }}
+            />
+          </div>
         </div>
-      </div>
       )}
 
       <div ref={formCardRef} className={cn('relative rounded-2xl border border-gray-200 bg-white shadow-sm', isEmbedded && 'rounded-xl border-zinc-200/70 bg-white/95 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.08)]')}>
