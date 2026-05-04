@@ -334,48 +334,96 @@ export function LandingWelcome() {
           <div className="mx-auto grid w-full max-w-6xl gap-5 sm:gap-6 md:gap-5 grid-cols-1 lg:grid-cols-2">
 
             {/* ──── LEFT: MAGIC CARD ──── */}
-            <Link
-              href="/home/magic"
-              id="hero-magic-card"
-              className="bento-entry bento-card group relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/15 p-5 sm:p-6 md:p-7 lg:p-8 min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px] transition-all duration-500 hover:border-white/30 hover:scale-[1.01]"
-              style={{
-                animationDelay: '180ms',
-                background: 'linear-gradient(135deg, rgba(167,139,250,0.08) 0%, rgba(15,23,42,0.40) 40%, rgba(99,102,241,0.04) 100%)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-              }}
-              aria-label={t('landing.gameAria.goHome', { name: 'Magic The Gathering' })}
-              onClick={() => setSelectedGame('mtg')}
+            <div
+              className="bento-entry bento-card group relative flex flex-col min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px] rounded-2xl"
+              style={{ animationDelay: '180ms' }}
             >
-              {/* Badge "Disponibile subito" */}
-              <span className="absolute right-3 top-3 z-10 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white">
-                Disponibile subito!
-              </span>
-
-              {/* Decorative glows */}
-              <div className="pointer-events-none absolute -left-12 -top-12 h-48 w-48 rounded-full bg-indigo-500/8 blur-3xl" />
-
-              {/* Left side: Text */}
-              <div className="relative z-10 flex flex-col gap-1 sm:gap-1.5">
-                <h2 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold uppercase tracking-tight text-white drop-shadow-lg">
-                  Magic: The Gathering
-                </h2>
-                <p className="max-w-md text-[11px] sm:text-xs md:text-sm text-white/50">
-                  Compra, vendi e metti all&apos;asta le tue carte. Inizia subito.
-                </p>
+              {/* Rotating border glow — MTG Red/White/Blue */}
+              <div className="pointer-events-none absolute -inset-[3px] z-0 overflow-hidden rounded-[18px]">
+                <div
+                  className="absolute -inset-[50%] h-[200%] w-[200%]"
+                  style={{
+                    background: 'conic-gradient(from 0deg, transparent 0%, rgba(220,38,38,0.60) 5%, rgba(248,113,113,0.50) 14%, rgba(239,68,68,0.60) 22%, transparent 30%)',
+                    filter: 'blur(6px)',
+                    animation: 'magicRotateBorder 4s linear infinite',
+                  }}
+                />
               </div>
 
-              {/* Right side: Game logo */}
-              <div className="relative z-10 flex shrink-0 items-center justify-center">
-                <div className="relative h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 lg:h-36 lg:w-64 transition-transform duration-500 group-hover:scale-110">
-                  <img
-                    src={MAIN_GAMES[0].src}
-                    alt={MAIN_GAMES[0].alt}
-                    className="h-full w-full object-contain drop-shadow-[0_0_24px_rgba(167,139,250,0.25)]"
-                  />
+              {/* Inner glass mask */}
+              <div
+                className="pointer-events-none absolute inset-[1px] z-[1] rounded-[14px]"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(239,68,68,0.10) 0%, rgba(15,23,42,0.40) 45%, rgba(59,130,246,0.10) 100%)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(239,68,68,0.30)',
+                }}
+              />
+
+              {/* Pulsating glow overlay */}
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl z-[1]"
+                style={{
+                  animation: 'magicPulse 3s ease-in-out infinite',
+                  animationDelay: '180ms',
+                }}
+              />
+
+              <Link
+                href="/home/magic"
+                id="hero-magic-card"
+                className="relative z-[2] flex flex-1 items-center justify-between overflow-hidden rounded-2xl p-5 sm:p-6 md:p-7 lg:p-8 transition-all duration-500 hover:shadow-[0_0_40px_rgba(239,68,68,0.30)] hover:scale-[1.01]"
+                aria-label={t('landing.gameAria.goHome', { name: 'Magic The Gathering' })}
+                onClick={() => setSelectedGame('mtg')}
+              >
+                {/* Badge "Disponibile subito" — centered pill */}
+                <span className="magic-pill absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white"
+                  style={{
+                    animation: 'magicPillGlow 4s ease-in-out infinite',
+                    animationDelay: '180ms',
+                  }}
+                >
+                  Disponibile subito!
+                </span>
+
+                {/* Decorative glows */}
+                <div className="pointer-events-none absolute -left-12 -top-12 h-48 w-48 rounded-full bg-red-500/8 blur-3xl" />
+                <div className="pointer-events-none absolute -right-8 bottom-0 h-32 w-32 rounded-full bg-blue-500/8 blur-3xl" />
+
+                {/* Left side: Text */}
+                <div className="relative z-10 flex flex-col gap-1 sm:gap-1.5">
+                  <h2 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold uppercase tracking-tight text-white drop-shadow-lg">
+                    Magic: The Gathering
+                  </h2>
+                  <p className="max-w-md text-[11px] sm:text-xs md:text-sm text-white/50">
+                    Compra, vendi e metti all&apos;asta le tue carte. Inizia subito.
+                  </p>
                 </div>
-              </div>
-            </Link>
+
+                {/* Right side: Game logo */}
+                <div className="relative z-10 flex shrink-0 items-center justify-center">
+                  <div className="relative h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 lg:h-36 lg:w-64 transition-transform duration-500 group-hover:scale-110">
+                    <img
+                      src={MAIN_GAMES[0].src}
+                      alt={MAIN_GAMES[0].alt}
+                      className="h-full w-full object-contain drop-shadow-[0_0_24px_rgba(239,68,68,0.35)]"
+                    />
+                  </div>
+                </div>
+
+                {/* CTA hint */}
+                <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-red-300/70 transition-colors duration-300 group-hover:text-red-200">
+                  <span>Scopri il mondo di magic</span>
+                  <motion.div
+                    animate={{ x: [0, 4, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                  >
+                    <ArrowRight className="h-3 w-3" />
+                  </motion.div>
+                </div>
+              </Link>
+            </div>
 
             {/* ──── RIGHT: FEATURE CAROUSEL ──── */}
             <div 
@@ -408,7 +456,7 @@ export function LandingWelcome() {
                       key={key}
                       type="button"
                       onClick={() => setActiveFeature(key)}
-                      className={`bento-entry flex-1 rounded-xl border px-3 py-3 sm:px-4 sm:py-3.5 text-[10px] sm:text-[11px] md:text-xs font-bold uppercase tracking-wider text-white transition-all duration-300 hover:scale-[1.02] ${isActive ? activeBorders[key] : borders[key]} ${isActive ? 'bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.08)]' : 'bg-white/5'}`}
+                      className={`bento-entry relative flex-1 overflow-hidden rounded-xl border px-3 py-3 sm:px-4 sm:py-3.5 text-[10px] sm:text-[11px] md:text-xs font-bold uppercase tracking-wider text-white transition-all duration-300 hover:scale-[1.02] ${isActive ? activeBorders[key] : borders[key]} ${isActive ? 'bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.08)]' : 'bg-white/5'}`}
                       style={{
                         animationDelay: key === 'aste' ? '200ms' : key === 'tornei' ? '260ms' : '320ms',
                         background: isActive ? gradients[key] : undefined,
@@ -416,6 +464,17 @@ export function LandingWelcome() {
                         WebkitBackdropFilter: 'blur(12px)',
                       }}
                     >
+                      {/* Progress indicator */}
+                      <span
+                        className={`absolute inset-x-2 bottom-1 h-0.5 rounded-full origin-left ${key === 'aste' ? 'bg-orange-400' : key === 'tornei' ? 'bg-violet-400' : 'bg-sky-400'}`}
+                        style={{
+                          transform: `scaleX(${isActive ? 1 : 0})`,
+                          opacity: isActive ? 0.7 : 0,
+                          transition: isActive
+                            ? 'transform 7000ms linear, opacity 400ms ease'
+                            : 'transform 300ms ease-out, opacity 200ms ease',
+                        }}
+                      />
                       {labels[key]}
                     </button>
                   );
@@ -876,6 +935,47 @@ export function LandingWelcome() {
           100% {
             opacity: 1;
             transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes magicPulse {
+          0%, 100% {
+            box-shadow: 0 0 20px rgba(239,68,68,0.15), 0 0 60px rgba(59,130,246,0.08), inset 0 0 20px rgba(239,68,68,0.05);
+          }
+          50% {
+            box-shadow: 0 0 40px rgba(239,68,68,0.35), 0 0 100px rgba(59,130,246,0.18), inset 0 0 30px rgba(239,68,68,0.12);
+          }
+        }
+
+        @keyframes magicRotateBorder {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes magicPillGlow {
+          0%, 65% {
+            box-shadow: 0 0 12px rgba(239,68,68,0.15);
+            border-color: rgba(255,255,255,0.15);
+            text-shadow: none;
+          }
+          72% {
+            box-shadow: 0 0 32px rgba(239,68,68,0.9), 0 0 64px rgba(239,68,68,0.6), inset 0 0 16px rgba(239,68,68,0.3);
+            border-color: rgba(239,68,68,0.7);
+            text-shadow: 0 0 10px rgba(239,68,68,0.8);
+          }
+          80% {
+            box-shadow: 0 0 32px rgba(239,68,68,0.9), 0 0 64px rgba(239,68,68,0.6), inset 0 0 16px rgba(239,68,68,0.3);
+            border-color: rgba(239,68,68,0.7);
+            text-shadow: 0 0 10px rgba(239,68,68,0.8);
+          }
+          87%, 100% {
+            box-shadow: 0 0 12px rgba(239,68,68,0.15);
+            border-color: rgba(255,255,255,0.15);
+            text-shadow: none;
           }
         }
       `}</style>
