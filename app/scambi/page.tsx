@@ -1,10 +1,23 @@
-import { permanentRedirect } from 'next/navigation';
+'use client';
 
-export const metadata = {
-  title: 'BRX Express | Ebartex',
-  robots: { index: false, follow: false },
-};
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
+import { ScambiLandingPage } from '@/components/feature/scambi/ScambiLandingPage';
 
 export default function ScambiPage() {
-  permanentRedirect('/tornei-live');
+  const router = useRouter();
+  const scambiVisible = useScambiVisibility();
+
+  useEffect(() => {
+    if (!scambiVisible) {
+      router.replace('/tornei-live');
+    }
+  }, [scambiVisible, router]);
+
+  if (!scambiVisible) {
+    return null;
+  }
+
+  return <ScambiLandingPage />;
 }

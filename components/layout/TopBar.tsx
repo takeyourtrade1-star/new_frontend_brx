@@ -15,6 +15,7 @@ import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { parseAuthError } from '@/lib/api/auth-error';
 import { useLogin } from '@/lib/hooks/use-auth';
+import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
 import { headerLoginSchema, type HeaderLoginValues } from '@/lib/validations/auth';
 import { getCdnImageUrl } from '@/lib/config';
 import { useGame, GAME_OPTIONS } from '@/lib/contexts/GameContext';
@@ -49,6 +50,7 @@ export function TopBar() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const { selectedGame, setSelectedGame, gameDisplayName } = useGame();
+  const scambiVisible = useScambiVisibility();
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [acquistiMenuOpen, setAcquistiMenuOpen] = useState(false);
   const [vendiMenuOpen, setVendiMenuOpen] = useState(false);
@@ -788,6 +790,18 @@ export function TopBar() {
                         >
                           {t('nav.auctions')}
                         </Link>
+                        {scambiVisible && (
+                          <>
+                            <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
+                            <Link
+                              href="/scambi"
+                              className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                              onClick={() => setVendiMenuOpen(false)}
+                            >
+                              Scambi
+                            </Link>
+                          </>
+                        )}
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                         <Link
                           href="/tornei-live"
@@ -864,6 +878,29 @@ export function TopBar() {
                 </button>
               </div>
 
+              {scambiVisible && (
+                <Link
+                  href="/scambi"
+                  className="order-4 hidden items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex md:px-2"
+                  aria-label="Scambi"
+                >
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
+                    aria-hidden
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF7300" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                      <polyline points="17 1 21 5 17 9"/>
+                      <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                      <polyline points="7 23 3 19 7 15"/>
+                      <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                    </svg>
+                  </span>
+                  <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
+                    Scambi
+                  </span>
+                </Link>
+              )}
+
               {/* 4. TORNEI LIVE - solo desktop */}
               <Link
                 href="/tornei-live"
@@ -932,6 +969,26 @@ export function TopBar() {
                   {t('nav.auctions')}
                 </span>
               </Link>
+
+              {scambiVisible && (
+                <Link
+                  href="/scambi"
+                  className="order-4 flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:hidden"
+                  aria-label="Scambi"
+                >
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
+                    aria-hidden
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF7300" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                      <polyline points="17 1 21 5 17 9"/>
+                      <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                      <polyline points="7 23 3 19 7 15"/>
+                      <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                    </svg>
+                  </span>
+                </Link>
+              )}
 
               {/* 6. Carrello con dropdown preview */}
               <div className="order-5 md:order-6">

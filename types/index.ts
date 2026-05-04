@@ -34,6 +34,8 @@ export interface User {
   preferences?: UserPreferences;
   /** Codice paese dell'utente (es. IT), se restituito dal backend */
   country?: string;
+  /** Se true, il backend ha abilitato la visibilità degli scambi per questo utente */
+  show_scambi?: boolean;
 }
 
 export interface UserPreferences {
@@ -129,6 +131,8 @@ export interface UserResponse {
   mfa_enabled: boolean;
   created_at: string;
   preferences?: UserPreferences;
+  /** Se true, il backend ha abilitato la visibilità degli scambi per questo utente */
+  show_scambi?: boolean;
 }
 
 export interface RefreshTokenRequest {

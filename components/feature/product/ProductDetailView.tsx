@@ -28,6 +28,7 @@ import { CountrySelect, type CountryOption } from '@/components/ui/CountrySelect
 import { useUserCountry } from '@/lib/hooks/use-user-country';
 import { useFlyToCart } from '@/lib/hooks/use-fly-to-cart';
 import { useCartStore } from '@/lib/stores/cart-store';
+import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
 
 const PRIMARY_BLUE = '#1D3160';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -94,7 +95,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   }));
   const imageSrc = props.imageSrc ?? (card?.image != null ? getCardImageUrl(card.image) : null) ?? getCdnImageUrl('kyurem.png');
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'INFO' | 'VENDI' | 'TORNEI' | 'ASTA'>('INFO');
+  const [activeTab, setActiveTab] = useState<'INFO' | 'VENDI' | 'SCAMBIA' | 'TORNEI' | 'ASTA'>('INFO');
   const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'ASTA' | 'TCG_EXPRESS'>('VENDITORI');
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -126,6 +127,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const flyToCart = useFlyToCart();
   const addToCartStore = useCartStore((s) => s.addItem);
   const detectedCountry = useUserCountry();
+  const scambiVisible = useScambiVisibility();
 
   // Popup quantità per aggiunta al carrello
   const [qtyPopup, setQtyPopup] = useState<{ open: boolean; item?: ListingItem; sourceEl?: HTMLElement; imageSrc?: string }>({ open: false });
@@ -764,6 +766,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const tabs = [
     { id: 'INFO' as const, label: 'INFO', mobileLabel: 'INFO' },
     { id: 'VENDI' as const, label: 'VENDI', mobileLabel: 'VENDI' },
+    ...(scambiVisible ? [{ id: 'SCAMBIA' as const, label: 'SCAMBIA', mobileLabel: 'SCAMBIA' }] : []),
     { id: 'ASTA' as const, label: "METTI ALL'ASTA", mobileLabel: 'ASTA' },
     { id: 'TORNEI' as const, label: 'TORNEI LIVE', mobileLabel: 'TORNEI' },
   ];
@@ -1518,6 +1521,21 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     ? 'Seleziona un prodotto dal catalogo per creare un’asta.'
                     : 'Blueprint CardTrader non disponibile per questo prodotto: usa la pagina Nuova asta dal menu Aste.'}
                 </p>
+              </div>
+            )}
+            {/* Tab SCAMBIA */}
+            {activeTab === 'SCAMBIA' && (
+              <div className="flex flex-1 flex-col items-center justify-center p-6 min-w-0 w-full">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 mb-3" aria-hidden>
+                  <svg className="w-5 h-5 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <polyline points="17 1 21 5 17 9" />
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                    <polyline points="7 23 3 19 7 15" />
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                  </svg>
+                </div>
+                <h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-800">Scambio</h3>
+                <p className="mt-1.5 text-xs text-zinc-400 max-w-[200px] text-center leading-relaxed">Funzionalità in arrivo prossimamente.</p>
               </div>
             )}
             {/* Tab TORNEI LIVE: mock tornei */}

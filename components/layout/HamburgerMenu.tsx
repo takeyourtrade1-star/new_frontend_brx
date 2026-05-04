@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme-context';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -20,6 +20,7 @@ import type { GameSlug } from '@/lib/contexts/GameContext';
 import { getCdnImageUrl } from '@/lib/config';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
+import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
 
 const GAME_HOME_PATH: Record<GameSlug, string> = {
   mtg: '/home/magic',
@@ -59,6 +60,8 @@ export function HamburgerMenu() {
   const logoutMutation = useLogout();
   const loginMutation = useLogin();
   const [loginError, setLoginError] = useState<string | null>(null);
+  const scambiVisible = useScambiVisibility();
+  const fetchUser = useAuthStore((s) => s.fetchUser);
 
   const menuItems = useMemo(
     () =>
@@ -498,6 +501,16 @@ export function HamburgerMenu() {
                     <RefreshCw className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
                     {t('account.sync')}
                   </Link>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await fetchUser();
+                    }}
+                    className={cn(navLinkClass, 'pl-14 text-[11px] normal-case text-gray-400 hover:text-gray-500')}
+                  >
+                    <RefreshCw className="h-4 w-4 shrink-0 text-gray-400" strokeWidth={2} aria-hidden />
+                    Stato account
+                  </button>
                 </div>
               </div>
             </div>
@@ -517,6 +530,16 @@ export function HamburgerMenu() {
               </Link>
             );
           })}
+          {scambiVisible && (
+            <Link
+              href="/scambi"
+              onClick={() => setOpen(false)}
+              className={cn(navLinkClass, 'border-b border-orange-100')}
+            >
+              <ArrowLeftRight className="h-5 w-5 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
+              Scambi
+            </Link>
+          )}
 
           <div className="bg-gray-50/50">
             <div className="flex items-center justify-between border-b border-orange-100 px-5 py-3.5">

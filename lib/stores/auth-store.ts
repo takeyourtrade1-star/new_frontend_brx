@@ -54,6 +54,7 @@ function normalizeUser(user: UserResponse | User | null): User | null {
     created_at: (user as UserResponse).created_at,
     preferences,
     country: u.country ?? undefined,
+    show_scambi: (u as any).show_scambi ?? false,
   };
 }
 
