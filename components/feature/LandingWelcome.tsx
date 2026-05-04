@@ -343,8 +343,8 @@ export function LandingWelcome() {
                 <div
                   className="absolute -inset-[50%] h-[200%] w-[200%]"
                   style={{
-                    background: 'conic-gradient(from 0deg, transparent 0%, rgba(220,38,38,0.60) 5%, rgba(248,113,113,0.50) 14%, rgba(239,68,68,0.60) 22%, transparent 30%)',
-                    filter: 'blur(6px)',
+                    background: 'conic-gradient(from 0deg, transparent 0%, rgba(220,38,38,0.45) 8%, rgba(248,113,113,0.35) 18%, rgba(239,68,68,0.45) 30%, transparent 50%)',
+                    filter: 'blur(14px)',
                     animation: 'magicRotateBorder 4s linear infinite',
                   }}
                 />
