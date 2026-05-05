@@ -1,48 +1,19 @@
 'use client';
 
-import { useState, type MouseEvent } from 'react';
+import type { MouseEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getCdnImageUrl } from '@/lib/config';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
+import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
 
 const FOOTER_BAND_BG = '#1D3160';
-const DEV_CODE = process.env.NEXT_PUBLIC_DEV_ACCESS_CODE || '';
 
 export function Footer() {
   const { t } = useTranslation();
-  const router = useRouter();
   const { availableLangs, setSelectedLang } = useLanguage();
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [codeInput, setCodeInput] = useState('');
-  const [codeError, setCodeError] = useState(false);
-
-  const openModal = () => {
-    setCodeInput('');
-    setCodeError(false);
-    setModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setModalOpen(false);
-    setCodeInput('');
-    setCodeError(false);
-  };
-
-  const submitCode = () => {
-    if (codeInput.trim() === DEV_CODE) {
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('scambi_dev_access', 'true');
-      }
-      setModalOpen(false);
-      router.push('/scambi');
-    } else {
-      setCodeError(true);
-    }
-  };
+  const scambiVisible = useScambiVisibility();
 
   const columns = [
     {
@@ -64,6 +35,9 @@ export function Footer() {
         { label: 'BRX Express', href: '/brx-express' },
         { label: t('footer.link.auctions'), href: '/aste' },
         { label: t('footer.link.sync'), href: '/account/sincronizzazione' },
+        ...(scambiVisible
+          ? [{ label: 'Scambi', href: '/scambi' }]
+          : []),
       ],
     },
     {
@@ -138,17 +112,6 @@ export function Footer() {
                       )}
                     </li>
                   ))}
-                  {col.titleKey === 'footer.col.features' && (
-                    <li>
-                      <button
-                        type="button"
-                        onClick={openModal}
-                        className="text-sm text-gray-600 transition-colors hover:text-[#FF7300]"
-                      >
-                        Funzioni sperimentali
-                      </button>
-                    </li>
-                  )}
                 </ul>
               </div>
             ))}
@@ -164,50 +127,6 @@ export function Footer() {
           {t('footer.copyright', { year: new Date().getFullYear() })}
         </span>
       </div>
-
-      {/* Modal codice accesso Funzioni sperimentali */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/50"
-            onClick={closeModal}
-            aria-label="Chiudi"
-          />
-          <div className="relative z-[301] w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="mb-1 text-lg font-bold text-[#1D3160]">Accesso riservato</h3>
-            <p className="mb-4 text-sm text-gray-500">Inserisci il codice per accedere alle funzioni sperimentali.</p>
-            <input
-              type="password"
-              value={codeInput}
-              onChange={(e) => { setCodeInput(e.target.value); setCodeError(false); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') submitCode(); }}
-              placeholder="Codice di accesso"
-              className="mb-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20"
-              autoFocus
-            />
-            {codeError && (
-              <p className="mb-3 text-xs text-red-600">Codice errato. Riprova.</p>
-            )}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="flex-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
-              >
-                Annulla
-              </button>
-              <button
-                type="button"
-                onClick={submitCode}
-                className="flex-1 rounded-lg bg-[#FF7300] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#e66800]"
-              >
-                Accedi
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </footer>
   );
 }
