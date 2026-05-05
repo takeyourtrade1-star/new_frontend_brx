@@ -15,7 +15,6 @@ import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { parseAuthError } from '@/lib/api/auth-error';
 import { useLogin } from '@/lib/hooks/use-auth';
-import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
 import { headerLoginSchema, type HeaderLoginValues } from '@/lib/validations/auth';
 import { getCdnImageUrl } from '@/lib/config';
 import { useGame, GAME_OPTIONS } from '@/lib/contexts/GameContext';
@@ -50,7 +49,6 @@ export function TopBar() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const { selectedGame, setSelectedGame, gameDisplayName } = useGame();
-  const scambiVisible = useScambiVisibility();
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [acquistiMenuOpen, setAcquistiMenuOpen] = useState(false);
   const [vendiMenuOpen, setVendiMenuOpen] = useState(false);
@@ -86,23 +84,21 @@ export function TopBar() {
 
   const onHeaderLogin = async (data: HeaderLoginValues) => {
     setLoginError(null);
-    setFlashMessage(null); // Pulisci eventuali messaggi precedenti
+    setFlashMessage(null);
     
     try {
-      // Verifica se l'input è email (contiene '@') o username
-      // e invia solo il campo corretto al backend
       const input = data.username.trim();
       const isEmail = input.includes('@');
       
-      // [DEV CHECK] In DevTools Network tab, verifica che il body contenga:
-      // - Se input contiene '@': { "email": "...", "password": "...", "website_url": "" }
-      // - Se input NON contiene '@': { "username": "...", "password": "...", "website_url": "" }
-      // MAI entrambi email e username contemporaneamente
       const credentials = isEmail
         ? { email: input, password: data.password }
         : { username: input, password: data.password };
+
+      console.log('[TopBar] Sending login with', isEmail ? 'email' : 'username', ':', input);
       
       const result = await loginMutation.mutateAsync(credentials);
+
+      console.log('[TopBar] Login result:', result);
 
       // Stesso flusso della pagina /login: vai al form codice Authenticator (non alla landing /login)
       if (result.mfaRequired) {
@@ -118,6 +114,7 @@ export function TopBar() {
       
       // L'header si aggiornerà automaticamente perché isAuthenticated e user cambiano nello store
     } catch (err: any) {
+      console.error('[TopBar] Login error:', err);
       // Pulisci il flash message in caso di errore
       setFlashMessage(null);
       
@@ -211,17 +208,18 @@ export function TopBar() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [vendiMenuOpen]);
 
-  /** Mostra nome utente: se c'è un nome reale (senza @) usalo, altrimenti la parte prima della @ dell'email */
+  /** Mostra nome utente: preferisce la parte prima della @ dell'email, poi il nome, poi il fallback */
   const shortLabel = (() => {
-    const name = user?.name?.trim();
     const email = user?.email?.trim() ?? '';
+    const name = user?.name?.trim() ?? '';
+    if (email) {
+      const username = (email.split('@')[0] || '').trim();
+      if (username) {
+        return (username.length > 12 ? `${username.slice(0, 12)}…` : username).toUpperCase();
+      }
+    }
     if (name && !name.includes('@')) {
       return name.length > 12 ? `${name.slice(0, 12)}…` : name;
-    }
-    if (email) {
-      const username = (email.split('@')[0] || '').trim() || t('user.fallbackName');
-      const display = username.length > 12 ? `${username.slice(0, 12)}…` : username;
-      return display.toUpperCase();
     }
     return t('user.fallbackName');
   })();
@@ -283,17 +281,12 @@ export function TopBar() {
         </div>
       )}
 
-      <div className="flex min-h-0 items-center gap-1.5 py-0 min-w-0 md:gap-2 md:py-0">
-        {/* Left: Logo + selettore gioco — su mobile logo più grande; margine desktop solo da md */}
-        <div
-          className={cn(
-            'flex min-w-0 items-center gap-2 sm:gap-3',
-            isAuthenticated ? 'flex-initial' : 'flex-1'
-          )}
-        >
+      <div className="flex w-full min-h-0 items-center gap-0 px-2 py-0.5 md:px-3">
+        {/* Left: Logo + selettore gioco — su mobile logo più grande */}
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3 shrink-0">
           <Link
             href="/"
-            className="flex shrink-0 items-center rounded-lg py-0.5 pl-0 pr-1 transition-opacity hover:opacity-90 md:pl-8 md:pr-1 md:py-1"
+            className="flex shrink-0 items-center rounded-lg py-0.5 pl-0 pr-1 transition-opacity hover:opacity-90 md:pr-1 md:py-1"
             aria-label={t('topBar.homeAria')}
           >
             <Image
@@ -374,106 +367,119 @@ export function TopBar() {
           </div>
         </div>
 
-        {/* Center: form login inline solo desktop (md+). Su mobile login/registrazione nel menu hamburger */}
-        {!isAuthenticated && (
-          <>
-          <form
-            onSubmit={handleSubmit(onHeaderLogin)}
-            className="hidden flex-1 justify-center items-center gap-3 md:flex relative"
-            noValidate
-          >
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder={t('auth.usernamePlaceholder')}
-                aria-label={t('auth.usernamePlaceholder')}
-                autoComplete="email"
-                className={cn(
-                  inputBase,
-                  AUTH_INPUT_HEIGHT,
-                  AUTH_INPUT_WIDTH,
-                  'border',
-                  errors.username && 'border-red-500'
-                )}
-                style={{
-                  backgroundColor: '#d9d9d9',
-                  borderColor: errors.username ? undefined : '#FF7300',
-                }}
-                {...register('username')}
-              />
-              {errors.username && (
-                <span className="absolute left-0 top-full mt-0.5 whitespace-nowrap text-[10px] text-red-400">
-                  {translateZodMessage(errors.username.message, t)}
-                </span>
-              )}
-            </div>
-            <div className="relative flex items-center">
-              <Input
-                type={showPassword ? 'text' : 'password'}
-                placeholder={t('auth.passwordPlaceholder')}
-                aria-label={t('auth.passwordPlaceholder')}
-                autoComplete="current-password"
-                className={cn(
-                  inputBase,
-                  AUTH_INPUT_HEIGHT,
-                  AUTH_INPUT_WIDTH,
-                  'pl-4 pr-10 border',
-                  errors.password && 'border-red-500'
-                )}
-                style={{
-                  backgroundColor: '#d9d9d9',
-                  borderColor: errors.password ? undefined : '#FF7300',
-                }}
-                {...register('password')}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((p) => !p)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-gray-600 hover:bg-gray-300/50"
-                aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-            <Button
-              type="submit"
-              disabled={loginMutation.isPending}
-              className="btn-orange-glow flex shrink-0 items-center justify-center rounded-full border px-4 !text-[#2d1810] h-[2.25rem] min-w-[2.25rem] disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label={t('auth.loginButtonAria')}
+        {/* Center: tutte le icone in mezzo — form login (non autenticato) o menu nav (autenticato) */}
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+          {!isAuthenticated ? (
+            <>
+            {/* Desktop: inline login form */}
+            <form
+              onSubmit={handleSubmit(onHeaderLogin)}
+              className="hidden items-center gap-3 md:flex relative"
+              noValidate
             >
-              {loginMutation.isPending ? (
-                <span className="text-xs">...</span>
-              ) : (
-                <LogIn
-                  className="shrink-0"
-                  style={{ width: '1.25rem', height: '1.25rem', color: 'white' }}
-                  strokeWidth={2}
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder={t('auth.usernamePlaceholder')}
+                  aria-label={t('auth.usernamePlaceholder')}
+                  autoComplete="email"
+                  className={cn(
+                    inputBase,
+                    AUTH_INPUT_HEIGHT,
+                    AUTH_INPUT_WIDTH,
+                    'border',
+                    errors.username && 'border-red-500'
+                  )}
+                  style={{
+                    backgroundColor: '#d9d9d9',
+                    borderColor: errors.username ? undefined : '#FF7300',
+                  }}
+                  {...register('username')}
                 />
-              )}
-            </Button>
-            <Link
-              href="/recupera-credenziali"
-              className="whitespace-nowrap text-xs text-gray-400 hover:text-white leading-none"
-            >
-              {t('auth.recoverCredentials')}
-            </Link>
-          </form>
-          </>
-        )}
-
-        {/* Centro/Destra: se loggato = menu distribuito al centro + Hamburger a destra */}
-        <div className={cn(
-          'flex min-w-0 items-center mr-0',
-          isAuthenticated ? 'flex-1' : 'flex-1 shrink-0 justify-end gap-2 sm:gap-3'
-        )}>
-          {isAuthenticated && user ? (
+                {errors.username && (
+                  <span className="absolute left-0 top-full mt-0.5 whitespace-nowrap text-[10px] text-red-400">
+                    {translateZodMessage(errors.username.message, t)}
+                  </span>
+                )}
+              </div>
+              <div className="relative flex items-center">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder={t('auth.passwordPlaceholder')}
+                  aria-label={t('auth.passwordPlaceholder')}
+                  autoComplete="current-password"
+                  className={cn(
+                    inputBase,
+                    AUTH_INPUT_HEIGHT,
+                    AUTH_INPUT_WIDTH,
+                    'pl-4 pr-10 border',
+                    errors.password && 'border-red-500'
+                  )}
+                  style={{
+                    backgroundColor: '#d9d9d9',
+                    borderColor: errors.password ? undefined : '#FF7300',
+                  }}
+                  {...register('password')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((p) => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-gray-600 hover:bg-gray-300/50"
+                  aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              <Button
+                type="submit"
+                disabled={loginMutation.isPending}
+                className="btn-orange-glow flex shrink-0 items-center justify-center rounded-full border px-4 !text-[#2d1810] h-[2.25rem] min-w-[2.25rem] disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label={t('auth.loginButtonAria')}
+              >
+                {loginMutation.isPending ? (
+                  <span className="text-xs">...</span>
+                ) : (
+                  <LogIn
+                    className="shrink-0"
+                    style={{ width: '1.25rem', height: '1.25rem', color: 'white' }}
+                    strokeWidth={2}
+                  />
+                )}
+              </Button>
+              <Link
+                href="/recupera-credenziali"
+                className="whitespace-nowrap text-xs text-gray-400 hover:text-white leading-none"
+              >
+                {t('auth.recoverCredentials')}
+              </Link>
+            </form>
+            {/* Mobile: "Accedi o Registrati" link */}
+            <div className="flex shrink-0 items-center md:hidden">
+              <Link 
+                href="/login" 
+                className="text-[13px] font-semibold tracking-wide text-white/95 hover:text-white transition-colors uppercase"
+              >
+                Accedi o Registrati
+              </Link>
+            </div>
+            {/* Desktop: REGISTRATI button */}
+            <div className="hidden shrink-0 md:block">
+              <Button
+                asChild
+                className="btn-orange-glow rounded-full border px-5 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Link href="/login">{t('auth.registerUpper')}</Link>
+              </Button>
+            </div>
+            </>
+          ) : (isAuthenticated && user) ? (
             <>
               {/* Menu centrale: desktop = Account + Acquisti + Vendi + Scambi + Aste + Carrello. Mobile = solo 5 icone (senza profilo), ordine: Acquisti → Vendi → Aste → Scambi → Carrello */}
-              <div className="mx-auto flex max-w-4xl flex-1 items-center justify-evenly gap-2 md:gap-4">
+              <div className="flex flex-1 items-center justify-center gap-1 md:gap-2">
               {/* 1. Nome utente + icona — solo da tablet in su; su mobile è nel menu hamburger */}
               <div className="relative hidden items-center gap-2 md:flex" ref={accountMenuRef}>
                 <button
@@ -482,13 +488,13 @@ export function TopBar() {
                     setAccountMenuOpen((o) => !o);
                     setAcquistiMenuOpen(false);
                   }}
-                  className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
+                  className="flex items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
                   aria-expanded={accountMenuOpen}
                   aria-haspopup="true"
                   aria-label={t('account.menuAria')}
                 >
                   <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full"
                     aria-hidden
                   >
                     {/* Icona profilo SVG (24x24, stroke #FF7300) */}
@@ -502,19 +508,19 @@ export function TopBar() {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="h-6 w-6"
+                      className="h-[1.1rem] w-[1.1rem]"
                     >
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                       <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                   </span>
-                  <span className="hidden max-w-[6.5rem] shrink-0 text-sm font-medium uppercase text-white md:block" title={user?.email ?? user?.name ?? undefined}>
+                  <span className="hidden max-w-[6rem] shrink-0 text-[0.78rem] font-medium uppercase text-white md:block" title={user?.email ?? user?.name ?? undefined}>
                     {shortLabel}
                   </span>
-                  <span className="hidden text-sm text-white sm:inline shrink-0">({balance})</span>
+                  <span className="hidden text-[0.78rem] text-white sm:inline shrink-0">({balance})</span>
                   <span
                     className={cn(
-                      'ml-1 flex h-4 w-4 shrink-0 items-center justify-center text-[#FF7300] transition-transform',
+                      'ml-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center text-[#FF7300] transition-transform',
                       accountMenuOpen && 'rotate-180'
                     )}
                     aria-hidden
@@ -622,13 +628,13 @@ export function TopBar() {
                     setAcquistiMenuOpen((o) => !o);
                     setAccountMenuOpen(false);
                   }}
-                  className="hidden items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:flex"
+                  className="hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:flex"
                   aria-expanded={acquistiMenuOpen}
                   aria-haspopup="true"
                   aria-label={t('purchases.menuAria')}
                 >
                   <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5"
                     aria-hidden
                   >
                     {/* Icona ACQUISTI: shopping bag (stroke #FF7300, 2px) */}
@@ -642,18 +648,18 @@ export function TopBar() {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="h-5 w-5"
+                      className="h-[0.9rem] w-[0.9rem]"
                     >
                       <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
                       <line x1="3" y1="6" x2="21" y2="6"></line>
                       <path d="M16 10a4 4 0 0 1-8 0"></path>
                     </svg>
                   </span>
-                  <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
+                  <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
                     {t('purchases.title')}
                   </span>
                   <span
-                    className="ml-0.5 flex h-4 w-4 shrink-0 items-center justify-center text-[#FF7300]"
+                    className="ml-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center text-[#FF7300]"
                     aria-hidden
                   >
                     {/* Freccia dropdown minimal, senza "bottone nel bottone" */}
@@ -790,18 +796,6 @@ export function TopBar() {
                         >
                           {t('nav.auctions')}
                         </Link>
-                        {scambiVisible && (
-                          <>
-                            <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                            <Link
-                              href="/scambi"
-                              className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                              onClick={() => setVendiMenuOpen(false)}
-                            >
-                              Scambi
-                            </Link>
-                          </>
-                        )}
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                         <Link
                           href="/tornei-live"
@@ -831,7 +825,7 @@ export function TopBar() {
                     setAccountMenuOpen(false);
                     setAcquistiMenuOpen(false);
                   }}
-                  className="hidden items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/20 md:flex"
+                  className="hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/20 md:flex"
                   aria-expanded={vendiMenuOpen}
                   aria-haspopup="true"
                   aria-label={t('nav.sell')}
@@ -856,10 +850,10 @@ export function TopBar() {
                       <line x1="7" y1="7" x2="7.01" y2="7"></line>
                     </svg>
                   </span>
-                  <span className="hidden whitespace-nowrap text-sm font-medium uppercase lg:inline">
+                  <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase lg:inline">
                     {t('nav.sell')}
                   </span>
-                  <span className="hidden h-4 w-4 shrink-0 items-center justify-center text-[#FF7300] lg:flex">
+                  <span className="hidden h-3.5 w-3.5 shrink-0 items-center justify-center text-[#FF7300] lg:flex">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="16"
@@ -878,72 +872,18 @@ export function TopBar() {
                 </button>
               </div>
 
-              {scambiVisible && (
-                <Link
-                  href="/scambi"
-                  className="order-4 hidden items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex md:px-2"
-                  aria-label="Scambi"
-                >
-                  <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
-                    aria-hidden
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF7300" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                      <polyline points="17 1 21 5 17 9"/>
-                      <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-                      <polyline points="7 23 3 19 7 15"/>
-                      <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-                    </svg>
-                  </span>
-                  <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
-                    Scambi
-                  </span>
-                </Link>
-              )}
 
-              {/* 4. TORNEI LIVE - solo desktop */}
-              <Link
-                href="/tornei-live"
-                className="order-3 hidden items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-5 md:flex md:px-2"
-                aria-label="Tornei live"
-              >
-                <span
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
-                  aria-hidden
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#FF7300"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                  >
-                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-                    <path d="M4 22h16"></path>
-                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-                  </svg>
-                </span>
-                <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
-                  Tornei live
-                </span>
-              </Link>
+
+              {/* TORNEI LIVE spostato nell'hamburger menu — rimosso dall'header desktop */}
 
               {/* 5. ASTE - solo desktop */}
               <Link
                 href="/aste"
-                className="order-4 hidden items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex md:px-2"
+                className="order-4 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex"
                 aria-label={t('nav.auctions')}
               >
                 <span
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5"
                   aria-hidden
                 >
                   <svg
@@ -956,7 +896,7 @@ export function TopBar() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="h-5 w-5"
+                    className="h-[0.9rem] w-[0.9rem]"
                   >
                     <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8"></path>
                     <path d="m16 16 6-6"></path>
@@ -965,30 +905,12 @@ export function TopBar() {
                     <path d="m21 11-8-8"></path>
                   </svg>
                 </span>
-                <span className="hidden whitespace-nowrap text-sm font-medium uppercase md:inline">
+                <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
                   {t('nav.auctions')}
                 </span>
               </Link>
 
-              {scambiVisible && (
-                <Link
-                  href="/scambi"
-                  className="order-4 flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:hidden"
-                  aria-label="Scambi"
-                >
-                  <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
-                    aria-hidden
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF7300" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                      <polyline points="17 1 21 5 17 9"/>
-                      <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-                      <polyline points="7 23 3 19 7 15"/>
-                      <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-                    </svg>
-                  </span>
-                </Link>
-              )}
+
 
               {/* 6. Carrello con dropdown preview */}
               <div className="order-5 md:order-6">
@@ -996,32 +918,11 @@ export function TopBar() {
               </div>
               </div>
             </>
-          ) : (
-            <>
-              {/* Link testo pulito visibile solo su mobile */}
-              <div className="flex shrink-0 items-center md:hidden mr-2 sm:mr-4">
-                <Link 
-                  href="/login" 
-                  className="text-[13px] font-semibold tracking-wide text-white/95 hover:text-white transition-colors uppercase"
-                >
-                  Accedi o Registrati
-                </Link>
-              </div>
-
-              {/* Pulsante pieno visibile solo su desktop */}
-              <div className="hidden shrink-0 md:block">
-                <Button
-                  asChild
-                  className="btn-orange-glow rounded-full border px-5 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Link href="/login">{t('auth.registerUpper')}</Link>
-                </Button>
-              </div>
-            </>
-          )}
-          <div className="flex shrink-0 items-center" aria-label={t('header.menuAria')}>
-            <HamburgerMenu />
-          </div>
+          ) : null}
+        </div>
+        {/* Hamburger: sempre all'estrema destra, fuori dalla logica auth */}
+        <div className="flex shrink-0 items-center ml-1" aria-label={t('header.menuAria')}>
+          <HamburgerMenu />
         </div>
       </div>
     </>

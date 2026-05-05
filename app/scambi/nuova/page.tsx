@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { ScambiNav } from '@/components/feature/scambi/ScambiNav';
+import { ScambiGuard } from '../ScambiGuard';
 import { ArrowLeftRight } from 'lucide-react';
 
 export const metadata = {
@@ -14,6 +15,7 @@ export default function NuovoScambioPage() {
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
       </Suspense>
+      <ScambiGuard>
       <ScambiNav />
       <div className="container-content flex flex-col items-center justify-center px-4 py-16 text-center">
         <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#FFF4EC]">
@@ -30,6 +32,7 @@ export default function NuovoScambioPage() {
           Torna agli scambi
         </Link>
       </div>
+      </ScambiGuard>
     </main>
   );
 }

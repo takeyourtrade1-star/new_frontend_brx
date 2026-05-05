@@ -6,12 +6,14 @@ import Image from 'next/image';
 import { getCdnImageUrl } from '@/lib/config';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
+import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
 
 const FOOTER_BAND_BG = '#1D3160';
 
 export function Footer() {
   const { t } = useTranslation();
   const { availableLangs, setSelectedLang } = useLanguage();
+  const scambiVisible = useScambiVisibility();
 
   const columns = [
     {
@@ -33,6 +35,9 @@ export function Footer() {
         { label: 'BRX Express', href: '/brx-express' },
         { label: t('footer.link.auctions'), href: '/aste' },
         { label: t('footer.link.sync'), href: '/account/sincronizzazione' },
+        ...(scambiVisible
+          ? [{ label: 'Scambi', href: '/scambi' }]
+          : []),
       ],
     },
     {

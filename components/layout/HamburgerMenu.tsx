@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, ArrowLeftRight } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme-context';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -20,7 +20,6 @@ import type { GameSlug } from '@/lib/contexts/GameContext';
 import { getCdnImageUrl } from '@/lib/config';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
-import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
 
 const GAME_HOME_PATH: Record<GameSlug, string> = {
   mtg: '/home/magic',
@@ -39,7 +38,7 @@ const LANG_TO_COUNTRY: Record<string, string> = {
   pt: 'pt',
 };
 
-const navLinkClass = 'flex items-center gap-3 px-5 py-3.5 text-[13px] font-semibold uppercase tracking-wide text-[#1D3160] transition-colors hover:bg-gray-50';
+const navLinkClass = 'flex items-center gap-4 px-5 py-2.5 text-[13px] font-normal text-gray-700 transition-colors hover:bg-gray-50 active:bg-gray-100';
 
 export function HamburgerMenu() {
   const { t } = useTranslation();
@@ -60,18 +59,23 @@ export function HamburgerMenu() {
   const logoutMutation = useLogout();
   const loginMutation = useLogin();
   const [loginError, setLoginError] = useState<string | null>(null);
-  const scambiVisible = useScambiVisibility();
   const fetchUser = useAuthStore((s) => s.fetchUser);
 
-  const menuItems = useMemo(
-    () =>
-      [
-        { label: 'TEST Scanner', href: '/test-scanner', icon: ScanLine },
-        { label: t('nav.advancedSinglesSearch') ?? 'Ricerca avanzata singole', href: '/search/advanced', icon: Search },
-        { label: t('nav.userSearch'), href: '/search/user', icon: Users },
-        { label: t('nav.legalNorms'), href: '/legal/norme', icon: Scale },
-        { label: t('nav.legalTerms'), href: '/legal/condizioni', icon: FileText },
-      ] as const,
+  const navItems = useMemo(
+    () => [
+      { label: 'Test Scanner', href: '/test-scanner', icon: ScanLine },
+      { label: t('nav.advancedSinglesSearch') ?? 'Ricerca avanzata singole', href: '/search/advanced', icon: Search },
+      { label: t('nav.userSearch'), href: '/search/user', icon: Users },
+      { label: 'Tornei Live', href: '/tornei-live', icon: Trophy },
+    ],
+    [t]
+  );
+
+  const legalItems = useMemo(
+    () => [
+      { label: t('nav.legalNorms'), href: '/legal/norme', icon: Scale },
+      { label: t('nav.legalTerms'), href: '/legal/condizioni', icon: FileText },
+    ],
     [t]
   );
 
@@ -219,17 +223,16 @@ export function HamburgerMenu() {
         aria-modal="true"
         aria-label={t('common.menuDialog')}
       >
-        {/* Header: solo chiusura a destra */}
-        <div
-          className="flex shrink-0 items-center justify-end border-b border-gray-200 px-3 py-2.5"
-        >
+        {/* Header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Menu</span>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="rounded p-1.5 text-[#1D3160] transition-opacity hover:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D3160]/30"
+            className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none"
             aria-label={t('common.closeMenu')}
           >
-            <X className="h-7 w-7" strokeWidth={2} />
+            <X className="h-5 w-5" strokeWidth={2} />
           </button>
         </div>
 
@@ -418,228 +421,173 @@ export function HamburgerMenu() {
           )}
 
           {isAuthenticated && (
-            <div className="relative border-b border-orange-100 bg-gray-50/70 md:hidden" ref={accountDropdownRef}>
-              {/* Account Dropdown Trigger */}
+            <div className="relative md:hidden" ref={accountDropdownRef}>
+              <p className="px-5 pt-3 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">{t('account.account')}</p>
               <button
                 type="button"
                 onClick={() => setAccountDropdownOpen((v) => !v)}
-                className="flex w-full items-center justify-between px-5 py-3.5 text-left text-[13px] font-semibold uppercase tracking-wide text-[#1D3160] transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1D3160]/20"
+                className="flex w-full items-center justify-between px-5 py-2.5 text-left text-[13px] font-medium text-[#1D3160] transition-colors hover:bg-gray-50/80 focus:outline-none"
                 aria-expanded={accountDropdownOpen}
                 aria-haspopup="true"
               >
                 <div className="flex items-center gap-3">
-                  <UserCircle className="h-5 w-5 shrink-0 text-[#1D3160]" strokeWidth={2} aria-hidden />
+                  <UserCircle className="h-6 w-6 shrink-0 text-[#1D3160]/50" strokeWidth={1.5} aria-hidden />
                   <span>{t('account.account')}</span>
                 </div>
                 <ChevronDown
-                  className={cn('h-5 w-5 shrink-0 text-[#1D3160] transition-transform', accountDropdownOpen && 'rotate-180')}
+                  className={cn('h-4 w-4 shrink-0 text-gray-400 transition-transform', accountDropdownOpen && 'rotate-180')}
                   aria-hidden
                 />
               </button>
-
-              {/* Account Dropdown Menu */}
               <div
                 className={cn(
-                  'border-t border-gray-100 bg-gray-50/50 overflow-hidden transition-all duration-300 ease-out',
-                  accountDropdownOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                  'overflow-hidden transition-all duration-250 ease-out bg-gray-50/60',
+                  accountDropdownOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
                 )}
               >
-                <div className="py-1">
+                {[
+                  { href: '/account', icon: UserCircle, label: t('account.account') },
+                  { href: '/account/messaggi', icon: MessageSquare, label: t('account.messages') },
+                  { href: '/account/credito', icon: Wallet, label: t('account.credit') },
+                  { href: '/account/oggetti', icon: Package, label: t('account.items') },
+                  { href: '/ordini/acquisti', icon: ShoppingBag, label: t('purchases.myPurchases') },
+                  { href: '/account/lista-desideri', icon: Heart, label: t('purchases.wishlist') },
+                  { href: '/account/sincronizzazione', icon: RefreshCw, label: t('account.sync') },
+                ].map(({ href, icon: Icon, label }) => (
                   <Link
-                    href="/account"
+                    key={href}
+                    href={href}
                     onClick={() => setOpen(false)}
-                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
+                    className="flex items-center gap-3 pl-12 pr-5 py-2 text-[11px] font-medium text-[#1D3160]/80 transition-colors hover:bg-gray-100/60"
                   >
-                    <UserCircle className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
-                    {t('account.account')}
+                    <Icon className="h-4 w-4 shrink-0 text-[#1D3160]/40" strokeWidth={1.5} aria-hidden />
+                    {label}
                   </Link>
-                  <Link
-                    href="/account/messaggi"
-                    onClick={() => setOpen(false)}
-                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
-                  >
-                    <MessageSquare className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
-                    {t('account.messages')}
-                  </Link>
-                  <Link
-                    href="/account/credito"
-                    onClick={() => setOpen(false)}
-                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
-                  >
-                    <Wallet className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
-                    {t('account.credit')}
-                  </Link>
-                  <Link
-                    href="/account/oggetti"
-                    onClick={() => setOpen(false)}
-                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
-                  >
-                    <Package className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
-                    {t('account.items')}
-                  </Link>
-                  <Link
-                    href="/ordini/acquisti"
-                    onClick={() => setOpen(false)}
-                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
-                  >
-                    <ShoppingBag className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
-                    {t('purchases.myPurchases')}
-                  </Link>
-                  <Link
-                    href="/account/lista-desideri"
-                    onClick={() => setOpen(false)}
-                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
-                  >
-                    <Heart className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
-                    {t('purchases.wishlist')}
-                  </Link>
-                  <Link
-                    href="/account/sincronizzazione"
-                    onClick={() => setOpen(false)}
-                    className={cn(navLinkClass, 'pl-14', 'transition-colors hover:bg-gray-100/50')}
-                  >
-                    <RefreshCw className="h-4 w-4 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
-                    {t('account.sync')}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await fetchUser();
-                    }}
-                    className={cn(navLinkClass, 'pl-14 text-[11px] normal-case text-gray-400 hover:text-gray-500')}
-                  >
-                    <RefreshCw className="h-4 w-4 shrink-0 text-gray-400" strokeWidth={2} aria-hidden />
-                    Stato account
-                  </button>
-                </div>
+                ))}
               </div>
+              <div className="mx-5 my-1 h-px bg-gray-100" aria-hidden />
             </div>
           )}
 
-          {menuItems.map((item) => {
+          {/* Nav items */}
+          {navItems.map((item) => {
             const IconComponent = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className={cn(navLinkClass, 'border-b border-orange-100')}
+                className={navLinkClass}
               >
-                <IconComponent className="h-5 w-5 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
+                <IconComponent className="h-6 w-6 shrink-0 text-gray-400" strokeWidth={1.5} aria-hidden />
                 {item.label}
               </Link>
             );
           })}
-          {scambiVisible && (
-            <Link
-              href="/scambi"
-              onClick={() => setOpen(false)}
-              className={cn(navLinkClass, 'border-b border-orange-100')}
-            >
-              <ArrowLeftRight className="h-5 w-5 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
-              Scambi
-            </Link>
-          )}
 
-          <div className="bg-gray-50/50">
-            <div className="flex items-center justify-between border-b border-orange-100 px-5 py-3.5">
-              <span className="text-[13px] font-semibold uppercase tracking-wide text-gray-400">
-                {t('common.darkMode')}
-              </span>
+          <div className="h-px bg-gray-100" aria-hidden />
+
+          {/* Impostazioni */}
+          <div>
+            {/* Modalità scura */}
+            <div className="flex items-center justify-between px-5 py-3">
+              <span className="text-[13px] font-normal text-gray-700">Dark Mode</span>
               <button
                 type="button"
                 role="switch"
                 aria-checked={false}
                 disabled
-                className={cn(
-                  'relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 focus:outline-none cursor-not-allowed opacity-50',
-                  'bg-gray-300'
-                )}
+                className="relative h-5 w-9 shrink-0 rounded-full bg-gray-200 cursor-not-allowed opacity-40 focus:outline-none"
               >
-                <span
-                  className={cn(
-                    'absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow transition-[left] duration-200',
-                    'left-1'
-                  )}
-                />
+                <span className="absolute left-0.5 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow" />
               </button>
             </div>
 
-            <Link href="/aiuto" onClick={() => setOpen(false)} className={cn(navLinkClass, 'border-b border-orange-100')}>
-              <HelpCircle className="h-5 w-5 shrink-0 text-[#1D3160]/70" strokeWidth={2} aria-hidden />
+            {/* Aiuto */}
+            <Link href="/aiuto" onClick={() => setOpen(false)} className={navLinkClass}>
+              <HelpCircle className="h-6 w-6 shrink-0 text-gray-400" strokeWidth={1.5} aria-hidden />
               {t('common.help')}
             </Link>
 
-            <div ref={linguaDropdownRef} className="relative border-b border-orange-100">
-            <button
-              type="button"
-              onClick={() => setLinguaDropdownOpen((v) => !v)}
-              className="flex w-full items-center justify-between px-5 py-3.5 text-left text-[13px] font-semibold uppercase tracking-wide text-[#1D3160] transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1D3160]/20"
-              aria-expanded={linguaDropdownOpen}
-              aria-haspopup="listbox"
-              aria-label={t('common.languageSelectAria')}
-            >
-              <span>{currentLangLabel}</span>
-              <div className="flex items-center gap-2">
-                <Image
-                  src={`${FLAG_BASE}/w40/${currentCountryCode}.png`}
-                  alt=""
-                  width={24}
-                  height={16}
-                  className="h-4 w-6 rounded object-cover"
-                  unoptimized
-                />
+            {/* Lingua */}
+            <div ref={linguaDropdownRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setLinguaDropdownOpen((v) => !v)}
+                className={cn(navLinkClass, 'w-full justify-between')}
+                aria-expanded={linguaDropdownOpen}
+                aria-haspopup="listbox"
+                aria-label={t('common.languageSelectAria')}
+              >
+                <div className="flex items-center gap-3.5">
+                  <Image
+                    src={`${FLAG_BASE}/w40/${currentCountryCode}.png`}
+                    alt=""
+                    width={20}
+                    height={14}
+                    className="h-3.5 w-5 rounded-sm object-cover"
+                    unoptimized
+                  />
+                  <span>{LANGUAGE_NAMES[selectedLang] ?? selectedLang}</span>
+                </div>
                 <ChevronDown
-                  className={cn('h-5 w-5 text-[#1D3160] transition-transform', linguaDropdownOpen && 'rotate-180')}
+                  className={cn('h-4 w-4 text-gray-400 transition-transform', linguaDropdownOpen && 'rotate-180')}
                   aria-hidden
                 />
-              </div>
-            </button>
-            {linguaDropdownOpen && (
-              <ul
-                className="border-t border-gray-100 bg-white py-1 shadow-inner"
-                role="listbox"
-              >
-                {availableLangs.map((lang) => (
-                  <li key={lang} role="option" aria-selected={selectedLang === lang}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedLang(lang);
-                        setLinguaDropdownOpen(false);
-                      }}
-                      className={cn(
-                        'flex w-full items-center gap-3 px-5 py-3 text-left text-[13px] font-semibold uppercase tracking-wide text-[#1D3160] transition-colors hover:bg-gray-50',
-                        selectedLang === lang && 'bg-gray-50'
-                      )}
-                    >
-                      <Image
-                        src={`${FLAG_BASE}/w40/${LANG_TO_COUNTRY[lang] ?? lang}.png`}
-                        alt=""
-                        width={24}
-                        height={16}
-                        className="h-4 w-6 shrink-0 rounded object-cover"
-                        unoptimized
-                      />
-                      {(LANGUAGE_NAMES[lang] ?? lang).toUpperCase()}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+              </button>
+              {linguaDropdownOpen && (
+                <ul className="border-t border-gray-100 bg-gray-50 py-1" role="listbox">
+                  {availableLangs.map((lang) => (
+                    <li key={lang} role="option" aria-selected={selectedLang === lang}>
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedLang(lang); setLinguaDropdownOpen(false); }}
+                        className={cn(
+                          'flex w-full items-center gap-3 px-5 py-2.5 text-left text-[13px] text-gray-700 transition-colors hover:bg-gray-100',
+                          selectedLang === lang && 'font-medium text-[#1D3160]'
+                        )}
+                      >
+                        <Image
+                          src={`${FLAG_BASE}/w40/${LANG_TO_COUNTRY[lang] ?? lang}.png`}
+                          alt=""
+                          width={20}
+                          height={14}
+                          className="h-3.5 w-5 shrink-0 rounded-sm object-cover"
+                          unoptimized
+                        />
+                        {LANGUAGE_NAMES[lang] ?? lang}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
-          </div>
+
+          {/* Legal — in fondo, stile secondario */}
+          <div className="h-px bg-gray-100" aria-hidden />
+          {legalItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3.5 px-5 py-2.5 text-[12px] font-normal text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
+            >
+              <item.icon className="h-4 w-4 shrink-0 text-gray-300" strokeWidth={1.5} aria-hidden />
+              {item.label}
+            </Link>
+          ))}
           </div>
 
           {isAuthenticated && (
-            <div className="shrink-0 border-t border-gray-200 bg-white">
+            <div className="shrink-0 border-t border-gray-100 bg-white">
               <button
                 type="button"
                 onClick={handleLogout}
                 disabled={logoutMutation.isPending}
-                className="flex w-full items-center justify-center gap-3 px-5 py-4 text-left text-[13px] font-semibold uppercase tracking-wide text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 px-5 py-3 text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50/60 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <LogOut className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
+                <LogOut className="h-6 w-6 shrink-0" strokeWidth={1.5} aria-hidden />
                 <span>{logoutMutation.isPending ? t('auth.logoutPending') : t('auth.logout')}</span>
               </button>
             </div>
