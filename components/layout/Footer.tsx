@@ -9,7 +9,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
 
 const FOOTER_BAND_BG = '#1D3160';
-const DEV_CODE = 'Pallino11!';
+const DEV_CODE = process.env.NEXT_PUBLIC_DEV_ACCESS_CODE || '';
 
 export function Footer() {
   const { t } = useTranslation();
