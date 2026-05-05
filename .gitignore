@@ -1,1 +1,55 @@
-﻿‣敤数摮湥楣獥਍潮敤浟摯汵獥਍瀮灮਍瀮灮樮൳⸊慹湲椯獮慴汬猭慴整朮ൺഊ⌊琠獥楴杮਍潣敶慲敧਍਍‣敮瑸樮൳⸊敮瑸਍畯൴ഊ⌊瀠潲畤瑣潩൮戊極摬਍楤瑳਍਍‣業捳਍䐮当瑓牯൥吊畨扭⹳扤਍⸪数൭⨊氮杯਍਍‣敤畢൧渊浰搭扥杵氮杯പ礊牡⵮敤畢⹧潬⩧਍慹湲攭牲牯氮杯പ瀊灮⵭敤畢⹧潬⩧਍਍‣潬慣⁬湥⁶楦敬⁳渨癥牥挠浯業⁴敳牣瑥⥳਍攮癮਍攮癮氮捯污਍攮癮⸪潬慣൬⸊湥⹶敤敶潬浰湥⹴潬慣൬⸊湥⹶整瑳氮捯污਍攮癮瀮潲畤瑣潩⹮潬慣൬⸊湥⁶潬慣൬ഊ⌊瘠牥散൬⸊敶捲汥਍਍‣祴数捳楲瑰਍⸪獴畢汩楤普൯渊硥⵴湥⹶⹤獴਍਍‣䑉⁅漨瑰潩慮㩬爠浥癯⁥瘮捳摯⁥晩礠畯眠湡⁴潴猠慨敲眠牯獫慰散猠瑥楴杮⥳਍椮敤ൡ⸊睱湥യ⨊献灷਍⸪睳൯⨊ൾഊ⌊传൓⸊卄卟潴敲਍桔浵獢搮ൢഊ⌊传数䍮⹖獪⠠慬杲⁥楢慮楲獥ഩ瀊扵楬⽣灯湥癣漯数据⹶獪਍異汢捩漯数据⽶灯湥癣機⹳慷浳਍public/sw.js
+﻿# dependencies
+node_modules
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+coverage
+
+# next.js
+.next
+out
+
+# production
+build
+dist
+
+# misc
+.DS_Store
+Thumbs.db
+*.pem
+*.log
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# local env files
+.env
+.env.local
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.idea
+.qwen/
+*.swp
+*.swo
+*~
+
+# OpenCV.js (large binaries)
+public/opencv/opencv.js
+public/opencv/opencv_js.wasm
+public/sw.js
