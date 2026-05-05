@@ -350,34 +350,39 @@ export const useAuthStore = create<AuthState>()(
               // Salva entrambi i token
               authApi.setToken(access_token, refresh_token);
 
-              // Fetch user from /me endpoint
-              let userToSet: UserResponse | null = null;
-              try {
-                const meResponse = (await authApi.get('/api/auth/me')) as any;
-                userToSet =
-                  meResponse.user ||
-                  meResponse.data?.user ||
-                  meResponse.data ||
-                  meResponse;
-              } catch (meError) {
-                // If /me fails, still set authenticated but without user
-              }
-
-              const normalized = userToSet ? normalizeUser(userToSet) : null;
-              if (normalized && typeof window !== 'undefined') {
-                localStorage.setItem(
-                  config.auth.userKey,
-                  JSON.stringify(normalized)
-                );
-              }
+              // Set authenticated immediately, fetch user in background
               set({
-                user: normalized,
+                user: null,
                 accessToken: access_token,
                 isAuthenticated: true,
                 isLoading: false,
                 error: null,
                 flashMessage: 'Login avvenuto con successo',
               });
+
+              // Fetch user from /me endpoint with timeout
+              try {
+                const mePromise = authApi.get('/api/auth/me') as any;
+                const timeoutPromise = new Promise<never>((_, reject) =>
+                  setTimeout(() => reject(new Error('me-timeout')), 8000)
+                );
+                const meResponse = await Promise.race([mePromise, timeoutPromise]);
+                const userToSet =
+                  meResponse.user ??
+                  meResponse.data?.user ??
+                  meResponse.data ??
+                  meResponse;
+                const normalized = userToSet ? normalizeUser(userToSet) : null;
+                if (normalized && typeof window !== 'undefined') {
+                  localStorage.setItem(
+                    config.auth.userKey,
+                    JSON.stringify(normalized)
+                  );
+                }
+                set({ user: normalized });
+              } catch (meError) {
+                console.error('[authStore.login] /me fetch failed:', meError);
+              }
               return { mfaRequired: false };
             } else {
               throw new Error('Login fallito: token mancanti');
@@ -386,6 +391,7 @@ export const useAuthStore = create<AuthState>()(
             throw new Error('Risposta login non valida');
           }
         } catch (error: any) {
+          console.error('[authStore.login] Error:', error?.response?.status, error?.response?.data || error?.message);
           // Usa parseAuthError per gestire tutti i formati di errore
           const parsed = parseAuthError(error);
 

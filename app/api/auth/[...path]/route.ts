@@ -113,15 +113,23 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    console.log('[auth proxy] Forwarding', request.method, '→', url.toString());
+
     const res = await fetch(url.toString(), {
       method: request.method,
       headers,
       body,
       cache: 'no-store',
       next: { revalidate: 0 },
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
     
     const data = await res.json().catch(() => ({}));
+
+    console.log('[auth proxy] Response from backend:', res.status, typeof data === 'object' ? Object.keys(data) : typeof data);
     
     // 1. Creiamo gli header di risposta
     const responseHeaders = new Headers();
@@ -162,9 +170,9 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     });
     
   } catch (err) {
-    console.error('[auth proxy]', err);
+    console.error('[auth proxy] Error forwarding to', url?.toString(), ':', err instanceof Error ? err.message : err);
     return NextResponse.json(
-      { detail: err instanceof Error ? err.message : 'Proxy request failed' },
+      { detail: err instanceof DOMException && err.name === 'AbortError' ? 'Request timed out' : (err instanceof Error ? err.message : 'Proxy request failed') },
       { status: 502 }
     );
   }

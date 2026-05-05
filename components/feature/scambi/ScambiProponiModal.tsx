@@ -1,15 +1,21 @@
 'use client';
 
 /**
- * ScambiProponiModal v4 — Con effetti in stile sito (glass, shimmer, glow, hover animations).
- * Non scrollabile, tutto in una schermata.
+ * ScambiProponiModal v5 — Inventario reale, ricerca catalogo, lista/griglia, crediti sdoppiati.
  */
 
-import { useEffect, useMemo, useState } from 'react';
-import { X, Search, Send, Zap, Clock, Check } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { X, Search, Send, Zap, Clock, Check, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import type { ScambioUI, TradePayload } from '@/components/feature/scambi/scambi-types';
 import { MOCK_INVENTORY_A, MOCK_INVENTORY_B } from './mock-trade-inventories';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { syncClient } from '@/lib/api/sync-client';
+import type { InventoryItemResponse } from '@/lib/api/sync-client';
+import { fetchCardsByBlueprintIds, type CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
+import { getCardImageUrl } from '@/lib/assets';
+import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';
+import type { SearchHit } from '@/app/api/search/route';
 
 interface Props {
   open: boolean;
@@ -25,6 +31,25 @@ const MOCK_A_PROPOSAL = {
   isRealtime: true,
   message: 'Ciao! Sono interessato alla tua carta. Possiamo fare uno scambio realtime?',
 };
+
+type InventoryWithCard = InventoryItemResponse & { card?: CardCatalogHit | null };
+
+type SearchApiResponse = {
+  hits: SearchHit[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+interface TradeCardItem {
+  id: string;
+  name: string;
+  image: string;
+  condition?: string;
+  badge?: string;
+  qty?: number;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Inline keyframes & animations                                       */
@@ -106,6 +131,60 @@ const MODAL_ANIM_CSS = `
 `;
 
 /* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function normalizeForSearch(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Mc}/gu, '')
+    .replace(/\p{Mn}/gu, '');
+}
+
+function matchQuery(item: TradeCardItem, query: string): boolean {
+  const q = query.trim();
+  if (!q) return true;
+  const qNorm = normalizeForSearch(q);
+  const blobNorm = normalizeForSearch(`${item.name} ${item.condition ?? ''}`);
+  const parts = qNorm.split(/\s+/).filter(Boolean);
+  return parts.every((part) => blobNorm.includes(part));
+}
+
+function inventoryToTradeCardItem(item: InventoryWithCard): TradeCardItem {
+  const card = item.card;
+  const props = item.properties as Record<string, unknown> | undefined;
+  const condition = typeof props?.condition === 'string' ? props.condition : '';
+  return {
+    id: String(item.id),
+    name: card?.name ?? `Item ${item.blueprint_id}`,
+    image: getCardImageUrl(card?.image ?? null) ?? '',
+    condition,
+    badge: "Nell'inventario",
+    qty: item.quantity > 1 ? item.quantity : undefined,
+  };
+}
+
+function searchHitToTradeCardItem(hit: SearchHit): TradeCardItem {
+  return {
+    id: hit.id,
+    name: hit.name,
+    image: getCardImageUrl(hit.image ?? null) ?? '',
+    condition: '',
+  };
+}
+
+function mockItemToTradeCardItem(item: { id: string; name: string; image: string; condition: string }): TradeCardItem {
+  return {
+    id: item.id,
+    name: item.name,
+    image: item.image,
+    condition: item.condition,
+    badge: 'Disponibile',
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /*  Sub-components                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -130,7 +209,7 @@ function MiniCard({
   onClick,
   delayIdx = 0,
 }: {
-  item: { id: string; name: string; image: string; condition: string };
+  item: TradeCardItem;
   selected: boolean;
   onClick: () => void;
   delayIdx?: number;
@@ -151,6 +230,16 @@ function MiniCard({
           <Check className="h-3 w-3" strokeWidth={3} />
         </div>
       )}
+      {item.badge && (
+        <div className="absolute left-1 top-1 z-10 rounded bg-[#1D3160] px-1 py-0.5 text-[8px] font-bold uppercase text-white shadow">
+          {item.badge}
+        </div>
+      )}
+      {item.qty && item.qty > 1 && (
+        <div className="absolute bottom-1 right-1 z-10 rounded-full bg-[#FF7300] px-1.5 py-0.5 text-[9px] font-bold text-white shadow">
+          x{item.qty}
+        </div>
+      )}
       <div className="card-shine-wrapper relative aspect-[200/280] w-full overflow-hidden rounded-lg bg-gray-100">
         <Image
           src={item.image}
@@ -163,8 +252,63 @@ function MiniCard({
       </div>
       <div className="mt-1.5 w-full px-0.5">
         <p className="truncate text-[10px] font-bold leading-tight text-gray-900">{item.name}</p>
-        <p className="text-[9px] text-gray-400">{item.condition}</p>
+        {item.condition ? <p className="text-[9px] text-gray-400">{item.condition}</p> : null}
       </div>
+    </button>
+  );
+}
+
+function MiniCardListItem({
+  item,
+  selected,
+  onClick,
+  delayIdx = 0,
+}: {
+  item: TradeCardItem;
+  selected: boolean;
+  onClick: () => void;
+  delayIdx?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group flex w-full items-center gap-3 rounded-xl border-2 p-2 text-left transition-all duration-200 animate-fade-in-up ${
+        selected
+          ? 'border-[#FF7300] bg-orange-50/80 shadow-md'
+          : 'border-gray-100/80 bg-white/80 hover:border-orange-300'
+      }`}
+      style={{ animationDelay: `${delayIdx * 40}ms` }}
+    >
+      <div className="card-shine-wrapper relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+        <Image
+          src={item.image}
+          alt={item.name}
+          fill
+          unoptimized
+          className="object-cover transition-transform duration-300 group-hover:scale-110"
+          sizes="40px"
+        />
+      </div>
+      <div className="min-w-0 flex-1 text-left">
+        <p className="truncate text-xs font-bold text-gray-900">{item.name}</p>
+        {item.condition ? <p className="text-[10px] text-gray-400">{item.condition}</p> : null}
+        {item.badge ? (
+          <span className="mt-1 inline-block rounded bg-[#1D3160] px-1.5 py-0.5 text-[8px] font-bold uppercase text-white">
+            {item.badge}
+          </span>
+        ) : null}
+        {item.qty && item.qty > 1 ? (
+          <span className="ml-1 mt-1 inline-block rounded-full bg-[#FF7300] px-1.5 py-0.5 text-[9px] font-bold text-white">
+            x{item.qty}
+          </span>
+        ) : null}
+      </div>
+      {selected && (
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white animate-badge-pop">
+          <Check className="h-3 w-3" strokeWidth={3} />
+        </div>
+      )}
     </button>
   );
 }
@@ -254,41 +398,178 @@ function SubmitButton({ onClick, children }: { onClick: () => void; children: Re
 }
 
 /* ------------------------------------------------------------------ */
+/*  SearchBar (estratto per evitare ricreazioni al render)             */
+/* ------------------------------------------------------------------ */
+
+function SearchBar({
+  query,
+  onChange,
+  placeholder,
+}: {
+  query: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="animate-fade-in-up flex items-center gap-2 rounded-full border border-gray-200/80 bg-gray-50/80 px-3 py-1.5 backdrop-blur-sm transition-all focus-within:border-[#FF7300] focus-within:ring-2 focus-within:ring-[#FF7300]/15 focus-within:bg-white">
+      <Search className="h-3.5 w-3.5 text-gray-400" />
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="flex-1 bg-transparent text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none"
+      />
+      {query && (
+        <button type="button" onClick={() => onChange('')} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <X className="h-3 w-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main                                                               */
 /* ------------------------------------------------------------------ */
 
 export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: Props) {
+  const user = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore(
+    (s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
+  );
+
   const [isRealtime, setIsRealtime] = useState(false);
   const [selectedOfferedIds, setSelectedOfferedIds] = useState<string[]>([]);
   const [offeredCredits, setOfferedCredits] = useState(0);
-  const [selectedRequestedIds, setSelectedRequestedIds] = useState<string[]>([]);
   const [requestedCredits, setRequestedCredits] = useState(0);
+  const [selectedRequestedIds, setSelectedRequestedIds] = useState<string[]>([]);
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [counterEditing, setCounterEditing] = useState(false);
 
-  const myInventory = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return MOCK_INVENTORY_A;
-    return MOCK_INVENTORY_A.filter((i) => i.name.toLowerCase().includes(q));
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [inventoryItems, setInventoryItems] = useState<InventoryWithCard[]>([]);
+  const [loadingInventory, setLoadingInventory] = useState(false);
+  const [searchHits, setSearchHits] = useState<SearchHit[]>([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  /* Keep track of selected item data so lookups survive search changes */
+  const [offeredItemData, setOfferedItemData] = useState<Record<string, TradeCardItem>>({});
+  const [requestedItemData, setRequestedItemData] = useState<Record<string, TradeCardItem>>({});
+
+  /* Load real inventory when modal opens */
+  const loadInventory = useCallback(async () => {
+    if (!user?.id || !accessToken) {
+      setInventoryItems([]);
+      setLoadingInventory(false);
+      return;
+    }
+    setLoadingInventory(true);
+    try {
+      const allItems: InventoryItemResponse[] = [];
+      const pageSize = 500;
+      let offset = 0;
+      let totalFromApi = 0;
+      do {
+        const res = await syncClient.getInventory(user.id, accessToken, pageSize, offset);
+        const items = res.items ?? [];
+        totalFromApi = res.total ?? allItems.length + items.length;
+        allItems.push(...items);
+        offset += items.length;
+        if (items.length < pageSize || offset >= totalFromApi) break;
+      } while (true);
+
+      const blueprintIds = [...new Set(allItems.map((i) => i.blueprint_id).filter(Boolean))] as number[];
+      let blueprintToCard: Record<number, CardCatalogHit> = {};
+      if (blueprintIds.length > 0) {
+        blueprintToCard = await fetchCardsByBlueprintIds(blueprintIds);
+      }
+
+      const merged: InventoryWithCard[] = allItems.map((item) => ({
+        ...item,
+        card: blueprintToCard[item.blueprint_id],
+      }));
+
+      setInventoryItems(merged);
+    } catch {
+      setInventoryItems([]);
+    } finally {
+      setLoadingInventory(false);
+    }
+  }, [user?.id, accessToken]);
+
+  useEffect(() => {
+    if (open) {
+      void loadInventory();
+    }
+  }, [open, loadInventory]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedQuery(searchQuery.trim()), 350);
+    return () => window.clearTimeout(id);
   }, [searchQuery]);
 
-  const theirInventory = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return MOCK_INVENTORY_B;
-    return MOCK_INVENTORY_B.filter((i) => i.name.toLowerCase().includes(q));
-  }, [searchQuery]);
+  /* Search catalog when debounced query changes */
+  useEffect(() => {
+    const q = debouncedQuery;
+    if (!q) {
+      setSearchHits([]);
+      setSearchError(null);
+      setLoadingSearch(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingSearch(true);
+    setSearchError(null);
+    const params = new URLSearchParams();
+    params.set('q', q);
+    params.set('limit', '12');
+    params.set('page', '1');
+    fetch(`/api/search?${params.toString()}`)
+      .then(async (res) => {
+        const json = (await res.json().catch(() => ({}))) as SearchApiResponse & { error?: string; detail?: string };
+        if (cancelled) return;
+        if (!res.ok) {
+          const msg =
+            (typeof json?.error === 'string' && json.error) ||
+            (typeof json?.detail === 'string' && json.detail) ||
+            'Errore ricerca';
+          throw new Error(msg);
+        }
+        setSearchHits(Array.isArray(json.hits) ? json.hits : []);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setSearchHits([]);
+          setSearchError(e instanceof Error ? e.message : 'Errore ricerca');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSearch(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedQuery]);
 
   useEffect(() => {
     if (open) {
       setIsRealtime(mode === 'counter' ? MOCK_A_PROPOSAL.isRealtime : false);
       setSelectedOfferedIds([]);
       setOfferedCredits(0);
-      setSelectedRequestedIds([]);
       setRequestedCredits(0);
+      setSelectedRequestedIds([]);
       setMessage('');
       setSearchQuery('');
       setCounterEditing(false);
+      setViewMode('grid');
+      setSearchHits([]);
+      setSearchError(null);
+      setOfferedItemData({});
+      setRequestedItemData({});
     }
   }, [open, mode]);
 
@@ -306,25 +587,53 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
     };
   }, [open, onClose]);
 
-  const toggleId = (id: string, list: string[], setter: (v: string[]) => void) => {
-    setter(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+  const toggleOfferedItem = (item: TradeCardItem) => {
+    const exists = selectedOfferedIds.includes(item.id);
+    if (exists) {
+      setSelectedOfferedIds(selectedOfferedIds.filter((x) => x !== item.id));
+      const { [item.id]: _, ...rest } = offeredItemData;
+      setOfferedItemData(rest);
+    } else {
+      setSelectedOfferedIds([...selectedOfferedIds, item.id]);
+      setOfferedItemData((prev) => ({ ...prev, [item.id]: item }));
+    }
   };
 
-  const buildPayload = (): TradePayload => ({
-    requestedCardId: scambio.id,
-    offeredItems: selectedOfferedIds.map((id) => {
-      const item = MOCK_INVENTORY_A.find((x) => x.id === id)!;
-      return { id: item.id, name: item.name, image: item.image, qty: 1 };
-    }),
-    offeredCredits,
-    requestedItems: selectedRequestedIds.map((id) => {
-      const item = MOCK_INVENTORY_B.find((x) => x.id === id)!;
-      return { id: item.id, name: item.name, image: item.image, qty: 1 };
-    }),
-    requestedCredits,
-    isRealtime,
-    message,
-  });
+  const toggleRequestedItem = (item: TradeCardItem) => {
+    const exists = selectedRequestedIds.includes(item.id);
+    if (exists) {
+      setSelectedRequestedIds(selectedRequestedIds.filter((x) => x !== item.id));
+      const { [item.id]: _, ...rest } = requestedItemData;
+      setRequestedItemData(rest);
+    } else {
+      setSelectedRequestedIds([...selectedRequestedIds, item.id]);
+      setRequestedItemData((prev) => ({ ...prev, [item.id]: item }));
+    }
+  };
+
+  const buildPayload = (): TradePayload => {
+    const offeredItems = selectedOfferedIds.map((id) => {
+      const data = offeredItemData[id];
+      if (data) return { id: data.id, name: data.name, image: data.image, qty: 1 };
+      return { id, name: 'Unknown', image: '', qty: 1 };
+    });
+
+    const requestedItems = selectedRequestedIds.map((id) => {
+      const data = requestedItemData[id];
+      if (data) return { id: data.id, name: data.name, image: data.image, qty: 1 };
+      return { id, name: 'Unknown', image: '', qty: 1 };
+    });
+
+    return {
+      requestedCardId: scambio.id,
+      offeredItems,
+      offeredCredits,
+      requestedItems,
+      requestedCredits,
+      isRealtime,
+      message,
+    };
+  };
 
   const handleSubmit = () => {
     onSubmit(buildPayload());
@@ -335,7 +644,10 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
     onSubmit({
       requestedCardId: scambio.id,
       offeredItems: MOCK_A_PROPOSAL.offeredCards.map((item) => ({
-        id: item.id, name: item.name, image: item.image, qty: 1,
+        id: item.id,
+        name: item.name,
+        image: item.image,
+        qty: 1,
       })),
       offeredCredits: MOCK_A_PROPOSAL.offeredCredits,
       requestedItems: [],
@@ -346,25 +658,37 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
     onClose();
   };
 
-  if (!open) return null;
+  /* Unified results for "offer" side (my inventory + catalog search) */
+  const offeredInventoryItems = useMemo(() => {
+    const mapped = inventoryItems.map(inventoryToTradeCardItem);
+    if (!searchQuery.trim()) return mapped;
+    return mapped.filter((i) => matchQuery(i, searchQuery));
+  }, [inventoryItems, searchQuery]);
 
-  const SearchBar = ({ placeholder }: { placeholder: string }) => (
-    <div className="animate-fade-in-up flex items-center gap-2 rounded-full border border-gray-200/80 bg-gray-50/80 px-3 py-1.5 backdrop-blur-sm transition-all focus-within:border-[#FF7300] focus-within:ring-2 focus-within:ring-[#FF7300]/15 focus-within:bg-white">
-      <Search className="h-3.5 w-3.5 text-gray-400" />
-      <input
-        type="text"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder={placeholder}
-        className="flex-1 bg-transparent text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none"
-      />
-      {searchQuery && (
-        <button type="button" onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 transition-colors">
-          <X className="h-3 w-3" />
-        </button>
-      )}
-    </div>
-  );
+  const offeredCatalogItems = useMemo(() => {
+    if (!debouncedQuery) return [];
+    const inventoryIds = new Set(inventoryItems.map((i) => String(i.id)));
+    return searchHits
+      .filter((h) => !inventoryIds.has(h.id))
+      .map(searchHitToTradeCardItem);
+  }, [searchHits, inventoryItems, debouncedQuery]);
+
+  /* Unified results for "request" side in counter (their mock + catalog search) */
+  const requestedInventoryItems = useMemo(() => {
+    const mapped = MOCK_INVENTORY_B.map(mockItemToTradeCardItem);
+    if (!searchQuery.trim()) return mapped;
+    return mapped.filter((i) => matchQuery(i, searchQuery));
+  }, [searchQuery]);
+
+  const requestedCatalogItems = useMemo(() => {
+    if (!debouncedQuery) return [];
+    const mockIds = new Set(MOCK_INVENTORY_B.map((i) => i.id));
+    return searchHits
+      .filter((h) => !mockIds.has(h.id))
+      .map(searchHitToTradeCardItem);
+  }, [searchHits, debouncedQuery]);
+
+  if (!open) return null;
 
   /* ---------------------------------------------------------------- */
   /*  PROPOSE                                                          */
@@ -448,41 +772,114 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
             </div>
 
             {/* Right — inventory */}
-            <div className="flex min-w-0 flex-1 flex-col p-4">
-              <div className="animate-fade-in-up mb-2 flex items-center justify-between" style={{ animationDelay: '40ms' }}>
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden p-4">
+              <div className="animate-fade-in-up mb-2 flex flex-wrap items-center justify-between gap-2" style={{ animationDelay: '40ms' }}>
                 <span className="text-xs font-black uppercase tracking-tight text-[#1D3160]">Cosa offri</span>
-                {selectedOfferedIds.length > 0 && (
-                  <span className="animate-badge-pop rounded-full bg-[#FF7300] px-2.5 py-0.5 text-[9px] font-bold text-white shadow-md shadow-orange-500/25">
-                    {selectedOfferedIds.length} sel.
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {selectedOfferedIds.length > 0 && (
+                    <span className="animate-badge-pop rounded-full bg-[#FF7300] px-2.5 py-0.5 text-[9px] font-bold text-white shadow-md shadow-orange-500/25">
+                      {selectedOfferedIds.length} sel.
+                    </span>
+                  )}
+                  <AuctionViewToggle
+                    viewMode={viewMode}
+                    onViewModeChange={setViewMode}
+                    listLabel="Lista"
+                    gridLabel="Griglia"
+                  />
+                </div>
               </div>
 
               <div className="mb-3" style={{ animationDelay: '60ms' }}>
-                <SearchBar placeholder="Cerca nel tuo inventario..." />
+                <SearchBar
+                  query={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Cerca nel tuo inventario o nel catalogo..."
+                />
               </div>
 
-              <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
-                {myInventory.map((item, i) => (
-                  <MiniCard
-                    key={item.id}
-                    item={item}
-                    selected={selectedOfferedIds.includes(item.id)}
-                    onClick={() => toggleId(item.id, selectedOfferedIds, setSelectedOfferedIds)}
-                    delayIdx={i}
-                  />
-                ))}
-              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {loadingInventory && (
+                  <div className="flex items-center gap-2 py-4 text-xs text-gray-500">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Caricamento inventario...
+                  </div>
+                )}
 
-              {myInventory.length === 0 && (
-                <p className="animate-fade-in-up py-4 text-center text-xs text-gray-400">
-                  Nessuna carta trovata
-                </p>
-              )}
+                {!loadingInventory && !user?.id && (
+                  <p className="py-4 text-center text-xs text-gray-400">
+                    Accedi per vedere la tua collezione.
+                  </p>
+                )}
+
+                {!loadingInventory && (user?.id ? (
+                  viewMode === 'grid' ? (
+                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
+                      {offeredInventoryItems.map((item, i) => (
+                        <MiniCard
+                          key={item.id}
+                          item={item}
+                          selected={selectedOfferedIds.includes(item.id)}
+                          onClick={() => toggleOfferedItem(item)}
+                          delayIdx={i}
+                        />
+                      ))}
+                      {offeredCatalogItems.map((item, i) => (
+                        <MiniCard
+                          key={item.id}
+                          item={item}
+                          selected={selectedOfferedIds.includes(item.id)}
+                          onClick={() => toggleOfferedItem(item)}
+                          delayIdx={offeredInventoryItems.length + i}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {offeredInventoryItems.map((item, i) => (
+                        <MiniCardListItem
+                          key={item.id}
+                          item={item}
+                          selected={selectedOfferedIds.includes(item.id)}
+                          onClick={() => toggleOfferedItem(item)}
+                          delayIdx={i}
+                        />
+                      ))}
+                      {offeredCatalogItems.map((item, i) => (
+                        <MiniCardListItem
+                          key={item.id}
+                          item={item}
+                          selected={selectedOfferedIds.includes(item.id)}
+                          onClick={() => toggleOfferedItem(item)}
+                          delayIdx={offeredInventoryItems.length + i}
+                        />
+                      ))}
+                    </div>
+                  )
+                ) : null)}
+
+                {loadingSearch && (
+                  <div className="flex items-center gap-2 py-3 text-xs text-gray-500">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Ricerca in corso...
+                  </div>
+                )}
+
+                {searchError && (
+                  <p className="py-2 text-xs text-red-600">{searchError}</p>
+                )}
+
+                {offeredInventoryItems.length === 0 && offeredCatalogItems.length === 0 && !loadingInventory && !loadingSearch && (
+                  <p className="animate-fade-in-up py-4 text-center text-xs text-gray-400">
+                    Nessuna carta trovata
+                  </p>
+                )}
+              </div>
 
               {/* Bottom row */}
-              <div className="animate-fade-in-up mt-auto flex flex-wrap items-end gap-4 pt-3" style={{ animationDelay: '200ms' }}>
+              <div className="animate-fade-in-up flex flex-wrap items-end gap-4 pt-3" style={{ animationDelay: '200ms' }}>
                 <CreditField value={offeredCredits} onChange={setOfferedCredits} label="Crediti offerti" />
+                <CreditField value={requestedCredits} onChange={setRequestedCredits} label="Crediti richiesti" />
                 <SubmitButton onClick={handleSubmit}>Invia proposta</SubmitButton>
               </div>
             </div>
@@ -614,38 +1011,96 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
               </div>
             ) : (
               <>
-                <div className="animate-fade-in-up mb-2 flex items-center justify-between" style={{ animationDelay: '40ms' }}>
+                <div className="animate-fade-in-up mb-2 flex flex-wrap items-center justify-between gap-2" style={{ animationDelay: '40ms' }}>
                   <span className="text-xs font-black uppercase tracking-tight text-[#1D3160]">Cosa chiedi</span>
-                  {selectedRequestedIds.length > 0 && (
-                    <span className="animate-badge-pop rounded-full bg-[#FF7300] px-2.5 py-0.5 text-[9px] font-bold text-white shadow-md shadow-orange-500/25">
-                      {selectedRequestedIds.length} sel.
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {selectedRequestedIds.length > 0 && (
+                      <span className="animate-badge-pop rounded-full bg-[#FF7300] px-2.5 py-0.5 text-[9px] font-bold text-white shadow-md shadow-orange-500/25">
+                        {selectedRequestedIds.length} sel.
+                      </span>
+                    )}
+                    <AuctionViewToggle
+                      viewMode={viewMode}
+                      onViewModeChange={setViewMode}
+                      listLabel="Lista"
+                      gridLabel="Griglia"
+                    />
+                  </div>
                 </div>
 
                 <div className="mb-3" style={{ animationDelay: '60ms' }}>
-                  <SearchBar placeholder={`Cerca in ${scambio.seller}...`} />
+                  <SearchBar
+                    query={searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder={`Cerca in ${scambio.seller} o nel catalogo...`}
+                  />
                 </div>
 
-                <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
-                  {theirInventory.map((item, i) => (
-                    <MiniCard
-                      key={item.id}
-                      item={item}
-                      selected={selectedRequestedIds.includes(item.id)}
-                      onClick={() => toggleId(item.id, selectedRequestedIds, setSelectedRequestedIds)}
-                      delayIdx={i}
-                    />
-                  ))}
+                <div className="flex-1 overflow-y-auto">
+                  {viewMode === 'grid' ? (
+                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
+                      {requestedInventoryItems.map((item, i) => (
+                        <MiniCard
+                          key={item.id}
+                          item={item}
+                          selected={selectedRequestedIds.includes(item.id)}
+                          onClick={() => toggleRequestedItem(item)}
+                          delayIdx={i}
+                        />
+                      ))}
+                      {requestedCatalogItems.map((item, i) => (
+                        <MiniCard
+                          key={item.id}
+                          item={item}
+                          selected={selectedRequestedIds.includes(item.id)}
+                          onClick={() => toggleRequestedItem(item)}
+                          delayIdx={requestedInventoryItems.length + i}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {requestedInventoryItems.map((item, i) => (
+                        <MiniCardListItem
+                          key={item.id}
+                          item={item}
+                          selected={selectedRequestedIds.includes(item.id)}
+                          onClick={() => toggleRequestedItem(item)}
+                          delayIdx={i}
+                        />
+                      ))}
+                      {requestedCatalogItems.map((item, i) => (
+                        <MiniCardListItem
+                          key={item.id}
+                          item={item}
+                          selected={selectedRequestedIds.includes(item.id)}
+                          onClick={() => toggleRequestedItem(item)}
+                          delayIdx={requestedInventoryItems.length + i}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {theirInventory.length === 0 && (
+                {loadingSearch && (
+                  <div className="flex items-center gap-2 py-3 text-xs text-gray-500">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Ricerca in corso...
+                  </div>
+                )}
+
+                {searchError && (
+                  <p className="py-2 text-xs text-red-600">{searchError}</p>
+                )}
+
+                {requestedInventoryItems.length === 0 && requestedCatalogItems.length === 0 && !loadingSearch && (
                   <p className="animate-fade-in-up py-4 text-center text-xs text-gray-400">
                     Nessuna carta trovata
                   </p>
                 )}
 
                 <div className="animate-fade-in-up mt-auto flex flex-wrap items-end gap-4 pt-3" style={{ animationDelay: '200ms' }}>
+                  <CreditField value={offeredCredits} onChange={setOfferedCredits} label="Crediti offerti" />
                   <CreditField value={requestedCredits} onChange={setRequestedCredits} label="Crediti richiesti" />
                   <ModeToggle checked={isRealtime} onChange={setIsRealtime} />
                   <SubmitButton onClick={handleSubmit}>Invia controproposta</SubmitButton>
