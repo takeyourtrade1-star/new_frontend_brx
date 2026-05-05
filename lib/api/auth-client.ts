@@ -23,6 +23,16 @@ export interface OtpFlowMessageResponse {
   message?: string;
 }
 
+export async function clearAuthSessionCookie(): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  await fetch('/api/auth/session', {
+    method: 'DELETE',
+    credentials: 'same-origin',
+    keepalive: true,
+  });
+}
+
 /** In browser use same-origin proxy (/api/auth/*) to avoid CORS; on server call Auth API directly. */
 function getAuthBaseURL(): string {
   if (typeof window !== 'undefined') return '';
@@ -203,11 +213,11 @@ class AuthApiClient {
             }
 
             this.processQueue(error);
-            this.forceLogout();
+            await this.forceLogout();
             return Promise.reject(error);
           } catch (refreshError) {
             this.processQueue(refreshError);
-            this.forceLogout();
+            await this.forceLogout();
             return Promise.reject(refreshError);
           } finally {
             this.isRefreshing = false;
@@ -237,11 +247,17 @@ class AuthApiClient {
   /**
    * Forza il logout eliminando i token e reindirizzando al login
    */
-  private forceLogout() {
+  private async forceLogout() {
     this.clearToken();
 
     // Reindirizza al login; non disturbare il flusso MFA (/login/verify-mfa)
     if (typeof window !== 'undefined') {
+      try {
+        await clearAuthSessionCookie();
+      } catch {
+        // Local logout already happened; best effort to expire the HttpOnly cookie too.
+      }
+
       const p = window.location.pathname;
       if (p !== '/login' && !p.startsWith('/login/verify-mfa')) {
         window.location.href = '/login';

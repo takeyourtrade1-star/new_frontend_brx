@@ -12,7 +12,7 @@ import type {
   PreAuthTokenResponse,
   UserResponse,
 } from '@/types';
-import { authApi } from '@/lib/api/auth-client';
+import { authApi, clearAuthSessionCookie } from '@/lib/api/auth-client';
 import { parseAuthError } from '@/lib/api/auth-error';
 import { config } from '@/lib/config';
 import {
@@ -575,6 +575,12 @@ export const useAuthStore = create<AuthState>()(
           } catch (error) {
             // Anche se il logout fallisce, procediamo con la pulizia client-side
           }
+        }
+
+        try {
+          await clearAuthSessionCookie();
+        } catch {
+          // Anche se il cookie HttpOnly non viene pulito, procediamo con la pulizia client-side.
         }
 
         // Pulisci i token e lo stato (anche se il logout API è fallito)
