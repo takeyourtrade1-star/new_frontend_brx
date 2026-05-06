@@ -45,6 +45,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { syncClient } from '@/lib/api/sync-client';
 import type { InventoryItemResponse, SyncStatusResponse } from '@/lib/api/sync-client';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
+import { fetchAllInventoryItems } from '@/lib/sync/fetch-all-inventory-items';
 import {
   InventoryEditModal,
   INVENTORY_CONDITION_OPTIONS,
@@ -1477,21 +1478,9 @@ export function OggettiContent() {
       return;
     }
     try {
-      const allItems: InventoryItemResponse[] = [];
-      const pageSize = 500;
-      let offset = 0;
-      let totalFromApi = 0;
+      const { items: allItems, total } = await fetchAllInventoryItems(user.id, accessToken);
 
-      do {
-        const res = await syncClient.getInventory(user.id, accessToken, pageSize, offset);
-        const items = res.items ?? [];
-        totalFromApi = res.total ?? allItems.length + items.length;
-        allItems.push(...items);
-        offset += items.length;
-        if (items.length < pageSize || offset >= totalFromApi) break;
-      } while (true);
-
-      setTotal(totalFromApi);
+      setTotal(total);
 
       const blueprintIds = [...new Set(allItems.map((i) => i.blueprint_id).filter(Boolean))] as number[];
       let blueprintToCard: Record<number, CardCatalogHit> = {};
