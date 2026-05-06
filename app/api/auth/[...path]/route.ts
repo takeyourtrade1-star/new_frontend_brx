@@ -34,6 +34,7 @@ const ALLOWED_AUTH_PATHS = [
   'password/reset/confirm',
   'verify-email',
   'resend-verification',
+  'users',
 ];
 
 const AUTH_COOKIE_NAME = 'ebartex_access_token';

@@ -312,7 +312,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   </p>
                 ) : (
                   <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-gray-500 sm:text-xs">
-                    <span>{t('auctions.detailSoldBy')}: <span className="font-bold text-gray-900">{detail.seller}</span></span>
+                    <span>{t('auctions.detailSoldBy')}: <span className="font-bold text-gray-900">{detail.sellerDisplayName}</span></span>
                     <FlagIcon country={detail.sellerCountry} size="sm" />
                     <span className="text-gray-300">|</span>
                     <div className="flex items-center">
@@ -835,7 +835,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     <p className="font-bold">{t('auctions.sellerEndedWonTitle')}</p>
                     <p className="mt-1 text-xs leading-relaxed">
                       {t('auctions.sellerEndedWonBody', {
-                        winner: detail.winnerUsername ?? '—',
+                        winner: detail.winnerUsername,
                         amount: fmtEur(detail.currentBidEur),
                       })}
                     </p>
@@ -1070,7 +1070,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
                                   <span className={`text-xs xl:text-[13px] ${isLeader ? 'font-black text-[#1D3160]' : 'font-bold text-gray-700'}`}>
-                                    {b.username}
+                                    {b.displayName}
                                   </span>
                                   {isMine && (
                                     <span className="rounded bg-[#FF7300] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-white shadow-sm">

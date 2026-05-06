@@ -68,6 +68,9 @@ export const pt: Record<MessageKey, string> = {
 
   'user.fallbackName': 'Utilizador',
 
+  'user.configureName': 'Configure o seu nome',
+  'user.configureNamePrompt': 'Defina um nome para mostrar a outros utilizadores. Clique para configurar.',
+
   'topBar.homeAria': 'Início BRX',
   'topBar.gamesMenuAria': 'Menu de jogos',
   'header.menuAria': 'Menu',

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -10,21 +11,37 @@ function ProfiloRow({
   labelKey,
   value,
   editable = true,
+  onEdit,
 }: {
   labelKey: MessageKey;
   value: string;
   editable?: boolean;
+  onEdit?: () => void;
 }) {
   const { t } = useTranslation();
   const label = t(labelKey);
+  const isPlaceholder = value === '---';
+
   return (
     <div className="flex items-center justify-between gap-4 py-3">
       <span className="text-sm font-normal uppercase text-gray-900">{label}</span>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-normal text-gray-900">{value}</span>
+        {isPlaceholder ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="text-sm font-normal text-gray-400 hover:text-[#FF7300] hover:underline"
+            title={t('user.configureNamePrompt')}
+          >
+            {value}
+          </button>
+        ) : (
+          <span className="text-sm font-normal text-gray-900">{value}</span>
+        )}
         {editable && (
           <button
             type="button"
+            onClick={onEdit}
             className="rounded p-1 text-[#FF7300] hover:bg-gray-100"
             aria-label={t('accountPage.profileEditAria', { field: label })}
           >
@@ -43,8 +60,16 @@ function Separator() {
 export function ProfiloContent() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const displayName = (user?.name || user?.email || t('user.fallbackName')).toUpperCase();
+  const userName = user?.name;
+  const displayName = (userName || user?.email || t('user.fallbackName')).toUpperCase();
   const email = user?.email ?? '—';
+
+  const handleEditName = () => {
+    const newName = window.prompt(t('user.configureName'), userName ?? '');
+    if (newName && newName.trim()) {
+      useAuthStore.getState().updateUserName(newName.trim());
+    }
+  };
 
   return (
     <div className="text-gray-900 font-sans">
@@ -61,7 +86,7 @@ export function ProfiloContent() {
       </div>
 
       <div className="space-y-0">
-        <ProfiloRow labelKey="accountPage.profileName" value={user?.name || '—'} />
+        <ProfiloRow labelKey="accountPage.profileName" value={userName ?? '---'} onEdit={handleEditName} />
         <Separator />
         <ProfiloRow labelKey="accountPage.profileType" value={t('accountPage.profilePrivate')} />
         <Separator />

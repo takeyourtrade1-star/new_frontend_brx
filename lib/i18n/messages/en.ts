@@ -69,6 +69,9 @@ export const en = {
 
   'user.fallbackName': 'User',
 
+  'user.configureName': 'Configure your name',
+  'user.configureNamePrompt': 'Set a display name to be shown to other users. Click to configure.',
+
   'topBar.homeAria': 'BRX Home',
   'topBar.gamesMenuAria': 'Games menu',
   'header.menuAria': 'Menu',

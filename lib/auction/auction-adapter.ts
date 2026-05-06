@@ -1,6 +1,10 @@
 /**
  * Adapts backend AuctionAPI response to the UI types used by existing components.
  * Design stays identical; only data source changes.
+ *
+ * NOTE: Display names are resolved asynchronously via user-names-cache.
+ * The adapter stores raw user IDs; display names start as '---' and are
+ * updated after fetchUserNames() is called.
  */
 
 import type { AuctionAPI, BidAPI } from '@/types/auction';
@@ -16,6 +20,7 @@ export interface AuctionUI {
   currentBidEur: number;
   bidCount: number;
   seller: string;
+  sellerDisplayName: string;
   sellerCountry: string;
   sellerRating: number;
   sellerReviewCount: number;
@@ -23,7 +28,7 @@ export interface AuctionUI {
   startingBidEur: number;
   reservePriceEur: number;
   status?: 'live' | 'ended';
-  winnerUsername?: string | null;
+  winnerUsername: string;
   endsAt: string;
   description: string;
   imageFront: string;
@@ -54,7 +59,8 @@ export function apiToAuctionUI(a: AuctionAPI, bidCount?: number): AuctionUI {
     hoursFromNow,
     currentBidEur: a.current_price,
     bidCount: bidCount ?? 0,
-    seller: a.created_by_user_id?.slice(0, 8) ?? 'Venditore',
+    seller: a.created_by_user_id ?? 'Venditore',
+    sellerDisplayName: '---',
     sellerCountry: 'IT',
     sellerRating: 98,
     sellerReviewCount: 0,
@@ -62,7 +68,7 @@ export function apiToAuctionUI(a: AuctionAPI, bidCount?: number): AuctionUI {
     startingBidEur: a.starting_price,
     reservePriceEur: a.reserve_price ?? 0,
     status: isEnded ? 'ended' : 'live',
-    winnerUsername: a.winner_id ? a.winner_id.slice(0, 8) : null,
+    winnerUsername: '---',
     endsAt: a.end_time,
     description: a.description,
     imageFront: a.image_front,
@@ -83,6 +89,7 @@ export function apiToAuctionUI(a: AuctionAPI, bidCount?: number): AuctionUI {
 export interface BidRowUI {
   bidId: number;
   username: string;
+  displayName: string;
   amountEur: number;
   countryCode?: string;
   atLabel?: string;
@@ -100,7 +107,8 @@ export function apiBidToBidRow(b: BidAPI): BidRowUI {
 
   return {
     bidId: b.id,
-    username: b.user_id.slice(0, 8),
+    username: b.user_id,
+    displayName: '---',
     amountEur: b.amount,
     countryCode: 'IT',
     atLabel,

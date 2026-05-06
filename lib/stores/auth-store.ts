@@ -83,6 +83,7 @@ interface AuthState {
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
+  updateUserName: (name: string) => void;
   updateUserPreferences: (
     preferences: Partial<UserPreferences>
   ) => void;
@@ -622,6 +623,22 @@ export const useAuthStore = create<AuthState>()(
                 false,
             },
           };
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem(
+                config.auth.userKey,
+                JSON.stringify(updatedUser)
+              );
+            } catch (_) {}
+          }
+          return { user: updatedUser };
+        });
+      },
+
+      updateUserName: (name) => {
+        set((state) => {
+          if (!state.user) return state;
+          const updatedUser = { ...state.user, name };
           if (typeof window !== 'undefined') {
             try {
               localStorage.setItem(
