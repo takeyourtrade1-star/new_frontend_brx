@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { PlusCircle, List, ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
+import { PlusCircle, ArrowLeftRight, ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
@@ -100,7 +100,7 @@ export function ScambiNav() {
 
   const links: { href: string; label: string; Icon: LucideIcon; isPrimary?: boolean }[] = [
     { href: '/scambi/nuova', label: 'Inventario Scambiabile', Icon: PlusCircle, isPrimary: true },
-    { href: '/scambi/mie', label: 'Scambi in corso', Icon: List },
+    { href: '/scambi/mie', label: 'Scambi in corso', Icon: ArrowLeftRight },
   ];
 
   function isActive(href: string) {

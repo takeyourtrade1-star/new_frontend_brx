@@ -884,6 +884,12 @@ export const en = {
   'auctions.cardConditionLightlyPlayed': 'Lightly Played',
   'auctions.cardConditionModeratelyPlayed': 'Moderately Played',
   'auctions.cardConditionHeavilyPlayed': 'Heavily Played',
+  'auctions.cardConditionMint': 'Mint',
+  'auctions.cardConditionExcellent': 'Excellent',
+  'auctions.cardConditionGood': 'Good',
+  'auctions.cardConditionLightPlayed': 'Light Played',
+  'auctions.cardConditionPlayed': 'Played',
+  'auctions.cardConditionPoor': 'Poor',
   'auctions.cardConditionDamaged': 'Damaged',
 
 

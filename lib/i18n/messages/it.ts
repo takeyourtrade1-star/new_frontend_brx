@@ -886,6 +886,12 @@ export const it: Record<MessageKey, string> = {
   'auctions.cardConditionLightlyPlayed': 'Lightly Played',
   'auctions.cardConditionModeratelyPlayed': 'Moderately Played',
   'auctions.cardConditionHeavilyPlayed': 'Heavily Played',
+  'auctions.cardConditionMint': 'Mint',
+  'auctions.cardConditionExcellent': 'Eccellente',
+  'auctions.cardConditionGood': 'Buona',
+  'auctions.cardConditionLightPlayed': 'Leggermente giocata',
+  'auctions.cardConditionPlayed': 'Giocata',
+  'auctions.cardConditionPoor': 'Scarsa',
   'auctions.cardConditionDamaged': 'Damaged',
 
 
