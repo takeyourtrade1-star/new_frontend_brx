@@ -5,10 +5,12 @@ import { Loader2 } from 'lucide-react';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 
 export const INVENTORY_CONDITION_OPTIONS = [
+  'Mint',
   'Near Mint',
-  'Slightly Played',
-  'Moderately Played',
-  'Heavily Played',
+  'Excellent',
+  'Good',
+  'Light Played',
+  'Played',
   'Poor',
 ];
 

@@ -52,15 +52,16 @@ export function createEmbeddedDraftFromProduct(card: CardDocument): AuctionCreat
 /** Mappa testo condizione inventario → valore select wizard. */
 export function inventoryConditionToWizardValue(raw: string | null | undefined): string {
   if (!raw || typeof raw !== 'string') return 'near_mint';
-  const s = raw.trim().toLowerCase();
-  if (s.includes('near mint') || s === 'nm') return 'near_mint';
-  if (s.includes('mint') && !s.includes('near')) return 'mint';
-  if (s.includes('lightly') || s.includes('slightly') || s === 'lp' || s === 'sp') return 'lp';
-  if (s.includes('moderately') || s === 'mp') return 'pl';
-  if (s.includes('heavily') || s.includes('played')) return 'pl';
-  if (s.includes('excellent') || s === 'ex') return 'ex';
-  if (s.includes('good') || s === 'gd') return 'gd';
-  if (s.includes('poor') || s === 'po') return 'po';
+  const s = raw.trim();
+  const lower = s.toLowerCase();
+  // CardTrader conditions (exact match first)
+  if (lower === 'mint') return 'mint';
+  if (lower === 'near mint' || lower === 'nm') return 'near_mint';
+  if (lower === 'excellent' || lower === 'ex') return 'excellent';
+  if (lower === 'good' || lower === 'gd') return 'good';
+  if (lower === 'light played' || lower === 'lightly played' || lower === 'lp' || lower === 'slightly played' || lower === 'sp') return 'light_played';
+  if (lower === 'played' || lower === 'moderately played' || lower === 'mp' || lower === 'pl') return 'played';
+  if (lower === 'poor' || lower === 'po' || lower === 'heavily played' || lower === 'hp' || lower === 'damaged') return 'poor';
   return 'near_mint';
 }
 

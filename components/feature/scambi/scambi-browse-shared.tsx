@@ -11,21 +11,13 @@ export { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-sha
 
 function conditionBadgeClasses(condition: string): string {
   const c = condition.toLowerCase();
-  if (c.includes('mint') || c.includes('nm') || c.includes('near mint')) {
-    return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-  }
-  if (c.includes('lightly played') || c.includes('lp')) {
-    return 'bg-amber-100 text-amber-700 border-amber-200';
-  }
-  if (c.includes('slightly played') || c.includes('sp')) {
-    return 'bg-orange-100 text-orange-700 border-orange-200';
-  }
-  if (c.includes('played') || c.includes('moderately')) {
-    return 'bg-red-100 text-red-700 border-red-200';
-  }
-  if (c.includes('gradato') || c.includes('psa')) {
-    return 'bg-purple-100 text-purple-700 border-purple-200';
-  }
+  if (c === 'mint') return 'bg-emerald-200 text-emerald-800 border-emerald-300';
+  if (c === 'near mint' || c === 'nm') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+  if (c === 'excellent' || c === 'ex') return 'bg-sky-100 text-sky-700 border-sky-200';
+  if (c === 'good' || c === 'gd') return 'bg-amber-100 text-amber-700 border-amber-200';
+  if (c === 'light played' || c.includes('lightly') || c === 'lp' || c.includes('slightly') || c === 'sp') return 'bg-orange-100 text-orange-700 border-orange-200';
+  if (c === 'played' || c.includes('moderately') || c === 'pl' || c === 'mp' || c.includes('heavily') || c === 'hp') return 'bg-red-100 text-red-700 border-red-200';
+  if (c === 'poor' || c === 'po' || c === 'damaged') return 'bg-gray-200 text-gray-600 border-gray-300';
   return 'bg-gray-100 text-gray-700 border-gray-200';
 }
 

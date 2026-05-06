@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
@@ -238,7 +238,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     return localStorage.getItem('hideConditionModal') === 'true';
   }, []);
 
-  const CONDIZIONE_OPTIONS = ['HT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'] as const;
+  const CONDIZIONE_OPTIONS = ['Mint', 'Near Mint', 'Excellent', 'Good', 'Light Played', 'Played', 'Poor'] as const;
   const [condizioneMinima, setCondizioneMinima] = useState<string>('HT');
   const [linguaCarta, setLinguaCarta] = useState<string | null>(null);
 
@@ -257,14 +257,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [reprints, setReprints] = useState<ReprintCard[]>([]);
   const [reprintsLoading, setReprintsLoading] = useState(false);
 
-  const CONDITION_OPTIONS_MAP: { value: string; label: string }[] = [
-    { value: 'near_mint', label: 'Near Mint' },
+    const CONDITION_OPTIONS_MAP: { value: string; label: string }[] = [
     { value: 'mint', label: 'Mint' },
-    { value: 'ex', label: 'Excellent' },
-    { value: 'gd', label: 'Good' },
-    { value: 'lp', label: 'Light Played' },
-    { value: 'pl', label: 'Played' },
-    { value: 'po', label: 'Poor' },
+    { value: 'near_mint', label: 'Near Mint' },
+    { value: 'excellent', label: 'Excellent' },
+    { value: 'good', label: 'Good' },
+    { value: 'light_played', label: 'Light Played' },
+    { value: 'played', label: 'Played' },
+    { value: 'poor', label: 'Poor' },
   ];
 
   const LINGUA_CARTA = [
@@ -624,7 +624,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         sorted.sort((a, b) => a.seller_display_name.localeCompare(b.seller_display_name));
         break;
       case 'condition':
-        const condOrder = ['MINT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'];
+        const condOrder = ['Mint', 'Near Mint', 'Excellent', 'Good', 'Light Played', 'Played', 'Poor'];
         sorted.sort((a, b) => {
           const idxA = condOrder.indexOf(a.condition ?? '');
           const idxB = condOrder.indexOf(b.condition ?? '');

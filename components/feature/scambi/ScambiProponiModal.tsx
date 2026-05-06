@@ -191,11 +191,13 @@ function mockItemToTradeCardItem(item: { id: string; name: string; image: string
 function ConditionBadge({ condition }: { condition: string }) {
   const c = condition.toLowerCase();
   let color = 'bg-gray-100/80 text-gray-600';
-  if (c.includes('mint') || c.includes('nm')) color = 'bg-emerald-100/80 text-emerald-700';
-  else if (c.includes('lightly') || c.includes('lp')) color = 'bg-sky-100/80 text-sky-700';
-  else if (c.includes('slightly') || c.includes('sp')) color = 'bg-amber-100/80 text-amber-700';
-  else if (c.includes('played') || c.includes('moderately')) color = 'bg-orange-100/80 text-orange-700';
-  else if (c.includes('gradato') || c.includes('psa')) color = 'bg-purple-100/80 text-purple-700';
+  if (c === 'mint') color = 'bg-emerald-200/80 text-emerald-800';
+  else if (c === 'near mint' || c === 'nm') color = 'bg-emerald-100/80 text-emerald-700';
+  else if (c === 'excellent' || c === 'ex') color = 'bg-sky-100/80 text-sky-700';
+  else if (c === 'good' || c === 'gd') color = 'bg-amber-100/80 text-amber-700';
+  else if (c === 'light played' || c.includes('lightly') || c === 'lp' || c.includes('slightly') || c === 'sp') color = 'bg-orange-100/80 text-orange-700';
+  else if (c === 'played' || c.includes('moderately') || c === 'pl' || c === 'mp' || c.includes('heavily') || c === 'hp') color = 'bg-red-100/80 text-red-700';
+  else if (c === 'poor' || c === 'po' || c === 'damaged') color = 'bg-gray-200/80 text-gray-600';
   return (
     <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide backdrop-blur-sm ${color}`}>
       {condition}
@@ -208,12 +210,19 @@ function MiniCard({
   selected,
   onClick,
   delayIdx = 0,
+  selectedQty,
+  maxQty,
+  onQtyChange,
 }: {
   item: TradeCardItem;
   selected: boolean;
   onClick: () => void;
   delayIdx?: number;
+  selectedQty?: number;
+  maxQty?: number;
+  onQtyChange?: (delta: number) => void;
 }) {
+  const showQtySelector = selected && maxQty && maxQty > 1 && onQtyChange;
   return (
     <button
       type="button"
@@ -235,9 +244,35 @@ function MiniCard({
           {item.badge}
         </div>
       )}
-      {item.qty && item.qty > 1 && (
+      {!selected && item.qty && item.qty > 1 && (
         <div className="absolute bottom-1 right-1 z-10 rounded-full bg-[#FF7300] px-1.5 py-0.5 text-[9px] font-bold text-white shadow">
           x{item.qty}
+        </div>
+      )}
+      {showQtySelector && (
+        <div
+          className="absolute bottom-0.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 shadow-lg border border-[#FF7300]/30"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span
+            className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-[11px] font-bold text-gray-600 hover:bg-gray-200 select-none"
+            onClick={() => onQtyChange(-1)}
+          >
+            −
+          </span>
+          <span className="min-w-[16px] text-center text-[11px] font-bold text-[#FF7300] tabular-nums">
+            {selectedQty ?? 1}
+          </span>
+          <span
+            className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold select-none ${
+              (selectedQty ?? 1) < (maxQty ?? 1)
+                ? 'cursor-pointer bg-[#FF7300] text-white hover:bg-[#e86800]'
+                : 'cursor-not-allowed bg-gray-200 text-gray-400'
+            }`}
+            onClick={() => { if ((selectedQty ?? 1) < (maxQty ?? 1)) onQtyChange(1); }}
+          >
+            +
+          </span>
         </div>
       )}
       <div className="card-shine-wrapper relative aspect-[200/280] w-full overflow-hidden rounded-lg bg-gray-100">
@@ -263,12 +298,19 @@ function MiniCardListItem({
   selected,
   onClick,
   delayIdx = 0,
+  selectedQty,
+  maxQty,
+  onQtyChange,
 }: {
   item: TradeCardItem;
   selected: boolean;
   onClick: () => void;
   delayIdx?: number;
+  selectedQty?: number;
+  maxQty?: number;
+  onQtyChange?: (delta: number) => void;
 }) {
+  const showQtySelector = selected && maxQty && maxQty > 1 && onQtyChange;
   return (
     <button
       type="button"
@@ -298,13 +340,39 @@ function MiniCardListItem({
             {item.badge}
           </span>
         ) : null}
-        {item.qty && item.qty > 1 ? (
+        {!selected && item.qty && item.qty > 1 ? (
           <span className="ml-1 mt-1 inline-block rounded-full bg-[#FF7300] px-1.5 py-0.5 text-[9px] font-bold text-white">
             x{item.qty}
           </span>
         ) : null}
       </div>
-      {selected && (
+      {showQtySelector && (
+        <div
+          className="flex shrink-0 items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 shadow border border-[#FF7300]/30"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span
+            className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-[11px] font-bold text-gray-600 hover:bg-gray-200 select-none"
+            onClick={() => onQtyChange(-1)}
+          >
+            −
+          </span>
+          <span className="min-w-[16px] text-center text-[11px] font-bold text-[#FF7300] tabular-nums">
+            {selectedQty ?? 1}
+          </span>
+          <span
+            className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold select-none ${
+              (selectedQty ?? 1) < (maxQty ?? 1)
+                ? 'cursor-pointer bg-[#FF7300] text-white hover:bg-[#e86800]'
+                : 'cursor-not-allowed bg-gray-200 text-gray-400'
+            }`}
+            onClick={() => { if ((selectedQty ?? 1) < (maxQty ?? 1)) onQtyChange(1); }}
+          >
+            +
+          </span>
+        </div>
+      )}
+      {selected && !showQtySelector && (
         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white animate-badge-pop">
           <Check className="h-3 w-3" strokeWidth={3} />
         </div>
@@ -317,13 +385,15 @@ function CreditField({
   value,
   onChange,
   label,
+  disabled = false,
 }: {
   value: number;
   onChange: (v: number) => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
-    <div className="animate-fade-in-up" style={{ animationDelay: '120ms' }}>
+    <div className={`animate-fade-in-up transition-opacity ${disabled ? 'opacity-40' : ''}`} style={{ animationDelay: '120ms' }}>
       <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-gray-500">
         {label}
       </label>
@@ -332,8 +402,13 @@ function CreditField({
           type="number"
           min={0}
           value={value}
+          disabled={disabled}
           onChange={(e) => onChange(Math.max(0, parseInt(e.target.value) || 0))}
-          className="w-24 rounded-lg border border-gray-200/80 bg-white/80 px-3 py-2 text-sm font-bold text-gray-900 outline-none backdrop-blur-sm transition focus:border-[#FF7300] focus:ring-2 focus:ring-[#FF7300]/20 focus:bg-white"
+          className={`w-24 rounded-lg border px-3 py-2 text-sm font-bold outline-none backdrop-blur-sm transition ${
+            disabled
+              ? 'border-gray-200/50 bg-gray-100/50 text-gray-400 cursor-not-allowed'
+              : 'border-gray-200/80 bg-white/80 text-gray-900 focus:border-[#FF7300] focus:ring-2 focus:ring-[#FF7300]/20 focus:bg-white'
+          }`}
         />
         <span className="text-xs text-gray-400">crediti</span>
       </div>
@@ -394,6 +469,44 @@ function SubmitButton({ onClick, children }: { onClick: () => void; children: Re
         {children}
       </span>
     </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  SelectedBadge — mostra conteggio + popover hover con lista carte    */
+/* ------------------------------------------------------------------ */
+
+function SelectedBadge({ count, items, quantities }: { count: number; items: TradeCardItem[]; quantities?: Record<string, number> }) {
+  if (count === 0) return null;
+  const totalQty = quantities
+    ? items.reduce((sum, item) => sum + (quantities[item.id] ?? 1), 0)
+    : count;
+  return (
+    <div className="group relative">
+      <span className="cursor-default rounded-full bg-[#FF7300] px-2.5 py-0.5 text-[11px] font-bold text-white shadow-md shadow-orange-500/25 animate-badge-pop">
+        {count} sel. {totalQty !== count ? `(${totalQty} carte)` : ''}
+      </span>
+      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+        <div className="rounded-xl border border-gray-200 bg-white p-2 shadow-xl w-52 max-h-48 overflow-y-auto">
+          {items.map((item) => {
+            const qty = quantities?.[item.id] ?? 1;
+            return (
+              <div key={item.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5">
+                <div className="relative h-8 w-6 shrink-0 overflow-hidden rounded bg-gray-100">
+                  <Image src={item.image} alt={item.name} fill unoptimized className="object-cover" sizes="24px" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[10px] font-medium text-gray-700">{item.name}</p>
+                </div>
+                {qty > 1 && (
+                  <span className="shrink-0 rounded-full bg-[#FF7300]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#FF7300]">x{qty}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -459,6 +572,21 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
   /* Keep track of selected item data so lookups survive search changes */
   const [offeredItemData, setOfferedItemData] = useState<Record<string, TradeCardItem>>({});
   const [requestedItemData, setRequestedItemData] = useState<Record<string, TradeCardItem>>({});
+
+  /* Track selected quantities per item id (only for items with qty > 1) */
+  const [offeredQuantities, setOfferedQuantities] = useState<Record<string, number>>({});
+  const [requestedQuantities, setRequestedQuantities] = useState<Record<string, number>>({});
+
+  /* Mutual-exclusion credit handlers: setting one resets the other */
+  const handleOfferedCreditsChange = useCallback((v: number) => {
+    setOfferedCredits(v);
+    if (v > 0) setRequestedCredits(0);
+  }, []);
+
+  const handleRequestedCreditsChange = useCallback((v: number) => {
+    setRequestedCredits(v);
+    if (v > 0) setOfferedCredits(0);
+  }, []);
 
   /* Load real inventory when modal opens */
   const loadInventory = useCallback(async () => {
@@ -570,6 +698,8 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
       setSearchError(null);
       setOfferedItemData({});
       setRequestedItemData({});
+      setOfferedQuantities({});
+      setRequestedQuantities({});
     }
   }, [open, mode]);
 
@@ -593,9 +723,14 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
       setSelectedOfferedIds(selectedOfferedIds.filter((x) => x !== item.id));
       const { [item.id]: _, ...rest } = offeredItemData;
       setOfferedItemData(rest);
+      const { [item.id]: __, ...restQ } = offeredQuantities;
+      setOfferedQuantities(restQ);
     } else {
       setSelectedOfferedIds([...selectedOfferedIds, item.id]);
       setOfferedItemData((prev) => ({ ...prev, [item.id]: item }));
+      if (item.qty && item.qty > 1) {
+        setOfferedQuantities((prev) => ({ ...prev, [item.id]: 1 }));
+      }
     }
   };
 
@@ -605,22 +740,29 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
       setSelectedRequestedIds(selectedRequestedIds.filter((x) => x !== item.id));
       const { [item.id]: _, ...rest } = requestedItemData;
       setRequestedItemData(rest);
+      const { [item.id]: __, ...restQ } = requestedQuantities;
+      setRequestedQuantities(restQ);
     } else {
       setSelectedRequestedIds([...selectedRequestedIds, item.id]);
       setRequestedItemData((prev) => ({ ...prev, [item.id]: item }));
+      if (item.qty && item.qty > 1) {
+        setRequestedQuantities((prev) => ({ ...prev, [item.id]: 1 }));
+      }
     }
   };
 
   const buildPayload = (): TradePayload => {
     const offeredItems = selectedOfferedIds.map((id) => {
       const data = offeredItemData[id];
-      if (data) return { id: data.id, name: data.name, image: data.image, qty: 1 };
+      const qty = offeredQuantities[id] ?? 1;
+      if (data) return { id: data.id, name: data.name, image: data.image, qty };
       return { id, name: 'Unknown', image: '', qty: 1 };
     });
 
     const requestedItems = selectedRequestedIds.map((id) => {
       const data = requestedItemData[id];
-      if (data) return { id: data.id, name: data.name, image: data.image, qty: 1 };
+      const qty = requestedQuantities[id] ?? 1;
+      if (data) return { id: data.id, name: data.name, image: data.image, qty };
       return { id, name: 'Unknown', image: '', qty: 1 };
     });
 
@@ -754,19 +896,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                 </div>
               </div>
 
-              <div className="mt-auto space-y-3">
-                <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-gray-500">
-                    Messaggio
-                  </label>
-                  <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Ciao..."
-                    rows={2}
-                    className="w-full resize-none rounded-xl border border-gray-200/80 bg-white/80 px-3 py-2 text-xs text-gray-900 placeholder:text-gray-300 backdrop-blur-sm transition-all focus:border-[#FF7300] focus:ring-2 focus:ring-[#FF7300]/15 focus:bg-white focus:outline-none"
-                  />
-                </div>
+              <div className="mt-auto">
                 <ModeToggle checked={isRealtime} onChange={setIsRealtime} />
               </div>
             </div>
@@ -776,11 +906,6 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
               <div className="animate-fade-in-up mb-2 flex flex-wrap items-center justify-between gap-2" style={{ animationDelay: '40ms' }}>
                 <span className="text-xs font-black uppercase tracking-tight text-[#1D3160]">Cosa offri</span>
                 <div className="flex items-center gap-2">
-                  {selectedOfferedIds.length > 0 && (
-                    <span className="animate-badge-pop rounded-full bg-[#FF7300] px-2.5 py-0.5 text-[9px] font-bold text-white shadow-md shadow-orange-500/25">
-                      {selectedOfferedIds.length} sel.
-                    </span>
-                  )}
                   <AuctionViewToggle
                     viewMode={viewMode}
                     onViewModeChange={setViewMode}
@@ -822,6 +947,14 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                           selected={selectedOfferedIds.includes(item.id)}
                           onClick={() => toggleOfferedItem(item)}
                           delayIdx={i}
+                          selectedQty={offeredQuantities[item.id]}
+                          maxQty={item.qty}
+                          onQtyChange={(delta) => {
+                            const cur = offeredQuantities[item.id] ?? 1;
+                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                            if (next === cur) return;
+                            setOfferedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                          }}
                         />
                       ))}
                       {offeredCatalogItems.map((item, i) => (
@@ -831,6 +964,14 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                           selected={selectedOfferedIds.includes(item.id)}
                           onClick={() => toggleOfferedItem(item)}
                           delayIdx={offeredInventoryItems.length + i}
+                          selectedQty={offeredQuantities[item.id]}
+                          maxQty={item.qty}
+                          onQtyChange={(delta) => {
+                            const cur = offeredQuantities[item.id] ?? 1;
+                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                            if (next === cur) return;
+                            setOfferedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                          }}
                         />
                       ))}
                     </div>
@@ -843,6 +984,14 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                           selected={selectedOfferedIds.includes(item.id)}
                           onClick={() => toggleOfferedItem(item)}
                           delayIdx={i}
+                          selectedQty={offeredQuantities[item.id]}
+                          maxQty={item.qty}
+                          onQtyChange={(delta) => {
+                            const cur = offeredQuantities[item.id] ?? 1;
+                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                            if (next === cur) return;
+                            setOfferedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                          }}
                         />
                       ))}
                       {offeredCatalogItems.map((item, i) => (
@@ -852,6 +1001,14 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                           selected={selectedOfferedIds.includes(item.id)}
                           onClick={() => toggleOfferedItem(item)}
                           delayIdx={offeredInventoryItems.length + i}
+                          selectedQty={offeredQuantities[item.id]}
+                          maxQty={item.qty}
+                          onQtyChange={(delta) => {
+                            const cur = offeredQuantities[item.id] ?? 1;
+                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                            if (next === cur) return;
+                            setOfferedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                          }}
                         />
                       ))}
                     </div>
@@ -878,8 +1035,9 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
 
               {/* Bottom row */}
               <div className="animate-fade-in-up flex flex-wrap items-end gap-4 pt-3" style={{ animationDelay: '200ms' }}>
-                <CreditField value={offeredCredits} onChange={setOfferedCredits} label="Crediti offerti" />
-                <CreditField value={requestedCredits} onChange={setRequestedCredits} label="Crediti richiesti" />
+                <CreditField value={offeredCredits} onChange={handleOfferedCreditsChange} label="Offri crediti" disabled={requestedCredits > 0} />
+                <CreditField value={requestedCredits} onChange={handleRequestedCreditsChange} label="Richiedi crediti" disabled={offeredCredits > 0} />
+                <SelectedBadge count={selectedOfferedIds.length} items={Object.values(offeredItemData)} quantities={offeredQuantities} />
                 <SubmitButton onClick={handleSubmit}>Invia proposta</SubmitButton>
               </div>
             </div>
@@ -1014,11 +1172,6 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                 <div className="animate-fade-in-up mb-2 flex flex-wrap items-center justify-between gap-2" style={{ animationDelay: '40ms' }}>
                   <span className="text-xs font-black uppercase tracking-tight text-[#1D3160]">Cosa chiedi</span>
                   <div className="flex items-center gap-2">
-                    {selectedRequestedIds.length > 0 && (
-                      <span className="animate-badge-pop rounded-full bg-[#FF7300] px-2.5 py-0.5 text-[9px] font-bold text-white shadow-md shadow-orange-500/25">
-                        {selectedRequestedIds.length} sel.
-                      </span>
-                    )}
                     <AuctionViewToggle
                       viewMode={viewMode}
                       onViewModeChange={setViewMode}
@@ -1046,6 +1199,14 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                           selected={selectedRequestedIds.includes(item.id)}
                           onClick={() => toggleRequestedItem(item)}
                           delayIdx={i}
+                          selectedQty={requestedQuantities[item.id]}
+                          maxQty={item.qty}
+                          onQtyChange={(delta) => {
+                            const cur = requestedQuantities[item.id] ?? 1;
+                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                            if (next === cur) return;
+                            setRequestedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                          }}
                         />
                       ))}
                       {requestedCatalogItems.map((item, i) => (
@@ -1055,6 +1216,14 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                           selected={selectedRequestedIds.includes(item.id)}
                           onClick={() => toggleRequestedItem(item)}
                           delayIdx={requestedInventoryItems.length + i}
+                          selectedQty={requestedQuantities[item.id]}
+                          maxQty={item.qty}
+                          onQtyChange={(delta) => {
+                            const cur = requestedQuantities[item.id] ?? 1;
+                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                            if (next === cur) return;
+                            setRequestedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                          }}
                         />
                       ))}
                     </div>
@@ -1067,6 +1236,14 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                           selected={selectedRequestedIds.includes(item.id)}
                           onClick={() => toggleRequestedItem(item)}
                           delayIdx={i}
+                          selectedQty={requestedQuantities[item.id]}
+                          maxQty={item.qty}
+                          onQtyChange={(delta) => {
+                            const cur = requestedQuantities[item.id] ?? 1;
+                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                            if (next === cur) return;
+                            setRequestedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                          }}
                         />
                       ))}
                       {requestedCatalogItems.map((item, i) => (
@@ -1076,6 +1253,14 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                           selected={selectedRequestedIds.includes(item.id)}
                           onClick={() => toggleRequestedItem(item)}
                           delayIdx={requestedInventoryItems.length + i}
+                          selectedQty={requestedQuantities[item.id]}
+                          maxQty={item.qty}
+                          onQtyChange={(delta) => {
+                            const cur = requestedQuantities[item.id] ?? 1;
+                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                            if (next === cur) return;
+                            setRequestedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                          }}
                         />
                       ))}
                     </div>
@@ -1100,8 +1285,9 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                 )}
 
                 <div className="animate-fade-in-up mt-auto flex flex-wrap items-end gap-4 pt-3" style={{ animationDelay: '200ms' }}>
-                  <CreditField value={offeredCredits} onChange={setOfferedCredits} label="Crediti offerti" />
-                  <CreditField value={requestedCredits} onChange={setRequestedCredits} label="Crediti richiesti" />
+                  <CreditField value={offeredCredits} onChange={handleOfferedCreditsChange} label="Offri crediti" disabled={requestedCredits > 0} />
+                  <CreditField value={requestedCredits} onChange={handleRequestedCreditsChange} label="Richiedi crediti" disabled={offeredCredits > 0} />
+                  <SelectedBadge count={selectedRequestedIds.length} items={Object.values(requestedItemData)} quantities={requestedQuantities} />
                   <ModeToggle checked={isRealtime} onChange={setIsRealtime} />
                   <SubmitButton onClick={handleSubmit}>Invia controproposta</SubmitButton>
                 </div>

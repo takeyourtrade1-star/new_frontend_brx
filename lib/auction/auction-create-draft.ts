@@ -59,13 +59,13 @@ export const AUCTION_CUSTOM_DESCRIPTION_MAX = 200;
 
 /** Stessi valori del form «VENDI» in ProductDetailView (select condizione). */
 export const AUCTION_CARD_CONDITION_OPTIONS = [
-  { value: 'near_mint', labelKey: 'auctions.cardConditionNearMint' },
   { value: 'mint', labelKey: 'auctions.cardConditionMint' },
-  { value: 'ex', labelKey: 'auctions.cardConditionExcellent' },
-  { value: 'gd', labelKey: 'auctions.cardConditionGood' },
-  { value: 'lp', labelKey: 'auctions.cardConditionLightPlayed' },
-  { value: 'pl', labelKey: 'auctions.cardConditionPlayed' },
-  { value: 'po', labelKey: 'auctions.cardConditionPoor' },
+  { value: 'near_mint', labelKey: 'auctions.cardConditionNearMint' },
+  { value: 'excellent', labelKey: 'auctions.cardConditionExcellent' },
+  { value: 'good', labelKey: 'auctions.cardConditionGood' },
+  { value: 'light_played', labelKey: 'auctions.cardConditionLightPlayed' },
+  { value: 'played', labelKey: 'auctions.cardConditionPlayed' },
+  { value: 'poor', labelKey: 'auctions.cardConditionPoor' },
 ] as const satisfies ReadonlyArray<{ value: string; labelKey: MessageKey }>;
 
 /** Lingue comuni per carte (stesso perimetro usato in vendita/prodotto). */
@@ -92,7 +92,14 @@ export function normalizeAuctionCardLanguage(value: string | null | undefined): 
 export function normalizeAuctionCardCondition(value: string): string {
   const legacy: Record<string, string> = {
     nm: 'near_mint',
-    mp: 'pl',
+    lp: 'light_played',
+    sp: 'light_played',
+    mp: 'played',
+    hp: 'played',
+    ex: 'excellent',
+    gd: 'good',
+    pl: 'played',
+    po: 'poor',
   };
   return legacy[value] ?? value;
 }
