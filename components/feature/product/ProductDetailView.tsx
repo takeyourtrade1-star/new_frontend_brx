@@ -11,7 +11,8 @@ import { getCardDisplayNames } from '@/lib/card-display-name';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { getGameLabel, buildBreadcrumbsFromCard, type CardDocument } from '@/lib/product-detail';
-import { syncClient, type InventoryItemResponse, type ListingItem } from '@/lib/api/sync-client';
+import { syncClient, type ListingItem } from '@/lib/api/sync-client';
+import { fetchAllInventoryItems } from '@/lib/sync/inventory-pagination';
 import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
 import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { AuctionCreateWizard } from '@/components/feature/aste/create/AuctionCreateWizard';
@@ -170,18 +171,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setAuctionInventoryLoading(true);
     (async () => {
       try {
-        const allItems: InventoryItemResponse[] = [];
-        const pageSize = 500;
-        let offset = 0;
-        let totalFromApi = 0;
-        do {
-          const res = await syncClient.getInventory(user.id, accessToken, pageSize, offset);
-          const items = res.items ?? [];
-          totalFromApi = res.total ?? allItems.length + items.length;
-          allItems.push(...items);
-          offset += items.length;
-          if (items.length < pageSize || offset >= totalFromApi) break;
-        } while (true);
+        const { items: allItems } = await fetchAllInventoryItems(user.id, accessToken);
         const filtered = allItems.filter((i) => i.blueprint_id === blueprintIdForAuction);
         let blueprintToCard: Record<number, CardCatalogHit> = {};
         if (filtered.length > 0) {

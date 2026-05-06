@@ -27,6 +27,16 @@ export const INVENTORY_LANG_OPTIONS_EDIT = [
 const fieldClass =
   'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25';
 
+export function parseInventoryPriceCents(value: string): number | null {
+  const normalized = value.trim().replace(/\s+/g, '').replace(',', '.');
+  if (!/^\d+(?:\.\d{0,2})?$/.test(normalized)) return null;
+
+  const price = Number(normalized);
+  if (!Number.isFinite(price)) return null;
+
+  return Math.round(price * 100);
+}
+
 export function InventoryEditModal({
   item,
   onClose,
@@ -66,10 +76,16 @@ export function InventoryEditModal({
   const [signed, setSigned] = useState(!!props?.signed);
   const [altered, setAltered] = useState(!!props?.altered);
   const [mtgFoil, setMtgFoil] = useState(!!props?.mtg_foil);
+  const [priceError, setPriceError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const priceCents = Math.round(parseFloat(priceEuro) * 100) || 0;
+    const priceCents = parseInventoryPriceCents(priceEuro);
+    if (priceCents === null) {
+      setPriceError('Inserisci un prezzo valido con al massimo due decimali.');
+      return;
+    }
+    setPriceError(null);
     onSubmit({
       quantity,
       price_cents: priceCents,
@@ -112,9 +128,19 @@ export function InventoryEditModal({
                 type="text"
                 inputMode="decimal"
                 value={priceEuro}
-                onChange={(e) => setPriceEuro(e.target.value)}
+                onChange={(e) => {
+                  setPriceEuro(e.target.value);
+                  if (priceError) setPriceError(null);
+                }}
+                aria-invalid={priceError ? true : undefined}
+                aria-describedby={priceError ? 'inventory-edit-price-error' : undefined}
                 className={fieldClass}
               />
+              {priceError ? (
+                <p id="inventory-edit-price-error" className="mt-1 text-xs font-medium text-red-600">
+                  {priceError}
+                </p>
+              ) : null}
             </div>
           </div>
           <div>

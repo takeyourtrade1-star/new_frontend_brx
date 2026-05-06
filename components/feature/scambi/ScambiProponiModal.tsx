@@ -10,8 +10,8 @@ import Image from 'next/image';
 import type { ScambioUI, TradePayload } from '@/components/feature/scambi/scambi-types';
 import { MOCK_INVENTORY_A, MOCK_INVENTORY_B } from './mock-trade-inventories';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { syncClient } from '@/lib/api/sync-client';
 import type { InventoryItemResponse } from '@/lib/api/sync-client';
+import { fetchAllInventoryItems } from '@/lib/sync/inventory-pagination';
 import { fetchCardsByBlueprintIds, type CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { getCardImageUrl } from '@/lib/assets';
 import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';
@@ -597,18 +597,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
     }
     setLoadingInventory(true);
     try {
-      const allItems: InventoryItemResponse[] = [];
-      const pageSize = 500;
-      let offset = 0;
-      let totalFromApi = 0;
-      do {
-        const res = await syncClient.getInventory(user.id, accessToken, pageSize, offset);
-        const items = res.items ?? [];
-        totalFromApi = res.total ?? allItems.length + items.length;
-        allItems.push(...items);
-        offset += items.length;
-        if (items.length < pageSize || offset >= totalFromApi) break;
-      } while (true);
+      const { items: allItems } = await fetchAllInventoryItems(user.id, accessToken);
 
       const blueprintIds = [...new Set(allItems.map((i) => i.blueprint_id).filter(Boolean))] as number[];
       let blueprintToCard: Record<number, CardCatalogHit> = {};

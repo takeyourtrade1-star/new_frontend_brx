@@ -7,7 +7,7 @@ import type { SearchHit } from '@/app/api/search/route';
 import { auctionGameToSearchParam, type AuctionCreateCardSelection } from '@/lib/auction/auction-create-draft';
 import type { AuctionGame } from '@/components/feature/aste/mock-auctions';
 import type { InventoryItemResponse } from '@/lib/api/sync-client';
-import { syncClient } from '@/lib/api/sync-client';
+import { fetchAllInventoryItems } from '@/lib/sync/inventory-pagination';
 import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
 import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { getCardImageUrl } from '@/lib/assets';
@@ -186,18 +186,7 @@ export function AuctionCreateCardPicker({
     setLoadingCollection(true);
     setCollectionError(null);
     try {
-      const allItems: InventoryItemResponse[] = [];
-      const pageSize = 500;
-      let offset = 0;
-      let totalFromApi = 0;
-      do {
-        const res = await syncClient.getInventory(user.id, accessToken, pageSize, offset);
-        const items = res.items ?? [];
-        totalFromApi = res.total ?? allItems.length + items.length;
-        allItems.push(...items);
-        offset += items.length;
-        if (items.length < pageSize || offset >= totalFromApi) break;
-      } while (true);
+      const { items: allItems } = await fetchAllInventoryItems(user.id, accessToken);
 
       const blueprintIds = [...new Set(allItems.map((i) => i.blueprint_id).filter(Boolean))] as number[];
       let blueprintToCard: Record<number, CardCatalogHit> = {};
