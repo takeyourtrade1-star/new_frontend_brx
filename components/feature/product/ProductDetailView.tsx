@@ -231,6 +231,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
   const [modalCondition, setModalCondition] = useState(condizioneVendi);
   const [dontShowConditionModal, setDontShowConditionModal] = useState(false);
+  const [conditionLightbox, setConditionLightbox] = useState<string | null>(null);
 
   /* Verifica se l'utente ha scelto di non mostrare più il modal */
   const shouldSkipConditionModal = useCallback(() => {
@@ -2179,18 +2180,24 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
               {/* Immagini condizione selezionata */}
               <div className="mt-6 grid grid-cols-2 gap-4">
-                <div className="aspect-[4/3] rounded-lg border border-gray-200/60 bg-white overflow-hidden shadow-inner">
+                <div
+                  className="aspect-[4/3] rounded-lg border border-gray-200/60 bg-white overflow-hidden shadow-inner cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setConditionLightbox(CONDITION_IMAGES[modalCondition]?.front ?? '/conditions/near-mint-front.jpeg')}
+                >
                   <img
                     src={CONDITION_IMAGES[modalCondition]?.front ?? '/conditions/near-mint-front.jpeg'}
                     alt="Fronte"
-                    className="h-full w-full object-contain"
+                    className="h-full w-full object-contain pointer-events-none"
                   />
                 </div>
-                <div className="aspect-[4/3] rounded-lg border border-gray-200/60 bg-white overflow-hidden shadow-inner">
+                <div
+                  className="aspect-[4/3] rounded-lg border border-gray-200/60 bg-white overflow-hidden shadow-inner cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setConditionLightbox(CONDITION_IMAGES[modalCondition]?.back ?? '/conditions/near-mint-back.jpeg')}
+                >
                   <img
                     src={CONDITION_IMAGES[modalCondition]?.back ?? '/conditions/near-mint-back.jpeg'}
                     alt="Retro"
-                    className="h-full w-full object-contain"
+                    className="h-full w-full object-contain pointer-events-none"
                   />
                 </div>
               </div>
@@ -2212,6 +2219,15 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               </div>
             </div>
           </div>
+        </div>
+      )}
+      {/* Condition image lightbox */}
+      {conditionLightbox && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setConditionLightbox(null)}>
+          <button type="button" onClick={(e) => { e.stopPropagation(); setConditionLightbox(null); }} className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition" aria-label="Chiudi">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+          <img src={conditionLightbox} alt="Condizione" className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
       {/* Desktop hover preview: immagine ingrandita al centro, sfondo trasparente */}
