@@ -881,12 +881,12 @@ export const en = {
   'auctions.createDescPlaceholder': 'Edition, language, grading, defects…',
   'auctions.createConditionLabel': 'Condition',
   'auctions.cardConditionNearMint': 'Near Mint',
-  'auctions.cardConditionMint': 'Mint',
-  'auctions.cardConditionExcellent': 'Excellent',
-  'auctions.cardConditionGood': 'Good',
-  'auctions.cardConditionLightPlayed': 'Light Played',
-  'auctions.cardConditionPlayed': 'Played',
-  'auctions.cardConditionPoor': 'Poor',
+  'auctions.cardConditionLightlyPlayed': 'Lightly Played',
+  'auctions.cardConditionModeratelyPlayed': 'Moderately Played',
+  'auctions.cardConditionHeavilyPlayed': 'Heavily Played',
+  'auctions.cardConditionDamaged': 'Damaged',
+
+
   'auctions.createConditionNm': 'Near mint',
   'auctions.createConditionLp': 'Lightly played',
   'auctions.createConditionMp': 'Played',

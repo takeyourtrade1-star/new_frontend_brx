@@ -1,9 +1,17 @@
 import type { Metadata } from 'next';
+import { Nunito } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { Footer } from '@/components/layout/Footer';
 import { CardMascotteGate } from '@/components/dev/CardMascotteGate';
 import { IOSInstallPrompt } from '@/components/pwa/IOSInstallPrompt';
+
+const nunito = Nunito({
+  subsets: ['latin'],
+  weight: ['400', '500', '700', '900'],
+  variable: '--font-sans',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
@@ -73,7 +81,7 @@ export default function RootLayout({
 }>) {
   const brxBgUrl = getBrxBgCssUrl();
   return (
-    <html lang="it" suppressHydrationWarning>
+    <html lang="it" suppressHydrationWarning className={nunito.variable}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/logo-pwa.svg" />
@@ -81,28 +89,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="EbarteX" />
-        {/* Preload font principale SF Compact (tutti i pesi) per evitare FOUT */}
-        <link
-          rel="preload"
-          href="/fonts/SF-Compact-Rounded-Regular.ttf"
-          as="font"
-          type="font/ttf"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/SF-Compact-Rounded-Medium.ttf"
-          as="font"
-          type="font/ttf"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/SF-Compact-Rounded-Heavy.ttf"
-          as="font"
-          type="font/ttf"
-          crossOrigin="anonymous"
-        />
+
         {/* Display font - using existing .otf and .ttf files */}
         <style
           dangerouslySetInnerHTML={{

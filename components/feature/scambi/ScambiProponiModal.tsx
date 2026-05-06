@@ -191,13 +191,11 @@ function mockItemToTradeCardItem(item: { id: string; name: string; image: string
 function ConditionBadge({ condition }: { condition: string }) {
   const c = condition.toLowerCase();
   let color = 'bg-gray-100/80 text-gray-600';
-  if (c === 'mint') color = 'bg-emerald-200/80 text-emerald-800';
-  else if (c === 'near mint' || c === 'nm') color = 'bg-emerald-100/80 text-emerald-700';
-  else if (c === 'excellent' || c === 'ex') color = 'bg-sky-100/80 text-sky-700';
-  else if (c === 'good' || c === 'gd') color = 'bg-amber-100/80 text-amber-700';
-  else if (c === 'light played' || c.includes('lightly') || c === 'lp' || c.includes('slightly') || c === 'sp') color = 'bg-orange-100/80 text-orange-700';
-  else if (c === 'played' || c.includes('moderately') || c === 'pl' || c === 'mp' || c.includes('heavily') || c === 'hp') color = 'bg-red-100/80 text-red-700';
-  else if (c === 'poor' || c === 'po' || c === 'damaged') color = 'bg-gray-200/80 text-gray-600';
+  if (c === 'near mint' || c === 'nm') color = 'bg-emerald-100/80 text-emerald-700';
+  else if (c === 'lightly played' || c.includes('lightly') || c === 'lp') color = 'bg-amber-100/80 text-amber-700';
+  else if (c === 'moderately played' || c.includes('moderately') || c === 'mp') color = 'bg-orange-100/80 text-orange-700';
+  else if (c === 'heavily played' || c.includes('heavily') || c === 'hp') color = 'bg-red-100/80 text-red-700';
+  else if (c === 'damaged' || c === 'po' || c === 'poor') color = 'bg-gray-200/80 text-gray-600';
   return (
     <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide backdrop-blur-sm ${color}`}>
       {condition}
@@ -883,9 +881,9 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                 Carta richiesta
               </div>
 
-              <div className="animate-fade-in-up flex items-center gap-3" style={{ animationDelay: '60ms' }}>
-                <div className="card-shine-wrapper relative h-24 w-16 shrink-0 overflow-hidden rounded-xl shadow-lg shadow-black/10 ring-1 ring-black/5 transition-transform duration-300 hover:scale-105">
-                  <Image src={scambio.image} alt={scambio.title} fill unoptimized className="object-cover" sizes="64px" priority />
+              <div className="animate-fade-in-up flex flex-col gap-2" style={{ animationDelay: '60ms' }}>
+                <div className="card-shine-wrapper relative w-full overflow-hidden rounded-xl shadow-lg shadow-black/10 ring-1 ring-black/5 transition-transform duration-300 hover:scale-105" style={{ aspectRatio: '200/280' }}>
+                  <Image src={scambio.image} alt={scambio.title} fill unoptimized className="object-cover" sizes="288px" priority />
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black uppercase text-[#1D3160]">{scambio.title}</p>

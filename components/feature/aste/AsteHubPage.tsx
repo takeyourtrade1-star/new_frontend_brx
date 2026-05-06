@@ -234,8 +234,8 @@ export function AsteHubPage() {
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
                 className={cn(
-                  'self-center sm:self-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/50 text-white shadow ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 transition-all hover:scale-105 hover:bg-primary/60 active:scale-95',
-                  showFilters && 'bg-primary/70 ring-white/20'
+                  'self-center sm:self-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/40 bg-primary/60 text-white shadow transition-all hover:scale-105 hover:bg-primary/70 active:scale-95',
+                  showFilters && 'bg-primary/70'
                 )}
                 aria-label={showFilters ? 'Nascondi filtri' : 'Mostra filtri'}
               >
@@ -391,7 +391,7 @@ export function AsteHubPage() {
                 onClick={() => setBottomBarExpanded(!bottomBarExpanded)}
                 className={cn(
                   'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/50 text-white shadow ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 transition-all hover:scale-105 hover:bg-primary/60 active:scale-95',
-                  bottomBarExpanded && 'bg-primary/70 ring-white/20'
+                  bottomBarExpanded && 'bg-primary/70'
                 )}
                 aria-label={bottomBarExpanded ? 'Comprimi filtri' : 'Espandi filtri'}
               >

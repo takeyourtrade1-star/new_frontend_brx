@@ -12,46 +12,13 @@
   font-display: optional;
 }
 
-/* SF Compact Rounded: font principale */
-@font-face {
-  font-family: 'SF Compact Rounded';
-  src: url('/fonts/SF-Compact-Rounded-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: optional;
-}
-
-@font-face {
-  font-family: 'SF Compact Rounded';
-  src: url('/fonts/SF-Compact-Rounded-Medium.ttf') format('truetype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: optional;
-}
-
-@font-face {
-  font-family: 'SF Compact Rounded';
-  src: url('/fonts/SF-Compact-Rounded-Heavy.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: optional;
-}
-
-@font-face {
-  font-family: 'SF Compact Rounded';
-  src: url('/fonts/SF-Compact-Rounded-Heavy.ttf') format('truetype');
-  font-weight: 900;
-  font-style: normal;
-  font-display: optional;
-}
 
 @layer base {
   :root {
     /* Palette principale (gradiente e blocchi) */
     --color-brand: #3D65C6;
     --color-brand-dark: #1D3160;
-    /* Font principale: SF Compact Rounded (Apple) + fallback */
-    --font-sans: 'SF Compact Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    /* Font principale: Nunito (gestito da next/font/google) */
     /* Font display: Comodo Regular (locale in public/fonts) */
     --font-comodo: 'Comodo Regular', sans-serif;
 

@@ -49,19 +49,16 @@ export function createEmbeddedDraftFromProduct(card: CardDocument): AuctionCreat
   };
 }
 
-/** Mappa testo condizione inventario → valore select wizard. */
+/** Mappa testo condizione inventario → valore select wizard (CardTrader 5 condizioni). */
 export function inventoryConditionToWizardValue(raw: string | null | undefined): string {
   if (!raw || typeof raw !== 'string') return 'near_mint';
   const s = raw.trim();
   const lower = s.toLowerCase();
-  // CardTrader conditions (exact match first)
-  if (lower === 'mint') return 'mint';
-  if (lower === 'near mint' || lower === 'nm') return 'near_mint';
-  if (lower === 'excellent' || lower === 'ex') return 'excellent';
-  if (lower === 'good' || lower === 'gd') return 'good';
-  if (lower === 'light played' || lower === 'lightly played' || lower === 'lp' || lower === 'slightly played' || lower === 'sp') return 'light_played';
-  if (lower === 'played' || lower === 'moderately played' || lower === 'mp' || lower === 'pl') return 'played';
-  if (lower === 'poor' || lower === 'po' || lower === 'heavily played' || lower === 'hp' || lower === 'damaged') return 'poor';
+  if (lower === 'near mint' || lower === 'nm' || lower === 'mint' || lower === 'excellent' || lower === 'ex') return 'near_mint';
+  if (lower === 'lightly played' || lower === 'light played' || lower === 'lp' || lower === 'slightly played' || lower === 'sp' || lower === 'good' || lower === 'gd') return 'lightly_played';
+  if (lower === 'moderately played' || lower === 'mp' || lower === 'played' || lower === 'pl') return 'moderately_played';
+  if (lower === 'heavily played' || lower === 'hp') return 'heavily_played';
+  if (lower === 'damaged' || lower === 'poor' || lower === 'po') return 'damaged';
   return 'near_mint';
 }
 

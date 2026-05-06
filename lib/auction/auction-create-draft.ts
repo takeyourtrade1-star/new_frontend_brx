@@ -45,27 +45,25 @@ export type AuctionCreateDraft = {
   /** Opzionale: integrazione catalogo / inventario (es. da ricerca o sync). */
   catalogCardId?: string;
   selectedInventoryItemId?: string | null;
-  /** Foto dell’oggetto reale (min/max prima della pubblicazione; solo client fino all’upload API). */
+  /** Foto dell'oggetto reale (min/max prima della pubblicazione; solo client fino all'upload API). */
   listingPhotos: File[];
 };
 
-/** Minimo foto richieste per pubblicare l’inserzione. */
+/** Minimo foto richieste per pubblicare l'inserzione. */
 export const AUCTION_LISTING_PHOTO_MIN = 2;
 /** Massimo foto consentite. */
 export const AUCTION_LISTING_PHOTO_MAX = 4;
 
-/** Massimo caratteri per la descrizione personalizzata dell’asta (flusso carta da catalogo). */
+/** Massimo caratteri per la descrizione personalizzata dell'asta (flusso carta da catalogo). */
 export const AUCTION_CUSTOM_DESCRIPTION_MAX = 200;
 
 /** Stessi valori del form «VENDI» in ProductDetailView (select condizione). */
 export const AUCTION_CARD_CONDITION_OPTIONS = [
-  { value: 'mint', labelKey: 'auctions.cardConditionMint' },
   { value: 'near_mint', labelKey: 'auctions.cardConditionNearMint' },
-  { value: 'excellent', labelKey: 'auctions.cardConditionExcellent' },
-  { value: 'good', labelKey: 'auctions.cardConditionGood' },
-  { value: 'light_played', labelKey: 'auctions.cardConditionLightPlayed' },
-  { value: 'played', labelKey: 'auctions.cardConditionPlayed' },
-  { value: 'poor', labelKey: 'auctions.cardConditionPoor' },
+  { value: 'lightly_played', labelKey: 'auctions.cardConditionLightlyPlayed' },
+  { value: 'moderately_played', labelKey: 'auctions.cardConditionModeratelyPlayed' },
+  { value: 'heavily_played', labelKey: 'auctions.cardConditionHeavilyPlayed' },
+  { value: 'damaged', labelKey: 'auctions.cardConditionDamaged' },
 ] as const satisfies ReadonlyArray<{ value: string; labelKey: MessageKey }>;
 
 /** Lingue comuni per carte (stesso perimetro usato in vendita/prodotto). */
@@ -92,14 +90,24 @@ export function normalizeAuctionCardLanguage(value: string | null | undefined): 
 export function normalizeAuctionCardCondition(value: string): string {
   const legacy: Record<string, string> = {
     nm: 'near_mint',
-    lp: 'light_played',
-    sp: 'light_played',
-    mp: 'played',
-    hp: 'played',
-    ex: 'excellent',
-    gd: 'good',
-    pl: 'played',
-    po: 'poor',
+    mint: 'near_mint',
+    near_mint: 'near_mint',
+    lp: 'lightly_played',
+    sp: 'lightly_played',
+    lightly_played: 'lightly_played',
+    mp: 'moderately_played',
+    pl: 'moderately_played',
+    moderately_played: 'moderately_played',
+    hp: 'heavily_played',
+    heavily_played: 'heavily_played',
+    ex: 'near_mint',
+    excellent: 'near_mint',
+    gd: 'lightly_played',
+    good: 'lightly_played',
+    po: 'damaged',
+    poor: 'damaged',
+    played: 'moderately_played',
+    damaged: 'damaged',
   };
   return legacy[value] ?? value;
 }

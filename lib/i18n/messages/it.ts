@@ -883,12 +883,12 @@ export const it: Record<MessageKey, string> = {
   'auctions.createDescPlaceholder': 'Edizione, lingua, grading, difetti…',
   'auctions.createConditionLabel': 'Condizione',
   'auctions.cardConditionNearMint': 'Near Mint',
-  'auctions.cardConditionMint': 'Mint',
-  'auctions.cardConditionExcellent': 'Excellent',
-  'auctions.cardConditionGood': 'Good',
-  'auctions.cardConditionLightPlayed': 'Light Played',
-  'auctions.cardConditionPlayed': 'Played',
-  'auctions.cardConditionPoor': 'Poor',
+  'auctions.cardConditionLightlyPlayed': 'Lightly Played',
+  'auctions.cardConditionModeratelyPlayed': 'Moderately Played',
+  'auctions.cardConditionHeavilyPlayed': 'Heavily Played',
+  'auctions.cardConditionDamaged': 'Damaged',
+
+
   'auctions.createConditionNm': 'Quasi nuova',
   'auctions.createConditionLp': 'Leggermente giocata',
   'auctions.createConditionMp': 'Giocata',

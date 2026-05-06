@@ -78,7 +78,7 @@ export function AsteNav() {
   if (!isAuthenticated) {
     // Non loggato: mostra solo pulsante "Crea asta" in glass bubble arancione chiaro
     return (
-      <div className="sticky z-40 overflow-x-clip" style={{ top: stickyTop }}>
+      <div className="sticky z-40" style={{ top: stickyTop }}>
         <div className="container-content relative py-3 sm:py-4">
           <nav
             ref={navRef}
@@ -87,7 +87,7 @@ export function AsteNav() {
           >
             <Link
               href="/login?redirect=/aste/nuova"
-              className="group flex h-9 sm:h-12 shrink-0 items-center gap-1.5 sm:gap-2 rounded-full border-2 border-[#FF7300]/25 bg-[#FFF4EC]/70 px-3 sm:px-4 text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-[#FF7300] ring-1 ring-[#FF7300]/15 backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 hover:border-[#FF7300]/40 hover:bg-[#FFF4EC] hover:ring-[#FF7300]/25 active:scale-95"
+              className="group flex h-9 sm:h-12 shrink-0 items-center gap-1.5 sm:gap-2 rounded-full border-2 border-[#FF7300] bg-[#FFF4EC] px-3 sm:px-4 text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-[#FF7300] transition-all duration-300 hover:bg-[#FFF0E0] hover:shadow-[0_0_12px_rgba(255,115,0,0.3)] active:scale-95"
             >
               <PlusCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform group-hover:rotate-90" aria-hidden />
               <span className="whitespace-nowrap">{t('auctions.createAuction')}</span>
@@ -110,7 +110,7 @@ export function AsteNav() {
   }
 
   return (
-    <div className="sticky z-40 overflow-x-clip" style={{ top: stickyTop }}>
+    <div className="sticky z-40" style={{ top: stickyTop }}>
       <div className="container-content relative py-4">
         {/* Blur gradient sinistra */}
         <div
@@ -139,7 +139,7 @@ export function AsteNav() {
           aria-label="Scorri a sinistra"
           type="button"
         >
-          <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 border-orange-200/70 bg-white/60 ring-1 ring-orange-100/40 backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 hover:scale-110 hover:bg-white/80 hover:border-orange-300 active:scale-95">
+          <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 border-[#FF7300]/30 bg-white transition-all duration-300 hover:scale-110 hover:border-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.2)] active:scale-95">
             <ChevronLeft className="h-3.5 w-3.5 sm:h-5 sm:w-5 text-gray-700" aria-hidden />
           </div>
         </button>
@@ -159,10 +159,10 @@ export function AsteNav() {
                 className={cn(
                   'group relative flex h-9 sm:h-12 shrink-0 items-center justify-center sm:justify-start rounded-full px-0 sm:px-4 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-all duration-300',
                   active
-                    ? 'w-9 sm:w-auto border-2 border-[#FF7300]/40 bg-[#FFF4EC]/80 text-[#FF7300] ring-1 ring-[#FF7300]/20 scale-105'
+                    ? 'w-9 sm:w-auto border-2 border-[#FF7300] bg-[#FFF4EC] text-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.2)] scale-105'
                     : isPrimary
-                      ? 'w-9 sm:w-auto border-2 border-[#FF7300]/25 bg-[#FFF4EC]/60 text-[#FF7300]/90 ring-1 ring-[#FF7300]/15 backdrop-blur-xl backdrop-saturate-150 hover:border-[#FF7300]/40 hover:bg-[#FFF4EC] hover:text-[#FF7300] hover:ring-[#FF7300]/25 active:scale-95'
-                      : 'w-9 sm:w-auto border-2 border-orange-200/70 bg-white/60 text-gray-600 ring-1 ring-orange-100/40 backdrop-blur-xl backdrop-saturate-150 hover:border-orange-300 hover:bg-white/80 hover:text-[#FF7300] hover:ring-orange-200/60 active:scale-95'
+                      ? 'w-9 sm:w-auto border-2 border-[#FF7300]/30 bg-[#FFF4EC] text-[#FF7300]/90 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_12px_rgba(255,115,0,0.2)] active:scale-95'
+                      : 'w-9 sm:w-auto border-2 border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)] active:scale-95'
                 )}
               >
                 <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-300', isPrimary && 'group-hover:rotate-90')} aria-hidden />
@@ -182,7 +182,7 @@ export function AsteNav() {
           aria-label="Scorri a destra"
           type="button"
         >
-          <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 border-orange-200/70 bg-white/60 ring-1 ring-orange-100/40 backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 hover:scale-110 hover:bg-white/80 hover:border-orange-300 active:scale-95">
+          <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 border-[#FF7300]/30 bg-white transition-all duration-300 hover:scale-110 hover:border-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.2)] active:scale-95">
             <ChevronRight className="h-3.5 w-3.5 sm:h-5 sm:w-5 text-gray-700" aria-hidden />
           </div>
         </button>

@@ -238,7 +238,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     return localStorage.getItem('hideConditionModal') === 'true';
   }, []);
 
-  const CONDIZIONE_OPTIONS = ['Mint', 'Near Mint', 'Excellent', 'Good', 'Light Played', 'Played', 'Poor'] as const;
+  const CONDIZIONE_OPTIONS = ['Near Mint', 'Lightly Played', 'Moderately Played', 'Heavily Played', 'Damaged'] as const;
   const [condizioneMinima, setCondizioneMinima] = useState<string>('HT');
   const [linguaCarta, setLinguaCarta] = useState<string | null>(null);
 
@@ -258,13 +258,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [reprintsLoading, setReprintsLoading] = useState(false);
 
     const CONDITION_OPTIONS_MAP: { value: string; label: string }[] = [
-    { value: 'mint', label: 'Mint' },
     { value: 'near_mint', label: 'Near Mint' },
-    { value: 'excellent', label: 'Excellent' },
-    { value: 'good', label: 'Good' },
-    { value: 'light_played', label: 'Light Played' },
-    { value: 'played', label: 'Played' },
-    { value: 'poor', label: 'Poor' },
+    { value: 'lightly_played', label: 'Lightly Played' },
+    { value: 'moderately_played', label: 'Moderately Played' },
+    { value: 'heavily_played', label: 'Heavily Played' },
+    { value: 'damaged', label: 'Damaged' },
   ];
 
   const LINGUA_CARTA = [
@@ -624,7 +622,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         sorted.sort((a, b) => a.seller_display_name.localeCompare(b.seller_display_name));
         break;
       case 'condition':
-        const condOrder = ['Mint', 'Near Mint', 'Excellent', 'Good', 'Light Played', 'Played', 'Poor'];
+        const condOrder = ['Near Mint', 'Lightly Played', 'Moderately Played', 'Heavily Played', 'Damaged'];
         sorted.sort((a, b) => {
           const idxA = condOrder.indexOf(a.condition ?? '');
           const idxB = condOrder.indexOf(b.condition ?? '');

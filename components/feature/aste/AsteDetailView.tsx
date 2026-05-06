@@ -350,13 +350,13 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       >
         <div className="container-content container-content-card-detail py-2">
           <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0 max-w-[46vw] rounded-full border border-white/45 bg-white/55 px-3 py-2 shadow-[0_10px_24px_rgba(29,49,96,0.15)] ring-1 ring-white/60 backdrop-blur-xl backdrop-saturate-150">
+            <div className="min-w-0 max-w-[46vw] rounded-full border border-white/60 bg-white/70 px-3 py-2 shadow-[0_10px_24px_rgba(29,49,96,0.15)] backdrop-blur-xl backdrop-saturate-150">
               <h2 className="truncate text-[12px] font-bold uppercase tracking-wide text-[#1D3160]">
                 {detail.title}
               </h2>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
-              <div className="flex items-center gap-1.5 rounded-full border border-white/45 bg-white/55 px-1.5 py-1 shadow-[0_10px_24px_rgba(29,49,96,0.15)] ring-1 ring-white/60 backdrop-blur-xl backdrop-saturate-150">
+              <div className="flex items-center gap-1.5 rounded-full border border-white/60 bg-white/70 px-1.5 py-1 shadow-[0_10px_24px_rgba(29,49,96,0.15)] backdrop-blur-xl backdrop-saturate-150">
                 {!isOwner && (
                   <button
                     type="button"
@@ -371,7 +371,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               </div>
               <Link
                 href="/aste/nuova"
-                className="flex h-10 items-center gap-1.5 rounded-full border border-white/45 bg-white/55 px-3 shadow-[0_10px_24px_rgba(29,49,96,0.15)] ring-1 ring-white/60 backdrop-blur-xl backdrop-saturate-150"
+                className="flex h-10 items-center gap-1.5 rounded-full border border-white/60 bg-white/70 px-3 shadow-[0_10px_24px_rgba(29,49,96,0.15)] backdrop-blur-xl backdrop-saturate-150"
                 aria-label={t('auctions.navCreate')}
               >
                 <PlusCircle className="h-4 w-4 text-[#FF7300]" aria-hidden />
@@ -966,7 +966,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               <div className="order-2 flex flex-col gap-5 lg:col-span-3 lg:order-3">
                 {/* Note: Stats views/watching moved to hero section */}
                 {/* Timer Glass Arancio (No Shiny) */}
-                <div className="hidden relative flex-col items-center justify-center rounded-2xl border border-[#FF7300]/30 bg-[#FF7300]/10 p-4 xl:p-6 backdrop-blur-md shadow-[0_8px_32px_rgba(255,115,0,0.12)] lg:flex overflow-hidden">
+                <div className="hidden relative flex-col items-center justify-center rounded-2xl border border-[#FF7300]/30 bg-[#FF7300]/10 p-4 px-6 xl:p-6 xl:px-8 backdrop-blur-md shadow-[0_8px_32px_rgba(255,115,0,0.12)] lg:flex overflow-hidden min-w-0 w-full">
                   {/* Subtle inner highlight to enhance the glass effect */}
                   <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
 

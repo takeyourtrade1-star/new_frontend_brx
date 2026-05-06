@@ -679,6 +679,13 @@ export function AuctionCreateWizard({
     return () => window.clearTimeout(timer);
   }, [stepId, isEmbedded]);
 
+  // Scroll to top when the confirmation screen ("Inserzione inviata") appears
+  useEffect(() => {
+    if (done) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [done]);
+
   if (done) {
     return (
       <div className="mx-auto max-w-lg rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">

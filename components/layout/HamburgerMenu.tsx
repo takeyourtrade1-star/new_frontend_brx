@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, Trophy } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, Trophy, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme-context';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -453,6 +453,7 @@ export function HamburgerMenu() {
                   { href: '/ordini/acquisti', icon: ShoppingBag, label: t('purchases.myPurchases') },
                   { href: '/account/lista-desideri', icon: Heart, label: t('purchases.wishlist') },
                   { href: '/account/sincronizzazione', icon: RefreshCw, label: t('account.sync') },
+                  { href: '/scambi', icon: ArrowLeftRight, label: 'I MIEI SCAMBI' },
                 ].map(({ href, icon: Icon, label }) => (
                   <Link
                     key={href}

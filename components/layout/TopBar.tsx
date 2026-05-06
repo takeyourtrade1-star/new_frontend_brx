@@ -467,7 +467,7 @@ export function TopBar() {
               </Link>
             </div>
             {/* Desktop: REGISTRATI button */}
-            <div className="hidden shrink-0 md:block">
+            <div className="hidden shrink-0 md:block ml-3">
               <Button
                 asChild
                 className="btn-orange-glow rounded-full border px-5 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -579,6 +579,14 @@ export function TopBar() {
                         onClick={() => setAccountMenuOpen(false)}
                       >
                         {t('account.sync')}
+                      </Link>
+                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
+                      <Link
+                        href="/scambi"
+                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                        onClick={() => setAccountMenuOpen(false)}
+                      >
+                        I MIEI SCAMBI
                       </Link>
                     </nav>
                   </div>
