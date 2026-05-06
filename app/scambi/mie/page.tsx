@@ -6,7 +6,7 @@ import { ScambiGuard } from '../ScambiGuard';
 import { ArrowLeftRight } from 'lucide-react';
 
 export const metadata = {
-  title: 'I miei scambi | Ebartex',
+  title: 'Scambi in corso | Ebartex',
 };
 
 export default function MieiScambiPage() {
@@ -21,7 +21,7 @@ export default function MieiScambiPage() {
         <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#FFF4EC]">
           <ArrowLeftRight className="h-8 w-8 text-[#FF7300]" />
         </div>
-        <h1 className="mb-3 text-2xl font-bold text-[#1D3160]">I miei scambi</h1>
+        <h1 className="mb-3 text-2xl font-bold text-[#1D3160]">Scambi in corso</h1>
         <p className="mb-8 max-w-md text-gray-500">
           Gestisci le tue proposte di scambio. Funzionalità in arrivo presto!
         </p>

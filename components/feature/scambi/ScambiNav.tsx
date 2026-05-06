@@ -90,7 +90,7 @@ export function ScambiNav() {
               className="group flex h-9 sm:h-12 shrink-0 items-center gap-1.5 sm:gap-2 rounded-full border-2 border-[#FF7300]/25 bg-[#FFF4EC]/70 px-3 sm:px-4 text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-[#FF7300] ring-1 ring-[#FF7300]/15 backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 hover:border-[#FF7300]/40 hover:bg-[#FFF4EC] hover:ring-[#FF7300]/25 active:scale-95"
             >
               <PlusCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform group-hover:rotate-90" aria-hidden />
-              <span className="whitespace-nowrap">Nuovo scambio</span>
+              <span className="whitespace-nowrap">Inventario Scambiabile</span>
             </Link>
           </nav>
         </div>
@@ -99,8 +99,8 @@ export function ScambiNav() {
   }
 
   const links: { href: string; label: string; Icon: LucideIcon; isPrimary?: boolean }[] = [
-    { href: '/scambi/nuova', label: 'Nuovo scambio', Icon: PlusCircle, isPrimary: true },
-    { href: '/scambi/mie', label: 'I miei scambi', Icon: List },
+    { href: '/scambi/nuova', label: 'Inventario Scambiabile', Icon: PlusCircle, isPrimary: true },
+    { href: '/scambi/mie', label: 'Scambi in corso', Icon: List },
   ];
 
   function isActive(href: string) {

@@ -582,7 +582,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
           <div className="overflow-hidden rounded-2xl border border-gray-200/60 bg-white/80 backdrop-blur-[1px] shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
             <div className="grid gap-6 p-4 sm:gap-8 sm:p-6 lg:grid-cols-12 lg:p-8">
               {/* Galleria */}
-              <div className="flex flex-col gap-4 lg:col-span-5">
+              <div className="order-1 flex flex-col gap-4 lg:col-span-5">
                 {/* Mobile: Unified Price + Timer Card */}
                 <div className="lg:hidden">
                   <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white via-white to-orange-50/40 p-4 shadow-sm">
@@ -612,7 +612,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                             <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                               {t('auctions.currentBid')}
                             </p>
-                            <p className="mt-1 text-3xl font-extrabold tracking-tight text-gray-900">
+                            <p className="mt-1 text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl">
                               {fmtEur(effectiveCurrentBidEur)}
                             </p>
                           </div>
@@ -622,7 +622,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                               {t('auctions.detailClosesIn')}
                             </p>
                             <p
-                              className="mt-1 font-mono text-xl font-bold tabular-nums tracking-tight text-gray-900"
+                              className="mt-1 font-mono text-lg font-bold tabular-nums tracking-tight text-gray-900 sm:text-xl"
                               suppressHydrationWarning
                             >
                               {formatHMS(msLeft)}
@@ -690,7 +690,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               </div>
 
               {/* Info centrale */}
-              <div className="flex flex-col gap-5 lg:col-span-4">
+              <div className="order-3 flex flex-col gap-5 lg:col-span-4 lg:order-2">
                 {/* Desktop details list — invariato */}
                 <div className="hidden divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white lg:block">
                   <div className="px-4 py-3 text-sm">
@@ -963,10 +963,10 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               </div>
 
               {/* Timer + cronologia */}
-              <div className="flex flex-col gap-5 lg:col-span-3">
+              <div className="order-2 flex flex-col gap-5 lg:col-span-3 lg:order-3">
                 {/* Note: Stats views/watching moved to hero section */}
                 {/* Timer Glass Arancio (No Shiny) */}
-                <div className="hidden relative flex-col items-center justify-center rounded-2xl border border-[#FF7300]/30 bg-[#FF7300]/10 p-6 backdrop-blur-md shadow-[0_8px_32px_rgba(255,115,0,0.12)] lg:flex overflow-hidden">
+                <div className="hidden relative flex-col items-center justify-center rounded-2xl border border-[#FF7300]/30 bg-[#FF7300]/10 p-4 xl:p-6 backdrop-blur-md shadow-[0_8px_32px_rgba(255,115,0,0.12)] lg:flex overflow-hidden">
                   {/* Subtle inner highlight to enhance the glass effect */}
                   <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
 
@@ -994,11 +994,11 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         {t('auctions.detailClosesIn')}
                       </p>
                       <p
-                        className="mt-3 flex items-baseline justify-center gap-1.5 font-mono text-[42px] font-bold tabular-nums tracking-tight text-[#9A3412] leading-none"
+                        className="mt-3 flex items-baseline justify-center gap-1.5 font-mono text-3xl font-bold tabular-nums tracking-tight text-[#9A3412] leading-none xl:text-4xl 3xl:text-5xl"
                         suppressHydrationWarning
                       >
                         {formatHMS(msLeft)}
-                        <span className="text-2xl font-black tracking-widest text-orange-800/80">
+                        <span className="text-xl font-black tracking-widest text-orange-800/80 xl:text-2xl">
                           {t('auctions.detailHoursSuffix').toUpperCase()}
                         </span>
                       </p>
@@ -1008,7 +1008,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
                 {/* Ultime Offerte — Design Premium Slider */}
                 <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-                  <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-6 py-4">
+                  <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3 xl:px-6 xl:py-4">
                     <h3 className="text-xs font-black uppercase tracking-[0.15em] text-gray-900">
                       {isOwner ? t('auctions.sellerBidHistoryTitle') : t('auctions.detailBidHistory')}
                     </h3>
@@ -1061,7 +1061,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                           <div
                             key={b.bidId}
                             style={{ animationDelay }}
-                            className={`group flex items-center justify-between px-6 py-3.5 transition-all duration-300 hover:bg-gray-50 animate-[fadeInUp_0.4s_ease-out_both] ${i !== visibleBids.length - 1 ? 'border-b border-gray-50' : ''} ${isMine ? 'border-l-4 border-l-[#FF7300] bg-orange-50/30' : 'border-l-4 border-l-transparent hover:border-l-gray-300'}`}
+                            className={`group flex items-center justify-between px-4 py-2.5 transition-all duration-300 hover:bg-gray-50 animate-[fadeInUp_0.4s_ease-out_both] xl:px-6 xl:py-3.5 ${i !== visibleBids.length - 1 ? 'border-b border-gray-50' : ''} ${isMine ? 'border-l-4 border-l-[#FF7300] bg-orange-50/30' : 'border-l-4 border-l-transparent hover:border-l-gray-300'}`}
                           >
                             <div className="flex items-center gap-3 min-w-0 transition-transform duration-300 group-hover:translate-x-1">
                               <div className="shrink-0 overflow-hidden rounded-sm ring-1 ring-black/5">
@@ -1069,7 +1069,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                               </div>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className={`text-[13px] ${isLeader ? 'font-black text-[#1D3160]' : 'font-bold text-gray-700'}`}>
+                                  <span className={`text-xs xl:text-[13px] ${isLeader ? 'font-black text-[#1D3160]' : 'font-bold text-gray-700'}`}>
                                     {b.username}
                                   </span>
                                   {isMine && (
@@ -1086,9 +1086,9 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                                 </span>
                               </div>
                             </div>
-                            <span className="shrink-0 text-[15px] font-black text-gray-900 transition-transform duration-300 group-hover:-translate-x-1">
-                              {fmtEur(b.amountEur)}
-                            </span>
+                            <span className="shrink-0 text-sm font-black text-gray-900 transition-transform duration-300 group-hover:-translate-x-1 xl:text-[15px]">
+                               {fmtEur(b.amountEur)}
+                             </span>
                           </div>
                         );
                       });

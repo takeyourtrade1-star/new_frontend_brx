@@ -6,7 +6,7 @@ import { ScambiGuard } from '../ScambiGuard';
 import { ArrowLeftRight } from 'lucide-react';
 
 export const metadata = {
-  title: 'Nuovo scambio | Ebartex',
+  title: 'Inventario Scambiabile | Ebartex',
 };
 
 export default function NuovoScambioPage() {
@@ -21,7 +21,7 @@ export default function NuovoScambioPage() {
         <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#FFF4EC]">
           <ArrowLeftRight className="h-8 w-8 text-[#FF7300]" />
         </div>
-        <h1 className="mb-3 text-2xl font-bold text-[#1D3160]">Nuovo scambio</h1>
+        <h1 className="mb-3 text-2xl font-bold text-[#1D3160]">Inventario Scambiabile</h1>
         <p className="mb-8 max-w-md text-gray-500">
           Crea una nuova proposta di scambio. Funzionalità in arrivo presto!
         </p>
