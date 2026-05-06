@@ -714,7 +714,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
         <div
           role="dialog"
           aria-modal="true"
-          className="animate-modal-enter relative z-[201] flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden rounded-none bg-white/95 shadow-2xl shadow-black/20 sm:h-auto sm:rounded-2xl"
+          className="animate-modal-enter relative z-[201] flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden rounded-none bg-white/95 shadow-2xl shadow-black/20 sm:h-auto sm:max-h-[85dvh] sm:rounded-2xl"
           style={{ backdropFilter: 'blur(20px) saturate(150%)' }}
         >
           {/* Header con gradient glass */}
@@ -734,7 +734,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
           </div>
 
           {/* Body */}
-          <div className="flex flex-1 flex-col lg:flex-row">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
             {/* Left — target card con glass */}
             <div className="flex shrink-0 flex-col gap-3 border-b border-gray-100/60 bg-gradient-to-b from-gray-50/80 to-white/60 p-4 lg:w-72 lg:border-b-0 lg:border-r lg:border-gray-100/60 lg:bg-white/80">
               <div className="animate-fade-in-up text-[10px] font-bold uppercase tracking-wider text-gray-400">
@@ -772,7 +772,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
             </div>
 
             {/* Right — inventory */}
-            <div className="flex min-w-0 flex-1 flex-col overflow-hidden p-4">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4">
               <div className="animate-fade-in-up mb-2 flex flex-wrap items-center justify-between gap-2" style={{ animationDelay: '40ms' }}>
                 <span className="text-xs font-black uppercase tracking-tight text-[#1D3160]">Cosa offri</span>
                 <div className="flex items-center gap-2">
@@ -911,7 +911,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
       <div
         role="dialog"
         aria-modal="true"
-        className="animate-modal-enter relative z-[201] flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden rounded-none bg-white/95 shadow-2xl shadow-black/20 sm:h-auto sm:rounded-2xl"
+        className="animate-modal-enter relative z-[201] flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden rounded-none bg-white/95 shadow-2xl shadow-black/20 sm:h-auto sm:max-h-[85dvh] sm:rounded-2xl"
         style={{ backdropFilter: 'blur(20px) saturate(150%)' }}
       >
         {/* Header glass */}
@@ -931,7 +931,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 flex-col lg:flex-row">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
           {/* Left — their proposal */}
           <div className="flex shrink-0 flex-col gap-3 border-b border-gray-100/60 bg-gradient-to-b from-gray-50/80 to-white/60 p-4 lg:w-72 lg:border-b-0 lg:border-r lg:border-gray-100/60 lg:bg-white/80">
             <div className="animate-fade-in-up text-[10px] font-bold uppercase tracking-wider text-gray-400">
@@ -999,7 +999,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
           </div>
 
           {/* Right — your counter */}
-          <div className={`flex min-w-0 flex-1 flex-col p-4 ${!counterEditing ? 'hidden lg:flex' : ''}`}>
+          <div className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4 ${!counterEditing ? 'hidden lg:flex' : ''}`}>
             {!counterEditing ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <div className="animate-fade-in-up flex h-12 w-12 items-center justify-center rounded-full bg-gray-100/80 shadow-inner">
@@ -1036,7 +1036,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
                   />
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
+                <div className="min-h-0 flex-1 overflow-y-auto">
                   {viewMode === 'grid' ? (
                     <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
                       {requestedInventoryItems.map((item, i) => (
