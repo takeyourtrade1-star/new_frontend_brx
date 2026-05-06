@@ -11,7 +11,7 @@ import type { ScambioUI, TradePayload } from '@/components/feature/scambi/scambi
 import { MOCK_INVENTORY_A, MOCK_INVENTORY_B } from './mock-trade-inventories';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import type { InventoryItemResponse } from '@/lib/api/sync-client';
-import { fetchAllInventoryItems } from '@/lib/sync/inventory-pagination';
+import { fetchAllInventoryItems } from '@/lib/sync/fetch-all-inventory-items';
 import { fetchCardsByBlueprintIds, type CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { getCardImageUrl } from '@/lib/assets';
 import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';

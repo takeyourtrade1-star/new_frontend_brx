@@ -12,7 +12,7 @@ import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { getGameLabel, buildBreadcrumbsFromCard, type CardDocument } from '@/lib/product-detail';
 import { syncClient, type ListingItem } from '@/lib/api/sync-client';
-import { fetchAllInventoryItems } from '@/lib/sync/inventory-pagination';
+import { fetchAllInventoryItems } from '@/lib/sync/fetch-all-inventory-items';
 import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
 import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { AuctionCreateWizard } from '@/components/feature/aste/create/AuctionCreateWizard';

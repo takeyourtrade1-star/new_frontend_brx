@@ -1,4 +1,3 @@
-import { syncClient } from '@/lib/api/sync-client';
 import type { InventoryItemResponse } from '@/lib/api/sync-client';
 
 type InventoryPage = {
@@ -38,13 +37,3 @@ export async function collectInventoryPages(
   };
 }
 
-export function fetchAllInventoryItems(
-  userId: string,
-  accessToken: string,
-  pageSize = DEFAULT_INVENTORY_PAGE_SIZE
-): Promise<{ items: InventoryItemResponse[]; total: number }> {
-  return collectInventoryPages(
-    (limit, offset) => syncClient.getInventory(userId, accessToken, limit, offset),
-    pageSize
-  );
-}

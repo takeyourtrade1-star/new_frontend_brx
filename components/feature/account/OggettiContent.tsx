@@ -45,7 +45,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { syncClient } from '@/lib/api/sync-client';
 import type { InventoryItemResponse, SyncStatusResponse } from '@/lib/api/sync-client';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
-import { fetchAllInventoryItems } from '@/lib/sync/inventory-pagination';
+import { fetchAllInventoryItems } from '@/lib/sync/fetch-all-inventory-items';
 import {
   InventoryEditModal,
   INVENTORY_CONDITION_OPTIONS,
