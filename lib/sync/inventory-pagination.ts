@@ -36,4 +36,3 @@ export async function collectInventoryPages(
     total: reportedTotal ?? allItems.length,
   };
 }
-
