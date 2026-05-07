@@ -11,16 +11,25 @@ import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
-import { roundMoney, minNextBidEur } from '@/lib/auction/bid-math';
+import { minNextBidEur, parseLocaleMoneyInput, roundMoney, roundUpToHalfStep } from '@/lib/auction/bid-math';
 import { AuctionBidModal } from '@/components/feature/aste/AuctionBidModal';
 import { AuctionShareButton } from '@/components/feature/aste/AuctionShareButton';
 import { AuctionQrButton } from '@/components/feature/aste/AuctionQrButton';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
+import { LoginGateModal } from '@/components/feature/auth/LoginGateModal';
 import type { MessageKey } from '@/lib/i18n/messages/en';
-import { useAuctionDetail, useAuctionBids, useAuctionList, useAuctionWebSocket } from '@/lib/hooks/use-auctions';
+import {
+  useAuctionDetail,
+  useAuctionBids,
+  useAuctionList,
+  useAuctionWebSocket,
+  useCancelProxyLimit,
+  useUpdateProxyLimit,
+} from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, apiBidToBidRow, type AuctionUI, type BidRowUI } from '@/lib/auction/auction-adapter';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { MascotteLoader } from '@/components/dev/MascotteLoader';
+import { enrichAuctionsWithPublicUsers, enrichBidRowsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
 
 const PASTEL_GRADIENTS = [
   { gradient: 'from-rose-300/20 via-rose-200/10 to-transparent', border: 'border-rose-300/60', shadow: 'shadow-rose-200/30' },
@@ -57,6 +66,10 @@ function sellerBannerHandle(seller: string): string {
 function sameUserId(a: string | null | undefined, b: string | null | undefined): boolean {
   if (!a || !b) return false;
   return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+function formatAuctionEur(value: number): string {
+  return roundUpToHalfStep(value).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
 }
 
 
@@ -96,12 +109,12 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const currentUserId = currentUser?.id ?? null;
   const isAuthenticated = currentUser != null;
 
-  const detail = useMemo(() => {
+  const baseDetail = useMemo(() => {
     if (!detailRes?.data) return null;
     return apiToAuctionUI(detailRes.data, bidsRes?.total ?? 0);
   }, [detailRes, bidsRes]);
 
-  const bidRows: BidRowUI[] = useMemo(
+  const baseBidRows: BidRowUI[] = useMemo(
     () =>
       (bidsRes?.data ?? [])
         .map(apiBidToBidRow)
@@ -112,18 +125,60 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         }),
     [bidsRes]
   );
+  const [detail, setDetail] = useState<AuctionUI | null>(null);
+  const [bidRows, setBidRows] = useState<BidRowUI[]>([]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const resolveDetailSeller = async () => {
+      if (!baseDetail) {
+        setDetail(null);
+        return;
+      }
+      const [resolved] = await enrichAuctionsWithPublicUsers([baseDetail]);
+      if (!isCancelled) {
+        setDetail(resolved ?? baseDetail);
+      }
+    };
+    resolveDetailSeller();
+    return () => {
+      isCancelled = true;
+    };
+  }, [baseDetail]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const resolveBidderNames = async () => {
+      if (baseBidRows.length === 0) {
+        setBidRows([]);
+        return;
+      }
+      const resolved = await enrichBidRowsWithPublicUsers(baseBidRows);
+      if (!isCancelled) {
+        setBidRows(resolved);
+      }
+    };
+    resolveBidderNames();
+    return () => {
+      isCancelled = true;
+    };
+  }, [baseBidRows]);
 
   const now = useNowTick();
 
-  const detailImages = useMemo(
-    () => (detail ? [detail.imageFront, detail.imageBack].filter(Boolean) : []),
-    [detail]
-  );
+  const detailImages = useMemo(() => {
+    if (!detail) return [] as string[];
+    if (detail.photoUrls && detail.photoUrls.length > 0) return detail.photoUrls;
+    return [detail.imageFront, detail.imageBack].filter(Boolean);
+  }, [detail]);
   const [imgIdx, setImgIdx] = useState(0);
   const [bidModalOpen, setBidModalOpen] = useState(false);
+  const [loginGateOpen, setLoginGateOpen] = useState(false);
   const [myLastOfferEur, setMyLastOfferEur] = useState<number | null>(null);
   const [myMaxBidEur, setMyMaxBidEur] = useState<number | null>(null);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [proxyModalOpen, setProxyModalOpen] = useState(false);
+  const [proxyInput, setProxyInput] = useState('');
+  const [proxyInputError, setProxyInputError] = useState<string | null>(null);
   const [showMaxBidRemovedToast, setShowMaxBidRemovedToast] = useState(false);
   const [bidToastAmount, setBidToastAmount] = useState<number | null>(null);
   const [stickyTop, setStickyTop] = useState(HEADER_OFFSET);
@@ -133,6 +188,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const asteNavRef = useRef<HTMLDivElement>(null);
   const [mobileSection, setMobileSection] = useState<string | null>('auction');
   const [bidsExpanded, setBidsExpanded] = useState(false);
+  const updateProxyLimitMutation = useUpdateProxyLimit(Number.isNaN(numericId) ? 0 : numericId);
+  const cancelProxyLimitMutation = useCancelProxyLimit(Number.isNaN(numericId) ? 0 : numericId);
 
   useEffect(() => {
     const header = document.querySelector('header');
@@ -194,12 +251,31 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   }, [stickyTop, asteNavHeight, numericId]);
 
   const { data: similarData } = useAuctionList({ limit: 3 });
-  const similarCards = useMemo(() => {
+  const similarCardsBase = useMemo(() => {
     return (similarData?.data ?? [])
       .filter((a) => a.id !== numericId)
       .slice(0, 3)
       .map((a) => apiToAuctionUI(a));
   }, [similarData, numericId]);
+  const [similarCards, setSimilarCards] = useState<AuctionUI[]>([]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const resolveSimilarSellers = async () => {
+      if (similarCardsBase.length === 0) {
+        setSimilarCards([]);
+        return;
+      }
+      const resolved = await enrichAuctionsWithPublicUsers(similarCardsBase);
+      if (!isCancelled) {
+        setSimilarCards(resolved);
+      }
+    };
+    resolveSimilarSellers();
+    return () => {
+      isCancelled = true;
+    };
+  }, [similarCardsBase]);
 
   const myLastOfferFromHistoryEur = useMemo(() => {
     if (!currentUserId) return null;
@@ -256,7 +332,58 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     !isEnded &&
     currentUserId != null &&
     sameUserId(detail.highestBidderId, currentUserId);
-  const fmtEur = (n: number) => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+  const fmtEur = (n: number) => formatAuctionEur(n);
+  const proxyBidIsWinning = !isOwner && !isEnded && myMaxBidEur != null && isWinning && myMaxBidEur >= detail.currentBidEur;
+  const proxyBidOutbid = !isOwner && !isEnded && myMaxBidEur != null && !proxyBidIsWinning;
+
+  const openProxyModal = () => {
+    if (myMaxBidEur == null) return;
+    const normalized = roundUpToHalfStep(myMaxBidEur);
+    setProxyInput(
+      Number.isInteger(normalized)
+        ? String(normalized)
+        : normalized.toFixed(1).replace('.', ',')
+    );
+    setProxyInputError(null);
+    setProxyModalOpen(true);
+  };
+
+  const closeProxyModal = () => {
+    setProxyModalOpen(false);
+    setProxyInputError(null);
+  };
+
+  const stopProxyBidding = async () => {
+    try {
+      await cancelProxyLimitMutation.mutateAsync();
+      setMyMaxBidEur(null);
+      setShowMaxBidRemovedToast(true);
+      closeProxyModal();
+    } catch (err) {
+      setProxyInputError(err instanceof Error ? err.message : 'Impossibile disattivare il proxy bidding.');
+    }
+  };
+
+  const increaseProxyLimit = async () => {
+    if (myMaxBidEur == null) return;
+    const parsed = parseLocaleMoneyInput(proxyInput);
+    if (!Number.isFinite(parsed)) {
+      setProxyInputError('Inserisci un importo valido.');
+      return;
+    }
+    const nextLimit = roundUpToHalfStep(parsed);
+    if (nextLimit <= myMaxBidEur) {
+      setProxyInputError(`Il nuovo limite deve essere superiore a ${fmtEur(myMaxBidEur)}.`);
+      return;
+    }
+    try {
+      const res = await updateProxyLimitMutation.mutateAsync({ maxAmount: nextLimit });
+      setMyMaxBidEur(res.data.proxy_limit);
+      closeProxyModal();
+    } catch (err) {
+      setProxyInputError(err instanceof Error ? err.message : 'Impossibile aggiornare il limite proxy.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
@@ -313,6 +440,9 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                 ) : (
                   <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-gray-500 sm:text-xs">
                     <span>{t('auctions.detailSoldBy')}: <span className="font-bold text-gray-900">{detail.sellerDisplayName}</span></span>
+                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-600">
+                      {detail.sellerAccountType === 'business' ? 'Business' : 'Privato'}
+                    </span>
                     <FlagIcon country={detail.sellerCountry} size="sm" />
                     <span className="text-gray-300">|</span>
                     <div className="flex items-center">
@@ -390,7 +520,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             >
               <p className="font-semibold">
                 {t('auctions.bidSuccessToast', {
-                  amount: bidToastAmount.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }),
+                  amount: formatAuctionEur(bidToastAmount),
                 })}
               </p>
               <p className="mt-1 text-xs leading-relaxed text-emerald-900">{t('auctions.bidRulesReminder')}</p>
@@ -409,144 +539,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               <p className="mt-1 text-xs text-orange-700">{t('auctions.maxBidRemovedToastBody')}</p>
             </div>
           )}
-
-          {/* Banner Offerta Massima Attiva */}
-          {!isOwner && !isEnded && myMaxBidEur != null && (() => {
-            const maxBidStillWinning = isWinning && myMaxBidEur >= detail.currentBidEur;
-            const maxBidOutbid = !maxBidStillWinning;
-
-            return maxBidOutbid ? (
-              <div
-                className="mb-6 rounded-xl border-2 border-red-300 bg-gradient-to-r from-red-50 via-rose-50 to-red-50 px-4 py-4 shadow-md shadow-red-500/10 animate-[fadeInDown_0.5s_ease-out]"
-                role="status"
-              >
-                <div className="flex items-start gap-3 sm:items-center">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500 shadow-lg shadow-red-500/30">
-                    <Zap className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-red-900">
-                      {t('auctions.maxBidOutbidBannerTitle')}
-                    </p>
-                    <p className="mt-0.5 text-sm text-red-700">
-                      {t('auctions.maxBidOutbidBannerBody', { amount: fmtEur(myMaxBidEur), currentPrice: fmtEur(detail.currentBidEur) })}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right hidden sm:block">
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-red-500 line-through">
-                      {fmtEur(myMaxBidEur)}
-                    </span>
-                    <p className="text-lg font-extrabold text-red-700">
-                      {fmtEur(detail.currentBidEur)}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-2 border-t border-red-200/50 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCancelConfirm(false);
-                      setBidModalOpen(true);
-                    }}
-                    className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-red-700"
-                  >
-                    {t('auctions.maxBidOutbidCta')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setMyMaxBidEur(null); setShowMaxBidRemovedToast(true); }}
-                    className="text-xs font-semibold text-red-500 underline underline-offset-2 transition hover:text-red-700"
-                  >
-                    {t('auctions.maxBidCancel')}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div
-                className="mb-6 rounded-xl border border-amber-300/60 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 px-4 py-4 shadow-md shadow-orange-500/10 animate-[fadeInDown_0.5s_ease-out]"
-                role="status"
-              >
-                <div className="flex items-start gap-3 sm:items-center">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FF7300] shadow-lg shadow-orange-500/30">
-                    <Zap className="h-5 w-5 text-white" fill="currentColor" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-bold text-gray-900">
-                        {t('auctions.maxBidActiveBannerTitle')}
-                      </p>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
-                        <Crown className="h-3 w-3" />
-                        {t('auctions.maxBidWinningBadge')}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-sm text-gray-600">
-                      {t('auctions.maxBidActiveBannerBody', { amount: fmtEur(myMaxBidEur) })}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right hidden sm:block">
-                    <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                      {t('auctions.maxBidAmountLabel')}
-                    </span>
-                    <p className="text-lg font-bold text-[#FF7300]">
-                      {fmtEur(myMaxBidEur)}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-2 border-t border-amber-200/50 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCancelConfirm(false);
-                      setBidModalOpen(true);
-                    }}
-                    className="text-xs font-semibold text-gray-600 underline decoration-gray-400 underline-offset-2 transition hover:text-[#FF7300]"
-                  >
-                    {t('auctions.maxBidEdit')}
-                  </button>
-                  <span className="text-gray-300">|</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowCancelConfirm(true)}
-                    className="text-xs font-semibold text-gray-500 transition hover:text-red-600"
-                  >
-                    {t('auctions.maxBidCancel')}
-                  </button>
-                </div>
-
-                {showCancelConfirm && (
-                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 animate-[fadeInDown_0.3s_ease-out]">
-                    <p className="text-xs font-medium text-red-800">
-                      {t('auctions.maxBidCancelConfirmTitle')}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-red-600">
-                      {t('auctions.maxBidCancelConfirmBody')}
-                    </p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMyMaxBidEur(null);
-                          setShowCancelConfirm(false);
-                          setShowMaxBidRemovedToast(true);
-                        }}
-                        className="rounded-md bg-red-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-red-700"
-                      >
-                        {t('auctions.maxBidCancelConfirmYes')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowCancelConfirm(false)}
-                        className="rounded-md border border-red-300 bg-white px-2.5 py-1 text-[10px] font-semibold text-red-700 transition hover:bg-red-50"
-                      >
-                        {t('auctions.maxBidCancelConfirmNo')}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
 
           {/* Banner "Stai vincendo" */}
           {isWinning && (
@@ -908,50 +900,41 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
                     {/* Mobile CTA separator */}
                     <div className="border-t-2 border-dashed border-orange-200/60 pt-4 lg:border-0 lg:pt-0">
-
-                      {/* CTA Principale — condizionata all'autenticazione */}
-                      {isAuthenticated ? (
-                        <button
-                          type="button"
-                          onClick={() => setBidModalOpen(true)}
-                          className="btn-orange-glow group relative w-full overflow-hidden rounded-xl border-2 py-3.5 text-center bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] hover:-translate-y-0.5 active:translate-y-0 sm:py-4"
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-[#FF9A5C] via-[#FF8A3D] to-[#FF7300] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                          <div className="relative flex items-center justify-between gap-2 px-4 sm:px-6">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold text-white sm:text-base">
-                                {t('auctions.bidButtonChoose')}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-base font-extrabold text-white sm:text-lg">
-                                {fmtEur(minNextBidEur(effectiveCurrentBidEur))}
-                              </span>
-                              <svg
-                                className="h-4 w-4 text-white transition-transform duration-300 group-hover:translate-x-0.5 sm:h-5 sm:w-5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={2.5}
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                              </svg>
-                            </div>
+                      {/* CTA principale — stesso layout sempre. Per non loggati apre il LoginGateModal. */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isAuthenticated) {
+                            setBidModalOpen(true);
+                          } else {
+                            setLoginGateOpen(true);
+                          }
+                        }}
+                        className="btn-orange-glow group relative w-full overflow-hidden rounded-xl border-2 py-3.5 text-center bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] hover:-translate-y-0.5 active:translate-y-0 sm:py-4"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#FF9A5C] via-[#FF8A3D] to-[#FF7300] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                        <div className="relative flex items-center justify-between gap-2 px-4 sm:px-6">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-white sm:text-base">
+                              {t('auctions.bidButtonChoose')}
+                            </span>
                           </div>
-                        </button>
-                      ) : (
-                        <Link
-                          href="/login"
-                          className="group flex w-full items-center justify-center gap-3 rounded-xl border-2 border-slate-900 bg-slate-900 py-3.5 text-center transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 sm:py-4"
-                        >
-                          <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-                          </svg>
-                          <span className="text-sm font-bold uppercase tracking-wide text-white sm:text-base">
-                            Accedi o Registrati per offrire
-                          </span>
-                        </Link>
-                      )}
+                          <div className="flex items-center gap-2">
+                            <span className="text-base font-extrabold text-white sm:text-lg">
+                              {fmtEur(minNextBidEur(effectiveCurrentBidEur))}
+                            </span>
+                            <svg
+                              className="h-4 w-4 text-white transition-transform duration-300 group-hover:translate-x-0.5 sm:h-5 sm:w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2.5}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                          </div>
+                        </div>
+                      </button>
                     </div>
 
                     {/* Helper text */}
@@ -1005,6 +988,46 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     </div>
                   )}
                 </div>
+
+                {!isOwner && !isEnded && myMaxBidEur != null && (
+                  <button
+                    type="button"
+                    onClick={openProxyModal}
+                    className={`w-full rounded-xl border px-4 py-3 text-left shadow-sm transition hover:shadow-md ${
+                      proxyBidOutbid
+                        ? 'border-red-300 bg-red-50/90'
+                        : 'border-orange-200 bg-orange-50/90'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span
+                          className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                            proxyBidOutbid ? 'bg-red-500 text-white' : 'bg-[#FF7300] text-white'
+                          }`}
+                        >
+                          <Zap className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className={`text-sm font-extrabold uppercase tracking-wide ${proxyBidOutbid ? 'text-red-800' : 'text-[#1D3160]'}`}>
+                            Proxy bidding attivo
+                          </p>
+                          <p className={`text-xs ${proxyBidOutbid ? 'text-red-700' : 'text-gray-600'}`}>
+                            {proxyBidOutbid
+                              ? 'Il tuo limite è stato superato. Premi per alzarlo o interrompere.'
+                              : 'Premi per alzare il limite massimo o interrompere il proxy.'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Limite</p>
+                        <p className={`text-sm font-extrabold ${proxyBidOutbid ? 'text-red-700' : 'text-[#FF7300]'}`}>
+                          {fmtEur(myMaxBidEur)}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                )}
 
                 {/* Ultime Offerte — Design Premium Slider */}
                 <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
@@ -1120,8 +1143,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             {/* Mobile: horizontal scroll carousel */}
             <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 scrollbar-hide lg:hidden">
               {similarCards.map((a) => {
-                const fmtEur = (n: number) =>
-                  n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+                const fmtEur = (n: number) => formatAuctionEur(n);
                 const timeLeft = formatBannerCountdown(a.hoursFromNow);
                 return (
                   <Link
@@ -1168,8 +1190,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             {/* Desktop: grid 3 colonne (invariato) */}
             <div className="hidden gap-5 sm:grid-cols-2 lg:grid lg:grid-cols-3">
               {similarCards.map((a) => {
-                const fmtEur = (n: number) =>
-                  n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+                const fmtEur = (n: number) => formatAuctionEur(n);
                 const timeLeft = formatBannerCountdown(a.hoursFromNow);
                 return (
                   <Link
@@ -1273,6 +1294,19 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       </section>
 
       {showBuyerBid && (
+        <LoginGateModal
+          open={loginGateOpen}
+          onClose={() => setLoginGateOpen(false)}
+          onSuccess={() => {
+            setLoginGateOpen(false);
+            setBidModalOpen(true);
+          }}
+          title={`Accedi per offrire ${fmtEur(minNextBidEur(effectiveCurrentBidEur))}`}
+          subtitle="Bastano pochi secondi per partecipare all'asta."
+        />
+      )}
+
+      {showBuyerBid && (
         <AuctionBidModal
           open={bidModalOpen}
           onClose={() => setBidModalOpen(false)}
@@ -1294,6 +1328,72 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             setBidToastAmount(roundMoney(amountEur));
           }}
         />
+      )}
+
+      {proxyModalOpen && myMaxBidEur != null && (
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
+            <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Proxy bidding</p>
+            <h3 className="mt-1 text-lg font-extrabold text-[#1D3160]">Gestisci il tuo limite massimo</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Puoi aumentare il limite senza inviare una nuova offerta manuale. Il sistema aggiorna solo il tuo tetto massimo.
+            </p>
+
+            <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Limite attuale</p>
+              <p className="text-xl font-extrabold text-[#FF7300]">{fmtEur(myMaxBidEur)}</p>
+            </div>
+
+            <div className="mt-4">
+              <label htmlFor="proxy-limit-input" className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-600">
+                Nuovo limite massimo
+              </label>
+              <input
+                id="proxy-limit-input"
+                type="text"
+                inputMode="decimal"
+                value={proxyInput}
+                onChange={(e) => {
+                  setProxyInput(e.target.value);
+                  setProxyInputError(null);
+                }}
+                placeholder="Es. 24,5"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base font-semibold text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20"
+              />
+              {proxyInputError && (
+                <p className="mt-1 text-xs font-medium text-red-600">{proxyInputError}</p>
+              )}
+            </div>
+
+            <div className="mt-5 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={increaseProxyLimit}
+                disabled={updateProxyLimitMutation.isPending || cancelProxyLimitMutation.isPending}
+                className="flex-1 rounded-lg bg-[#FF7300] px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
+              >
+                {updateProxyLimitMutation.isPending ? 'Salvataggio...' : 'Salva nuovo limite'}
+              </button>
+              <button
+                type="button"
+                onClick={closeProxyModal}
+                disabled={updateProxyLimitMutation.isPending || cancelProxyLimitMutation.isPending}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
+              >
+                Chiudi
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={stopProxyBidding}
+              disabled={updateProxyLimitMutation.isPending || cancelProxyLimitMutation.isPending}
+              className="mt-3 w-full rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-red-700 transition hover:bg-red-100"
+            >
+              {cancelProxyLimitMutation.isPending ? 'Disattivazione...' : 'Interrompi proxy bidding'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

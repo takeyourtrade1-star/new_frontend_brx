@@ -11,16 +11,16 @@ import {
   AuctionListTable,
   AuctionResultsGrid,
   AuctionViewToggle,
-  type EnrichedAuction,
+  MoneyWithSmallCents,
 } from '@/components/feature/aste/auctions-browse-shared';
 import { useAuctionList, useDeleteAuction } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
-import { FlagIcon } from '@/components/ui/FlagIcon';
 import { isAuctionEndedUI } from '@/lib/auction/auction-adapter';
 import { formatHMS } from '@/components/feature/aste/auctions-browse-shared';
+import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
 
 const STORAGE_KEY = 'mie';
 
@@ -46,12 +46,31 @@ export function AsteMyListingsPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteToast, setDeleteToast] = useState(false);
 
-  const mine: AuctionUI[] = useMemo(() => {
+  const mineBase: AuctionUI[] = useMemo(() => {
     if (!listData?.data || !userId) return [];
     return listData.data
       .filter((a) => a.created_by_user_id === userId)
       .map((a) => apiToAuctionUI(a));
   }, [listData, userId]);
+  const [mine, setMine] = useState<AuctionUI[]>([]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const resolveSellers = async () => {
+      if (mineBase.length === 0) {
+        setMine([]);
+        return;
+      }
+      const resolved = await enrichAuctionsWithPublicUsers(mineBase);
+      if (!isCancelled) {
+        setMine(resolved);
+      }
+    };
+    resolveSellers();
+    return () => {
+      isCancelled = true;
+    };
+  }, [mineBase]);
 
   const [viewMode, setViewMode] = useState<AsteViewMode>('grid');
 
@@ -207,9 +226,7 @@ function MyAuctionGrid({
                     <p className="text-[9px] font-semibold uppercase tracking-wider text-gray-500">
                       {ended ? t('auctions.finalPriceLabel') : t('auctions.currentBid')}
                     </p>
-                    <p className="text-base font-bold text-primary">
-                      {a.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
-                    </p>
+                    <MoneyWithSmallCents value={a.currentBidEur} className="text-base font-bold text-primary" />
                   </div>
                 </div>
               </div>
@@ -288,9 +305,9 @@ function MyAuctionTable({
                   </Link>
                   <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                     <p className="text-gray-500">{t('auctions.currentBid')}</p>
-                    <p className="text-right font-bold text-[#FF7300]">
-                      {a.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
-                    </p>
+                    <div className="text-right">
+                      <MoneyWithSmallCents value={a.currentBidEur} className="font-bold text-[#FF7300]" />
+                    </div>
                     <p className="text-gray-500">{t('auctions.colBids')}</p>
                     <p className="text-right font-semibold text-gray-800">{a.bidCount}</p>
                   </div>
@@ -363,7 +380,7 @@ function MyAuctionTable({
                     </Link>
                   </td>
                   <td className="p-3 font-bold text-[#FF7300]">
-                    {a.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                    <MoneyWithSmallCents value={a.currentBidEur} />
                   </td>
                   <td className="p-3 font-semibold text-gray-800">{a.bidCount}</td>
                   <td className="p-3">

@@ -12,8 +12,37 @@ import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { isAuctionEndedUI, type AuctionUI, type AuctionGame } from '@/lib/auction/auction-adapter';
+import { roundUpToHalfStep } from '@/lib/auction/bid-math';
 
 export type EnrichedAuction = AuctionUI;
+
+const EURO_PARTS_FORMATTER = new Intl.NumberFormat('it-IT', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+export function MoneyWithSmallCents({ value, className = '' }: { value: number; className?: string }) {
+  const roundedValue = roundUpToHalfStep(value);
+  const parts = EURO_PARTS_FORMATTER.formatToParts(roundedValue);
+  const main = parts
+    .filter((p) => p.type !== 'fraction' && p.type !== 'currency')
+    .map((p) => p.value)
+    .join('')
+    .trim();
+  const fraction = parts.find((p) => p.type === 'fraction')?.value ?? '00';
+  const decimal = parts.find((p) => p.type === 'decimal')?.value ?? ',';
+
+  return (
+    <span className={className}>
+      {main}
+      <span className="align-top text-[0.65em] font-semibold leading-none">
+        {decimal}
+        {fraction}
+      </span>
+      <span className="ml-1">€</span>
+    </span>
+  );
+}
 
 export function formatHMS(ms: number): string {
   if (ms <= 0) return '00:00:00';
@@ -189,9 +218,7 @@ export function AuctionGridCard({
             <p className="text-[9px] font-semibold uppercase tracking-wider text-gray-500">
               {ended ? t('auctions.finalPriceLabel') : t('auctions.currentBid')}
             </p>
-            <p className="text-base font-bold text-primary">
-              {auction.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
-            </p>
+            <MoneyWithSmallCents value={auction.currentBidEur} className="text-base font-bold text-primary" />
           </div>
           <div className="text-right">
             <p className="text-[9px] font-semibold uppercase tracking-wider text-gray-500">{t('auctions.colBids')}</p>
@@ -254,19 +281,17 @@ export function AuctionListTable({
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                     <p className="text-gray-500">{t('auctions.currentBid')}</p>
-                    <p className="text-right font-bold text-[#FF7300]">
-                      {a.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
-                    </p>
+                    <div className="text-right">
+                      <MoneyWithSmallCents value={a.currentBidEur} className="font-bold text-[#FF7300]" />
+                    </div>
                     <p className="text-gray-500">{t('auctions.colBids')}</p>
                     <p className="text-right font-semibold text-gray-800">{a.bidCount}</p>
                     {myBidById && (
                       <>
                         <p className="text-gray-500">{t('auctions.colMyBid')}</p>
-                        <p className="text-right font-semibold text-gray-900">
-                          {myBid != null
-                            ? myBid.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-                            : '—'}
-                        </p>
+                        <div className="text-right font-semibold text-gray-900">
+                          {myBid != null ? <MoneyWithSmallCents value={myBid} /> : '—'}
+                        </div>
                       </>
                     )}
                   </div>
@@ -344,14 +369,12 @@ export function AuctionListTable({
                       </span>
                     </div>
                   </td>
-                  <td className="p-3 font-bold text-[#FF7300]">
-                    {a.currentBidEur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                  <td className="p-3">
+                    <MoneyWithSmallCents value={a.currentBidEur} className="font-bold text-[#FF7300]" />
                   </td>
                   {myBidById && (
                     <td className="p-3 font-semibold text-gray-900">
-                      {myBid != null
-                        ? myBid.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-                        : '—'}
+                      {myBid != null ? <MoneyWithSmallCents value={myBid} /> : '—'}
                     </td>
                   )}
                   <td className="p-3 font-semibold text-gray-800">{a.bidCount}</td>

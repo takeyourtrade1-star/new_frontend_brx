@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
-import { minNextBidEur, roundMoney } from '@/lib/auction/bid-math';
+import { minNextBidEur, parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
 import { usePlaceBid } from '@/lib/hooks/use-auctions';
 
 const ORANGE = '#FF7300';
@@ -104,11 +104,11 @@ export function AuctionBidModal({
 
     if (effectiveCurrentBidEur <= 100) {
 
-      return [a, roundMoney(a + 4), roundMoney(a + 9)];
+      return [a, roundUpToHalfStep(a + 4), roundUpToHalfStep(a + 9)];
 
     }
 
-    return [a, roundMoney(a + 10), roundMoney(a + 25)];
+    return [a, roundUpToHalfStep(a + 10), roundUpToHalfStep(a + 25)];
 
   }, [effectiveCurrentBidEur, minBid]);
 
@@ -191,12 +191,8 @@ export function AuctionBidModal({
   const placeBidMutation = usePlaceBid(auctionId ?? 0);
 
   const parsedInput = useMemo(() => {
-    let raw = input.trim();
-    if (raw.includes(',')) {
-      raw = raw.replace(/\./g, '').replace(',', '.');
-    }
-    const n = parseFloat(raw);
-    return Number.isFinite(n) ? roundMoney(n) : NaN;
+    const n = parseLocaleMoneyInput(input);
+    return Number.isFinite(n) ? roundUpToHalfStep(n) : NaN;
   }, [input]);
 
   const displayBidAmount = Number.isFinite(parsedInput) ? parsedInput : minBid;

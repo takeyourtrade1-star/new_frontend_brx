@@ -31,10 +31,18 @@ async function proxy(request: NextRequest) {
   const auth =
     request.headers.get('authorization') ||
     request.headers.get('Authorization');
+  const idempotencyKey =
+    request.headers.get('idempotency-key') ||
+    request.headers.get('Idempotency-Key');
+  const requestId =
+    request.headers.get('x-request-id') ||
+    request.headers.get('X-Request-ID');
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
     ...(auth ? { Authorization: auth } : {}),
+    ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+    ...(requestId ? { 'X-Request-ID': requestId } : {}),
   };
 
   let body: string | undefined;

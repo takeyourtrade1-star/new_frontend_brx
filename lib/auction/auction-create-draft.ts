@@ -1,5 +1,6 @@
 import type { AuctionGame } from '@/components/feature/aste/mock-auctions';
 import type { MessageKey } from '@/lib/i18n/messages/en';
+import { parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
 
 export type AuctionCreateShippingPayer = 'buyer' | 'seller';
 export type AuctionCreatePublishMode = 'now' | 'scheduled';
@@ -177,3 +178,16 @@ export const AUCTION_CREATE_GAMES: { value: AuctionGame; labelKey: MessageKey }[
   { value: 'ygo', labelKey: 'auctions.gameYgo' },
   { value: 'other', labelKey: 'auctions.gameOther' },
 ];
+
+export function moneyInputStringFromNumber(value: number): string {
+  const rounded = roundUpToHalfStep(value);
+  if (!Number.isFinite(rounded)) return '';
+  const isInteger = Math.abs(rounded - Math.trunc(rounded)) < 1e-9;
+  return isInteger ? String(Math.trunc(rounded)) : rounded.toFixed(1).replace('.', ',');
+}
+
+export function normalizeAuctionDraftMoneyInput(rawInput: string): string {
+  const parsed = parseLocaleMoneyInput(rawInput);
+  if (!Number.isFinite(parsed)) return '';
+  return moneyInputStringFromNumber(parsed);
+}

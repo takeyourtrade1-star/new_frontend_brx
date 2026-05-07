@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, isAuctionEndedUI, isEndingSoonUI, type AuctionUI } from '@/lib/auction/auction-adapter';
+import { MoneyWithSmallCents } from '@/components/feature/aste/auctions-browse-shared';
+import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
 
 /* ─────────────────────────────────────────────────────── */
 /*  Constants                                              */
@@ -84,7 +86,7 @@ function usePrefetchImages(items: AuctionUI[], containerRef: React.RefObject<HTM
 /* ─────────────────────────────────────────────────────── */
 
 export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: boolean } = {}) {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -92,12 +94,31 @@ export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: b
   const [canScrollRight, setCanScrollRight] = useState(true);
   const { data: listData, isLoading } = useAuctionList({ status: 'ACTIVE', limit: 60, offset: 0 });
 
-  const liveAuctions = useMemo(() => {
+  const liveAuctionsBase = useMemo(() => {
     const rows = (listData?.data ?? [])
       .map((a) => apiToAuctionUI(a))
       .filter((a) => !isAuctionEndedUI(a));
     return rows.sort((a, b) => a.hoursFromNow - b.hoursFromNow);
   }, [listData]);
+  const [liveAuctions, setLiveAuctions] = useState<AuctionUI[]>([]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const resolveSellers = async () => {
+      if (liveAuctionsBase.length === 0) {
+        setLiveAuctions([]);
+        return;
+      }
+      const resolved = await enrichAuctionsWithPublicUsers(liveAuctionsBase);
+      if (!isCancelled) {
+        setLiveAuctions(resolved);
+      }
+    };
+    resolveSellers();
+    return () => {
+      isCancelled = true;
+    };
+  }, [liveAuctionsBase]);
 
   const featuredAuctionIds = useMemo(() => {
     return liveAuctions
@@ -262,7 +283,7 @@ export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: b
             const featured = featuredAuctionIds.includes(item.id);
             return (
               <div key={item.id} className="w-[200px] shrink-0 md:w-[240px]">
-                <AuctionCard item={item} locale={locale} featured={featured} />
+                <AuctionCard item={item} featured={featured} />
               </div>
             );
           })}
@@ -311,11 +332,10 @@ function AuctionCardSkeleton() {
 
 type AuctionCardProps = {
   item: AuctionUI;
-  locale: string;
   featured?: boolean;
 };
 
-function AuctionCard({ item, locale, featured = false }: AuctionCardProps) {
+function AuctionCard({ item, featured = false }: AuctionCardProps) {
   const { t } = useTranslation();
   const endingSoon = isEndingSoonUI(item.hoursFromNow);
   const countdownLabel = formatCountdown(item.hoursFromNow);
@@ -369,13 +389,7 @@ function AuctionCard({ item, locale, featured = false }: AuctionCardProps) {
           {item.title}
         </p>
         <div className="mt-1.5 flex items-center justify-between">
-          <p className="text-lg font-bold text-slate-900">
-            {item.currentBidEur.toLocaleString(locale, {
-              style: 'currency',
-              currency: 'EUR',
-              maximumFractionDigits: 0,
-            })}
-          </p>
+          <MoneyWithSmallCents value={item.currentBidEur} className="text-lg font-bold text-slate-900" />
           <div className="flex items-center gap-1.5 rounded-full bg-slate-200/60 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
             <Clock3 className="h-3 w-3" />
             <span>{countdownLabel}</span>

@@ -1,13 +1,19 @@
 'use client';
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Camera, ImageIcon, Trash2, Upload } from 'lucide-react';
+import { AlertCircle, Camera, CheckCircle2, ImageIcon, Loader2, Trash2, Upload } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   AUCTION_LISTING_PHOTO_MAX,
   AUCTION_LISTING_PHOTO_MIN,
 } from '@/lib/auction/auction-create-draft';
 import { cn } from '@/lib/utils';
+
+export type ListingPhotoUploadStatus =
+  | { kind: 'idle' }
+  | { kind: 'uploading'; progress: number }
+  | { kind: 'done'; cdnUrl: string }
+  | { kind: 'error'; message: string };
 
 function isImageFile(file: File) {
   return file.type.startsWith('image/');
@@ -17,11 +23,14 @@ export function AuctionListingPhotoUpload({
   photos,
   onPhotosChange,
   compact = false,
+  uploadStatuses,
 }: {
   photos: File[];
   onPhotosChange: (next: File[]) => void;
   /** Layout più stretto (es. wizard embedded nella scheda prodotto). */
   compact?: boolean;
+  /** Stato di upload allineato con `photos` (stessa lunghezza, stesso ordine). */
+  uploadStatuses?: ListingPhotoUploadStatus[];
 }) {
   const { t } = useTranslation();
   const baseId = useId();
@@ -179,6 +188,7 @@ export function AuctionListingPhotoUpload({
                       alt=""
                       className={cn('h-48 w-full object-contain sm:h-56', compact && 'h-36 sm:h-40')}
                     />
+                    <UploadStatusOverlay status={uploadStatuses?.[slot]} compact={compact} />
                     <div className="flex flex-wrap gap-2 border-t border-gray-100 bg-white/95 p-2">
                       <button
                         type="button"
@@ -291,8 +301,63 @@ export function AuctionListingPhotoUpload({
   );
 }
 
+function UploadStatusOverlay({
+  status,
+  compact,
+}: {
+  status: ListingPhotoUploadStatus | undefined;
+  compact: boolean;
+}) {
+  if (!status || status.kind === 'idle') return null;
+
+  if (status.kind === 'uploading') {
+    const pct = Math.max(0, Math.min(100, status.progress));
+    return (
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-1 bg-gradient-to-b from-black/50 to-transparent p-2">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-white drop-shadow">
+          <Loader2 className={cn('h-3.5 w-3.5 animate-spin', compact && 'h-3 w-3')} aria-hidden />
+          Caricamento {pct}%
+        </div>
+        <div className="h-1 w-full overflow-hidden rounded-full bg-white/30">
+          <div className="h-full bg-[#FF7300] transition-[width] duration-200" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (status.kind === 'done') {
+    return (
+      <div className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-600/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow">
+        <CheckCircle2 className="h-3 w-3" aria-hidden />
+        Su CDN
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-1.5 bg-red-700/85 px-2 py-1 text-[11px] font-semibold text-white"
+      title={status.message}
+    >
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      <span className="truncate">{status.message || 'Errore upload'}</span>
+    </div>
+  );
+}
+
 export function listingPhotosComplete(photos: File[]): boolean {
   return photos.length >= AUCTION_LISTING_PHOTO_MIN && photos.length <= AUCTION_LISTING_PHOTO_MAX;
+}
+
+/** True quando il numero di foto è valido E ogni foto è stata finalizzata su CDN. */
+export function listingPhotosReady(
+  photos: File[],
+  uploadStatuses: ListingPhotoUploadStatus[] | undefined,
+): boolean {
+  if (!listingPhotosComplete(photos)) return false;
+  if (!uploadStatuses) return false;
+  if (uploadStatuses.length !== photos.length) return false;
+  return uploadStatuses.every((s) => s.kind === 'done');
 }
 
 /** Anteprima in revisione (revoca blob URL al cambio). */

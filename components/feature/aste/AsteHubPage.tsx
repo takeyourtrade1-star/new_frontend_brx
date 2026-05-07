@@ -26,6 +26,7 @@ import { MascotteLoader } from '@/components/dev/MascotteLoader';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, isAuctionEndedUI, isEndingSoonUI, type AuctionGame, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
+import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
 
 type SortMode = 'ending' | 'new' | 'bid';
 
@@ -43,26 +44,59 @@ function useNowTick(intervalMs = 1000): number {
 export function AsteHubPage() {
   const { t } = useTranslation();
   const now = useNowTick();
-  const { data: listData, isLoading, error } = useAuctionList({ limit: 100 });
-  const enriched: AuctionUI[] = useMemo(
-    () => (listData?.data ?? []).map((a) => apiToAuctionUI(a)),
-    [listData]
-  );
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const breadcrumbItems: AppBreadcrumbItem[] = [
-    { href: '/', label: t('auctions.breadcrumbHome'), isCurrent: false },
-    { label: t('pages.auctions.title'), isCurrent: true },
-  ];
-
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<AsteViewMode>('grid');
   const [sort, setSort] = useState<SortMode>('ending');
   const [q, setQ] = useState('');
-
   const [filterGame, setFilterGame] = useState<'all' | AuctionGame>('all');
   const [filterPriceMax, setFilterPriceMax] = useState('');
   const [filterEndingOnly, setFilterEndingOnly] = useState(false);
   const [filterMinBids, setFilterMinBids] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  const offset = (page - 1) * PAGE_SIZE;
+  const { data: listData, isLoading, error } = useAuctionList(
+    { limit: PAGE_SIZE, offset },
+    {
+      staleTime: 5_000,
+      refetchInterval: 10_000,
+      refetchIntervalInBackground: false,
+      refetchOnWindowFocus: true,
+      refetchOnMount: 'always',
+    }
+  );
+  const baseAuctions: AuctionUI[] = useMemo(
+    () => (listData?.data ?? []).map((a) => apiToAuctionUI(a)),
+    [listData]
+  );
+  const [enriched, setEnriched] = useState<AuctionUI[]>([]);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const breadcrumbItems: AppBreadcrumbItem[] = [
+    { href: '/', label: t('auctions.breadcrumbHome'), isCurrent: false },
+    { label: t('pages.auctions.title'), isCurrent: true },
+  ];
+  useEffect(() => {
+    setPage(1);
+  }, [q, filterGame, filterPriceMax, filterEndingOnly, filterMinBids, sort]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const resolveSellerNames = async () => {
+      if (baseAuctions.length === 0) {
+        setEnriched([]);
+        return;
+      }
+      const next = await enrichAuctionsWithPublicUsers(baseAuctions);
+      if (!isCancelled) {
+        setEnriched(next);
+      }
+    };
+    resolveSellerNames();
+    return () => {
+      isCancelled = true;
+    };
+  }, [baseAuctions]);
 
   // Sticky bottom bar states
   const [showStickyBar, setShowStickyBar] = useState(false);
@@ -134,6 +168,20 @@ export function AsteHubPage() {
     }
     return copy;
   }, [enriched, q, sort, filterGame, filterPriceMax, filterEndingOnly, filterMinBids]);
+  const total = listData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const canPrev = page > 1;
+  const canNext = page < totalPages;
+  const goToPrevPage = () => {
+    if (!canPrev) return;
+    setPage((p) => p - 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const goToNextPage = () => {
+    if (!canNext) return;
+    setPage((p) => p + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   if (isLoading) {
     return (
@@ -331,6 +379,9 @@ export function AsteHubPage() {
           {/* Risultati aste */}
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-medium text-gray-700">{t('auctions.resultsCount', { count: filtered.length })}</p>
+            <p className="text-xs text-gray-500">
+              Pagina {page} di {totalPages} ({total} totali)
+            </p>
           </div>
           <div className="overflow-hidden border border-gray-300 bg-gray-50">
             {filtered.length === 0 ? (
@@ -342,6 +393,24 @@ export function AsteHubPage() {
                 <AuctionListTable auctions={filtered} now={now} t={t} />
               </div>
             )}
+          </div>
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={goToPrevPage}
+              disabled={!canPrev}
+              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Precedente
+            </button>
+            <button
+              type="button"
+              onClick={goToNextPage}
+              disabled={!canNext}
+              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Successiva
+            </button>
           </div>
         </div>
         </div>

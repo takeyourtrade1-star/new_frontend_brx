@@ -10,11 +10,24 @@ import type {
   MinimumBidResponse,
   PlaceBidResponse,
   PlaceBidPayload,
+  ProxyLimitPayload,
+  ProxyLimitResponse,
   AuctionCreatePayload,
 } from '@/types/auction';
 import { refreshAccessToken } from '@/lib/api/refresh-token';
 import { authApi } from '@/lib/api/auth-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
+
+export function createIdempotencyKey(): string {
+  if (
+    typeof globalThis !== 'undefined' &&
+    globalThis.crypto &&
+    typeof globalThis.crypto.randomUUID === 'function'
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+  return `bid-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -135,9 +148,29 @@ export const auctionApi = {
     auctionId: number,
     payload: PlaceBidPayload
   ): Promise<PlaceBidResponse> {
+    const idempotencyKey = createIdempotencyKey();
     return request<PlaceBidResponse>(`/${auctionId}/bids`, {
       method: 'POST',
       body: JSON.stringify(payload),
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+    });
+  },
+
+  updateProxyLimit(
+    auctionId: number,
+    payload: ProxyLimitPayload
+  ): Promise<ProxyLimitResponse> {
+    return request<ProxyLimitResponse>(`/${auctionId}/proxy-limit`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  cancelProxyLimit(auctionId: number): Promise<ProxyLimitResponse> {
+    return request<ProxyLimitResponse>(`/${auctionId}/proxy-limit`, {
+      method: 'DELETE',
     });
   },
 };

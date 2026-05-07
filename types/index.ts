@@ -38,6 +38,26 @@ export interface User {
   show_scambi?: boolean;
 }
 
+export type PublicAccountType = 'personal' | 'business';
+
+export interface PublicUserProfile {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  country_code: string | null;
+  account_type: PublicAccountType;
+}
+
+export interface PublicUsersSearchResponse {
+  success: boolean;
+  data: {
+    items: PublicUserProfile[];
+    total: number;
+    limit: number;
+    offset: number;
+  };
+}
+
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'system';
   language: string;

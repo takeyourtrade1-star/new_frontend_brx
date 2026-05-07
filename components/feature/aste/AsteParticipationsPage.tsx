@@ -15,6 +15,7 @@ import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
+import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
 
 const STORAGE_KEY = 'partecipazioni';
 
@@ -44,7 +45,7 @@ export function AsteParticipationsPage() {
     setStoredAsteViewMode(STORAGE_KEY, viewMode);
   }, [viewMode]);
 
-  const { rows, myBidById } = useMemo(() => {
+  const { rowsBase, myBidById } = useMemo(() => {
     if (!listData?.data || !userId) return { rows: [] as AuctionUI[], myBidById: {} as Record<string, number> };
     const bids: Record<string, number> = {};
     const participated: AuctionUI[] = [];
@@ -57,8 +58,27 @@ export function AsteParticipationsPage() {
         bids[ui.id] = a.current_price;
       }
     }
-    return { rows: participated, myBidById: bids };
+    return { rowsBase: participated, myBidById: bids };
   }, [listData, userId]);
+  const [rows, setRows] = useState<AuctionUI[]>([]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const resolveSellers = async () => {
+      if (rowsBase.length === 0) {
+        setRows([]);
+        return;
+      }
+      const resolved = await enrichAuctionsWithPublicUsers(rowsBase);
+      if (!isCancelled) {
+        setRows(resolved);
+      }
+    };
+    resolveSellers();
+    return () => {
+      isCancelled = true;
+    };
+  }, [rowsBase]);
 
   const displayName = user?.name ?? user?.email?.split('@')[0] ?? '';
   const breadcrumbItems: AppBreadcrumbItem[] = [

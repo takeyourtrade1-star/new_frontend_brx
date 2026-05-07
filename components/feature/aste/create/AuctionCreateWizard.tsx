@@ -17,10 +17,12 @@ import {
   auctionConditionLabelKey,
   conditionSelectValue,
   normalizeAuctionCardLanguage,
+  normalizeAuctionDraftMoneyInput,
   type AuctionCreateCardSelection,
   type AuctionCreateDraft,
   searchGameSlugToAuctionGame,
 } from '@/lib/auction/auction-create-draft';
+import { parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
 import {
   createEmbeddedDraftFromProduct,
   mergeInventoryIntoAuctionDraft,
@@ -32,8 +34,19 @@ import { getCardImageUrl } from '@/lib/assets';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { useCreateAuction } from '@/lib/hooks/use-auctions';
 import type { AuctionCreatePayload } from '@/types/auction';
+import {
+  deletePhoto as deleteUploadedPhoto,
+  uploadPhoto,
+  type UploadedPhoto,
+} from '@/lib/api/auction-photo-client';
 import { AuctionCreateCardPicker } from './AuctionCreateCardPicker';
-import { AuctionListingPhotoUpload, ListingPhotoThumbnailsRow, listingPhotosComplete } from './AuctionListingPhotoUpload';
+import {
+  AuctionListingPhotoUpload,
+  ListingPhotoThumbnailsRow,
+  listingPhotosComplete,
+  listingPhotosReady,
+  type ListingPhotoUploadStatus,
+} from './AuctionListingPhotoUpload';
 
 type WizardStepId =
   | 'q_card'
@@ -124,6 +137,16 @@ export function AuctionCreateWizard({
   const [draft, setDraft] = useState<AuctionCreateDraft>(() =>
     isEmbedded && embeddedCard ? createEmbeddedDraftFromProduct(embeddedCard) : AUCTION_CREATE_DEFAULT_DRAFT
   );
+  type PhotoUploadEntry = {
+    status: 'uploading' | 'done' | 'error';
+    progress: number;
+    photo?: UploadedPhoto;
+    error?: string;
+    abort: AbortController;
+  };
+  const [photoUploads, setPhotoUploads] = useState<Map<File, PhotoUploadEntry>>(
+    () => new Map(),
+  );
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [createdAuctionInfo, setCreatedAuctionInfo] = useState<{
@@ -158,10 +181,136 @@ export function AuctionCreateWizard({
     setError(null);
   }, []);
 
-  const setListingPhotos = useCallback((next: File[]) => {
-    setDraft((d) => ({ ...d, listingPhotos: next }));
-    setError(null);
+  /**
+   * Kick off a Direct-to-S3 upload for a freshly added file. Updates the
+   * photoUploads tracker as it progresses. The original `File` reference is
+   * the stable key in the tracker (it stays in `draft.listingPhotos` even if
+   * the compression step inside `uploadPhoto` produces a derived File).
+   */
+  const startUploadFor = useCallback((file: File) => {
+    const abort = new AbortController();
+    setPhotoUploads((prev) => {
+      const next = new Map(prev);
+      next.set(file, { status: 'uploading', progress: 0, abort });
+      return next;
+    });
+
+    uploadPhoto(file, {
+      signal: abort.signal,
+      onProgress: (pct) => {
+        setPhotoUploads((prev) => {
+          const entry = prev.get(file);
+          if (!entry || entry.status !== 'uploading') return prev;
+          const next = new Map(prev);
+          next.set(file, { ...entry, progress: pct });
+          return next;
+        });
+      },
+    })
+      .then((photo) => {
+        setPhotoUploads((prev) => {
+          // The user may have removed this file while we were uploading.
+          if (!prev.has(file)) return prev;
+          const next = new Map(prev);
+          next.set(file, { status: 'done', progress: 100, photo, abort });
+          return next;
+        });
+      })
+      .catch((err: unknown) => {
+        if (abort.signal.aborted) return;
+        const message =
+          err instanceof Error ? err.message : 'Upload fallito. Riprova.';
+        setPhotoUploads((prev) => {
+          if (!prev.has(file)) return prev;
+          const next = new Map(prev);
+          next.set(file, { status: 'error', progress: 0, error: message, abort });
+          return next;
+        });
+      });
   }, []);
+
+  const setListingPhotos = useCallback(
+    (next: File[]) => {
+      setDraft((d) => {
+        const previous = d.listingPhotos;
+        const previousSet = new Set(previous);
+        const nextSet = new Set(next);
+
+        // Files removed from the list: abort their pending upload (if any) and
+        // best-effort delete the already-uploaded object on the backend so we
+        // don't leak photos.
+        for (const oldFile of previous) {
+          if (nextSet.has(oldFile)) continue;
+          const entry = photoUploads.get(oldFile);
+          if (!entry) continue;
+          entry.abort.abort();
+          if (entry.status === 'done' && entry.photo) {
+            void deleteUploadedPhoto(entry.photo.id).catch(() => {
+              /* tracked server-side via lifecycle and cleanup worker */
+            });
+          }
+          setPhotoUploads((prev) => {
+            if (!prev.has(oldFile)) return prev;
+            const m = new Map(prev);
+            m.delete(oldFile);
+            return m;
+          });
+        }
+
+        // Files newly added: kick off upload immediately.
+        for (const newFile of next) {
+          if (previousSet.has(newFile)) continue;
+          startUploadFor(newFile);
+        }
+
+        return { ...d, listingPhotos: next };
+      });
+      setError(null);
+    },
+    [photoUploads, startUploadFor],
+  );
+
+  // Allow user to retry a failed upload without removing the file first.
+  const retryFailedUpload = useCallback(
+    (file: File) => {
+      setPhotoUploads((prev) => {
+        if (!prev.has(file)) return prev;
+        const m = new Map(prev);
+        m.delete(file);
+        return m;
+      });
+      startUploadFor(file);
+    },
+    [startUploadFor],
+  );
+
+  // Aligned with draft.listingPhotos so the photo upload component can render
+  // an overlay (progress bar / "su CDN" badge / error) per slot.
+  const photoUploadStatuses = useMemo<ListingPhotoUploadStatus[]>(
+    () =>
+      draft.listingPhotos.map((file) => {
+        const entry = photoUploads.get(file);
+        if (!entry) return { kind: 'idle' };
+        if (entry.status === 'uploading') {
+          return { kind: 'uploading', progress: entry.progress };
+        }
+        if (entry.status === 'done' && entry.photo) {
+          return { kind: 'done', cdnUrl: entry.photo.cdn_url };
+        }
+        return { kind: 'error', message: entry.error || 'Upload fallito' };
+      }),
+    [draft.listingPhotos, photoUploads],
+  );
+
+  const allPhotosUploaded = useMemo(
+    () => listingPhotosReady(draft.listingPhotos, photoUploadStatuses),
+    [draft.listingPhotos, photoUploadStatuses],
+  );
+
+  const failedUploadFiles = useMemo(
+    () => draft.listingPhotos.filter((f) => photoUploads.get(f)?.status === 'error'),
+    [draft.listingPhotos, photoUploads],
+  );
 
   const stepperLabels = useMemo(() => {
     if (stepVariant === 'embedded') {
@@ -279,7 +428,7 @@ export function AuctionCreateWizard({
         }
       }
       if (id === 'price') {
-        const start = Number(String(draft.startingBidEur).replace(',', '.'));
+        const start = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.startingBidEur)));
         if (!Number.isFinite(start) || start <= 0) {
           setError(t('auctions.createValidationStart'));
           return false;
@@ -287,7 +436,7 @@ export function AuctionCreateWizard({
       }
       if (id === 'shipping') {
         if (draft.shippingPayer === 'buyer') {
-          const flat = Number(String(draft.shippingFlatEur).replace(',', '.'));
+          const flat = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingFlatEur)));
           if (!Number.isFinite(flat) || flat < 0) {
             setError(t('auctions.createValidationShipping'));
             return false;
@@ -302,6 +451,14 @@ export function AuctionCreateWizard({
               max: AUCTION_LISTING_PHOTO_MAX,
             })
           );
+          return false;
+        }
+        if (!allPhotosUploaded) {
+          if (failedUploadFiles.length > 0) {
+            setError('Una o più foto non sono state caricate. Riprova prima di continuare.');
+          } else {
+            setError('Attendi il completamento del caricamento delle foto.');
+          }
           return false;
         }
       }
@@ -323,7 +480,7 @@ export function AuctionCreateWizard({
       setError(null);
       return true;
     },
-    [draft, embeddedInventoryPick, t]
+    [draft, embeddedInventoryPick, t, allPhotosUploaded, failedUploadFiles.length]
   );
 
   const handleCardSelect = useCallback((sel: AuctionCreateCardSelection) => {
@@ -345,7 +502,7 @@ export function AuctionCreateWizard({
           ...base,
           condition: inventoryConditionToWizardValue(sel.condition),
           cardLanguage: normalizeAuctionCardLanguage(sel.cardLanguage) || '',
-          startingBidEur: sel.startingBidEur || '',
+          startingBidEur: sel.startingBidEur ? normalizeAuctionDraftMoneyInput(sel.startingBidEur) : '',
           selectedInventoryItemId: String(sel.inventoryItemId),
         };
       }
@@ -480,9 +637,9 @@ export function AuctionCreateWizard({
       }
     }
 
-    const startingPrice = Number(String(draft.startingBidEur).replace(',', '.'));
+    const startingPrice = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.startingBidEur)));
     const reservePrice = draft.reservePriceEur
-      ? Number(String(draft.reservePriceEur).replace(',', '.'))
+      ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.reservePriceEur)))
       : undefined;
     const now = new Date();
     let startDate = now;
@@ -495,8 +652,38 @@ export function AuctionCreateWizard({
       startDate = scheduled;
     }
     const endDate = new Date(startDate.getTime() + (draft.durationDays || 7) * 86_400_000);
-    const imageFront = draft.imageUrl || '';
-    const imageBack = draft.imageUrl || '';
+
+    // Photos uploaded directly to S3 via the photo client. We send their
+    // backend ids ordered by the user's chosen sequence; the backend will
+    // rebind them to this auction in transaction and override
+    // image_front/image_back from the first two for backward compatibility.
+    const photoIds: number[] = [];
+    for (const file of draft.listingPhotos) {
+      const entry = photoUploads.get(file);
+      if (!entry || entry.status !== 'done' || !entry.photo) {
+        setError('Una o più foto non sono ancora state caricate. Riprova.');
+        setStepId('photos');
+        return;
+      }
+      photoIds.push(entry.photo.id);
+    }
+
+    // Catalog reference image (only used if no user photos were uploaded —
+    // legacy path). Backend overrides these with photo CDN URLs whenever
+    // photo_ids is non-empty.
+    const fallbackFront =
+      photoIds.length === 0 ? draft.imageUrl || '' : '';
+    const fallbackBack = fallbackFront;
+    const firstPhotoCdn =
+      draft.listingPhotos.length > 0
+        ? photoUploads.get(draft.listingPhotos[0]!)?.photo?.cdn_url ?? ''
+        : '';
+    const secondPhotoCdn =
+      draft.listingPhotos.length > 1
+        ? photoUploads.get(draft.listingPhotos[1]!)?.photo?.cdn_url ?? ''
+        : firstPhotoCdn;
+    const imageFront = firstPhotoCdn || fallbackFront;
+    const imageBack = secondPhotoCdn || fallbackBack;
 
     const payload: AuctionCreatePayload = {
       title: draft.title,
@@ -514,6 +701,7 @@ export function AuctionCreateWizard({
       },
       image_front: imageFront,
       image_back: imageBack,
+      photo_ids: photoIds.length > 0 ? photoIds : undefined,
     };
 
     try {
@@ -545,9 +733,19 @@ export function AuctionCreateWizard({
     if (stepId === 'q_card') return true;
     if (stepId === 'card_pick') return !draft.cardSelection;
     if (stepId === 'inventory_pick') return embeddedInventoryPick === 'unset';
-    if (stepId === 'photos') return !listingPhotosComplete(draft.listingPhotos);
+    if (stepId === 'photos') {
+      if (!listingPhotosComplete(draft.listingPhotos)) return true;
+      // Block while at least one upload is in flight or has failed.
+      return !allPhotosUploaded;
+    }
     return false;
-  }, [stepId, draft.cardSelection, draft.listingPhotos, embeddedInventoryPick]);
+  }, [
+    stepId,
+    draft.cardSelection,
+    draft.listingPhotos,
+    embeddedInventoryPick,
+    allPhotosUploaded,
+  ]);
 
   const previewImageSrc = draft.imageUrl ? getCardImageUrl(draft.imageUrl) ?? draft.imageUrl : null;
   const cardLanguageLabel = useMemo(
@@ -1187,6 +1385,7 @@ export function AuctionCreateWizard({
                       id="ac-start"
                       value={draft.startingBidEur}
                       onChange={(e) => update('startingBidEur', e.target.value)}
+                      onBlur={(e) => update('startingBidEur', normalizeAuctionDraftMoneyInput(e.target.value))}
                       className={cn(
                         'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
                         isEmbedded && 'py-2'
@@ -1205,6 +1404,7 @@ export function AuctionCreateWizard({
                       id="ac-res"
                       value={draft.reservePriceEur}
                       onChange={(e) => update('reservePriceEur', e.target.value)}
+                      onBlur={(e) => update('reservePriceEur', normalizeAuctionDraftMoneyInput(e.target.value))}
                       className={cn(
                         'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
                         isEmbedded && 'py-2'
@@ -1294,6 +1494,7 @@ export function AuctionCreateWizard({
                       id="ac-ship"
                       value={draft.shippingFlatEur}
                       onChange={(e) => update('shippingFlatEur', e.target.value)}
+                      onBlur={(e) => update('shippingFlatEur', normalizeAuctionDraftMoneyInput(e.target.value))}
                       className={cn(
                         'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
                         isEmbedded && 'py-2'
@@ -1307,11 +1508,33 @@ export function AuctionCreateWizard({
           )}
 
           {stepId === 'photos' && (
-            <AuctionListingPhotoUpload
-              photos={draft.listingPhotos}
-              onPhotosChange={setListingPhotos}
-              compact={isEmbedded}
-            />
+            <div className={cn('space-y-3', isEmbedded && 'space-y-2')}>
+              <AuctionListingPhotoUpload
+                photos={draft.listingPhotos}
+                onPhotosChange={setListingPhotos}
+                compact={isEmbedded}
+                uploadStatuses={photoUploadStatuses}
+              />
+              {failedUploadFiles.length > 0 && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+                  <p className="font-semibold">
+                    Alcune foto non sono state caricate.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {failedUploadFiles.map((file, i) => (
+                      <button
+                        key={`${file.name}-${i}`}
+                        type="button"
+                        onClick={() => retryFailedUpload(file)}
+                        className="inline-flex items-center gap-1 rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-red-800 transition hover:bg-red-100"
+                      >
+                        Riprova: {file.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {stepId === 'review' && (

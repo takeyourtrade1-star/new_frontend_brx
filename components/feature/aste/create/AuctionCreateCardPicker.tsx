@@ -4,7 +4,11 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, Search } from 'lucide-react';
 import type { SearchHit } from '@/app/api/search/route';
-import { auctionGameToSearchParam, type AuctionCreateCardSelection } from '@/lib/auction/auction-create-draft';
+import {
+  auctionGameToSearchParam,
+  moneyInputStringFromNumber,
+  type AuctionCreateCardSelection,
+} from '@/lib/auction/auction-create-draft';
 import type { AuctionGame } from '@/components/feature/aste/mock-auctions';
 import type { InventoryItemResponse } from '@/lib/api/sync-client';
 import { syncClient } from '@/lib/api/sync-client';
@@ -49,7 +53,7 @@ function inventoryToSelection(item: InventoryWithCard): AuctionCreateCardSelecti
       : typeof props?.language === 'string'
         ? props.language
         : '';
-  const priceEur = item.price_cents > 0 ? (item.price_cents / 100).toFixed(2) : '';
+  const priceEur = item.price_cents > 0 ? moneyInputStringFromNumber(item.price_cents / 100) : '';
   return {
     id: card.id ?? String(item.blueprint_id),
     title: card.name ?? '',

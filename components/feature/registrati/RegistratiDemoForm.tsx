@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelField } from '@/components/ui/floating-label-field';
@@ -36,6 +36,7 @@ const defaultValues: RegisterDemoValues = {
 
 export function RegistratiDemoForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useTranslation();
   const detectedCountry = useUserCountry();
   const registerUser = useAuthStore((s) => s.register);
@@ -45,6 +46,21 @@ export function RegistratiDemoForm() {
   const clearError = useAuthStore((s) => s.clearError);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const flashMessage = useAuthStore((s) => s.flashMessage);
+
+  const prefilledEmail = searchParams.get('email') ?? '';
+  const rawReturnTo = searchParams.get('returnTo');
+
+  /**
+   * Sanitize returnTo: accettiamo solo path interni che iniziano per "/" e non
+   * sono assoluti (es. "//attacker.com/...", "https://...") per evitare open
+   * redirect. Fallback alla home se invalido.
+   */
+  const safeReturnTo = useCallback((): string => {
+    if (!rawReturnTo) return '/';
+    if (typeof rawReturnTo !== 'string') return '/';
+    if (!rawReturnTo.startsWith('/') || rawReturnTo.startsWith('//')) return '/';
+    return rawReturnTo;
+  }, [rawReturnTo]);
 
   const {
     register,
@@ -58,6 +74,7 @@ export function RegistratiDemoForm() {
     resolver: zodResolver(registerDemoSchema),
     defaultValues: {
       ...defaultValues,
+      email: prefilledEmail,
       country: detectedCountry || defaultValues.country,
     },
   });
@@ -159,16 +176,16 @@ export function RegistratiDemoForm() {
 
   useEffect(() => {
     if (isAuthenticated && flashMessage) {
-      router.push('/');
+      router.push(safeReturnTo());
     }
-  }, [isAuthenticated, flashMessage, router]);
+  }, [isAuthenticated, flashMessage, router, safeReturnTo]);
 
   const onSubmit = async (values: RegisterDemoValues) => {
     clearError();
     try {
       const payload = toRegisterPayloadDemo({ ...values, website_url: '' });
       await registerUser(payload);
-      router.push('/');
+      router.push(safeReturnTo());
     } catch {
       // Errori già impostati nello store e via setError dall'effetto
     }

@@ -2,6 +2,7 @@ import { getCardImageUrl } from '@/lib/assets';
 import type { CardDocument } from '@/lib/product-detail';
 import {
   AUCTION_CREATE_DEFAULT_DRAFT,
+  moneyInputStringFromNumber,
   normalizeAuctionCardLanguage,
   type AuctionCreateDraft,
   searchGameSlugToAuctionGame,
@@ -77,7 +78,7 @@ export function mergeInventoryIntoAuctionDraft(
         ? props.language
         : null;
   const language = normalizeAuctionCardLanguage(rawLanguage);
-  const priceHint = item.price_cents > 0 ? (item.price_cents / 100).toFixed(2) : draft.startingBidEur;
+  const priceHint = item.price_cents > 0 ? moneyInputStringFromNumber(item.price_cents / 100) : draft.startingBidEur;
   return {
     ...draft,
     condition: cond,

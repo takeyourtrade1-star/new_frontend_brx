@@ -21,6 +21,7 @@ export interface AuctionUI {
   bidCount: number;
   seller: string;
   sellerDisplayName: string;
+  sellerAccountType: 'personal' | 'business';
   sellerCountry: string;
   sellerRating: number;
   sellerReviewCount: number;
@@ -33,6 +34,8 @@ export interface AuctionUI {
   description: string;
   imageFront: string;
   imageBack: string;
+  /** Ordered CDN URLs of user-uploaded photos. Empty for legacy auctions. */
+  photoUrls: string[];
   reservePrice: number | null;
   videoUrl: string | null;
   buyNowEnabled: boolean;
@@ -43,6 +46,11 @@ export interface AuctionUI {
   createdByUserId: string | null;
   highestBidderId: string | null;
   startTime: string;
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
 }
 
 export function apiToAuctionUI(a: AuctionAPI, bidCount?: number): AuctionUI {
@@ -57,26 +65,34 @@ export function apiToAuctionUI(a: AuctionAPI, bidCount?: number): AuctionUI {
     title: a.title,
     image: a.image_front,
     hoursFromNow,
-    currentBidEur: a.current_price,
+    currentBidEur: asNumber(a.current_price),
     bidCount: bidCount ?? 0,
     seller: a.created_by_user_id ?? 'Venditore',
     sellerDisplayName: '---',
+    sellerAccountType: 'personal',
     sellerCountry: 'IT',
     sellerRating: 98,
     sellerReviewCount: 0,
     game: 'mtg',
-    startingBidEur: a.starting_price,
-    reservePriceEur: a.reserve_price ?? 0,
+    startingBidEur: asNumber(a.starting_price),
+    reservePriceEur: a.reserve_price != null ? asNumber(a.reserve_price) : 0,
     status: isEnded ? 'ended' : 'live',
     winnerUsername: '---',
     endsAt: a.end_time,
     description: a.description,
     imageFront: a.image_front,
     imageBack: a.image_back,
-    reservePrice: a.reserve_price,
+    photoUrls: Array.isArray(a.photos)
+      ? a.photos
+          .slice()
+          .sort((p1, p2) => p1.position - p2.position)
+          .map((p) => p.cdn_url)
+          .filter(Boolean)
+      : [],
+    reservePrice: a.reserve_price != null ? asNumber(a.reserve_price) : null,
     videoUrl: a.video_url,
     buyNowEnabled: a.buy_now_enabled,
-    buyNowPrice: a.buy_now_price,
+    buyNowPrice: a.buy_now_price != null ? asNumber(a.buy_now_price) : null,
     buyNowUrl: a.buy_now_url,
     winnerId: a.winner_id ?? null,
     reserveNotReachedMessage: a.reserve_not_reached_message ?? null,
@@ -109,7 +125,7 @@ export function apiBidToBidRow(b: BidAPI): BidRowUI {
     bidId: b.id,
     username: b.user_id,
     displayName: '---',
-    amountEur: b.amount,
+    amountEur: asNumber(b.amount),
     countryCode: 'IT',
     atLabel,
     createdAt: b.created_at,

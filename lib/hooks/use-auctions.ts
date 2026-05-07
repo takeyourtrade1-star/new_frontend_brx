@@ -21,6 +21,7 @@ import type {
   MinimumBidResponse,
   PlaceBidResponse,
   PlaceBidPayload,
+  ProxyLimitPayload,
   AuctionCreatePayload,
 } from '@/types/auction';
 
@@ -38,11 +39,12 @@ export function useAuctionList(params?: {
   status?: string;
   limit?: number;
   offset?: number;
-}) {
+}, options?: Partial<UseQueryOptions<AuctionListResponse>>) {
   return useQuery({
     queryKey: KEYS.list(params),
     queryFn: () => auctionApi.listAuctions(params),
     staleTime: 30_000,
+    ...options,
   });
 }
 
@@ -87,6 +89,31 @@ export function usePlaceBid(auctionId: number) {
   return useMutation({
     mutationFn: (payload: PlaceBidPayload) =>
       auctionApi.placeBid(auctionId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEYS.detail(auctionId) });
+      qc.invalidateQueries({ queryKey: KEYS.bids(auctionId) });
+      qc.invalidateQueries({ queryKey: KEYS.minBid(auctionId) });
+    },
+  });
+}
+
+export function useUpdateProxyLimit(auctionId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ProxyLimitPayload) =>
+      auctionApi.updateProxyLimit(auctionId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEYS.detail(auctionId) });
+      qc.invalidateQueries({ queryKey: KEYS.bids(auctionId) });
+      qc.invalidateQueries({ queryKey: KEYS.minBid(auctionId) });
+    },
+  });
+}
+
+export function useCancelProxyLimit(auctionId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => auctionApi.cancelProxyLimit(auctionId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.detail(auctionId) });
       qc.invalidateQueries({ queryKey: KEYS.bids(auctionId) });

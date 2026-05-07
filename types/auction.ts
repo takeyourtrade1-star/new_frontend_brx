@@ -2,6 +2,14 @@
 
 export type AuctionStatus = 'DRAFT' | 'ACTIVE' | 'CLOSED' | 'UNKNOWN';
 
+export interface AuctionPhotoEmbed {
+  id: number;
+  position: number;
+  cdn_url: string;
+  width?: number | null;
+  height?: number | null;
+}
+
 export interface AuctionAPI {
   id: number;
   title: string;
@@ -16,6 +24,9 @@ export interface AuctionAPI {
   product_id: string | null;
   image_front: string;
   image_back: string;
+  /** User-uploaded photos in display order. Empty for legacy auctions; clients
+   * should fall back to [image_front, image_back] when this is empty. */
+  photos?: AuctionPhotoEmbed[];
   video_url: string | null;
   buy_now_enabled: boolean;
   buy_now_price: number | null;
@@ -59,7 +70,7 @@ export interface MinimumBidResponse {
   success: boolean;
   data: {
     current_price: number;
-    increment: number;
+    min_increment: number;
     minimum_next_bid: number;
   };
 }
@@ -71,6 +82,16 @@ export interface PlaceBidResponse {
     bids: BidAPI[];
     outbid?: boolean;
     outbid_message?: string | null;
+    idempotency_replayed?: boolean;
+  };
+}
+
+export interface ProxyLimitResponse {
+  success: boolean;
+  data: {
+    auction: AuctionAPI;
+    bids: BidAPI[];
+    proxy_limit: number;
   };
 }
 
@@ -92,6 +113,9 @@ export interface AuctionCreatePayload {
   } | null;
   image_front: string;
   image_back: string;
+  /** Ids of finalized auction_photos uploaded via /api/auctions/photos/finalize.
+   * Order is significant (position 0 = front cover). */
+  photo_ids?: number[];
   video_url?: string | null;
   buy_now_enabled?: boolean;
   buy_now_url?: string | null;
@@ -101,4 +125,8 @@ export interface AuctionCreatePayload {
 export interface PlaceBidPayload {
   amount: number;
   maxAmount?: number | null;
+}
+
+export interface ProxyLimitPayload {
+  maxAmount: number;
 }
