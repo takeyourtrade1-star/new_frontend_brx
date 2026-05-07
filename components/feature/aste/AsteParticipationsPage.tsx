@@ -46,7 +46,12 @@ export function AsteParticipationsPage() {
   }, [viewMode]);
 
   const { rowsBase, myBidById } = useMemo(() => {
-    if (!listData?.data || !userId) return { rows: [] as AuctionUI[], myBidById: {} as Record<string, number> };
+    if (!listData?.data || !userId) {
+      return {
+        rowsBase: [] as AuctionUI[],
+        myBidById: {} as Record<string, number>,
+      };
+    }
     const bids: Record<string, number> = {};
     const participated: AuctionUI[] = [];
     for (const a of listData.data) {
