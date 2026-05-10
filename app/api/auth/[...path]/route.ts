@@ -20,6 +20,10 @@ const INTERNAL_AUTH_USERS_TOKEN =
   process.env.AUTH_INTERNAL_API_TOKEN ||
   process.env.INTERNAL_API_TOKEN ||
   '';
+const INTERNAL_AUTH_USERS_PUBLIC_PATHS = new Set([
+  'users/public',
+  'users/search',
+]);
 
 const ALLOWED_AUTH_PATHS = [
   'login',
@@ -49,6 +53,11 @@ function isAllowedPath(segments: string[]): boolean {
   return ALLOWED_AUTH_PATHS.some(
     (allowed) => joined === allowed || joined.startsWith(`${allowed}/`) || joined.startsWith(`${allowed}?`)
   );
+}
+
+function shouldAttachInternalUsersToken(request: NextRequest, segments: string[]): boolean {
+  if (!INTERNAL_AUTH_USERS_TOKEN || request.method !== 'GET') return false;
+  return INTERNAL_AUTH_USERS_PUBLIC_PATHS.has(segments.join('/'));
 }
 
 function extractAccessToken(payload: unknown): string | undefined {
@@ -110,10 +119,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     'Content-Type': 'application/json',
     ...(auth ? { Authorization: auth } : {}),
   };
-  const isInternalUsersPath =
-    pathSegments[0] === 'users' ||
-    (pathSegments.length > 1 && pathSegments[0] === 'users');
-  if (isInternalUsersPath && INTERNAL_AUTH_USERS_TOKEN) {
+  if (shouldAttachInternalUsersToken(request, pathSegments)) {
     headers['X-Internal-Token'] = INTERNAL_AUTH_USERS_TOKEN;
   }
 
