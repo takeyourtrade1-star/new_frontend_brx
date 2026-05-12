@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Check, ChevronDown, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
 import { HamburgerMenu } from './HamburgerMenu';
 import { CartDropdown } from './CartDropdown';
+import { NotificationBell } from '@/components/feature/notifiche/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
@@ -794,6 +795,15 @@ export function TopBar() {
                         </Link>
                       </div>
 
+                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
+                      <Link
+                        href="/ordini/vendite"
+                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                        onClick={() => setVendiMenuOpen(false)}
+                      >
+                        Le mie vendite
+                      </Link>
+
                       {/* Solo su mobile, includiamo anche Tornei live, Aste e BRX Express che su desktop hanno link diretti */}
                       <div className="md:hidden">
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
@@ -919,6 +929,11 @@ export function TopBar() {
               </Link>
 
 
+
+              {/* Notifiche: bell con badge unread, ordine subito prima del carrello */}
+              <div className="order-4 hidden md:flex md:order-5">
+                <NotificationBell />
+              </div>
 
               {/* 6. Carrello con dropdown preview */}
               <div className="order-5 md:order-6">

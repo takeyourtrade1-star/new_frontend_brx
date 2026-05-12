@@ -30,6 +30,8 @@ export interface UploadedPhoto {
 export interface UploadOptions {
   onProgress?: (percent: number) => void;
   signal?: AbortSignal;
+  /** When set, binds finalized photo to this pairing session (QR mobile upload). */
+  pairingSessionId?: string;
 }
 
 interface PhotoInitResponse {
@@ -225,13 +227,21 @@ async function initUpload(args: {
 async function finalizeUpload(args: {
   photo_token: string;
   s3_key: string;
+  pairing_session_id?: string;
 }): Promise<PhotoFinalizeResponse> {
+  const body: Record<string, string> = {
+    photo_token: args.photo_token,
+    s3_key: args.s3_key,
+  };
+  if (args.pairing_session_id) {
+    body.pairing_session_id = args.pairing_session_id;
+  }
   const res = await withRetry(() =>
     jsonRequest<{ success: boolean; data: PhotoFinalizeResponse }>(
       '/api/auctions/photos/finalize',
       {
         method: 'POST',
-        body: JSON.stringify(args),
+        body: JSON.stringify(body),
       },
     ),
   );
@@ -250,6 +260,8 @@ export async function uploadPhoto(
     readImageDimensions(compressed),
   ]);
   options.signal?.throwIfAborted?.();
+
+  const pairing = options.pairingSessionId;
 
   const init = await initUpload({
     filename: compressed.name || 'photo.webp',
@@ -276,6 +288,7 @@ export async function uploadPhoto(
       const finalized2 = await finalizeUpload({
         photo_token: fresh.photo_token,
         s3_key: fresh.s3_key,
+        pairing_session_id: pairing,
       });
       return {
         id: finalized2.id,
@@ -292,6 +305,7 @@ export async function uploadPhoto(
   const finalized = await finalizeUpload({
     photo_token: init.photo_token,
     s3_key: init.s3_key,
+    pairing_session_id: pairing,
   });
 
   return {
@@ -306,4 +320,39 @@ export async function uploadPhoto(
 
 export async function deletePhoto(photoId: number): Promise<void> {
   await jsonRequest(`/api/auctions/photos/${photoId}`, { method: 'DELETE' });
+}
+
+export interface PhotoPairingSessionCreated {
+  session_id: string;
+  expires_at: string;
+}
+
+/** Creates a short-lived session for the QR “upload from phone” flow. */
+export async function createPhotoPairingSession(): Promise<PhotoPairingSessionCreated> {
+  const res = await jsonRequest<{ success: boolean; data: PhotoPairingSessionCreated }>(
+    '/api/auctions/photos/pairing-sessions',
+    {
+      method: 'POST',
+      body: JSON.stringify({}),
+    },
+  );
+  return res.data;
+}
+
+/** Lists PENDING photos uploaded under this pairing session (same user). */
+export async function listPairingSessionPhotos(
+  sessionId: string,
+): Promise<UploadedPhoto[]> {
+  const res = await jsonRequest<{
+    success: boolean;
+    data: { photos: PhotoFinalizeResponse[] };
+  }>(`/api/auctions/photos/pairing-sessions/${encodeURIComponent(sessionId)}`);
+  return (res.data.photos ?? []).map((p) => ({
+    id: p.id,
+    cdn_url: p.cdn_url,
+    width: p.width,
+    height: p.height,
+    bytes: p.bytes,
+    mime: p.mime,
+  }));
 }

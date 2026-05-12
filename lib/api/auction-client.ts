@@ -13,6 +13,8 @@ import type {
   ProxyLimitPayload,
   ProxyLimitResponse,
   AuctionCreatePayload,
+  SavedAuctionListResponse,
+  SavedAuctionStatusResponse,
 } from '@/types/auction';
 import { refreshAccessToken } from '@/lib/api/refresh-token';
 import { authApi } from '@/lib/api/auth-client';
@@ -172,5 +174,58 @@ export const auctionApi = {
     return request<ProxyLimitResponse>(`/${auctionId}/proxy-limit`, {
       method: 'DELETE',
     });
+  },
+};
+
+async function savedRequest<T>(
+  path: string,
+  options: RequestInit = {},
+  retried = false,
+): Promise<T> {
+  const url = `/api/saved-auctions${path}`;
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...authHeaders(),
+      ...(options.headers as Record<string, string> | undefined),
+    },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (res.status === 401 && !retried && typeof window !== 'undefined') {
+      const result = await refreshAccessToken();
+      if (result) {
+        authApi.setToken(result.accessToken, result.refreshToken);
+        useAuthStore.getState().setToken(result.accessToken, result.refreshToken);
+        return savedRequest<T>(path, options, true);
+      }
+    }
+    const msg = data?.detail || data?.error || data?.message || `Saved API error ${res.status}`;
+    const err = new Error(msg) as Error & { status: number; data: unknown };
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data as T;
+}
+
+export const savedApi = {
+  saveAuction(auctionId: number): Promise<SavedAuctionStatusResponse> {
+    return savedRequest<SavedAuctionStatusResponse>(`/${auctionId}`, { method: 'POST' });
+  },
+  unsaveAuction(auctionId: number): Promise<void> {
+    return savedRequest<void>(`/${auctionId}`, { method: 'DELETE' });
+  },
+  getSavedStatus(auctionId: number): Promise<SavedAuctionStatusResponse> {
+    return savedRequest<SavedAuctionStatusResponse>(`/me/${auctionId}`);
+  },
+  listSaved(params?: { limit?: number; offset?: number }): Promise<SavedAuctionListResponse> {
+    const sp = new URLSearchParams();
+    if (params?.limit) sp.set('limit', String(params.limit));
+    if (params?.offset) sp.set('offset', String(params.offset));
+    const qs = sp.toString();
+    return savedRequest<SavedAuctionListResponse>(`/me${qs ? `?${qs}` : ''}`);
   },
 };

@@ -4,19 +4,21 @@
  * Dettaglio asta — light mode (sfondo bianco) come Figma: card bianca, testi scuri, accenti arancioni.
  */
 
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, Zap, ArrowLeft, Trophy, Check, ChevronDown, Clock, PlusCircle } from 'lucide-react';
+import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, ArrowLeft, Trophy, Check, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, PlusCircle, CalendarPlus, Smartphone, Globe } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { minNextBidEur, parseLocaleMoneyInput, roundMoney, roundUpToHalfStep } from '@/lib/auction/bid-math';
-import { AuctionBidModal } from '@/components/feature/aste/AuctionBidModal';
+import { AuctionBidPanel } from '@/components/feature/aste/AuctionBidPanel';
 import { AuctionShareButton } from '@/components/feature/aste/AuctionShareButton';
 import { AuctionQrButton } from '@/components/feature/aste/AuctionQrButton';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { LoginGateModal } from '@/components/feature/auth/LoginGateModal';
+import { auctionConditionLabelKey } from '@/lib/auction/auction-create-draft';
+import { AUCTION_SHIPPING_REST_OF_WORLD_ISO, isEuShippingCountry } from '@/lib/auction/eu-shipping-regions';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import {
   useAuctionDetail,
@@ -28,6 +30,9 @@ import {
 } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, apiBidToBidRow, type AuctionUI, type BidRowUI } from '@/lib/auction/auction-adapter';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useUserCountry } from '@/lib/hooks/use-user-country';
+import { savedApi } from '@/lib/api/auction-client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MascotteLoader } from '@/components/dev/MascotteLoader';
 import { enrichAuctionsWithPublicUsers, enrichBidRowsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
 
@@ -40,6 +45,11 @@ const PASTEL_GRADIENTS = [
 ] as const;
 const ORANGE = '#FF7300';
 const HEADER_OFFSET = 80;
+const CALENDAR_GLASS_MENU_CLASS =
+  'absolute right-0 z-[320] w-60 overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-b from-slate-800/95 via-slate-900/93 to-black/92 p-1.5 text-white backdrop-blur-xl backdrop-saturate-150 shadow-[0_26px_60px_rgba(2,6,23,0.58)] ring-1 ring-white/10 animate-orange-menu-enter';
+const CALENDAR_MENU_ITEM_CLASS =
+  'flex w-full items-center justify-between rounded-xl px-2.5 py-2.5 text-left text-[13px] font-semibold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)] transition hover:bg-white/14 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45';
+const CALENDAR_MENU_BADGE_CLASS = 'rounded-md border border-white/30 bg-white/12 px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide text-white';
 
 function formatHMS(ms: number): string {
   if (ms <= 0) return '00:00:00';
@@ -70,6 +80,71 @@ function sameUserId(a: string | null | undefined, b: string | null | undefined):
 
 function formatAuctionEur(value: number): string {
   return roundUpToHalfStep(value).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+}
+
+function resolveShippingCost(
+  detail: AuctionUI,
+  viewerCountryRaw: string | null | undefined
+): { included: boolean; label: string } {
+  if (detail.shippingPayer === 'seller') {
+    return { included: true, label: 'Spedizione inclusa' };
+  }
+  const viewerCountry = (viewerCountryRaw ?? '').toUpperCase();
+  const originCountry = (detail.shippingOriginCountry ?? '').toUpperCase();
+  if (!viewerCountry) {
+    return {
+      included: false,
+      label:
+        detail.shippingEuDefaultEur != null
+          ? `Spedizione da ${formatAuctionEur(detail.shippingEuDefaultEur)}`
+          : 'Spedizione da definire',
+    };
+  }
+  if (viewerCountry === originCountry && detail.shippingNationalEur != null) {
+    return { included: false, label: `Spedizione ${formatAuctionEur(detail.shippingNationalEur)}` };
+  }
+  const countryOverride = detail.shippingCountryPrices.find((r) => r.country_iso === viewerCountry);
+  if (countryOverride) {
+    return { included: false, label: `Spedizione ${formatAuctionEur(countryOverride.price_eur)}` };
+  }
+  if (isEuShippingCountry(viewerCountry)) {
+    if (detail.shippingEuDefaultEur != null) {
+      return { included: false, label: `Spedizione ${formatAuctionEur(detail.shippingEuDefaultEur)}` };
+    }
+  } else {
+    const restWorld = detail.shippingCountryPrices.find(
+      (r) => r.country_iso === AUCTION_SHIPPING_REST_OF_WORLD_ISO
+    );
+    if (restWorld) {
+      return { included: false, label: `Spedizione ${formatAuctionEur(restWorld.price_eur)}` };
+    }
+    if (detail.shippingEuDefaultEur != null) {
+      return { included: false, label: `Spedizione ${formatAuctionEur(detail.shippingEuDefaultEur)}` };
+    }
+  }
+  return { included: false, label: 'Spedizione da definire' };
+}
+
+function formatIcsDateUtc(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+  return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+}
+
+function escapeIcsText(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/,/g, '\\,')
+    .replace(/;/g, '\\;');
+}
+
+function formatGoogleDateUtc(date: Date): string {
+  return formatIcsDateUtc(date);
 }
 
 
@@ -108,6 +183,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const currentUser = useAuthStore((s) => s.user);
   const currentUserId = currentUser?.id ?? null;
   const isAuthenticated = currentUser != null;
+  const viewerCountry = useUserCountry();
+  const queryClient = useQueryClient();
 
   const baseDetail = useMemo(() => {
     if (!detailRes?.data) return null;
@@ -172,15 +249,19 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     return [detail.imageFront, detail.imageBack].filter(Boolean);
   }, [detail]);
   const [imgIdx, setImgIdx] = useState(0);
-  const [bidModalOpen, setBidModalOpen] = useState(false);
   const [loginGateOpen, setLoginGateOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [thumbStart, setThumbStart] = useState(0);
   const [myLastOfferEur, setMyLastOfferEur] = useState<number | null>(null);
   const [myMaxBidEur, setMyMaxBidEur] = useState<number | null>(null);
   const [proxyModalOpen, setProxyModalOpen] = useState(false);
   const [proxyInput, setProxyInput] = useState('');
   const [proxyInputError, setProxyInputError] = useState<string | null>(null);
-  const [showMaxBidRemovedToast, setShowMaxBidRemovedToast] = useState(false);
-  const [bidToastAmount, setBidToastAmount] = useState<number | null>(null);
+  const [floatingNotice, setFloatingNotice] = useState<{
+    kind: 'success' | 'warning';
+    message: string;
+  } | null>(null);
+  const previousProxyBidOutbidRef = useRef(false);
   const [stickyTop, setStickyTop] = useState(HEADER_OFFSET);
   const [asteNavHeight, setAsteNavHeight] = useState(56);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
@@ -188,8 +269,30 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const asteNavRef = useRef<HTMLDivElement>(null);
   const [mobileSection, setMobileSection] = useState<string | null>('auction');
   const [bidsExpanded, setBidsExpanded] = useState(false);
+  const [calendarMenuOpen, setCalendarMenuOpen] = useState(false);
+  const calendarMenuMobileRef = useRef<HTMLDivElement>(null);
+  const calendarMenuDesktopRef = useRef<HTMLDivElement>(null);
   const updateProxyLimitMutation = useUpdateProxyLimit(Number.isNaN(numericId) ? 0 : numericId);
   const cancelProxyLimitMutation = useCancelProxyLimit(Number.isNaN(numericId) ? 0 : numericId);
+  const [pendingSaveAfterLogin, setPendingSaveAfterLogin] = useState(false);
+
+  const savedStatusQuery = useQuery({
+    queryKey: ['saved-auctions', 'status', numericId, currentUserId],
+    queryFn: () => savedApi.getSavedStatus(numericId),
+    enabled: isAuthenticated && !Number.isNaN(numericId) && numericId > 0,
+    staleTime: 10_000,
+  });
+  const savedMutation = useMutation({
+    mutationFn: async (shouldSave: boolean) => {
+      if (shouldSave) return savedApi.saveAuction(numericId);
+      await savedApi.unsaveAuction(numericId);
+      return { success: true, data: { saved: false } };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['saved-auctions', 'status', numericId, currentUserId] });
+      queryClient.invalidateQueries({ queryKey: ['saved-auctions', 'list', currentUserId] });
+    },
+  });
 
   useEffect(() => {
     const header = document.querySelector('header');
@@ -215,21 +318,30 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   }, []);
 
   useEffect(() => {
-    if (bidToastAmount == null) return;
-    const id = window.setTimeout(() => setBidToastAmount(null), 20000);
+    if (!floatingNotice) return;
+    const id = window.setTimeout(() => setFloatingNotice(null), 3600);
     return () => window.clearTimeout(id);
-  }, [bidToastAmount]);
-
-  useEffect(() => {
-    if (!showMaxBidRemovedToast) return;
-    const id = window.setTimeout(() => setShowMaxBidRemovedToast(false), 15000);
-    return () => window.clearTimeout(id);
-  }, [showMaxBidRemovedToast]);
+  }, [floatingNotice]);
 
   // Reset sticky header state when auction changes
   useEffect(() => {
     setShowStickyHeader(false);
   }, [numericId]);
+
+  useEffect(() => {
+    setImgIdx(0);
+    setThumbStart(0);
+  }, [numericId]);
+
+  useEffect(() => {
+    if (imgIdx < thumbStart) {
+      setThumbStart(imgIdx);
+      return;
+    }
+    if (imgIdx >= thumbStart + 4) {
+      setThumbStart(imgIdx - 3);
+    }
+  }, [imgIdx, thumbStart]);
 
   useEffect(() => {
     const titleElement = heroTitleRef.current;
@@ -283,22 +395,11 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     return myLatestBid ? myLatestBid.amountEur : null;
   }, [bidRows, currentUserId]);
 
-  if (isLoading || !detail) {
-    return (
-      <div className="min-h-screen bg-white">
-        <AsteNav />
-        <div className="flex min-h-[40vh] items-center justify-center">
-          <MascotteLoader size="md" />
-        </div>
-      </div>
-    );
-  }
-
-  const isOwner = sameUserId(detail.createdByUserId, currentUserId);
-  const isEnded = detail.status === 'ended';
+  const isOwner = detail ? sameUserId(detail.createdByUserId, currentUserId) : false;
+  const isEnded = detail?.status === 'ended';
   const showBuyerBid = !isOwner && !isEnded;
   const mobileActionTop = stickyTop + (showStickyHeader ? 0 : asteNavHeight);
-  const detailStats = detail as unknown as {
+  const detailStats = (detail ?? {}) as {
     viewCount?: unknown;
     viewersCount?: unknown;
     watchingNow?: unknown;
@@ -318,23 +419,151 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         : 0;
   const statsViewsCount = Math.max(0, Math.round(statsViewsCountRaw));
   const statsWatchingCount = Math.max(0, Math.round(statsWatchingCountRaw));
-  const endsAt = detail.endsAt;
+  const endsAt = detail?.endsAt ?? new Date(0).toISOString();
   const msLeft = new Date(endsAt).getTime() - now;
   const mainImg = detailImages[imgIdx] ?? detailImages[0] ?? '';
-  const reserveMet = detail.reservePrice != null ? detail.currentBidEur >= detail.reservePrice : true;
+  const visibleThumbs = 4;
+  const hasThumbOverflow = detailImages.length > visibleThumbs;
+  const maxThumbStart = Math.max(0, detailImages.length - visibleThumbs);
+  const conditionLabel = detail?.condition ? t(auctionConditionLabelKey(detail.condition)) : '—';
+  const shippingInfo = detail
+    ? resolveShippingCost(
+        detail,
+        ((currentUser as { country?: string } | null)?.country ?? viewerCountry)
+      )
+    : { included: false, label: 'Spedizione da definire' };
+  const restOfWorldPriceRow = detail?.shippingCountryPrices?.find(
+    (r) => r.country_iso === AUCTION_SHIPPING_REST_OF_WORLD_ISO
+  );
+  const shippingCountryRows = (detail?.shippingCountryPrices ?? [])
+    .filter((r) => r.country_iso !== AUCTION_SHIPPING_REST_OF_WORLD_ISO)
+    .slice(0, 8);
+  const isSaved = Boolean(savedStatusQuery.data?.data?.saved);
+  const reserveMet = detail?.reservePrice != null ? detail.currentBidEur >= detail.reservePrice : true;
   const effectiveMyLastOfferEur = myLastOfferEur ?? myLastOfferFromHistoryEur;
   const outcome: 'live' | 'sold' | 'unsold' = isEnded
-    ? (reserveMet && detail.bidCount > 0 ? 'sold' : 'unsold')
+    ? (reserveMet && (detail?.bidCount ?? 0) > 0 ? 'sold' : 'unsold')
     : 'live';
-  const effectiveCurrentBidEur = detail.currentBidEur;
+  const effectiveCurrentBidEur = detail?.currentBidEur ?? 0;
+  const detailTitle = detail?.title ?? 'Asta';
   const isWinning =
     !isOwner &&
     !isEnded &&
     currentUserId != null &&
-    sameUserId(detail.highestBidderId, currentUserId);
+    sameUserId(detail?.highestBidderId, currentUserId);
   const fmtEur = (n: number) => formatAuctionEur(n);
-  const proxyBidIsWinning = !isOwner && !isEnded && myMaxBidEur != null && isWinning && myMaxBidEur >= detail.currentBidEur;
+  const proxyBidIsWinning = !isOwner && !isEnded && myMaxBidEur != null && isWinning && myMaxBidEur >= effectiveCurrentBidEur;
   const proxyBidOutbid = !isOwner && !isEnded && myMaxBidEur != null && !proxyBidIsWinning;
+  const downloadCalendarIcs = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const eventStart = new Date(endsAt);
+    if (Number.isNaN(eventStart.getTime())) return;
+
+    const eventEnd = new Date(eventStart.getTime() + 30 * 60 * 1000);
+    const nowUtc = formatIcsDateUtc(new Date());
+    const eventStartUtc = formatIcsDateUtc(eventStart);
+    const eventEndUtc = formatIcsDateUtc(eventEnd);
+    const eventTitle = `Scadenza asta: ${detailTitle}`;
+    const eventUrl = window.location.href;
+    const eventDescription = `L'asta "${detailTitle}" scade in questo momento.\\n${eventUrl}`;
+    const uid = `auction-${numericId}-${eventStart.getTime()}@ebartex`;
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//EBARTEX//Auction Calendar//IT',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${nowUtc}`,
+      `DTSTART:${eventStartUtc}`,
+      `DTEND:${eventEndUtc}`,
+      `SUMMARY:${escapeIcsText(eventTitle)}`,
+      `DESCRIPTION:${escapeIcsText(eventDescription)}`,
+      `URL:${eventUrl}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const fileUrl = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = fileUrl;
+    anchor.download = `asta-${numericId}-scadenza.ics`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(fileUrl);
+  }, [detailTitle, endsAt, numericId]);
+
+  const openGoogleCalendar = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const eventStart = new Date(endsAt);
+    if (Number.isNaN(eventStart.getTime())) return;
+    const eventEnd = new Date(eventStart.getTime() + 30 * 60 * 1000);
+    const eventTitle = `Scadenza asta: ${detailTitle}`;
+    const eventDetails = `L'asta "${detailTitle}" scade in questo momento.`;
+    const url = new URL('https://calendar.google.com/calendar/render');
+    url.searchParams.set('action', 'TEMPLATE');
+    url.searchParams.set('text', eventTitle);
+    url.searchParams.set('details', eventDetails);
+    url.searchParams.set('location', window.location.href);
+    url.searchParams.set('dates', `${formatGoogleDateUtc(eventStart)}/${formatGoogleDateUtc(eventEnd)}`);
+    window.open(url.toString(), '_blank', 'noopener,noreferrer');
+  }, [detailTitle, endsAt]);
+
+  const handleAddToIosCalendar = useCallback(() => {
+    downloadCalendarIcs();
+    setCalendarMenuOpen(false);
+  }, [downloadCalendarIcs]);
+
+  const handleAddToGoogleCalendar = useCallback(() => {
+    openGoogleCalendar();
+    setCalendarMenuOpen(false);
+  }, [openGoogleCalendar]);
+
+  useEffect(() => {
+    if (!calendarMenuOpen) return;
+    const onPointerDown = (event: MouseEvent | PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (calendarMenuMobileRef.current?.contains(target)) return;
+      if (calendarMenuDesktopRef.current?.contains(target)) return;
+      setCalendarMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setCalendarMenuOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [calendarMenuOpen]);
+
+  useEffect(() => {
+    if (proxyBidOutbid && !previousProxyBidOutbidRef.current) {
+      setFloatingNotice({
+        kind: 'warning',
+        message: 'La tua offerta e stata superata.',
+      });
+    }
+    previousProxyBidOutbidRef.current = proxyBidOutbid;
+  }, [proxyBidOutbid]);
+
+  if (isLoading || !detail) {
+    return (
+      <div className="min-h-screen bg-white">
+        <AsteNav />
+        <div className="flex min-h-[40vh] items-center justify-center">
+          <MascotteLoader size="md" />
+        </div>
+      </div>
+    );
+  }
 
   const openProxyModal = () => {
     if (myMaxBidEur == null) return;
@@ -357,7 +586,10 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     try {
       await cancelProxyLimitMutation.mutateAsync();
       setMyMaxBidEur(null);
-      setShowMaxBidRemovedToast(true);
+      setFloatingNotice({
+        kind: 'success',
+        message: 'Proxy bidding disattivato.',
+      });
       closeProxyModal();
     } catch (err) {
       setProxyInputError(err instanceof Error ? err.message : 'Impossibile disattivare il proxy bidding.');
@@ -379,6 +611,10 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     try {
       const res = await updateProxyLimitMutation.mutateAsync({ maxAmount: nextLimit });
       setMyMaxBidEur(res.data.proxy_limit);
+      setFloatingNotice({
+        kind: 'success',
+        message: `Proxy bidding impostato a ${fmtEur(res.data.proxy_limit)}.`,
+      });
       closeProxyModal();
     } catch (err) {
       setProxyInputError(err instanceof Error ? err.message : 'Impossibile aggiornare il limite proxy.');
@@ -393,6 +629,25 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       >
         <AsteNav />
       </div>
+
+      {floatingNotice && !isOwner && (
+        <div
+          className="fixed left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 px-1"
+          style={{ top: stickyTop + 8 }}
+          role="status"
+          aria-live="polite"
+        >
+          <div
+            className={`rounded-2xl border px-4 py-3 text-center shadow-[0_20px_45px_rgba(15,23,42,0.16)] backdrop-blur-2xl backdrop-saturate-150 transition-all duration-300 ${
+              floatingNotice.kind === 'warning'
+                ? 'border-rose-200/80 bg-rose-50/75 text-rose-900'
+                : 'border-emerald-200/80 bg-white/70 text-[#16324f]'
+            }`}
+          >
+            <p className="text-sm font-semibold tracking-[0.01em] sm:text-[15px]">{floatingNotice.message}</p>
+          </div>
+        </div>
+      )}
 
       {/* Hero — Priorità al nome prodotto */}
       <section className="w-full border-b border-gray-200 bg-white">
@@ -420,7 +675,15 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   {!isOwner && (
                     <button 
                       type="button" 
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-400 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:text-[#FF7300] hover:shadow-md"
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          setPendingSaveAfterLogin(true);
+                          setLoginGateOpen(true);
+                          return;
+                        }
+                        void savedMutation.mutateAsync(!isSaved);
+                      }}
+                      className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:shadow-md ${isSaved ? 'text-[#FF7300]' : 'text-gray-400 hover:text-[#FF7300]'}`}
                       aria-label={t('auctions.detailSaveLater')}
                     >
                       <Bookmark className="h-4 w-4" />
@@ -490,7 +753,15 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                 {!isOwner && (
                   <button
                     type="button"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-600 transition hover:bg-white/70 hover:text-[#FF7300]"
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        setPendingSaveAfterLogin(true);
+                        setLoginGateOpen(true);
+                        return;
+                      }
+                      void savedMutation.mutateAsync(!isSaved);
+                    }}
+                    className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-white/70 ${isSaved ? 'text-[#FF7300]' : 'text-gray-600 hover:text-[#FF7300]'}`}
                     aria-label={t('auctions.detailSaveLater')}
                   >
                     <Bookmark className="h-4 w-4" />
@@ -513,68 +784,11 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
       <section className="w-full bg-white px-0 py-4 sm:px-6 sm:py-6 lg:px-8">
         <div className="container-content container-content-card-detail">
-          {bidToastAmount != null && !isOwner && (
-            <div
-              className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 shadow-sm"
-              role="status"
-            >
-              <p className="font-semibold">
-                {t('auctions.bidSuccessToast', {
-                  amount: formatAuctionEur(bidToastAmount),
-                })}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-emerald-900">{t('auctions.bidRulesReminder')}</p>
-            </div>
-          )}
-
-          {showMaxBidRemovedToast && !isOwner && (
-            <div
-              className="mb-6 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-950 shadow-sm animate-[fadeInDown_0.4s_ease-out]"
-              role="status"
-            >
-              <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-[#FF7300]" />
-                <p className="font-semibold">{t('auctions.maxBidRemovedToast')}</p>
-              </div>
-              <p className="mt-1 text-xs text-orange-700">{t('auctions.maxBidRemovedToastBody')}</p>
-            </div>
-          )}
-
-          {/* Banner "Stai vincendo" */}
-          {isWinning && (
-            <div
-              className="mb-6 rounded-xl border-2 border-emerald-400 bg-gradient-to-r from-emerald-50 via-green-50 to-emerald-50 px-4 py-4 shadow-lg shadow-emerald-500/10 animate-[fadeInDown_0.5s_ease-out]"
-              role="status"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/30">
-                  <Trophy className="h-5 w-5 text-white" aria-hidden />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-base font-extrabold uppercase tracking-wide text-emerald-800 sm:text-lg">
-                    {t('auctions.winningBannerTitle')}
-                  </p>
-                  <p className="mt-0.5 text-sm text-emerald-700">
-                    {t('auctions.winningBannerBody', { amount: fmtEur(effectiveCurrentBidEur) })}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right hidden sm:block">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
-                    {t('auctions.winningBannerLabel')}
-                  </span>
-                  <p className="text-xl font-extrabold text-emerald-700">
-                    {fmtEur(effectiveCurrentBidEur)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Blocco principale — glass effect container come Best Sellers */}
           <div className="overflow-hidden rounded-2xl border border-gray-200/60 bg-white/80 backdrop-blur-[1px] shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-            <div className="grid gap-6 p-4 sm:gap-8 sm:p-6 lg:grid-cols-12 lg:p-8">
+            <div className="grid gap-6 p-4 sm:gap-8 sm:p-6 lg:grid-cols-12 lg:items-start lg:gap-7 lg:p-8">
               {/* Galleria */}
-              <div className="order-1 flex flex-col gap-4 lg:col-span-5">
+              <div className="order-1 flex h-full flex-col gap-5 lg:col-span-5 lg:self-start lg:pr-7 lg:border-r lg:border-black/10">
                 {/* Mobile: Unified Price + Timer Card */}
                 <div className="lg:hidden">
                   <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white via-white to-orange-50/40 p-4 shadow-sm">
@@ -610,9 +824,58 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                           </div>
                           {/* Right: Timer */}
                           <div className="shrink-0 text-right">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#FF7300]">
-                              {t('auctions.detailClosesIn')}
-                            </p>
+                            <div ref={calendarMenuMobileRef} className="relative flex items-center justify-end gap-1.5">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#FF7300]">
+                                {t('auctions.detailClosesIn')}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setCalendarMenuOpen((open) => !open)}
+                                className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#FF7300]/30 bg-white/70 text-[#FF7300] transition hover:border-[#FF7300] hover:bg-white"
+                                aria-label="Apri menu calendario"
+                                title="Aggiungi al calendario"
+                                aria-haspopup="menu"
+                                aria-expanded={calendarMenuOpen}
+                              >
+                                <CalendarPlus className="h-3.5 w-3.5" />
+                              </button>
+                              {calendarMenuOpen && (
+                                <div
+                                  className={`${CALENDAR_GLASS_MENU_CLASS} top-7`}
+                                  role="menu"
+                                  aria-label="Opzioni calendario"
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={handleAddToIosCalendar}
+                                    className={CALENDAR_MENU_ITEM_CLASS}
+                                    role="menuitem"
+                                  >
+                                    <span className="inline-flex items-center gap-2">
+                                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/35">
+                                        <Smartphone className="h-4 w-4" />
+                                      </span>
+                                      <span>Calendario iOS</span>
+                                    </span>
+                                    <span className={CALENDAR_MENU_BADGE_CLASS}>ICS</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleAddToGoogleCalendar}
+                                    className={`${CALENDAR_MENU_ITEM_CLASS} mt-1`}
+                                    role="menuitem"
+                                  >
+                                    <span className="inline-flex items-center gap-2">
+                                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/35">
+                                        <Globe className="h-4 w-4" />
+                                      </span>
+                                      <span>Google Calendar</span>
+                                    </span>
+                                    <span className={CALENDAR_MENU_BADGE_CLASS}>WEB</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                             <p
                               className="mt-1 font-mono text-lg font-bold tabular-nums tracking-tight text-gray-900 sm:text-xl"
                               suppressHydrationWarning
@@ -639,56 +902,95 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   </div>
                 </div>
 
-                <div className="flex gap-3 sm:gap-4">
-                  <div className="flex w-14 shrink-0 flex-col gap-2 sm:w-[4.5rem]">
-                    {detailImages.slice(0, 4).map((src, i) => (
+                <div className="flex items-stretch gap-3 sm:gap-4">
+                  <div className="flex w-14 shrink-0 flex-col items-center gap-2 sm:w-[4.5rem]">
+                    {hasThumbOverflow ? (
                       <button
-                        key={`${src}-${i}`}
                         type="button"
-                        onClick={() => setImgIdx(i)}
-                        className={`relative aspect-[63/88] w-full overflow-hidden rounded-lg border-2 bg-gray-50 transition ${
-                          imgIdx === i ? 'border-[#FF7300] ring-2 ring-[#FF7300]/20' : 'border-gray-200 hover:border-gray-400'
-                        }`}
+                        onClick={() => setThumbStart((v) => Math.max(0, v - 1))}
+                        disabled={thumbStart <= 0}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 transition hover:border-[#FF7300] hover:text-[#FF7300] disabled:opacity-40"
                       >
-                        <Image src={src} alt="" fill className="object-cover" sizes="72px" unoptimized />
+                        <ChevronUp className="h-4 w-4" />
                       </button>
-                    ))}
+                    ) : null}
+
+                    {(hasThumbOverflow ? detailImages.slice(thumbStart, thumbStart + visibleThumbs) : detailImages).map((src, i) => {
+                      const absoluteIndex = hasThumbOverflow ? thumbStart + i : i;
+                      return (
+                        <button
+                          key={`${src}-${absoluteIndex}`}
+                          type="button"
+                          onClick={() => setImgIdx(absoluteIndex)}
+                          className={`relative aspect-[63/88] w-full overflow-hidden rounded-lg border-2 bg-gray-50 transition ${
+                            imgIdx === absoluteIndex ? 'border-[#FF7300] ring-2 ring-[#FF7300]/20' : 'border-gray-200 hover:border-gray-400'
+                          }`}
+                        >
+                          <Image src={src} alt="" fill className="object-cover" sizes="72px" unoptimized />
+                        </button>
+                      );
+                    })}
+
+                    {hasThumbOverflow ? (
+                      <button
+                        type="button"
+                        onClick={() => setThumbStart((v) => Math.min(maxThumbStart, v + 1))}
+                        disabled={thumbStart >= maxThumbStart}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 transition hover:border-[#FF7300] hover:text-[#FF7300] disabled:opacity-40"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                    ) : null}
                   </div>
-                  <div className="relative min-h-[300px] flex-1 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 sm:min-h-[380px] lg:min-h-[420px]">
+                  <div className="group relative min-h-[300px] flex-1 overflow-hidden rounded-2xl border border-transparent bg-white/0 shadow-none sm:min-h-[380px] lg:min-h-[420px]">
+                    <button
+                      type="button"
+                      onClick={() => setLightboxOpen(true)}
+                      className="absolute inset-0 z-10 cursor-zoom-in"
+                      aria-label="Apri immagine in grande"
+                    />
                     <Image
                       src={mainImg}
                       alt=""
                       fill
-                      className="object-contain p-3"
+                      className="object-contain"
                       sizes="(max-width:1024px) 100vw, 420px"
                       priority
                       unoptimized
                     />
+                    {detailImages.length > 1 ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setImgIdx((v) => (v - 1 + detailImages.length) % detailImages.length)}
+                          className="absolute left-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-gray-800 shadow transition hover:bg-white group-hover:flex"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setImgIdx((v) => (v + 1) % detailImages.length)}
+                          className="absolute right-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-gray-800 shadow transition hover:bg-white group-hover:flex"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
+                      </>
+                    ) : null}
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 border-t border-gray-100 pt-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                      <Check className="h-3 w-3" aria-hidden />
-                      {t('auctions.excellent')}
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700">
-                      <Shield className="h-3 w-3" aria-hidden />
-                      {t('auctions.certified')}
-                    </span>
+                <div className="mt-1 flex justify-center border-t border-gray-100 pt-3">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#FF7300]/35 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-700 shadow-[0_10px_24px_rgba(255,115,0,0.12)] backdrop-blur-md backdrop-saturate-150 sm:gap-3">
+                    <span>{t('auctions.detailCondition')}: <span className="text-gray-900">{conditionLabel}</span></span>
+                    <span className="text-gray-300">|</span>
+                    <span>{t('auctions.detailFrom')}: <span className="text-[#1D3160]">{fmtEur(detail.startingBidEur)}</span></span>
                   </div>
-                  {/* Note: View and live stats moved to hero section */}
                 </div>
               </div>
 
               {/* Info centrale */}
-              <div className="order-3 flex flex-col gap-5 lg:col-span-4 lg:order-2">
+              <div className="order-3 flex h-full flex-col gap-5 lg:col-span-4 lg:order-2 lg:self-start lg:pl-7">
                 {/* Desktop details list — invariato */}
-                <div className="hidden divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white lg:block">
-                  <div className="px-4 py-3 text-sm">
-                    <span className="text-gray-500">{t('auctions.detailFrom')}: </span>
-                    <span className="font-bold text-gray-900">{fmtEur(detail.startingBidEur)}</span>
-                  </div>
+                <div className="hidden divide-y divide-black/5 rounded-xl border border-transparent bg-white/0 lg:block">
                   <div className="px-4 py-3 text-sm">
                     <span className="text-gray-500">{t('auctions.detailEnds')}: </span>
                     <span className="font-semibold text-gray-900">
@@ -711,20 +1013,11 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         {reserveMet ? t('auctions.sellerReserveMet') : t('auctions.sellerReserveNotMet')}
                       </p>
                     </div>
-                  ) : (
-                    <div className="px-4 py-3 text-sm text-amber-800">
-                      {reserveMet ? t('auctions.detailReserveYes') : t('auctions.detailReserveNo')}
-                    </div>
-                  )}
-                  <div className="px-4 py-3 text-sm">
-                    <span className="text-gray-500">{t('auctions.detailCondition')}: </span>
-                    <span className="text-gray-900">{'Verificata'}</span>
-                  </div>
-                  <div className="px-4 py-3 text-sm leading-relaxed text-gray-700">{detail.description}</div>
+                  ) : null}
                 </div>
 
                 {/* Mobile details accordion */}
-                <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-100 lg:hidden">
+                <div className="rounded-xl border border-transparent bg-white/0 divide-y divide-black/5 lg:hidden">
                   {/* Section: Dettagli Asta */}
                   <div>
                     <button
@@ -770,30 +1063,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     </div>
                   </div>
 
-                  {/* Section: Condizione & Descrizione */}
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => setMobileSection(mobileSection === 'condition' ? null : 'condition')}
-                      className="flex w-full items-center justify-between px-4 py-3 text-left"
-                    >
-                      <span className="text-xs font-bold uppercase tracking-wide text-gray-700">
-                        {t('auctions.detailCondition')}
-                      </span>
-                      <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${mobileSection === 'condition' ? 'rotate-180' : ''}`} />
-                    </button>
-                    <div className={`overflow-hidden transition-all duration-300 ${mobileSection === 'condition' ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                      <div className="space-y-2.5 px-4 pb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
-                            <Check className="h-3 w-3" aria-hidden />
-                            {'Verificata'}
-                          </span>
-                        </div>
-                        <p className="text-sm leading-relaxed text-gray-700">{detail.description}</p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 {isOwner && !isEnded && (
@@ -887,69 +1156,42 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                 )}
 
                 {showBuyerBid && (
-                  <div className="space-y-3 sm:space-y-4">
-                    {/* Prezzo attuale (desktop) */}
-                    <div className="hidden rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm sm:p-5 lg:block">
-                      <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500 sm:text-xs">
-                        {t('auctions.currentBid')}
-                      </p>
-                      <p className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
-                        {fmtEur(effectiveCurrentBidEur)}
-                      </p>
-                    </div>
-
-                    {/* Mobile CTA separator */}
-                    <div className="border-t-2 border-dashed border-orange-200/60 pt-4 lg:border-0 lg:pt-0">
-                      {/* CTA principale — stesso layout sempre. Per non loggati apre il LoginGateModal. */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (isAuthenticated) {
-                            setBidModalOpen(true);
-                          } else {
-                            setLoginGateOpen(true);
-                          }
-                        }}
-                        className="btn-orange-glow group relative w-full overflow-hidden rounded-xl border-2 py-3.5 text-center bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] hover:-translate-y-0.5 active:translate-y-0 sm:py-4"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#FF9A5C] via-[#FF8A3D] to-[#FF7300] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                        <div className="relative flex items-center justify-between gap-2 px-4 sm:px-6">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-white sm:text-base">
-                              {t('auctions.bidButtonChoose')}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-base font-extrabold text-white sm:text-lg">
-                              {fmtEur(minNextBidEur(effectiveCurrentBidEur))}
-                            </span>
-                            <svg
-                              className="h-4 w-4 text-white transition-transform duration-300 group-hover:translate-x-0.5 sm:h-5 sm:w-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2.5}
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
-                          </div>
-                        </div>
-                      </button>
-                    </div>
-
-                    {/* Helper text */}
-                    <p className="text-center text-[10px] leading-relaxed text-gray-500 sm:text-[11px]">
-                      {t('auctions.bidRulesReminder').split('.')[0]}.
-                    </p>
-                  </div>
+                  <AuctionBidPanel
+                    auctionId={numericId}
+                    currentBidEur={effectiveCurrentBidEur}
+                    isWinning={isWinning}
+                    reserveMet={reserveMet}
+                    maxBidEur={myMaxBidEur}
+                    proxyBidOutbid={proxyBidOutbid}
+                    buyNowEnabled={detail.buyNowEnabled}
+                    buyNowPrice={detail.buyNowPrice}
+                    buyNowUrl={detail.buyNowUrl}
+                    isAuthenticated={isAuthenticated}
+                    onOpenMaxBid={openProxyModal}
+                    onRequireAuth={() => setLoginGateOpen(true)}
+                    onSubmitOffer={(amountEur) => {
+                      setMyLastOfferEur(roundMoney(amountEur));
+                      setFloatingNotice({
+                        kind: 'success',
+                        message: `Offerta registrata correttamente: ${fmtEur(roundMoney(amountEur))}.`,
+                      });
+                    }}
+                    onSubmitMaxBid={(amountEur) => {
+                      setMyMaxBidEur(roundMoney(amountEur));
+                      setFloatingNotice({
+                        kind: 'success',
+                        message: `Proxy bidding impostato a ${fmtEur(roundMoney(amountEur))}.`,
+                      });
+                    }}
+                  />
                 )}
               </div>
 
               {/* Timer + cronologia */}
-              <div className="order-2 flex flex-col gap-5 lg:col-span-3 lg:order-3">
+              <div className="order-2 flex h-full flex-col gap-5 lg:col-span-3 lg:order-3 lg:self-start">
                 {/* Note: Stats views/watching moved to hero section */}
                 {/* Timer Glass Arancio (No Shiny) */}
-                <div className="hidden relative flex-col items-center justify-center rounded-2xl border border-[#FF7300]/30 bg-[#FF7300]/10 p-4 px-6 xl:p-6 xl:px-8 backdrop-blur-md shadow-[0_8px_32px_rgba(255,115,0,0.12)] lg:flex overflow-hidden min-w-0 w-full">
+                <div className="hidden relative flex-col items-center justify-center rounded-2xl border border-[#FF7300]/30 bg-[#FF7300]/10 p-4 px-6 xl:p-6 xl:px-8 backdrop-blur-md shadow-[0_8px_32px_rgba(255,115,0,0.12)] lg:flex overflow-visible min-w-0 w-full">
                   {/* Subtle inner highlight to enhance the glass effect */}
                   <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
 
@@ -973,9 +1215,60 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     </div>
                   ) : (
                     <div className="relative z-10 flex flex-col items-center text-center">
-                      <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[#FF7300] drop-shadow-sm">
-                        {t('auctions.detailClosesIn')}
-                      </p>
+                      <div className="flex items-center justify-center gap-2">
+                        <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[#FF7300] drop-shadow-sm">
+                          {t('auctions.detailClosesIn')}
+                        </p>
+                        <div ref={calendarMenuDesktopRef} className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setCalendarMenuOpen((open) => !open)}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#FF7300]/35 bg-white/70 text-[#FF7300] transition hover:border-[#FF7300] hover:bg-white"
+                            aria-label="Apri menu calendario"
+                            title="Aggiungi al calendario"
+                            aria-haspopup="menu"
+                            aria-expanded={calendarMenuOpen}
+                          >
+                            <CalendarPlus className="h-4 w-4" />
+                          </button>
+                          {calendarMenuOpen && (
+                            <div
+                              className={`${CALENDAR_GLASS_MENU_CLASS} top-9 text-left`}
+                              role="menu"
+                              aria-label="Opzioni calendario"
+                            >
+                              <button
+                                type="button"
+                                onClick={handleAddToIosCalendar}
+                                className={CALENDAR_MENU_ITEM_CLASS}
+                                role="menuitem"
+                              >
+                                <span className="inline-flex items-center gap-2">
+                                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/35">
+                                    <Smartphone className="h-4 w-4" />
+                                  </span>
+                                  <span>Calendario iOS</span>
+                                </span>
+                                <span className={CALENDAR_MENU_BADGE_CLASS}>ICS</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleAddToGoogleCalendar}
+                                className={`${CALENDAR_MENU_ITEM_CLASS} mt-1`}
+                                role="menuitem"
+                              >
+                                <span className="inline-flex items-center gap-2">
+                                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/35">
+                                    <Globe className="h-4 w-4" />
+                                  </span>
+                                  <span>Google Calendar</span>
+                                </span>
+                                <span className={CALENDAR_MENU_BADGE_CLASS}>WEB</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       <p
                         className="mt-3 flex items-baseline justify-center gap-1.5 font-mono text-3xl font-bold tabular-nums tracking-tight text-[#9A3412] leading-none xl:text-4xl 3xl:text-5xl"
                         suppressHydrationWarning
@@ -989,46 +1282,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   )}
                 </div>
 
-                {!isOwner && !isEnded && myMaxBidEur != null && (
-                  <button
-                    type="button"
-                    onClick={openProxyModal}
-                    className={`w-full rounded-xl border px-4 py-3 text-left shadow-sm transition hover:shadow-md ${
-                      proxyBidOutbid
-                        ? 'border-red-300 bg-red-50/90'
-                        : 'border-orange-200 bg-orange-50/90'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span
-                          className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                            proxyBidOutbid ? 'bg-red-500 text-white' : 'bg-[#FF7300] text-white'
-                          }`}
-                        >
-                          <Zap className="h-4 w-4" />
-                        </span>
-                        <div className="min-w-0">
-                          <p className={`text-sm font-extrabold uppercase tracking-wide ${proxyBidOutbid ? 'text-red-800' : 'text-[#1D3160]'}`}>
-                            Proxy bidding attivo
-                          </p>
-                          <p className={`text-xs ${proxyBidOutbid ? 'text-red-700' : 'text-gray-600'}`}>
-                            {proxyBidOutbid
-                              ? 'Il tuo limite è stato superato. Premi per alzarlo o interrompere.'
-                              : 'Premi per alzare il limite massimo o interrompere il proxy.'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Limite</p>
-                        <p className={`text-sm font-extrabold ${proxyBidOutbid ? 'text-red-700' : 'text-[#FF7300]'}`}>
-                          {fmtEur(myMaxBidEur)}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                )}
-
                 {/* Ultime Offerte — Design Premium Slider */}
                 <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
                   <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3 xl:px-6 xl:py-4">
@@ -1041,24 +1294,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                   </div>
 
                   <div className="max-h-72 overflow-y-auto py-1">
-                    {/* Current User's Bid */}
-                    {!isOwner && effectiveMyLastOfferEur != null && (
-                      <div 
-                        className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-orange-50 to-amber-50/50 px-4 py-2.5 animate-[fadeIn_0.4s_ease-out]"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FF7300] text-[10px] text-white">
-                            <span>👤</span>
-                          </div>
-                          <span className="text-sm font-bold text-[#FF7300]">{t('auctions.bidderYou')}</span>
-                          <span className="rounded bg-orange-200 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-800">
-                            Tu
-                          </span>
-                        </div>
-                        <span className="text-sm font-bold text-[#FF7300]">{fmtEur(effectiveMyLastOfferEur)}</span>
-                      </div>
-                    )}
-
                     {/* Bids List */}
                     {(() => {
                       let crownShown = false;
@@ -1084,7 +1319,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                           <div
                             key={b.bidId}
                             style={{ animationDelay }}
-                            className={`group flex items-center justify-between px-4 py-2.5 transition-all duration-300 hover:bg-gray-50 animate-[fadeInUp_0.4s_ease-out_both] xl:px-6 xl:py-3.5 ${i !== visibleBids.length - 1 ? 'border-b border-gray-50' : ''} ${isMine ? 'border-l-4 border-l-[#FF7300] bg-orange-50/30' : 'border-l-4 border-l-transparent hover:border-l-gray-300'}`}
+                            className={`group flex items-center justify-between px-4 py-2.5 transition-all duration-300 hover:bg-gray-50 animate-[fadeInUp_0.4s_ease-out_both] xl:px-6 xl:py-3.5 ${i !== visibleBids.length - 1 ? 'border-b border-gray-50' : ''} ${isMine ? 'border-l-4 border-l-[#FF7300] bg-orange-50/60' : 'border-l-4 border-l-transparent hover:border-l-gray-300'}`}
                           >
                             <div className="flex items-center gap-3 min-w-0 transition-transform duration-300 group-hover:translate-x-1">
                               <div className="shrink-0 overflow-hidden rounded-sm ring-1 ring-black/5">
@@ -1095,11 +1330,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                                   <span className={`text-xs xl:text-[13px] ${isLeader ? 'font-black text-[#1D3160]' : 'font-bold text-gray-700'}`}>
                                     {b.displayName}
                                   </span>
-                                  {isMine && (
-                                    <span className="rounded bg-[#FF7300] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-white shadow-sm">
-                                      Tu
-                                    </span>
-                                  )}
                                   {showCrown && (
                                     <Crown className="h-3.5 w-3.5 shrink-0 text-[#FFB800] drop-shadow-sm" aria-hidden />
                                   )}
@@ -1132,6 +1362,82 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                 </div>
               </div>
             </div>
+
+            <section className="mt-8 rounded-3xl border border-black/10 bg-white px-5 py-6 shadow-[0_8px_28px_rgba(0,0,0,0.06)] sm:mt-10 sm:px-7 sm:py-7 lg:px-9 lg:py-8">
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] lg:gap-9">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6E6E73]">Descrizione</p>
+                  <h3 className="mt-1 text-[24px] font-semibold tracking-tight text-[#1D1D1F] sm:text-[28px]">
+                    Buone condizioni
+                  </h3>
+                  <p className="mt-4 max-w-[70ch] text-[15px] leading-7 text-[#424245] sm:text-[16px]">
+                    {detail.description || 'Nessuna descrizione aggiuntiva fornita dal venditore.'}
+                  </p>
+                  <p className="mt-5 max-w-[70ch] text-[13px] leading-6 text-[#6E6E73]">
+                    Politiche di reso: il reso e gestito secondo le condizioni dichiarate dal venditore e lo stato dell&apos;oggetto. In caso di problemi, puoi aprire una contestazione dalla cronologia ordini.
+                  </p>
+                </div>
+
+                <div className="hidden w-px bg-black/10 lg:block" aria-hidden />
+
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6E6E73]">Spedizione</p>
+                  <h3 className="mt-1 text-[24px] font-semibold tracking-tight text-[#1D1D1F] sm:text-[28px]">
+                    Spedizione da definire
+                  </h3>
+                  <p className="mt-2 text-[13px] text-[#6E6E73] sm:text-[14px]">{shippingInfo.label}</p>
+
+                  <div className="mt-5 space-y-2.5">
+                    {detail.shippingOriginCountry ? (
+                      <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-[#F7F7F8] px-3.5 py-3 text-[13px]">
+                        <div className="flex items-center gap-2.5">
+                          <FlagIcon country={detail.shippingOriginCountry} size="sm" />
+                          <span className="font-medium text-[#424245]">Nazionale</span>
+                        </div>
+                        <span className="font-semibold text-[#1D1D1F]">
+                          {detail.shippingNationalEur != null ? fmtEur(detail.shippingNationalEur) : '—'}
+                        </span>
+                      </div>
+                    ) : null}
+                    <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-[#F7F7F8] px-3.5 py-3 text-[13px]">
+                      <span className="font-medium text-[#424245]">Resto Europa (default)</span>
+                      <span className="font-semibold text-[#1D1D1F]">
+                        {detail.shippingEuDefaultEur != null ? fmtEur(detail.shippingEuDefaultEur) : '—'}
+                      </span>
+                    </div>
+
+                    {restOfWorldPriceRow ? (
+                      <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-[#F7F7F8] px-3.5 py-3 text-[13px]">
+                        <div className="flex items-center gap-2.5">
+                          <Globe className="h-4 w-4 text-[#424245]" aria-hidden />
+                          <span className="font-medium text-[#424245]">Resto del mondo</span>
+                        </div>
+                        <span className="font-semibold text-[#1D1D1F]">{fmtEur(restOfWorldPriceRow.price_eur)}</span>
+                      </div>
+                    ) : null}
+
+                    {shippingCountryRows.length > 0 ? (
+                      <div className="rounded-2xl border border-black/10 bg-white px-3.5 py-3">
+                        <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#6E6E73]">
+                          Tariffe specifiche per paese
+                        </p>
+                        <div className="space-y-2">
+                          {shippingCountryRows.map((row) => (
+                            <div key={row.country_iso} className="flex items-center justify-between text-[13px]">
+                              <div className="flex items-center gap-2.5">
+                                <FlagIcon country={row.country_iso} size="sm" />
+                                <span className="font-medium text-[#424245]">{row.country_iso}</span>
+                              </div>
+                              <span className="font-semibold text-[#1D1D1F]">{fmtEur(row.price_eur)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
 
           {/* Oggetti simili — carousel mobile, grid desktop */}
@@ -1293,40 +1599,57 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         </div>
       </section>
 
+      {lightboxOpen && detailImages.length > 0 && (
+        <div
+          className="fixed inset-0 z-[260] flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setImgIdx((v) => (v - 1 + detailImages.length) % detailImages.length);
+            }}
+            className="absolute left-4 top-1/2 z-[261] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 md:flex"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setImgIdx((v) => (v + 1) % detailImages.length);
+            }}
+            className="absolute right-4 top-1/2 z-[261] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 md:flex"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(false)}
+            className="absolute right-4 top-4 z-[261] rounded-full bg-white/20 px-3 py-1 text-sm font-semibold text-white transition hover:bg-white/30"
+          >
+            Chiudi
+          </button>
+          <div className="relative h-[82vh] w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
+            <Image src={mainImg} alt="" fill className="object-contain" sizes="100vw" unoptimized />
+          </div>
+        </div>
+      )}
+
       {showBuyerBid && (
         <LoginGateModal
           open={loginGateOpen}
           onClose={() => setLoginGateOpen(false)}
           onSuccess={() => {
             setLoginGateOpen(false);
-            setBidModalOpen(true);
+            if (pendingSaveAfterLogin) {
+              setPendingSaveAfterLogin(false);
+              void savedMutation.mutateAsync(true);
+            }
           }}
           title={`Accedi per offrire ${fmtEur(minNextBidEur(effectiveCurrentBidEur))}`}
           subtitle="Bastano pochi secondi per partecipare all'asta."
-        />
-      )}
-
-      {showBuyerBid && (
-        <AuctionBidModal
-          open={bidModalOpen}
-          onClose={() => setBidModalOpen(false)}
-          effectiveCurrentBidEur={effectiveCurrentBidEur}
-          estimatedShippingEur={10}
-          reserveMet={reserveMet}
-          msLeft={msLeft}
-          endsAt={new Date(endsAt)}
-          myLastOfferEur={myLastOfferEur}
-          auctionId={numericId}
-          onSubmitOffer={(amountEur) => {
-            setMyLastOfferEur(roundMoney(amountEur));
-            setBidModalOpen(false);
-            setBidToastAmount(roundMoney(amountEur));
-          }}
-          onSubmitMaxBid={(amountEur) => {
-            setMyMaxBidEur(roundMoney(amountEur));
-            setBidModalOpen(false);
-            setBidToastAmount(roundMoney(amountEur));
-          }}
         />
       )}
 

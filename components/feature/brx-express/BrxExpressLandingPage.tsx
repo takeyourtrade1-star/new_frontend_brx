@@ -181,7 +181,7 @@ export function BrxExpressLandingPage() {
           custom={0.2}
           className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-600 sm:text-base mb-8"
         >
-          Prova l'interfaccia usata dai venditori per instradare lo stock e gestire il routing europeo.
+          Prova l&apos;interfaccia usata dai venditori per instradare lo stock e gestire il routing europeo.
         </motion.p>
 
         <motion.div variants={fadeUp} custom={0.3}>
@@ -283,7 +283,7 @@ export function BrxExpressLandingPage() {
               custom={0.2}
               className="mt-3 text-sm leading-relaxed text-zinc-600 sm:text-base"
             >
-              Il servizio "I Sell For You" semplifica la vendita delle tue carte in 4 passaggi.
+              Il servizio &quot;I Sell For You&quot; semplifica la vendita delle tue carte in 4 passaggi.
             </motion.p>
 
             <motion.div variants={fadeUp} custom={0.3} className="mt-8">

@@ -40,10 +40,14 @@ describe('createIdempotencyKey', () => {
 
 describe('auctionApi.placeBid', () => {
   it('sends Idempotency-Key header', async () => {
-    const fetchMock = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ success: true, data: { auction: {}, bids: [] } }),
-    }));
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => {
+      void _input;
+      void _init;
+      return {
+        ok: true,
+        json: async () => ({ success: true, data: { auction: {}, bids: [] } }),
+      };
+    });
     vi.stubGlobal('fetch', fetchMock);
     vi.stubGlobal('crypto', { randomUUID: () => 'idem-123' });
 

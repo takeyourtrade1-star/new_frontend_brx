@@ -128,7 +128,7 @@ export function AuctionCreateCardPicker({
   const [searchGame, setSearchGame] = useState<AuctionGame>('mtg');
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [collectionQuery, setCollectionQuery] = useState('');
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
@@ -461,6 +461,7 @@ export function AuctionCreateCardPicker({
                     className="rounded-t-xl"
                     thumbClassName="relative aspect-[63/88] w-full"
                     sizes="(max-width: 768px) 50vw, 180px"
+                    onImageClick={() => onSelect(sel)}
                   />
                   <button
                     type="button"

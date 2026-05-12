@@ -1752,7 +1752,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       aria-checked={soloFoil}
                       onClick={() => setSoloFoil(!soloFoil)}
                       className={cn(
-                        'relative inline-flex h-7 w-[52px] shrink-0 cursor-pointer items-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8800]/40',
+                        'relative inline-flex h-7 w-[52px] shrink-0 cursor-pointer items-center rounded-full transition-all duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8800]/40',
                         soloFoil
                           ? 'bg-[#FF8800] shadow-[inset_0_1px_2px_rgba(0,0,0,0.15),0_0_12px_rgba(255,136,0,0.45)]'
                           : 'bg-gray-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]'
@@ -1760,7 +1760,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     >
                       <span
                         className={cn(
-                          'inline-block h-6 w-6 transform rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.22),0_0_2px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] will-change-transform',
+                          'inline-block h-6 w-6 transform rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.22),0_0_2px_rgba(0,0,0,0.08)] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] will-change-transform',
                           soloFoil ? 'translate-x-6' : 'translate-x-0.5'
                         )}
                         aria-hidden

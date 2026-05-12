@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { QRCodeSVG } from 'qrcode.react';
 import { useRouter } from 'next/navigation';
 import { Check, ChevronLeft, ChevronRight, Gavel, Package } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -20,9 +21,11 @@ import {
   normalizeAuctionDraftMoneyInput,
   type AuctionCreateCardSelection,
   type AuctionCreateDraft,
+  type ListingPhotoSlot,
   searchGameSlugToAuctionGame,
 } from '@/lib/auction/auction-create-draft';
 import { parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
+import { AUCTION_SHIPPING_REST_OF_WORLD_ISO } from '@/lib/auction/eu-shipping-regions';
 import {
   createEmbeddedDraftFromProduct,
   mergeInventoryIntoAuctionDraft,
@@ -33,9 +36,12 @@ import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCardImageUrl } from '@/lib/assets';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { useCreateAuction } from '@/lib/hooks/use-auctions';
+import { useUserCountry } from '@/lib/hooks/use-user-country';
 import type { AuctionCreatePayload } from '@/types/auction';
 import {
+  createPhotoPairingSession,
   deletePhoto as deleteUploadedPhoto,
+  listPairingSessionPhotos,
   uploadPhoto,
   type UploadedPhoto,
 } from '@/lib/api/auction-photo-client';
@@ -101,6 +107,13 @@ function getPreviousStepId(
   return 'q_card';
 }
 
+function slotIncludedIn(slots: ListingPhotoSlot[], s: ListingPhotoSlot): boolean {
+  if (s.kind === 'local') {
+    return slots.some((x) => x.kind === 'local' && x.file === s.file);
+  }
+  return slots.some((x) => x.kind === 'remote' && x.photo.id === s.photo.id);
+}
+
 export type AuctionCreateWizardProps = {
   variant?: 'standalone' | 'embedded';
   /** Pagina prodotto: carta/già nota. */
@@ -122,6 +135,7 @@ export function AuctionCreateWizard({
 }: AuctionCreateWizardProps = {}) {
   const { t } = useTranslation();
   const router = useRouter();
+  const detectedCountry = useUserCountry();
   const isEmbedded = variant === 'embedded' && Boolean(embeddedCard);
   const hasEmbeddedInventory = isEmbedded && embeddedInventoryItems.length > 0;
 
@@ -153,18 +167,30 @@ export function AuctionCreateWizard({
     id: number | null;
     startIso: string;
     endIso: string;
-    publishMode: 'now' | 'scheduled';
   } | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showDesktopFloatingNav, setShowDesktopFloatingNav] = useState(false);
   const [isAtFormBottom, setIsAtFormBottom] = useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
+  const [phoneUploadModalOpen, setPhoneUploadModalOpen] = useState(false);
+  const [pairingSessionId, setPairingSessionId] = useState<string | null>(null);
+  const [pairingActionLoading, setPairingActionLoading] = useState(false);
+  const [pairingActionError, setPairingActionError] = useState<string | null>(null);
+  const pairingPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const wizardShellRef = useRef<HTMLDivElement>(null);
   const formCardRef = useRef<HTMLDivElement>(null);
   const stepContentRef = useRef<HTMLDivElement>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const stepVariant = isEmbedded ? 'embedded' : 'standalone';
+
+  useEffect(() => {
+    if (!detectedCountry) return;
+    setDraft((prev) => {
+      if (prev.shippingOriginCountry && prev.shippingOriginCountry !== 'IT') return prev;
+      return { ...prev, shippingOriginCountry: detectedCountry.toUpperCase() };
+    });
+  }, [detectedCountry]);
 
   const stepOrder = useMemo(
     () => getStepOrder(draft.isCard, { variant: stepVariant, hasEmbeddedInventory }),
@@ -229,38 +255,63 @@ export function AuctionCreateWizard({
       });
   }, []);
 
+  const mergeRemotePhotosFromSession = useCallback(async (sessionId: string) => {
+    try {
+      const remote = await listPairingSessionPhotos(sessionId);
+      remote.sort((a, b) => a.id - b.id);
+      setDraft((d) => {
+        const existingIds = new Set(
+          d.listingPhotos
+            .filter((x): x is Extract<ListingPhotoSlot, { kind: 'remote' }> => x.kind === 'remote')
+            .map((x) => x.photo.id),
+        );
+        let next = [...d.listingPhotos];
+        for (const p of remote) {
+          if (existingIds.has(p.id)) continue;
+          if (next.length >= AUCTION_LISTING_PHOTO_MAX) break;
+          next.push({ kind: 'remote', photo: p });
+          existingIds.add(p.id);
+        }
+        if (next.length === d.listingPhotos.length) return d;
+        return { ...d, listingPhotos: next };
+      });
+    } catch {
+      // Polling: ignore transient errors
+    }
+  }, []);
+
   const setListingPhotos = useCallback(
-    (next: File[]) => {
+    (next: ListingPhotoSlot[]) => {
       setDraft((d) => {
         const previous = d.listingPhotos;
-        const previousSet = new Set(previous);
-        const nextSet = new Set(next);
 
-        // Files removed from the list: abort their pending upload (if any) and
-        // best-effort delete the already-uploaded object on the backend so we
-        // don't leak photos.
-        for (const oldFile of previous) {
-          if (nextSet.has(oldFile)) continue;
-          const entry = photoUploads.get(oldFile);
-          if (!entry) continue;
-          entry.abort.abort();
-          if (entry.status === 'done' && entry.photo) {
-            void deleteUploadedPhoto(entry.photo.id).catch(() => {
-              /* tracked server-side via lifecycle and cleanup worker */
+        for (const old of previous) {
+          if (slotIncludedIn(next, old)) continue;
+          if (old.kind === 'local') {
+            const entry = photoUploads.get(old.file);
+            if (!entry) continue;
+            entry.abort.abort();
+            if (entry.status === 'done' && entry.photo) {
+              void deleteUploadedPhoto(entry.photo.id).catch(() => {
+                /* tracked server-side via lifecycle and cleanup worker */
+              });
+            }
+            setPhotoUploads((prev) => {
+              if (!prev.has(old.file)) return prev;
+              const m = new Map(prev);
+              m.delete(old.file);
+              return m;
             });
+          } else {
+            void deleteUploadedPhoto(old.photo.id).catch(() => {});
           }
-          setPhotoUploads((prev) => {
-            if (!prev.has(oldFile)) return prev;
-            const m = new Map(prev);
-            m.delete(oldFile);
-            return m;
-          });
         }
 
-        // Files newly added: kick off upload immediately.
-        for (const newFile of next) {
-          if (previousSet.has(newFile)) continue;
-          startUploadFor(newFile);
+        for (const s of next) {
+          if (slotIncludedIn(previous, s)) continue;
+          if (s.kind === 'local') {
+            startUploadFor(s.file);
+          }
         }
 
         return { ...d, listingPhotos: next };
@@ -288,8 +339,11 @@ export function AuctionCreateWizard({
   // an overlay (progress bar / "su CDN" badge / error) per slot.
   const photoUploadStatuses = useMemo<ListingPhotoUploadStatus[]>(
     () =>
-      draft.listingPhotos.map((file) => {
-        const entry = photoUploads.get(file);
+      draft.listingPhotos.map((slot) => {
+        if (slot.kind === 'remote') {
+          return { kind: 'done', cdnUrl: slot.photo.cdn_url };
+        }
+        const entry = photoUploads.get(slot.file);
         if (!entry) return { kind: 'idle' };
         if (entry.status === 'uploading') {
           return { kind: 'uploading', progress: entry.progress };
@@ -308,9 +362,70 @@ export function AuctionCreateWizard({
   );
 
   const failedUploadFiles = useMemo(
-    () => draft.listingPhotos.filter((f) => photoUploads.get(f)?.status === 'error'),
+    () =>
+      draft.listingPhotos
+        .filter(
+          (s): s is Extract<ListingPhotoSlot, { kind: 'local' }> =>
+            s.kind === 'local' && photoUploads.get(s.file)?.status === 'error',
+        )
+        .map((s) => s.file),
     [draft.listingPhotos, photoUploads],
   );
+
+  const phonePairingQrUrl = useMemo(() => {
+    if (!pairingSessionId || typeof window === 'undefined') return '';
+    const u = new URL('/aste/nuova/carica-foto', window.location.origin);
+    u.searchParams.set('sid', pairingSessionId);
+    return u.toString();
+  }, [pairingSessionId]);
+
+  useEffect(() => {
+    if (stepId !== 'photos') {
+      setPairingSessionId(null);
+      setPhoneUploadModalOpen(false);
+      setPairingActionError(null);
+    }
+  }, [stepId]);
+
+  useEffect(() => {
+    if (stepId !== 'photos' || !pairingSessionId) {
+      if (pairingPollRef.current) {
+        clearInterval(pairingPollRef.current);
+        pairingPollRef.current = null;
+      }
+      return;
+    }
+    void mergeRemotePhotosFromSession(pairingSessionId);
+    pairingPollRef.current = setInterval(() => {
+      void mergeRemotePhotosFromSession(pairingSessionId);
+    }, 2000);
+    return () => {
+      if (pairingPollRef.current) {
+        clearInterval(pairingPollRef.current);
+        pairingPollRef.current = null;
+      }
+    };
+  }, [stepId, pairingSessionId, mergeRemotePhotosFromSession]);
+
+  const openPhoneUploadModal = useCallback(async () => {
+    setPairingActionError(null);
+    setPairingActionLoading(true);
+    try {
+      const created = await createPhotoPairingSession();
+      setPairingSessionId(created.session_id);
+      setPhoneUploadModalOpen(true);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : 'Impossibile avviare la sessione. Riprova.';
+      setPairingActionError(msg);
+    } finally {
+      setPairingActionLoading(false);
+    }
+  }, []);
+
+  const closePhoneUploadModal = useCallback(() => {
+    setPhoneUploadModalOpen(false);
+  }, []);
 
   const stepperLabels = useMemo(() => {
     if (stepVariant === 'embedded') {
@@ -436,8 +551,14 @@ export function AuctionCreateWizard({
       }
       if (id === 'shipping') {
         if (draft.shippingPayer === 'buyer') {
-          const flat = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingFlatEur)));
-          if (!Number.isFinite(flat) || flat < 0) {
+          const national = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingNationalEur)));
+          const euDefault = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingEuDefaultEur)));
+          if (!Number.isFinite(national) || national < 0 || !Number.isFinite(euDefault) || euDefault < 0) {
+            setError(t('auctions.createValidationShipping'));
+            return false;
+          }
+          const restWorld = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingRestOfWorldEur)));
+          if (!Number.isFinite(restWorld) || restWorld < 0) {
             setError(t('auctions.createValidationShipping'));
             return false;
           }
@@ -459,21 +580,6 @@ export function AuctionCreateWizard({
           } else {
             setError('Attendi il completamento del caricamento delle foto.');
           }
-          return false;
-        }
-      }
-      if (id === 'review' && draft.publishMode === 'scheduled') {
-        if (!draft.publishAtDate || !draft.publishAtTime) {
-          setError('Se scegli la pubblicazione programmata, inserisci data e orario.');
-          return false;
-        }
-        const scheduled = new Date(`${draft.publishAtDate}T${draft.publishAtTime}`);
-        if (!Number.isFinite(scheduled.getTime())) {
-          setError('Data o orario di pubblicazione non validi.');
-          return false;
-        }
-        if (scheduled.getTime() <= Date.now() + 60_000) {
-          setError('La pubblicazione programmata deve essere almeno 1 minuto nel futuro.');
           return false;
         }
       }
@@ -642,15 +748,7 @@ export function AuctionCreateWizard({
       ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.reservePriceEur)))
       : undefined;
     const now = new Date();
-    let startDate = now;
-    if (draft.publishMode === 'scheduled') {
-      const scheduled = new Date(`${draft.publishAtDate}T${draft.publishAtTime}`);
-      if (!Number.isFinite(scheduled.getTime()) || scheduled.getTime() <= Date.now() + 60_000) {
-        setError('Data/ora di pubblicazione non valida. Controlla e riprova.');
-        return;
-      }
-      startDate = scheduled;
-    }
+    const startDate = now;
     const endDate = new Date(startDate.getTime() + (draft.durationDays || 7) * 86_400_000);
 
     // Photos uploaded directly to S3 via the photo client. We send their
@@ -658,8 +756,12 @@ export function AuctionCreateWizard({
     // rebind them to this auction in transaction and override
     // image_front/image_back from the first two for backward compatibility.
     const photoIds: number[] = [];
-    for (const file of draft.listingPhotos) {
-      const entry = photoUploads.get(file);
+    for (const slot of draft.listingPhotos) {
+      if (slot.kind === 'remote') {
+        photoIds.push(slot.photo.id);
+        continue;
+      }
+      const entry = photoUploads.get(slot.file);
       if (!entry || entry.status !== 'done' || !entry.photo) {
         setError('Una o più foto non sono ancora state caricate. Riprova.');
         setStepId('photos');
@@ -674,14 +776,20 @@ export function AuctionCreateWizard({
     const fallbackFront =
       photoIds.length === 0 ? draft.imageUrl || '' : '';
     const fallbackBack = fallbackFront;
+    const slot0 = draft.listingPhotos[0];
+    const slot1 = draft.listingPhotos[1];
     const firstPhotoCdn =
-      draft.listingPhotos.length > 0
-        ? photoUploads.get(draft.listingPhotos[0]!)?.photo?.cdn_url ?? ''
-        : '';
+      slot0?.kind === 'remote'
+        ? slot0.photo.cdn_url
+        : slot0?.kind === 'local'
+          ? photoUploads.get(slot0.file)?.photo?.cdn_url ?? ''
+          : '';
     const secondPhotoCdn =
-      draft.listingPhotos.length > 1
-        ? photoUploads.get(draft.listingPhotos[1]!)?.photo?.cdn_url ?? ''
-        : firstPhotoCdn;
+      slot1?.kind === 'remote'
+        ? slot1.photo.cdn_url
+        : slot1?.kind === 'local'
+          ? photoUploads.get(slot1.file)?.photo?.cdn_url ?? ''
+          : firstPhotoCdn;
     const imageFront = firstPhotoCdn || fallbackFront;
     const imageBack = secondPhotoCdn || fallbackBack;
 
@@ -702,6 +810,24 @@ export function AuctionCreateWizard({
       image_front: imageFront,
       image_back: imageBack,
       photo_ids: photoIds.length > 0 ? photoIds : undefined,
+      shipping_payer: draft.shippingPayer,
+      shipping_origin_country: draft.shippingOriginCountry || null,
+      shipping_national_eur:
+        draft.shippingPayer === 'buyer'
+          ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingNationalEur)))
+          : null,
+      shipping_eu_default_eur:
+        draft.shippingPayer === 'buyer'
+          ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingEuDefaultEur)))
+          : null,
+      shipping_country_prices:
+        draft.shippingPayer === 'buyer'
+          ? (() => {
+              const rest = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingRestOfWorldEur)));
+              if (!Number.isFinite(rest) || rest < 0) return [];
+              return [{ country_iso: AUCTION_SHIPPING_REST_OF_WORLD_ISO, price_eur: rest }];
+            })()
+          : [],
     };
 
     try {
@@ -710,7 +836,6 @@ export function AuctionCreateWizard({
         id: created?.data?.id ?? null,
         startIso: created?.data?.start_time ?? payload.start_time,
         endIso: created?.data?.end_time ?? payload.end_time,
-        publishMode: draft.publishMode,
       });
       setDone(true);
     } catch (err) {
@@ -833,13 +958,6 @@ export function AuctionCreateWizard({
     }).format(d);
   }, []);
 
-  const localDateInputValue = useCallback((date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }, []);
-
   // On every step change, scroll to top of page (at title level) and focus the first actionable field.
   useEffect(() => {
     if (!isEmbedded) {
@@ -895,9 +1013,7 @@ export function AuctionCreateWizard({
         {createdAuctionInfo && (
           <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-left">
             <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Dettagli pubblicazione</p>
-            <p className="mt-2 text-sm text-emerald-900">
-              Modalita: {createdAuctionInfo.publishMode === 'scheduled' ? 'Programmata' : 'Immediata'}
-            </p>
+            <p className="mt-2 text-sm text-emerald-900">L&apos;asta è partita subito dopo la conferma.</p>
             <p className="mt-1 text-sm text-emerald-900">Inizio asta: {formatDateTimeLong(createdAuctionInfo.startIso)}</p>
             <p className="mt-1 text-sm text-emerald-900">Fine asta: {formatDateTimeLong(createdAuctionInfo.endIso)}</p>
             {createdAuctionInfo.id ? (
@@ -1484,23 +1600,80 @@ export function AuctionCreateWizard({
                 </div>
               </div>
               {draft.shippingPayer === 'buyer' && (
-                <div>
-                  <label htmlFor="ac-ship" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                    {t('auctions.createShippingFlatLabel')}
-                  </label>
-                  <div className="relative mt-1.5 max-w-xs">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="ac-ship-origin" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+                      Paese di spedizione
+                    </label>
                     <input
-                      id="ac-ship"
-                      value={draft.shippingFlatEur}
-                      onChange={(e) => update('shippingFlatEur', e.target.value)}
-                      onBlur={(e) => update('shippingFlatEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                      id="ac-ship-origin"
+                      value={draft.shippingOriginCountry}
+                      onChange={(e) => update('shippingOriginCountry', e.target.value.toUpperCase().slice(0, 2))}
                       className={cn(
-                        'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
+                        'mt-1.5 w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2.5 text-sm uppercase text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
                         isEmbedded && 'py-2'
                       )}
-                      inputMode="decimal"
                     />
+                  </div>
+                  <div>
+                    <label htmlFor="ac-ship-national" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+                      Spedizione nazionale ({draft.shippingOriginCountry || 'IT'})
+                    </label>
+                    <div className="relative mt-1.5 max-w-xs">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
+                      <input
+                        id="ac-ship-national"
+                        value={draft.shippingNationalEur}
+                        onChange={(e) => update('shippingNationalEur', e.target.value)}
+                        onBlur={(e) => update('shippingNationalEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                        className={cn(
+                          'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
+                          isEmbedded && 'py-2'
+                        )}
+                        inputMode="decimal"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="ac-ship-eu" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+                      Spedizione default resto Europa
+                    </label>
+                    <div className="relative mt-1.5 max-w-xs">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
+                      <input
+                        id="ac-ship-eu"
+                        value={draft.shippingEuDefaultEur}
+                        onChange={(e) => update('shippingEuDefaultEur', e.target.value)}
+                        onBlur={(e) => update('shippingEuDefaultEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                        className={cn(
+                          'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
+                          isEmbedded && 'py-2'
+                        )}
+                        inputMode="decimal"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="ac-ship-rest-world" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+                      Spedizione resto del mondo (fuori UE)
+                    </label>
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      Tariffa unica per acquirenti al di fuori dell&apos;area UE indicata sopra (non il paese di origine).
+                    </p>
+                    <div className="relative mt-1.5 max-w-xs">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
+                      <input
+                        id="ac-ship-rest-world"
+                        value={draft.shippingRestOfWorldEur}
+                        onChange={(e) => update('shippingRestOfWorldEur', e.target.value)}
+                        onBlur={(e) => update('shippingRestOfWorldEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                        className={cn(
+                          'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
+                          isEmbedded && 'py-2'
+                        )}
+                        inputMode="decimal"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -1509,6 +1682,25 @@ export function AuctionCreateWizard({
 
           {stepId === 'photos' && (
             <div className={cn('space-y-3', isEmbedded && 'space-y-2')}>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => void openPhoneUploadModal()}
+                  disabled={pairingActionLoading}
+                  className={cn(
+                    'inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#1D3160]/25 bg-[#f8f9fb] px-4 py-2.5 text-sm font-semibold text-[#1D3160] transition hover:border-[#FF7300]/50 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-60',
+                    isEmbedded && 'py-2 text-xs',
+                  )}
+                >
+                  {pairingActionLoading ? t('auctions.createPhotoFromPhoneLoading') : t('auctions.createPhotoFromPhone')}
+                </button>
+                {pairingSessionId && !phoneUploadModalOpen ? (
+                  <p className="text-xs text-gray-600">{t('auctions.createPhotoFromPhonePollingHint')}</p>
+                ) : null}
+              </div>
+              {pairingActionError ? (
+                <p className="text-sm text-red-700">{pairingActionError}</p>
+              ) : null}
               <AuctionListingPhotoUpload
                 photos={draft.listingPhotos}
                 onPhotosChange={setListingPhotos}
@@ -1541,87 +1733,9 @@ export function AuctionCreateWizard({
             <div className={cn('space-y-4', isEmbedded && 'space-y-3')}>
               <div className={cn('rounded-xl border border-[#1D3160]/15 bg-[#f8f9fb] p-4', isEmbedded && 'rounded-lg border-zinc-200/60 bg-zinc-50/80 p-2.5')}>
                 <p className="text-xs font-bold uppercase tracking-wide text-[#1D3160]">Pubblicazione</p>
-                <div className={cn('mt-3 grid gap-2 sm:grid-cols-2', isEmbedded && 'mt-1.5 gap-1')}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDraft((d) => ({ ...d, publishMode: 'now', publishAtDate: '', publishAtTime: '' }));
-                      setError(null);
-                    }}
-                    className={cn(
-                      'rounded-xl border-2 px-4 py-3 text-left transition-all',
-                      isEmbedded && 'rounded-lg px-3 py-2',
-                      draft.publishMode === 'now'
-                        ? 'border-[#FF7300] bg-orange-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    )}
-                  >
-                    <span className="block text-sm font-semibold text-gray-900">Pubblica subito</span>
-                    <span className="mt-0.5 block text-xs text-gray-500">L'asta parte appena confermi.</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDraft((d) => {
-                        if (d.publishMode === 'scheduled') return d;
-                        const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
-                        return {
-                          ...d,
-                          publishMode: 'scheduled',
-                          publishAtDate: d.publishAtDate || localDateInputValue(oneHourFromNow),
-                          publishAtTime: d.publishAtTime || `${String(oneHourFromNow.getHours()).padStart(2, '0')}:${String(oneHourFromNow.getMinutes()).padStart(2, '0')}`,
-                        };
-                      });
-                      setError(null);
-                    }}
-                    className={cn(
-                      'rounded-xl border-2 px-4 py-3 text-left transition-all',
-                      isEmbedded && 'rounded-lg px-3 py-2',
-                      draft.publishMode === 'scheduled'
-                        ? 'border-[#FF7300] bg-orange-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    )}
-                  >
-                    <span className="block text-sm font-semibold text-gray-900">Programma data e ora</span>
-                    <span className="mt-0.5 block text-xs text-gray-500">Imposta quando deve iniziare l'asta.</span>
-                  </button>
-                </div>
-                {draft.publishMode === 'scheduled' && (
-                  <div className={cn('mt-3 grid gap-3 sm:grid-cols-2', isEmbedded && 'mt-2 gap-2')}>
-                    <div>
-                      <label htmlFor="ac-publish-date" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                        Data pubblicazione
-                      </label>
-                      <input
-                        id="ac-publish-date"
-                        type="date"
-                        value={draft.publishAtDate}
-                        min={localDateInputValue(new Date())}
-                        onChange={(e) => update('publishAtDate', e.target.value)}
-                        className={cn(
-                          'mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                          isEmbedded && 'py-2'
-                        )}
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="ac-publish-time" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                        Orario pubblicazione
-                      </label>
-                      <input
-                        id="ac-publish-time"
-                        type="time"
-                        step={60}
-                        value={draft.publishAtTime}
-                        onChange={(e) => update('publishAtTime', e.target.value)}
-                        className={cn(
-                          'mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                          isEmbedded && 'py-2'
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
+                <p className="mt-2 text-sm leading-relaxed text-gray-700">
+                  L&apos;asta partirà <span className="font-semibold text-gray-900">subito</span> quando confermi la pubblicazione (non è possibile programmare data e ora).
+                </p>
               </div>
 
               {isEmbedded ? (
@@ -1649,7 +1763,7 @@ export function AuctionCreateWizard({
                   <div className="mt-2 rounded-md bg-white px-2.5 py-2 ring-1 ring-zinc-100">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Titolo</p>
                     <p className="mt-0.5 line-clamp-1 text-xs font-semibold text-zinc-900">{draft.title || '—'}</p>
-                    <p className="mt-1 text-[11px] text-zinc-500">{draft.publishMode === 'scheduled' ? `Programmata: ${draft.publishAtDate || '—'} ${draft.publishAtTime || '—'}` : 'Pubblicazione immediata'}</p>
+                    <p className="mt-1 text-[11px] text-zinc-500">Pubblicazione immediata alla conferma.</p>
                   </div>
                   <div className="mt-2">
                     <ListingPhotoThumbnailsRow photos={draft.listingPhotos} />
@@ -1724,19 +1838,14 @@ export function AuctionCreateWizard({
                     </dd>
                   </div>
                   <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Modalita pubblicazione</dt>
-                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
-                      {draft.publishMode === 'scheduled'
-                        ? `Programmata: ${draft.publishAtDate || '—'} ${draft.publishAtTime || '—'}`
-                        : 'Immediata'}
-                    </dd>
-                  </div>
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createShippingWhoLabel')}</dt>
                     <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
                       {draft.shippingPayer === 'buyer' ? t('auctions.createShippingBuyer') : t('auctions.createShippingSeller')}
                       {draft.shippingPayer === 'buyer' && (
-                        <span className="text-gray-600"> — €{draft.shippingFlatEur}</span>
+                        <span className="text-gray-600">
+                          {' '}
+                          — Nazionale €{draft.shippingNationalEur} · UE €{draft.shippingEuDefaultEur} · Extra-UE €{draft.shippingRestOfWorldEur}
+                        </span>
                       )}
                     </dd>
                   </div>
@@ -2015,6 +2124,35 @@ export function AuctionCreateWizard({
           </footer>
         </div>
         )}
+
+        {phoneUploadModalOpen && pairingSessionId && phonePairingQrUrl ? (
+          <div className="fixed inset-0 z-[85] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="phone-upload-qr-title"
+              className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl"
+            >
+              <h2 id="phone-upload-qr-title" className="text-lg font-bold uppercase tracking-wide text-[#1D3160]">
+                {t('auctions.createPhotoFromPhoneModalTitle')}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-gray-700">
+                {t('auctions.createPhotoFromPhoneModalBody')}
+              </p>
+              <div className="mt-4 flex justify-center rounded-xl border border-gray-100 bg-white p-4">
+                <QRCodeSVG value={phonePairingQrUrl} size={200} level="M" />
+              </div>
+              <p className="mt-2 break-all text-center text-[11px] text-gray-500">{phonePairingQrUrl}</p>
+              <button
+                type="button"
+                onClick={closePhoneUploadModal}
+                className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+              >
+                {t('auctions.createPhotoFromPhoneModalClose')}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {publishConfirmOpen && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">

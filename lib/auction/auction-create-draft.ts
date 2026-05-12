@@ -1,9 +1,14 @@
 import type { AuctionGame } from '@/components/feature/aste/mock-auctions';
+import type { UploadedPhoto } from '@/lib/api/auction-photo-client';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
 
 export type AuctionCreateShippingPayer = 'buyer' | 'seller';
-export type AuctionCreatePublishMode = 'now' | 'scheduled';
+
+/** Slot in the listing photo grid: local file (upload from this device) or finalized CDN photo (e.g. from phone QR). */
+export type ListingPhotoSlot =
+  | { kind: 'local'; file: File }
+  | { kind: 'remote'; photo: UploadedPhoto };
 
 export type AuctionCreateCardSelection = {
   id: string;
@@ -37,23 +42,40 @@ export type AuctionCreateDraft = {
   startingBidEur: string;
   reservePriceEur: string;
   durationDays: 3 | 5 | 7;
+  /** Hours granted to the winner to pay before the order can escalate to a
+   * dispute. Marketplace policy: default & minimum are 7 days (168h); the
+   * upper bound is 30 days (720h). The wizard does NOT currently expose this
+   * field — every newly created auction inherits the policy default — but the
+   * shape stays in the draft so we can re-introduce a UI later without
+   * touching every call site. */
+  paymentDeadlineHours: number;
   shippingPayer: AuctionCreateShippingPayer;
   shippingFlatEur: string;
-  /** Pubblica subito o pianifica data/ora di inizio. */
-  publishMode: AuctionCreatePublishMode;
-  publishAtDate: string;
-  publishAtTime: string;
+  shippingOriginCountry: string;
+  shippingNationalEur: string;
+  shippingEuDefaultEur: string;
+  /** Prezzo spedizione per acquirenti fuori UE (persistito come riga `XZ` in shipping_country_prices). */
+  shippingRestOfWorldEur: string;
   /** Opzionale: integrazione catalogo / inventario (es. da ricerca o sync). */
   catalogCardId?: string;
   selectedInventoryItemId?: string | null;
-  /** Foto dell'oggetto reale (min/max prima della pubblicazione; solo client fino all'upload API). */
-  listingPhotos: File[];
+  /** Foto dell'oggetto reale (min/max prima della pubblicazione): locale o già su CDN (es. da telefono). */
+  listingPhotos: ListingPhotoSlot[];
 };
 
 /** Minimo foto richieste per pubblicare l'inserzione. */
 export const AUCTION_LISTING_PHOTO_MIN = 2;
 /** Massimo foto consentite. */
 export const AUCTION_LISTING_PHOTO_MAX = 4;
+
+/** Allowed range for the per-auction payment deadline (hours).
+ * Backend mirrors these bounds via a Pydantic validator (168..720) and a
+ * permissive DB CHECK (1..720) for admin overrides. The wizard currently
+ * uses the default (no UI exposure) but we keep the constants exported so
+ * future admin tooling / future seller UI can reuse them. */
+export const AUCTION_PAYMENT_DEADLINE_MIN_HOURS = 168;
+export const AUCTION_PAYMENT_DEADLINE_MAX_HOURS = 720;
+export const AUCTION_PAYMENT_DEADLINE_DEFAULT_HOURS = 168;
 
 /** Massimo caratteri per la descrizione personalizzata dell'asta (flusso carta da catalogo). */
 export const AUCTION_CUSTOM_DESCRIPTION_MAX = 200;
@@ -138,11 +160,13 @@ export const AUCTION_CREATE_DEFAULT_DRAFT: AuctionCreateDraft = {
   startingBidEur: '',
   reservePriceEur: '',
   durationDays: 7,
+  paymentDeadlineHours: AUCTION_PAYMENT_DEADLINE_DEFAULT_HOURS,
   shippingPayer: 'buyer',
   shippingFlatEur: '4.99',
-  publishMode: 'now',
-  publishAtDate: '',
-  publishAtTime: '',
+  shippingOriginCountry: 'IT',
+  shippingNationalEur: '4.99',
+  shippingEuDefaultEur: '9.99',
+  shippingRestOfWorldEur: '14.99',
   listingPhotos: [],
 };
 

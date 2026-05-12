@@ -57,7 +57,7 @@ export function TorneiLiveLandingPage() {
             <h3 className="text-sm font-bold text-zinc-900">1. Iscrizione Rapida</h3>
             <p className="mt-1 text-xs leading-relaxed text-zinc-500">
               Scegli il torneo (Standard, Pioneer, Modern, Commander), inserisci il tuo nickname
-              di gioco, seleziona il decklist e conferma l'accettazione delle regole anti-cheat.
+              di gioco, seleziona il decklist e conferma l&apos;accettazione delle regole anti-cheat.
             </p>
           </div>
           <div className="rounded-xl border border-zinc-200 bg-white p-5">
@@ -67,7 +67,7 @@ export function TorneiLiveLandingPage() {
             <h3 className="text-sm font-bold text-zinc-900">2. Verifica Webcam</h3>
             <p className="mt-1 text-xs leading-relaxed text-zinc-500">
               Attiva la tua webcam per il controllo identità da parte dei giudici verificati.
-              Decklist bloccata prima dell'inizio, webcam obbligatoria durante tutto il match.
+              Decklist bloccata prima dell&apos;inizio, webcam obbligatoria durante tutto il match.
             </p>
           </div>
           <div className="rounded-xl border border-zinc-200 bg-white p-5">

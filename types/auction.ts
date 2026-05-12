@@ -31,9 +31,16 @@ export interface AuctionAPI {
   buy_now_enabled: boolean;
   buy_now_price: number | null;
   buy_now_url: string | null;
+  condition?: string | null;
+  shipping_payer?: 'buyer' | 'seller';
+  shipping_origin_country?: string | null;
+  shipping_national_eur?: number | null;
+  shipping_eu_default_eur?: number | null;
+  shipping_country_prices?: { country_iso: string; price_eur: number }[];
   winner_id?: string | null;
   reserve_not_reached_message?: string | null;
   created_by_user_id?: string | null;
+  payment_deadline_hours?: number;
 }
 
 export interface AuctionListResponse {
@@ -120,6 +127,29 @@ export interface AuctionCreatePayload {
   buy_now_enabled?: boolean;
   buy_now_url?: string | null;
   buy_now_price?: number | null;
+  shipping_payer?: 'buyer' | 'seller';
+  shipping_origin_country?: string | null;
+  shipping_national_eur?: number | null;
+  shipping_eu_default_eur?: number | null;
+  shipping_country_prices?: { country_iso: string; price_eur: number }[];
+  /** Payment deadline (in hours) granted to the winner before the order can
+   * escalate to a dispute. Optional: omit to use the marketplace default
+   * (168h = 7 days). Allowed range when explicitly provided: 168..720 hours
+   * (7..30 days). Validation is mirrored server-side. */
+  payment_deadline_hours?: number;
+}
+
+export interface SavedAuctionStatusResponse {
+  success: boolean;
+  data: { saved: boolean };
+}
+
+export interface SavedAuctionListResponse {
+  success: boolean;
+  data: AuctionAPI[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface PlaceBidPayload {

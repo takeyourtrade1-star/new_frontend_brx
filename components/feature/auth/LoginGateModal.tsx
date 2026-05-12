@@ -58,8 +58,8 @@ export function LoginGateModal({
   const verifyCodeMutation = useVerifyLoginCode();
 
   const [step, setStep] = useState<Step>('email');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [identifier, setIdentifier] = useState('');
+    const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -133,26 +133,28 @@ export function LoginGateModal({
     return `${m}:${s.toString().padStart(2, '0')}`;
   }, [countdown]);
 
-  const trimmedEmail = email.trim().toLowerCase();
-  const isValidEmail = EMAIL_REGEX.test(trimmedEmail);
+  const trimmedIdentifier = identifier.trim();
+  const normalizedEmail = trimmedIdentifier.toLowerCase();
+  const isValidEmail = EMAIL_REGEX.test(normalizedEmail);
+  const hasIdentifier = trimmedIdentifier.length > 0;
 
   const goLogin = useCallback(() => {
-    if (!isValidEmail) {
-      setEmailError('Inserisci un indirizzo email valido.');
+    if (!hasIdentifier) {
+      setEmailError('Inserisci email o username.');
       return;
     }
     setEmailError(null);
     setError(null);
     setStep('password');
-  }, [isValidEmail]);
+  }, [hasIdentifier]);
 
   const goRegister = useCallback(() => {
     const url = new URL('/registrati', window.location.origin);
-    if (isValidEmail) url.searchParams.set('email', trimmedEmail);
+    if (isValidEmail) url.searchParams.set('email', normalizedEmail);
     url.searchParams.set('returnTo', resolveReturnTo());
     onClose();
     router.push(url.pathname + url.search);
-  }, [isValidEmail, trimmedEmail, resolveReturnTo, router, onClose]);
+  }, [isValidEmail, normalizedEmail, resolveReturnTo, router, onClose]);
 
   const submitPassword = useCallback(
     async (e: React.FormEvent) => {
@@ -163,10 +165,10 @@ export function LoginGateModal({
       }
       setError(null);
       try {
-        const result = await loginMutation.mutateAsync({
-          email: trimmedEmail,
-          password,
-        });
+        const credentials = isValidEmail
+          ? { email: normalizedEmail, password }
+          : { username: trimmedIdentifier, password };
+        const result = await loginMutation.mutateAsync(credentials);
         if (result.mfaRequired) {
           onClose();
           router.push('/login/verify-mfa');
@@ -178,27 +180,31 @@ export function LoginGateModal({
         setError(parseAuthError(err).message);
       }
     },
-    [password, trimmedEmail, loginMutation, onClose, onSuccess, router]
+    [password, isValidEmail, normalizedEmail, trimmedIdentifier, loginMutation, onClose, onSuccess, router]
   );
 
   const requestCode = useCallback(async () => {
+    if (!isValidEmail) {
+      setError('Per il codice monouso inserisci un indirizzo email valido.');
+      return;
+    }
     setError(null);
     setCode('');
     try {
-      await requestCodeMutation.mutateAsync(trimmedEmail);
+      await requestCodeMutation.mutateAsync(normalizedEmail);
       setStep('code');
       setCountdown(300);
     } catch (err) {
       setError(parseAuthError(err).message);
     }
-  }, [trimmedEmail, requestCodeMutation]);
+  }, [isValidEmail, normalizedEmail, requestCodeMutation]);
 
   const verifyCode = useCallback(
     async (value: string) => {
       setError(null);
       try {
         const result = await verifyCodeMutation.mutateAsync({
-          email: trimmedEmail,
+          email: normalizedEmail,
           code: value,
         });
         if (result.mfaRequired) {
@@ -212,19 +218,23 @@ export function LoginGateModal({
         setError(parseAuthError(err).message);
       }
     },
-    [trimmedEmail, verifyCodeMutation, onClose, onSuccess, router]
+    [normalizedEmail, verifyCodeMutation, onClose, onSuccess, router]
   );
 
   const resendCode = useCallback(async () => {
     if (countdown > 0) return;
+    if (!isValidEmail) {
+      setError('Per il codice monouso inserisci un indirizzo email valido.');
+      return;
+    }
     setError(null);
     try {
-      await requestCodeMutation.mutateAsync(trimmedEmail);
+      await requestCodeMutation.mutateAsync(normalizedEmail);
       setCountdown(300);
     } catch (err) {
       setError(parseAuthError(err).message);
     }
-  }, [trimmedEmail, requestCodeMutation, countdown]);
+  }, [isValidEmail, normalizedEmail, requestCodeMutation, countdown]);
 
   if (!open) return null;
 
@@ -276,18 +286,18 @@ export function LoginGateModal({
                 htmlFor="login-gate-email"
                 className="mb-1.5 pl-1 text-[12px] font-semibold uppercase tracking-wide text-[#86868b]"
               >
-                Email
+                Email o username
               </label>
               <input
                 ref={emailInputRef}
                 id="login-gate-email"
-                type="email"
+                type="text"
                 inputMode="email"
-                autoComplete="email"
-                placeholder="tu@email.com"
-                value={email}
+                autoComplete="username"
+                placeholder="Email o username"
+                value={identifier}
                 onChange={(e) => {
-                  setEmail(e.target.value);
+                  setIdentifier(e.target.value);
                   if (emailError) setEmailError(null);
                 }}
                 onKeyDown={(e) => {
@@ -306,7 +316,6 @@ export function LoginGateModal({
                 <button
                   type="button"
                   onClick={goRegister}
-                  disabled={!isValidEmail}
                   className="rounded-full border border-black/10 bg-white px-4 py-3.5 text-[14px] font-semibold text-[#1d1d1f] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:bg-gray-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Registrati
@@ -314,7 +323,7 @@ export function LoginGateModal({
                 <button
                   type="button"
                   onClick={goLogin}
-                  disabled={!isValidEmail}
+                  disabled={!hasIdentifier}
                   className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[#1d1d1f] px-4 py-3.5 text-[14px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                 >
                   Accedi
@@ -353,7 +362,7 @@ export function LoginGateModal({
                 <p className="mt-1.5 text-[13px] leading-[1.45] text-[#86868b]">
                   Inserisci la password di{' '}
                   <span className="font-semibold text-[#1d1d1f]">
-                    {trimmedEmail}
+                    {isValidEmail ? normalizedEmail : trimmedIdentifier}
                   </span>
                 </p>
               </div>
@@ -369,7 +378,7 @@ export function LoginGateModal({
                 id="login-gate-password"
                 type="password"
                 autoComplete="current-password"
-                placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+                placeholder="Inserisci la password"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -450,7 +459,7 @@ export function LoginGateModal({
                 <p className="mt-1.5 text-[13px] leading-[1.45] text-[#86868b]">
                   Abbiamo inviato un codice a 8 caratteri a{' '}
                   <span className="font-semibold text-[#1d1d1f]">
-                    {trimmedEmail}
+                    {normalizedEmail}
                   </span>
                 </p>
               </div>

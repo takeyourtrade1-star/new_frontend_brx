@@ -6,6 +6,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   AUCTION_LISTING_PHOTO_MAX,
   AUCTION_LISTING_PHOTO_MIN,
+  type ListingPhotoSlot,
 } from '@/lib/auction/auction-create-draft';
 import { cn } from '@/lib/utils';
 
@@ -19,14 +20,18 @@ function isImageFile(file: File) {
   return file.type.startsWith('image/');
 }
 
+function slotPreviewUrl(slot: ListingPhotoSlot): string {
+  return slot.kind === 'local' ? URL.createObjectURL(slot.file) : slot.photo.cdn_url;
+}
+
 export function AuctionListingPhotoUpload({
   photos,
   onPhotosChange,
   compact = false,
   uploadStatuses,
 }: {
-  photos: File[];
-  onPhotosChange: (next: File[]) => void;
+  photos: ListingPhotoSlot[];
+  onPhotosChange: (next: ListingPhotoSlot[]) => void;
   /** Layout più stretto (es. wizard embedded nella scheda prodotto). */
   compact?: boolean;
   /** Stato di upload allineato con `photos` (stessa lunghezza, stesso ordine). */
@@ -34,16 +39,18 @@ export function AuctionListingPhotoUpload({
 }) {
   const { t } = useTranslation();
   const baseId = useId();
-  const previewUrls = useMemo(() => photos.map((f) => URL.createObjectURL(f)), [photos]);
+  const previewUrls = useMemo(() => photos.map(slotPreviewUrl), [photos]);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const galleryRefs = useRef<(HTMLInputElement | null)[]>([]);
   const cameraRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     return () => {
-      previewUrls.forEach((u) => URL.revokeObjectURL(u));
+      photos.forEach((slot, i) => {
+        if (slot.kind === 'local') URL.revokeObjectURL(previewUrls[i]!);
+      });
     };
-  }, [previewUrls]);
+  }, [previewUrls, photos]);
 
   const canAddMore = photos.length < AUCTION_LISTING_PHOTO_MAX;
 
@@ -53,7 +60,7 @@ export function AuctionListingPhotoUpload({
       for (const f of incoming) {
         if (!isImageFile(f)) continue;
         if (next.length >= AUCTION_LISTING_PHOTO_MAX) break;
-        next.push(f);
+        next.push({ kind: 'local', file: f });
       }
       if (next.length > photos.length) onPhotosChange(next);
     },
@@ -68,8 +75,9 @@ export function AuctionListingPhotoUpload({
       }
       if (!isImageFile(file)) return;
       const next = [...photos];
-      if (index < next.length) next[index] = file;
-      else if (index === next.length && next.length < AUCTION_LISTING_PHOTO_MAX) next.push(file);
+      const slot: ListingPhotoSlot = { kind: 'local', file };
+      if (index < next.length) next[index] = slot;
+      else if (index === next.length && next.length < AUCTION_LISTING_PHOTO_MAX) next.push(slot);
       onPhotosChange(next);
     },
     [photos, onPhotosChange]
@@ -97,7 +105,6 @@ export function AuctionListingPhotoUpload({
     }
   };
 
-  const slotCount = photos.length + (canAddMore ? 1 : 0);
   const setGalleryRef = (i: number, el: HTMLInputElement | null) => {
     galleryRefs.current[i] = el;
   };
@@ -182,7 +189,7 @@ export function AuctionListingPhotoUpload({
 
                 {url ? (
                   <div className="relative flex flex-1 flex-col">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- blob URLs */}
+                    {/* eslint-disable-next-line @next/next/no-img-element -- blob + CDN URLs */}
                     <img
                       src={url}
                       alt=""
@@ -345,13 +352,13 @@ function UploadStatusOverlay({
   );
 }
 
-export function listingPhotosComplete(photos: File[]): boolean {
+export function listingPhotosComplete(photos: ListingPhotoSlot[]): boolean {
   return photos.length >= AUCTION_LISTING_PHOTO_MIN && photos.length <= AUCTION_LISTING_PHOTO_MAX;
 }
 
-/** True quando il numero di foto è valido E ogni foto è stata finalizzata su CDN. */
+/** True quando il numero di foto è valido E ogni foto locale è stata finalizzata su CDN. */
 export function listingPhotosReady(
-  photos: File[],
+  photos: ListingPhotoSlot[],
   uploadStatuses: ListingPhotoUploadStatus[] | undefined,
 ): boolean {
   if (!listingPhotosComplete(photos)) return false;
@@ -361,14 +368,16 @@ export function listingPhotosReady(
 }
 
 /** Anteprima in revisione (revoca blob URL al cambio). */
-export function ListingPhotoThumbnailsRow({ photos }: { photos: File[] }) {
-  const urls = useMemo(() => photos.map((f) => URL.createObjectURL(f)), [photos]);
+export function ListingPhotoThumbnailsRow({ photos }: { photos: ListingPhotoSlot[] }) {
+  const urls = useMemo(() => photos.map(slotPreviewUrl), [photos]);
 
   useEffect(() => {
     return () => {
-      urls.forEach((u) => URL.revokeObjectURL(u));
+      photos.forEach((slot, i) => {
+        if (slot.kind === 'local') URL.revokeObjectURL(urls[i]!);
+      });
     };
-  }, [urls]);
+  }, [urls, photos]);
 
   if (photos.length === 0) {
     return <span className="text-sm text-gray-500">—</span>;
@@ -377,7 +386,7 @@ export function ListingPhotoThumbnailsRow({ photos }: { photos: File[] }) {
   return (
     <div className="flex flex-wrap gap-3">
       {urls.map((u, i) => (
-        // eslint-disable-next-line @next/next/no-img-element -- blob URLs
+        // eslint-disable-next-line @next/next/no-img-element -- blob + CDN
         <img key={i} src={u} alt="" className="h-24 w-24 rounded-lg border border-gray-200 object-cover sm:h-28 sm:w-28" />
       ))}
     </div>

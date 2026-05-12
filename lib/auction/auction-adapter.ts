@@ -46,6 +46,12 @@ export interface AuctionUI {
   createdByUserId: string | null;
   highestBidderId: string | null;
   startTime: string;
+  condition: string;
+  shippingPayer: 'buyer' | 'seller';
+  shippingOriginCountry: string | null;
+  shippingNationalEur: number | null;
+  shippingEuDefaultEur: number | null;
+  shippingCountryPrices: { country_iso: string; price_eur: number }[];
 }
 
 function asNumber(value: unknown, fallback = 0): number {
@@ -99,6 +105,19 @@ export function apiToAuctionUI(a: AuctionAPI, bidCount?: number): AuctionUI {
     createdByUserId: a.created_by_user_id ?? null,
     highestBidderId: a.highest_bidder_id ?? null,
     startTime: a.start_time,
+    condition: a.condition ?? '',
+    shippingPayer: a.shipping_payer === 'seller' ? 'seller' : 'buyer',
+    shippingOriginCountry: a.shipping_origin_country ?? null,
+    shippingNationalEur:
+      a.shipping_national_eur != null ? asNumber(a.shipping_national_eur) : null,
+    shippingEuDefaultEur:
+      a.shipping_eu_default_eur != null ? asNumber(a.shipping_eu_default_eur) : null,
+    shippingCountryPrices: Array.isArray(a.shipping_country_prices)
+      ? a.shipping_country_prices.map((row) => ({
+          country_iso: String(row.country_iso).toUpperCase(),
+          price_eur: asNumber(row.price_eur),
+        }))
+      : [],
   };
 }
 

@@ -15,6 +15,7 @@ type HoverPreview = { url: string; left: number; top: number };
 /**
  * Miniatura carta: tap (touch / senza hover) → modale immagine grande + chiudi.
  * Desktop con hover fine → anteprima ingrandita al passaggio del mouse.
+ * Con `onImageClick`, il tap sulla miniatura invoca quella callback (es. selezione) e non apre la modale.
  * Il click sulla miniatura non deve propagare al contenitore padre (es. selezione riga).
  */
 export function AuctionCardImagePeek({
@@ -23,12 +24,15 @@ export function AuctionCardImagePeek({
   className,
   thumbClassName,
   sizes,
+  onImageClick,
 }: {
   imageUrl: string | null;
   name: string;
   className?: string;
   thumbClassName?: string;
   sizes?: string;
+  /** Se impostato, il click sulla miniatura non apre anteprima/modale (solo hover desktop resta). */
+  onImageClick?: () => void;
 }) {
   const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
@@ -75,6 +79,10 @@ export function AuctionCardImagePeek({
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      if (onImageClick) {
+        onImageClick();
+        return;
+      }
       if (!imageUrl || typeof window === 'undefined') return;
       const coarse = window.matchMedia('(pointer: coarse)').matches;
       const noHover = !window.matchMedia('(hover: hover)').matches;
@@ -83,7 +91,7 @@ export function AuctionCardImagePeek({
         setModalOpen(true);
       }
     },
-    [imageUrl]
+    [imageUrl, onImageClick]
   );
 
   useEffect(() => {
@@ -184,7 +192,11 @@ export function AuctionCardImagePeek({
           thumbClassName,
           className
         )}
-        aria-label={t('auctions.createImagePreviewOpen', { name })}
+        aria-label={
+          onImageClick
+            ? t('auctions.createCollectionSelectByImage', { name })
+            : t('auctions.createImagePreviewOpen', { name })
+        }
       >
         <Image src={imageUrl} alt="" fill className="object-cover" sizes={sizes ?? '64px'} unoptimized />
       </button>

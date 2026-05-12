@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Settings,
   Download,
+  Bookmark,
   ChevronRight,
   ChevronLeft,
   LucideIcon,
@@ -41,6 +42,7 @@ const ACCOUNT_LINKS: { href: string; icon: LucideIcon; key: string }[] = [
   { href: '/account/sincronizzazione', icon: RefreshCw, key: 'sidebar.sync' },
   { href: '/account/impostazioni', icon: Settings, key: 'sidebar.settings' },
   { href: '/account/downloads', icon: Download, key: 'sidebar.downloads' },
+  { href: '/account/aste-salvate', icon: Bookmark, key: 'sidebar.savedAuctions' },
 ];
 
 /** Verifica se un link è attivo */
@@ -69,6 +71,7 @@ const PATH_TO_KEY: Record<string, MessageKey> = {
   acquisti: 'breadcrumb.acquisti',
   ordini: 'breadcrumb.ordini',
   'lista-desideri': 'breadcrumb.lista-desideri',
+  'aste-salvate': 'breadcrumb.aste-salvate',
   'utenti-bloccati': 'breadcrumb.utenti-bloccati',
 };
 

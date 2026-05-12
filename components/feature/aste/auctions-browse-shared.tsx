@@ -7,7 +7,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LayoutGrid, LayoutList, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, LayoutList, SlidersHorizontal, Star } from 'lucide-react';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import type { MessageKey } from '@/lib/i18n/messages/en';
@@ -51,6 +51,27 @@ export function formatHMS(ms: number): string {
   const m = Math.floor((s % 3600) / 60);
   const sec = s % 60;
   return [h, m, sec].map((n) => String(n).padStart(2, '0')).join(':');
+}
+
+/** Solo durata leggibile (es. "2g 5h", "3h 12m", "45m") — per badge su immagine. */
+function formatCountdownDuration(ms: number): string {
+  if (ms <= 0) return '—';
+  const totalMinutes = Math.ceil(ms / 60000);
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) return `${days}g ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
+function formatSellerLabel(rawSeller: string): string {
+  const trimmed = rawSeller.trim();
+  const looksLikeUuid = /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(trimmed);
+
+  if (!looksLikeUuid) return trimmed;
+  return `Venditore: ${trimmed.slice(0, 4)}...`;
 }
 
 const GAME_KEYS: Record<AuctionGame, MessageKey> = {
@@ -158,71 +179,87 @@ export function AuctionGridCard({
 }) {
   const ended = isAuctionEndedUI(auction);
   const ms = new Date(auction.endsAt).getTime() - now;
+  const isTimerUrgent = !ended && ms > 0 && ms < 2 * 60 * 60 * 1000;
   return (
     <Link
       href={auctionDetailPath(auction.id)}
       scroll
       prefetch
-      className="group flex flex-col overflow-hidden rounded-xl border border-white/40 bg-white/70 shadow-md backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 hover:border-primary/40 hover:bg-white/85 hover:shadow-lg"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md"
     >
-      {/* Image container - full bleed */}
+      {/* Image container */}
       <div className="relative aspect-[63/88] overflow-hidden bg-gray-100">
         <Image
           src={auction.image}
           alt=""
           fill
-          className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+          className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02]"
           sizes="(max-width:640px) 50vw, 20vw"
           unoptimized
         />
-        {/* Dark gradient overlay for timer readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-        
-        {/* Game badge - glass, positioned top right */}
-        <div className="absolute right-2 top-2 rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-lg backdrop-blur-md">
-          {auctionGameLabel(t, auction.game)}
-        </div>
-        
-        {/* Timer - glass style like game badge, white text for readability */}
-        <div className="absolute bottom-2 left-2 right-2 rounded-full border border-white/30 bg-white/20 p-1.5 text-center backdrop-blur-md shadow-lg">
-          <p className="font-mono text-sm font-bold tabular-nums text-white" suppressHydrationWarning>
-            {ended ? '—' : formatHMS(ms)}
-          </p>
+        {/* Fascia scura sotto l’arte: contrasto costante per il badge timer */}
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t from-black/80 via-black/45 to-transparent"
+          aria-hidden
+        />
+        <div className="absolute inset-x-0 bottom-0 flex justify-center px-2 pb-2 pt-6">
+          <div
+            className={`w-full max-w-[min(100%,14rem)] rounded-lg border px-2.5 py-1.5 text-center shadow-lg backdrop-blur-md ${
+              isTimerUrgent
+                ? 'border-red-400/45 bg-red-950/90 ring-1 ring-red-500/30'
+                : 'border-white/20 bg-black/78 ring-1 ring-black/20'
+            }`}
+          >
+            {ended ? (
+              <p className="text-[11px] font-bold uppercase tracking-wide text-white">{t('auctions.ended')}</p>
+            ) : (
+              <>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/80">Scade tra</p>
+                <p
+                  className="mt-0.5 text-sm font-bold tabular-nums tracking-tight text-white sm:text-[15px]"
+                  suppressHydrationWarning
+                >
+                  {formatCountdownDuration(ms)}
+                </p>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex flex-1 flex-col p-2">
-        {/* Title */}
-        <p className="line-clamp-2 min-h-[2rem] text-[13px] font-semibold leading-tight text-gray-900">
+      <div className="flex flex-1 flex-col gap-1 px-2 pb-2 pt-1.5">
+        <p className="line-clamp-2 text-[13px] font-bold leading-snug text-slate-900">
           {auction.title}
         </p>
 
-        {/* Seller info */}
-        <div className="mt-1.5 flex items-center gap-1.5">
+        <div className="flex min-w-0 items-center gap-1 text-[10px] leading-tight text-slate-600">
           <FlagIcon country={auction.sellerCountry} size="sm" />
-          <span className="truncate text-[11px] font-medium text-gray-600">{auction.seller}</span>
-        </div>
-        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-amber-600">
-          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-          <span className="font-medium">{auction.sellerRating}%</span>
-          <span className="text-gray-400">·</span>
-          <span className="text-gray-500">({auction.sellerReviewCount})</span>
+          <span className="min-w-0 max-w-[38%] shrink truncate font-medium text-slate-700">
+            {formatSellerLabel(auction.seller)}
+          </span>
+          <span className="shrink-0 text-slate-300">·</span>
+          <span className="flex min-w-0 items-center gap-0.5 truncate text-amber-600">
+            <Star className="h-2.5 w-2.5 shrink-0 fill-amber-400 text-amber-500" aria-hidden />
+            <span className="truncate">
+              {auction.sellerRating}% ({auction.sellerReviewCount})
+            </span>
+          </span>
         </div>
 
-        {/* Price & Bids row */}
-        <div className="mt-2 flex items-end justify-between gap-2">
-          <div>
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-gray-500">
+        <div className="mt-1 flex items-end justify-between gap-2 border-t border-slate-100/90 bg-slate-50/60 px-2 py-1.5 -mx-2">
+          <div className="min-w-0">
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">
               {ended ? t('auctions.finalPriceLabel') : t('auctions.currentBid')}
             </p>
-            <MoneyWithSmallCents value={auction.currentBidEur} className="text-base font-bold text-primary" />
+            <MoneyWithSmallCents
+              value={auction.currentBidEur}
+              className="text-lg font-extrabold leading-none text-primary sm:text-xl"
+            />
           </div>
-          <div className="text-right">
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-gray-500">{t('auctions.colBids')}</p>
-            <p className="text-base font-bold text-gray-800">{auction.bidCount}</p>
+          <div className="shrink-0 text-right">
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">{t('auctions.colBids')}</p>
+            <p className="text-xs font-semibold tabular-nums text-slate-700">{auction.bidCount}</p>
           </div>
         </div>
       </div>
@@ -413,7 +450,7 @@ export function AuctionResultsGrid({
   t: AuctionTranslate;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-2.5 sm:p-3.5">
       {auctions.map((a) => (
         <AuctionGridCard key={a.id} auction={a} now={now} t={t} />
       ))}
