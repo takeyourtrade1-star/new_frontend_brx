@@ -414,12 +414,14 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = (await authApi.post(
+          const raw = (await authApi.post(
             '/api/auth/verify-mfa',
             data
-          )) as TokenResponse;
+          )) as TokenResponse | Record<string, unknown>;
 
-          const { access_token, refresh_token } = response;
+          const response = (raw as { data?: unknown }).data ?? raw;
+
+          const { access_token, refresh_token } = response as Partial<TokenResponse>;
 
           if (access_token && refresh_token) {
             // Salva entrambi i token
