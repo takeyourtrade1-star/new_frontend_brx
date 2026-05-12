@@ -174,6 +174,7 @@ export function AuctionCreateWizard({
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [phoneUploadModalOpen, setPhoneUploadModalOpen] = useState(false);
   const [pairingSessionId, setPairingSessionId] = useState<string | null>(null);
+  const [pairingUploadToken, setPairingUploadToken] = useState<string | null>(null);
   const [pairingActionLoading, setPairingActionLoading] = useState(false);
   const [pairingActionError, setPairingActionError] = useState<string | null>(null);
   const pairingPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -373,15 +374,17 @@ export function AuctionCreateWizard({
   );
 
   const phonePairingQrUrl = useMemo(() => {
-    if (!pairingSessionId || typeof window === 'undefined') return '';
-    const u = new URL('/aste/nuova/carica-foto', window.location.origin);
+    if (!pairingSessionId || !pairingUploadToken || typeof window === 'undefined') return '';
+    const u = new URL('/c/asta-foto', window.location.origin);
     u.searchParams.set('sid', pairingSessionId);
+    u.searchParams.set('t', pairingUploadToken);
     return u.toString();
-  }, [pairingSessionId]);
+  }, [pairingSessionId, pairingUploadToken]);
 
   useEffect(() => {
     if (stepId !== 'photos') {
       setPairingSessionId(null);
+      setPairingUploadToken(null);
       setPhoneUploadModalOpen(false);
       setPairingActionError(null);
     }
@@ -412,7 +415,16 @@ export function AuctionCreateWizard({
     setPairingActionLoading(true);
     try {
       const created = await createPhotoPairingSession();
+      const rawTok = (created as unknown as Record<string, unknown>).upload_token;
+      const token = typeof rawTok === 'string' ? rawTok : '';
+      if (!token) {
+        setPairingActionError(
+          'Il server non ha restituito il codice di collegamento. Aggiorna il servizio auction e riprova.',
+        );
+        return;
+      }
       setPairingSessionId(created.session_id);
+      setPairingUploadToken(token);
       setPhoneUploadModalOpen(true);
     } catch (err: unknown) {
       const msg =

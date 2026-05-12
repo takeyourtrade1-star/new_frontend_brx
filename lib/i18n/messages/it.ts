@@ -883,11 +883,13 @@ export const it: Record<MessageKey, string> = {
     'Sessione attiva: le foto inviate dal telefono compaiono qui entro pochi secondi.',
   'auctions.createPhotoFromPhoneModalTitle': 'Scansiona con il telefono',
   'auctions.createPhotoFromPhoneModalBody':
-    'Accedi con lo stesso account Ebartex sul telefono. Carica, ritaglia e invia: le foto appariranno in questa schermata sul PC.',
+    'Apri il link dal telefono: non serve accedere. Ritaglia e invia; le foto appariranno sul PC nel passo Foto.',
   'auctions.createPhotoFromPhoneModalClose': 'Chiudi',
   'auctions.mobilePairingTitle': 'Aggiungi foto all’inserzione',
   'auctions.mobilePairingIntro':
     'Ritaglia se serve, poi invia. Le foto si aggiungono all’asta che stai creando sul computer.',
+  'auctions.mobilePairingGuestHint':
+    'Scegli o scatta una foto, ritaglia e invia. Non serve accedere: il collegamento è già nel QR.',
   'auctions.mobilePairingPickCta': 'Scegli una foto',
   'auctions.mobilePairingPickImageError': 'Scegli un file immagine.',
   'auctions.mobilePairingZoom': 'Zoom',
@@ -896,7 +898,7 @@ export const it: Record<MessageKey, string> = {
   'auctions.mobilePairingSending': 'Invio…',
   'auctions.mobilePairingUploadSuccess': 'Foto inviata. Puoi aggiungerne un’altra.',
   'auctions.mobilePairingUploadError': 'Invio non riuscito. Riprova.',
-  'auctions.mobilePairingFooter': 'Stesso account del desktop. Massimo 4 foto per inserzione.',
+  'auctions.mobilePairingFooter': 'Collegamento sicuro dal QR. Massimo 4 foto per inserzione.',
   'auctions.mobilePairingBackToWizard': 'Torna a nuova asta',
   'auctions.createValidationPhotos': 'Aggiungi da {min} a {max} foto prima di pubblicare.',
   'auctions.createStep5Hint': 'Controlla tutto e pubblica. Potrai modificare quando l’API sarà pronta.',

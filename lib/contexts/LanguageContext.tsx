@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
 const AVAILABLE_LANGS = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
@@ -69,12 +69,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const value: LanguageContextValue = {
-    selectedLang,
-    setSelectedLang,
-    availableLangs: [...AVAILABLE_LANGS],
-    isLangLoading,
-  };
+  const value = useMemo<LanguageContextValue>(
+    () => ({
+      selectedLang,
+      setSelectedLang,
+      availableLangs: AVAILABLE_LANGS,
+      isLangLoading,
+    }),
+    [selectedLang, setSelectedLang, isLangLoading]
+  );
 
   return (
     <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>

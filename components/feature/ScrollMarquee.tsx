@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /** Oro in gradiente verso il basso */
 const MARQUEE_BG = 'linear-gradient(180deg, #F3C76A 0%, #e5b85c 50%, #d4a84b 100%)';
@@ -12,31 +12,44 @@ interface ScrollMarqueeProps {
 }
 
 export function ScrollMarquee({ label, direction = 'right' }: ScrollMarqueeProps) {
-  const [offsetX, setOffsetX] = useState(0);
+  const innerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let rafId: number;
-    const handleScroll = () => {
-      rafId = requestAnimationFrame(() => {
-        const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
-        setOffsetX(scrollY * SCROLL_TO_OFFSET_FACTOR);
-      });
+    const el = innerRef.current;
+    if (!el) return;
+
+    let rafId = 0;
+    let rafScheduled = false;
+
+    const applyTransform = () => {
+      rafScheduled = false;
+      const node = innerRef.current;
+      if (!node) return;
+      const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+      const offsetX = scrollY * SCROLL_TO_OFFSET_FACTOR;
+      // Preserve original parallax direction:
+      //   right → translateX(calc(-50% + offsetX))
+      //   left  → translateX(calc(-50% - offsetX))
+      // Use translate3d to promote to its own GPU layer.
+      node.style.transform =
+        direction === 'right'
+          ? `translate3d(calc(-50% + ${offsetX}px), 0, 0)`
+          : `translate3d(calc(-50% - ${offsetX}px), 0, 0)`;
     };
+
+    const handleScroll = () => {
+      if (rafScheduled) return;
+      rafScheduled = true;
+      rafId = requestAnimationFrame(applyTransform);
+    };
+
+    applyTransform();
     window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      cancelAnimationFrame(rafId);
+      if (rafId) cancelAnimationFrame(rafId);
     };
-  }, []);
-
-  // Calculate transform based on direction
-  // Base is -50% to center the duplicated content
-  // Right: add offsetX (moves right as you scroll down)
-  // Left: subtract offsetX (moves left as you scroll down)
-  const transformValue = direction === 'right'
-    ? `translateX(calc(-50% + ${offsetX}px))`
-    : `translateX(calc(-50% - ${offsetX}px))`;
+  }, [direction]);
 
   return (
     <div
@@ -44,9 +57,10 @@ export function ScrollMarquee({ label, direction = 'right' }: ScrollMarqueeProps
       style={{ background: MARQUEE_BG }}
     >
       <div
+        ref={innerRef}
         className="flex w-max shrink-0 items-center gap-12 whitespace-nowrap text-lg font-bold uppercase tracking-wide md:gap-14 md:text-xl"
         style={{
-          transform: transformValue,
+          transform: 'translate3d(-50%, 0, 0)',
           color: '#1a1a1a',
         }}
         aria-hidden

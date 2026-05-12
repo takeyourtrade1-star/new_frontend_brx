@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { getMessage } from '@/lib/i18n/getMessage';
@@ -78,17 +78,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setSelectedGameState(getStoredGame() ?? DEFAULT_GAME);
   }, []);
 
+  const value = useMemo<GameContextValue>(
+    () => ({
+      selectedGame,
+      setSelectedGame,
+      setGame: setSelectedGame,
+      gameDisplayName,
+    }),
+    [selectedGame, setSelectedGame, gameDisplayName]
+  );
+
   return (
-    <GameContext.Provider
-      value={{
-        selectedGame,
-        setSelectedGame,
-        setGame: setSelectedGame,
-        gameDisplayName,
-      }}
-    >
-      {children}
-    </GameContext.Provider>
+    <GameContext.Provider value={value}>{children}</GameContext.Provider>
   );
 }
 

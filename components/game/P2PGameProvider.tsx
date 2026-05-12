@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import { useP2PRoom, GameState } from '@/hooks/useP2PRoom';
 
 type GamePhase = 'lobby' | 'betting' | 'reveal' | 'resolution' | 'finished';
@@ -235,26 +235,47 @@ export function P2PGameProvider({ children }: P2PGameProviderProps) {
     setPhase('lobby');
   }, []);
 
-  const value: P2PGameContextType = {
-    isConnected,
-    isHost,
-    latency: room.latency,
-    phase,
-    currentRound,
-    maxRounds,
-    player1,
-    player2,
-    localPlayer,
-    remotePlayer,
-    selectCard,
-    placeBet,
-    confirmBet,
-    revealCards,
-    nextRound,
-    resetGame,
-    startLobby,
-    disconnect: actions.disconnect,
-  };
+  const value = useMemo<P2PGameContextType>(
+    () => ({
+      isConnected,
+      isHost,
+      latency: room.latency,
+      phase,
+      currentRound,
+      maxRounds,
+      player1,
+      player2,
+      localPlayer,
+      remotePlayer,
+      selectCard,
+      placeBet,
+      confirmBet,
+      revealCards,
+      nextRound,
+      resetGame,
+      startLobby,
+      disconnect: actions.disconnect,
+    }),
+    [
+      isConnected,
+      isHost,
+      room.latency,
+      phase,
+      currentRound,
+      player1,
+      player2,
+      localPlayer,
+      remotePlayer,
+      selectCard,
+      placeBet,
+      confirmBet,
+      revealCards,
+      nextRound,
+      resetGame,
+      startLobby,
+      actions.disconnect,
+    ]
+  );
 
   return (
     <P2PGameContext.Provider value={value}>

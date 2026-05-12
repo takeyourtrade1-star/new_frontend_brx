@@ -881,11 +881,13 @@ export const en = {
     'Session active: photos you send from your phone appear here within a few seconds.',
   'auctions.createPhotoFromPhoneModalTitle': 'Scan with your phone',
   'auctions.createPhotoFromPhoneModalBody':
-    'Use the same Ebartex account on your phone. Upload, crop, and send — they appear in your listing on this computer.',
+    'Open the link on your phone — no login needed. Crop and send; photos show up on your PC in the Photos step.',
   'auctions.createPhotoFromPhoneModalClose': 'Close',
   'auctions.mobilePairingTitle': 'Add listing photos',
   'auctions.mobilePairingIntro':
     'Crop if needed, then send. Photos are added to the auction you are creating on your computer.',
+  'auctions.mobilePairingGuestHint':
+    'Pick or take a photo, crop, and send. No login: the QR link already authorizes this device.',
   'auctions.mobilePairingPickCta': 'Choose a photo',
   'auctions.mobilePairingPickImageError': 'Please choose an image file.',
   'auctions.mobilePairingZoom': 'Zoom',
@@ -894,7 +896,7 @@ export const en = {
   'auctions.mobilePairingSending': 'Sending…',
   'auctions.mobilePairingUploadSuccess': 'Photo sent. You can add another.',
   'auctions.mobilePairingUploadError': 'Upload failed. Try again.',
-  'auctions.mobilePairingFooter': 'Same account as on desktop. Max 4 photos per listing.',
+  'auctions.mobilePairingFooter': 'Secure link from the QR code. Max 4 photos per listing.',
   'auctions.mobilePairingBackToWizard': 'Back to new listing',
   'auctions.createValidationPhotos': 'Add between {min} and {max} photos before publishing.',
   'auctions.createStep5Hint': 'Check everything, then publish. You can edit later when the API is connected.',

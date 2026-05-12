@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { useCartStore } from '@/lib/stores/cart-store';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,13 @@ import { useGame } from '@/lib/contexts/GameContext';
 
 export default function CartPage() {
   const { t } = useTranslation();
-  const { items, removeItem, clearCart, getItemCount } = useCartStore();
+  const items = useCartStore((s) => s.items);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const clearCart = useCartStore((s) => s.clearCart);
+  const itemCount = useMemo(
+    () => items.reduce((acc, item) => acc + item.quantity, 0),
+    [items]
+  );
   const { selectedGame } = useGame();
 
   // Costruisci il link alla home del gioco selezionato
@@ -34,7 +40,7 @@ export default function CartPage() {
       <main className="container mx-auto px-4 py-10 md:py-14">
         <h1 className="mb-6 font-display text-2xl font-bold text-gray-900 md:text-3xl">{t('cart.title')}</h1>
 
-        {getItemCount() === 0 ? (
+        {itemCount === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-primary/30 py-16 text-center shadow-[0_4px_16px_rgba(255,115,0,0.25)] ring-1 ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
             <ShoppingBag className="mb-4 h-16 w-16 text-gray-400" strokeWidth={1.5} />
             <p className="mb-6 text-lg text-gray-600">{t('cart.empty')}</p>

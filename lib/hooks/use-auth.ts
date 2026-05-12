@@ -3,6 +3,7 @@
  * Wrapper around auth store actions for use in React components
  */
 
+import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { authApi } from '@/lib/api/auth-client';
@@ -204,16 +205,29 @@ export function useAuth() {
   const clearError = useAuthStore((s) => s.clearError);
   const setFlashMessage = useAuthStore((s) => s.setFlashMessage);
 
-  return {
-    user,
-    isAuthenticated,
-    isLoading,
-    error,
-    mfaRequired,
-    preAuthToken,
-    flashMessage,
-    clearError,
-    setFlashMessage,
-  };
+  return useMemo(
+    () => ({
+      user,
+      isAuthenticated,
+      isLoading,
+      error,
+      mfaRequired,
+      preAuthToken,
+      flashMessage,
+      clearError,
+      setFlashMessage,
+    }),
+    [
+      user,
+      isAuthenticated,
+      isLoading,
+      error,
+      mfaRequired,
+      preAuthToken,
+      flashMessage,
+      clearError,
+      setFlashMessage,
+    ]
+  );
 }
 

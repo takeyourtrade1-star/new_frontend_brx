@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Nunito } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/providers';
-import { Footer } from '@/components/layout/Footer';
+import { ConditionalFooter } from '@/components/layout/ConditionalFooter';
 import { CardMascotteGate } from '@/components/dev/CardMascotteGate';
 import { IOSInstallPrompt } from '@/components/pwa/IOSInstallPrompt';
 
@@ -108,7 +108,7 @@ export default function RootLayout({
         <Providers>
           <div className="flex-1 flex flex-col" id="main-content">
             {children}
-            <Footer />
+            <ConditionalFooter />
           </div>
           <CardMascotteGate />
         </Providers>

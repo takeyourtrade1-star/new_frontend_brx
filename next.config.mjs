@@ -13,6 +13,12 @@ const nextConfig = {
   // Evita fallimento build su Amplify/CI per opzioni ESLint deprecate (useEslintrc, extensions)
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
+  modularizeImports: {
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+      preventFullImport: true,
+    },
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '*.cloudfront.net', pathname: '/**' },

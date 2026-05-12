@@ -121,8 +121,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   }, []);
 
   const user = useAuthStore((s) => s.user);
-  const accessToken = useAuthStore(
-    (s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
+  const accessTokenFromStore = useAuthStore((s) => s.accessToken);
+  const accessToken = useMemo(
+    () =>
+      accessTokenFromStore ??
+      (typeof window !== 'undefined'
+        ? localStorage.getItem('ebartex_access_token')
+        : null),
+    [accessTokenFromStore]
   );
   const flyToCart = useFlyToCart();
   const addToCartStore = useCartStore((s) => s.addItem);

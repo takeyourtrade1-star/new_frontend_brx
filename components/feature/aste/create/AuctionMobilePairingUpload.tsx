@@ -6,6 +6,7 @@ import Cropper, { type Area } from 'react-easy-crop';
 import { Loader2, Upload } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { uploadPhoto } from '@/lib/api/auction-photo-client';
+import { uploadPhotoAsPairingGuest } from '@/lib/auction-pairing-guest-upload';
 import { cn } from '@/lib/utils';
 
 async function getCroppedImageBlob(imageSrc: string, pixelCrop: Area): Promise<Blob> {
@@ -41,8 +42,16 @@ async function getCroppedImageBlob(imageSrc: string, pixelCrop: Area): Promise<B
   });
 }
 
-export function AuctionMobilePairingUpload({ sessionId }: { sessionId: string }) {
+export function AuctionMobilePairingUpload({
+  sessionId,
+  uploadToken,
+}: {
+  sessionId: string;
+  /** QR guest secret: when set, uploads work without login on this device. */
+  uploadToken?: string;
+}) {
   const { t } = useTranslation();
+  const guest = Boolean(uploadToken);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -54,22 +63,25 @@ export function AuctionMobilePairingUpload({ sessionId }: { sessionId: string })
     setCroppedAreaPixels(areaPixels);
   }, []);
 
-  const onPickFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    e.target.value = '';
-    if (!f || !f.type.startsWith('image/')) {
-      setFeedback({ tone: 'err', text: t('auctions.mobilePairingPickImageError') });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImageSrc(String(reader.result));
-      setFeedback(null);
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-    };
-    reader.readAsDataURL(f);
-  }, [t]);
+  const onPickFile = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const f = e.target.files?.[0];
+      e.target.value = '';
+      if (!f || !f.type.startsWith('image/')) {
+        setFeedback({ tone: 'err', text: t('auctions.mobilePairingPickImageError') });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageSrc(String(reader.result));
+        setFeedback(null);
+        setCrop({ x: 0, y: 0 });
+        setZoom(1);
+      };
+      reader.readAsDataURL(f);
+    },
+    [t],
+  );
 
   const resetCrop = useCallback(() => {
     setImageSrc(null);
@@ -85,7 +97,14 @@ export function AuctionMobilePairingUpload({ sessionId }: { sessionId: string })
     try {
       const blob = await getCroppedImageBlob(imageSrc, croppedAreaPixels);
       const file = new File([blob], 'photo.webp', { type: 'image/webp' });
-      await uploadPhoto(file, { pairingSessionId: sessionId });
+      if (guest && uploadToken) {
+        await uploadPhotoAsPairingGuest(file, {
+          pairingSessionId: sessionId,
+          pairingUploadToken: uploadToken,
+        });
+      } else {
+        await uploadPhoto(file, { pairingSessionId: sessionId });
+      }
       setFeedback({ tone: 'ok', text: t('auctions.mobilePairingUploadSuccess') });
       resetCrop();
     } catch (err) {
@@ -94,14 +113,23 @@ export function AuctionMobilePairingUpload({ sessionId }: { sessionId: string })
     } finally {
       setUploading(false);
     }
-  }, [croppedAreaPixels, imageSrc, resetCrop, sessionId, t]);
+  }, [croppedAreaPixels, guest, imageSrc, resetCrop, sessionId, t, uploadToken]);
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col gap-4 bg-white px-4 py-6">
-      <div>
-        <h1 className="text-lg font-bold text-[#1D3160]">{t('auctions.mobilePairingTitle')}</h1>
-        <p className="mt-1 text-sm text-gray-600">{t('auctions.mobilePairingIntro')}</p>
-      </div>
+    <div
+      className={cn(
+        'mx-auto flex min-h-dvh max-w-lg flex-col gap-4 bg-white px-4 py-6',
+        guest && 'py-8',
+      )}
+    >
+      {!guest ? (
+        <div>
+          <h1 className="text-lg font-bold text-[#1D3160]">{t('auctions.mobilePairingTitle')}</h1>
+          <p className="mt-1 text-sm text-gray-600">{t('auctions.mobilePairingIntro')}</p>
+        </div>
+      ) : (
+        <p className="text-center text-sm text-gray-600">{t('auctions.mobilePairingGuestHint')}</p>
+      )}
 
       {feedback ? (
         <p
@@ -168,10 +196,14 @@ export function AuctionMobilePairingUpload({ sessionId }: { sessionId: string })
         </div>
       )}
 
-      <p className="text-center text-xs text-gray-500">{t('auctions.mobilePairingFooter')}</p>
-      <Link href="/aste/nuova" className="text-center text-sm font-semibold text-[#1D3160] underline">
-        {t('auctions.mobilePairingBackToWizard')}
-      </Link>
+      {!guest ? (
+        <>
+          <p className="text-center text-xs text-gray-500">{t('auctions.mobilePairingFooter')}</p>
+          <Link href="/aste/nuova" className="text-center text-sm font-semibold text-[#1D3160] underline">
+            {t('auctions.mobilePairingBackToWizard')}
+          </Link>
+        </>
+      ) : null}
     </div>
   );
 }

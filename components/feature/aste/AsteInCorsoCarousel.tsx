@@ -42,41 +42,113 @@ function formatCountdown(hoursFromNow: number): string {
 /* ─────────────────────────────────────────────────────── */
 /*  Image Preloader Hook                                   */
 /* ─────────────────────────────────────────────────────── */
+
+const PREFETCH_THROTTLE_MS = 150;
+const PREFETCH_MAX_LINKS = 10;
+
+type IdleHandle = number;
+type IdleScheduler = (cb: () => void) => IdleHandle;
+type IdleCanceller = (handle: IdleHandle) => void;
+
+const scheduleIdle: IdleScheduler = (cb) => {
+  if (typeof window === 'undefined') return 0 as IdleHandle;
+  const w = window as Window & {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+  };
+  if (typeof w.requestIdleCallback === 'function') {
+    return w.requestIdleCallback(cb, { timeout: 500 }) as IdleHandle;
+  }
+  return window.setTimeout(cb, 1) as unknown as IdleHandle;
+};
+
+const cancelIdle: IdleCanceller = (handle) => {
+  if (typeof window === 'undefined' || !handle) return;
+  const w = window as Window & { cancelIdleCallback?: (h: number) => void };
+  if (typeof w.cancelIdleCallback === 'function') {
+    w.cancelIdleCallback(handle as number);
+    return;
+  }
+  window.clearTimeout(handle as unknown as number);
+};
+
 function usePrefetchImages(items: AuctionUI[], containerRef: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const prefetchNextImages = () => {
+    const prefetchedUrls = new Set<string>();
+    const insertedLinks: HTMLLinkElement[] = [];
+    let lastRunAt = 0;
+    let trailingTimer: ReturnType<typeof setTimeout> | null = null;
+    let pendingIdle: IdleHandle = 0 as IdleHandle;
+
+    const doPrefetch = () => {
+      pendingIdle = 0 as IdleHandle;
+      lastRunAt = Date.now();
+
+      if (prefetchedUrls.size >= PREFETCH_MAX_LINKS) return;
+
       const scrollLeft = container.scrollLeft;
       const containerWidth = container.clientWidth;
       const visibleStart = scrollLeft;
       const visibleEnd = scrollLeft + containerWidth;
-      
+
       const cards = container.querySelectorAll('[data-auction-card]');
-      cards.forEach((card, index) => {
+      for (let index = 0; index < cards.length; index++) {
+        if (prefetchedUrls.size >= PREFETCH_MAX_LINKS) break;
+
         const cardLeft = (CARD_WIDTH + CARD_GAP) * index;
-        const isVisible = cardLeft >= visibleStart - CARD_WIDTH && cardLeft <= visibleEnd + CARD_WIDTH * 2;
-        
-        if (isVisible) {
-          const img = card.querySelector('img[data-src]') as HTMLImageElement | null;
-          if (img?.dataset.src) {
-            const prefetchLink = document.createElement('link');
-            prefetchLink.rel = 'prefetch';
-            prefetchLink.as = 'image';
-            prefetchLink.href = img.dataset.src;
-            document.head.appendChild(prefetchLink);
-            setTimeout(() => prefetchLink.remove(), 5000);
-          }
-        }
-      });
+        const isVisible =
+          cardLeft >= visibleStart - CARD_WIDTH && cardLeft <= visibleEnd + CARD_WIDTH * 2;
+        if (!isVisible) continue;
+
+        const img = cards[index].querySelector('img[data-src]') as HTMLImageElement | null;
+        const url = img?.dataset.src;
+        if (!url || prefetchedUrls.has(url)) continue;
+
+        const prefetchLink = document.createElement('link');
+        prefetchLink.rel = 'prefetch';
+        prefetchLink.as = 'image';
+        prefetchLink.href = url;
+        document.head.appendChild(prefetchLink);
+        prefetchedUrls.add(url);
+        insertedLinks.push(prefetchLink);
+      }
     };
 
-    prefetchNextImages();
-    container.addEventListener('scroll', prefetchNextImages, { passive: true });
+    const scheduleRun = () => {
+      if (pendingIdle) return;
+      pendingIdle = scheduleIdle(doPrefetch);
+    };
+
+    const onScroll = () => {
+      if (prefetchedUrls.size >= PREFETCH_MAX_LINKS) return;
+      const now = Date.now();
+      const elapsed = now - lastRunAt;
+
+      if (elapsed >= PREFETCH_THROTTLE_MS) {
+        scheduleRun();
+        return;
+      }
+      if (trailingTimer) return;
+      trailingTimer = setTimeout(() => {
+        trailingTimer = null;
+        scheduleRun();
+      }, PREFETCH_THROTTLE_MS - elapsed);
+    };
+
+    scheduleRun();
+    container.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
-      container.removeEventListener('scroll', prefetchNextImages);
+      container.removeEventListener('scroll', onScroll);
+      if (trailingTimer) clearTimeout(trailingTimer);
+      if (pendingIdle) cancelIdle(pendingIdle);
+      for (const link of insertedLinks) {
+        if (link.parentNode) link.parentNode.removeChild(link);
+      }
+      insertedLinks.length = 0;
+      prefetchedUrls.clear();
     };
   }, [items, containerRef]);
 }

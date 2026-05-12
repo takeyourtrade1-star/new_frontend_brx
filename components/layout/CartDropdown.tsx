@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart, Trash2, ArrowRight } from 'lucide-react';
@@ -23,10 +23,20 @@ export function CartDropdown() {
   const prevCountRef = useRef(0);
 
   const items = useCartStore((s) => s.items);
-  const cartCount = useCartStore((s) => s.getItemCount());
-  const cartTotal = useCartStore((s) => s.getTotal());
   const clearCart = useCartStore((s) => s.clearCart);
   const removeItem = useCartStore((s) => s.removeItem);
+  const cartCount = useMemo(
+    () => items.reduce((acc, item) => acc + item.quantity, 0),
+    [items]
+  );
+  const cartTotal = useMemo(
+    () =>
+      items.reduce(
+        (acc, item) => acc + (item.product?.price ?? 0) * item.quantity,
+        0
+      ),
+    [items]
+  );
 
   // Animate badge when count increases
   useEffect(() => {

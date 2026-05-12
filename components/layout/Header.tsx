@@ -1,10 +1,26 @@
 'use client';
 
 import { useLayoutEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { TopBar } from './TopBar';
-import GlobalSearchBar from './GlobalSearchBar';
 import { ProdottiMenu } from './ProdottiMenu';
 import { DemoBanner } from './DemoBanner';
+
+// Import dinamico (ssr:false) per togliere react-instantsearch / instant-meilisearch
+// dal bundle iniziale. Il fallback replica ESATTAMENTE le classi del wrapper più
+// esterno di GlobalSearchBar (vedi `components/layout/GlobalSearchBar.tsx`,
+// blocco `return ( <div className="flex w-full justify-center py-0 z-[99] font-sans h-full min-h-0" ...> )`)
+// così lo spazio occupato durante l'idratazione è identico e non c'è layout shift.
+const GlobalSearchBar = dynamic(() => import('./GlobalSearchBar'), {
+  ssr: false,
+  loading: () => (
+    <div
+      className="flex w-full justify-center py-0 z-[99] font-sans h-full min-h-0"
+      style={{ overflow: 'visible' }}
+      aria-hidden
+    />
+  ),
+});
 
 export function Header({
   transparent = false,
