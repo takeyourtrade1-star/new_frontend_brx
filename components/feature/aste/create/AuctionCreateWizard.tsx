@@ -169,8 +169,6 @@ export function AuctionCreateWizard({
     endIso: string;
   } | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [showDesktopFloatingNav, setShowDesktopFloatingNav] = useState(false);
-  const [isAtFormBottom, setIsAtFormBottom] = useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [phoneUploadModalOpen, setPhoneUploadModalOpen] = useState(false);
   const [pairingSessionId, setPairingSessionId] = useState<string | null>(null);
@@ -178,8 +176,6 @@ export function AuctionCreateWizard({
   const [pairingActionLoading, setPairingActionLoading] = useState(false);
   const [pairingActionError, setPairingActionError] = useState<string | null>(null);
   const pairingPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const wizardShellRef = useRef<HTMLDivElement>(null);
-  const formCardRef = useRef<HTMLDivElement>(null);
   const stepContentRef = useRef<HTMLDivElement>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
 
@@ -910,76 +906,8 @@ export function AuctionCreateWizard({
     [cardLanguageOptions, draft.cardLanguage]
   );
 
-  /** Barra navigazione fissa solo nello standalone; embedded usa footer inline nel card. */
+  /** Barra navigazione sticky in colonna solo standalone; embedded usa footer inline nel card. */
   const showStickyNav = !isEmbedded && stepId !== 'q_card';
-
-  // Desktop nav visibile solo quando il centro viewport cade nel range verticale del wizard.
-  useEffect(() => {
-    if (!showStickyNav) {
-      setShowDesktopFloatingNav(false);
-      return;
-    }
-
-    let rafId = 0;
-    const updateDesktopNavVisibility = () => {
-      if (rafId) window.cancelAnimationFrame(rafId);
-      rafId = window.requestAnimationFrame(() => {
-        const shell = wizardShellRef.current;
-        if (!shell) {
-          setShowDesktopFloatingNav(false);
-          return;
-        }
-        const rect = shell.getBoundingClientRect();
-        const viewportCenterY = window.innerHeight * 0.5;
-        const inRange = rect.top + 24 <= viewportCenterY && rect.bottom - 24 >= viewportCenterY;
-        setShowDesktopFloatingNav((prev) => (prev === inRange ? prev : inRange));
-      });
-    };
-
-    updateDesktopNavVisibility();
-    window.addEventListener('scroll', updateDesktopNavVisibility, { passive: true });
-    window.addEventListener('resize', updateDesktopNavVisibility);
-
-    return () => {
-      window.removeEventListener('scroll', updateDesktopNavVisibility);
-      window.removeEventListener('resize', updateDesktopNavVisibility);
-      if (rafId) window.cancelAnimationFrame(rafId);
-    };
-  }, [showStickyNav, stepId]);
-
-  // Detect when user scrolls to bottom of form for button docking
-  useEffect(() => {
-    if (!showStickyNav) {
-      setIsAtFormBottom(false);
-      return;
-    }
-
-    let rafId = 0;
-    const updateBottomState = () => {
-      if (rafId) window.cancelAnimationFrame(rafId);
-      rafId = window.requestAnimationFrame(() => {
-        const card = formCardRef.current;
-        if (!card) {
-          setIsAtFormBottom(false);
-          return;
-        }
-        const rect = card.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const atBottom = rect.bottom <= viewportHeight + 40; // 40px tolerance
-        setIsAtFormBottom((prev) => (prev === atBottom ? prev : atBottom));
-      });
-    };
-
-    updateBottomState();
-    window.addEventListener('scroll', updateBottomState, { passive: true });
-    window.addEventListener('resize', updateBottomState);
-
-    return () => {
-      window.removeEventListener('scroll', updateBottomState);
-      window.removeEventListener('resize', updateBottomState);
-      if (rafId) window.cancelAnimationFrame(rafId);
-    };
-  }, [showStickyNav, stepId]);
 
   const formatDateTimeLong = useCallback((iso: string) => {
     const d = new Date(iso);
@@ -1074,15 +1002,10 @@ export function AuctionCreateWizard({
   return (
     <>
     <div
-      ref={wizardShellRef}
       className={cn(
         'mx-auto max-w-3xl lg:px-12 xl:px-16',
         isEmbedded && 'max-w-full px-0',
-        className,
-        showStickyNav &&
-          (isEmbedded
-            ? 'pb-[calc(3.25rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]'
-            : 'pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))]')
+        className
       )}
     >
       {isEmbedded ? (
@@ -1112,9 +1035,14 @@ export function AuctionCreateWizard({
         </div>
       ) : (
         <div className="mb-6">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
-            {stepperLabels[activeStepIndex] ?? ''}
-          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 sm:text-left">
+              {stepperLabels[activeStepIndex] ?? ''}
+            </p>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 sm:text-right">
+              {t('auctions.createProgress', { current: currentStepNumber, total: totalSteps })}
+            </span>
+          </div>
           <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-gray-200">
             <div
               className="h-full rounded-full bg-[#FF7300] transition-[width] duration-700 ease-out"
@@ -1126,7 +1054,7 @@ export function AuctionCreateWizard({
         </div>
       )}
 
-      <div ref={formCardRef} className={cn('relative rounded-2xl border border-gray-200 bg-white shadow-sm', isEmbedded && 'rounded-xl border-zinc-200/70 bg-white/95 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.08)]')}>
+      <div className={cn('relative rounded-2xl border border-gray-200 bg-white shadow-sm', isEmbedded && 'rounded-xl border-zinc-200/70 bg-white/95 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.08)]')}>
         <div
           className={cn(
             'relative border-b border-gray-100 px-5 py-4 sm:px-8 sm:py-5',
@@ -1937,23 +1865,21 @@ export function AuctionCreateWizard({
 
       </div>
 
-      {/* Static footer nav – appears when scrolled to the bottom of the form */}
       {showStickyNav && (
         <div
           className={cn(
-            'transition-all duration-300 ease-out',
-            isAtFormBottom
-              ? 'mt-4 max-h-[200px] opacity-100 sm:mt-6'
-              : 'pointer-events-none max-h-0 overflow-hidden opacity-0'
+            'sticky bottom-0 z-40 mt-4 sm:mt-6',
+            'border-t border-gray-200/90 bg-[#f5f5f5]/95 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] shadow-[0_-8px_28px_-12px_rgba(29,49,96,0.12)] backdrop-blur-md'
           )}
-          aria-hidden={!isAtFormBottom}
+          role="navigation"
+          aria-label={t('auctions.createProgress', { current: currentStepNumber, total: totalSteps })}
         >
-          <div
-            className={cn(
-              'flex items-center justify-between gap-3 rounded-2xl border border-zinc-200/80 bg-white px-4 py-3 shadow-sm sm:gap-4 sm:px-6 sm:py-4',
-              isEmbedded && 'rounded-xl px-3 py-2.5'
-            )}
-          >
+          {continueDisabled && (
+            <p className="mb-2.5 px-2 text-center text-xs leading-snug text-gray-600 sm:px-4">
+              {t('auctions.createContinueDisabledFooter')}
+            </p>
+          )}
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-200/80 bg-white px-4 py-3 shadow-sm sm:gap-4 sm:px-6 sm:py-4">
             <button
               type="button"
               onClick={goBack}
@@ -1998,244 +1924,83 @@ export function AuctionCreateWizard({
       )}
     </div>
 
-    {showStickyNav && (
-      <>
-        {/* Desktop: visibili solo nel range dei campi del wizard */}
-        {showDesktopFloatingNav && !isAtFormBottom && (
-          <>
-            <button
-              type="button"
-              onClick={goBack}
-              className={cn(
-                'group fixed left-[max(10px,calc(50vw-31rem))] top-1/2 z-50 hidden min-h-[42px] -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/70 bg-white/95 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-[0_6px_18px_-4px_rgba(29,49,96,0.2)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-white hover:shadow-[0_10px_24px_-6px_rgba(29,49,96,0.28)] hover:border-[#1D3160]/30 active:scale-95 sm:inline-flex',
-                isEmbedded && 'left-3 min-h-[38px] px-3 py-1.5 text-[10px]'
-              )}
-              aria-label={t('auctions.createBack')}
-            >
-              <ChevronLeft className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:-translate-x-0.5" aria-hidden />
-              <span className="whitespace-nowrap">{t('auctions.createBack')}</span>
-            </button>
-
-            {!isLastStep ? (
-              <button
-                type="button"
-                disabled={continueDisabled}
-                title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
-                onClick={goNext}
-                className={cn(
-                  'group fixed right-[max(10px,calc(50vw-31rem))] top-1/2 z-50 hidden min-h-[42px] -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/70 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wide text-white shadow-[0_6px_18px_-4px_rgba(255,115,0,0.38)] backdrop-blur-md transition-all duration-200 ease-out active:scale-95 sm:inline-flex',
-                  isEmbedded && 'right-3 min-h-[38px] px-3 py-1.5 text-[10px]',
-                  continueDisabled
-                    ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
-                    : 'bg-[#FF7300] hover:bg-[#FF8800] hover:shadow-[0_10px_24px_-6px_rgba(255,115,0,0.52)] hover:border-white/80'
-                )}
-                aria-label={t('auctions.createContinue')}
-              >
-                <span className="whitespace-nowrap">{t('auctions.createContinue')}</span>
-                <ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={openPublishConfirm}
-                className={cn(
-                  'group fixed right-[max(10px,calc(50vw-31rem))] top-1/2 z-50 hidden min-h-[42px] -translate-y-1/2 items-center justify-center gap-1.5 rounded-full border border-white/70 bg-[#FF7300] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wide text-white shadow-[0_6px_18px_-4px_rgba(255,115,0,0.38)] backdrop-blur-md transition-all duration-200 ease-out hover:bg-[#FF8800] hover:shadow-[0_10px_24px_-6px_rgba(255,115,0,0.52)] hover:border-white/80 active:scale-95 sm:inline-flex',
-                  isEmbedded && 'right-3 min-h-[38px] px-3 py-1.5 text-[10px]'
-                )}
-                aria-label={t('auctions.createSubmit')}
-              >
-                <span className="whitespace-nowrap">{t('auctions.createSubmit')}</span>
-                <Gavel className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110" aria-hidden />
-              </button>
-            )}
-          </>
-        )}
-
-        {/* Mobile: pillola fluttuante quando non in fondo */}
-        {!isAtFormBottom && (
+    {phoneUploadModalOpen && pairingSessionId && phonePairingQrUrl ? (
+      <div className="fixed inset-0 z-[85] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">
         <div
-          className={cn(
-            'pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-1 sm:hidden',
-            isEmbedded && 'px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]',
-            // Quando ancorata, usa padding minore e togli il pt-1
-            isAtFormBottom && '!pb-[max(0.5rem,env(safe-area-inset-bottom))] !pt-0'
-          )}
-          role="presentation"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="phone-upload-qr-title"
+          className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl"
         >
-          <footer
-            className={cn(
-              'pointer-events-auto inline-flex max-w-full items-center transition-all duration-300 ease-out',
-              // Stato fluttuante (default)
-              !isAtFormBottom && [
-                'gap-1.5 rounded-[1.35rem] border border-white/55 bg-white/40 px-1.5 py-1 shadow-[0_8px_32px_-4px_rgba(29,49,96,0.18),inset_0_1px_0_rgba(255,255,255,0.65)] backdrop-blur-2xl backdrop-saturate-150',
-                isEmbedded && 'gap-1 py-0.5',
-              ],
-              // Stato ancorato (quando in fondo)
-              isAtFormBottom && [
-                'w-full gap-3 rounded-t-2xl border-x border-t border-zinc-200/80 bg-white/95 px-4 py-3 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.1)]',
-                isEmbedded && 'gap-2 px-3 py-2.5',
-              ]
-            )}
-            style={!isAtFormBottom ? { WebkitBackdropFilter: 'blur(20px) saturate(180%)' } : undefined}
+          <h2 id="phone-upload-qr-title" className="text-lg font-bold uppercase tracking-wide text-[#1D3160]">
+            {t('auctions.createPhotoFromPhoneModalTitle')}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-700">
+            {t('auctions.createPhotoFromPhoneModalBody')}
+          </p>
+          <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
+            {t('auctions.createPhotoFromPhoneModalCloseHint')}
+          </p>
+          <div className="mt-4 flex justify-center rounded-xl border border-gray-100 bg-white p-4">
+            <QRCodeSVG value={phonePairingQrUrl} size={200} level="M" />
+          </div>
+          <p className="mt-2 break-all text-center text-[11px] text-gray-500">{phonePairingQrUrl}</p>
+          <button
+            type="button"
+            onClick={closePhoneUploadModal}
+            className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
           >
+            {t('auctions.createPhotoFromPhoneModalClose')}
+          </button>
+        </div>
+      </div>
+    ) : null}
+
+    {publishConfirmOpen && (
+      <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="publish-confirm-title"
+          className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl"
+        >
+          <h2 id="publish-confirm-title" className="text-lg font-bold uppercase tracking-wide text-[#1D3160]">
+            Asta pronta alla pubblicazione
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-700">
+            Avrai a disposizione 5 minuti per verificare e apportare eventuali modifiche finali. Trascorso questo
+            intervallo, la pubblicazione verra confermata in modo definitivo e non sara piu reversibile.
+          </p>
+
+          <div className="mt-4 flex items-center gap-2">
             <button
               type="button"
-              onClick={goBack}
-              className={cn(
-                'inline-flex shrink-0 items-center gap-1 font-semibold uppercase tracking-wide text-[#1D3160] transition active:scale-[0.98]',
-                // Stato fluttuante
-                !isAtFormBottom && [
-                  'min-h-[36px] rounded-xl px-3 py-1.5 text-[11px] hover:bg-white/50',
-                  isEmbedded && 'min-h-[32px] px-2.5 py-1',
-                ],
-                // Stato ancorato (più grande)
-                isAtFormBottom && [
-                  'min-h-[48px] flex-1 justify-center rounded-xl border border-zinc-300 bg-white px-6 text-sm hover:bg-zinc-50',
-                  isEmbedded && 'min-h-[40px] px-4 text-[13px]',
-                ]
-              )}
+              onClick={closePublishConfirm}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
             >
-              <ChevronLeft className={cn('shrink-0', isAtFormBottom ? 'h-4 w-4' : 'h-3.5 w-3.5 opacity-80')} aria-hidden />
-              {t('auctions.createBack')}
+              Controlla
             </button>
+            <button
+              type="button"
+              onClick={editFromPublishConfirm}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
+            >
+              Modifica
+            </button>
+          </div>
 
-            {/* Divider solo in stato fluttuante */}
-            {!isAtFormBottom && <span className="h-5 w-px shrink-0 bg-[#1D3160]/10" aria-hidden />}
-
-            {!isLastStep ? (
-              <button
-                type="button"
-                disabled={continueDisabled}
-                title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
-                onClick={goNext}
-                className={cn(
-                  'inline-flex shrink-0 items-center gap-1 font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition active:scale-[0.98]',
-                  // Stato fluttuante
-                  !isAtFormBottom && [
-                    'min-h-[36px] rounded-[1.1rem] px-3.5 py-1.5 text-[11px]',
-                    isEmbedded && 'min-h-[32px] px-3 py-1',
-                    continueDisabled
-                      ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
-                      : 'bg-[#FF7300] hover:bg-[#e86800]',
-                  ],
-                  // Stato ancorato (più grande)
-                  isAtFormBottom && [
-                    'min-h-[48px] flex-1 justify-center rounded-xl px-6 text-sm',
-                    isEmbedded && 'min-h-[40px] text-[13px]',
-                    continueDisabled
-                      ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
-                      : 'bg-[#FF7300] hover:bg-[#e86800]',
-                  ]
-                )}
-              >
-                {t('auctions.createContinue')}
-                <ChevronRight className={cn('shrink-0', isAtFormBottom ? 'h-4 w-4' : 'h-3.5 w-3.5')} aria-hidden />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={openPublishConfirm}
-                className={cn(
-                  'inline-flex shrink-0 items-center gap-1.5 font-bold uppercase tracking-wide text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition hover:bg-[#e86800] active:scale-[0.98]',
-                  // Stato fluttuante
-                  !isAtFormBottom && [
-                    'min-h-[36px] rounded-[1.1rem] bg-[#FF7300] px-3.5 py-1.5 text-[11px]',
-                    isEmbedded && 'min-h-[32px] px-3 py-1',
-                  ],
-                  // Stato ancorato (più grande)
-                  isAtFormBottom && [
-                    'min-h-[48px] flex-1 justify-center rounded-xl bg-[#FF7300] px-6 text-sm',
-                    isEmbedded && 'min-h-[40px] text-[13px]',
-                  ]
-                )}
-              >
-                <Gavel className={cn('shrink-0', isAtFormBottom ? 'h-4 w-4' : 'h-3.5 w-3.5')} aria-hidden />
-                {t('auctions.createSubmit')}
-              </button>
-            )}
-          </footer>
+          <button
+            type="button"
+            onClick={() => {
+              setPublishConfirmOpen(false);
+              void publish();
+            }}
+            className="mt-3 w-full rounded-xl bg-[#FF7300] px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
+          >
+            Continua
+          </button>
         </div>
-        )}
-
-        {phoneUploadModalOpen && pairingSessionId && phonePairingQrUrl ? (
-          <div className="fixed inset-0 z-[85] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="phone-upload-qr-title"
-              className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl"
-            >
-              <h2 id="phone-upload-qr-title" className="text-lg font-bold uppercase tracking-wide text-[#1D3160]">
-                {t('auctions.createPhotoFromPhoneModalTitle')}
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed text-gray-700">
-                {t('auctions.createPhotoFromPhoneModalBody')}
-              </p>
-              <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
-                {t('auctions.createPhotoFromPhoneModalCloseHint')}
-              </p>
-              <div className="mt-4 flex justify-center rounded-xl border border-gray-100 bg-white p-4">
-                <QRCodeSVG value={phonePairingQrUrl} size={200} level="M" />
-              </div>
-              <p className="mt-2 break-all text-center text-[11px] text-gray-500">{phonePairingQrUrl}</p>
-              <button
-                type="button"
-                onClick={closePhoneUploadModal}
-                className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
-              >
-                {t('auctions.createPhotoFromPhoneModalClose')}
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {publishConfirmOpen && (
-          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="publish-confirm-title"
-              className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl"
-            >
-              <h2 id="publish-confirm-title" className="text-lg font-bold uppercase tracking-wide text-[#1D3160]">
-                Asta pronta alla pubblicazione
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed text-gray-700">
-                Avrai a disposizione 5 minuti per verificare e apportare eventuali modifiche finali. Trascorso questo
-                intervallo, la pubblicazione verra confermata in modo definitivo e non sara piu reversibile.
-              </p>
-
-              <div className="mt-4 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={closePublishConfirm}
-                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
-                >
-                  Controlla
-                </button>
-                <button
-                  type="button"
-                  onClick={editFromPublishConfirm}
-                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
-                >
-                  Modifica
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setPublishConfirmOpen(false);
-                  void publish();
-                }}
-                className="mt-3 w-full rounded-xl bg-[#FF7300] px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
-              >
-                Continua
-              </button>
-            </div>
-          </div>
-        )}
-      </>
+      </div>
     )}
     </>
   );
