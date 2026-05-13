@@ -39,18 +39,38 @@ export interface PairingGuestUploadOptions {
 }
 
 async function guestJsonRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(path, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...(init.headers as Record<string, string> | undefined),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(path, {
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...(init.headers as Record<string, string> | undefined),
+      },
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const err = new Error(
+      msg === 'Load failed' || msg === 'Failed to fetch'
+        ? 'Connessione non riuscita. Controlla la rete o riprova tra poco.'
+        : msg,
+    ) as Error & { status?: number };
+    throw err;
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    const raw = (data as { detail?: unknown })?.detail;
+    let detailStr = '';
+    if (typeof raw === 'string') detailStr = raw;
+    else if (Array.isArray(raw)) {
+      detailStr = raw
+        .map((x) => (typeof x === 'object' && x && 'msg' in x ? String((x as { msg: string }).msg) : JSON.stringify(x)))
+        .join('; ');
+    } else if (raw && typeof raw === 'object') detailStr = JSON.stringify(raw);
+
     const message =
-      (data as { detail?: string })?.detail ||
+      detailStr ||
       (data as { error?: string })?.error ||
       (data as { message?: string })?.message ||
       `HTTP ${res.status}`;

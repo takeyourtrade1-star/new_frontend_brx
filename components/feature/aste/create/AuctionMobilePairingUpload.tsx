@@ -9,37 +9,68 @@ import { uploadPhoto } from '@/lib/api/auction-photo-client';
 import { uploadPhotoAsPairingGuest } from '@/lib/auction-pairing-guest-upload';
 import { cn } from '@/lib/utils';
 
-async function getCroppedImageBlob(imageSrc: string, pixelCrop: Area): Promise<Blob> {
+/**
+ * iOS Safari often throws `TypeError: Load failed` on `fetch()` of large `data:` URLs.
+ * Use `Image()` for data/blob URLs; keep fetch only for other schemes.
+ */
+async function loadImageForCrop(imageSrc: string): Promise<{ source: CanvasImageSource; dispose?: () => void }> {
+  if (imageSrc.startsWith('data:') || imageSrc.startsWith('blob:')) {
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('Impossibile caricare l’immagine'));
+      img.src = imageSrc;
+    });
+    if ('decode' in img && typeof img.decode === 'function') {
+      try {
+        await img.decode();
+      } catch {
+        // decode() optional; onload is enough for draw
+      }
+    }
+    return { source: img };
+  }
   const res = await fetch(imageSrc);
+  if (!res.ok) {
+    throw new Error(`Impossibile caricare l’immagine (${res.status})`);
+  }
   const blob = await res.blob();
-  const image = await createImageBitmap(blob);
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(pixelCrop.width));
-  canvas.height = Math.max(1, Math.round(pixelCrop.height));
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas not supported');
-  ctx.drawImage(
-    image,
-    Math.round(pixelCrop.x),
-    Math.round(pixelCrop.y),
-    Math.round(pixelCrop.width),
-    Math.round(pixelCrop.height),
-    0,
-    0,
-    canvas.width,
-    canvas.height,
-  );
-  image.close?.();
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (b) => {
-        if (b) resolve(b);
-        else reject(new Error('toBlob failed'));
-      },
-      'image/webp',
-      0.88,
+  const bmp = await createImageBitmap(blob);
+  return { source: bmp, dispose: () => bmp.close?.() };
+}
+
+async function getCroppedImageBlob(imageSrc: string, pixelCrop: Area): Promise<Blob> {
+  const { source, dispose } = await loadImageForCrop(imageSrc);
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(pixelCrop.width));
+    canvas.height = Math.max(1, Math.round(pixelCrop.height));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas not supported');
+    ctx.drawImage(
+      source,
+      Math.round(pixelCrop.x),
+      Math.round(pixelCrop.y),
+      Math.round(pixelCrop.width),
+      Math.round(pixelCrop.height),
+      0,
+      0,
+      canvas.width,
+      canvas.height,
     );
-  });
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => {
+          if (b) resolve(b);
+          else reject(new Error('toBlob failed'));
+        },
+        'image/webp',
+        0.88,
+      );
+    });
+  } finally {
+    dispose?.();
+  }
 }
 
 export function AuctionMobilePairingUpload({
