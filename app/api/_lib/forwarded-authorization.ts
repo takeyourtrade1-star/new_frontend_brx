@@ -1,18 +1,40 @@
 import type { NextRequest } from 'next/server';
 
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function normalizeBearerHeader(value: string | null): string | undefined {
+  if (!value) return undefined;
+  const v = value.trim();
+  if (!v) return undefined;
+  if (/^Bearer\s*$/i.test(v)) return undefined;
+  return v;
+}
+
 /**
  * Value for ``Authorization`` when proxying browser requests to upstream APIs.
- * Prefer the incoming Bearer header (set by clients from localStorage); if absent,
- * fall back to the HttpOnly ``ebartex_access_token`` cookie set by the auth proxy
- * on login so server-side proxies still authenticate when LS is missing or cleared.
+ *
+ * Precedence: HttpOnly ``ebartex_access_token`` cookie (set by ``/api/auth`` on
+ * login/refresh) **before** the incoming ``Authorization`` header. Clients often
+ * send ``Bearer`` from localStorage; that copy can lag behind the cookie after
+ * refresh or multi-tab use, which previously caused 401s on BFF routes while the
+ * session cookie was still valid.
+ *
+ * If neither cookie nor a non-empty Bearer header is present, returns undefined.
  */
 export function getForwardedAuthorization(request: NextRequest): string | undefined {
-  const incoming =
-    request.headers.get('authorization') || request.headers.get('Authorization');
-  if (incoming) return incoming;
   const tokenFromCookie = request.cookies.get('ebartex_access_token')?.value;
   if (tokenFromCookie) {
-    return `Bearer ${decodeURIComponent(tokenFromCookie)}`;
+    const decoded = safeDecodeURIComponent(tokenFromCookie).trim();
+    if (decoded) return `Bearer ${decoded}`;
   }
-  return undefined;
+
+  const incoming =
+    request.headers.get('authorization') || request.headers.get('Authorization');
+  return normalizeBearerHeader(incoming);
 }

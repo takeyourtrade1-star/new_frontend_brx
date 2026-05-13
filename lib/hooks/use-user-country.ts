@@ -13,7 +13,7 @@ const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 giorni
 /** 
  * Hook per rilevare il paese dell'utente tramite:
  * 1. Cache locale (7 giorni)
- * 2. API geolocalizzazione gratuita (ipapi.co)
+ * 2. Same-origin /api/geo/country (server-side ipapi, CSP-safe)
  * 3. Fallback su navigator.language
  * 
  * Restituisce il codice ISO 2-lettere (es. 'IT', 'DE')
@@ -37,33 +37,38 @@ export function useUserCountry(): string | null {
         // localStorage non disponibile
       }
 
-      // 2. Prova API geolocalizzazione
+      // 2. Prova API geolocalizzazione (BFF, nessuna chiamata diretta a ipapi.co dal browser)
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 3000);
-        
-        const res = await fetch('https://ipapi.co/json/', {
-          signal: controller.signal,
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        clearTimeout(timeout);
-        
-        if (res.ok) {
-          const data: GeoInfo = await res.json();
-          if (data.country_code) {
-            const code = data.country_code.toUpperCase();
-            // Verifica che sia un paese supportato
-            const supportedCountries = ['IT', 'DE', 'FR', 'ES', 'AT', 'CH', 'GB', 'US'];
-            const finalCode = supportedCountries.includes(code) ? code : 'IT';
-            
-            setCountry(finalCode);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({
-              code: finalCode,
-              timestamp: Date.now()
-            }));
-            return;
+        try {
+          const res = await fetch('/api/geo/country', {
+            signal: controller.signal,
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+          });
+
+          if (res.ok) {
+            const data: GeoInfo = await res.json();
+            if (data.country_code) {
+              const code = data.country_code.toUpperCase();
+              // Verifica che sia un paese supportato
+              const supportedCountries = ['IT', 'DE', 'FR', 'ES', 'AT', 'CH', 'GB', 'US'];
+              const finalCode = supportedCountries.includes(code) ? code : 'IT';
+
+              setCountry(finalCode);
+              localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify({
+                  code: finalCode,
+                  timestamp: Date.now(),
+                }),
+              );
+              return;
+            }
           }
+        } finally {
+          clearTimeout(timeout);
         }
       } catch {
         // API fallita, procedi con fallback

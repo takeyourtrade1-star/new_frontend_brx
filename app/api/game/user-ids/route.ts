@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getForwardedAuthorization } from '@/app/api/_lib/forwarded-authorization';
+
 export const dynamic = 'force-dynamic';
 
 const AUTH_API_URL = (
@@ -77,19 +79,11 @@ function extractUserIds(payload: unknown): string[] {
 }
 
 function buildAuthHeaders(request: NextRequest): HeadersInit {
-  const incomingAuth = request.headers.get('authorization') || request.headers.get('Authorization');
-  const tokenFromCookie = request.cookies.get('ebartex_access_token')?.value;
-
   const headers: Record<string, string> = {
     Accept: 'application/json',
   };
-
-  if (incomingAuth) {
-    headers.Authorization = incomingAuth;
-  } else if (tokenFromCookie) {
-    headers.Authorization = `Bearer ${decodeURIComponent(tokenFromCookie)}`;
-  }
-
+  const auth = getForwardedAuthorization(request);
+  if (auth) headers.Authorization = auth;
   return headers;
 }
 
