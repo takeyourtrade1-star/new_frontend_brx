@@ -319,15 +319,15 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     []
   );
 
-  /** Opzioni Lingua nel tab VENDI: se la carta ha available_languages, solo quelle; altrimenti tutte. */
+  /** Opzioni Lingua nel tab VENDI: SOLO le lingue in available_languages. Se vuoto/assente → solo English. */
   const vendiLanguageOptions = useMemo(() => {
     if (card?.available_languages?.length) {
       return card.available_languages
         .map((code) => ({ code, label: langLabelByCode[code] ?? code }))
         .filter((o, i, arr) => arr.findIndex((x) => x.code === o.code) === i);
     }
-    return LANG_OPTIONS.filter((o) => o.code !== 'jp');
-  }, [card?.available_languages, langLabelByCode, LANG_OPTIONS]);
+    return [{ code: 'en', label: langLabelByCode['en'] ?? 'English' }];
+  }, [card?.available_languages, langLabelByCode]);
 
   useEffect(() => {
     if (vendiLanguageOptions.length && !vendiLanguageOptions.some((o) => o.code === linguaVendi)) {
@@ -631,6 +631,17 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const effectiveImageSrc = showImagePlaceholder ? '' : imageSrc;
   const isLocalImage = effectiveImageSrc.startsWith('/') && !effectiveImageSrc.startsWith('//');
   const gameLabel = card ? getGameLabel(card.game_slug) : null;
+
+  /** Pagina dedicata al set (`/set`) con tutte le stampe / oggetti Meilisearch per quel set. */
+  const setCatalogHref = useMemo(() => {
+    if (!card) return null;
+    const name = card.set_name?.trim();
+    if (!name) return null;
+    const params = new URLSearchParams();
+    params.set('game', (card.game_slug ?? 'mtg').trim().toLowerCase() || 'mtg');
+    params.set('set', name);
+    return `/set?${params.toString()}`;
+  }, [card]);
 
   const EBARTEX_LOGO_PLACEHOLDER = '/images/Logo%20Principale%20EBARTEX.png';
 
@@ -991,7 +1002,18 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       </div>
                       <div className="flex items-center justify-between py-2">
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Set</span>
-                        <span className="truncate ml-4 text-xs font-bold text-zinc-900 text-right">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</span>
+                        {setCatalogHref ? (
+                          <Link
+                            href={setCatalogHref}
+                            className="truncate ml-4 max-w-[68%] text-right text-xs font-bold text-primary underline-offset-2 transition-colors hover:text-primary/80 hover:underline"
+                          >
+                            {card?.set_name ?? 'SUSSURRI NEL POZZO'}
+                          </Link>
+                        ) : (
+                          <span className="truncate ml-4 text-xs font-bold text-zinc-900 text-right">
+                            {card?.set_name ?? 'SUSSURRI NEL POZZO'}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center justify-between py-2">
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lingue</span>
@@ -1080,10 +1102,21 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                         <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Numero</p>
                         <p className="mt-1 text-sm font-extrabold tabular-nums text-zinc-900">{card?.collector_number ?? '015'}</p>
                       </div>
-                      <div className="col-span-2 rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Set</p>
-                        <p className="mt-1 truncate text-sm font-extrabold text-zinc-900">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
-                      </div>
+                      {setCatalogHref ? (
+                        <Link
+                          href={setCatalogHref}
+                          className="col-span-2 block rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2 transition-colors hover:border-primary/45 hover:bg-primary/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                          aria-label={`Apri pagina set: ${card?.set_name ?? ''}`}
+                        >
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Set</p>
+                          <p className="mt-1 truncate text-sm font-extrabold text-primary">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
+                        </Link>
+                      ) : (
+                        <div className="col-span-2 rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Set</p>
+                          <p className="mt-1 truncate text-sm font-extrabold text-zinc-900">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
+                        </div>
+                      )}
                       <div className="col-span-2 rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Lingue disponibili</p>
                         <p className="mt-1 truncate text-[12px] font-semibold text-zinc-700">
