@@ -24,6 +24,8 @@ export type AuctionCreateCardSelection = {
   condition?: string;
   cardLanguage?: string;
   startingBidEur?: string;
+  /** Lingue effettivamente disponibili per questa carta (da Meilisearch available_languages). */
+  availableLanguages?: string[];
 };
 
 export type AuctionCreateDraft = {

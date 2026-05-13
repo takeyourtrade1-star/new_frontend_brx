@@ -12,6 +12,7 @@ import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { getGameLabel, buildBreadcrumbsFromCard, type CardDocument } from '@/lib/product-detail';
 import { syncClient, type InventoryItemResponse, type ListingItem } from '@/lib/api/sync-client';
+import { fetchPublicUserProfiles } from '@/lib/api/user-names-cache';
 import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
 import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { AuctionCreateWizard } from '@/components/feature/aste/create/AuctionCreateWizard';
@@ -356,7 +357,17 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setListingsError(null);
     try {
       const res = await syncClient.getListingsByBlueprint(blueprintId);
-      setListings(res.listings ?? []);
+      const rawListings = res.listings ?? [];
+
+      // Enrich seller_display_name with real usernames from the auth public-profiles API.
+      // The sync service stores raw user IDs as seller_display_name; we resolve them here.
+      const sellerIds = [...new Set(rawListings.map((l) => l.seller_id).filter(Boolean))];
+      const profiles = sellerIds.length > 0 ? await fetchPublicUserProfiles(sellerIds) : {};
+      const enriched: ListingItem[] = rawListings.map((l) => ({
+        ...l,
+        seller_display_name: profiles[l.seller_id]?.username ?? l.seller_display_name,
+      }));
+      setListings(enriched);
     } catch (err) {
       setListings([]);
       setListingsError(err instanceof Error ? err.message : 'Errore caricamento venditori');
