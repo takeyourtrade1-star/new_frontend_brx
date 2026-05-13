@@ -29,6 +29,7 @@ export function productIsSealedOrNonSingle(card: CardDocument): boolean {
 export function createEmbeddedDraftFromProduct(card: CardDocument): AuctionCreateDraft {
   const sealed = productIsSealedOrNonSingle(card);
   const img = getCardImageUrl(card.image ?? '') ?? (card.image?.startsWith('http') ? card.image : '') ?? '';
+  const availableLanguages = card.available_languages?.length ? card.available_languages : undefined;
   return {
     ...AUCTION_CREATE_DEFAULT_DRAFT,
     listingPhotos: [],
@@ -45,6 +46,7 @@ export function createEmbeddedDraftFromProduct(card: CardDocument): AuctionCreat
       setName: card.set_name,
       gameSlug: card.game_slug,
       blueprintId: blueprintFromCard(card),
+      availableLanguages,
     },
     selectedInventoryItemId: null,
   };

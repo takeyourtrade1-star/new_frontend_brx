@@ -885,9 +885,32 @@ export function AuctionCreateWizard({
   ]);
 
   const previewImageSrc = draft.imageUrl ? getCardImageUrl(draft.imageUrl) ?? draft.imageUrl : null;
+
+  /**
+   * Opzioni lingua filtrate in base alle lingue effettivamente disponibili per la carta.
+   * Usa draft.cardSelection.availableLanguages (popolato sia in embedded che standalone).
+   * Fallback a tutte le opzioni se nessuna lista è disponibile; minimo sempre "English".
+   */
+  const cardLanguageOptions = useMemo(() => {
+    const langs = draft.cardSelection?.availableLanguages;
+    if (langs?.length) {
+      const filtered = AUCTION_CARD_LANGUAGE_OPTIONS.filter((opt) => langs.includes(opt.value));
+      return filtered.length > 0 ? filtered : [{ value: 'en', label: 'English' }];
+    }
+    return AUCTION_CARD_LANGUAGE_OPTIONS;
+  }, [draft.cardSelection?.availableLanguages]);
+
+  // Quando le opzioni cambiano e la lingua corrente non è in lista, resetta alla prima disponibile.
+  useEffect(() => {
+    if (!draft.cardLanguage) return;
+    if (!cardLanguageOptions.some((o) => o.value === draft.cardLanguage)) {
+      update('cardLanguage', cardLanguageOptions[0]?.value ?? '');
+    }
+  }, [cardLanguageOptions, draft.cardLanguage, update]);
+
   const cardLanguageLabel = useMemo(
-    () => AUCTION_CARD_LANGUAGE_OPTIONS.find((opt) => opt.value === draft.cardLanguage)?.label ?? '—',
-    [draft.cardLanguage]
+    () => cardLanguageOptions.find((opt) => opt.value === draft.cardLanguage)?.label ?? '—',
+    [cardLanguageOptions, draft.cardLanguage]
   );
 
   /** Barra navigazione fissa solo nello standalone; embedded usa footer inline nel card. */
@@ -1433,7 +1456,7 @@ export function AuctionCreateWizard({
                   )}
                 >
                   <option value="">Non specificata</option>
-                  {AUCTION_CARD_LANGUAGE_OPTIONS.map(({ value, label }) => (
+                  {cardLanguageOptions.map(({ value, label }) => (
                     <option key={value} value={value}>
                       {label}
                     </option>

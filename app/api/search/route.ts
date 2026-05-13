@@ -27,6 +27,8 @@ export interface SearchHit {
   rarity?: string;
   /** MTG: numero collezionista (es. "028", "1910") */
   collector_number?: string;
+  /** Lingue disponibili per questa carta (es. ["en","it","fr"]). */
+  available_languages?: string[];
 }
 
 export interface SearchApiResponse {

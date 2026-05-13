@@ -39,6 +39,7 @@ function hitToSelection(hit: SearchHit): AuctionCreateCardSelection {
     image: hit.image ?? '',
     setName: hit.set_name,
     gameSlug: hit.game_slug,
+    availableLanguages: hit.available_languages?.length ? hit.available_languages : undefined,
   };
 }
 
