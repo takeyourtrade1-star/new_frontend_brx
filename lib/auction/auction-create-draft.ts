@@ -91,7 +91,54 @@ export const AUCTION_CARD_CONDITION_OPTIONS = [
   { value: 'damaged', labelKey: 'auctions.cardConditionDamaged' },
 ] as const satisfies ReadonlyArray<{ value: string; labelKey: MessageKey }>;
 
-/** Lingue comuni per carte (stesso perimetro usato in vendita/prodotto). */
+/**
+ * Mappa codice lingua → etichetta leggibile.
+ * Copre sia i codici ISO standard che alias comuni (es. "jp" usato da alcuni DB).
+ * Usata per costruire le opzioni del dropdown direttamente dai codici di Meilisearch.
+ */
+export const AUCTION_LANG_LABEL_BY_CODE: Readonly<Record<string, string>> = {
+  en: 'English',
+  it: 'Italiano',
+  de: 'Deutsch',
+  fr: 'Français',
+  es: 'Español',
+  pt: 'Português',
+  ja: '日本語',
+  jp: '日本語',
+  ko: '한국어',
+  zh: '中文',
+  'zh-hans': '中文 (简体)',
+  'zh-hant': '中文 (繁體)',
+  ru: 'Русский',
+  pl: 'Polski',
+  cs: 'Čeština',
+  hu: 'Magyar',
+  ro: 'Română',
+};
+
+/**
+ * Costruisce le opzioni del dropdown lingua DIRETTAMENTE dai codici di Meilisearch.
+ * Non filtra mai una lista statica: se il codice non è in AUCTION_LANG_LABEL_BY_CODE
+ * lo mostra comunque usando il codice come label (nessuna lingua viene persa).
+ * Se langs è vuoto/null → fallback a solo English.
+ */
+export function buildAuctionLanguageOptions(
+  langs: string[] | undefined | null
+): ReadonlyArray<{ value: string; label: string }> {
+  if (!langs?.length) {
+    return [{ value: 'en', label: 'English' }];
+  }
+  const seen = new Set<string>();
+  const options: { value: string; label: string }[] = [];
+  for (const code of langs) {
+    if (!code || seen.has(code)) continue;
+    seen.add(code);
+    options.push({ value: code, label: AUCTION_LANG_LABEL_BY_CODE[code] ?? code });
+  }
+  return options.length > 0 ? options : [{ value: 'en', label: 'English' }];
+}
+
+/** @deprecated Usa buildAuctionLanguageOptions(). Mantenuta per retrocompatibilità. */
 export const AUCTION_CARD_LANGUAGE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: 'en', label: 'English' },
   { value: 'it', label: 'Italiano' },
@@ -104,11 +151,16 @@ export const AUCTION_CARD_LANGUAGE_OPTIONS: ReadonlyArray<{ value: string; label
   { value: 'zh', label: '中文' },
 ];
 
+/**
+ * Normalizza un codice lingua proveniente dall'inventario.
+ * Converte alias noti (es. "jp" → "ja") ma NON valida contro una lista statica:
+ * qualsiasi codice non vuoto viene restituito così com'è per non perdere lingue.
+ */
 export function normalizeAuctionCardLanguage(value: string | null | undefined): string {
   const raw = (value ?? '').trim().toLowerCase();
   if (!raw) return '';
   if (raw === 'jp') return 'ja';
-  return AUCTION_CARD_LANGUAGE_OPTIONS.some((o) => o.value === raw) ? raw : '';
+  return raw;
 }
 
 /** Migrazione da vecchi valori nm/mp del wizard. */

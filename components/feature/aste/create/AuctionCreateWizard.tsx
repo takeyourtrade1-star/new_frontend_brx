@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Check, ChevronLeft, ChevronRight, Gavel, Package } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
-  AUCTION_CARD_LANGUAGE_OPTIONS,
+  buildAuctionLanguageOptions,
   AUCTION_CARD_CONDITION_OPTIONS,
   AUCTION_CREATE_DEFAULT_DRAFT,
   AUCTION_CREATE_GAMES,
@@ -887,18 +887,15 @@ export function AuctionCreateWizard({
   const previewImageSrc = draft.imageUrl ? getCardImageUrl(draft.imageUrl) ?? draft.imageUrl : null;
 
   /**
-   * Opzioni lingua filtrate in base alle lingue effettivamente disponibili per la carta.
-   * Usa draft.cardSelection.availableLanguages (popolato sia in embedded che standalone).
-   * Fallback a tutte le opzioni se nessuna lista è disponibile; minimo sempre "English".
+   * Opzioni lingua costruite DIRETTAMENTE da draft.cardSelection.availableLanguages
+   * (campo available_languages di Meilisearch). Nessun filtraggio di lista statica:
+   * ogni codice viene tradotto tramite AUCTION_LANG_LABEL_BY_CODE o mostrato così com'è.
+   * Se availableLanguages è vuoto/null → solo "English" come fallback.
    */
-  const cardLanguageOptions = useMemo(() => {
-    const langs = draft.cardSelection?.availableLanguages;
-    if (langs?.length) {
-      const filtered = AUCTION_CARD_LANGUAGE_OPTIONS.filter((opt) => langs.includes(opt.value));
-      return filtered.length > 0 ? filtered : [{ value: 'en', label: 'English' }];
-    }
-    return AUCTION_CARD_LANGUAGE_OPTIONS;
-  }, [draft.cardSelection?.availableLanguages]);
+  const cardLanguageOptions = useMemo(
+    () => buildAuctionLanguageOptions(draft.cardSelection?.availableLanguages),
+    [draft.cardSelection?.availableLanguages]
+  );
 
   // Quando le opzioni cambiano e la lingua corrente non è in lista, resetta alla prima disponibile.
   useEffect(() => {
