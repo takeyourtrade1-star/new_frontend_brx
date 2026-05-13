@@ -41,13 +41,39 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+const REQUEST_TIMEOUT_MS = 15_000;
+const NETWORK_RETRY_DELAY_MS = 900;
+
+function isNetworkError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return /load failed|failed to fetch|network request failed|networkerror|the network connection was lost|connessione non riuscita/i.test(
+    err.message,
+  );
+}
+
+async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if ((err as Error)?.name === 'AbortError') {
+      throw new Error('Connessione non riuscita. Verifica la rete e riprova.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
   retried = false,
+  networkRetry = false,
 ): Promise<T> {
   const url = `/api/auctions${path}`;
-  const res = await fetch(url, {
+  const mergedOptions: RequestInit = {
     ...options,
     headers: {
       Accept: 'application/json',
@@ -55,7 +81,19 @@ async function request<T>(
       ...authHeaders(),
       ...(options.headers as Record<string, string> | undefined),
     },
-  });
+  };
+
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(url, mergedOptions);
+  } catch (err) {
+    // One automatic retry for transient network errors (e.g. Safari "Load failed")
+    if (!networkRetry && isNetworkError(err)) {
+      await new Promise((resolve) => setTimeout(resolve, NETWORK_RETRY_DELAY_MS));
+      return request<T>(path, options, retried, true);
+    }
+    throw new Error('Connessione non riuscita. Verifica la rete e riprova.');
+  }
 
   const data = await res.json().catch(() => ({}));
 
@@ -65,7 +103,7 @@ async function request<T>(
       if (result) {
         authApi.setToken(result.accessToken, result.refreshToken);
         useAuthStore.getState().setToken(result.accessToken, result.refreshToken);
-        return request<T>(path, options, true);
+        return request<T>(path, options, true, networkRetry);
       }
     }
     const msg =
@@ -181,9 +219,10 @@ async function savedRequest<T>(
   path: string,
   options: RequestInit = {},
   retried = false,
+  networkRetry = false,
 ): Promise<T> {
   const url = `/api/saved-auctions${path}`;
-  const res = await fetch(url, {
+  const mergedOptions: RequestInit = {
     ...options,
     headers: {
       Accept: 'application/json',
@@ -191,7 +230,19 @@ async function savedRequest<T>(
       ...authHeaders(),
       ...(options.headers as Record<string, string> | undefined),
     },
-  });
+  };
+
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(url, mergedOptions);
+  } catch (err) {
+    if (!networkRetry && isNetworkError(err)) {
+      await new Promise((resolve) => setTimeout(resolve, NETWORK_RETRY_DELAY_MS));
+      return savedRequest<T>(path, options, retried, true);
+    }
+    throw new Error('Connessione non riuscita. Verifica la rete e riprova.');
+  }
+
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
@@ -199,7 +250,7 @@ async function savedRequest<T>(
       if (result) {
         authApi.setToken(result.accessToken, result.refreshToken);
         useAuthStore.getState().setToken(result.accessToken, result.refreshToken);
-        return savedRequest<T>(path, options, true);
+        return savedRequest<T>(path, options, true, networkRetry);
       }
     }
     const msg = data?.detail || data?.error || data?.message || `Saved API error ${res.status}`;

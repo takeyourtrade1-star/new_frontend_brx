@@ -46,6 +46,16 @@ export interface PublicUserProfile {
   avatar_url: string | null;
   country_code: string | null;
   account_type: PublicAccountType;
+  bio?: string | null;
+  member_since?: string | null;
+  is_verified_seller?: boolean;
+  feedback_score_pct?: number | null;
+  feedback_count?: number;
+}
+
+export interface PublicUserProfileResponse {
+  success: boolean;
+  data: PublicUserProfile;
 }
 
 export interface PublicUsersSearchResponse {

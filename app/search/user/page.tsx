@@ -1,7 +1,8 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Loader2, Search } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, ChevronRight, Loader2, Search } from 'lucide-react';
 
 import { Header } from '@/components/layout/Header';
 import { authApi } from '@/lib/api/auth-client';
@@ -134,16 +135,22 @@ export default function UserSearchPage() {
             {canSearch ? (
               <div className="mx-auto max-w-3xl space-y-3 text-left">
                 {items.map((user) => (
-                  <div
+                  <Link
                     key={user.id}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_8px_20px_rgb(0,0,0,0.03)]"
+                    href={`/users/${user.username}`}
+                    className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_8px_20px_rgb(0,0,0,0.03)] transition hover:border-slate-300 hover:bg-slate-50"
                   >
-                    <p className="text-base font-bold text-slate-900">{user.username}</p>
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      {user.account_type === 'business' ? 'Venditore Business' : 'Privato'}
-                      {user.country_code ? ` · ${user.country_code}` : ''}
-                    </p>
-                  </div>
+                    <div>
+                      <p className="text-base font-bold text-slate-900 group-hover:text-[#ff7300] transition-colors">
+                        @{user.username}
+                      </p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        {user.account_type === 'business' ? 'Venditore Business' : 'Privato'}
+                        {user.country_code ? ` · ${user.country_code}` : ''}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-[#ff7300]" />
+                  </Link>
                 ))}
 
                 {total > limit && (
