@@ -51,6 +51,21 @@ function isNetworkError(err: unknown): boolean {
   );
 }
 
+function hasHeader(headers: HeadersInit | undefined, name: string): boolean {
+  if (!headers) return false;
+  const normalizedName = name.toLowerCase();
+  if (headers instanceof Headers) return headers.has(name);
+  if (Array.isArray(headers)) {
+    return headers.some(([key]) => key.toLowerCase() === normalizedName);
+  }
+  return Object.keys(headers).some((key) => key.toLowerCase() === normalizedName);
+}
+
+function canRetryNetworkFailure(options: RequestInit): boolean {
+  const method = (options.method ?? 'GET').toUpperCase();
+  return method === 'GET' || method === 'HEAD' || hasHeader(options.headers, 'Idempotency-Key');
+}
+
 async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -88,7 +103,7 @@ async function request<T>(
     res = await fetchWithTimeout(url, mergedOptions);
   } catch (err) {
     // One automatic retry for transient network errors (e.g. Safari "Load failed")
-    if (!networkRetry && isNetworkError(err)) {
+    if (!networkRetry && isNetworkError(err) && canRetryNetworkFailure(mergedOptions)) {
       await new Promise((resolve) => setTimeout(resolve, NETWORK_RETRY_DELAY_MS));
       return request<T>(path, options, retried, true);
     }
@@ -236,7 +251,7 @@ async function savedRequest<T>(
   try {
     res = await fetchWithTimeout(url, mergedOptions);
   } catch (err) {
-    if (!networkRetry && isNetworkError(err)) {
+    if (!networkRetry && isNetworkError(err) && canRetryNetworkFailure(mergedOptions)) {
       await new Promise((resolve) => setTimeout(resolve, NETWORK_RETRY_DELAY_MS));
       return savedRequest<T>(path, options, retried, true);
     }
