@@ -3,21 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { auctionApi, createIdempotencyKey } from '@/lib/api/auction-client';
 
 vi.mock('@/lib/api/refresh-token', () => ({
+  tokenManager: {
+    ensureFreshToken: vi.fn(async () => null),
+  },
   refreshAccessToken: vi.fn(async () => null),
-}));
-
-vi.mock('@/lib/api/auth-client', () => ({
-  authApi: {
-    setToken: vi.fn(),
-  },
-}));
-
-vi.mock('@/lib/stores/auth-store', () => ({
-  useAuthStore: {
-    getState: () => ({
-      setToken: vi.fn(),
-    }),
-  },
 }));
 
 afterEach(() => {

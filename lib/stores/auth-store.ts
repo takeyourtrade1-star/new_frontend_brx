@@ -14,6 +14,7 @@ import type {
 } from '@/types';
 import { authApi } from '@/lib/api/auth-client';
 import { parseAuthError } from '@/lib/api/auth-error';
+import { stopProactiveRefresh } from '@/lib/api/refresh-token';
 import { config } from '@/lib/config';
 import {
   clearMfaPreAuthToken,
@@ -586,6 +587,7 @@ export const useAuthStore = create<AuthState>()(
 
         // Pulisci i token e lo stato (anche se il logout API è fallito)
         authApi.clearToken();
+        stopProactiveRefresh();
         clearMfaPreAuthToken();
 
         set({

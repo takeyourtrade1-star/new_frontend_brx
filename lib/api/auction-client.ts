@@ -16,9 +16,7 @@ import type {
   SavedAuctionListResponse,
   SavedAuctionStatusResponse,
 } from '@/types/auction';
-import { refreshAccessToken } from '@/lib/api/refresh-token';
-import { authApi } from '@/lib/api/auth-client';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { tokenManager } from '@/lib/api/refresh-token';
 
 export function createIdempotencyKey(): string {
   if (
@@ -99,10 +97,8 @@ async function request<T>(
 
   if (!res.ok) {
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const result = await refreshAccessToken();
-      if (result) {
-        authApi.setToken(result.accessToken, result.refreshToken);
-        useAuthStore.getState().setToken(result.accessToken, result.refreshToken);
+      const newToken = await tokenManager.ensureFreshToken();
+      if (newToken) {
         return request<T>(path, options, true, networkRetry);
       }
     }
@@ -246,10 +242,8 @@ async function savedRequest<T>(
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const result = await refreshAccessToken();
-      if (result) {
-        authApi.setToken(result.accessToken, result.refreshToken);
-        useAuthStore.getState().setToken(result.accessToken, result.refreshToken);
+      const newToken = await tokenManager.ensureFreshToken();
+      if (newToken) {
         return savedRequest<T>(path, options, true, networkRetry);
       }
     }

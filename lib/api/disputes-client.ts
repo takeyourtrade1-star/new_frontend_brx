@@ -1,6 +1,4 @@
-import { authApi } from '@/lib/api/auth-client';
-import { refreshAccessToken } from '@/lib/api/refresh-token';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { tokenManager } from '@/lib/api/refresh-token';
 import type {
   DisputeDetailResponse,
   DisputeListResponse,
@@ -32,10 +30,8 @@ async function request<T>(path: string, options: RequestInit = {}, retried = fal
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const result = await refreshAccessToken();
-      if (result) {
-        authApi.setToken(result.accessToken, result.refreshToken);
-        useAuthStore.getState().setToken(result.accessToken, result.refreshToken);
+      const newToken = await tokenManager.ensureFreshToken();
+      if (newToken) {
         return request<T>(path, options, true);
       }
     }

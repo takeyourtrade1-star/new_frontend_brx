@@ -14,9 +14,7 @@
  */
 
 import imageCompression from 'browser-image-compression';
-import { refreshAccessToken } from '@/lib/api/refresh-token';
-import { authApi } from '@/lib/api/auth-client';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { tokenManager } from '@/lib/api/refresh-token';
 
 export interface UploadedPhoto {
   id: number;
@@ -93,10 +91,8 @@ async function jsonRequest<T>(
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const result = await refreshAccessToken();
-      if (result) {
-        authApi.setToken(result.accessToken, result.refreshToken);
-        useAuthStore.getState().setToken(result.accessToken, result.refreshToken);
+      const newToken = await tokenManager.ensureFreshToken();
+      if (newToken) {
         return jsonRequest<T>(path, init, true);
       }
     }

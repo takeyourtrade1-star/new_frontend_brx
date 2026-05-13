@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/lib/theme-context';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { startProactiveRefresh } from '@/lib/api/refresh-token';
 import { GameProvider, GameFromRouteSync } from '@/lib/contexts/GameContext';
 import { LanguageProvider } from '@/lib/contexts/LanguageContext';
 import { HtmlLangSync } from '@/components/HtmlLangSync';
@@ -48,7 +49,9 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
         // Accediamo direttamente allo store per evitare problemi di serializzazione
         const store = useAuthStore.getState();
         if (store && typeof store.initializeAuth === 'function') {
-          store.initializeAuth().catch((err) => {
+          store.initializeAuth().then(() => {
+            startProactiveRefresh();
+          }).catch((err) => {
             console.error('Error initializing auth:', err);
             setInitError(err);
             // Non blocchiamo l'UI per errori di auth

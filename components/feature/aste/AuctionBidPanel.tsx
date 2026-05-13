@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { HelpCircle, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { minNextBidEur, parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
 import { usePlaceBid } from '@/lib/hooks/use-auctions';
@@ -24,6 +25,17 @@ type AuctionBidPanelProps = {
 };
 
 type PendingAction = { type: 'direct' | 'max'; amount: number };
+
+function useBodyScrollLock(locked: boolean) {
+  useEffect(() => {
+    if (!locked) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [locked]);
+}
 
 function BidConfirmPopup({
   action,
@@ -49,19 +61,30 @@ function BidConfirmPopup({
     return () => window.removeEventListener('keydown', handler);
   }, [isLoading, onCancel]);
 
+  useBodyScrollLock(true);
+
   const isDirect = action.type === 'direct';
   const displayAmount = isDirect ? action.amount : action.amount;
   const effectiveAmount = isDirect ? action.amount : minBid;
 
-  return (
+  const overlay = (
     <div
-      className="fixed inset-0 z-[400] flex items-end justify-center bg-black/40 p-4 sm:items-center"
-      onClick={(e) => { if (e.target === e.currentTarget && !isLoading) onCancel(); }}
+      className="fixed inset-0 z-[8000] flex items-end justify-center bg-black/55 p-4 backdrop-blur-[2px] sm:items-center"
+      role="presentation"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isLoading) onCancel();
+      }}
     >
-      <div className="w-full max-w-sm animate-[slide-up_0.2s_ease-out] rounded-2xl border border-gray-200 bg-white shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bid-confirm-title"
+        className="w-full max-w-sm animate-[slide-up_0.2s_ease-out] rounded-2xl border border-gray-200 bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-          <h3 className="text-base font-extrabold text-[#1D3160]">
+          <h3 id="bid-confirm-title" className="text-base font-extrabold text-[#1D3160]">
             {isDirect ? 'Conferma offerta' : 'Conferma offerta massima'}
           </h3>
           {!isLoading && (
@@ -138,6 +161,70 @@ function BidConfirmPopup({
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(overlay, document.body);
+}
+
+function MaxBidInfoOverlay({ onClose }: { onClose: () => void }) {
+  useBodyScrollLock(true);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const overlay = (
+    <div
+      className="fixed inset-0 z-[7990] flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
+      role="presentation"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="max-bid-info-title"
+        className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <h4 id="max-bid-info-title" className="text-base font-extrabold text-[#1D3160]">
+            Come funziona l&apos;offerta massima
+          </h4>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+            aria-label="Chiudi"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="mt-2 text-sm text-gray-700">
+          Imposti il tuo tetto massimo. Il sistema rilancia automaticamente solo lo stretto necessario per mantenerti in testa,
+          fino al limite impostato.
+        </p>
+        <p className="mt-2 text-sm text-gray-700">
+          Se altri superano il tuo limite, riceverai un avviso e potrai alzarlo.
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-4 w-full rounded-lg bg-[#1D3160] px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#15264b]"
+        >
+          Ho capito
+        </button>
+      </div>
+    </div>
+  );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(overlay, document.body);
 }
 
 export function AuctionBidPanel({
@@ -439,27 +526,7 @@ export function AuctionBidPanel({
           </>
         )}
 
-        {showMaxInfo && (
-          <div className="fixed inset-0 z-[310] flex items-center justify-center bg-black/35 p-4">
-            <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
-              <h4 className="text-base font-extrabold text-[#1D3160]">Come funziona l&apos;offerta massima</h4>
-              <p className="mt-2 text-sm text-gray-700">
-                Imposti il tuo tetto massimo. Il sistema rilancia automaticamente solo lo stretto necessario per mantenerti in testa,
-                fino al limite impostato.
-              </p>
-              <p className="mt-2 text-sm text-gray-700">
-                Se altri superano il tuo limite, riceverai un avviso e potrai alzarlo.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowMaxInfo(false)}
-                className="mt-4 w-full rounded-lg bg-[#1D3160] px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#15264b]"
-              >
-                Ho capito
-              </button>
-            </div>
-          </div>
-        )}
+        {showMaxInfo && <MaxBidInfoOverlay onClose={() => setShowMaxInfo(false)} />}
       </div>
     </>
   );

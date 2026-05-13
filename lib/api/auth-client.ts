@@ -11,7 +11,7 @@ import axios, {
 } from 'axios';
 import type { PreAuthTokenResponse, TokenResponse } from '@/types';
 import { config } from '../config';
-import { refreshAccessToken } from './refresh-token';
+import { tokenManager } from './refresh-token';
 
 const DEVICE_TRUST_CRITICAL_PATHS = new Set([
   '/api/auth/login',
@@ -32,11 +32,6 @@ function getAuthBaseURL(): string {
 class AuthApiClient {
   private instance: AxiosInstance;
   private token: string | null = null;
-  private isRefreshing: boolean = false;
-  private failedQueue: Array<{
-    resolve: (value?: any) => void;
-    reject: (error?: any) => void;
-  }> = [];
 
   constructor() {
     const baseURL = getAuthBaseURL();
@@ -161,77 +156,27 @@ class AuthApiClient {
           !originalRequest.url?.includes('/api/auth/password/reset/confirm-final') &&
           !originalRequest.url?.includes('/api/auth/password/reset/confirm')
         ) {
-          originalRequest._retry = true; // Marca per evitare loop infiniti
+          originalRequest._retry = true;
 
-          // Se stiamo già refrescando, metti in coda la richiesta (usa lo stesso lock condiviso con sync-client)
-          if (this.isRefreshing) {
-            return new Promise((resolve, reject) => {
-              this.failedQueue.push({ resolve, reject });
-            })
-              .then(() => {
-                if (this.token && originalRequest.headers) {
-                  originalRequest.headers.Authorization = `Bearer ${this.token}`;
-                }
-                return this.instance(originalRequest);
-              })
-              .catch((err) => Promise.reject(err));
-          }
-
-          this.isRefreshing = true;
-
-          try {
-            // Refresh centralizzato: una sola chiamata a /api/auth/refresh per tutta l'app
-            const result = await refreshAccessToken();
-
-            if (result) {
-              this.token = result.accessToken;
-              this.setStoredToken(result.accessToken);
-              this.setStoredRefreshToken(result.refreshToken);
-              try {
-                const { useAuthStore } = await import(
-                  /* webpackChunkName: "auth-store" */ '@/lib/stores/auth-store'
-                );
-                useAuthStore.getState().setToken(result.accessToken, result.refreshToken);
-              } catch {
-                // ignore se store non disponibile (SSR o primo load)
-              }
-              if (originalRequest.headers) {
-                originalRequest.headers.Authorization = `Bearer ${result.accessToken}`;
-              }
-              this.processQueue(null);
-              return this.instance(originalRequest);
+          // Centralised refresh — tokenManager deduplicates concurrent callers
+          // and resolves all of them once a single /api/auth/refresh completes.
+          const newToken = await tokenManager.ensureFreshToken();
+          if (newToken) {
+            this.token = newToken;
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
             }
-
-            this.processQueue(error);
-            this.forceLogout();
-            return Promise.reject(error);
-          } catch (refreshError) {
-            this.processQueue(refreshError);
-            this.forceLogout();
-            return Promise.reject(refreshError);
-          } finally {
-            this.isRefreshing = false;
+            return this.instance(originalRequest);
           }
+
+          this.forceLogout();
+          return Promise.reject(error);
         }
 
         // Per tutti gli altri errori, rigetta la promise
         return Promise.reject(error);
       }
     );
-  }
-
-  /**
-   * Processa le richieste in coda dopo il refresh
-   */
-  private processQueue(error: any) {
-    this.failedQueue.forEach((promise) => {
-      if (error) {
-        promise.reject(error);
-      } else {
-        promise.resolve();
-      }
-    });
-    this.failedQueue = [];
   }
 
   /**

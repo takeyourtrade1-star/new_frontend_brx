@@ -5,9 +5,7 @@
  * Su 401 (token scaduto) tenta un refresh automatico e ritenta la richiesta una volta.
  */
 
-import { authApi } from '@/lib/api/auth-client';
-import { refreshAccessToken } from '@/lib/api/refresh-token';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { tokenManager } from '@/lib/api/refresh-token';
 
 /** Base URL Sync:
  * - browser: usa proxy same-origin /api/sync (evita CORS/rete mobile instabile)
@@ -172,13 +170,11 @@ async function request<T>(
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    // Su 401: usa il refresh centralizzato (stesso lock di auth-client, evita doppio refresh)
+    // Su 401: refresh centralizzato — tokenManager deduplicates concurrent calls
     if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const result = await refreshAccessToken();
-      if (result) {
-        authApi.setToken(result.accessToken, result.refreshToken);
-        useAuthStore.getState().setToken(result.accessToken, result.refreshToken);
-        return request<T>(path, result.accessToken, options, true);
+      const newToken = await tokenManager.ensureFreshToken();
+      if (newToken) {
+        return request<T>(path, newToken, options, true);
       }
     }
     const err = new Error((data.detail as string) || data.message || res.statusText) as Error & { status?: number; data?: unknown };
