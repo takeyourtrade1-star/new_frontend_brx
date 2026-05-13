@@ -4,10 +4,37 @@
  * pairing_session_id + pairing_upload_token instead of Authorization (no login on mobile).
  *
  * Kept outside `lib/api/` so the main auction-photo client stays auth-only.
+ *
+ * Speed: the cropped image is usually already WebP from the canvas — we skip the heavy
+ * desktop `compressImage` (2048px + web worker) unless the file is still large.
  */
 
+import imageCompression from 'browser-image-compression';
 import type { UploadedPhoto } from '@/lib/api/auction-photo-client';
-import { compressImage } from '@/lib/api/auction-photo-client';
+
+/** Skip re-encoding when under this size (typical after capped canvas crop). */
+const GUEST_SKIP_COMPRESS_BYTES = 900 * 1024;
+
+const GUEST_HEAVY_COMPRESSION = {
+  maxSizeMB: 0.48,
+  maxWidthOrHeight: 1536,
+  initialQuality: 0.78,
+  fileType: 'image/webp' as const,
+  /** Worker spawn is often slower than one main-thread pass on a single phone photo. */
+  useWebWorker: false,
+};
+
+async function prepareGuestUploadFile(file: File): Promise<File> {
+  if (file.size <= GUEST_SKIP_COMPRESS_BYTES && file.type === 'image/webp') {
+    return file;
+  }
+  const out = await imageCompression(file, GUEST_HEAVY_COMPRESSION);
+  if (out instanceof File) return out;
+  return new File([out], file.name.replace(/\.[a-z0-9]+$/i, '.webp'), {
+    type: 'image/webp',
+    lastModified: Date.now(),
+  });
+}
 
 const MAX_INIT_FINALIZE_RETRIES = 3;
 const INIT_FINALIZE_BACKOFF_MS = [400, 1200, 3000];
@@ -108,22 +135,6 @@ async function sha256Hex(file: Blob): Promise<string> {
     .join('');
 }
 
-async function readImageDimensions(
-  file: Blob,
-): Promise<{ width: number | null; height: number | null }> {
-  if (typeof createImageBitmap === 'function') {
-    try {
-      const bmp = await createImageBitmap(file);
-      const out = { width: bmp.width, height: bmp.height };
-      bmp.close?.();
-      return out;
-    } catch {
-      // fall through
-    }
-  }
-  return { width: null, height: null };
-}
-
 function putToS3(
   upload: PhotoInitResponse,
   body: Blob,
@@ -204,14 +215,17 @@ export async function uploadPhotoAsPairingGuest(
   rawFile: File,
   options: PairingGuestUploadOptions,
 ): Promise<UploadedPhoto> {
-  const compressed = await compressImage(rawFile);
-  options.signal?.throwIfAborted?.();
+  const report = (p: number) =>
+    options.onProgress?.(Math.min(100, Math.max(0, Math.round(p))));
 
-  const [sha256, dims] = await Promise.all([
-    sha256Hex(compressed),
-    readImageDimensions(compressed),
-  ]);
+  report(2);
+  const compressed = await prepareGuestUploadFile(rawFile);
   options.signal?.throwIfAborted?.();
+  report(10);
+
+  const sha256 = await sha256Hex(compressed);
+  options.signal?.throwIfAborted?.();
+  report(14);
 
   const sid = options.pairingSessionId;
   const tok = options.pairingUploadToken;
@@ -226,25 +240,35 @@ export async function uploadPhotoAsPairingGuest(
   };
 
   const init = await initGuest(initBody);
+  report(18);
+
+  const runPut = (upload: PhotoInitResponse) =>
+    putToS3(upload, compressed, {
+      ...options,
+      onProgress: (pct) => report(18 + Math.round((pct / 100) * 68)),
+    });
 
   try {
-    await putToS3(init, compressed, options);
+    await runPut(init);
   } catch (err) {
     const status = (err as { status?: number })?.status;
     if (status === 403 || status === 400) {
       const fresh = await initGuest(initBody);
-      await putToS3(fresh, compressed, options);
+      report(20);
+      await runPut(fresh);
+      report(88);
       const finalized2 = await finalizeGuest({
         photo_token: fresh.photo_token,
         s3_key: fresh.s3_key,
         pairing_session_id: sid,
         pairing_upload_token: tok,
       });
+      report(100);
       return {
         id: finalized2.id,
         cdn_url: finalized2.cdn_url,
-        width: finalized2.width ?? dims.width,
-        height: finalized2.height ?? dims.height,
+        width: finalized2.width,
+        height: finalized2.height,
         bytes: finalized2.bytes,
         mime: finalized2.mime,
       };
@@ -252,18 +276,20 @@ export async function uploadPhotoAsPairingGuest(
     throw err;
   }
 
+  report(88);
   const finalized = await finalizeGuest({
     photo_token: init.photo_token,
     s3_key: init.s3_key,
     pairing_session_id: sid,
     pairing_upload_token: tok,
   });
+  report(100);
 
   return {
     id: finalized.id,
     cdn_url: finalized.cdn_url,
-    width: finalized.width ?? dims.width,
-    height: finalized.height ?? dims.height,
+    width: finalized.width,
+    height: finalized.height,
     bytes: finalized.bytes,
     mime: finalized.mime,
   };

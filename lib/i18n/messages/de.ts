@@ -880,22 +880,41 @@ export const de: Record<MessageKey, string> = {
   'auctions.createPhotoFromPhone': 'Upload from phone (QR)',
   'auctions.createPhotoFromPhoneLoading': 'Starting…',
   'auctions.createPhotoFromPhonePollingHint':
-    'Session active: photos you send from your phone appear here within a few seconds.',
+    'Session active: photos from your phone appear here within a few seconds, even if you close the QR popup.',
   'auctions.createPhotoFromPhoneModalTitle': 'Scan with your phone',
   'auctions.createPhotoFromPhoneModalBody':
-    'Open the link on your phone — no login needed. Crop and send; photos show up on your PC in the Photos step.',
+    'Open the link on your phone — no login. Send one photo at a time; each appears in the Photos step on the device where you opened «Upload from phone (QR)».',
+  'auctions.createPhotoFromPhoneModalCloseHint':
+    'You can close this window: photos from your phone will keep appearing automatically in the Photos step.',
   'auctions.createPhotoFromPhoneModalClose': 'Close',
   'auctions.mobilePairingTitle': 'Add listing photos',
   'auctions.mobilePairingIntro':
     'Crop if needed, then send. Photos are added to the auction you are creating on your computer.',
   'auctions.mobilePairingGuestHint':
     'Pick or take a photo, crop, and send. No login: the QR link already authorizes this device.',
+  'auctions.mobilePairingGuestBadge': 'Listing photos',
+  'auctions.mobilePairingGuestHeadline': 'Send photos to your draft listing',
+  'auctions.mobilePairingGuestSub':
+    'One photo per send. They appear in the Photos step on the computer or tablet where you tapped «Upload from phone (QR)» — you do not need to keep this page open on that device.',
+  'auctions.mobilePairingGuestStep1': 'Pick from gallery or take a new photo.',
+  'auctions.mobilePairingGuestStep2':
+    'Drag with your finger to move the image under the white frame; the slider zooms in or out. Only what is inside the frame is sent.',
+  'auctions.mobilePairingGuestStep3': 'Tap Send and wait for 100% — then you can send the next photo.',
+  'auctions.mobilePairingPickCtaGuest': 'Tap to choose or take a photo',
+  'auctions.mobilePairingOneAtATime': 'One photo per send — faster and clearer.',
+  'auctions.mobilePairingUploadOverlayTitle': 'Sending your photo…',
+  'auctions.mobilePairingUploadOverlayHint':
+    'Stay on this screen a few seconds; upload speed depends on your connection.',
+  'auctions.mobilePairingCropPanHint': 'Drag = move',
+  'auctions.mobilePairingCropZoomHint': 'Slider = zoom',
   'auctions.mobilePairingPickCta': 'Choose a photo',
   'auctions.mobilePairingPickImageError': 'Please choose an image file.',
   'auctions.mobilePairingZoom': 'Zoom',
   'auctions.mobilePairingCancel': 'Choose another',
   'auctions.mobilePairingSend': 'Send to PC',
   'auctions.mobilePairingSending': 'Sending…',
+  'auctions.mobilePairingSendingPercent': 'Sending {percent}%…',
+  'auctions.mobilePairingUploadProgressLabel': 'Upload progress',
   'auctions.mobilePairingUploadSuccess': 'Photo sent. You can add another.',
   'auctions.mobilePairingUploadError': 'Upload failed. Try again.',
   'auctions.mobilePairingFooter': 'Secure link from the QR code. Max 4 photos per listing.',

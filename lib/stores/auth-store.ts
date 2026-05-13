@@ -43,11 +43,17 @@ function normalizeUser(user: UserResponse | User | null): User | null {
       DEFAULT_PREFERENCES.is_onboarding_completed,
   };
 
-  const u = user as UserResponse & { name?: string | null; image?: string | null; country?: string };
+  const u = user as UserResponse & {
+    name?: string | null;
+    username?: string | null;
+    image?: string | null;
+    country?: string;
+  };
   return {
     id: user.id,
     email: user.email,
-    name: u.name ?? null,
+    /** Backend può esporre `username` senza `name`: usiamolo come display name */
+    name: u.name ?? u.username ?? null,
     image: u.image ?? null,
     account_status: (user as UserResponse).account_status,
     mfa_enabled: (user as UserResponse).mfa_enabled,

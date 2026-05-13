@@ -60,6 +60,8 @@ export function TopBar() {
   const gamesMenuRef = useRef<HTMLDivElement>(null);
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const authLoading = useAuthStore((s) => s.isLoading);
+  const fetchUser = useAuthStore((s) => s.fetchUser);
   const flashMessage = useAuthStore((s) => s.flashMessage);
   const setFlashMessage = useAuthStore((s) => s.setFlashMessage);
   const logout = useAuthStore((s) => s.logout);
@@ -176,6 +178,12 @@ export function TopBar() {
     return () => clearTimeout(t);
   }, [loginError]);
 
+  /** Sessione attiva ma profilo non in store: recupera /me (race dopo login o persist tardivo) */
+  useEffect(() => {
+    if (!isAuthenticated || user) return;
+    void fetchUser();
+  }, [isAuthenticated, user, fetchUser]);
+
   useEffect(() => {
     if (!accountMenuOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
@@ -211,6 +219,9 @@ export function TopBar() {
 
   /** Mostra nome utente: preferisce la parte prima della @ dell'email, poi il nome, poi il fallback */
   const shortLabel = (() => {
+    if (isAuthenticated && !user && (authLoading || loginMutation.isPending)) {
+      return '…';
+    }
     const email = user?.email?.trim() ?? '';
     const name = user?.name?.trim() ?? '';
     if (email) {
@@ -477,7 +488,7 @@ export function TopBar() {
               </Button>
             </div>
             </>
-          ) : (isAuthenticated && user) ? (
+          ) : isAuthenticated ? (
             <>
               {/* Menu centrale: desktop = Account + Acquisti + Vendi + Scambi + Aste + Carrello. Mobile = solo 5 icone (senza profilo), ordine: Acquisti → Vendi → Aste → Scambi → Carrello */}
               <div className="flex flex-1 items-center justify-center gap-1 md:gap-2">

@@ -880,22 +880,41 @@ export const it: Record<MessageKey, string> = {
   'auctions.createPhotoFromPhone': 'Carica da telefono (QR)',
   'auctions.createPhotoFromPhoneLoading': 'Avvio…',
   'auctions.createPhotoFromPhonePollingHint':
-    'Sessione attiva: le foto inviate dal telefono compaiono qui entro pochi secondi.',
+    'Sessione attiva: le foto dal telefono compaiono qui da sole entro pochi secondi, anche se chiudi il popup del QR.',
   'auctions.createPhotoFromPhoneModalTitle': 'Scansiona con il telefono',
   'auctions.createPhotoFromPhoneModalBody':
-    'Apri il link dal telefono: non serve accedere. Ritaglia e invia; le foto appariranno sul PC nel passo Foto.',
+    'Apri il link sul telefono: non serve accedere. Invia una foto alla volta: ognuna compare nel passo Foto sul PC o tablet dove hai premuto «Carica da telefono (QR)».',
+  'auctions.createPhotoFromPhoneModalCloseHint':
+    'Puoi chiudere questa finestra con il QR: le foto inviate dal telefono continueranno ad apparire da sole nel passo Foto.',
   'auctions.createPhotoFromPhoneModalClose': 'Chiudi',
   'auctions.mobilePairingTitle': 'Aggiungi foto all’inserzione',
   'auctions.mobilePairingIntro':
     'Ritaglia se serve, poi invia. Le foto si aggiungono all’asta che stai creando sul computer.',
   'auctions.mobilePairingGuestHint':
     'Scegli o scatta una foto, ritaglia e invia. Non serve accedere: il collegamento è già nel QR.',
+  'auctions.mobilePairingGuestBadge': 'Foto inserzione',
+  'auctions.mobilePairingGuestHeadline': 'Invia le foto dove stai creando l’asta',
+  'auctions.mobilePairingGuestSub':
+    'Una foto per invio. Le vedrai nel passo Foto sul computer o tablet dove hai premuto «Carica da telefono (QR)»: non serve tenere aperto questo schermo lì.',
+  'auctions.mobilePairingGuestStep1': 'Scegli dalla galleria o scatta una foto.',
+  'auctions.mobilePairingGuestStep2':
+    'Trascina con il dito per spostare l’immagine sotto al riquadro bianco; la barra ingrandisce o riduce. Viene inviato solo ciò che sta dentro il riquadro.',
+  'auctions.mobilePairingGuestStep3': 'Tocca Invio e attendi il 100%: poi puoi inviare la foto successiva.',
+  'auctions.mobilePairingPickCtaGuest': 'Tocca per scegliere o scattare',
+  'auctions.mobilePairingOneAtATime': 'Solo una foto per invio: più rapido e più chiaro.',
+  'auctions.mobilePairingUploadOverlayTitle': 'Invio in corso…',
+  'auctions.mobilePairingUploadOverlayHint':
+    'Resta qualche secondo su questa schermata: in 4G/Wi‑Fi l’upload può richiedere un attimo.',
+  'auctions.mobilePairingCropPanHint': 'Trascina = sposta',
+  'auctions.mobilePairingCropZoomHint': 'Barra = zoom',
   'auctions.mobilePairingPickCta': 'Scegli una foto',
   'auctions.mobilePairingPickImageError': 'Scegli un file immagine.',
   'auctions.mobilePairingZoom': 'Zoom',
   'auctions.mobilePairingCancel': 'Altra foto',
   'auctions.mobilePairingSend': 'Invia al PC',
   'auctions.mobilePairingSending': 'Invio…',
+  'auctions.mobilePairingSendingPercent': 'Invio {percent}%…',
+  'auctions.mobilePairingUploadProgressLabel': 'Avanzamento invio',
   'auctions.mobilePairingUploadSuccess': 'Foto inviata. Puoi aggiungerne un’altra.',
   'auctions.mobilePairingUploadError': 'Invio non riuscito. Riprova.',
   'auctions.mobilePairingFooter': 'Collegamento sicuro dal QR. Massimo 4 foto per inserzione.',

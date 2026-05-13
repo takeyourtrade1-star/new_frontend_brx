@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight } from 'lucide-react';
 import { useIsIOS } from '@/hooks/useIsIOS';
@@ -11,6 +12,13 @@ const SESSION_COUNTED_KEY = 'ios-install-counted';
 const DISMISSED_KEY = 'ios-install-dismissed';
 
 export function IOSInstallPrompt() {
+  const pathname = usePathname();
+  /** No install banner on QR photo upload flows (guest or logged-in mobile). */
+  const hideOnPhotoPairing =
+    pathname?.startsWith('/c/') ||
+    pathname === '/aste/nuova/carica-foto' ||
+    pathname?.startsWith('/aste/nuova/carica-foto/');
+
   const { isIOS, isLoading } = useIsIOS();
   const [showTutorial, setShowTutorial] = useState(false);
   const [dismissed, setDismissed] = useState(() => {
@@ -19,6 +27,7 @@ export function IOSInstallPrompt() {
   });
 
   useEffect(() => {
+    if (hideOnPhotoPairing) return;
     if (typeof window === 'undefined' || isLoading) return;
     if (!isIOS) return;
 
@@ -35,7 +44,9 @@ export function IOSInstallPrompt() {
     if (count % 3 === 0) {
       setDismissed(false);
     }
-  }, [isLoading, isIOS]);
+  }, [isLoading, isIOS, hideOnPhotoPairing]);
+
+  if (hideOnPhotoPairing) return null;
 
   if (isLoading || !isIOS || dismissed) return null;
 

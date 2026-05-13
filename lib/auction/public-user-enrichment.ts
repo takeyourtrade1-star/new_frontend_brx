@@ -10,9 +10,15 @@ export interface AuctionPublicIdentity {
   sellerAccountType: PublicAccountType;
 }
 
+/** Etichetta leggibile quando il resolver profili pubblici non risponde (403, rete, ecc.) */
+export function anonymousUserHandle(userId: string | null | undefined): string {
+  if (!userId) return '—';
+  const hex = userId.replace(/-/g, '').slice(0, 8).toLowerCase();
+  return hex ? `Utente ${hex}` : '—';
+}
+
 function fallbackSellerName(id: string | null | undefined): string {
-  if (!id) return '---';
-  return id;
+  return anonymousUserHandle(id);
 }
 
 export async function enrichAuctionsWithPublicUsers(
@@ -31,7 +37,7 @@ export async function enrichAuctionsWithPublicUsers(
     return {
       ...auction,
       seller: profile?.username ?? fallbackSellerName(sellerId),
-      sellerDisplayName: profile?.username ?? '---',
+      sellerDisplayName: profile?.username ?? fallbackSellerName(sellerId),
       sellerCountry: profile?.country_code ?? auction.sellerCountry ?? 'IT',
       sellerAccountType: profile?.account_type ?? 'personal',
     };
@@ -52,8 +58,8 @@ export async function enrichBidRowsWithPublicUsers(
     const profile = profilesById[row.userId];
     return {
       ...row,
-      username: profile?.username ?? row.username,
-      displayName: profile?.username ?? row.displayName,
+      username: profile?.username ?? anonymousUserHandle(row.userId),
+      displayName: profile?.username ?? anonymousUserHandle(row.userId),
       countryCode: profile?.country_code ?? row.countryCode,
     };
   });

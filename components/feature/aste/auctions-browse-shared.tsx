@@ -184,7 +184,7 @@ export function AuctionGridCard({
     <Link
       href={auctionDetailPath(auction.id)}
       scroll
-      prefetch
+      prefetch={false}
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md"
     >
       {/* Image container */}
@@ -294,17 +294,17 @@ export function AuctionListTable({
                 <Link
                   href={auctionDetailPath(a.id)}
                   scroll
-                  prefetch
+                  prefetch={false}
                   className="relative h-20 w-14 shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-100"
                 >
                   <Image src={a.image} alt="" fill className="object-cover" sizes="56px" unoptimized />
                 </Link>
                 <div className="min-w-0 flex-1">
-                  <Link
-                    href={auctionDetailPath(a.id)}
-                    scroll
-                    prefetch
-                    className="line-clamp-2 text-sm font-semibold text-gray-900 hover:text-[#FF7300]"
+                <Link
+                  href={auctionDetailPath(a.id)}
+                  scroll
+                  prefetch={false}
+                  className="line-clamp-2 text-sm font-semibold text-gray-900 hover:text-[#FF7300]"
                   >
                     {a.title}
                   </Link>
@@ -341,7 +341,7 @@ export function AuctionListTable({
                 <Link
                   href={auctionDetailPath(a.id)}
                   scroll
-                  prefetch
+                  prefetch={false}
                   className="inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-xs font-bold uppercase text-header-bg hover:underline"
                 >
                   {ended ? t('auctions.viewClosedAuction') : 'Fai la tua offerta'}
