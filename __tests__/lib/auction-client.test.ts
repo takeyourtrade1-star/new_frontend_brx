@@ -58,4 +58,45 @@ describe('auctionApi.placeBid', () => {
     const headers = (options?.headers ?? {}) as Record<string, string>;
     expect(headers['Idempotency-Key']).toBe('idem-123');
   });
+
+  it('retries network failures with the same Idempotency-Key', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { auction: {}, bids: [] } }),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('crypto', { randomUUID: () => 'idem-retry-123' });
+
+    await auctionApi.placeBid(42, { amount: 11 });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    for (const [, options] of fetchMock.mock.calls) {
+      const headers = (options?.headers ?? {}) as Record<string, string>;
+      expect(headers['Idempotency-Key']).toBe('idem-retry-123');
+    }
+  });
+});
+
+describe('auctionApi.createAuction', () => {
+  it('does not retry non-idempotent creates after a network failure', async () => {
+    const fetchMock = vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      auctionApi.createAuction({
+        title: 'Test auction',
+        description: 'Test description',
+        starting_price: 10,
+        start_time: '2026-05-13T12:00:00.000Z',
+        end_time: '2026-05-20T12:00:00.000Z',
+        image_front: 'https://example.com/front.jpg',
+        image_back: 'https://example.com/back.jpg',
+      }),
+    ).rejects.toThrow('Connessione non riuscita');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
