@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState, type RefObject } from 'react';
+import { Suspense, useEffect, useRef, useCallback, useState, type RefObject } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Home, Search, Lightbulb, X } from 'lucide-react';
@@ -566,7 +566,7 @@ function DebugOverlay({ debug, state }: { debug: DebugInfo; state: string }) {
 // Main scanner page
 // ---------------------------------------------------------------------------
 
-export default function ScannerPage() {
+function ScannerPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const showDebug =
@@ -800,5 +800,28 @@ export default function ScannerPage() {
       {/* ── Debug overlay (dev mode o ?debug=1) ─────────────────────── */}
       {showDebug && <DebugOverlay debug={debug} state={state} />}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Default export wrapped in Suspense
+// ---------------------------------------------------------------------------
+// `useSearchParams` impone una Suspense boundary lato Next.js App Router,
+// altrimenti il prerender statico fallisce con "missing-suspense-with-csr-bailout".
+// Il fallback usa lo stesso fondo nero della pagina per evitare flash visivi.
+
+export default function ScannerPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="relative w-full overflow-hidden bg-black"
+          style={{ height: '100svh' }}
+          aria-hidden
+        />
+      }
+    >
+      <ScannerPageInner />
+    </Suspense>
   );
 }
