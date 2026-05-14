@@ -15,6 +15,10 @@ export const en = {
   'nav.advancedSinglesSearch': 'Advanced singles search',
   'nav.cameraMatch': 'CameraMatch',
   'nav.cameraMatchAria': 'Scan a card with camera',
+  'nav.cameraMatchQrTitle': 'Open CameraMatch on your phone',
+  'nav.cameraMatchQrSubtitle':
+    'Scan this QR code with your phone camera to open CameraMatch on your device.',
+  'nav.cameraMatchQrHint': 'CameraMatch uses your phone camera — continue on mobile after scanning.',
   'nav.legalNorms': 'Legal rules',
   'nav.legalTerms': 'Terms of use',
 

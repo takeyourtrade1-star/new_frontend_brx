@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, Trophy, ArrowLeftRight } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, Trophy, ArrowLeftRight, QrCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme-context';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -20,6 +21,8 @@ import type { GameSlug } from '@/lib/contexts/GameContext';
 import { getCdnImageUrl } from '@/lib/config';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
+import { AnimatePresence, motion } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react';
 
 const GAME_HOME_PATH: Record<GameSlug, string> = {
   mtg: '/home/magic',
@@ -45,6 +48,8 @@ export function HamburgerMenu() {
   const router = useRouter();
   const { selectedGame, setSelectedGame, gameDisplayName } = useGame();
   const [open, setOpen] = useState(false);
+  const [scannerQrOpen, setScannerQrOpen] = useState(false);
+  const [scannerQrUrl, setScannerQrUrl] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { selectedLang, setSelectedLang, availableLangs } = useLanguage();
@@ -134,6 +139,15 @@ export function HamburgerMenu() {
       console.error('Errore durante il logout:', error);
     }
   };
+
+  useEffect(() => {
+    if (!scannerQrOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setScannerQrOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [scannerQrOpen]);
 
   useEffect(() => {
     if (!linguaDropdownOpen) return;
@@ -470,25 +484,59 @@ export function HamburgerMenu() {
             </div>
           )}
 
-          {/* Nav items */}
+          {/* Nav items — CameraMatch: su desktop apre popup QR verso /scanner sul telefono */}
           {navItems.map((item) => {
             const IconComponent = item.icon;
             const isCameraMatch = item.href === '/scanner';
+            if (isCameraMatch) {
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={(e) => {
+                    if (
+                      typeof window !== 'undefined' &&
+                      window.matchMedia('(min-width: 768px)').matches
+                    ) {
+                      e.preventDefault();
+                      setScannerQrUrl(`${window.location.origin}/scanner`);
+                      setOpen(false);
+                      setScannerQrOpen(true);
+                      return;
+                    }
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    navLinkClass,
+                    'font-medium text-[#1D3160] hover:bg-blue-50'
+                  )}
+                  aria-label={t('nav.cameraMatchAria')}
+                >
+                  <IconComponent
+                    className="h-6 w-6 shrink-0 text-[#1D3160]"
+                    strokeWidth={1.5}
+                    aria-hidden
+                  />
+                  <span className="flex flex-1 items-center gap-2">
+                    {item.label}
+                    {item.badge && (
+                      <span className="rounded-full bg-[#1D3160] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                        {item.badge}
+                      </span>
+                    )}
+                  </span>
+                </Link>
+              );
+            }
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className={cn(
-                  navLinkClass,
-                  isCameraMatch && 'font-medium text-[#1D3160] hover:bg-blue-50'
-                )}
+                className={navLinkClass}
               >
                 <IconComponent
-                  className={cn(
-                    'h-6 w-6 shrink-0',
-                    isCameraMatch ? 'text-[#1D3160]' : 'text-gray-400'
-                  )}
+                  className="h-6 w-6 shrink-0 text-gray-400"
                   strokeWidth={1.5}
                   aria-hidden
                 />
@@ -613,6 +661,80 @@ export function HamburgerMenu() {
           )}
         </nav>
       </div>
+
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {scannerQrOpen && scannerQrUrl ? (
+              <motion.div
+                key="scanner-qr-modal"
+                className="fixed inset-0 z-[10050] flex items-center justify-center p-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <motion.div
+                  className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                  onClick={() => setScannerQrOpen(false)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                />
+                <motion.div
+                  className="relative w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl"
+                  initial={{ y: 20, opacity: 0, scale: 0.95 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  exit={{ y: 10, opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="scanner-qr-title"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setScannerQrOpen(false)}
+                    className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                    aria-label={t('common.close')}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+
+                  <div className="text-center">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
+                      <QrCode className="h-6 w-6 text-[#FF7300]" aria-hidden />
+                    </div>
+                    <h3 id="scanner-qr-title" className="text-lg font-bold text-gray-900">
+                      {t('nav.cameraMatchQrTitle')}
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">{t('nav.cameraMatchQrSubtitle')}</p>
+                  </div>
+
+                  <div className="mt-5 flex flex-col items-center gap-4">
+                    <div className="rounded-xl border-2 border-gray-100 bg-white p-4 shadow-sm">
+                      <QRCodeSVG
+                        value={scannerQrUrl}
+                        size={200}
+                        level="M"
+                        includeMargin={false}
+                        bgColor="#ffffff"
+                        fgColor="#1f2937"
+                      />
+                    </div>
+                    <p className="text-center text-xs font-medium uppercase tracking-wide text-[#1D3160]">
+                      {t('nav.cameraMatch')}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 border-t border-gray-100 pt-4 text-center">
+                    <p className="text-xs text-gray-500">{t('nav.cameraMatchQrHint')}</p>
+                  </div>
+                </motion.div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>,
+          document.body
+        )}
     </>
   );
 }

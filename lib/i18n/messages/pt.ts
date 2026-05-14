@@ -14,6 +14,11 @@ export const pt: Record<MessageKey, string> = {
   'nav.advancedSinglesSearch': 'Pesquisa avançada de cartas avulsas',
   'nav.cameraMatch': 'CameraMatch',
   'nav.cameraMatchAria': 'Escanear uma carta com a câmera',
+  'nav.cameraMatchQrTitle': 'Abrir CameraMatch no telemóvel',
+  'nav.cameraMatchQrSubtitle':
+    'Digitalize este código QR com a câmara do telemóvel para abrir o CameraMatch no dispositivo.',
+  'nav.cameraMatchQrHint':
+    'O CameraMatch usa a câmara do telemóvel — continue no smartphone após digitalizar.',
   'nav.legalNorms': 'Normas legais',
   'nav.legalTerms': 'Condições legais',
 

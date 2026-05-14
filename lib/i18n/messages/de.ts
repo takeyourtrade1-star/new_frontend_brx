@@ -14,6 +14,11 @@ export const de: Record<MessageKey, string> = {
   'nav.advancedSinglesSearch': 'Erweiterte Einzelkartensuche',
   'nav.cameraMatch': 'CameraMatch',
   'nav.cameraMatchAria': 'Karte mit Kamera scannen',
+  'nav.cameraMatchQrTitle': 'CameraMatch auf dem Smartphone öffnen',
+  'nav.cameraMatchQrSubtitle':
+    'Scanne diesen QR-Code mit der Handykamera, um CameraMatch auf dem Gerät zu öffnen.',
+  'nav.cameraMatchQrHint':
+    'CameraMatch nutzt die Handykamera — nach dem Scannen auf dem Smartphone weitermachen.',
   'nav.legalNorms': 'Rechtliche Bestimmungen',
   'nav.legalTerms': 'Nutzungsbedingungen',
 

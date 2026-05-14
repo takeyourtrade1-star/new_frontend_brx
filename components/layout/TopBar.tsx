@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown, Eye, EyeOff, LogIn, LogOut, ScanLine } from 'lucide-react';
+import { ChevronDown, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
 import { HamburgerMenu } from './HamburgerMenu';
 import { CartDropdown } from './CartDropdown';
 import { NotificationBell } from '@/components/feature/notifiche/NotificationBell';
@@ -373,22 +373,6 @@ export function TopBar() {
                 <Link href="/login">{t('auth.registerUpper')}</Link>
               </Button>
             </div>
-            {/* CameraMatch — desktop, non-auth */}
-            <Link
-              href="/scanner"
-              className="ml-2 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:flex"
-              aria-label={t('nav.cameraMatchAria')}
-            >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5" aria-hidden>
-                <ScanLine className="h-[0.9rem] w-[0.9rem]" stroke="#FF7300" strokeWidth={2} />
-              </span>
-              <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
-                {t('nav.cameraMatch')}
-              </span>
-              <span className="hidden rounded-full bg-[#FF7300] px-1 py-px text-[8px] font-bold uppercase leading-none tracking-wide text-white md:inline">
-                NEW
-              </span>
-            </Link>
             </>
           ) : isAuthenticated ? (
             <>
@@ -838,28 +822,6 @@ export function TopBar() {
                 </span>
                 <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
                   {t('nav.auctions')}
-                </span>
-              </Link>
-
-
-
-              {/* CameraMatch — desktop only */}
-              <Link
-                href="/scanner"
-                className="order-4 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex"
-                aria-label={t('nav.cameraMatchAria')}
-              >
-                <span
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5"
-                  aria-hidden
-                >
-                  <ScanLine className="h-[0.9rem] w-[0.9rem]" stroke="#FF7300" strokeWidth={2} />
-                </span>
-                <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
-                  {t('nav.cameraMatch')}
-                </span>
-                <span className="hidden rounded-full bg-[#FF7300] px-1 py-px text-[8px] font-bold uppercase leading-none tracking-wide text-white md:inline">
-                  NEW
                 </span>
               </Link>
 
