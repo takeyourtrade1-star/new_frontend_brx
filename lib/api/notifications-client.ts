@@ -21,18 +21,22 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+type NotificationRequestMode = 'default' | 'after-refresh' | 'cookie-only';
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
-  retried = false,
+  mode: NotificationRequestMode = 'default',
 ): Promise<T> {
   const url = `/api/notifications${path}`;
+  const cookieOnly = mode === 'cookie-only';
   const res = await fetch(url, {
     ...options,
+    credentials: 'include',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      ...authHeaders(),
+      ...(cookieOnly ? {} : authHeaders()),
       ...(options.headers as Record<string, string> | undefined),
     },
   });
@@ -40,10 +44,16 @@ async function request<T>(
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    if (res.status === 401 && !retried && typeof window !== 'undefined') {
-      const newToken = await tokenManager.ensureFreshToken();
-      if (newToken) {
-        return request<T>(path, options, true);
+    if (res.status === 401 && typeof window !== 'undefined') {
+      if (mode === 'default') {
+        const newToken = await tokenManager.ensureFreshToken();
+        if (newToken) {
+          return request<T>(path, options, 'after-refresh');
+        }
+        return request<T>(path, options, 'cookie-only');
+      }
+      if (mode === 'after-refresh') {
+        return request<T>(path, options, 'cookie-only');
       }
     }
     const msg =

@@ -22,6 +22,12 @@ export const es: Record<MessageKey, string> = {
   'nav.legalNorms': 'Normativa legal',
   'nav.legalTerms': 'Condiciones legales',
 
+  'notifications.sessionExpired':
+    'Tu sesión no es válida o ha caducado. Vuelve a iniciar sesión para ver las notificaciones.',
+  'notifications.loadFailed': 'No se pudieron cargar las notificaciones. Inténtalo más tarde.',
+  'notifications.retry': 'Reintentar',
+  'notifications.signInAgain': 'Ir al inicio de sesión',
+
   'auth.usernameOrEmail': 'Usuario o correo',
   'auth.forgot': '¿Olvidaste?',
   'auth.password': 'Contraseña',

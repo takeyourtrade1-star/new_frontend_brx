@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -60,6 +62,8 @@ function formatRelative(iso: string): string {
 }
 
 export function NotificationBell() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -97,6 +101,17 @@ export function NotificationBell() {
 
   const handleClickItem = (n: NotificationAPI) => {
     if (!n.read_at) markOne.mutate(n.id);
+  };
+
+  const list401 =
+    listQuery.isError &&
+    listQuery.error &&
+    typeof listQuery.error === 'object' &&
+    'status' in listQuery.error &&
+    (listQuery.error as { status: number }).status === 401;
+
+  const refetchNotifications = () => {
+    void queryClient.invalidateQueries({ queryKey: ['notifications'] });
   };
 
   return (
@@ -145,13 +160,28 @@ export function NotificationBell() {
               <Loader2 className="h-5 w-5 animate-spin text-[#FF7300]" aria-hidden />
             </div>
           ) : listQuery.isError ? (
-            <div className="px-4 py-8 text-center text-sm text-red-600">
-              {listQuery.error &&
-              typeof listQuery.error === 'object' &&
-              'status' in listQuery.error &&
-              (listQuery.error as { status: number }).status === 401
-                ? 'Sessione non valida o scaduta. Effettua di nuovo l\'accesso.'
-                : 'Impossibile caricare le notifiche. Riprova più tardi.'}
+            <div className="space-y-4 px-4 py-6 text-center">
+              <p className="text-sm leading-relaxed text-red-600">
+                {list401 ? t('notifications.sessionExpired') : t('notifications.loadFailed')}
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                <button
+                  type="button"
+                  onClick={() => refetchNotifications()}
+                  className="rounded-full border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition hover:bg-gray-50"
+                >
+                  {t('notifications.retry')}
+                </button>
+                {list401 ? (
+                  <Link
+                    href="/login"
+                    onClick={() => setOpen(false)}
+                    className="rounded-full bg-[#FF7300] px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-[#1a0f08] shadow-sm transition hover:brightness-110"
+                  >
+                    {t('notifications.signInAgain')}
+                  </Link>
+                ) : null}
+              </div>
             </div>
           ) : items.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-gray-500">

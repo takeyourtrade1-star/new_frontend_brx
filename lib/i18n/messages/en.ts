@@ -22,6 +22,12 @@ export const en = {
   'nav.legalNorms': 'Legal rules',
   'nav.legalTerms': 'Terms of use',
 
+  'notifications.sessionExpired':
+    'Your session is invalid or has expired. Please sign in again to see notifications.',
+  'notifications.loadFailed': 'Unable to load notifications. Please try again later.',
+  'notifications.retry': 'Retry',
+  'notifications.signInAgain': 'Sign in',
+
   'auth.usernameOrEmail': 'Username or email',
   'auth.forgot': 'Forgot?',
   'auth.password': 'Password',

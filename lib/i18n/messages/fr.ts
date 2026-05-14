@@ -22,6 +22,12 @@ export const fr: Record<MessageKey, string> = {
   'nav.legalNorms': 'Règles légales',
   'nav.legalTerms': 'Conditions légales',
 
+  'notifications.sessionExpired':
+    'Votre session est invalide ou expirée. Reconnectez-vous pour voir les notifications.',
+  'notifications.loadFailed': 'Impossible de charger les notifications. Réessayez plus tard.',
+  'notifications.retry': 'Réessayer',
+  'notifications.signInAgain': 'Aller à la connexion',
+
   'auth.usernameOrEmail': 'Nom d’utilisateur ou e-mail',
   'auth.forgot': 'Oublié ?',
   'auth.password': 'Mot de passe',

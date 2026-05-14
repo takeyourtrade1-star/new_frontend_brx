@@ -22,6 +22,12 @@ export const de: Record<MessageKey, string> = {
   'nav.legalNorms': 'Rechtliche Bestimmungen',
   'nav.legalTerms': 'Nutzungsbedingungen',
 
+  'notifications.sessionExpired':
+    'Deine Sitzung ist ungültig oder abgelaufen. Bitte melde dich erneut an, um Benachrichtigungen zu sehen.',
+  'notifications.loadFailed': 'Benachrichtigungen konnten nicht geladen werden. Bitte später erneut versuchen.',
+  'notifications.retry': 'Erneut versuchen',
+  'notifications.signInAgain': 'Zur Anmeldung',
+
   'auth.usernameOrEmail': 'Benutzername oder E-Mail',
   'auth.forgot': 'Vergessen?',
   'auth.password': 'Passwort',
