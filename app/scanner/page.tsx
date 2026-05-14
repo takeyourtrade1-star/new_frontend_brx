@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useCallback, useState, type RefObject } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Home, Search, Lightbulb, X } from 'lucide-react';
-import { useBrxScanner } from '@/hooks/useBrxScanner';
+import { useBrxScanner, type DebugInfo } from '@/hooks/useBrxScanner';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -57,66 +57,161 @@ function TopLoadingBar({ active }: { active: boolean }) {
 }
 
 // ---------------------------------------------------------------------------
-// Corner bracket overlay (animated)
+// Scan area overlay
 // ---------------------------------------------------------------------------
 
 type BracketState = 'idle' | 'scanning' | 'matched';
 
-/** Cornice carta MTG con effetto glass (ispirazione scanner premium). */
-function GlassCardFrame({ bracketState }: { bracketState: BracketState }) {
-  const ringGlow =
+// Card area sizing — usato sia da ScanCorners sia dalla blur mask, deve
+// matchare per avere l'allineamento perfetto fra cornice e finestra clear.
+const CARD_W = 'min(78vw, 290px)';
+const CARD_H = 'calc(min(78vw, 290px) * 7 / 5)';
+
+/**
+ * 4 angoli a L che delimitano l'area di scan. Nessun overlay sul centro:
+ * la carta dietro resta perfettamente nitida e visibile.
+ */
+function ScanCorners({ bracketState }: { bracketState: BracketState }) {
+  const color =
     bracketState === 'matched'
-      ? 'shadow-[0_0_0_1px_rgba(74,222,128,0.5),0_0_48px_rgba(74,222,128,0.25)]'
+      ? 'border-emerald-400 shadow-[0_0_18px_rgba(74,222,128,0.55)]'
       : bracketState === 'scanning'
-      ? 'shadow-[0_0_0_1px_rgba(255,115,0,0.35),0_0_40px_rgba(255,115,0,0.12)]'
-      : 'shadow-[0_0_0_1px_rgba(255,255,255,0.12)]';
+      ? 'border-[#FF7300] shadow-[0_0_14px_rgba(255,115,0,0.45)]'
+      : 'border-white/70';
 
   const pulse =
     bracketState === 'scanning'
-      ? 'animate-[scanner-glass-pulse_2.8s_ease-in-out_infinite]'
+      ? 'animate-[scanner-corner-pulse_2.2s_ease-in-out_infinite]'
       : bracketState === 'matched'
-      ? 'animate-[scanner-match-pop_0.6s_ease-out]'
+      ? 'animate-[scanner-match-pop_0.5s_ease-out]'
       : '';
+
+  // Lunghezza dei "tick" agli angoli (px responsive)
+  const cornerLen = 'clamp(22px, 6vw, 32px)';
+  const cornerThickness = '3px';
+  const radius = '12px';
+
+  const baseCorner = cn(
+    'pointer-events-none absolute transition-all duration-300',
+    color,
+    pulse
+  );
 
   return (
     <div
-      className={cn(
-        'relative w-[min(88vw,300px)] overflow-hidden rounded-[1.75rem] border border-white/25 bg-gradient-to-b from-white/[0.18] to-white/[0.06] p-3 shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-2xl ring-1 ring-white/10 transition-all duration-500',
-        ringGlow,
-        pulse
-      )}
+      className="pointer-events-none relative"
+      style={{ width: CARD_W, height: CARD_H }}
       aria-hidden
     >
       <style>{`
-        @keyframes scanner-glass-pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.92; transform: scale(1.01); }
+        @keyframes scanner-corner-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.55; }
         }
         @keyframes scanner-match-pop {
           0% { transform: scale(1); }
-          40% { transform: scale(1.03); }
+          40% { transform: scale(1.04); }
           100% { transform: scale(1); }
         }
       `}</style>
 
-      {/* Silhouette carta Magic */}
-      <div className="relative flex aspect-[5/7] w-full flex-col overflow-hidden rounded-2xl border border-white/35 bg-black/10">
-        {/* Nome */}
-        <div className="h-[11%] shrink-0 rounded-t-2xl border-b border-white/30 bg-white/[0.07]" />
-        {/* Arte */}
-        <div className="min-h-0 flex-[1.15] border-b border-white/25 bg-white/[0.04]" />
-        {/* Type line */}
-        <div className="h-[7%] shrink-0 border-b border-white/20 bg-white/[0.05]" />
-        {/* Testo / P/T */}
-        <div className="min-h-0 flex-1 rounded-b-2xl bg-white/[0.03]" />
-        {/* Match wash */}
-        <div
-          className={cn(
-            'pointer-events-none absolute inset-0 rounded-2xl transition-all duration-500',
-            bracketState === 'matched' ? 'bg-emerald-400/15' : 'bg-transparent'
-          )}
+      {/* Top-left */}
+      <span
+        className={baseCorner}
+        style={{
+          top: 0,
+          left: 0,
+          width: cornerLen,
+          height: cornerLen,
+          borderTop: `${cornerThickness} solid currentColor`,
+          borderLeft: `${cornerThickness} solid currentColor`,
+          borderTopLeftRadius: radius,
+        }}
+      />
+      {/* Top-right */}
+      <span
+        className={baseCorner}
+        style={{
+          top: 0,
+          right: 0,
+          width: cornerLen,
+          height: cornerLen,
+          borderTop: `${cornerThickness} solid currentColor`,
+          borderRight: `${cornerThickness} solid currentColor`,
+          borderTopRightRadius: radius,
+        }}
+      />
+      {/* Bottom-left */}
+      <span
+        className={baseCorner}
+        style={{
+          bottom: 0,
+          left: 0,
+          width: cornerLen,
+          height: cornerLen,
+          borderBottom: `${cornerThickness} solid currentColor`,
+          borderLeft: `${cornerThickness} solid currentColor`,
+          borderBottomLeftRadius: radius,
+        }}
+      />
+      {/* Bottom-right */}
+      <span
+        className={baseCorner}
+        style={{
+          bottom: 0,
+          right: 0,
+          width: cornerLen,
+          height: cornerLen,
+          borderBottom: `${cornerThickness} solid currentColor`,
+          borderRight: `${cornerThickness} solid currentColor`,
+          borderBottomRightRadius: radius,
+        }}
+      />
+
+      {/* Linea di scansione che attraversa l'area (solo quando si scansiona) */}
+      {bracketState === 'scanning' && (
+        <span
+          className="pointer-events-none absolute inset-x-3 h-[2px] rounded-full bg-gradient-to-r from-transparent via-[#FF7300] to-transparent shadow-[0_0_12px_rgba(255,115,0,0.6)]"
+          style={{ animation: 'scanner-line 2.6s ease-in-out infinite' }}
         />
-      </div>
+      )}
+      <style>{`
+        @keyframes scanner-line {
+          0%   { top: 8%;  opacity: 0; }
+          15%  { opacity: 1; }
+          85%  { opacity: 1; }
+          100% { top: 92%; opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/**
+ * Maschera grid 3×3: cella centrale completamente trasparente (carta visibile
+ * nitida), 8 celle esterne con backdrop-blur leggero per concentrare lo sguardo.
+ */
+function ScanAreaBlurMask() {
+  const cell = 'backdrop-blur-[6px] bg-[#050810]/40';
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-10 grid"
+      style={{
+        gridTemplateColumns: `1fr ${CARD_W} 1fr`,
+        gridTemplateRows: `1fr ${CARD_H} 1fr`,
+      }}
+      aria-hidden
+    >
+      <div className={cell} />
+      <div className={cell} />
+      <div className={cell} />
+      <div className={cell} />
+      {/* Cella centrale: NESSUN blur — la carta deve essere perfettamente nitida */}
+      <div />
+      <div className={cell} />
+      <div className={cell} />
+      <div className={cell} />
+      <div className={cell} />
     </div>
   );
 }
@@ -438,20 +533,62 @@ function RequestingCameraLoader() {
 }
 
 // ---------------------------------------------------------------------------
+// Debug overlay (mobile-friendly diagnostics — toggle with ?debug=1)
+// ---------------------------------------------------------------------------
+
+function DebugOverlay({ debug, state }: { debug: DebugInfo; state: string }) {
+  const statusColor =
+    debug.lastStatus === '200'
+      ? 'text-emerald-300'
+      : debug.lastStatus === 'TIMEOUT' || debug.lastStatus === 'NETWORK_ERROR'
+      ? 'text-red-300'
+      : debug.lastStatus
+      ? 'text-amber-300'
+      : 'text-white/60';
+
+  return (
+    <div className="pointer-events-none absolute left-2 right-2 top-[max(4.5rem,calc(env(safe-area-inset-top)+4rem))] z-50 mx-auto max-w-md rounded-xl border border-white/15 bg-black/75 px-3 py-2 font-mono text-[10px] leading-relaxed text-white/90 shadow-xl backdrop-blur-md">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+        <span>state: <b className="text-white">{state}</b></span>
+        <span>frames: <b className="text-white">{debug.framesSent}</b></span>
+        <span>http: <b className={statusColor}>{debug.lastStatus ?? '—'}</b></span>
+        <span>rtt: <b className="text-white">{debug.lastLatencyMs >= 0 ? `${debug.lastLatencyMs}ms` : '—'}</b></span>
+        <span>last: <b className="text-white">{debug.lastOutcome ?? '—'}</b></span>
+      </div>
+      {debug.lastError && (
+        <div className="mt-1 truncate text-red-300">err: {debug.lastError}</div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main scanner page
 // ---------------------------------------------------------------------------
 
 export default function ScannerPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const showDebug =
+    process.env.NODE_ENV !== 'production' || searchParams?.get('debug') === '1';
   const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSlowRef = useRef(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
+
+  const cancelRedirect = useCallback(() => {
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
+    }
+  }, []);
 
   const {
     state,
     result,
     countdown,
+    debug,
     videoRef,
     canvasRef,
     openCamera,
@@ -459,22 +596,23 @@ export default function ScannerPage() {
     restartScanning,
   } = useBrxScanner({
     confidenceThreshold: 0.85,
-    captureIntervalMs: 1000,
+    captureIntervalMs: 700,
     countdownSeconds: COUNTDOWN_SECONDS,
     apiBaseUrl: '/brx-match',
+    requestTimeoutMs: 6000,
     onMatch: (r) => {
-      // Clear slow timer when matched
       if (slowTimerRef.current) {
         clearTimeout(slowTimerRef.current);
         slowTimerRef.current = null;
       }
       isSlowRef.current = false;
 
-      // Auto-redirect when countdown hits 0
-      const wait = COUNTDOWN_SECONDS * 1000;
-      setTimeout(() => {
+      // Auto-redirect when countdown hits 0 (cancellabile dai bottoni)
+      cancelRedirect();
+      redirectTimerRef.current = setTimeout(() => {
+        redirectTimerRef.current = null;
         router.push(r.search_url);
-      }, wait);
+      }, COUNTDOWN_SECONDS * 1000);
     },
   });
 
@@ -484,6 +622,7 @@ export default function ScannerPage() {
     return () => {
       stopScanning();
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+      cancelRedirect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -537,27 +676,31 @@ export default function ScannerPage() {
   }, [torchOn, videoRef]);
 
   const handleClose = useCallback(() => {
+    cancelRedirect();
     setTorchOn(false);
     stopScanning();
     router.back();
-  }, [stopScanning, router]);
+  }, [cancelRedirect, stopScanning, router]);
 
   const handleGoHome = useCallback(() => {
+    cancelRedirect();
     setTorchOn(false);
     stopScanning();
     router.push('/');
-  }, [stopScanning, router]);
+  }, [cancelRedirect, stopScanning, router]);
 
   const handleSearchNow = useCallback(() => {
     if (result) {
+      cancelRedirect();
       stopScanning();
       router.push(result.search_url);
     }
-  }, [result, stopScanning, router]);
+  }, [cancelRedirect, result, stopScanning, router]);
 
   const handleNotThisCard = useCallback(() => {
+    cancelRedirect();
     restartScanning();
-  }, [restartScanning]);
+  }, [cancelRedirect, restartScanning]);
 
   // Derive status bar state
   const statusBarState: StatusBarState =
@@ -617,31 +760,22 @@ export default function ScannerPage() {
       {/* ── Camera error ────────────────────────────────────────────── */}
       {state === 'error' && <CameraPermissionDenied noCamera={noCamera} />}
 
-      {/* ── Scan overlay (brackets + vignette) ─────────────────────── */}
+      {/* ── Scan overlay (clear center + soft blurred surroundings) ─── */}
       {(state === 'scanning' || state === 'processing' || state === 'matched') && (
         <>
-          {/* Radial vignette */}
-          <div
-            className="pointer-events-none absolute inset-0 z-10"
-            style={{
-              background:
-                'radial-gradient(ellipse 72% 62% at center, transparent 30%, rgba(29,49,96,0.35) 58%, rgba(5,8,16,0.82) 100%)',
-            }}
-            aria-hidden
-          />
+          {/* Maschera blur attorno all'area di scan (centro NITIDO) */}
+          <ScanAreaBlurMask />
 
-          {/* Area guida — sotto header glass */}
-          <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center pt-[4.5rem] sm:pt-[5rem]">
-            <GlassCardFrame bracketState={bracketState} />
+          {/* Cornice ad angoli + hint */}
+          <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center">
+            <ScanCorners bracketState={bracketState} />
 
             {state !== 'matched' && (
-              <div className="mt-6 max-w-[min(92vw,22rem)] rounded-2xl border border-white/18 bg-[#0a0f1a]/40 px-5 py-3 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-white/10">
-                <p className="text-center text-[12px] font-medium leading-relaxed text-white/90 sm:text-[13px]">
-                  {state === 'processing'
-                    ? 'Analisi in corso… tieni ferma la carta.'
-                    : 'Inquadra una carta Magic nel riquadro — luce uniforme, carta intera visibile.'}
-                </p>
-              </div>
+              <p className="mt-5 max-w-[min(92vw,22rem)] text-center text-[12px] font-medium leading-relaxed text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] sm:text-[13px]">
+                {state === 'processing'
+                  ? 'Analisi in corso… tieni ferma la carta.'
+                  : 'Inquadra la carta Magic nel riquadro'}
+              </p>
             )}
           </div>
 
@@ -662,6 +796,9 @@ export default function ScannerPage() {
           onNotThisCard={handleNotThisCard}
         />
       )}
+
+      {/* ── Debug overlay (dev mode o ?debug=1) ─────────────────────── */}
+      {showDebug && <DebugOverlay debug={debug} state={state} />}
     </div>
   );
 }

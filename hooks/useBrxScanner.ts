@@ -47,6 +47,21 @@ export interface UseBrxScannerOptions {
   apiBaseUrl?: string;
   /** Seconds to count down after a match before auto-redirect (default 3). */
   countdownSeconds?: number;
+  /** Per-request timeout in ms (default 6000). Hangs return as a timeout error. */
+  requestTimeoutMs?: number;
+}
+
+export interface DebugInfo {
+  /** Number of frames sent so far. */
+  framesSent: number;
+  /** Last HTTP status, "TIMEOUT", "NETWORK_ERROR", or null. */
+  lastStatus: string | null;
+  /** Round-trip time of the last request in ms (-1 if no request yet). */
+  lastLatencyMs: number;
+  /** Last error message, if any. */
+  lastError: string | null;
+  /** matched / not_matched / pending */
+  lastOutcome: 'matched' | 'not_matched' | 'pending' | null;
 }
 
 export interface UseBrxScannerReturn {
@@ -55,6 +70,8 @@ export interface UseBrxScannerReturn {
   errorMessage: string | null;
   /** Countdown seconds remaining after a match (counts down from countdownSeconds). */
   countdown: number;
+  /** Live diagnostics (for in-app debug overlay on mobile). */
+  debug: DebugInfo;
   videoRef: React.RefObject<HTMLVideoElement>;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   openCamera: () => Promise<void>;
@@ -76,12 +93,20 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     captureIntervalMs = 1000,
     apiBaseUrl = '/brx-match',
     countdownSeconds = 3,
+    requestTimeoutMs = 6000,
   } = options;
 
   const [state, setState] = useState<ScannerState>('idle');
   const [result, setResult] = useState<ScanResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
+  const [debug, setDebug] = useState<DebugInfo>({
+    framesSent: 0,
+    lastStatus: null,
+    lastLatencyMs: -1,
+    lastError: null,
+    lastOutcome: null,
+  });
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -118,33 +143,32 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   useEffect(() => () => stopScanning(), [stopScanning]);
 
   // ------------------------------------------------------------------
-  // Frame capture → JPEG bytes
+  // Frame capture → JPEG Blob (async toBlob: ~2-3x più veloce di toDataURL+atob)
   // ------------------------------------------------------------------
 
-  const captureFrame = useCallback((): Blob | null => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas || video.readyState < 2) return null;
+  const captureFrame = useCallback((): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas || video.readyState < 2) {
+        resolve(null);
+        return;
+      }
 
-    const W = 640;
-    const H = Math.round(W * (video.videoHeight / Math.max(video.videoWidth, 1)));
-    canvas.width = W;
-    canvas.height = H;
+      const W = 640;
+      const H = Math.round(W * (video.videoHeight / Math.max(video.videoWidth, 1)));
+      canvas.width = W;
+      canvas.height = H;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(null);
+        return;
+      }
 
-    ctx.drawImage(video, 0, 0, W, H);
-
-    // Synchronous toBlob is not available — we use toDataURL and convert
-    const dataURL = canvas.toDataURL('image/jpeg', 0.82);
-    const byteString = atob(dataURL.split(',')[1]);
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i);
-    }
-    return new Blob([ab], { type: 'image/jpeg' });
+      ctx.drawImage(video, 0, 0, W, H);
+      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.78);
+    });
   }, []);
 
   // ------------------------------------------------------------------
@@ -156,7 +180,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     processingRef.current = true;
     setState('processing');
 
-    const blob = captureFrame();
+    const blob = await captureFrame();
     if (!blob) {
       processingRef.current = false;
       setState('scanning');
@@ -166,17 +190,44 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     const formData = new FormData();
     formData.append('image', blob, 'frame.jpg');
 
+    const t0 = performance.now();
+    setDebug((d) => ({ ...d, framesSent: d.framesSent + 1, lastOutcome: 'pending' }));
+
+    // AbortController per evitare fetch appese all'infinito (es. SG/firewall che droppa)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+
     try {
       const resp = await fetch(`${apiBaseUrl}/scan`, {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+
+      const elapsed = Math.round(performance.now() - t0);
 
       if (!resp.ok) {
-        throw new Error(`Server error: ${resp.status}`);
+        const text = await resp.text().catch(() => '');
+        setDebug((d) => ({
+          ...d,
+          lastStatus: String(resp.status),
+          lastLatencyMs: elapsed,
+          lastError: text.slice(0, 120) || `HTTP ${resp.status}`,
+          lastOutcome: 'not_matched',
+        }));
+        setState('scanning');
+        return;
       }
 
       const data = await resp.json();
+      setDebug((d) => ({
+        ...d,
+        lastStatus: String(resp.status),
+        lastLatencyMs: elapsed,
+        lastError: null,
+        lastOutcome: data.matched ? 'matched' : 'not_matched',
+      }));
 
       if (data.matched && data.confidence >= confidenceThreshold && data.search_url) {
         const scanResult: ScanResult = {
@@ -221,14 +272,29 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
         if (!data.matched) onNoMatch?.();
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      // Non-fatal: log and keep scanning
+      clearTimeout(timeoutId);
+      const elapsed = Math.round(performance.now() - t0);
+      const isAbort = err instanceof DOMException && err.name === 'AbortError';
+      const msg = isAbort
+        ? `TIMEOUT dopo ${requestTimeoutMs}ms`
+        : err instanceof Error
+        ? err.message
+        : 'Unknown error';
+
+      setDebug((d) => ({
+        ...d,
+        lastStatus: isAbort ? 'TIMEOUT' : 'NETWORK_ERROR',
+        lastLatencyMs: elapsed,
+        lastError: msg,
+        lastOutcome: 'not_matched',
+      }));
+
       console.warn('[useBrxScanner] sendFrame error:', msg);
       setState('scanning');
     } finally {
       processingRef.current = false;
     }
-  }, [apiBaseUrl, captureFrame, confidenceThreshold, onMatch, onNoMatch]);
+  }, [apiBaseUrl, captureFrame, confidenceThreshold, onMatch, onNoMatch, requestTimeoutMs]);
 
   // ------------------------------------------------------------------
   // Open camera
@@ -298,6 +364,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     result,
     errorMessage,
     countdown,
+    debug,
     videoRef,
     canvasRef,
     openCamera,
