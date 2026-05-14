@@ -80,6 +80,42 @@ export interface UseBrxScannerReturn {
   restartScanning: () => void;
 }
 
+const SCANNER_SEARCH_PATH = '/search';
+const SCANNER_SEARCH_GAME = 'mtg';
+const DEFAULT_URL_ORIGIN = 'https://ebartex.local';
+
+function scannerSearchFallback(searchQuery: unknown): string {
+  const params = new URLSearchParams();
+  const q = typeof searchQuery === 'string' ? searchQuery.trim() : '';
+  if (q) params.set('q', q);
+  params.set('game', SCANNER_SEARCH_GAME);
+  return `${SCANNER_SEARCH_PATH}?${params.toString()}`;
+}
+
+export function normalizeScannerSearchUrl(
+  searchUrl: unknown,
+  searchQuery: unknown,
+  currentOrigin = DEFAULT_URL_ORIGIN,
+): string {
+  const fallback = scannerSearchFallback(searchQuery);
+  if (typeof searchUrl !== 'string') return fallback;
+
+  const trimmed = searchUrl.trim();
+  if (!trimmed) return fallback;
+
+  try {
+    const parsed = new URL(trimmed, currentOrigin);
+    if (parsed.origin !== currentOrigin) return fallback;
+    if (parsed.pathname !== SCANNER_SEARCH_PATH && parsed.pathname !== `${SCANNER_SEARCH_PATH}/`) {
+      return fallback;
+    }
+    const path = parsed.pathname === `${SCANNER_SEARCH_PATH}/` ? SCANNER_SEARCH_PATH : parsed.pathname;
+    return `${path}${parsed.search}`;
+  } catch {
+    return fallback;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
@@ -230,6 +266,10 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       }));
 
       if (data.matched && data.confidence >= confidenceThreshold && data.search_url) {
+        const currentOrigin =
+          typeof window !== 'undefined' && window.location?.origin
+            ? window.location.origin
+            : DEFAULT_URL_ORIGIN;
         const scanResult: ScanResult = {
           card_name: data.card_name ?? '',
           set_name: data.set_name ?? '',
@@ -237,7 +277,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
           image_uri: data.image_uri ?? null,
           confidence: data.confidence,
           method: data.method,
-          search_url: data.search_url,
+          search_url: normalizeScannerSearchUrl(data.search_url, data.search_query, currentOrigin),
           search_query: data.search_query ?? '',
           latency_ms: data.latency_ms,
         };

@@ -163,6 +163,8 @@ export function AuctionCreateWizard({
   );
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const publishInFlightRef = useRef(false);
   const [createdAuctionInfo, setCreatedAuctionInfo] = useState<{
     id: number | null;
     startIso: string;
@@ -728,6 +730,7 @@ export function AuctionCreateWizard({
   const createAuctionMutation = useCreateAuction();
 
   const openPublishConfirm = () => {
+    if (publishInFlightRef.current) return;
     setError(null);
     setPublishConfirmOpen(true);
   };
@@ -743,102 +746,106 @@ export function AuctionCreateWizard({
   };
 
   const publish = async () => {
-    const order = getStepOrder(draft.isCard, { variant: stepVariant, hasEmbeddedInventory });
-    for (const id of order) {
-      if (!validateStepId(id)) {
-        setStepId(id);
-        return;
-      }
-    }
-
-    const startingPrice = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.startingBidEur)));
-    const reservePrice = draft.reservePriceEur
-      ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.reservePriceEur)))
-      : undefined;
-    const now = new Date();
-    const startDate = now;
-    const endDate = new Date(startDate.getTime() + (draft.durationDays || 7) * 86_400_000);
-
-    // Photos uploaded directly to S3 via the photo client. We send their
-    // backend ids ordered by the user's chosen sequence; the backend will
-    // rebind them to this auction in transaction and override
-    // image_front/image_back from the first two for backward compatibility.
-    const photoIds: number[] = [];
-    for (const slot of draft.listingPhotos) {
-      if (slot.kind === 'remote') {
-        photoIds.push(slot.photo.id);
-        continue;
-      }
-      const entry = photoUploads.get(slot.file);
-      if (!entry || entry.status !== 'done' || !entry.photo) {
-        setError('Una o più foto non sono ancora state caricate. Riprova.');
-        setStepId('photos');
-        return;
-      }
-      photoIds.push(entry.photo.id);
-    }
-
-    // Catalog reference image (only used if no user photos were uploaded —
-    // legacy path). Backend overrides these with photo CDN URLs whenever
-    // photo_ids is non-empty.
-    const fallbackFront =
-      photoIds.length === 0 ? draft.imageUrl || '' : '';
-    const fallbackBack = fallbackFront;
-    const slot0 = draft.listingPhotos[0];
-    const slot1 = draft.listingPhotos[1];
-    const firstPhotoCdn =
-      slot0?.kind === 'remote'
-        ? slot0.photo.cdn_url
-        : slot0?.kind === 'local'
-          ? photoUploads.get(slot0.file)?.photo?.cdn_url ?? ''
-          : '';
-    const secondPhotoCdn =
-      slot1?.kind === 'remote'
-        ? slot1.photo.cdn_url
-        : slot1?.kind === 'local'
-          ? photoUploads.get(slot1.file)?.photo?.cdn_url ?? ''
-          : firstPhotoCdn;
-    const imageFront = firstPhotoCdn || fallbackFront;
-    const imageBack = secondPhotoCdn || fallbackBack;
-
-    const payload: AuctionCreatePayload = {
-      title: draft.title,
-      description: draft.description || '',
-      starting_price: startingPrice,
-      reserve_price: reservePrice ?? null,
-      start_time: startDate.toISOString(),
-      end_time: endDate.toISOString(),
-      product: {
-        name: draft.title,
-        description: draft.description || '',
-        image_front: imageFront,
-        image_back: imageBack,
-        condition: draft.condition || '',
-      },
-      image_front: imageFront,
-      image_back: imageBack,
-      photo_ids: photoIds.length > 0 ? photoIds : undefined,
-      shipping_payer: draft.shippingPayer,
-      shipping_origin_country: draft.shippingOriginCountry || null,
-      shipping_national_eur:
-        draft.shippingPayer === 'buyer'
-          ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingNationalEur)))
-          : null,
-      shipping_eu_default_eur:
-        draft.shippingPayer === 'buyer'
-          ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingEuDefaultEur)))
-          : null,
-      shipping_country_prices:
-        draft.shippingPayer === 'buyer'
-          ? (() => {
-              const rest = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingRestOfWorldEur)));
-              if (!Number.isFinite(rest) || rest < 0) return [];
-              return [{ country_iso: AUCTION_SHIPPING_REST_OF_WORLD_ISO, price_eur: rest }];
-            })()
-          : [],
-    };
+    if (publishInFlightRef.current) return;
+    publishInFlightRef.current = true;
+    setIsPublishing(true);
 
     try {
+      const order = getStepOrder(draft.isCard, { variant: stepVariant, hasEmbeddedInventory });
+      for (const id of order) {
+        if (!validateStepId(id)) {
+          setStepId(id);
+          return;
+        }
+      }
+
+      const startingPrice = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.startingBidEur)));
+      const reservePrice = draft.reservePriceEur
+        ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.reservePriceEur)))
+        : undefined;
+      const now = new Date();
+      const startDate = now;
+      const endDate = new Date(startDate.getTime() + (draft.durationDays || 7) * 86_400_000);
+
+      // Photos uploaded directly to S3 via the photo client. We send their
+      // backend ids ordered by the user's chosen sequence; the backend will
+      // rebind them to this auction in transaction and override
+      // image_front/image_back from the first two for backward compatibility.
+      const photoIds: number[] = [];
+      for (const slot of draft.listingPhotos) {
+        if (slot.kind === 'remote') {
+          photoIds.push(slot.photo.id);
+          continue;
+        }
+        const entry = photoUploads.get(slot.file);
+        if (!entry || entry.status !== 'done' || !entry.photo) {
+          setError('Una o più foto non sono ancora state caricate. Riprova.');
+          setStepId('photos');
+          return;
+        }
+        photoIds.push(entry.photo.id);
+      }
+
+      // Catalog reference image (only used if no user photos were uploaded —
+      // legacy path). Backend overrides these with photo CDN URLs whenever
+      // photo_ids is non-empty.
+      const fallbackFront =
+        photoIds.length === 0 ? draft.imageUrl || '' : '';
+      const fallbackBack = fallbackFront;
+      const slot0 = draft.listingPhotos[0];
+      const slot1 = draft.listingPhotos[1];
+      const firstPhotoCdn =
+        slot0?.kind === 'remote'
+          ? slot0.photo.cdn_url
+          : slot0?.kind === 'local'
+            ? photoUploads.get(slot0.file)?.photo?.cdn_url ?? ''
+            : '';
+      const secondPhotoCdn =
+        slot1?.kind === 'remote'
+          ? slot1.photo.cdn_url
+          : slot1?.kind === 'local'
+            ? photoUploads.get(slot1.file)?.photo?.cdn_url ?? ''
+            : firstPhotoCdn;
+      const imageFront = firstPhotoCdn || fallbackFront;
+      const imageBack = secondPhotoCdn || fallbackBack;
+
+      const payload: AuctionCreatePayload = {
+        title: draft.title,
+        description: draft.description || '',
+        starting_price: startingPrice,
+        reserve_price: reservePrice ?? null,
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
+        product: {
+          name: draft.title,
+          description: draft.description || '',
+          image_front: imageFront,
+          image_back: imageBack,
+          condition: draft.condition || '',
+        },
+        image_front: imageFront,
+        image_back: imageBack,
+        photo_ids: photoIds.length > 0 ? photoIds : undefined,
+        shipping_payer: draft.shippingPayer,
+        shipping_origin_country: draft.shippingOriginCountry || null,
+        shipping_national_eur:
+          draft.shippingPayer === 'buyer'
+            ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingNationalEur)))
+            : null,
+        shipping_eu_default_eur:
+          draft.shippingPayer === 'buyer'
+            ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingEuDefaultEur)))
+            : null,
+        shipping_country_prices:
+          draft.shippingPayer === 'buyer'
+            ? (() => {
+                const rest = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingRestOfWorldEur)));
+                if (!Number.isFinite(rest) || rest < 0) return [];
+                return [{ country_iso: AUCTION_SHIPPING_REST_OF_WORLD_ISO, price_eur: rest }];
+              })()
+            : [],
+      };
+
       const created = await createAuctionMutation.mutateAsync(payload);
       setCreatedAuctionInfo({
         id: created?.data?.id ?? null,
@@ -850,6 +857,9 @@ export function AuctionCreateWizard({
       setError(
         err instanceof Error ? err.message : 'Errore nella creazione dell\'asta'
       );
+    } finally {
+      publishInFlightRef.current = false;
+      setIsPublishing(false);
     }
   };
 
@@ -1852,8 +1862,14 @@ export function AuctionCreateWizard({
               ) : (
                 <button
                   type="button"
+                  disabled={isPublishing}
                   onClick={openPublishConfirm}
-                  className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-[#FF7300] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
+                  className={cn(
+                    'inline-flex min-h-[36px] items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
+                    isPublishing
+                      ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
+                      : 'bg-[#FF7300] hover:bg-[#e86800]',
+                  )}
                 >
                   <Gavel className="h-3 w-3" aria-hidden />
                   {t('auctions.createSubmit')}
@@ -1912,8 +1928,14 @@ export function AuctionCreateWizard({
             ) : (
               <button
                 type="button"
+                disabled={isPublishing}
                 onClick={openPublishConfirm}
-                className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-[#FF7300] px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800] sm:min-h-[52px] sm:flex-none sm:px-8 sm:text-base"
+                className={cn(
+                  'inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition sm:min-h-[52px] sm:flex-none sm:px-8 sm:text-base',
+                  isPublishing
+                    ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
+                    : 'bg-[#FF7300] hover:bg-[#e86800]',
+                )}
               >
                 <Gavel className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
                 {t('auctions.createSubmit')}
@@ -1991,11 +2013,18 @@ export function AuctionCreateWizard({
 
           <button
             type="button"
+            disabled={isPublishing}
             onClick={() => {
+              if (isPublishing) return;
               setPublishConfirmOpen(false);
               void publish();
             }}
-            className="mt-3 w-full rounded-xl bg-[#FF7300] px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
+            className={cn(
+              'mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition',
+              isPublishing
+                ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
+                : 'bg-[#FF7300] hover:bg-[#e86800]',
+            )}
           >
             Continua
           </button>
