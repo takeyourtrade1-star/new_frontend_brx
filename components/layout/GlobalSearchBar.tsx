@@ -10,6 +10,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } fr
 import { createPortal } from 'react-dom';
 import { Search, Loader2, X, ChevronDown, Camera } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { InstantSearch, Configure, Highlight, useSearchBox, useHits } from 'react-instantsearch';
 import { searchClient } from '@/lib/meilisearchClient';
 import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
@@ -1658,6 +1659,17 @@ function SearchWithInstantSearch({
             <X className="h-4 w-4 md:h-5 md:w-5" />
           </button>
         )}
+        <Link
+          href="/scanner"
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200 md:h-9 md:w-9 ${
+            showOpenStyle
+              ? 'text-[#FF7300] hover:bg-orange-50 hover:text-orange-600'
+              : 'text-white hover:bg-white/20'
+          }`}
+          aria-label="Scansiona carta con fotocamera"
+        >
+          <Camera className="h-4 w-4 md:h-5 md:w-5" />
+        </Link>
         <button
           type="button"
           onClick={handleEnter}
