@@ -1187,6 +1187,17 @@ export const en = {
   'auctions.winningBannerBody': 'Your bid of {amount} is currently the highest.',
   'auctions.winningBannerLabel': 'Your bid',
 
+  'auctions.mobilePairingThanksHeadline': 'Thank you for using this feature!',
+  'auctions.mobilePairingThanksSub': 'Your photo has been uploaded successfully. You can close this page or go back to home.',
+  'auctions.mobilePairingGoHome': 'Back to Home',
+  'auctions.mobilePairingRetry': 'Try again',
+  'auctions.mobilePairingRetryAttempt': 'Attempt {attempt} of {max}',
+  'auctions.mobilePairingRetryExhausted': 'Too many failed attempts. Please try again later.',
+  'auctions.mobilePairingReloadPage': 'Reload page',
+  'auctions.mobilePairingChangePhoto': 'Change photo',
+  'auctions.mobilePairingCropZoomPinchHint': 'Pinch to zoom',
+  'auctions.mobilePairingCropFreeHint': 'Crop freely',
+
   'legal.lastUpdated': 'Last updated:',
   'legal.cookie.title': 'Cookie policy',
   'legal.privacy.title': 'Privacy policy',

@@ -65,6 +65,40 @@ export interface PairingGuestUploadOptions {
   signal?: AbortSignal;
 }
 
+export interface PairingSessionStatus {
+  status?: string;
+  auction_id?: number | null;
+  photos?: unknown[];
+}
+
+/**
+ * Polls the pairing session status as a guest (no login required).
+ * Passes the upload token via a custom header.
+ * Returns `{ status: 'COMPLETED' }` when the session is gone (404/410).
+ */
+export async function pollPairingSessionAsGuest(
+  sessionId: string,
+  uploadToken: string,
+): Promise<PairingSessionStatus> {
+  try {
+    const data = await guestJsonRequest<{ success?: boolean; data?: PairingSessionStatus }>(
+      `/api/auctions/photos/pairing-sessions/${encodeURIComponent(sessionId)}`,
+      {
+        headers: {
+          'X-Pairing-Upload-Token': uploadToken,
+        },
+      },
+    );
+    return data.data ?? {};
+  } catch (err) {
+    const e = err as { status?: number };
+    if (e.status === 404 || e.status === 410) {
+      return { status: 'COMPLETED' };
+    }
+    throw err;
+  }
+}
+
 async function guestJsonRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   let res: Response;
   try {
@@ -242,20 +276,42 @@ export async function uploadPhotoAsPairingGuest(
   const init = await initGuest(initBody);
   report(18);
 
-  const runPut = (upload: PhotoInitResponse) =>
+  const makePut = (upload: PhotoInitResponse) =>
     putToS3(upload, compressed, {
       ...options,
       onProgress: (pct) => report(18 + Math.round((pct / 100) * 68)),
     });
 
+  /**
+   * Retry the PUT on network errors (no HTTP status) up to 2 extra times with 1 s delay.
+   * HTTP errors are re-thrown immediately so the outer handler can decide.
+   */
+  const putWithNetworkRetry = async (upload: PhotoInitResponse): Promise<void> => {
+    let lastErr: unknown;
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 1000));
+      try {
+        await makePut(upload);
+        return;
+      } catch (err) {
+        lastErr = err;
+        const status = (err as { status?: number })?.status;
+        if (status) throw err; // HTTP error — escalate immediately
+        // network error — loop and retry
+      }
+    }
+    throw lastErr;
+  };
+
   try {
-    await runPut(init);
+    await putWithNetworkRetry(init);
   } catch (err) {
     const status = (err as { status?: number })?.status;
-    if (status === 403 || status === 400) {
+    // Re-fetch presign for: auth errors (403/400) OR persistent network failure (!status)
+    if (status === 403 || status === 400 || !status) {
       const fresh = await initGuest(initBody);
       report(20);
-      await runPut(fresh);
+      await makePut(fresh);
       report(88);
       const finalized2 = await finalizeGuest({
         photo_token: fresh.photo_token,

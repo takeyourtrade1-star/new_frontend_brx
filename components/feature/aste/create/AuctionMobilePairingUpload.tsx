@@ -4,10 +4,20 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Cropper, { type Area } from 'react-easy-crop';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, ImagePlus, Loader2, Move, Sparkles, Upload, ZoomIn } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Home,
+  ImagePlus,
+  Loader2,
+  Move,
+  RefreshCw,
+  RotateCcw,
+  Sparkles,
+} from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { uploadPhoto } from '@/lib/api/auction-photo-client';
-import { uploadPhotoAsPairingGuest } from '@/lib/auction-pairing-guest-upload';
+import { pollPairingSessionAsGuest, uploadPhotoAsPairingGuest } from '@/lib/auction-pairing-guest-upload';
 import { cn } from '@/lib/utils';
 
 /**
@@ -19,7 +29,7 @@ async function loadImageForCrop(imageSrc: string): Promise<{ source: CanvasImage
     const img = new Image();
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
-      img.onerror = () => reject(new Error('Impossibile caricare l’immagine'));
+      img.onerror = () => reject(new Error('Impossibile caricare l\u2019immagine'));
       img.src = imageSrc;
     });
     if ('decode' in img && typeof img.decode === 'function') {
@@ -33,7 +43,7 @@ async function loadImageForCrop(imageSrc: string): Promise<{ source: CanvasImage
   }
   const res = await fetch(imageSrc);
   if (!res.ok) {
-    throw new Error(`Impossibile caricare l’immagine (${res.status})`);
+    throw new Error(`Impossibile caricare l\u2019immagine (${res.status})`);
   }
   const blob = await res.blob();
   const bmp = await createImageBitmap(blob);
@@ -98,6 +108,14 @@ async function getCroppedImageFile(imageSrc: string, pixelCrop: Area): Promise<F
   }
 }
 
+type ViewState = 'pick' | 'crop' | 'thanks';
+
+/** Maximum number of retries allowed after the initial upload failure. */
+const MAX_RETRIES = 3;
+
+/** Polling interval (ms) to detect when the desktop auction has been created. */
+const POLL_INTERVAL_MS = 4000;
+
 export function AuctionMobilePairingUpload({
   sessionId,
   uploadToken,
@@ -108,15 +126,21 @@ export function AuctionMobilePairingUpload({
 }) {
   const { t } = useTranslation();
   const guest = Boolean(uploadToken);
+
+  const [viewState, setViewState] = useState<ViewState>('pick');
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadPercent, setUploadPercent] = useState<number | null>(null);
-  const objectUrlRef = useRef<string | null>(null);
-  const [feedback, setFeedback] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  /** Total number of upload failures (initial attempt + retries). */
+  const [failCount, setFailCount] = useState(0);
 
+  const objectUrlRef = useRef<string | null>(null);
+
+  // Cleanup blob URL on unmount
   useEffect(() => {
     return () => {
       if (objectUrlRef.current) {
@@ -125,6 +149,25 @@ export function AuctionMobilePairingUpload({
       }
     };
   }, []);
+
+  // Poll for session completion so the mobile screen auto-transitions when the
+  // desktop user finishes creating the auction.
+  useEffect(() => {
+    if (!guest || !uploadToken || viewState === 'thanks') return;
+    const id = setInterval(() => {
+      void (async () => {
+        try {
+          const s = await pollPairingSessionAsGuest(sessionId, uploadToken);
+          if (s.status === 'COMPLETED' || (s.auction_id !== undefined && s.auction_id !== null)) {
+            setViewState('thanks');
+          }
+        } catch {
+          // Non-fatal: silently ignore poll errors to avoid spamming the user
+        }
+      })();
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [guest, uploadToken, sessionId, viewState]);
 
   const onCropComplete = useCallback((_area: Area, areaPixels: Area) => {
     setCroppedAreaPixels(areaPixels);
@@ -135,7 +178,7 @@ export function AuctionMobilePairingUpload({
       const f = e.target.files?.[0];
       e.target.value = '';
       if (!f || !f.type.startsWith('image/')) {
-        setFeedback({ tone: 'err', text: t('auctions.mobilePairingPickImageError') });
+        setUploadError(t('auctions.mobilePairingPickImageError'));
         return;
       }
       if (objectUrlRef.current) {
@@ -145,14 +188,16 @@ export function AuctionMobilePairingUpload({
       const url = URL.createObjectURL(f);
       objectUrlRef.current = url;
       setImageSrc(url);
-      setFeedback(null);
+      setUploadError(null);
+      setFailCount(0);
       setCrop({ x: 0, y: 0 });
       setZoom(1);
+      setViewState('crop');
     },
     [t],
   );
 
-  const resetCrop = useCallback(() => {
+  const resetToPick = useCallback(() => {
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
@@ -162,13 +207,16 @@ export function AuctionMobilePairingUpload({
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setUploadPercent(null);
+    setUploadError(null);
+    setFailCount(0);
+    setViewState('pick');
   }, []);
 
   const sendCropped = useCallback(async () => {
     if (!imageSrc || !croppedAreaPixels) return;
     setUploading(true);
     setUploadPercent(0);
-    setFeedback(null);
+    setUploadError(null);
     try {
       setUploadPercent(2);
       const file = await getCroppedImageFile(imageSrc, croppedAreaPixels);
@@ -185,25 +233,96 @@ export function AuctionMobilePairingUpload({
           onProgress: (p) => setUploadPercent(p),
         });
       }
-      setFeedback({ tone: 'ok', text: t('auctions.mobilePairingUploadSuccess') });
-      resetCrop();
+      setFailCount(0);
+      setViewState('thanks');
     } catch (err) {
-      const text = err instanceof Error ? err.message : t('auctions.mobilePairingUploadError');
-      setFeedback({ tone: 'err', text });
+      const message = err instanceof Error ? err.message : t('auctions.mobilePairingUploadError');
+      setUploadError(message);
+      setFailCount((prev) => prev + 1);
     } finally {
       setUploading(false);
       setUploadPercent(null);
     }
-  }, [croppedAreaPixels, guest, imageSrc, resetCrop, sessionId, t, uploadToken]);
+  }, [croppedAreaPixels, guest, imageSrc, sessionId, t, uploadToken]);
 
-  const shellClass = cn(
-    'mx-auto flex min-h-dvh max-w-lg flex-col gap-5 px-4 pb-10 pt-6',
-    guest && 'bg-gradient-to-b from-slate-50 via-white to-orange-50/30 pt-8',
-    !guest && 'bg-white py-6',
-  );
+  const isExhausted = failCount > MAX_RETRIES;
+  const canRetry = failCount > 0 && !isExhausted && !uploading;
 
+  // ─── Thank-you screen ────────────────────────────────────────────────────────
+  if (viewState === 'thanks') {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.45 }}
+        className="fixed inset-0 z-50 flex min-h-dvh flex-col items-center justify-center bg-gradient-to-b from-[#0a1628] via-[#0f1f3d] to-[#1D3160] px-6 py-10"
+      >
+        {/* Ebartex "E" lettermark */}
+        <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#1D3160] shadow-lg shadow-black/40 ring-2 ring-[#FF7300]/30">
+          <span className="text-3xl font-black text-[#FF7300]">E</span>
+        </div>
+
+        {/* Animated checkmark */}
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.15 }}
+          className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/15 ring-4 ring-emerald-500/35"
+        >
+          <CheckCircle2 className="h-10 w-10 text-emerald-400" strokeWidth={1.75} />
+        </motion.div>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.35 }}
+          className="mb-3 text-center text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl"
+        >
+          {t('auctions.mobilePairingThanksHeadline')}
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.3 }}
+          className="mb-10 max-w-sm text-center text-sm leading-relaxed text-white/60"
+        >
+          {t('auctions.mobilePairingThanksSub')}
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45, duration: 0.3 }}
+          className="w-full max-w-xs"
+        >
+          <Link
+            href="/"
+            className="relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-gradient-to-br from-[#FF7300] to-[#e86800] px-6 py-4 text-sm font-bold text-white shadow-lg shadow-orange-500/30 transition hover:brightness-[1.06] active:scale-[0.98]"
+          >
+            <motion.span
+              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              initial={{ x: '-100%' }}
+              animate={{ x: '200%' }}
+              transition={{ repeat: Infinity, duration: 1.8, ease: 'linear', repeatDelay: 1.2 }}
+            />
+            <Home className="h-4 w-4 shrink-0" aria-hidden />
+            {t('auctions.mobilePairingGoHome')}
+          </Link>
+        </motion.div>
+
+        <div className="mt-12 flex flex-col items-center gap-1">
+          <span className="text-[11px] font-black tracking-widest text-[#FF7300]">EBARTEX</span>
+          <span className="text-[10px] text-white/30">Powered by Ebartex</span>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // ─── Main shell ──────────────────────────────────────────────────────────────
   return (
-    <div className={shellClass}>
+    <div className="mx-auto flex min-h-dvh max-w-lg flex-col gap-5 bg-gradient-to-b from-[#0a1628] via-[#0f1f3d] to-[#1D3160] px-4 pb-10 pt-8">
+      {/* Header — guest mode */}
       {guest ? (
         <motion.header
           initial={{ opacity: 0, y: 10 }}
@@ -211,29 +330,29 @@ export function AuctionMobilePairingUpload({
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           className="space-y-3 text-center"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-orange-200/80 bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#FF7300] shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#FF7300]/30 bg-[#FF7300]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#FF7300]">
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
             {t('auctions.mobilePairingGuestBadge')}
           </div>
-          <h1 className="text-[1.35rem] font-black leading-tight tracking-tight text-[#1D3160] sm:text-2xl">
+          <h1 className="text-[1.35rem] font-black leading-tight tracking-tight text-white sm:text-2xl">
             {t('auctions.mobilePairingGuestHeadline')}
           </h1>
-          <p className="text-sm leading-relaxed text-slate-600">{t('auctions.mobilePairingGuestSub')}</p>
-          <ol className="mx-auto flex max-w-md flex-col gap-2.5 text-left text-xs text-slate-700 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-3">
-            <li className="flex items-start gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 shadow-sm backdrop-blur-sm">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1D3160] text-[11px] font-bold text-white">
+          <p className="text-sm leading-relaxed text-white/60">{t('auctions.mobilePairingGuestSub')}</p>
+          <ol className="mx-auto flex max-w-md flex-col gap-2.5 text-left text-xs text-white/70 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-3">
+            <li className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 backdrop-blur-sm">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-[11px] font-bold text-white">
                 1
               </span>
               <span className="pt-0.5 leading-snug">{t('auctions.mobilePairingGuestStep1')}</span>
             </li>
-            <li className="flex items-start gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 shadow-sm backdrop-blur-sm">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1D3160] text-[11px] font-bold text-white">
+            <li className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 backdrop-blur-sm">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-[11px] font-bold text-white">
                 2
               </span>
               <span className="pt-0.5 leading-snug">{t('auctions.mobilePairingGuestStep2')}</span>
             </li>
-            <li className="flex items-start gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 shadow-sm backdrop-blur-sm">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1D3160] text-[11px] font-bold text-white">
+            <li className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 backdrop-blur-sm">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-[11px] font-bold text-white">
                 3
               </span>
               <span className="pt-0.5 leading-snug">{t('auctions.mobilePairingGuestStep3')}</span>
@@ -242,18 +361,19 @@ export function AuctionMobilePairingUpload({
         </motion.header>
       ) : (
         <div>
-          <h1 className="text-lg font-bold text-[#1D3160]">{t('auctions.mobilePairingTitle')}</h1>
-          <p className="mt-1 text-sm text-gray-600">{t('auctions.mobilePairingIntro')}</p>
+          <h1 className="text-lg font-bold text-white">{t('auctions.mobilePairingTitle')}</h1>
+          <p className="mt-1 text-sm text-white/60">{t('auctions.mobilePairingIntro')}</p>
         </div>
       )}
 
+      {/* Upload progress bar — non-guest only (guest uses overlay) */}
       {!guest && uploading && uploadPercent !== null ? (
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs font-medium text-gray-600">
+          <div className="flex justify-between text-xs font-medium text-white/60">
             <span>{t('auctions.mobilePairingUploadProgressLabel')}</span>
             <span>{uploadPercent}%</span>
           </div>
-          <div className="relative h-2 overflow-hidden rounded-full bg-gray-200">
+          <div className="relative h-2 overflow-hidden rounded-full bg-white/10">
             <motion.div
               className="h-full rounded-full bg-[#FF7300]"
               initial={false}
@@ -264,196 +384,256 @@ export function AuctionMobilePairingUpload({
         </div>
       ) : null}
 
-      {feedback ? (
-        <motion.p
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={cn(
-            'flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm shadow-sm',
-            feedback.tone === 'ok'
-              ? 'border border-emerald-200/80 bg-emerald-50/95 text-emerald-950'
-              : 'border border-red-200/80 bg-red-50/95 text-red-950',
-          )}
-        >
-          {feedback.tone === 'ok' ? (
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
-          ) : null}
-          <span>{feedback.text}</span>
-        </motion.p>
-      ) : null}
-
-      {!imageSrc ? (
-        <motion.label
-          layout
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={cn(
-            'group relative flex cursor-pointer flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border-2 border-dashed px-6 py-16 transition-colors',
-            guest
-              ? 'border-slate-300/90 bg-white/70 shadow-[0_12px_40px_-12px_rgba(29,49,96,0.15)] hover:border-[#FF7300]/50 hover:bg-white'
-              : 'border-gray-300 bg-gray-50/80 hover:border-[#FF7300]/60 hover:bg-orange-50/30',
-          )}
-        >
-          {guest ? (
-            <ImagePlus className="h-12 w-12 text-[#1D3160]/35 transition-colors group-hover:text-[#FF7300]" strokeWidth={1.25} aria-hidden />
-          ) : (
-            <Upload className="h-10 w-10 text-gray-400" strokeWidth={1.5} aria-hidden />
-          )}
-          <span className="relative text-center text-sm font-bold text-[#1D3160]">
-            {guest ? t('auctions.mobilePairingPickCtaGuest') : t('auctions.mobilePairingPickCta')}
-          </span>
-          <span className="relative text-center text-xs text-slate-500">{t('auctions.mobilePairingOneAtATime')}</span>
-          <input type="file" accept="image/*" className="sr-only" onChange={onPickFile} />
-        </motion.label>
-      ) : (
-        <motion.div
-          layout
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-1 flex-col gap-4"
-        >
-          <div
+      <AnimatePresence mode="wait">
+        {/* ── Pick screen ── */}
+        {viewState === 'pick' && (
+          <motion.label
+            key="pick"
+            layout
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
             className={cn(
-              'relative overflow-hidden rounded-2xl bg-[#0a0f1a] shadow-[0_20px_50px_-20px_rgba(29,49,96,0.45)] ring-2 ring-[#FF7300]/25',
-              'h-[min(52vh,400px)] w-full sm:h-[min(55vh,440px)]',
+              'group relative flex cursor-pointer flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border-2 border-dashed px-6 py-16 transition-colors',
+              'border-white/20 bg-white/5 hover:border-[#FF7300]/50 hover:bg-white/8',
             )}
           >
-            <Cropper
-              image={imageSrc}
-              crop={crop}
-              zoom={zoom}
-              rotation={0}
-              aspect={3 / 4}
-              cropShape="rect"
-              showGrid
-              objectFit="cover"
-              restrictPosition={false}
-              minZoom={1}
-              maxZoom={5}
-              zoomSpeed={0.45}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={onCropComplete}
-              classes={{
-                containerClassName: 'rounded-2xl',
-                cropAreaClassName:
-                  'border-[3px] border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]',
-              }}
+            <ImagePlus
+              className="h-12 w-12 text-white/30 transition-colors group-hover:text-[#FF7300]"
+              strokeWidth={1.25}
+              aria-hidden
             />
+            <span className="relative text-center text-sm font-bold text-white">
+              {guest ? t('auctions.mobilePairingPickCtaGuest') : t('auctions.mobilePairingPickCta')}
+            </span>
+            <span className="relative text-center text-xs text-white/40">{t('auctions.mobilePairingOneAtATime')}</span>
+            <input type="file" accept="image/*" className="sr-only" onChange={onPickFile} />
+          </motion.label>
+        )}
 
-            <AnimatePresence>
-              {uploading && uploadPercent !== null ? (
-                <motion.div
-                  key="upload-overlay"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-2xl bg-[#0b1220]/72 backdrop-blur-md"
-                >
+        {/* ── Crop screen ── */}
+        {viewState === 'crop' && (
+          <motion.div
+            key="crop"
+            layout
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25 }}
+            className="flex flex-1 flex-col gap-4"
+          >
+            {/* Cropper */}
+            <div
+              className={cn(
+                'relative overflow-hidden rounded-2xl bg-[#0a0f1a] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.6)] ring-2 ring-[#FF7300]/25',
+                'h-[min(52vh,400px)] w-full sm:h-[min(55vh,440px)]',
+              )}
+            >
+              {imageSrc ? (
+                <Cropper
+                  image={imageSrc}
+                  crop={crop}
+                  zoom={zoom}
+                  rotation={0}
+                  cropShape="rect"
+                  showGrid
+                  objectFit="cover"
+                  restrictPosition={false}
+                  minZoom={0.5}
+                  maxZoom={5}
+                  zoomSpeed={0.45}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={onCropComplete}
+                  classes={{
+                    containerClassName: 'rounded-2xl',
+                    cropAreaClassName: 'border-[3px] border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]',
+                  }}
+                />
+              ) : null}
+
+              {/* Upload overlay */}
+              <AnimatePresence>
+                {uploading && uploadPercent !== null ? (
                   <motion.div
-                    className="relative h-14 w-14"
-                    initial={{ scale: 0.85 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                    key="upload-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-2xl bg-[#0b1220]/80 backdrop-blur-md"
                   >
-                    <motion.span
-                      className="absolute inset-0 rounded-full border-2 border-white/20"
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 1.1, ease: 'linear' }}
-                    />
-                    <motion.span
-                      className="absolute inset-1 rounded-full border-2 border-transparent border-t-[#FF7300] border-r-[#FF7300]"
-                      animate={{ rotate: -360 }}
-                      transition={{ repeat: Infinity, duration: 0.75, ease: 'linear' }}
-                    />
-                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
-                      {uploadPercent}
-                    </span>
+                    <motion.div
+                      className="relative h-14 w-14"
+                      initial={{ scale: 0.85 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                    >
+                      <motion.span
+                        className="absolute inset-0 rounded-full border-2 border-white/20"
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 1.1, ease: 'linear' }}
+                      />
+                      <motion.span
+                        className="absolute inset-1 rounded-full border-2 border-transparent border-t-[#FF7300] border-r-[#FF7300]"
+                        animate={{ rotate: -360 }}
+                        transition={{ repeat: Infinity, duration: 0.75, ease: 'linear' }}
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
+                        {uploadPercent}
+                      </span>
+                    </motion.div>
+                    <p className="mt-4 max-w-[14rem] text-center text-sm font-semibold text-white">
+                      {t('auctions.mobilePairingUploadOverlayTitle')}
+                    </p>
+                    <p className="mt-1 max-w-[16rem] text-center text-[11px] leading-snug text-white/75">
+                      {t('auctions.mobilePairingUploadOverlayHint')}
+                    </p>
+                    <div className="relative mx-8 mt-5 h-2 w-[min(280px,85%)] overflow-hidden rounded-full bg-white/15">
+                      <motion.div
+                        className="h-full rounded-full bg-gradient-to-r from-[#FF7300] to-amber-400"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${uploadPercent}%` }}
+                        transition={{ type: 'spring', stiffness: 180, damping: 26 }}
+                      />
+                      <motion.div
+                        className="pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent"
+                        initial={{ x: '-100%' }}
+                        animate={{ x: '400%' }}
+                        transition={{ repeat: Infinity, duration: 1.25, ease: 'linear' }}
+                      />
+                    </div>
                   </motion.div>
-                  <p className="mt-4 max-w-[14rem] text-center text-sm font-semibold text-white">
-                    {t('auctions.mobilePairingUploadOverlayTitle')}
-                  </p>
-                  <p className="mt-1 max-w-[16rem] text-center text-[11px] leading-snug text-white/75">
-                    {t('auctions.mobilePairingUploadOverlayHint')}
-                  </p>
-                  <div className="relative mx-8 mt-5 h-2 w-[min(280px,85%)] overflow-hidden rounded-full bg-white/15">
-                    <motion.div
-                      className="h-full rounded-full bg-gradient-to-r from-[#FF7300] to-amber-400"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${uploadPercent}%` }}
-                      transition={{ type: 'spring', stiffness: 180, damping: 26 }}
-                    />
-                    <motion.div
-                      className="pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent"
-                      initial={{ x: '-100%' }}
-                      animate={{ x: '400%' }}
-                      transition={{ repeat: Infinity, duration: 1.25, ease: 'linear' }}
-                    />
+                ) : null}
+              </AnimatePresence>
+            </div>
+
+            {/* Hint pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-medium text-white/50">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                <Move className="h-3.5 w-3.5 text-[#FF7300]/70" aria-hidden />
+                {t('auctions.mobilePairingCropPanHint')}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                {t('auctions.mobilePairingCropZoomPinchHint')}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                {t('auctions.mobilePairingCropFreeHint')}
+              </span>
+            </div>
+
+            {/* Error card with retry */}
+            <AnimatePresence>
+              {uploadError && !uploading ? (
+                <motion.div
+                  key="error-card"
+                  initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.2 }}
+                  className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3.5"
+                >
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" aria-hidden />
+                    <div className="flex-1 space-y-1.5">
+                      <p className="text-sm leading-snug text-red-300">{uploadError}</p>
+                      {failCount > 0 && !isExhausted && (
+                        <p className="text-[11px] text-red-400/70">
+                          {t('auctions.mobilePairingRetryAttempt', {
+                            attempt: String(failCount),
+                            max: String(MAX_RETRIES),
+                          })}
+                        </p>
+                      )}
+                      {isExhausted && (
+                        <p className="text-[11px] font-semibold text-red-300">
+                          {t('auctions.mobilePairingRetryExhausted')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    {canRetry && (
+                      <button
+                        type="button"
+                        onClick={() => void sendCropped()}
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-red-400/30 bg-red-500/15 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/25"
+                      >
+                        <RefreshCw className="h-4 w-4" aria-hidden />
+                        {t('auctions.mobilePairingRetry')}
+                      </button>
+                    )}
+                    {isExhausted && (
+                      <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/70 transition hover:bg-white/10"
+                      >
+                        <RotateCcw className="h-4 w-4" aria-hidden />
+                        {t('auctions.mobilePairingReloadPage')}
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               ) : null}
             </AnimatePresence>
-          </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-medium text-slate-600">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 shadow-sm">
-              <Move className="h-3.5 w-3.5 text-[#1D3160]" aria-hidden />
-              {t('auctions.mobilePairingCropPanHint')}
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 shadow-sm">
-              <ZoomIn className="h-3.5 w-3.5 text-[#1D3160]" aria-hidden />
-              {t('auctions.mobilePairingCropZoomHint')}
-            </span>
-          </div>
+            {/* Action buttons */}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={resetToPick}
+                disabled={uploading}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-3.5 text-sm font-semibold text-white/80 transition hover:bg-white/10 disabled:opacity-50"
+              >
+                <RefreshCw className="h-4 w-4" aria-hidden />
+                {t('auctions.mobilePairingChangePhoto')}
+              </button>
 
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 shadow-sm">
-            <label className="shrink-0 text-xs font-semibold text-slate-600">{t('auctions.mobilePairingZoom')}</label>
-            <input
-              type="range"
-              min={1}
-              max={5}
-              step={0.04}
-              value={zoom}
-              onChange={(e) => setZoom(Number(e.target.value))}
-              className="h-2 flex-1 cursor-pointer accent-[#FF7300]"
-            />
-          </div>
+              <button
+                type="button"
+                disabled={uploading || !croppedAreaPixels}
+                onClick={() => void sendCropped()}
+                className="relative inline-flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-gradient-to-br from-[#FF7300] to-[#e86800] px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:brightness-[1.03] active:scale-[0.99] disabled:opacity-50"
+              >
+                {/* Shimmer effect */}
+                {!uploading ? (
+                  <motion.span
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    initial={{ x: '-100%' }}
+                    animate={{ x: '200%' }}
+                    transition={{ repeat: Infinity, duration: 2.2, ease: 'linear', repeatDelay: 0.8 }}
+                  />
+                ) : null}
+                {uploading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : null}
+                {uploading
+                  ? uploadPercent !== null
+                    ? t('auctions.mobilePairingSendingPercent', { percent: String(uploadPercent) })
+                    : t('auctions.mobilePairingSending')
+                  : t('auctions.mobilePairingSend')}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
-              onClick={resetCrop}
-              disabled={uploading}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
-            >
-              {t('auctions.mobilePairingCancel')}
-            </button>
-            <button
-              type="button"
-              disabled={uploading || !croppedAreaPixels}
-              onClick={() => void sendCropped()}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#FF7300] to-[#e86800] px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:brightness-[1.03] active:scale-[0.99] disabled:opacity-50"
-            >
-              {uploading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : null}
-              {uploading
-                ? uploadPercent !== null
-                  ? t('auctions.mobilePairingSendingPercent', { percent: String(uploadPercent) })
-                  : t('auctions.mobilePairingSending')
-                : t('auctions.mobilePairingSend')}
-            </button>
-          </div>
-        </motion.div>
-      )}
-
+      {/* Non-guest footer links */}
       {!guest ? (
         <>
-          <p className="text-center text-xs text-gray-500">{t('auctions.mobilePairingFooter')}</p>
-          <Link href="/aste/nuova" className="text-center text-sm font-semibold text-[#1D3160] underline">
+          <p className="text-center text-xs text-white/40">{t('auctions.mobilePairingFooter')}</p>
+          <Link href="/aste/nuova" className="text-center text-sm font-semibold text-[#FF7300] underline">
             {t('auctions.mobilePairingBackToWizard')}
           </Link>
         </>
       ) : null}
+
+      {/* Persistent brand footer */}
+      <div className="mt-auto flex flex-col items-center gap-1 pt-6">
+        <span className="text-[11px] font-black tracking-widest text-[#FF7300]">EBARTEX</span>
+        <span className="text-[10px] text-white/25">Powered by Ebartex</span>
+      </div>
     </div>
   );
 }

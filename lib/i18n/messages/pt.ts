@@ -1188,6 +1188,17 @@ export const pt: Record<MessageKey, string> = {
   'auctions.winningBannerBody': 'O seu lance de {amount} é atualmente o mais alto.',
   'auctions.winningBannerLabel': 'O seu lance',
 
+  'auctions.mobilePairingThanksHeadline': 'Grazie per aver usato la funzione!',
+  'auctions.mobilePairingThanksSub': 'La tua foto è stata caricata con successo. Puoi chiudere questa pagina o tornare alla home.',
+  'auctions.mobilePairingGoHome': 'Torna alla Home',
+  'auctions.mobilePairingRetry': 'Riprova',
+  'auctions.mobilePairingRetryAttempt': 'Tentativo {attempt} di {max}',
+  'auctions.mobilePairingRetryExhausted': 'Troppi tentativi falliti. Riprova tra poco.',
+  'auctions.mobilePairingReloadPage': 'Ricarica pagina',
+  'auctions.mobilePairingChangePhoto': 'Cambia foto',
+  'auctions.mobilePairingCropZoomPinchHint': 'Pizzica per zoomare',
+  'auctions.mobilePairingCropFreeHint': 'Ritaglia liberamente',
+
   'legal.lastUpdated': 'Última atualização:',
   'legal.cookie.title': 'Política de cookies',
   'legal.privacy.title': 'Política de privacidade',
