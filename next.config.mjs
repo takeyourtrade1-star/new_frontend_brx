@@ -84,6 +84,7 @@ const nextConfig = {
   async rewrites() {
     const searchApiUrl = process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL || 'http://localhost:8000';
     const syncApiUrl = (process.env.SYNC_API_URL || process.env.NEXT_PUBLIC_SYNC_API_URL || process.env.VITE_SYNC_API_URL || 'https://sync.ebartex.com').replace(/\/+$/, '');
+    const brxMatchUrl = (process.env.BRX_MATCH_API_URL || 'http://15.160.8.178:8005').replace(/\/+$/, '');
 
     return [
       // Favicon: evita 404 su /favicon.ico servendo logo-pwa.svg
@@ -97,6 +98,11 @@ const nextConfig = {
       {
         source: '/api/sync/:path*',
         destination: `${syncApiUrl}/api/v1/sync/:path*`,
+      },
+      // Proxy per BRX Match (scanner MTG): /brx-match/* → EC2 dedicata (imposta BRX_MATCH_API_URL su Amplify)
+      {
+        source: '/brx-match/:path*',
+        destination: `${brxMatchUrl}/brx-match/:path*`,
       },
     ];
   },
