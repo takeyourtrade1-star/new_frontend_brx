@@ -63,10 +63,10 @@ export function HamburgerMenu() {
 
   const navItems = useMemo(
     () => [
-      { label: 'Test Scanner', href: '/test-scanner', icon: ScanLine },
-      { label: t('nav.advancedSinglesSearch') ?? 'Ricerca avanzata singole', href: '/search/advanced', icon: Search },
-      { label: t('nav.userSearch'), href: '/search/user', icon: Users },
-      { label: 'Tornei Live', href: '/tornei-live', icon: Trophy },
+      { label: t('nav.cameraMatch') ?? 'CameraMatch', href: '/scanner', icon: ScanLine, badge: 'NEW' },
+      { label: t('nav.advancedSinglesSearch') ?? 'Ricerca avanzata singole', href: '/search/advanced', icon: Search, badge: undefined },
+      { label: t('nav.userSearch'), href: '/search/user', icon: Users, badge: undefined },
+      { label: 'Tornei Live', href: '/tornei-live', icon: Trophy, badge: undefined },
     ],
     [t]
   );
@@ -473,15 +473,33 @@ export function HamburgerMenu() {
           {/* Nav items */}
           {navItems.map((item) => {
             const IconComponent = item.icon;
+            const isCameraMatch = item.href === '/scanner';
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className={navLinkClass}
+                className={cn(
+                  navLinkClass,
+                  isCameraMatch && 'font-medium text-[#1D3160] hover:bg-blue-50'
+                )}
               >
-                <IconComponent className="h-6 w-6 shrink-0 text-gray-400" strokeWidth={1.5} aria-hidden />
-                {item.label}
+                <IconComponent
+                  className={cn(
+                    'h-6 w-6 shrink-0',
+                    isCameraMatch ? 'text-[#1D3160]' : 'text-gray-400'
+                  )}
+                  strokeWidth={1.5}
+                  aria-hidden
+                />
+                <span className="flex flex-1 items-center gap-2">
+                  {item.label}
+                  {item.badge && (
+                    <span className="rounded-full bg-[#1D3160] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                      {item.badge}
+                    </span>
+                  )}
+                </span>
               </Link>
             );
           })}

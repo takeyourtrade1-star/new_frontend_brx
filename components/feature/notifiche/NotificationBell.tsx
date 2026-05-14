@@ -144,6 +144,15 @@ export function NotificationBell() {
             <div className="flex items-center justify-center px-4 py-8">
               <Loader2 className="h-5 w-5 animate-spin text-[#FF7300]" aria-hidden />
             </div>
+          ) : listQuery.isError ? (
+            <div className="px-4 py-8 text-center text-sm text-red-600">
+              {listQuery.error &&
+              typeof listQuery.error === 'object' &&
+              'status' in listQuery.error &&
+              (listQuery.error as { status: number }).status === 401
+                ? 'Sessione non valida o scaduta. Effettua di nuovo l\'accesso.'
+                : 'Impossibile caricare le notifiche. Riprova più tardi.'}
+            </div>
           ) : items.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-gray-500">
               Nessuna notifica.

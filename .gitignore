@@ -42,6 +42,9 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Editor scratch (e.g. accidental paste files)
+lib/i18n/messages/Untitled-*.txt
+
 # IDE
 .idea
 .qwen/

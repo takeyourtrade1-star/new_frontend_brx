@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Check, ChevronDown, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
+import { ChevronDown, Eye, EyeOff, LogIn, LogOut, ScanLine } from 'lucide-react';
 import { HamburgerMenu } from './HamburgerMenu';
 import { CartDropdown } from './CartDropdown';
 import { NotificationBell } from '@/components/feature/notifiche/NotificationBell';
@@ -37,7 +37,6 @@ const AUTH_INPUT_WIDTH = 'w-36';
 const inputBase =
   'rounded-full px-4 text-sm font-normal font-sans text-[#0F172A] placeholder:text-gray-500 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 border';
 
-const FLASH_DURATION_MS = 4500;
 const ORANGE_GLASS_MENU_CLASS =
   'absolute left-1/2 top-full z-[110] mt-1.5 min-w-[200px] -translate-x-1/2 rounded-2xl border border-primary/45 bg-primary/30 px-4 py-3 text-white backdrop-blur-2xl backdrop-saturate-150 shadow-2xl ring-1 ring-white/20 animate-orange-menu-enter';
 const ORANGE_GLASS_DIVIDER_CLASS = 'my-1 h-px bg-white/45';
@@ -62,15 +61,10 @@ export function TopBar() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const authLoading = useAuthStore((s) => s.isLoading);
   const fetchUser = useAuthStore((s) => s.fetchUser);
-  const flashMessage = useAuthStore((s) => s.flashMessage);
   const setFlashMessage = useAuthStore((s) => s.setFlashMessage);
+  const setAuthError = useAuthStore((s) => s.setAuthError);
   const logout = useAuthStore((s) => s.logout);
   const loginMutation = useLogin();
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const lastFlashRef = useRef<string | null>(null);
-  const [toastExiting, setToastExiting] = useState(false);
-  const lastErrorRef = useRef<string | null>(null);
-  const [errorExiting, setErrorExiting] = useState(false);
 
   const intlLocale = LOCALE_TO_INTL[locale as UiLocale] ?? 'it-IT';
   const formatEuro = (n: number) => formatEuroNoSpace(n, intlLocale);
@@ -86,7 +80,7 @@ export function TopBar() {
   });
 
   const onHeaderLogin = async (data: HeaderLoginValues) => {
-    setLoginError(null);
+    setAuthError(null);
     setFlashMessage(null);
     
     try {
@@ -118,65 +112,11 @@ export function TopBar() {
       // L'header si aggiornerà automaticamente perché isAuthenticated e user cambiano nello store
     } catch (err: any) {
       console.error('[TopBar] Login error:', err);
-      // Pulisci il flash message in caso di errore
       setFlashMessage(null);
-      
-      // Usa parseAuthError per normalizzare l'errore
       const parsed = parseAuthError(err);
-      setLoginError(parsed.message);
+      setAuthError(parsed.message);
     }
   };
-
-  useEffect(() => {
-    if (flashMessage) {
-      lastFlashRef.current = flashMessage;
-      setToastExiting(false);
-    } else if (lastFlashRef.current != null) {
-      setToastExiting(true);
-    }
-  }, [flashMessage]);
-
-  useEffect(() => {
-    if (!flashMessage) return;
-    const t = setTimeout(() => setFlashMessage(null), FLASH_DURATION_MS);
-    return () => clearTimeout(t);
-  }, [flashMessage, setFlashMessage]);
-
-  useEffect(() => {
-    if (!toastExiting) return;
-    const t = setTimeout(() => {
-      setToastExiting(false);
-      lastFlashRef.current = null;
-    }, 320);
-    return () => clearTimeout(t);
-  }, [toastExiting]);
-
-  useEffect(() => {
-    if (loginError) {
-      lastErrorRef.current = loginError;
-      setErrorExiting(false);
-    } else if (lastErrorRef.current != null) {
-      setErrorExiting(true);
-    }
-  }, [loginError]);
-
-  useEffect(() => {
-    if (!errorExiting) return;
-    const t = setTimeout(() => {
-      setErrorExiting(false);
-      lastErrorRef.current = null;
-    }, 320);
-    return () => clearTimeout(t);
-  }, [errorExiting]);
-
-  useEffect(() => {
-    if (!loginError) return;
-    // Auto-rimuovi il messaggio di errore dopo 5 secondi
-    const t = setTimeout(() => {
-      setLoginError(null);
-    }, 5000);
-    return () => clearTimeout(t);
-  }, [loginError]);
 
   /** Sessione attiva ma profilo non in store: recupera /me (race dopo login o persist tardivo) */
   useEffect(() => {
@@ -239,60 +179,6 @@ export function TopBar() {
 
   return (
     <>
-      <style>{`
-        @keyframes toast-spring-in {
-          0% { transform: translate(-50%, -150%) scale(0.9); opacity: 0; }
-          50% { transform: translate(-50%, 10%) scale(1.02); opacity: 1; }
-          100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
-        }
-        @keyframes toast-spring-out {
-          0% { transform: translate(-50%, 0) scale(1); opacity: 1; }
-          100% { transform: translate(-50%, -150%) scale(0.9); opacity: 0; }
-        }
-        .toast-spring-enter {
-          animation: toast-spring-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-        .toast-spring-exit {
-          animation: toast-spring-out 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
-        }
-      `}</style>
-
-      {/* Toast successo: Premium Glassmorphism Colorato */}
-      {(flashMessage || toastExiting) && (
-        <div
-          className={cn(
-            'fixed left-1/2 top-6 z-[110] flex items-center gap-2 sm:gap-3 rounded-full border bg-emerald-50/90 px-3 sm:px-5 py-2 sm:py-3 backdrop-blur-2xl backdrop-saturate-150',
-            'border-emerald-500/20 shadow-[0_8px_30px_-4px_rgba(16,185,129,0.3)] max-w-[90vw]',
-            toastExiting ? 'toast-spring-exit' : 'toast-spring-enter'
-          )}
-          role="status"
-          aria-live="polite"
-        >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[inset_0_-2px_4px_rgba(0,0,0,0.2)]">
-            <Check className="h-4 w-4" strokeWidth={3} aria-hidden />
-          </div>
-          <span className="text-xs sm:text-sm font-semibold text-emerald-900 truncate">{flashMessage ?? lastFlashRef.current}</span>
-        </div>
-      )}
-
-      {/* Toast errore: Premium Glassmorphism Colorato */}
-      {(loginError || errorExiting) && (
-        <div
-          className={cn(
-            'fixed left-1/2 top-6 z-[110] flex items-center gap-2 sm:gap-3 rounded-full border bg-red-50/90 px-3 sm:px-5 py-2 sm:py-3 backdrop-blur-2xl backdrop-saturate-150',
-            'border-red-500/20 shadow-[0_8px_30px_-4px_rgba(239,68,68,0.3)] max-w-[90vw]',
-            errorExiting ? 'toast-spring-exit' : 'toast-spring-enter'
-          )}
-          role="alert"
-          aria-live="assertive"
-        >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500 text-white shadow-[inset_0_-2px_4px_rgba(0,0,0,0.2)]">
-            <AlertCircle className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-          </div>
-          <span className="text-xs sm:text-sm font-semibold text-red-900 truncate">{loginError ?? lastErrorRef.current}</span>
-        </div>
-      )}
-
       <div className="flex w-full min-h-0 items-center gap-0 px-2 py-0.5 md:px-3">
         {/* Left: Logo + selettore gioco — su mobile logo più grande */}
         <div className="flex min-w-0 items-center gap-2 sm:gap-3 shrink-0">
@@ -487,6 +373,22 @@ export function TopBar() {
                 <Link href="/login">{t('auth.registerUpper')}</Link>
               </Button>
             </div>
+            {/* CameraMatch — desktop, non-auth */}
+            <Link
+              href="/scanner"
+              className="ml-2 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:flex"
+              aria-label={t('nav.cameraMatchAria')}
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5" aria-hidden>
+                <ScanLine className="h-[0.9rem] w-[0.9rem]" stroke="#FF7300" strokeWidth={2} />
+              </span>
+              <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
+                {t('nav.cameraMatch')}
+              </span>
+              <span className="hidden rounded-full bg-[#FF7300] px-1 py-px text-[8px] font-bold uppercase leading-none tracking-wide text-white md:inline">
+                NEW
+              </span>
+            </Link>
             </>
           ) : isAuthenticated ? (
             <>
@@ -940,6 +842,26 @@ export function TopBar() {
               </Link>
 
 
+
+              {/* CameraMatch — desktop only */}
+              <Link
+                href="/scanner"
+                className="order-4 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex"
+                aria-label={t('nav.cameraMatchAria')}
+              >
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5"
+                  aria-hidden
+                >
+                  <ScanLine className="h-[0.9rem] w-[0.9rem]" stroke="#FF7300" strokeWidth={2} />
+                </span>
+                <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
+                  {t('nav.cameraMatch')}
+                </span>
+                <span className="hidden rounded-full bg-[#FF7300] px-1 py-px text-[8px] font-bold uppercase leading-none tracking-wide text-white md:inline">
+                  NEW
+                </span>
+              </Link>
 
               {/* Notifiche: bell con badge unread, ordine subito prima del carrello */}
               <div className="order-4 hidden md:flex md:order-5">

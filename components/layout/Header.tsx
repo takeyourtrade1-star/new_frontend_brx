@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { TopBar } from './TopBar';
 import { ProdottiMenu } from './ProdottiMenu';
 import { DemoBanner } from './DemoBanner';
+import { AuthToast } from './AuthToast';
 
 // Import dinamico (ssr:false) per togliere react-instantsearch / instant-meilisearch
 // dal bundle iniziale. Il fallback replica ESATTAMENTE le classi del wrapper più
@@ -77,6 +78,8 @@ export function Header({
         </div>
       </div>
       </header>
+      {/* Auth toast: appare subito sotto l'header, non sovrapposto al contenuto */}
+      <AuthToast headerHeight={headerHeight} />
       {/* Spacer per compensare l'header fixed */}
       {reserveSpace && headerHeight > 0 ? <div style={{ height: headerHeight }} aria-hidden /> : null}
     </>

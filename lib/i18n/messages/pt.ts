@@ -12,6 +12,8 @@ export const pt: Record<MessageKey, string> = {
 
   'nav.userSearch': 'Pesquisa de utilizadores',
   'nav.advancedSinglesSearch': 'Pesquisa avançada de cartas avulsas',
+  'nav.cameraMatch': 'CameraMatch',
+  'nav.cameraMatchAria': 'Escanear uma carta com a câmera',
   'nav.legalNorms': 'Normas legais',
   'nav.legalTerms': 'Condições legais',
 

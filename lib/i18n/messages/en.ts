@@ -13,6 +13,8 @@ export const en = {
 
   'nav.userSearch': 'User search',
   'nav.advancedSinglesSearch': 'Advanced singles search',
+  'nav.cameraMatch': 'CameraMatch',
+  'nav.cameraMatchAria': 'Scan a card with camera',
   'nav.legalNorms': 'Legal rules',
   'nav.legalTerms': 'Terms of use',
 

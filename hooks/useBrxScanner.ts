@@ -41,20 +41,26 @@ export interface UseBrxScannerOptions {
   onError?: (message: string) => void;
   /** Confidence threshold above which onMatch is fired (default 0.85). */
   confidenceThreshold?: number;
-  /** Interval between frame submissions in ms (default 800). */
+  /** Interval between frame submissions in ms (default 1000). */
   captureIntervalMs?: number;
   /** Base URL of the brx-match API (default: /brx-match). */
   apiBaseUrl?: string;
+  /** Seconds to count down after a match before auto-redirect (default 3). */
+  countdownSeconds?: number;
 }
 
 export interface UseBrxScannerReturn {
   state: ScannerState;
   result: ScanResult | null;
   errorMessage: string | null;
+  /** Countdown seconds remaining after a match (counts down from countdownSeconds). */
+  countdown: number;
   videoRef: React.RefObject<HTMLVideoElement>;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   openCamera: () => Promise<void>;
   stopScanning: () => void;
+  /** Dismiss current match and resume scanning (for "Not this card" flow). */
+  restartScanning: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -67,18 +73,21 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     onNoMatch,
     onError,
     confidenceThreshold = 0.85,
-    captureIntervalMs = 800,
+    captureIntervalMs = 1000,
     apiBaseUrl = '/brx-match',
+    countdownSeconds = 3,
   } = options;
 
   const [state, setState] = useState<ScannerState>('idle');
   const [result, setResult] = useState<ScanResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const processingRef = useRef(false);
 
   // ------------------------------------------------------------------
@@ -90,6 +99,10 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -98,14 +111,11 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       videoRef.current.srcObject = null;
     }
     processingRef.current = false;
+    setCountdown(0);
     setState('idle');
   }, []);
 
-  useEffect(() => {
-    return () => {
-      stopScanning();
-    };
-  }, [stopScanning]);
+  useEffect(() => () => stopScanning(), [stopScanning]);
 
   // ------------------------------------------------------------------
   // Frame capture → JPEG bytes
@@ -189,6 +199,22 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
           intervalRef.current = null;
         }
 
+        // Start countdown
+        setCountdown(countdownSeconds);
+        if (countdownRef.current) clearInterval(countdownRef.current);
+        countdownRef.current = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              if (countdownRef.current) {
+                clearInterval(countdownRef.current);
+                countdownRef.current = null;
+              }
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+
         onMatch?.(scanResult);
       } else {
         setState('scanning');
@@ -248,13 +274,34 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     }, captureIntervalMs);
   }, [captureIntervalMs, onError, sendFrame]);
 
+  /** Dismiss the current match result and resume the scanning loop. */
+  const restartScanning = useCallback(() => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    setCountdown(0);
+    setResult(null);
+    setState('scanning');
+    processingRef.current = false;
+
+    // Re-start capture interval if stream is alive
+    if (streamRef.current && !intervalRef.current) {
+      intervalRef.current = setInterval(() => {
+        sendFrame();
+      }, captureIntervalMs);
+    }
+  }, [captureIntervalMs, sendFrame]);
+
   return {
     state,
     result,
     errorMessage,
+    countdown,
     videoRef,
     canvasRef,
     openCamera,
     stopScanning,
+    restartScanning,
   };
 }

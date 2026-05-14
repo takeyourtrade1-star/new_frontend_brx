@@ -77,6 +77,8 @@ interface AuthState {
   mfaRequired: boolean;
   /** Messaggio one-time (es. "Login avvenuto con successo"); non persistito. */
   flashMessage: string | null;
+  /** Errore di autenticazione one-time (es. "Password errata"); non persistito. */
+  authError: string | null;
   /** Errori per campo dalla registrazione (422); usato solo dai form di registrazione. */
   registrationFieldErrors: Record<string, string> | null;
   /** True se la sessione è scaduta lato server (usato per mostrare banner senza redirect). */
@@ -97,6 +99,7 @@ interface AuthState {
   setToken: (accessToken: string, refreshToken?: string) => void;
   clearError: () => void;
   setFlashMessage: (message: string | null) => void;
+  setAuthError: (message: string | null) => void;
   initializeAuth: () => Promise<void>;
   fetchUser: () => Promise<User | null>;
   handleSessionExpired: () => void;
@@ -120,6 +123,7 @@ export const useAuthStore = create<AuthState>()(
       preAuthToken: null,
       mfaRequired: false,
       flashMessage: null,
+      authError: null,
       registrationFieldErrors: null,
       sessionExpired: false,
 
@@ -597,7 +601,8 @@ export const useAuthStore = create<AuthState>()(
           error: null,
           mfaRequired: false,
           preAuthToken: null,
-          flashMessage: null,
+          authError: null,
+          flashMessage: 'Disconnessione avvenuta con successo',
         });
       },
 
@@ -673,6 +678,11 @@ export const useAuthStore = create<AuthState>()(
       // Set flash message
       setFlashMessage: (message) => {
         set({ flashMessage: message });
+      },
+
+      // Set auth error message
+      setAuthError: (message) => {
+        set({ authError: message });
       },
       // Gestione scadenza sessione (es. 401 globali)
       handleSessionExpired: () => {

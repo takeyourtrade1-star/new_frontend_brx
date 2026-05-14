@@ -28,6 +28,35 @@ const KEYS = {
   unread: ['notifications', 'unread-count'] as const,
 };
 
+/** Thrown by ``notifications-client`` on HTTP errors (see ``err.status``). */
+function isHttp401Error(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    (error as { status: number }).status === 401
+  );
+}
+
+/** Avoid RQ default retries + interval polling hammering the BFF when auth is gone. */
+function notificationsRetry(failureCount: number, error: unknown): boolean {
+  if (isHttp401Error(error)) return false;
+  return failureCount < 3;
+}
+
+/** Narrow shape so refetch callbacks stay compatible with every query generic. */
+type QueryWithErrorState = { state: { error: unknown } };
+
+function notificationsRefetchInterval(query: QueryWithErrorState): number | false {
+  if (query.state.error && isHttp401Error(query.state.error)) return false;
+  return 30_000;
+}
+
+function notificationsRefetchOnWindowFocus(query: QueryWithErrorState): boolean {
+  if (query.state.error && isHttp401Error(query.state.error)) return false;
+  return true;
+}
+
 export function useNotificationList(
   params?: NotificationListParams,
   options?: Partial<UseQueryOptions<NotificationListResponse>>,
@@ -36,7 +65,9 @@ export function useNotificationList(
     queryKey: KEYS.list(params),
     queryFn: () => notificationsApi.list(params),
     staleTime: 10_000,
-    refetchInterval: 30_000,
+    refetchInterval: notificationsRefetchInterval,
+    retry: notificationsRetry,
+    refetchOnWindowFocus: notificationsRefetchOnWindowFocus,
     ...options,
   });
 }
@@ -48,7 +79,9 @@ export function useUnreadNotificationsCount(
     queryKey: KEYS.unread,
     queryFn: () => notificationsApi.unreadCount(),
     staleTime: 15_000,
-    refetchInterval: 30_000,
+    refetchInterval: notificationsRefetchInterval,
+    retry: notificationsRetry,
+    refetchOnWindowFocus: notificationsRefetchOnWindowFocus,
     ...options,
   });
 }
