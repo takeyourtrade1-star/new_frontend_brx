@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getForwardedAuthorization } from '@/app/api/_lib/forwarded-authorization';
+import { createUpstreamUrl } from '@/app/api/_lib/upstream-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,12 +19,17 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     );
   }
 
-  const path = pathSegments.join('/');
-  const targetPath = `/orders${path ? `/${path}` : ''}`;
-  const url = new URL(targetPath, AUCTION_API_URL);
-  request.nextUrl.searchParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
+  let url: URL;
+  try {
+    url = createUpstreamUrl(
+      AUCTION_API_URL,
+      '/orders',
+      pathSegments,
+      request.nextUrl.searchParams
+    );
+  } catch {
+    return NextResponse.json({ detail: 'Invalid path' }, { status: 400 });
+  }
 
   const auth = getForwardedAuthorization(request);
   const headers: Record<string, string> = {

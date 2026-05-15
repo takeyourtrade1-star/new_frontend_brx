@@ -8,6 +8,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { createUpstreamUrl } from '@/app/api/_lib/upstream-url';
+
 export const dynamic = 'force-dynamic';
 
 const AUTH_API_URL = (
@@ -96,13 +98,20 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     );
   }
 
-  const path = pathSegments.join('/');
-  const targetPath = `/api/auth${path ? `/${path}` : ''}`;
-  const url = new URL(targetPath, AUTH_API_URL);
-  
-  request.nextUrl.searchParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
+  let url: URL;
+  try {
+    url = createUpstreamUrl(
+      AUTH_API_URL,
+      '/api/auth',
+      pathSegments,
+      request.nextUrl.searchParams
+    );
+  } catch {
+    return NextResponse.json(
+      { detail: 'Not found' },
+      { status: 404 }
+    );
+  }
 
   const auth = request.headers.get('authorization') || request.headers.get('Authorization');
   const headers: Record<string, string> = {
