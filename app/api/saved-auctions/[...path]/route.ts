@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { createUpstreamUrl } from '@/app/api/_lib/upstream-url';
+
 export const dynamic = 'force-dynamic';
 
 const AUCTION_API_URL = (
@@ -16,12 +18,17 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     );
   }
 
-  const path = pathSegments.join('/');
-  const targetPath = `/saved-auctions${path ? `/${path}` : ''}`;
-  const url = new URL(targetPath, AUCTION_API_URL);
-  request.nextUrl.searchParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
+  let url: URL;
+  try {
+    url = createUpstreamUrl(
+      AUCTION_API_URL,
+      '/saved-auctions',
+      pathSegments,
+      request.nextUrl.searchParams
+    );
+  } catch {
+    return NextResponse.json({ detail: 'Invalid path' }, { status: 400 });
+  }
 
   const auth =
     request.headers.get('authorization') ||

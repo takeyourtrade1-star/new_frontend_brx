@@ -6,6 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { createUpstreamUrl } from '@/app/api/_lib/upstream-url';
+
 function getSyncApiUrl(): string {
   const url =
     process.env.SYNC_API_URL ||
@@ -24,13 +26,17 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     );
   }
 
-  const path = pathSegments.join('/');
-  const targetPath = `/api/v1/sync${path ? `/${path}` : ''}`;
-  const url = new URL(targetPath, SYNC_API_URL);
-  // Forward query string (e.g. ?force=true)
-  request.nextUrl.searchParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
+  let url: URL;
+  try {
+    url = createUpstreamUrl(
+      SYNC_API_URL,
+      '/api/v1/sync',
+      pathSegments,
+      request.nextUrl.searchParams
+    );
+  } catch {
+    return NextResponse.json({ detail: 'Invalid path' }, { status: 400 });
+  }
 
   // Case-insensitive: some runtimes normalize to lowercase
   const auth =
