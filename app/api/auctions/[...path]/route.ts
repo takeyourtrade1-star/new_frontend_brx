@@ -6,6 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { createUpstreamUrl } from '@/app/api/_lib/upstream-url';
+
 export const dynamic = 'force-dynamic';
 
 const AUCTION_API_URL = (
@@ -22,13 +24,17 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     );
   }
 
-  const path = pathSegments.join('/');
-  const targetPath = `/auctions${path ? `/${path}` : ''}`;
-  const url = new URL(targetPath, AUCTION_API_URL);
-
-  request.nextUrl.searchParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
+  let url: URL;
+  try {
+    url = createUpstreamUrl(
+      AUCTION_API_URL,
+      '/auctions',
+      pathSegments,
+      request.nextUrl.searchParams
+    );
+  } catch {
+    return NextResponse.json({ detail: 'Invalid path' }, { status: 400 });
+  }
 
   const auth =
     request.headers.get('authorization') ||
@@ -39,12 +45,16 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   const requestId =
     request.headers.get('x-request-id') ||
     request.headers.get('X-Request-ID');
+  const pairingUploadToken =
+    request.headers.get('x-pairing-upload-token') ||
+    request.headers.get('X-Pairing-Upload-Token');
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
     ...(auth ? { Authorization: auth } : {}),
     ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     ...(requestId ? { 'X-Request-ID': requestId } : {}),
+    ...(pairingUploadToken ? { 'X-Pairing-Upload-Token': pairingUploadToken } : {}),
   };
 
   let body: string | undefined;
