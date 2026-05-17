@@ -6,6 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getForwardedAuthorization } from '@/app/api/_lib/forwarded-authorization';
+
 export const dynamic = 'force-dynamic';
 
 const AUCTION_API_URL = (
@@ -28,9 +30,7 @@ async function proxy(request: NextRequest) {
     url.searchParams.set(key, value);
   });
 
-  const auth =
-    request.headers.get('authorization') ||
-    request.headers.get('Authorization');
+  const auth = getForwardedAuthorization(request);
   const idempotencyKey =
     request.headers.get('idempotency-key') ||
     request.headers.get('Idempotency-Key');

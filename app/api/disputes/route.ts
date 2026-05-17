@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getForwardedAuthorization } from '@/app/api/_lib/forwarded-authorization';
+
 export const dynamic = 'force-dynamic';
 
 const AUCTION_API_URL = (
@@ -14,7 +16,7 @@ export async function GET(request: NextRequest) {
   }
   const url = new URL('/disputes', AUCTION_API_URL);
   request.nextUrl.searchParams.forEach((value, key) => url.searchParams.set(key, value));
-  const auth = request.headers.get('authorization') || request.headers.get('Authorization');
+  const auth = getForwardedAuthorization(request);
   try {
     const res = await fetch(url.toString(), {
       headers: {
