@@ -6,6 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getForwardedAuthorization } from '@/app/api/_lib/forwarded-authorization';
+
 function getSyncApiUrl(): string {
   const url =
     process.env.SYNC_API_URL ||
@@ -32,10 +34,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     url.searchParams.set(key, value);
   });
 
-  // Case-insensitive: some runtimes normalize to lowercase
-  const auth =
-    request.headers.get('authorization') ||
-    request.headers.get('Authorization');
+  const auth = getForwardedAuthorization(request);
   if (!auth?.startsWith('Bearer ')) {
     return NextResponse.json(
       { detail: 'Authorization header required (Bearer token)' },
