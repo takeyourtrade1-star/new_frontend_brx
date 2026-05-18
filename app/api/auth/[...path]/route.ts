@@ -38,15 +38,23 @@ const ALLOWED_AUTH_PATHS = [
   'password/reset/confirm',
   'verify-email',
   'resend-verification',
-  'users',
 ];
 
 const AUTH_COOKIE_NAME = 'ebartex_access_token';
 const DEFAULT_ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24; // 24h
 
-function isAllowedPath(segments: string[]): boolean {
+function isPublicUsersPath(segments: string[], method: string): boolean {
+  if (segments[0] !== 'users') return false;
+  if (method !== 'GET' && method !== 'HEAD') return false;
+  if (segments.length !== 2) return false;
+
+  const leaf = segments[1];
+  return leaf === 'public' || leaf === 'search' || leaf.length > 0;
+}
+
+function isAllowedPath(segments: string[], method: string): boolean {
   const joined = segments.join('/');
-  return ALLOWED_AUTH_PATHS.some(
+  return isPublicUsersPath(segments, method) || ALLOWED_AUTH_PATHS.some(
     (allowed) => joined === allowed || joined.startsWith(`${allowed}/`) || joined.startsWith(`${allowed}?`)
   );
 }
@@ -89,7 +97,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     );
   }
 
-  if (!isAllowedPath(pathSegments)) {
+  if (!isAllowedPath(pathSegments, request.method)) {
     return NextResponse.json(
       { detail: 'Not found' },
       { status: 404 }
@@ -110,10 +118,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     'Content-Type': 'application/json',
     ...(auth ? { Authorization: auth } : {}),
   };
-  const isInternalUsersPath =
-    pathSegments[0] === 'users' ||
-    (pathSegments.length > 1 && pathSegments[0] === 'users');
-  if (isInternalUsersPath && INTERNAL_AUTH_USERS_TOKEN) {
+  if (isPublicUsersPath(pathSegments, request.method) && INTERNAL_AUTH_USERS_TOKEN) {
     headers['X-Internal-Token'] = INTERNAL_AUTH_USERS_TOKEN;
   }
 
@@ -127,7 +132,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    console.log('[auth proxy] Forwarding', request.method, '→', url.toString());
+    console.log('[auth proxy] Forwarding', request.method, '->', url.pathname);
 
     const res = await fetch(url.toString(), {
       method: request.method,
@@ -181,7 +186,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     });
     
   } catch (err) {
-    console.error('[auth proxy] Error forwarding to', url?.toString(), ':', err instanceof Error ? err.message : err);
+    console.error('[auth proxy] Error forwarding to', url.pathname, ':', err instanceof Error ? err.message : err);
     return NextResponse.json(
       { detail: err instanceof DOMException && err.name === 'AbortError' ? 'Request timed out' : (err instanceof Error ? err.message : 'Proxy request failed') },
       { status: 502 }
