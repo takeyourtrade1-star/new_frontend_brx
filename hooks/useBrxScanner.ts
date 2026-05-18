@@ -37,16 +37,17 @@ export interface UseBrxScannerOptions {
   onNoMatch?: () => void;
   onError?: (message: string) => void;
   confidenceThreshold?: number;
-  /** Interval between frame capture attempts in ms (default 450). */
+  /** Hint shown on screen before full match commit (default 0.68). */
+  hintConfidenceMin?: number;
   captureIntervalMs?: number;
   apiBaseUrl?: string;
   countdownSeconds?: number;
   requestTimeoutMs?: number;
-  /** API mode: auto skips ORB when CNN is confident (fastest balanced path). */
+  /** fast = CNN only (live scan); auto = server may skip ORB when confident. */
   scanMode?: 'auto' | 'fast' | 'full';
-  /** Same card name in N of last M provisional hits → commit match. */
   voteWindow?: number;
   voteRequired?: number;
+  maxInflight?: number;
 }
 
 export interface DebugInfo {
@@ -55,11 +56,15 @@ export interface DebugInfo {
   lastLatencyMs: number;
   lastError: string | null;
   lastOutcome: 'matched' | 'not_matched' | 'pending' | null;
+  lastMethod: string | null;
 }
 
 export interface UseBrxScannerReturn {
   state: ScannerState;
   result: ScanResult | null;
+  /** Live guess while scanning (before match commit). */
+  hint: ScanResult | null;
+  isBusy: boolean;
   errorMessage: string | null;
   countdown: number;
   debug: DebugInfo;
@@ -70,27 +75,29 @@ export interface UseBrxScannerReturn {
   restartScanning: () => void;
 }
 
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
+const HINT_STALE_MS = 1200;
 
 export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScannerReturn {
   const {
     onMatch,
     onNoMatch,
     onError,
-    confidenceThreshold = 0.8,
-    captureIntervalMs = 450,
+    confidenceThreshold = 0.78,
+    hintConfidenceMin = 0.68,
+    captureIntervalMs = 320,
     apiBaseUrl = '/brx-match',
     countdownSeconds = 3,
-    requestTimeoutMs = 5000,
-    scanMode = 'auto',
-    voteWindow = 4,
+    requestTimeoutMs = 4500,
+    scanMode = 'fast',
+    voteWindow = 3,
     voteRequired = 2,
+    maxInflight = 3,
   } = options;
 
   const [state, setState] = useState<ScannerState>('idle');
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [hint, setHint] = useState<ScanResult | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
   const [debug, setDebug] = useState<DebugInfo>({
@@ -99,6 +106,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     lastLatencyMs: -1,
     lastError: null,
     lastOutcome: null,
+    lastMethod: null,
   });
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -109,6 +117,26 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const inflightRef = useRef(0);
   const recentNamesRef = useRef<string[]>([]);
   const matchedRef = useRef(false);
+  const hintStaleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const syncBusy = useCallback((n: number) => {
+    inflightRef.current = n;
+    setIsBusy(n > 0);
+  }, []);
+
+  const clearHintStale = useCallback(() => {
+    if (hintStaleRef.current) {
+      clearTimeout(hintStaleRef.current);
+      hintStaleRef.current = null;
+    }
+  }, []);
+
+  const scheduleHintStale = useCallback(() => {
+    clearHintStale();
+    hintStaleRef.current = setTimeout(() => {
+      if (!matchedRef.current) setHint(null);
+    }, HINT_STALE_MS);
+  }, [clearHintStale]);
 
   const stopScanning = useCallback(() => {
     if (intervalRef.current) {
@@ -119,6 +147,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       clearInterval(countdownRef.current);
       countdownRef.current = null;
     }
+    clearHintStale();
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -126,12 +155,13 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-    inflightRef.current = 0;
+    syncBusy(0);
     matchedRef.current = false;
     recentNamesRef.current = [];
+    setHint(null);
     setCountdown(0);
     setState('idle');
-  }, []);
+  }, [clearHintStale, syncBusy]);
 
   useEffect(() => () => stopScanning(), [stopScanning]);
 
@@ -144,7 +174,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
         return;
       }
 
-      const W = 512;
+      const W = 384;
       const H = Math.round(W * (video.videoHeight / Math.max(video.videoWidth, 1)));
       canvas.width = W;
       canvas.height = H;
@@ -156,7 +186,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       }
 
       ctx.drawImage(video, 0, 0, W, H);
-      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.72);
+      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.68);
     });
   }, []);
 
@@ -164,6 +194,8 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     (scanResult: ScanResult) => {
       if (matchedRef.current) return;
       matchedRef.current = true;
+      clearHintStale();
+      setHint(null);
       setResult(scanResult);
       setState('matched');
 
@@ -189,7 +221,17 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
 
       onMatch?.(scanResult);
     },
-    [countdownSeconds, onMatch],
+    [clearHintStale, countdownSeconds, onMatch],
+  );
+
+  const applyHint = useCallback(
+    (scanResult: ScanResult) => {
+      if (matchedRef.current) return;
+      if (scanResult.confidence < hintConfidenceMin) return;
+      setHint(scanResult);
+      scheduleHintStale();
+    },
+    [hintConfidenceMin, scheduleHintStale],
   );
 
   const recordVote = useCallback(
@@ -200,7 +242,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       buf.push(key);
       while (buf.length > voteWindow) buf.shift();
       const hits = buf.filter((n) => n === key).length;
-      if (hits >= voteRequired && scanResult.confidence >= confidenceThreshold * 0.9) {
+      if (hits >= voteRequired && scanResult.confidence >= confidenceThreshold * 0.85) {
         commitMatch(scanResult);
       }
     },
@@ -209,17 +251,13 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
 
   const sendFrame = useCallback(async (): Promise<void> => {
     if (matchedRef.current) return;
-    if (inflightRef.current >= 2) return;
+    if (inflightRef.current >= maxInflight) return;
 
-    inflightRef.current += 1;
-    if (inflightRef.current === 1) {
-      setState((s) => (s === 'scanning' ? 'processing' : s));
-    }
+    syncBusy(inflightRef.current + 1);
 
     const blob = await captureFrame();
     if (!blob) {
-      inflightRef.current = Math.max(0, inflightRef.current - 1);
-      if (inflightRef.current === 0) setState('scanning');
+      syncBusy(Math.max(0, inflightRef.current - 1));
       return;
     }
 
@@ -250,17 +288,20 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
           lastLatencyMs: elapsed,
           lastError: text.slice(0, 120) || `HTTP ${resp.status}`,
           lastOutcome: 'not_matched',
+          lastMethod: null,
         }));
         return;
       }
 
       const data = await resp.json();
+      const method = (data.method as string) ?? 'none';
       setDebug((d) => ({
         ...d,
         lastStatus: String(resp.status),
-        lastLatencyMs: elapsed,
+        lastLatencyMs: data.latency_ms ?? elapsed,
         lastError: null,
         lastOutcome: data.matched ? 'matched' : 'not_matched',
+        lastMethod: method,
       }));
 
       const scanResult: ScanResult | null =
@@ -271,17 +312,22 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
               set_code: data.set_code ?? '',
               image_uri: data.image_uri ?? null,
               confidence: data.confidence ?? 0,
-              method: data.method ?? 'none',
+              method,
               search_url: data.search_url ?? '',
               search_query: data.search_query ?? '',
               latency_ms: data.latency_ms ?? elapsed,
             }
           : null;
 
+      if (scanResult) {
+        applyHint(scanResult);
+      }
+
       if (data.matched && scanResult && scanResult.confidence >= confidenceThreshold && scanResult.search_url) {
         commitMatch(scanResult);
-      } else if (scanResult?.card_name && data.message === 'provisional') {
+      } else if (scanResult?.card_name) {
         recordVote(scanResult.card_name, scanResult);
+        if (!data.matched) onNoMatch?.();
       } else if (!data.matched) {
         onNoMatch?.();
       }
@@ -301,29 +347,33 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
         lastLatencyMs: elapsed,
         lastError: msg,
         lastOutcome: 'not_matched',
+        lastMethod: null,
       }));
-      console.warn('[useBrxScanner] sendFrame error:', msg);
     } finally {
-      inflightRef.current = Math.max(0, inflightRef.current - 1);
-      if (inflightRef.current === 0 && !matchedRef.current) {
+      syncBusy(Math.max(0, inflightRef.current - 1));
+      if (!matchedRef.current) {
         setState('scanning');
       }
     }
   }, [
     apiBaseUrl,
+    applyHint,
     captureFrame,
     commitMatch,
     confidenceThreshold,
+    maxInflight,
     onNoMatch,
     recordVote,
     requestTimeoutMs,
     scanMode,
+    syncBusy,
   ]);
 
   const openCamera = useCallback(async (): Promise<void> => {
     setState('requesting_camera');
     setErrorMessage(null);
     setResult(null);
+    setHint(null);
     matchedRef.current = false;
     recentNamesRef.current = [];
 
@@ -366,11 +416,13 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       clearInterval(countdownRef.current);
       countdownRef.current = null;
     }
+    clearHintStale();
     setCountdown(0);
     setResult(null);
+    setHint(null);
     matchedRef.current = false;
     recentNamesRef.current = [];
-    inflightRef.current = 0;
+    syncBusy(0);
     setState('scanning');
 
     if (streamRef.current && !intervalRef.current) {
@@ -378,11 +430,13 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
         void sendFrame();
       }, captureIntervalMs);
     }
-  }, [captureIntervalMs, sendFrame]);
+  }, [captureIntervalMs, clearHintStale, sendFrame, syncBusy]);
 
   return {
     state,
     result,
+    hint,
+    isBusy,
     errorMessage,
     countdown,
     debug,

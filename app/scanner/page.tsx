@@ -220,20 +220,29 @@ function ScanAreaBlurMask() {
 // Status bar at the bottom
 // ---------------------------------------------------------------------------
 
-type StatusBarState = 'idle' | 'scanning' | 'processing' | 'matched' | 'slow';
+type StatusBarState = 'idle' | 'scanning' | 'processing' | 'matched' | 'slow' | 'hint';
 
-function StatusBar({ status }: { status: StatusBarState }) {
+function StatusBar({
+  status,
+  hintName,
+}: {
+  status: StatusBarState;
+  hintName?: string | null;
+}) {
   const messages: Record<StatusBarState, string> = {
     idle: 'Inizializzazione fotocamera…',
-    scanning: 'Punta la fotocamera verso una carta Magic',
+    scanning: 'Inquadra la carta nel riquadro',
     processing: 'Analisi in corso…',
     matched: 'Carta trovata!',
-    slow: 'Analisi in corso… (qualche secondo in più)',
+    slow: 'Analisi in corso… (rete lenta)',
+    hint: hintName ? `Riconosco: ${hintName}` : 'Riconoscimento…',
   };
 
   const dotColor =
     status === 'matched'
       ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]'
+      : status === 'hint'
+      ? 'bg-[#FF7300] shadow-[0_0_12px_rgba(255,115,0,0.7)]'
       : status === 'processing' || status === 'slow'
       ? 'bg-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.55)]'
       : 'bg-white/70';
@@ -249,7 +258,7 @@ function StatusBar({ status }: { status: StatusBarState }) {
           className={cn(
             'h-2 w-2 shrink-0 rounded-full',
             dotColor,
-            status === 'processing' || status === 'slow'
+            status === 'processing' || status === 'slow' || status === 'hint'
               ? 'animate-[pulse_1s_ease-in-out_infinite]'
               : ''
           )}
@@ -536,6 +545,39 @@ function RequestingCameraLoader() {
 // Debug overlay (mobile-friendly diagnostics — toggle with ?debug=1)
 // ---------------------------------------------------------------------------
 
+/** Live guess chip — appears before full match commit. */
+function LiveHintChip({
+  hint,
+  latencyMs,
+}: {
+  hint: { card_name: string; set_name: string; image_uri: string | null; confidence: number };
+  latencyMs: number;
+}) {
+  return (
+    <div
+      className="pointer-events-none mt-4 flex max-w-[min(92vw,20rem)] items-center gap-3 rounded-2xl border border-[#FF7300]/35 bg-[#0a0f1a]/65 px-3.5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+    >
+      {hint.image_uri ? (
+        <img
+          src={hint.image_uri}
+          alt=""
+          className="h-12 w-8 shrink-0 rounded-md object-cover ring-1 ring-white/20"
+        />
+      ) : (
+        <div className="h-12 w-8 shrink-0 rounded-md bg-white/10" aria-hidden />
+      )}
+      <div className="min-w-0 flex-1 text-left">
+        <p className="truncate text-[13px] font-semibold text-white">{hint.card_name}</p>
+        <p className="truncate text-[11px] text-white/65">{hint.set_name}</p>
+        <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-[#FF7300]/90">
+          Conferma… {Math.round(hint.confidence * 100)}%
+          {latencyMs > 0 ? ` · ${latencyMs}ms` : ''}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function DebugOverlay({ debug, state }: { debug: DebugInfo; state: string }) {
   const statusColor =
     debug.lastStatus === '200'
@@ -554,6 +596,7 @@ function DebugOverlay({ debug, state }: { debug: DebugInfo; state: string }) {
         <span>http: <b className={statusColor}>{debug.lastStatus ?? '—'}</b></span>
         <span>rtt: <b className="text-white">{debug.lastLatencyMs >= 0 ? `${debug.lastLatencyMs}ms` : '—'}</b></span>
         <span>last: <b className="text-white">{debug.lastOutcome ?? '—'}</b></span>
+        <span>method: <b className="text-white">{debug.lastMethod ?? '—'}</b></span>
       </div>
       {debug.lastError && (
         <div className="mt-1 truncate text-red-300">err: {debug.lastError}</div>
@@ -587,6 +630,8 @@ function ScannerPageInner() {
   const {
     state,
     result,
+    hint,
+    isBusy,
     countdown,
     debug,
     videoRef,
@@ -595,13 +640,13 @@ function ScannerPageInner() {
     stopScanning,
     restartScanning,
   } = useBrxScanner({
-    confidenceThreshold: 0.8,
-    captureIntervalMs: 450,
+    confidenceThreshold: 0.78,
+    captureIntervalMs: 320,
     countdownSeconds: COUNTDOWN_SECONDS,
     apiBaseUrl: '/brx-match',
-    requestTimeoutMs: 5000,
-    scanMode: 'auto',
-    voteWindow: 4,
+    requestTimeoutMs: 4500,
+    scanMode: 'fast',
+    voteWindow: 3,
     voteRequired: 2,
     onMatch: (r) => {
       if (slowTimerRef.current) {
@@ -632,10 +677,10 @@ function ScannerPageInner() {
 
   // Track slow processing (> 2s)
   useEffect(() => {
-    if (state === 'processing') {
+    if (isBusy && state === 'scanning') {
       slowTimerRef.current = setTimeout(() => {
         isSlowRef.current = true;
-      }, 2000);
+      }, 2500);
     } else {
       if (slowTimerRef.current) {
         clearTimeout(slowTimerRef.current);
@@ -643,7 +688,7 @@ function ScannerPageInner() {
       }
       isSlowRef.current = false;
     }
-  }, [state]);
+  }, [isBusy, state]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -709,7 +754,9 @@ function ScannerPageInner() {
   const statusBarState: StatusBarState =
     state === 'matched'
       ? 'matched'
-      : state === 'processing'
+      : hint
+      ? 'hint'
+      : isBusy
       ? isSlowRef.current
         ? 'slow'
         : 'processing'
@@ -718,7 +765,7 @@ function ScannerPageInner() {
       : 'idle';
 
   const bracketState: BracketState =
-    state === 'matched' ? 'matched' : state === 'scanning' || state === 'processing' ? 'scanning' : 'idle';
+    state === 'matched' ? 'matched' : hint ? 'scanning' : state === 'scanning' || isBusy ? 'scanning' : 'idle';
 
   const noCamera =
     state === 'error' &&
@@ -731,7 +778,7 @@ function ScannerPageInner() {
       style={{ height: '100svh' }}
     >
       {/* ── Top loading bar ─────────────────────────────────────────── */}
-      <TopLoadingBar active={state === 'processing'} />
+      <TopLoadingBar active={isBusy && state !== 'matched'} />
 
       <ScannerToolbar
         videoRef={videoRef}
@@ -764,7 +811,7 @@ function ScannerPageInner() {
       {state === 'error' && <CameraPermissionDenied noCamera={noCamera} />}
 
       {/* ── Scan overlay (clear center + soft blurred surroundings) ─── */}
-      {(state === 'scanning' || state === 'processing' || state === 'matched') && (
+      {(state === 'scanning' || state === 'matched') && (
         <>
           {/* Maschera blur attorno all'area di scan (centro NITIDO) */}
           <ScanAreaBlurMask />
@@ -773,17 +820,20 @@ function ScannerPageInner() {
           <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center">
             <ScanCorners bracketState={bracketState} />
 
-            {state !== 'matched' && (
+            {state !== 'matched' && !hint && (
               <p className="mt-5 max-w-[min(92vw,22rem)] text-center text-[12px] font-medium leading-relaxed text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] sm:text-[13px]">
-                {state === 'processing'
-                  ? 'Analisi in corso… tieni ferma la carta.'
-                  : 'Inquadra la carta Magic nel riquadro'}
+                Inquadra la carta Magic nel riquadro
               </p>
+            )}
+            {hint && state !== 'matched' && (
+              <LiveHintChip hint={hint} latencyMs={debug.lastLatencyMs} />
             )}
           </div>
 
           {/* Status bar */}
-          {state !== 'matched' && <StatusBar status={statusBarState} />}
+          {state !== 'matched' && (
+            <StatusBar status={statusBarState} hintName={hint?.card_name} />
+          )}
         </>
       )}
 

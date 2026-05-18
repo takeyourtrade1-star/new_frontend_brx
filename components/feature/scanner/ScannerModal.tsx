@@ -455,12 +455,12 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
     stopScanning,
     restartScanning,
   } = useBrxScanner({
-    confidenceThreshold: 0.8,
-    captureIntervalMs: 450,
+    confidenceThreshold: 0.78,
+    captureIntervalMs: 320,
     apiBaseUrl: '/brx-match',
-    requestTimeoutMs: 5000,
-    scanMode: 'auto',
-    voteWindow: 4,
+    requestTimeoutMs: 4500,
+    scanMode: 'fast',
+    voteWindow: 3,
     voteRequired: 2,
   });
 
