@@ -6,6 +6,9 @@ import {
   useRef,
   useState,
 } from 'react';
+import type * as OrtLib from 'onnxruntime-web';
+
+import { fetchAndCacheOnnxModel } from './useOnnxLoader';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -20,7 +23,8 @@ export type ScannerState =
   | 'no_match'
   | 'error';
 
-export type ScanPhase = 'idle' | 'live' | 'confirming';
+/** ONNX model load status for the edge pipeline. */
+export type ModelStatus = 'loading' | 'ready' | 'failed';
 
 export interface ScanResult {
   card_name: string;
@@ -38,38 +42,50 @@ export interface UseBrxScannerOptions {
   onMatch?: (result: ScanResult) => void;
   onNoMatch?: () => void;
   onError?: (message: string) => void;
+  /**
+   * Minimum confidence to commit a match.
+   * Floor is 0.80 — values below 0.80 are silently raised to 0.80.
+   */
   confidenceThreshold?: number;
+  /**
+   * Minimum confidence to show a hint chip.
+   * Floor is 0.72 — values below 0.72 are silently raised to 0.72.
+   * Additionally requires 2 consecutive frames with the same card name.
+   */
   hintConfidenceMin?: number;
-  instantCommitThreshold?: number;
   captureIntervalMs?: number;
   apiBaseUrl?: string;
   countdownSeconds?: number;
   requestTimeoutMs?: number;
-  confirmTimeoutMs?: number;
-  stableHintRequired?: number;
+  /** fast = CNN only (live scan); auto = server may skip ORB when confident. */
+  scanMode?: 'auto' | 'fast' | 'full';
+  /** Vote window for commit (default 5 for V3, 3 for legacy). */
+  voteWindow?: number;
+  /** Required votes within window for commit (default 3 for V3, 2 for legacy). */
+  voteRequired?: number;
   maxInflight?: number;
 }
 
 export interface DebugInfo {
   framesSent: number;
-  confirmsSent: number;
   lastStatus: string | null;
   lastLatencyMs: number;
   lastError: string | null;
   lastOutcome: 'matched' | 'not_matched' | 'pending' | null;
   lastMethod: string | null;
-  phase: ScanPhase;
 }
 
 export interface UseBrxScannerReturn {
   state: ScannerState;
-  phase: ScanPhase;
   result: ScanResult | null;
+  /** Live guess while scanning (before match commit). */
   hint: ScanResult | null;
   isBusy: boolean;
   errorMessage: string | null;
   countdown: number;
   debug: DebugInfo;
+  /** ONNX edge pipeline status. */
+  modelStatus: ModelStatus;
   videoRef: React.RefObject<HTMLVideoElement>;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   openCamera: () => Promise<void>;
@@ -77,83 +93,213 @@ export interface UseBrxScannerReturn {
   restartScanning: () => void;
 }
 
-const HINT_STALE_MS = 1500;
-const LIVE_WIDTH = 400;
-const LIVE_JPEG_Q = 0.72;
-const CONFIRM_WIDTH = 512;
-const CONFIRM_JPEG_Q = 0.82;
-const CONFIRM_COOLDOWN_MS = 1200;
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
-function parseScanResult(
-  data: Record<string, unknown>,
-  method: string,
-  elapsed: number,
-): ScanResult | null {
-  if (!data.card_name || (!data.search_url && !data.matched)) return null;
-  return {
-    card_name: String(data.card_name ?? ''),
-    set_name: String(data.set_name ?? ''),
-    set_code: String(data.set_code ?? ''),
-    image_uri: (data.image_uri as string | null) ?? null,
-    confidence: Number(data.confidence ?? 0),
-    method,
-    search_url: String(data.search_url ?? ''),
-    search_query: String(data.search_query ?? ''),
-    latency_ms: Number(data.latency_ms ?? elapsed),
-  };
+const HINT_STALE_MS = 1200;
+
+/** Enterprise thresholds — floors enforced regardless of options. */
+const CONF_FLOOR = 0.80;
+const HINT_CONF_FLOOR = 0.72;
+const VECTOR_DIM = 384;
+const ONNX_SIZE = 224;
+// Margin below which /verify is called to disambiguate
+const VERIFY_MARGIN_THRESHOLD = 0.05;
+
+/** ImageNet normalisation constants (must match DINOv2 training). */
+const IMAGENET_MEAN = [0.485, 0.456, 0.406] as const;
+const IMAGENET_STD = [0.229, 0.224, 0.225] as const;
+
+// ---------------------------------------------------------------------------
+// Pure helpers (defined outside hook to keep them stable)
+// ---------------------------------------------------------------------------
+
+function l2Normalize(vec: Float32Array): Float32Array {
+  let sumSq = 0;
+  for (let i = 0; i < vec.length; i++) sumSq += vec[i] * vec[i];
+  const norm = Math.sqrt(sumSq);
+  if (norm < 1e-8) return vec;
+  const out = new Float32Array(vec.length);
+  for (let i = 0; i < vec.length; i++) out[i] = vec[i] / norm;
+  return out;
 }
 
-function isHighTrustMethod(method: string): boolean {
-  return method.includes('+orb') || method.includes('+cnn') || method === 'phash';
+/**
+ * Convert RGBA ImageData (224×224) to a CHW float32 tensor normalised
+ * with ImageNet mean/std — identical to the Python `preprocess()` in
+ * `app/scanner/embedder_dinov2.py`.
+ */
+function imageDataToOnnxTensor(imageData: ImageData): Float32Array {
+  const { data } = imageData; // RGBA uint8, length = 4 * 224 * 224
+  const pixels = ONNX_SIZE * ONNX_SIZE;
+  const tensor = new Float32Array(3 * pixels); // CHW: [R_plane, G_plane, B_plane]
+  for (let i = 0; i < pixels; i++) {
+    tensor[i]              = (data[i * 4]     / 255 - IMAGENET_MEAN[0]) / IMAGENET_STD[0]; // R
+    tensor[pixels + i]     = (data[i * 4 + 1] / 255 - IMAGENET_MEAN[1]) / IMAGENET_STD[1]; // G
+    tensor[2 * pixels + i] = (data[i * 4 + 2] / 255 - IMAGENET_MEAN[2]) / IMAGENET_STD[2]; // B
+  }
+  return tensor;
 }
+
+/**
+ * Draw a centre-square crop of the video frame at 224×224 px.
+ * The canvas is re-used across calls (only dims change on first call).
+ */
+function captureFrame224(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+): ImageData | null {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh || video.readyState < 2) return null;
+
+  canvas.width = ONNX_SIZE;
+  canvas.height = ONNX_SIZE;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  // Centre-square crop → scale to 224×224
+  const side = Math.min(vw, vh);
+  const sx = (vw - side) / 2;
+  const sy = (vh - side) / 2;
+  ctx.drawImage(video, sx, sy, side, side, 0, 0, ONNX_SIZE, ONNX_SIZE);
+  return ctx.getImageData(0, 0, ONNX_SIZE, ONNX_SIZE);
+}
+
+async function blobToBase64Strip(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(',')[1] ?? '');
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
 
 export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScannerReturn {
   const {
     onMatch,
     onNoMatch,
     onError,
-    confidenceThreshold = 0.8,
-    hintConfidenceMin = 0.74,
-    instantCommitThreshold = 0.86,
-    captureIntervalMs = 360,
+    confidenceThreshold: rawConf = 0.80,
+    hintConfidenceMin: rawHint = 0.72,
+    captureIntervalMs = 320,
     apiBaseUrl = '/brx-match',
     countdownSeconds = 3,
-    requestTimeoutMs = 5000,
-    confirmTimeoutMs = 8000,
-    stableHintRequired = 2,
-    maxInflight = 2,
+    requestTimeoutMs = 4500,
+    scanMode = 'fast',
+    voteWindow = 5,
+    voteRequired = 3,
+    maxInflight = 3,
   } = options;
 
+  // Enforce floors
+  const effectiveConf = Math.max(rawConf, CONF_FLOOR);
+  const effectiveHint = Math.max(rawHint, HINT_CONF_FLOOR);
+
+  // ---------------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------------
   const [state, setState] = useState<ScannerState>('idle');
-  const [phase, setPhase] = useState<ScanPhase>('idle');
   const [result, setResult] = useState<ScanResult | null>(null);
   const [hint, setHint] = useState<ScanResult | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
+  const [modelStatus, setModelStatus] = useState<ModelStatus>('loading');
   const [debug, setDebug] = useState<DebugInfo>({
     framesSent: 0,
-    confirmsSent: 0,
     lastStatus: null,
     lastLatencyMs: -1,
     lastError: null,
     lastOutcome: null,
     lastMethod: null,
-    phase: 'idle',
   });
 
+  // ---------------------------------------------------------------------------
+  // Refs
+  // ---------------------------------------------------------------------------
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  /** Hidden 224×224 canvas for ONNX frame capture — never exposed to page. */
+  const onnxCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inflightRef = useRef(0);
+  const recentNamesRef = useRef<string[]>([]);
   const matchedRef = useRef(false);
-  const confirmingRef = useRef(false);
   const hintStaleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stableNameRef = useRef<string | null>(null);
-  const stableCountRef = useRef(0);
-  const lastConfirmAtRef = useRef(0);
+  /** {name, count} — consecutive frames with the same card name, for hint gating. */
+  const hintStreakRef = useRef<{ name: string; count: number }>({ name: '', count: 0 });
+
+  /** ONNX InferenceSession (set once after model loads). */
+  const sessionRef = useRef<OrtLib.InferenceSession | null>(null);
+  /** Cached onnxruntime-web module reference (avoids repeated dynamic import). */
+  const ortRef = useRef<typeof OrtLib | null>(null);
+
+  // ---------------------------------------------------------------------------
+  // ONNX model loading (runs once after mount)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    let cancelled = false;
+
+    // Create the hidden 224×224 canvas used for ONNX frame capture
+    if (!onnxCanvasRef.current && typeof document !== 'undefined') {
+      const c = document.createElement('canvas');
+      c.width = ONNX_SIZE;
+      c.height = ONNX_SIZE;
+      onnxCanvasRef.current = c;
+    }
+
+    async function loadOnnxModel() {
+      try {
+        const modelUrl = `${apiBaseUrl}/static/dinov2_small.onnx`;
+        const modelData = await fetchAndCacheOnnxModel(modelUrl);
+        if (cancelled) return;
+
+        const ort = await import('onnxruntime-web');
+        if (cancelled) return;
+
+        // Single-threaded WASM — no SharedArrayBuffer required; works in any
+        // browser context including iOS Safari without COOP/COEP headers.
+        // WASM files must be in /ort-wasm/ (copied by postinstall script).
+        ort.env.wasm.numThreads = 1;
+        ort.env.wasm.wasmPaths = '/ort-wasm/';
+
+        const session = await ort.InferenceSession.create(modelData, {
+          executionProviders: ['webgl', 'wasm'],
+          graphOptimizationLevel: 'all',
+        });
+        if (cancelled) return;
+
+        // Type-cast: store and cache
+        ortRef.current = ort as unknown as typeof OrtLib;
+        sessionRef.current = session;
+        setModelStatus('ready');
+      } catch (err) {
+        if (!cancelled) {
+          console.warn('[BrxScanner] ONNX model load failed — falling back to /scan:', err);
+          setModelStatus('failed');
+        }
+      }
+    }
+
+    loadOnnxModel();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiBaseUrl]);
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
 
   const syncBusy = useCallback((n: number) => {
     inflightRef.current = n;
@@ -170,23 +316,13 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const scheduleHintStale = useCallback(() => {
     clearHintStale();
     hintStaleRef.current = setTimeout(() => {
-      if (!matchedRef.current && !confirmingRef.current) setHint(null);
+      if (!matchedRef.current) setHint(null);
     }, HINT_STALE_MS);
   }, [clearHintStale]);
 
-  const pauseLiveLoop = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
   const stopScanning = useCallback(() => {
-    pauseLiveLoop();
-    if (countdownRef.current) {
-      clearInterval(countdownRef.current);
-      countdownRef.current = null;
-    }
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
     clearHintStale();
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -195,107 +331,47 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     if (videoRef.current) videoRef.current.srcObject = null;
     syncBusy(0);
     matchedRef.current = false;
-    confirmingRef.current = false;
-    stableNameRef.current = null;
-    stableCountRef.current = 0;
+    recentNamesRef.current = [];
+    hintStreakRef.current = { name: '', count: 0 };
     setHint(null);
     setCountdown(0);
-    setPhase('idle');
     setState('idle');
-    setDebug((d) => ({ ...d, phase: 'idle' }));
-  }, [clearHintStale, pauseLiveLoop, syncBusy]);
+  }, [clearHintStale, syncBusy]);
 
   useEffect(() => () => stopScanning(), [stopScanning]);
 
-  const captureFrame = useCallback((width: number, quality: number): Promise<Blob | null> => {
+  // JPEG capture (legacy + verify) — 384 px wide
+  const captureFrame = useCallback((): Promise<Blob | null> => {
     return new Promise((resolve) => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      if (!video || !canvas || video.readyState < 2) {
-        resolve(null);
-        return;
-      }
-      const W = width;
+      if (!video || !canvas || video.readyState < 2) { resolve(null); return; }
+      const W = 384;
       const H = Math.round(W * (video.videoHeight / Math.max(video.videoWidth, 1)));
       canvas.width = W;
       canvas.height = H;
       const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(null);
-        return;
-      }
+      if (!ctx) { resolve(null); return; }
       ctx.drawImage(video, 0, 0, W, H);
-      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', quality);
+      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.68);
     });
   }, []);
-
-  const postScan = useCallback(
-    async (
-      blob: Blob,
-      mode: 'auto' | 'full',
-      timeoutMs: number,
-    ): Promise<{ ok: boolean; data: Record<string, unknown>; elapsed: number; status: number }> => {
-      const formData = new FormData();
-      formData.append('image', blob, 'frame.jpg');
-      const t0 = performance.now();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        const resp = await fetch(`${apiBaseUrl}/scan?mode=${mode}`, {
-          method: 'POST',
-          body: formData,
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        const elapsed = Math.round(performance.now() - t0);
-        if (!resp.ok) {
-          const text = await resp.text().catch(() => '');
-          return {
-            ok: false,
-            status: resp.status,
-            elapsed,
-            data: { error: text.slice(0, 120) || `HTTP ${resp.status}` },
-          };
-        }
-        return { ok: true, status: resp.status, elapsed, data: (await resp.json()) as Record<string, unknown> };
-      } catch (err) {
-        clearTimeout(timeoutId);
-        const elapsed = Math.round(performance.now() - t0);
-        const isAbort = err instanceof DOMException && err.name === 'AbortError';
-        return {
-          ok: false,
-          status: isAbort ? 408 : 0,
-          elapsed,
-          data: {
-            error: isAbort ? `TIMEOUT ${timeoutMs}ms` : err instanceof Error ? err.message : 'Unknown',
-          },
-        };
-      }
-    },
-    [apiBaseUrl],
-  );
 
   const commitMatch = useCallback(
     (scanResult: ScanResult) => {
       if (matchedRef.current) return;
       matchedRef.current = true;
-      confirmingRef.current = false;
       clearHintStale();
       setHint(null);
       setResult(scanResult);
       setState('matched');
-      setPhase('idle');
-      pauseLiveLoop();
-
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
       setCountdown(countdownSeconds);
       if (countdownRef.current) clearInterval(countdownRef.current);
       countdownRef.current = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
-            if (countdownRef.current) {
-              clearInterval(countdownRef.current);
-              countdownRef.current = null;
-            }
+            if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
             return 0;
           }
           return prev - 1;
@@ -303,209 +379,360 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       }, 1000);
       onMatch?.(scanResult);
     },
-    [clearHintStale, countdownSeconds, onMatch, pauseLiveLoop],
+    [clearHintStale, countdownSeconds, onMatch],
   );
 
+  /**
+   * Hint gating: requires 2 consecutive frames with the same card name
+   * AND confidence >= effectiveHint.
+   */
   const applyHint = useCallback(
     (scanResult: ScanResult) => {
-      if (matchedRef.current || confirmingRef.current) return;
-      if (scanResult.confidence < hintConfidenceMin) return;
-      setHint((prev) => {
-        if (!prev) return scanResult;
-        const same =
-          prev.card_name.trim().toLowerCase() === scanResult.card_name.trim().toLowerCase();
-        if (same || scanResult.confidence >= prev.confidence - 0.03) return scanResult;
-        return prev;
-      });
-      scheduleHintStale();
-    },
-    [hintConfidenceMin, scheduleHintStale],
-  );
-
-  const trackStableHint = useCallback(
-    (scanResult: ScanResult): boolean => {
+      if (matchedRef.current) return;
       const key = scanResult.card_name.trim().toLowerCase();
-      if (!key || scanResult.confidence < hintConfidenceMin) {
-        stableNameRef.current = null;
-        stableCountRef.current = 0;
-        return false;
+      if (hintStreakRef.current.name === key) {
+        hintStreakRef.current.count++;
+      } else {
+        hintStreakRef.current = { name: key, count: 1 };
       }
-      if (stableNameRef.current === key) stableCountRef.current += 1;
-      else {
-        stableNameRef.current = key;
-        stableCountRef.current = 1;
+      if (hintStreakRef.current.count >= 2 && scanResult.confidence >= effectiveHint) {
+        setHint(scanResult);
+        scheduleHintStale();
       }
-      return stableCountRef.current >= stableHintRequired;
     },
-    [hintConfidenceMin, stableHintRequired],
+    [effectiveHint, scheduleHintStale],
   );
 
-  const startLiveLoopRef = useRef<() => void>(() => {});
+  /**
+   * Vote system: commit when the same card name appears in >= voteRequired
+   * out of the last voteWindow frames, with confidence >= effectiveConf.
+   */
+  const recordVote = useCallback(
+    (name: string, scanResult: ScanResult) => {
+      const key = name.trim().toLowerCase();
+      if (!key) return;
+      const buf = recentNamesRef.current;
+      buf.push(key);
+      while (buf.length > voteWindow) buf.shift();
+      const hits = buf.filter((n) => n === key).length;
+      if (hits >= voteRequired && scanResult.confidence >= effectiveConf) {
+        commitMatch(scanResult);
+      }
+    },
+    [commitMatch, effectiveConf, voteRequired, voteWindow],
+  );
 
-  const runConfirmScan = useCallback(async () => {
-    if (matchedRef.current || confirmingRef.current) return;
-    const now = Date.now();
-    if (now - lastConfirmAtRef.current < CONFIRM_COOLDOWN_MS) return;
-    lastConfirmAtRef.current = now;
+  // ---------------------------------------------------------------------------
+  // V3 edge pipeline — embed locally, POST /search-vector, optional /verify
+  // ---------------------------------------------------------------------------
 
-    confirmingRef.current = true;
-    pauseLiveLoop();
-    setPhase('confirming');
-    setState('processing');
-    setDebug((d) => ({ ...d, phase: 'confirming', confirmsSent: d.confirmsSent + 1 }));
-
-    syncBusy(inflightRef.current + 1);
-    const blob = await captureFrame(CONFIRM_WIDTH, CONFIRM_JPEG_Q);
-
-    if (!blob) {
-      confirmingRef.current = false;
-      syncBusy(Math.max(0, inflightRef.current - 1));
-      stableCountRef.current = 0;
-      startLiveLoopRef.current();
-      return;
-    }
-
-    const { ok, data, elapsed, status } = await postScan(blob, 'full', confirmTimeoutMs);
-    const method = String(data.method ?? 'none');
-    const scanResult = parseScanResult(data, method, elapsed);
-    const matched = Boolean(data.matched);
-
-    setDebug((d) => ({
-      ...d,
-      lastStatus: ok ? String(status) : 'CONFIRM_ERROR',
-      lastLatencyMs: Number(data.latency_ms ?? elapsed),
-      lastError: ok ? null : String(data.error ?? ''),
-      lastOutcome: matched ? 'matched' : 'not_matched',
-      lastMethod: method,
-      phase: 'live',
-    }));
-
-    syncBusy(Math.max(0, inflightRef.current - 1));
-    confirmingRef.current = false;
-
-    if (
-      matched &&
-      scanResult &&
-      scanResult.confidence >= confidenceThreshold &&
-      scanResult.search_url &&
-      (method.includes('+orb') || scanResult.confidence >= 0.88)
-    ) {
-      commitMatch(scanResult);
-      return;
-    }
-
-    stableCountRef.current = 0;
-    stableNameRef.current = null;
-    if (!matched) onNoMatch?.();
-    startLiveLoopRef.current();
-  }, [
-    captureFrame,
-    commitMatch,
-    confidenceThreshold,
-    confirmTimeoutMs,
-    onNoMatch,
-    pauseLiveLoop,
-    postScan,
-    syncBusy,
-  ]);
-
-  const sendLiveFrame = useCallback(async () => {
-    if (matchedRef.current || confirmingRef.current) return;
+  const sendFrameOnnx = useCallback(async (): Promise<void> => {
+    if (matchedRef.current) return;
     if (inflightRef.current >= maxInflight) return;
 
+    const video = videoRef.current;
+    const onnxCanvas = onnxCanvasRef.current;
+    if (!video || !onnxCanvas || video.readyState < 2) return;
+
+    const imageData = captureFrame224(video, onnxCanvas);
+    if (!imageData) return;
+
     syncBusy(inflightRef.current + 1);
-    setDebug((d) => ({ ...d, framesSent: d.framesSent + 1, lastOutcome: 'pending', phase: 'live' }));
+    const t0 = performance.now();
+    setDebug((d) => ({ ...d, framesSent: d.framesSent + 1, lastOutcome: 'pending' }));
 
-    const blob = await captureFrame(LIVE_WIDTH, LIVE_JPEG_Q);
-    if (!blob) {
-      syncBusy(Math.max(0, inflightRef.current - 1));
-      return;
-    }
+    try {
+      const ort = ortRef.current;
+      const session = sessionRef.current;
+      if (!ort || !session) return; // Shouldn't happen: caller checks modelStatus
 
-    const { ok, data, elapsed, status } = await postScan(blob, 'auto', requestTimeoutMs);
-    const method = String(data.method ?? 'none');
+      // --- Embed locally ---
+      const tensorData = imageDataToOnnxTensor(imageData);
+      const tensor = new ort.Tensor('float32', tensorData, [1, 3, ONNX_SIZE, ONNX_SIZE]);
+      const feeds: Record<string, OrtLib.Tensor> = { [session.inputNames[0]]: tensor };
+      const outputs = await session.run(feeds);
+      const rawVec = outputs[session.outputNames[0]].data as Float32Array;
+      // CLS token: first 384 floats (batch dim is 1)
+      const clsVec = new Float32Array(rawVec.buffer, rawVec.byteOffset, VECTOR_DIM);
+      const vector = l2Normalize(new Float32Array(clsVec));
 
-    setDebug((d) => ({
-      ...d,
-      lastStatus: ok ? String(status) : 'NETWORK_ERROR',
-      lastLatencyMs: Number(data.latency_ms ?? elapsed),
-      lastError: ok ? null : String(data.error ?? ''),
-      lastOutcome: data.matched ? 'matched' : 'not_matched',
-      lastMethod: method,
-    }));
+      // --- POST /search-vector ---
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
 
-    syncBusy(Math.max(0, inflightRef.current - 1));
+      const searchResp = await fetch(`${apiBaseUrl}/search-vector`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vector: Array.from(vector), top_k: 5, mode: 'fast' }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
 
-    if (!ok || matchedRef.current) {
-      if (!matchedRef.current && !confirmingRef.current) setState('scanning');
-      return;
-    }
+      if (!searchResp.ok) {
+        setDebug((d) => ({
+          ...d,
+          lastStatus: String(searchResp.status),
+          lastLatencyMs: Math.round(performance.now() - t0),
+          lastError: `HTTP ${searchResp.status}`,
+          lastOutcome: 'not_matched',
+          lastMethod: null,
+        }));
+        return;
+      }
 
-    const scanResult = parseScanResult(data, method, elapsed);
-    const matched = Boolean(data.matched);
-    const message = String(data.message ?? '');
+      const searchData = await searchResp.json();
+      const candidates: {
+        meta_idx: number;
+        card_name: string;
+        set_name: string;
+        set_code: string;
+        image_uri: string | null;
+        confidence: number;
+        search_url: string;
+        search_query: string;
+        scryfall_id: string;
+      }[] = searchData.candidates ?? [];
 
-    if (scanResult && (message === 'provisional' || !matched)) {
+      if (!candidates.length) return;
+
+      const top1 = candidates[0];
+      const top2 = candidates[1];
+      const margin = top2 ? top1.confidence - top2.confidence : 1.0;
+
+      let finalConfidence = top1.confidence;
+      let method = 'v3+vec';
+
+      // --- Optional /verify when margin is too small ---
+      if (margin < VERIFY_MARGIN_THRESHOLD && top1.confidence >= effectiveHint) {
+        try {
+          const cropBlob = await captureFrame();
+          if (cropBlob) {
+            const b64 = await blobToBase64Strip(cropBlob);
+            const verifyResp = await fetch(`${apiBaseUrl}/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ meta_idx: top1.meta_idx, image_b64: b64 }),
+            });
+            if (verifyResp.ok) {
+              const vd = await verifyResp.json();
+              if (vd.verified) {
+                finalConfidence = Math.max(finalConfidence, vd.confidence);
+                method = 'v3+vec+orb';
+              }
+            }
+          }
+        } catch {
+          // /verify failed — continue with vector-only confidence
+        }
+      }
+
+      const elapsed = Math.round(performance.now() - t0);
+      const matched = finalConfidence >= effectiveConf;
+
+      setDebug((d) => ({
+        ...d,
+        lastStatus: '200',
+        lastLatencyMs: elapsed,
+        lastError: null,
+        lastOutcome: matched ? 'matched' : 'not_matched',
+        lastMethod: method,
+      }));
+
+      if (!top1.card_name || !top1.search_url) return;
+
+      const scanResult: ScanResult = {
+        card_name: top1.card_name,
+        set_name: top1.set_name,
+        set_code: top1.set_code,
+        image_uri: top1.image_uri ?? null,
+        confidence: finalConfidence,
+        method,
+        search_url: top1.search_url,
+        search_query: top1.search_query ?? '',
+        latency_ms: elapsed,
+      };
+
       applyHint(scanResult);
-    }
 
-    if (
-      matched &&
-      scanResult &&
-      scanResult.search_url &&
-      scanResult.confidence >= instantCommitThreshold &&
-      isHighTrustMethod(method)
-    ) {
-      commitMatch(scanResult);
-      return;
+      if (matched && scanResult.search_url) {
+        commitMatch(scanResult);
+      } else {
+        recordVote(top1.card_name, scanResult);
+        if (!matched) onNoMatch?.();
+      }
+    } catch (err) {
+      const elapsed = Math.round(performance.now() - t0);
+      const isAbort = err instanceof DOMException && err.name === 'AbortError';
+      setDebug((d) => ({
+        ...d,
+        lastStatus: isAbort ? 'TIMEOUT' : 'NETWORK_ERROR',
+        lastLatencyMs: elapsed,
+        lastError: isAbort ? `TIMEOUT dopo ${requestTimeoutMs}ms` : String(err),
+        lastOutcome: 'not_matched',
+        lastMethod: null,
+      }));
+    } finally {
+      syncBusy(Math.max(0, inflightRef.current - 1));
+      if (!matchedRef.current) setState('scanning');
     }
-
-    if (scanResult && trackStableHint(scanResult)) {
-      void runConfirmScan();
-      return;
-    }
-
-    if (!matched) onNoMatch?.();
-    if (!matchedRef.current && !confirmingRef.current) setState('scanning');
   }, [
+    apiBaseUrl,
     applyHint,
     captureFrame,
     commitMatch,
-    instantCommitThreshold,
+    effectiveConf,
+    effectiveHint,
     maxInflight,
     onNoMatch,
-    postScan,
+    recordVote,
     requestTimeoutMs,
-    runConfirmScan,
     syncBusy,
-    trackStableHint,
   ]);
 
-  const startLiveLoop = useCallback(() => {
-    if (matchedRef.current || intervalRef.current) return;
-    setPhase('live');
-    setState('scanning');
-    intervalRef.current = setInterval(() => {
-      void sendLiveFrame();
-    }, captureIntervalMs);
-  }, [captureIntervalMs, sendLiveFrame]);
+  // ---------------------------------------------------------------------------
+  // Legacy pipeline — upload JPEG to POST /scan (fallback when ONNX not ready)
+  // ---------------------------------------------------------------------------
 
-  startLiveLoopRef.current = startLiveLoop;
+  const sendFrameLegacy = useCallback(async (): Promise<void> => {
+    if (matchedRef.current) return;
+    if (inflightRef.current >= maxInflight) return;
 
-  const openCamera = useCallback(async () => {
+    syncBusy(inflightRef.current + 1);
+    const blob = await captureFrame();
+    if (!blob) { syncBusy(Math.max(0, inflightRef.current - 1)); return; }
+
+    const formData = new FormData();
+    formData.append('image', blob, 'frame.jpg');
+
+    const t0 = performance.now();
+    setDebug((d) => ({ ...d, framesSent: d.framesSent + 1, lastOutcome: 'pending' }));
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+    try {
+      const resp = await fetch(`${apiBaseUrl}/scan?mode=${encodeURIComponent(scanMode)}`, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const elapsed = Math.round(performance.now() - t0);
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '');
+        setDebug((d) => ({
+          ...d,
+          lastStatus: String(resp.status),
+          lastLatencyMs: elapsed,
+          lastError: text.slice(0, 120) || `HTTP ${resp.status}`,
+          lastOutcome: 'not_matched',
+          lastMethod: null,
+        }));
+        return;
+      }
+
+      const data = await resp.json();
+      const method = (data.method as string) ?? 'none';
+      setDebug((d) => ({
+        ...d,
+        lastStatus: String(resp.status),
+        lastLatencyMs: data.latency_ms ?? elapsed,
+        lastError: null,
+        lastOutcome: data.matched ? 'matched' : 'not_matched',
+        lastMethod: method,
+      }));
+
+      const scanResult: ScanResult | null =
+        data.card_name && (data.search_url || data.matched)
+          ? {
+              card_name: data.card_name ?? '',
+              set_name: data.set_name ?? '',
+              set_code: data.set_code ?? '',
+              image_uri: data.image_uri ?? null,
+              confidence: data.confidence ?? 0,
+              method,
+              search_url: data.search_url ?? '',
+              search_query: data.search_query ?? '',
+              latency_ms: data.latency_ms ?? elapsed,
+            }
+          : null;
+
+      if (scanResult) applyHint(scanResult);
+
+      if (data.matched && scanResult && scanResult.confidence >= effectiveConf && scanResult.search_url) {
+        commitMatch(scanResult);
+      } else if (scanResult?.card_name) {
+        recordVote(scanResult.card_name, scanResult);
+        if (!data.matched) onNoMatch?.();
+      } else if (!data.matched) {
+        onNoMatch?.();
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const elapsed = Math.round(performance.now() - t0);
+      const isAbort = err instanceof DOMException && err.name === 'AbortError';
+      const msg = isAbort
+        ? `TIMEOUT dopo ${requestTimeoutMs}ms`
+        : err instanceof Error ? err.message : 'Unknown error';
+      setDebug((d) => ({
+        ...d,
+        lastStatus: isAbort ? 'TIMEOUT' : 'NETWORK_ERROR',
+        lastLatencyMs: elapsed,
+        lastError: msg,
+        lastOutcome: 'not_matched',
+        lastMethod: null,
+      }));
+    } finally {
+      syncBusy(Math.max(0, inflightRef.current - 1));
+      if (!matchedRef.current) setState('scanning');
+    }
+  }, [
+    apiBaseUrl,
+    applyHint,
+    captureFrame,
+    commitMatch,
+    effectiveConf,
+    maxInflight,
+    onNoMatch,
+    recordVote,
+    requestTimeoutMs,
+    scanMode,
+    syncBusy,
+  ]);
+
+  // ---------------------------------------------------------------------------
+  // Unified sendFrame: routes to ONNX or legacy based on session availability
+  // ---------------------------------------------------------------------------
+
+  const sendFrame = useCallback(async (): Promise<void> => {
+    if (sessionRef.current && ortRef.current) {
+      return sendFrameOnnx();
+    }
+    return sendFrameLegacy();
+  }, [sendFrameOnnx, sendFrameLegacy]);
+
+  // ---------------------------------------------------------------------------
+  // Camera / interval management
+  // ---------------------------------------------------------------------------
+
+  const openCamera = useCallback(async (): Promise<void> => {
     setState('requesting_camera');
     setErrorMessage(null);
     setResult(null);
     setHint(null);
     matchedRef.current = false;
-    confirmingRef.current = false;
-    stableNameRef.current = null;
-    stableCountRef.current = 0;
+    recentNamesRef.current = [];
+    hintStreakRef.current = { name: '', count: 0 };
 
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
         audio: false,
       });
     } catch (err) {
@@ -524,36 +751,36 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       videoRef.current.srcObject = stream;
       await videoRef.current.play().catch(() => {});
     }
-    startLiveLoop();
-  }, [onError, startLiveLoop]);
+
+    setState('scanning');
+    intervalRef.current = setInterval(() => { void sendFrame(); }, captureIntervalMs);
+  }, [captureIntervalMs, onError, sendFrame]);
 
   const restartScanning = useCallback(() => {
-    if (countdownRef.current) {
-      clearInterval(countdownRef.current);
-      countdownRef.current = null;
-    }
+    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
     clearHintStale();
     setCountdown(0);
     setResult(null);
     setHint(null);
     matchedRef.current = false;
-    confirmingRef.current = false;
-    stableNameRef.current = null;
-    stableCountRef.current = 0;
+    recentNamesRef.current = [];
+    hintStreakRef.current = { name: '', count: 0 };
     syncBusy(0);
-    pauseLiveLoop();
-    startLiveLoop();
-  }, [clearHintStale, pauseLiveLoop, startLiveLoop, syncBusy]);
+    setState('scanning');
+    if (streamRef.current && !intervalRef.current) {
+      intervalRef.current = setInterval(() => { void sendFrame(); }, captureIntervalMs);
+    }
+  }, [captureIntervalMs, clearHintStale, sendFrame, syncBusy]);
 
   return {
     state,
-    phase,
     result,
     hint,
     isBusy,
     errorMessage,
     countdown,
     debug,
+    modelStatus,
     videoRef,
     canvasRef,
     openCamera,

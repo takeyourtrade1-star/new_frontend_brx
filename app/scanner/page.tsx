@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useCallback, useState, type RefObject } fr
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Home, Search, Lightbulb, X } from 'lucide-react';
-import { useBrxScanner, type DebugInfo } from '@/hooks/useBrxScanner';
+import { useBrxScanner, type DebugInfo, type ModelStatus } from '@/hooks/useBrxScanner';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -53,6 +53,36 @@ function TopLoadingBar({ active }: { active: boolean }) {
         }
       `}</style>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Model status badge (V3 edge pipeline indicator)
+// ---------------------------------------------------------------------------
+
+function ModelStatusBadge({ status }: { status: ModelStatus }) {
+  if (status === 'ready') {
+    return (
+      <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300 ring-1 ring-emerald-500/30">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(74,222,128,0.8)]" aria-hidden />
+        Turbo
+      </span>
+    );
+  }
+  if (status === 'loading') {
+    return (
+      <span className="flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300 ring-1 ring-amber-500/30">
+        <span className="h-1.5 w-1.5 animate-[pulse_1s_ease-in-out_infinite] rounded-full bg-amber-400" aria-hidden />
+        Caricamento…
+      </span>
+    );
+  }
+  // failed — show Standard mode indicator
+  return (
+    <span className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/50 ring-1 ring-white/10">
+      <span className="h-1.5 w-1.5 rounded-full bg-white/40" aria-hidden />
+      Standard
+    </span>
   );
 }
 
@@ -220,7 +250,7 @@ function ScanAreaBlurMask() {
 // Status bar at the bottom
 // ---------------------------------------------------------------------------
 
-type StatusBarState = 'idle' | 'scanning' | 'processing' | 'matched' | 'slow' | 'hint' | 'confirming';
+type StatusBarState = 'idle' | 'scanning' | 'processing' | 'matched' | 'slow' | 'hint';
 
 function StatusBar({
   status,
@@ -233,7 +263,6 @@ function StatusBar({
     idle: 'Inizializzazione fotocamera…',
     scanning: 'Inquadra la carta nel riquadro',
     processing: 'Analisi in corso…',
-    confirming: 'Verifica precisione…',
     matched: 'Carta trovata!',
     slow: 'Analisi in corso… (rete lenta)',
     hint: hintName ? `Riconosco: ${hintName}` : 'Riconoscimento…',
@@ -244,7 +273,7 @@ function StatusBar({
       ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]'
       : status === 'hint'
       ? 'bg-[#FF7300] shadow-[0_0_12px_rgba(255,115,0,0.7)]'
-      : status === 'processing' || status === 'slow' || status === 'confirming'
+      : status === 'processing' || status === 'slow'
       ? 'bg-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.55)]'
       : 'bg-white/70';
 
@@ -259,7 +288,7 @@ function StatusBar({
           className={cn(
             'h-2 w-2 shrink-0 rounded-full',
             dotColor,
-            status === 'processing' || status === 'slow' || status === 'hint' || status === 'confirming'
+            status === 'processing' || status === 'slow' || status === 'hint'
               ? 'animate-[pulse_1s_ease-in-out_infinite]'
               : ''
           )}
@@ -284,6 +313,7 @@ function ScannerToolbar({
   onToggleTorch,
   onGoHome,
   onClose,
+  modelStatus,
 }: {
   videoRef: RefObject<HTMLVideoElement | null>;
   torchOn: boolean;
@@ -291,6 +321,7 @@ function ScannerToolbar({
   onToggleTorch: () => void;
   onGoHome: () => void;
   onClose: () => void;
+  modelStatus: ModelStatus;
 }) {
   return (
     <header
@@ -325,9 +356,7 @@ function ScannerToolbar({
         <span className="font-display text-[1.05rem] font-bold uppercase tracking-[0.22em] text-white drop-shadow-sm sm:text-xl">
           Scan
         </span>
-        <span className="mt-0.5 hidden text-[9px] font-semibold uppercase tracking-[0.28em] text-[#FF7300]/90 sm:block">
-          Magic
-        </span>
+        <ModelStatusBadge status={modelStatus} />
       </div>
 
       <div className="flex items-center justify-end gap-2 justify-self-end">
@@ -550,11 +579,9 @@ function RequestingCameraLoader() {
 function LiveHintChip({
   hint,
   latencyMs,
-  confirming,
 }: {
   hint: { card_name: string; set_name: string; image_uri: string | null; confidence: number };
   latencyMs: number;
-  confirming?: boolean;
 }) {
   return (
     <div
@@ -573,7 +600,7 @@ function LiveHintChip({
         <p className="truncate text-[13px] font-semibold text-white">{hint.card_name}</p>
         <p className="truncate text-[11px] text-white/65">{hint.set_name}</p>
         <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-[#FF7300]/90">
-          {confirming ? 'Verifica ORB…' : 'Riconosco…'} {Math.round(hint.confidence * 100)}%
+          Conferma… {Math.round(hint.confidence * 100)}%
           {latencyMs > 0 ? ` · ${latencyMs}ms` : ''}
         </p>
       </div>
@@ -632,7 +659,6 @@ function ScannerPageInner() {
 
   const {
     state,
-    phase,
     result,
     hint,
     isBusy,
@@ -643,9 +669,16 @@ function ScannerPageInner() {
     openCamera,
     stopScanning,
     restartScanning,
+    modelStatus,
   } = useBrxScanner({
+    confidenceThreshold: 0.78,
+    captureIntervalMs: 320,
     countdownSeconds: COUNTDOWN_SECONDS,
     apiBaseUrl: '/brx-match',
+    requestTimeoutMs: 4500,
+    scanMode: 'fast',
+    voteWindow: 3,
+    voteRequired: 2,
     onMatch: (r) => {
       if (slowTimerRef.current) {
         clearTimeout(slowTimerRef.current);
@@ -752,8 +785,6 @@ function ScannerPageInner() {
   const statusBarState: StatusBarState =
     state === 'matched'
       ? 'matched'
-      : phase === 'confirming' || state === 'processing'
-      ? 'confirming'
       : hint
       ? 'hint'
       : isBusy
@@ -787,6 +818,7 @@ function ScannerPageInner() {
         onToggleTorch={toggleTorch}
         onGoHome={handleGoHome}
         onClose={handleClose}
+        modelStatus={modelStatus}
       />
 
       {/* ── Video feed ──────────────────────────────────────────────── */}
@@ -826,11 +858,7 @@ function ScannerPageInner() {
               </p>
             )}
             {hint && state !== 'matched' && (
-              <LiveHintChip
-                hint={hint}
-                latencyMs={debug.lastLatencyMs}
-                confirming={phase === 'confirming'}
-              />
+              <LiveHintChip hint={hint} latencyMs={debug.lastLatencyMs} />
             )}
           </div>
 
