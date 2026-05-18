@@ -206,21 +206,31 @@ function ScanAreaBlurMask() {
 // Status bar
 // ---------------------------------------------------------------------------
 
-type StatusBarState = 'idle' | 'scanning' | 'processing' | 'matched' | 'slow';
+type StatusBarState = 'idle' | 'scanning' | 'processing' | 'matched' | 'slow' | 'hint' | 'confirming';
 
-function StatusBar({ status }: { status: StatusBarState }) {
+function StatusBar({
+  status,
+  hintName,
+}: {
+  status: StatusBarState;
+  hintName?: string | null;
+}) {
   const messages: Record<StatusBarState, string> = {
     idle: 'Inizializzazione fotocamera…',
     scanning: 'Punta la fotocamera verso una carta Magic',
     processing: 'Analisi in corso…',
+    confirming: 'Verifica precisione…',
     matched: 'Carta trovata!',
     slow: 'Analisi in corso… (qualche secondo in più)',
+    hint: hintName ? `Riconosco: ${hintName}` : 'Riconoscimento…',
   };
 
   const dotColor =
     status === 'matched'
       ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]'
-      : status === 'processing' || status === 'slow'
+      : status === 'hint'
+      ? 'bg-[#FF7300] shadow-[0_0_12px_rgba(255,115,0,0.7)]'
+      : status === 'processing' || status === 'slow' || status === 'confirming'
       ? 'bg-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.55)]'
       : 'bg-white/70';
 
@@ -231,7 +241,7 @@ function StatusBar({ status }: { status: StatusBarState }) {
           className={cn(
             'h-2 w-2 shrink-0 rounded-full',
             dotColor,
-            status === 'processing' || status === 'slow'
+            status === 'processing' || status === 'slow' || status === 'hint' || status === 'confirming'
               ? 'animate-[pulse_1s_ease-in-out_infinite]'
               : '',
           )}
@@ -447,22 +457,17 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
 
   const {
     state,
+    phase,
     result,
+    hint,
+    isBusy,
     errorMessage,
     videoRef,
     canvasRef,
     openCamera,
     stopScanning,
     restartScanning,
-  } = useBrxScanner({
-    confidenceThreshold: 0.78,
-    captureIntervalMs: 320,
-    apiBaseUrl: '/brx-match',
-    requestTimeoutMs: 4500,
-    scanMode: 'fast',
-    voteWindow: 3,
-    voteRequired: 2,
-  });
+  } = useBrxScanner({ apiBaseUrl: '/brx-match' });
 
   useEffect(() => {
     openCamera();
@@ -512,18 +517,20 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
 
   const bracketState: BracketState =
     state === 'matched' ? 'matched'
-    : state === 'scanning' || state === 'processing' ? 'scanning'
+    : hint || state === 'scanning' || state === 'processing' ? 'scanning'
     : 'idle';
 
   const statusBarState: StatusBarState =
     state === 'matched' ? 'matched'
-    : state === 'processing' ? 'processing'
+    : phase === 'confirming' || state === 'processing' ? 'confirming'
+    : hint ? 'hint'
+    : isBusy ? 'processing'
     : state === 'scanning' ? 'scanning'
     : 'idle';
 
   return (
     <div className="fixed inset-0 z-[9999] overflow-hidden bg-black" aria-modal aria-label="Scanner Magic">
-      <TopLoadingBar active={state === 'processing'} />
+      <TopLoadingBar active={isBusy || state === 'processing'} />
 
       {/* Header */}
       <header
@@ -584,16 +591,34 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
           <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center">
             <ScanCorners bracketState={bracketState} />
 
-            {state !== 'matched' && (
+            {state !== 'matched' && !hint && (
               <p className="mt-5 max-w-[min(92vw,22rem)] text-center text-[12px] font-medium leading-relaxed text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] sm:text-[13px]">
-                {state === 'processing'
-                  ? 'Analisi in corso… tieni ferma la carta.'
+                {phase === 'confirming' || state === 'processing'
+                  ? 'Verifica in corso… tieni ferma la carta.'
                   : 'Inquadra la carta Magic nel riquadro'}
               </p>
             )}
+
+            {hint && state !== 'matched' && (
+              <div className="pointer-events-none mt-4 flex max-w-[min(92vw,20rem)] items-center gap-3 rounded-2xl border border-[#FF7300]/35 bg-[#0a0f1a]/65 px-3.5 py-2.5 backdrop-blur-xl">
+                {hint.image_uri ? (
+                  <img src={hint.image_uri} alt="" className="h-12 w-8 shrink-0 rounded-md object-cover ring-1 ring-white/20" />
+                ) : (
+                  <div className="h-12 w-8 shrink-0 rounded-md bg-white/10" aria-hidden />
+                )}
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="truncate text-[13px] font-semibold text-white">{hint.card_name}</p>
+                  <p className="truncate text-[11px] text-white/65">{hint.set_name}</p>
+                  <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-[#FF7300]/90">
+                    {phase === 'confirming' ? 'Verifica ORB…' : 'Riconosco…'}{' '}
+                    {Math.round(hint.confidence * 100)}%
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
-          {state !== 'matched' && <StatusBar status={statusBarState} />}
+          {state !== 'matched' && <StatusBar status={statusBarState} hintName={hint?.card_name} />}
         </>
       )}
 

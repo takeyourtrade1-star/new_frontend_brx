@@ -220,7 +220,7 @@ function ScanAreaBlurMask() {
 // Status bar at the bottom
 // ---------------------------------------------------------------------------
 
-type StatusBarState = 'idle' | 'scanning' | 'processing' | 'matched' | 'slow' | 'hint';
+type StatusBarState = 'idle' | 'scanning' | 'processing' | 'matched' | 'slow' | 'hint' | 'confirming';
 
 function StatusBar({
   status,
@@ -233,6 +233,7 @@ function StatusBar({
     idle: 'Inizializzazione fotocamera…',
     scanning: 'Inquadra la carta nel riquadro',
     processing: 'Analisi in corso…',
+    confirming: 'Verifica precisione…',
     matched: 'Carta trovata!',
     slow: 'Analisi in corso… (rete lenta)',
     hint: hintName ? `Riconosco: ${hintName}` : 'Riconoscimento…',
@@ -243,7 +244,7 @@ function StatusBar({
       ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]'
       : status === 'hint'
       ? 'bg-[#FF7300] shadow-[0_0_12px_rgba(255,115,0,0.7)]'
-      : status === 'processing' || status === 'slow'
+      : status === 'processing' || status === 'slow' || status === 'confirming'
       ? 'bg-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.55)]'
       : 'bg-white/70';
 
@@ -258,7 +259,7 @@ function StatusBar({
           className={cn(
             'h-2 w-2 shrink-0 rounded-full',
             dotColor,
-            status === 'processing' || status === 'slow' || status === 'hint'
+            status === 'processing' || status === 'slow' || status === 'hint' || status === 'confirming'
               ? 'animate-[pulse_1s_ease-in-out_infinite]'
               : ''
           )}
@@ -549,9 +550,11 @@ function RequestingCameraLoader() {
 function LiveHintChip({
   hint,
   latencyMs,
+  confirming,
 }: {
   hint: { card_name: string; set_name: string; image_uri: string | null; confidence: number };
   latencyMs: number;
+  confirming?: boolean;
 }) {
   return (
     <div
@@ -570,7 +573,7 @@ function LiveHintChip({
         <p className="truncate text-[13px] font-semibold text-white">{hint.card_name}</p>
         <p className="truncate text-[11px] text-white/65">{hint.set_name}</p>
         <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-[#FF7300]/90">
-          Conferma… {Math.round(hint.confidence * 100)}%
+          {confirming ? 'Verifica ORB…' : 'Riconosco…'} {Math.round(hint.confidence * 100)}%
           {latencyMs > 0 ? ` · ${latencyMs}ms` : ''}
         </p>
       </div>
@@ -629,6 +632,7 @@ function ScannerPageInner() {
 
   const {
     state,
+    phase,
     result,
     hint,
     isBusy,
@@ -640,14 +644,8 @@ function ScannerPageInner() {
     stopScanning,
     restartScanning,
   } = useBrxScanner({
-    confidenceThreshold: 0.78,
-    captureIntervalMs: 320,
     countdownSeconds: COUNTDOWN_SECONDS,
     apiBaseUrl: '/brx-match',
-    requestTimeoutMs: 4500,
-    scanMode: 'fast',
-    voteWindow: 3,
-    voteRequired: 2,
     onMatch: (r) => {
       if (slowTimerRef.current) {
         clearTimeout(slowTimerRef.current);
@@ -754,6 +752,8 @@ function ScannerPageInner() {
   const statusBarState: StatusBarState =
     state === 'matched'
       ? 'matched'
+      : phase === 'confirming' || state === 'processing'
+      ? 'confirming'
       : hint
       ? 'hint'
       : isBusy
@@ -826,7 +826,11 @@ function ScannerPageInner() {
               </p>
             )}
             {hint && state !== 'matched' && (
-              <LiveHintChip hint={hint} latencyMs={debug.lastLatencyMs} />
+              <LiveHintChip
+                hint={hint}
+                latencyMs={debug.lastLatencyMs}
+                confirming={phase === 'confirming'}
+              />
             )}
           </div>
 
