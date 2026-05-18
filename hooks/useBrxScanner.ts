@@ -114,12 +114,14 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const processingRef = useRef(false);
+  const sessionRef = useRef(0);
 
   // ------------------------------------------------------------------
   // Cleanup
   // ------------------------------------------------------------------
 
   const stopScanning = useCallback(() => {
+    sessionRef.current += 1;
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -301,6 +303,10 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   // ------------------------------------------------------------------
 
   const openCamera = useCallback(async (): Promise<void> => {
+    const sessionId = sessionRef.current + 1;
+    sessionRef.current = sessionId;
+    const isCurrentSession = () => sessionRef.current === sessionId;
+
     setState('requesting_camera');
     setErrorMessage(null);
     setResult(null);
@@ -316,6 +322,8 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
         audio: false,
       });
     } catch (err) {
+      if (!isCurrentSession()) return;
+
       const msg =
         err instanceof DOMException && err.name === 'NotAllowedError'
           ? 'Camera permission denied. Please allow camera access and try again.'
@@ -326,10 +334,26 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       return;
     }
 
+    if (!isCurrentSession()) {
+      stream.getTracks().forEach((t) => t.stop());
+      return;
+    }
+
     streamRef.current = stream;
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
       await videoRef.current.play().catch(() => {});
+    }
+
+    if (!isCurrentSession()) {
+      if (streamRef.current === stream) {
+        streamRef.current = null;
+        stream.getTracks().forEach((t) => t.stop());
+      }
+      if (videoRef.current?.srcObject === stream) {
+        videoRef.current.srcObject = null;
+      }
+      return;
     }
 
     setState('scanning');
