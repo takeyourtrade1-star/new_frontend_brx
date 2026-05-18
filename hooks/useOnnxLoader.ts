@@ -17,6 +17,25 @@ const IDB_STORE_NAME = 'models';
 const MODEL_KEY = 'dinov2_small_v2'; // bump to invalidate cached model
 
 // ---------------------------------------------------------------------------
+// Progress type
+// ---------------------------------------------------------------------------
+
+export type OnnxLoadProgress = {
+  loaded: number;
+  total: number;
+  /** 0–100 when Content-Length is known; -1 = indeterminate download */
+  percent: number;
+  phase: 'idle' | 'downloading' | 'caching' | 'ready' | 'failed';
+};
+
+export const ONNX_LOAD_PROGRESS_IDLE: OnnxLoadProgress = {
+  loaded: 0,
+  total: 0,
+  percent: 0,
+  phase: 'idle',
+};
+
+// ---------------------------------------------------------------------------
 // Low-level IDB helpers
 // ---------------------------------------------------------------------------
 
@@ -95,6 +114,69 @@ export async function storeModelToIDB(data: ArrayBuffer): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Stream helpers
+// ---------------------------------------------------------------------------
+
+function concatChunks(chunks: Uint8Array[], totalLength: number): ArrayBuffer {
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return merged.buffer;
+}
+
+async function readResponseWithProgress(
+  response: Response,
+  onProgress?: (progress: OnnxLoadProgress) => void,
+): Promise<ArrayBuffer> {
+  const contentLength = Number(response.headers.get('content-length')) || 0;
+  const body = response.body;
+
+  if (!body) {
+    const data = await response.arrayBuffer();
+    const total = contentLength || data.byteLength;
+    onProgress?.({
+      loaded: data.byteLength,
+      total,
+      percent: 100,
+      phase: 'downloading',
+    });
+    return data;
+  }
+
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let loaded = 0;
+
+  const emitDownload = () => {
+    const percent =
+      contentLength > 0
+        ? Math.min(100, Math.round((loaded / contentLength) * 100))
+        : -1;
+    onProgress?.({
+      loaded,
+      total: contentLength,
+      percent,
+      phase: 'downloading',
+    });
+  };
+
+  emitDownload();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    loaded += value.byteLength;
+    emitDownload();
+  }
+
+  return concatChunks(chunks, loaded);
+}
+
+// ---------------------------------------------------------------------------
 // Main export: fetch + cache
 // ---------------------------------------------------------------------------
 
@@ -106,26 +188,54 @@ export async function storeModelToIDB(data: ArrayBuffer): Promise<void> {
  *
  * Throws if both IDB and network fail.
  */
-export async function fetchAndCacheOnnxModel(url: string): Promise<ArrayBuffer> {
+export async function fetchAndCacheOnnxModel(
+  url: string,
+  onProgress?: (progress: OnnxLoadProgress) => void,
+): Promise<ArrayBuffer> {
+  const emit = (progress: OnnxLoadProgress) => onProgress?.(progress);
+
   // 1. IDB fast path
   const cached = await loadModelFromIDB();
   if (cached !== null) {
+    emit({
+      loaded: cached.byteLength,
+      total: cached.byteLength,
+      percent: 100,
+      phase: 'ready',
+    });
     return cached;
   }
 
-  // 2. Network fetch
+  // 2. Network fetch with byte tracking
+  emit({ loaded: 0, total: 0, percent: 0, phase: 'downloading' });
+
   const resp = await fetch(url);
   if (!resp.ok) {
+    emit({ loaded: 0, total: 0, percent: 0, phase: 'failed' });
     throw new Error(`Failed to fetch ONNX model from ${url}: HTTP ${resp.status}`);
   }
-  const data = await resp.arrayBuffer();
+
+  const data = await readResponseWithProgress(resp, onProgress);
+
   if (data.byteLength < 100_000) {
+    emit({ loaded: data.byteLength, total: data.byteLength, percent: 0, phase: 'failed' });
     throw new Error(`ONNX model too small (${data.byteLength} bytes) — likely a network error`);
   }
 
-  // 3. Persist to IDB asynchronously (don't block return)
-  storeModelToIDB(data).catch((err) => {
-    console.warn('[useOnnxLoader] Background IDB write failed:', err);
+  // 3. Persist to IDB (await so phase reflects real caching)
+  emit({
+    loaded: data.byteLength,
+    total: data.byteLength,
+    percent: 100,
+    phase: 'caching',
+  });
+  await storeModelToIDB(data);
+
+  emit({
+    loaded: data.byteLength,
+    total: data.byteLength,
+    percent: 100,
+    phase: 'ready',
   });
 
   return data;

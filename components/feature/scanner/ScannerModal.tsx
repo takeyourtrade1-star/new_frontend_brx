@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useState, type RefObject } from 'react';
 import { Camera, X, Lightbulb } from 'lucide-react';
 import { useBrxScanner } from '@/hooks/useBrxScanner';
+import { ModelLoadProgressBar } from '@/components/feature/scanner/ModelLoadProgressBar';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -449,6 +450,8 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
     state,
     result,
     errorMessage,
+    modelStatus,
+    modelProgress,
     videoRef,
     canvasRef,
     openCamera,
@@ -524,6 +527,8 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
   return (
     <div className="fixed inset-0 z-[9999] overflow-hidden bg-black" aria-modal aria-label="Scanner Magic">
       <TopLoadingBar active={state === 'processing'} />
+
+      <ModelLoadProgressBar modelStatus={modelStatus} modelProgress={modelProgress} />
 
       {/* Header */}
       <header

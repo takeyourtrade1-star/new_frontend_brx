@@ -4,7 +4,12 @@ import { Suspense, useEffect, useRef, useCallback, useState, type RefObject } fr
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Home, Search, Lightbulb, X } from 'lucide-react';
-import { useBrxScanner, type DebugInfo, type ModelStatus } from '@/hooks/useBrxScanner';
+import {
+  useBrxScanner,
+  type DebugInfo,
+  type ModelStatus,
+} from '@/hooks/useBrxScanner';
+import { ModelLoadProgressBar } from '@/components/feature/scanner/ModelLoadProgressBar';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -57,7 +62,7 @@ function TopLoadingBar({ active }: { active: boolean }) {
 }
 
 // ---------------------------------------------------------------------------
-// Model status badge (V3 edge pipeline indicator)
+// Model status badge (V3 edge pipeline indicator — header only)
 // ---------------------------------------------------------------------------
 
 function ModelStatusBadge({ status }: { status: ModelStatus }) {
@@ -77,11 +82,11 @@ function ModelStatusBadge({ status }: { status: ModelStatus }) {
       </span>
     );
   }
-  // failed — show Standard mode indicator
+  // failed — reassuring "Standard" badge, don't alarm the user
   return (
     <span className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/50 ring-1 ring-white/10">
       <span className="h-1.5 w-1.5 rounded-full bg-white/40" aria-hidden />
-      Standard
+      📡 Standard
     </span>
   );
 }
@@ -575,7 +580,7 @@ function RequestingCameraLoader() {
 // Debug overlay (mobile-friendly diagnostics — toggle with ?debug=1)
 // ---------------------------------------------------------------------------
 
-/** Live guess chip — appears before full match commit. */
+/** Live guess chip — slides in from below before full match commit. */
 function LiveHintChip({
   hint,
   latencyMs,
@@ -583,25 +588,37 @@ function LiveHintChip({
   hint: { card_name: string; set_name: string; image_uri: string | null; confidence: number };
   latencyMs: number;
 }) {
+  const confPct = Math.round(hint.confidence * 100);
+  const confColor =
+    confPct >= 80 ? 'text-emerald-400' : confPct >= 65 ? 'text-yellow-400' : 'text-white/50';
+
   return (
     <div
       className="pointer-events-none mt-4 flex max-w-[min(92vw,20rem)] items-center gap-3 rounded-2xl border border-[#FF7300]/35 bg-[#0a0f1a]/65 px-3.5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+      style={{ animation: 'hint-slide-in 0.3s cubic-bezier(0.16,1,0.3,1) both' }}
     >
+      <style>{`
+        @keyframes hint-slide-in {
+          from { transform: translateY(14px); opacity: 0; }
+          to   { transform: translateY(0);    opacity: 1; }
+        }
+      `}</style>
       {hint.image_uri ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={hint.image_uri}
           alt=""
-          className="h-12 w-8 shrink-0 rounded-md object-cover ring-1 ring-white/20"
+          className="h-[68px] w-12 shrink-0 rounded-lg object-cover ring-1 ring-white/20"
         />
       ) : (
-        <div className="h-12 w-8 shrink-0 rounded-md bg-white/10" aria-hidden />
+        <div className="h-[68px] w-12 shrink-0 rounded-lg bg-white/10" aria-hidden />
       )}
       <div className="min-w-0 flex-1 text-left">
-        <p className="truncate text-[13px] font-semibold text-white">{hint.card_name}</p>
+        <p className="truncate text-[14px] font-bold leading-tight text-white">{hint.card_name}</p>
         <p className="truncate text-[11px] text-white/65">{hint.set_name}</p>
-        <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-[#FF7300]/90">
-          Conferma… {Math.round(hint.confidence * 100)}%
-          {latencyMs > 0 ? ` · ${latencyMs}ms` : ''}
+        <p className={cn('mt-1 text-[11px] font-semibold uppercase tracking-wider', confColor)}>
+          {confPct}% · Conferma…
+          {latencyMs > 0 ? ` ${latencyMs}ms` : ''}
         </p>
       </div>
     </div>
@@ -670,6 +687,7 @@ function ScannerPageInner() {
     stopScanning,
     restartScanning,
     modelStatus,
+    modelProgress,
   } = useBrxScanner({
     confidenceThreshold: 0.78,
     captureIntervalMs: 320,
@@ -848,13 +866,35 @@ function ScannerPageInner() {
           {/* Maschera blur attorno all'area di scan (centro NITIDO) */}
           <ScanAreaBlurMask />
 
+          {/* Green flash on match commit */}
+          {state === 'matched' && (
+            <>
+              <div
+                className="pointer-events-none absolute inset-0 z-[15]"
+                style={{ animation: 'match-flash 0.55s ease-out forwards' }}
+                aria-hidden
+              />
+              <style>{`
+                @keyframes match-flash {
+                  0%   { background: rgba(74,222,128,0.22); }
+                  100% { background: rgba(74,222,128,0); }
+                }
+              `}</style>
+            </>
+          )}
+
           {/* Cornice ad angoli + hint */}
           <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center">
             <ScanCorners bracketState={bracketState} />
 
             {state !== 'matched' && !hint && (
-              <p className="mt-5 max-w-[min(92vw,22rem)] text-center text-[12px] font-medium leading-relaxed text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] sm:text-[13px]">
-                Inquadra la carta Magic nel riquadro
+              <p
+                className={cn(
+                  'mt-5 max-w-[min(92vw,22rem)] text-center text-[12px] font-medium leading-relaxed text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] sm:text-[13px]',
+                  state === 'scanning' && 'animate-[pulse_2s_ease-in-out_infinite]',
+                )}
+              >
+                {state === 'scanning' ? 'Cerca carta…' : 'Inquadra la carta Magic nel riquadro'}
               </p>
             )}
             {hint && state !== 'matched' && (
@@ -868,6 +908,9 @@ function ScannerPageInner() {
           )}
         </>
       )}
+
+      {/* ── ONNX download progress banner ───────────────────────────── */}
+      <ModelLoadProgressBar modelStatus={modelStatus} modelProgress={modelProgress} />
 
       {/* ── Match preview panel ─────────────────────────────────────── */}
       {state === 'matched' && result && (

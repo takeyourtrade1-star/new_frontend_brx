@@ -8,7 +8,13 @@ import {
 } from 'react';
 import type * as OrtLib from 'onnxruntime-web';
 
-import { fetchAndCacheOnnxModel } from './useOnnxLoader';
+import {
+  fetchAndCacheOnnxModel,
+  ONNX_LOAD_PROGRESS_IDLE,
+  type OnnxLoadProgress,
+} from './useOnnxLoader';
+
+export type { OnnxLoadProgress } from './useOnnxLoader';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -86,6 +92,8 @@ export interface UseBrxScannerReturn {
   debug: DebugInfo;
   /** ONNX edge pipeline status. */
   modelStatus: ModelStatus;
+  /** ONNX download / cache progress (bytes + phase). */
+  modelProgress: OnnxLoadProgress;
   videoRef: React.RefObject<HTMLVideoElement>;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   openCamera: () => Promise<void>;
@@ -214,6 +222,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
   const [modelStatus, setModelStatus] = useState<ModelStatus>('loading');
+  const [modelProgress, setModelProgress] = useState<OnnxLoadProgress>(ONNX_LOAD_PROGRESS_IDLE);
   const [debug, setDebug] = useState<DebugInfo>({
     framesSent: 0,
     lastStatus: null,
@@ -262,7 +271,9 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     async function loadOnnxModel() {
       try {
         const modelUrl = `${apiBaseUrl}/static/dinov2_small.onnx`;
-        const modelData = await fetchAndCacheOnnxModel(modelUrl);
+        const modelData = await fetchAndCacheOnnxModel(modelUrl, (progress) => {
+          if (!cancelled) setModelProgress(progress);
+        });
         if (cancelled) return;
 
         const ort = await import('onnxruntime-web');
@@ -287,6 +298,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       } catch (err) {
         if (!cancelled) {
           console.warn('[BrxScanner] ONNX model load failed — falling back to /scan:', err);
+          setModelProgress((p) => ({ ...p, phase: 'failed' }));
           setModelStatus('failed');
         }
       }
@@ -781,6 +793,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     countdown,
     debug,
     modelStatus,
+    modelProgress,
     videoRef,
     canvasRef,
     openCamera,
