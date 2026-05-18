@@ -26,41 +26,34 @@ export interface ScanResult {
   set_code: string;
   image_uri: string | null;
   confidence: number;
-  method: 'phash' | 'cnn' | 'none';
+  method: string;
   search_url: string;
   search_query: string;
   latency_ms: number;
 }
 
 export interface UseBrxScannerOptions {
-  /** Called when a card is matched and confidence >= threshold. */
   onMatch?: (result: ScanResult) => void;
-  /** Called when a frame is analysed but no card is matched. */
   onNoMatch?: () => void;
-  /** Called on unrecoverable error. */
   onError?: (message: string) => void;
-  /** Confidence threshold above which onMatch is fired (default 0.85). */
   confidenceThreshold?: number;
-  /** Interval between frame submissions in ms (default 1000). */
+  /** Interval between frame capture attempts in ms (default 450). */
   captureIntervalMs?: number;
-  /** Base URL of the brx-match API (default: /brx-match). */
   apiBaseUrl?: string;
-  /** Seconds to count down after a match before auto-redirect (default 3). */
   countdownSeconds?: number;
-  /** Per-request timeout in ms (default 6000). Hangs return as a timeout error. */
   requestTimeoutMs?: number;
+  /** API mode: auto skips ORB when CNN is confident (fastest balanced path). */
+  scanMode?: 'auto' | 'fast' | 'full';
+  /** Same card name in N of last M provisional hits → commit match. */
+  voteWindow?: number;
+  voteRequired?: number;
 }
 
 export interface DebugInfo {
-  /** Number of frames sent so far. */
   framesSent: number;
-  /** Last HTTP status, "TIMEOUT", "NETWORK_ERROR", or null. */
   lastStatus: string | null;
-  /** Round-trip time of the last request in ms (-1 if no request yet). */
   lastLatencyMs: number;
-  /** Last error message, if any. */
   lastError: string | null;
-  /** matched / not_matched / pending */
   lastOutcome: 'matched' | 'not_matched' | 'pending' | null;
 }
 
@@ -68,15 +61,12 @@ export interface UseBrxScannerReturn {
   state: ScannerState;
   result: ScanResult | null;
   errorMessage: string | null;
-  /** Countdown seconds remaining after a match (counts down from countdownSeconds). */
   countdown: number;
-  /** Live diagnostics (for in-app debug overlay on mobile). */
   debug: DebugInfo;
   videoRef: React.RefObject<HTMLVideoElement>;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   openCamera: () => Promise<void>;
   stopScanning: () => void;
-  /** Dismiss current match and resume scanning (for "Not this card" flow). */
   restartScanning: () => void;
 }
 
@@ -89,11 +79,14 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     onMatch,
     onNoMatch,
     onError,
-    confidenceThreshold = 0.85,
-    captureIntervalMs = 1000,
+    confidenceThreshold = 0.8,
+    captureIntervalMs = 450,
     apiBaseUrl = '/brx-match',
     countdownSeconds = 3,
-    requestTimeoutMs = 6000,
+    requestTimeoutMs = 5000,
+    scanMode = 'auto',
+    voteWindow = 4,
+    voteRequired = 2,
   } = options;
 
   const [state, setState] = useState<ScannerState>('idle');
@@ -113,11 +106,9 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const processingRef = useRef(false);
-
-  // ------------------------------------------------------------------
-  // Cleanup
-  // ------------------------------------------------------------------
+  const inflightRef = useRef(0);
+  const recentNamesRef = useRef<string[]>([]);
+  const matchedRef = useRef(false);
 
   const stopScanning = useCallback(() => {
     if (intervalRef.current) {
@@ -135,16 +126,14 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-    processingRef.current = false;
+    inflightRef.current = 0;
+    matchedRef.current = false;
+    recentNamesRef.current = [];
     setCountdown(0);
     setState('idle');
   }, []);
 
   useEffect(() => () => stopScanning(), [stopScanning]);
-
-  // ------------------------------------------------------------------
-  // Frame capture → JPEG Blob (async toBlob: ~2-3x più veloce di toDataURL+atob)
-  // ------------------------------------------------------------------
 
   const captureFrame = useCallback((): Promise<Blob | null> => {
     return new Promise((resolve) => {
@@ -155,7 +144,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
         return;
       }
 
-      const W = 640;
+      const W = 512;
       const H = Math.round(W * (video.videoHeight / Math.max(video.videoWidth, 1)));
       canvas.width = W;
       canvas.height = H;
@@ -167,23 +156,70 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       }
 
       ctx.drawImage(video, 0, 0, W, H);
-      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.78);
+      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.72);
     });
   }, []);
 
-  // ------------------------------------------------------------------
-  // Send frame to brx-match API
-  // ------------------------------------------------------------------
+  const commitMatch = useCallback(
+    (scanResult: ScanResult) => {
+      if (matchedRef.current) return;
+      matchedRef.current = true;
+      setResult(scanResult);
+      setState('matched');
+
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+
+      setCountdown(countdownSeconds);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      countdownRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            if (countdownRef.current) {
+              clearInterval(countdownRef.current);
+              countdownRef.current = null;
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      onMatch?.(scanResult);
+    },
+    [countdownSeconds, onMatch],
+  );
+
+  const recordVote = useCallback(
+    (name: string, scanResult: ScanResult) => {
+      const key = name.trim().toLowerCase();
+      if (!key) return;
+      const buf = recentNamesRef.current;
+      buf.push(key);
+      while (buf.length > voteWindow) buf.shift();
+      const hits = buf.filter((n) => n === key).length;
+      if (hits >= voteRequired && scanResult.confidence >= confidenceThreshold * 0.9) {
+        commitMatch(scanResult);
+      }
+    },
+    [commitMatch, confidenceThreshold, voteRequired, voteWindow],
+  );
 
   const sendFrame = useCallback(async (): Promise<void> => {
-    if (processingRef.current) return;
-    processingRef.current = true;
-    setState('processing');
+    if (matchedRef.current) return;
+    if (inflightRef.current >= 2) return;
+
+    inflightRef.current += 1;
+    if (inflightRef.current === 1) {
+      setState((s) => (s === 'scanning' ? 'processing' : s));
+    }
 
     const blob = await captureFrame();
     if (!blob) {
-      processingRef.current = false;
-      setState('scanning');
+      inflightRef.current = Math.max(0, inflightRef.current - 1);
+      if (inflightRef.current === 0) setState('scanning');
       return;
     }
 
@@ -193,12 +229,11 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     const t0 = performance.now();
     setDebug((d) => ({ ...d, framesSent: d.framesSent + 1, lastOutcome: 'pending' }));
 
-    // AbortController per evitare fetch appese all'infinito (es. SG/firewall che droppa)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
 
     try {
-      const resp = await fetch(`${apiBaseUrl}/scan`, {
+      const resp = await fetch(`${apiBaseUrl}/scan?mode=${encodeURIComponent(scanMode)}`, {
         method: 'POST',
         body: formData,
         signal: controller.signal,
@@ -216,7 +251,6 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
           lastError: text.slice(0, 120) || `HTTP ${resp.status}`,
           lastOutcome: 'not_matched',
         }));
-        setState('scanning');
         return;
       }
 
@@ -229,47 +263,27 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
         lastOutcome: data.matched ? 'matched' : 'not_matched',
       }));
 
-      if (data.matched && data.confidence >= confidenceThreshold && data.search_url) {
-        const scanResult: ScanResult = {
-          card_name: data.card_name ?? '',
-          set_name: data.set_name ?? '',
-          set_code: data.set_code ?? '',
-          image_uri: data.image_uri ?? null,
-          confidence: data.confidence,
-          method: data.method,
-          search_url: data.search_url,
-          search_query: data.search_query ?? '',
-          latency_ms: data.latency_ms,
-        };
-        setResult(scanResult);
-        setState('matched');
-
-        // Stop the capture loop — we have a winner
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-
-        // Start countdown
-        setCountdown(countdownSeconds);
-        if (countdownRef.current) clearInterval(countdownRef.current);
-        countdownRef.current = setInterval(() => {
-          setCountdown((prev) => {
-            if (prev <= 1) {
-              if (countdownRef.current) {
-                clearInterval(countdownRef.current);
-                countdownRef.current = null;
-              }
-              return 0;
+      const scanResult: ScanResult | null =
+        data.card_name && (data.search_url || data.matched)
+          ? {
+              card_name: data.card_name ?? '',
+              set_name: data.set_name ?? '',
+              set_code: data.set_code ?? '',
+              image_uri: data.image_uri ?? null,
+              confidence: data.confidence ?? 0,
+              method: data.method ?? 'none',
+              search_url: data.search_url ?? '',
+              search_query: data.search_query ?? '',
+              latency_ms: data.latency_ms ?? elapsed,
             }
-            return prev - 1;
-          });
-        }, 1000);
+          : null;
 
-        onMatch?.(scanResult);
-      } else {
-        setState('scanning');
-        if (!data.matched) onNoMatch?.();
+      if (data.matched && scanResult && scanResult.confidence >= confidenceThreshold && scanResult.search_url) {
+        commitMatch(scanResult);
+      } else if (scanResult?.card_name && data.message === 'provisional') {
+        recordVote(scanResult.card_name, scanResult);
+      } else if (!data.matched) {
+        onNoMatch?.();
       }
     } catch (err) {
       clearTimeout(timeoutId);
@@ -278,8 +292,8 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       const msg = isAbort
         ? `TIMEOUT dopo ${requestTimeoutMs}ms`
         : err instanceof Error
-        ? err.message
-        : 'Unknown error';
+          ? err.message
+          : 'Unknown error';
 
       setDebug((d) => ({
         ...d,
@@ -288,22 +302,30 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
         lastError: msg,
         lastOutcome: 'not_matched',
       }));
-
       console.warn('[useBrxScanner] sendFrame error:', msg);
-      setState('scanning');
     } finally {
-      processingRef.current = false;
+      inflightRef.current = Math.max(0, inflightRef.current - 1);
+      if (inflightRef.current === 0 && !matchedRef.current) {
+        setState('scanning');
+      }
     }
-  }, [apiBaseUrl, captureFrame, confidenceThreshold, onMatch, onNoMatch, requestTimeoutMs]);
-
-  // ------------------------------------------------------------------
-  // Open camera
-  // ------------------------------------------------------------------
+  }, [
+    apiBaseUrl,
+    captureFrame,
+    commitMatch,
+    confidenceThreshold,
+    onNoMatch,
+    recordVote,
+    requestTimeoutMs,
+    scanMode,
+  ]);
 
   const openCamera = useCallback(async (): Promise<void> => {
     setState('requesting_camera');
     setErrorMessage(null);
     setResult(null);
+    matchedRef.current = false;
+    recentNamesRef.current = [];
 
     let stream: MediaStream;
     try {
@@ -334,13 +356,11 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
 
     setState('scanning');
 
-    // Start periodic frame submission
     intervalRef.current = setInterval(() => {
-      sendFrame();
+      void sendFrame();
     }, captureIntervalMs);
   }, [captureIntervalMs, onError, sendFrame]);
 
-  /** Dismiss the current match result and resume the scanning loop. */
   const restartScanning = useCallback(() => {
     if (countdownRef.current) {
       clearInterval(countdownRef.current);
@@ -348,13 +368,14 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     }
     setCountdown(0);
     setResult(null);
+    matchedRef.current = false;
+    recentNamesRef.current = [];
+    inflightRef.current = 0;
     setState('scanning');
-    processingRef.current = false;
 
-    // Re-start capture interval if stream is alive
     if (streamRef.current && !intervalRef.current) {
       intervalRef.current = setInterval(() => {
-        sendFrame();
+        void sendFrame();
       }, captureIntervalMs);
     }
   }, [captureIntervalMs, sendFrame]);

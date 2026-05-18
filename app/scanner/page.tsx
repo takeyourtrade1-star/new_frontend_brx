@@ -595,11 +595,14 @@ function ScannerPageInner() {
     stopScanning,
     restartScanning,
   } = useBrxScanner({
-    confidenceThreshold: 0.85,
-    captureIntervalMs: 700,
+    confidenceThreshold: 0.8,
+    captureIntervalMs: 450,
     countdownSeconds: COUNTDOWN_SECONDS,
     apiBaseUrl: '/brx-match',
-    requestTimeoutMs: 6000,
+    requestTimeoutMs: 5000,
+    scanMode: 'auto',
+    voteWindow: 4,
+    voteRequired: 2,
     onMatch: (r) => {
       if (slowTimerRef.current) {
         clearTimeout(slowTimerRef.current);
