@@ -9,7 +9,7 @@ import {
   type DebugInfo,
   type ModelStatus,
 } from '@/hooks/useBrxScanner';
-import { ModelLoadProgressBar } from '@/components/feature/scanner/ModelLoadProgressBar';
+import { ScannerModelGate } from '@/components/feature/scanner/ScannerModelGate';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -687,10 +687,13 @@ function ScannerPageInner() {
     stopScanning,
     restartScanning,
     retryModelDownload,
+    continueWithStandardMode,
+    turboSkipped,
     modelStatus,
     modelProgress,
     modelError,
   } = useBrxScanner({
+    autoOpenCamera: true,
     confidenceThreshold: 0.80,
     captureIntervalMs: 320,
     countdownSeconds: COUNTDOWN_SECONDS,
@@ -715,9 +718,16 @@ function ScannerPageInner() {
     },
   });
 
-  // Open camera on mount
+  const showModelGate =
+    state === 'idle' &&
+    (modelStatus === 'loading' || (modelStatus === 'failed' && !turboSkipped));
+
+  const handleUseStandard = useCallback(() => {
+    continueWithStandardMode();
+    void openCamera();
+  }, [continueWithStandardMode, openCamera]);
+
   useEffect(() => {
-    openCamera();
     return () => {
       stopScanning();
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
@@ -911,13 +921,15 @@ function ScannerPageInner() {
         </>
       )}
 
-      {/* ── ONNX download progress banner ───────────────────────────── */}
-      <ModelLoadProgressBar
-        modelStatus={modelStatus}
-        modelProgress={modelProgress}
-        modelError={modelError}
-        onRetryDownload={retryModelDownload}
-      />
+      {showModelGate && (
+        <ScannerModelGate
+          modelStatus={modelStatus}
+          modelProgress={modelProgress}
+          modelError={modelError}
+          onRetry={retryModelDownload}
+          onUseStandard={handleUseStandard}
+        />
+      )}
 
       {/* ── Match preview panel ─────────────────────────────────────── */}
       {state === 'matched' && result && (

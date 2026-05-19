@@ -14,23 +14,7 @@ import {
   type OnnxLoadProgress,
 } from './useOnnxLoader';
 
-/** S3 fallback — works only if bucket policy + CORS allow browser GET from site origin. */
-const ONNX_S3_FALLBACK_URL =
-  'https://ebartex-brx-match-data.s3.eu-south-1.amazonaws.com/dinov2_small.onnx';
-
-/**
- * Ordered ONNX download URLs. Primary needs backend V3 (`GET /static/dinov2_small.onnx`).
- * See DEPLOY_GUIDE_V3.md — without V3 on EC2, only S3/local fallbacks may succeed.
- */
-export function buildOnnxModelUrls(apiBaseUrl: string): string[] {
-  const base = apiBaseUrl.replace(/\/$/, '');
-  // Proxy first (same-origin). S3 only if bucket allows browser GET (CORS + policy).
-  return [
-    `${base}/static/dinov2_small.onnx`,
-    '/models/dinov2_small.onnx',
-    ONNX_S3_FALLBACK_URL,
-  ];
-}
+import { resolveOnnxDownloadUrls } from './resolveOnnxUrls';
 
 export type { OnnxLoadProgress } from './useOnnxLoader';
 
@@ -88,6 +72,8 @@ export interface UseBrxScannerOptions {
   /** Required votes within window for commit (default 3 for V3, 2 for legacy). */
   voteRequired?: number;
   maxInflight?: number;
+  /** If false, caller opens camera after model is ready (recommended). */
+  autoOpenCamera?: boolean;
 }
 
 export interface DebugInfo {
@@ -121,6 +107,10 @@ export interface UseBrxScannerReturn {
   restartScanning: () => void;
   /** Re-fetch ONNX model (e.g. after failed download or backend V3 deploy). */
   retryModelDownload: () => void;
+  /** Skip Turbo and open camera with server-side /scan only. */
+  continueWithStandardMode: () => void;
+  /** User chose standard mode or ONNX was skipped — hide the pre-scan gate. */
+  turboSkipped: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -228,6 +218,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     voteWindow = 5,
     voteRequired = 3,
     maxInflight = 3,
+    autoOpenCamera = false,
   } = options;
 
   // Enforce floors
@@ -247,6 +238,8 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const [modelProgress, setModelProgress] = useState<OnnxLoadProgress>(ONNX_LOAD_PROGRESS_IDLE);
   const [modelError, setModelError] = useState<string | null>(null);
   const [modelLoadAttempt, setModelLoadAttempt] = useState(0);
+  const [turboSkipped, setTurboSkipped] = useState(false);
+  const cameraOpenedRef = useRef(false);
   const [debug, setDebug] = useState<DebugInfo>({
     framesSent: 0,
     lastStatus: null,
@@ -282,6 +275,8 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   // ONNX model loading (runs once after mount)
   // ---------------------------------------------------------------------------
   useEffect(() => {
+    if (turboSkipped) return;
+
     let cancelled = false;
 
     // Create the hidden 224×224 canvas used for ONNX frame capture
@@ -297,7 +292,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       setModelProgress({ loaded: 0, total: 0, percent: -1, phase: 'downloading' });
 
       try {
-        const modelUrls = buildOnnxModelUrls(apiBaseUrl);
+        const modelUrls = await resolveOnnxDownloadUrls(apiBaseUrl);
         const modelData = await fetchAndCacheOnnxModel(modelUrls, (progress) => {
           if (!cancelled) setModelProgress(progress);
         });
@@ -361,7 +356,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     loadOnnxModel();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiBaseUrl, modelLoadAttempt]);
+  }, [apiBaseUrl, modelLoadAttempt, turboSkipped]);
 
   const retryModelDownload = useCallback(() => {
     sessionRef.current = null;
@@ -370,6 +365,14 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     setModelStatus('loading');
     setModelProgress({ loaded: 0, total: 0, percent: -1, phase: 'downloading' });
     setModelLoadAttempt((n) => n + 1);
+  }, []);
+
+  const continueWithStandardMode = useCallback(() => {
+    setTurboSkipped(true);
+    setModelError(null);
+    setModelStatus('failed');
+    sessionRef.current = null;
+    ortRef.current = null;
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -831,6 +834,19 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     intervalRef.current = setInterval(() => { void sendFrame(); }, captureIntervalMs);
   }, [captureIntervalMs, onError, sendFrame]);
 
+  useEffect(() => {
+    if (!autoOpenCamera || cameraOpenedRef.current) return;
+    if (turboSkipped) {
+      cameraOpenedRef.current = true;
+      void openCamera();
+      return;
+    }
+    if (modelStatus === 'ready') {
+      cameraOpenedRef.current = true;
+      void openCamera();
+    }
+  }, [autoOpenCamera, modelStatus, turboSkipped, openCamera]);
+
   const restartScanning = useCallback(() => {
     if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
     clearHintStale();
@@ -864,5 +880,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     stopScanning,
     restartScanning,
     retryModelDownload,
+    continueWithStandardMode,
+    turboSkipped,
   };
 }
