@@ -68,7 +68,9 @@ export function Header({
       <div className="relative z-10 w-full overflow-visible pt-0">
         <div className="container-content container-header overflow-visible">
           <div className="middle-bar flex flex-row items-stretch gap-3 overflow-visible py-0 pb-1.5 md:gap-3 md:py-1">
-            <div className={`shrink-0 items-stretch md:min-h-11 ${searchOpen ? 'hidden md:flex' : 'flex'}`}>
+            <div
+              className={`flex w-11 shrink-0 flex-col items-center justify-center md:min-h-11 ${searchOpen ? 'hidden md:flex' : 'flex'}`}
+            >
               <ProdottiMenu />
             </div>
             <div className="flex min-h-[2.75rem] min-w-0 flex-1 items-stretch md:min-h-0">

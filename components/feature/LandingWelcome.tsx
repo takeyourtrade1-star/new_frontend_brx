@@ -14,7 +14,9 @@ import type { GameSlug } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { SignedAlteredShowcase } from './SignedAlteredShowcase';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { LandingHeroCarousel } from '@/components/home/LandingHeroCarousel';
+import { LandingPlatformSections } from '@/components/home/LandingPlatformSections';
 
 /* ═══════════════════════════════════════════════════════════
    CONSTANTS
@@ -146,21 +148,6 @@ export function LandingWelcome() {
   const [waitlistCounts, setWaitlistCounts] = useState<Record<string, number>>(() =>
     Object.fromEntries(getComingSoonGames().map((g) => [g.alt, g.waitlistCount]))
   );
-  const [activeFeature, setActiveFeature] = useState<'aste' | 'tornei' | 'brx'>('aste');
-  const [isFeatureHovered, setIsFeatureHovered] = useState(false);
-
-  useEffect(() => {
-    if (isFeatureHovered) return;
-    const features: Array<'aste' | 'tornei' | 'brx'> = ['aste', 'tornei', 'brx'];
-    const timer = setTimeout(() => {
-      setActiveFeature((prev) => {
-        const currentIndex = features.indexOf(prev);
-        return features[(currentIndex + 1) % features.length];
-      });
-    }, 7000);
-    return () => clearTimeout(timer);
-  }, [activeFeature, isFeatureHovered]);
-
   /* ─── handlers ─── */
   const handleCloseFullscreen = useCallback(() => {
     setIsFullscreenClosing(true);
@@ -298,7 +285,7 @@ export function LandingWelcome() {
 
         {/* ────── LOGO + TAGLINE — same row ────── */}
         <header className="bento-entry flex items-center justify-center px-4 pt-6 pb-4 sm:pt-6 sm:pb-5 md:pt-5 md:pb-3" style={{ animationDelay: '0ms' }}>
-          <div className="flex w-full max-w-6xl items-center justify-center gap-3 sm:gap-5 md:gap-6">
+          <div className="flex w-full max-w-6xl flex-col items-center justify-center gap-2 sm:flex-row sm:items-center sm:gap-5 md:gap-6">
             <Image
               src={getCdnImageUrl('Logo%20Principale%20EBARTEX.png')}
               alt="Ebartex"
@@ -310,19 +297,10 @@ export function LandingWelcome() {
               unoptimized
             />
             <div className="h-8 w-px bg-white/20 hidden sm:block" />
-            <h1 className="text-xs font-medium uppercase tracking-[0.06em] text-white/80 sm:text-sm md:text-base lg:text-lg">
-              Colleziona, competi e vinci —{' '}
-              <Link href="/tornei-live" className="font-bold text-[#38BDF8] hover:underline">
-                BRX Express
-              </Link>{' '}
-              in 24h,{' '}
-              <Link href="/aste" className="font-bold text-[#FB923C] hover:underline">
-                Aste
-              </Link>{' '}
-              e{' '}
-              <Link href="/tornei-live" className="font-bold text-[#A78BFA] hover:underline">
-                Tornei Live
-              </Link>
+            <h1 className="max-w-xl text-center text-xs font-medium uppercase leading-snug tracking-[0.06em] text-white/80 sm:max-w-none sm:text-left sm:text-sm md:text-base lg:text-lg">
+              Compra, vendi, scambia,
+              <br className="sm:hidden" />
+              {' '}metti all&apos;asta o partecipa ai tornei live.
             </h1>
           </div>
         </header>
@@ -425,185 +403,8 @@ export function LandingWelcome() {
               </Link>
             </div>
 
-            {/* ──── RIGHT: FEATURE CAROUSEL ──── */}
-            <div 
-              className="flex flex-col gap-3 sm:gap-4 min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px]"
-              onMouseEnter={() => setIsFeatureHovered(true)}
-              onMouseLeave={() => setIsFeatureHovered(false)}
-            >
-              {/* 3 Buttons */}
-              <div className="flex gap-2.5 sm:gap-3">
-                {(['aste', 'tornei', 'brx'] as const).map((key) => {
-                  const isActive = activeFeature === key;
-                  const labels: Record<string, string> = { aste: 'Scopri le aste', tornei: 'Tornei Live', brx: 'BRX Express' };
-                  const gradients: Record<string, string> = {
-                    aste: 'linear-gradient(135deg, rgba(251,146,60,0.12) 0%, rgba(15,23,42,0.35) 100%)',
-                    tornei: 'linear-gradient(135deg, rgba(167,139,250,0.12) 0%, rgba(15,23,42,0.35) 100%)',
-                    brx: 'linear-gradient(135deg, rgba(56,189,248,0.12) 0%, rgba(15,23,42,0.35) 100%)',
-                  };
-                  const borders: Record<string, string> = {
-                    aste: 'border-orange-400/40',
-                    tornei: 'border-violet-400/40',
-                    brx: 'border-sky-400/40',
-                  };
-                  const activeBorders: Record<string, string> = {
-                    aste: 'border-orange-400/70',
-                    tornei: 'border-violet-400/70',
-                    brx: 'border-sky-400/70',
-                  };
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setActiveFeature(key)}
-                      className={`bento-entry relative flex-1 overflow-hidden rounded-xl border px-3 py-3 sm:px-4 sm:py-3.5 text-[10px] sm:text-[11px] md:text-xs font-bold uppercase tracking-wider text-white transition-all duration-300 hover:scale-[1.02] ${isActive ? activeBorders[key] : borders[key]} ${isActive ? 'bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.08)]' : 'bg-white/5'}`}
-                      style={{
-                        animationDelay: key === 'aste' ? '200ms' : key === 'tornei' ? '260ms' : '320ms',
-                        background: isActive ? gradients[key] : undefined,
-                        backdropFilter: 'blur(12px)',
-                        WebkitBackdropFilter: 'blur(12px)',
-                      }}
-                    >
-                      {/* Progress indicator */}
-                      <span
-                        className={`absolute inset-x-2 bottom-1 h-0.5 rounded-full origin-left ${key === 'aste' ? 'bg-orange-400' : key === 'tornei' ? 'bg-violet-400' : 'bg-sky-400'}`}
-                        style={{
-                          transform: `scaleX(${isActive ? 1 : 0})`,
-                          opacity: isActive ? 0.7 : 0,
-                          transition: isActive
-                            ? 'transform 7000ms linear, opacity 400ms ease'
-                            : 'transform 300ms ease-out, opacity 200ms ease',
-                        }}
-                      />
-                      {labels[key]}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Content Panel */}
-              <div className="relative flex-1 overflow-hidden rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md transition-all duration-500">
-                <AnimatePresence mode="wait">
-                  {activeFeature === 'aste' && (
-                    <motion.div
-                      key="aste"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col p-4 sm:p-5 group/card cursor-pointer hover:bg-white/5 transition-colors"
-                    >
-                      <Link href="/aste" className="absolute inset-0 z-10" aria-label="Esplora le Aste" />
-
-                      {/* Top: Title & Mobile Arrow */}
-                      <div className="mb-2 sm:mb-3 flex items-center justify-between relative z-20 pointer-events-none">
-                        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-tight text-white group-hover/card:text-[#FB923C] transition-colors">
-                          Aste
-                        </h3>
-                        {/* Mobile Arrow */}
-                        <motion.div
-                          animate={{ x: [0, 4, 0] }}
-                          transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                          className="sm:hidden text-[#FB923C]"
-                        >
-                          <ArrowRight className="h-5 w-5" />
-                        </motion.div>
-                      </div>
-
-                      {/* Description */}
-                      <p className="flex-1 text-xs sm:text-sm md:text-base leading-relaxed text-white/80 relative z-20 pointer-events-none pr-1">
-                        Metti all&apos;asta le tue carte o fai offerte su quelle disponibili.
-                        Trova il prezzo giusto per le tue collezionabili in modo sicuro e trasparente.
-                      </p>
-
-                      {/* Desktop CTA */}
-                      <div className="mt-3 hidden sm:flex items-center justify-between rounded-xl border border-[#FB923C]/40 bg-[#FB923C]/15 px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#FB923C] transition-all duration-300 group-hover/card:bg-[#FB923C]/25 group-hover/card:border-[#FB923C]/60 group-hover/card:shadow-[0_0_20px_rgba(251,146,60,0.2)] relative z-20 pointer-events-none">
-                        <span>Esplora le Aste</span>
-                        <span className="text-sm">→</span>
-                      </div>
-                    </motion.div>
-                  )}
-                  {activeFeature === 'tornei' && (
-                    <motion.div
-                      key="tornei"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col p-4 sm:p-5 group/card cursor-pointer hover:bg-white/5 transition-colors"
-                    >
-                      <Link href="/tornei-live" className="absolute inset-0 z-10" aria-label="Scopri i Tornei" />
-
-                      {/* Top: Title & Mobile Arrow */}
-                      <div className="mb-2 sm:mb-3 flex items-center justify-between relative z-20 pointer-events-none">
-                        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-tight text-white group-hover/card:text-[#A78BFA] transition-colors">
-                          Tornei Live
-                        </h3>
-                        {/* Mobile Arrow */}
-                        <motion.div
-                          animate={{ x: [0, 4, 0] }}
-                          transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                          className="sm:hidden text-[#A78BFA]"
-                        >
-                          <ArrowRight className="h-5 w-5" />
-                        </motion.div>
-                      </div>
-
-                      {/* Description */}
-                      <p className="flex-1 text-xs sm:text-sm md:text-base leading-relaxed text-white/80 relative z-20 pointer-events-none pr-1">
-                        Partecipa ai tornei live, competi con altri giocatori e scala le classifiche
-                        in tempo reale. Montepremi garantiti e community attiva.
-                      </p>
-
-                      {/* Desktop CTA */}
-                      <div className="mt-3 hidden sm:flex items-center justify-between rounded-xl border border-[#A78BFA]/40 bg-[#A78BFA]/15 px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#A78BFA] transition-all duration-300 group-hover/card:bg-[#A78BFA]/25 group-hover/card:border-[#A78BFA]/60 group-hover/card:shadow-[0_0_20px_rgba(167,139,250,0.2)] relative z-20 pointer-events-none">
-                        <span>Scopri i Tornei</span>
-                        <span className="text-sm">→</span>
-                      </div>
-                    </motion.div>
-                  )}
-                  {activeFeature === 'brx' && (
-                    <motion.div
-                      key="brx"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col p-4 sm:p-5 group/card cursor-pointer hover:bg-white/5 transition-colors"
-                    >
-                      <Link href="/tornei-live" className="absolute inset-0 z-10" aria-label="Scopri BRX Express" />
-
-                      {/* Top: Title & Mobile Arrow */}
-                      <div className="mb-2 sm:mb-3 flex items-center justify-between relative z-20 pointer-events-none">
-                        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-tight text-white group-hover/card:text-[#38BDF8] transition-colors">
-                          BRX Express
-                        </h3>
-                        {/* Mobile Arrow */}
-                        <motion.div
-                          animate={{ x: [0, 4, 0] }}
-                          transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                          className="sm:hidden text-[#38BDF8]"
-                        >
-                          <ArrowRight className="h-5 w-5" />
-                        </motion.div>
-                      </div>
-
-                      {/* Description */}
-                      <p className="flex-1 text-xs sm:text-sm md:text-base leading-relaxed text-white/80 relative z-20 pointer-events-none pr-1">
-                        Logistica decentralizzata e spedizione in 24h. Il futuro del trading card game
-                        è qui: consegna rapida, sicura e tracciata.
-                      </p>
-
-                      {/* Desktop CTA */}
-                      <div className="mt-3 hidden sm:flex items-center justify-between rounded-xl border border-[#38BDF8]/40 bg-[#38BDF8]/15 px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#38BDF8] transition-all duration-300 group-hover/card:bg-[#38BDF8]/25 group-hover/card:border-[#38BDF8]/60 group-hover/card:shadow-[0_0_20px_rgba(56,189,248,0.2)] relative z-20 pointer-events-none">
-                        <span>Scopri BRX Express</span>
-                        <span className="text-sm">→</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
+            {/* ──── RIGHT: FEATURE CAROUSEL (4 slide) ──── */}
+            <LandingHeroCarousel />
 
           </div>
         </section>
@@ -734,11 +535,18 @@ export function LandingWelcome() {
               </div>
             </div>
 
+          </div>
+
+          {/* ─── Platform deep-dive (Aste, Scambi, Tornei) ─── */}
+          <div className="relative z-10 mx-auto mt-14 max-w-6xl sm:mt-16 md:mt-20">
+            <LandingPlatformSections />
+          </div>
+
+          <div className="relative z-10 mx-auto max-w-4xl">
             {/* ─── Signed & Altered Collections Showcase ─── */}
             <div className="mt-12 sm:mt-14 md:mt-16">
               <SignedAlteredShowcase />
             </div>
-
           </div>
         </section>
 

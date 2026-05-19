@@ -103,6 +103,7 @@ export const pt: Record<MessageKey, string> = {
   'nav.sell': 'VENDER',
   
   'nav.tcgExpress': 'BRX Express',
+  'nav.trades': 'TROCAS',
   'nav.auctions': 'LEILÕES',
   'nav.cartAria': 'Carrinho {total}',
 

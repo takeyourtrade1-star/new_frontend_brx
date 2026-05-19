@@ -103,6 +103,7 @@ export const en = {
   'nav.sell': 'Sell',
   
   'nav.tcgExpress': 'BRX Express',
+  'nav.trades': 'Trades',
   'nav.auctions': 'Auctions',
   'nav.cartAria': 'Cart {total}',
 

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
+import { ArrowLeftRight, ChevronDown, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
 import { HamburgerMenu } from './HamburgerMenu';
 import { CartDropdown } from './CartDropdown';
 import { NotificationBell } from '@/components/feature/notifiche/NotificationBell';
@@ -181,25 +181,27 @@ export function TopBar() {
     <>
       <div className="flex w-full min-h-0 items-center gap-0 px-2 py-0.5 md:px-3">
         {/* Left: Logo + selettore gioco — su mobile logo più grande */}
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3 shrink-0">
-          <Link
-            href="/"
-            className="flex shrink-0 items-center rounded-lg py-0.5 pl-0 pr-1 transition-opacity hover:opacity-90 md:pr-1 md:py-1"
-            aria-label={t('topBar.homeAria')}
-          >
-            <Image
-              src={getCdnImageUrl('Logo%20Corto%20BRX.png')}
-              alt="BRX"
-              width={240}
-              height={120}
-              className="h-14 w-auto max-h-14 object-contain md:h-14 md:max-h-none"
-              priority
-              unoptimized
-            />
-          </Link>
+        <div className="flex min-w-0 shrink-0 items-center">
+          <div className="flex w-11 shrink-0 items-center justify-center">
+            <Link
+              href="/"
+              className="flex shrink-0 items-center justify-center rounded-lg py-0.5 transition-opacity hover:opacity-90"
+              aria-label={t('topBar.homeAria')}
+            >
+              <Image
+                src={getCdnImageUrl('Logo%20Corto%20BRX.png')}
+                alt="BRX"
+                width={240}
+                height={120}
+                className="h-14 w-auto max-h-14 object-contain md:h-14 md:max-h-none"
+                priority
+                unoptimized
+              />
+            </Link>
+          </div>
 
           {/* Da tablet in su: selettore in header. Su mobile il gioco si sceglie dal menu hamburger. */}
-          <div className="relative hidden h-full min-w-0 items-center md:ml-[3.25rem] md:-ml-1 md:flex" ref={gamesMenuRef}>
+          <div className="relative hidden h-full min-w-0 items-center pl-3 md:flex" ref={gamesMenuRef}>
             <button
               type="button"
               onClick={() => setGamesMenuOpen((o) => !o)}
@@ -701,8 +703,16 @@ export function TopBar() {
                         Le mie vendite
                       </Link>
 
-                      {/* Solo su mobile, includiamo anche Tornei live, Aste e BRX Express che su desktop hanno link diretti */}
+                      {/* Solo su mobile, includiamo anche Scambi, Tornei live, Aste e BRX Express che su desktop hanno link diretti */}
                       <div className="md:hidden">
+                        <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
+                        <Link
+                          href="/scambi"
+                          className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                          onClick={() => setVendiMenuOpen(false)}
+                        >
+                          {t('nav.trades')}
+                        </Link>
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                         <Link
                           href="/aste"
@@ -791,10 +801,27 @@ export function TopBar() {
 
               {/* TORNEI LIVE spostato nell'hamburger menu — rimosso dall'header desktop */}
 
+              {/* 4. SCAMBI — tra Vendite e Aste */}
+              <Link
+                href="/scambi"
+                className="order-3 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex"
+                aria-label={t('nav.trades')}
+              >
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5"
+                  aria-hidden
+                >
+                  <ArrowLeftRight className="h-[0.9rem] w-[0.9rem] text-[#FF7300]" strokeWidth={2} />
+                </span>
+                <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
+                  {t('nav.trades')}
+                </span>
+              </Link>
+
               {/* 5. ASTE - solo desktop */}
               <Link
                 href="/aste"
-                className="order-4 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex"
+                className="order-4 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-5 md:flex"
                 aria-label={t('nav.auctions')}
               >
                 <span
@@ -825,11 +852,6 @@ export function TopBar() {
                 </span>
               </Link>
 
-              {/* Notifiche: bell con badge unread, ordine subito prima del carrello */}
-              <div className="order-4 hidden md:flex md:order-5">
-                <NotificationBell />
-              </div>
-
               {/* 6. Carrello con dropdown preview */}
               <div className="order-5 md:order-6">
                 <CartDropdown />
@@ -838,8 +860,9 @@ export function TopBar() {
             </>
           ) : null}
         </div>
-        {/* Hamburger: sempre all'estrema destra, fuori dalla logica auth */}
-        <div className="flex shrink-0 items-center ml-1" aria-label={t('header.menuAria')}>
+        {/* Destra: notifiche (se loggato) + hamburger */}
+        <div className="ml-1 flex shrink-0 items-center gap-0.5" aria-label={t('header.menuAria')}>
+          {isAuthenticated ? <NotificationBell /> : null}
           <HamburgerMenu />
         </div>
       </div>

@@ -60,6 +60,13 @@ export function DemoBanner() {
             >
               {isIT ? 'Tornei' : 'Tournaments'}
             </Link>
+            <span className="text-[9px] sm:text-[10px] text-white/40">|</span>
+            <Link
+              href="/scambi"
+              className="rounded px-1.5 py-0.5 text-[9px] font-semibold text-white transition-colors hover:bg-white/20 sm:px-2 sm:text-xs whitespace-nowrap"
+            >
+              {isIT ? 'Scambi' : 'Trades'}
+            </Link>
           </div>
 
           {/* RIGHT — spacer to visually balance the left badge on desktop */}

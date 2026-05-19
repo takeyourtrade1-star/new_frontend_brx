@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -24,6 +24,10 @@ import {
   type FaceColorId,
   type WardrobeItem,
 } from './mascotte-wardrobe';
+import { AssoHintBubble } from '@/components/dev/AssoHintBubble';
+import { useAssoBubbleQueue } from '@/hooks/useAssoBubbleQueue';
+import { useAssoTypewriter } from '@/hooks/useAssoTypewriter';
+import { ASSO_MESSAGE_CHAT_MS } from '@/lib/asso-messages';
 
 // Storage keys for bug report data
 const BUG_REPORT_STORAGE = {
@@ -82,7 +86,7 @@ let isConsoleCaptureActive = false;
 // Patterns to exclude from bug report logs (internal debug noise)
 const EXCLUDED_LOG_PATTERNS = [
   /Found pupils/i,
-  /👁️/,
+  /ðŸ‘ï¸/,
   /Mouse tracking effect mounted/i,
   /faceContainerRef is null/i,
   /cardRef is null/i,
@@ -355,25 +359,17 @@ export function CardMascotte() {
   // First interaction tracking for personalized greetings
   const [hasInteractedBefore, setHasInteractedBefore] = useState(false);
 
-  // Typewriter effect state
-  const [typewriterText, setTypewriterText] = useState('');
-  const [isTypewriting, setIsTypewriting] = useState(false);
-  const typewriterTimeoutRef = useRef<number | null>(null);
   const greetingTimeoutRef = useRef<number | null>(null);
-  const typewriterSequenceRef = useRef(0);
+  const chatWelcomeTextRef = useRef('');
+  const chatTypewriterCompleteRef = useRef<() => void>(() => {});
+  const chatTypewriter = useAssoTypewriter({
+    onComplete: () => chatTypewriterCompleteRef.current(),
+  });
   const [isCodingTransition, setIsCodingTransition] = useState(false);
   const [showCodingCompanion, setShowCodingCompanion] = useState(false);
   const [codingStatus, setCodingStatus] = useState<'compiling' | 'received'>('compiling');
   const [isBugFormFocused, setIsBugFormFocused] = useState(false);
 
-  // Hint bubble visibility + message rotation
-  const [showHint, setShowHint] = useState(false);
-  const [hintIndex, setHintIndex] = useState(0);
-  const [promoHintIndex, setPromoHintIndex] = useState(0);
-  const [styleReactionText, setStyleReactionText] = useState<string | null>(null);
-  const [showStyleReaction, setShowStyleReaction] = useState(false);
-  const styleReactionHideTimeoutRef = useRef<number | null>(null);
-  const styleReactionClearTimeoutRef = useRef<number | null>(null);
   const styleReactionLastIndexRef = useRef<number>(-1);
   const pendingStyleReactionSourceRef = useRef<'outfit' | 'color' | null>(null);
   const wardrobeDoneTimeoutRef = useRef<number | null>(null);
@@ -432,7 +428,7 @@ export function CardMascotte() {
   const codingTransitionTimeoutRef = useRef<number | null>(null);
   const submitFeedbackTimeoutRef = useRef<number | null>(null);
 
-  // ── Card flip (swipe gamification) ──
+  // â”€â”€ Card flip (swipe gamification) â”€â”€
   const [isFlipped, setIsFlipped] = useState(false);
   const [flipCount, setFlipCount] = useState(0);
   const [showAchievement, setShowAchievement] = useState<string | null>(null);
@@ -899,7 +895,7 @@ export function CardMascotte() {
     } catch { }
   }, []);
 
-  // Spawn particles — more particles for higher combos
+  // Spawn particles â€” more particles for higher combos
   const spawnFlipParticles = useCallback((combo: number) => {
     const colors = ['#FF7300', '#FFB366', '#FDE68A', '#FF9A40', '#FBBF24', '#F43F5E', '#6366F1', '#10B981'];
     const count = Math.min(8 + combo * 3, 20);
@@ -1009,7 +1005,7 @@ export function CardMascotte() {
   const handleShare = useCallback(async () => {
     vibrate(15);
     const title = getCurrentTitle(flipCount);
-    const text = `Ho raggiunto "${title}" con ${flipCount} flip su Ebartex! 🃏✨`;
+    const text = `Ho raggiunto "${title}" con ${flipCount} flip su Ebartex! ðŸƒâœ¨`;
     try {
       if (navigator.share) {
         await navigator.share({ title: 'Ebartex Card Flip', text, url: window.location.origin });
@@ -1021,7 +1017,7 @@ export function CardMascotte() {
     } catch { }
   }, [flipCount, getCurrentTitle, vibrate]);
 
-  // ── Touch swipe (mobile) ──
+  // â”€â”€ Touch swipe (mobile) â”€â”€
   const handleTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
     touchStartRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
@@ -1040,7 +1036,7 @@ export function CardMascotte() {
     }
   };
 
-  // ── Desktop flip: dedicated button (no more drag conflicts) ──
+  // â”€â”€ Desktop flip: dedicated button (no more drag conflicts) â”€â”€
   const handleFlipButtonClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -1333,7 +1329,7 @@ export function CardMascotte() {
     }
     // Returning user - familiar, shorter greetings
     return [
-      "Bentornato! Asso è qui. Cosa ti serve oggi?",
+      "Bentornato! Asso Ã¨ qui. Cosa ti serve oggi?",
       "Ciao di nuovo! Pronto ad aiutarti.",
       "Asso al tuo servizio! Come posso esserti utile?",
       "Eccomi! Cosa posso fare per te questa volta?"
@@ -1363,48 +1359,6 @@ export function CardMascotte() {
     setShowCardLoader(true);
   };
 
-  // Typewriter effect function
-  const startTypewriterEffect = useCallback((fullText: string, onComplete: () => void) => {
-    // Invalidate any in-flight typewriter loop before starting a new one.
-    typewriterSequenceRef.current += 1;
-    const sequenceId = typewriterSequenceRef.current;
-
-    if (typewriterTimeoutRef.current !== null) {
-      window.clearTimeout(typewriterTimeoutRef.current);
-      typewriterTimeoutRef.current = null;
-    }
-
-    setIsTypewriting(true);
-    setTypewriterText('');
-
-    let currentIndex = 0;
-    // Use code points instead of split('') to avoid broken glyphs while typing.
-    const chars = Array.from(fullText);
-
-    const typeNextChar = () => {
-      if (sequenceId !== typewriterSequenceRef.current) {
-        return;
-      }
-
-      if (currentIndex < chars.length) {
-        setTypewriterText(chars.slice(0, currentIndex + 1).join(''));
-        currentIndex++;
-
-        // Variable typing speed for natural feel (faster for spaces, slower for punctuation)
-        const char = chars[currentIndex - 1];
-        const delay = char === ' ' ? 20 : char === '.' || char === '!' || char === '?' ? 120 : 35;
-
-        typewriterTimeoutRef.current = window.setTimeout(typeNextChar, delay);
-      } else {
-        typewriterTimeoutRef.current = null;
-        setIsTypewriting(false);
-        onComplete();
-      }
-    };
-
-    typewriterTimeoutRef.current = window.setTimeout(typeNextChar, 150);
-  }, []);
-
   // Callback when card loader animation completes
   const handleCardLoaderComplete = useCallback(() => {
     setShowCardLoader(false);
@@ -1416,10 +1370,9 @@ export function CardMascotte() {
     // Reset messages immediately to prevent showing stale messages from previous session
     setChatMessages([]);
 
-    // Select random welcome message
     const selectedMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+    chatWelcomeTextRef.current = selectedMessage;
 
-    // Show typing indicator briefly, then start typewriter
     setIsTyping(true);
 
     if (greetingTimeoutRef.current !== null) {
@@ -1430,23 +1383,22 @@ export function CardMascotte() {
     greetingTimeoutRef.current = window.setTimeout(() => {
       greetingTimeoutRef.current = null;
       setIsTyping(false);
+      chatTypewriter.start(selectedMessage);
 
-      // Start typewriter effect
-      startTypewriterEffect(selectedMessage, () => {
-        // After typewriter completes, show the full message in chat and proceed to menu
-        setChatMessages([{ type: 'asso', text: selectedMessage }]);
-        setTimeout(() => setChatStep('menu'), 600);
-      });
-
-      // Mark as interacted for future visits
       try {
         localStorage.setItem('brx_asso_interacted', 'true');
         setHasInteractedBefore(true);
       } catch {
         // localStorage not available
       }
-    }, 400);
-  }, [welcomeMessages, startTypewriterEffect]);
+    }, ASSO_MESSAGE_CHAT_MS.typingIndicator);
+  }, [welcomeMessages, chatTypewriter]);
+
+  chatTypewriterCompleteRef.current = () => {
+    const text = chatWelcomeTextRef.current;
+    setChatMessages([{ type: 'asso', text }]);
+    window.setTimeout(() => setChatStep('menu'), ASSO_MESSAGE_CHAT_MS.menuAfterGreeting);
+  };
 
   // Handle chat modal close
   const handleChatModalClose = () => {
@@ -1458,14 +1410,7 @@ export function CardMascotte() {
       greetingTimeoutRef.current = null;
     }
 
-    // Cancel any ongoing typewriter effect
-    typewriterSequenceRef.current += 1;
-    if (typewriterTimeoutRef.current !== null) {
-      window.clearTimeout(typewriterTimeoutRef.current);
-      typewriterTimeoutRef.current = null;
-    }
-    setIsTypewriting(false);
-    setTypewriterText('');
+    chatTypewriter.cancel();
   };
 
   const resetCodingCompanion = () => {
@@ -1878,15 +1823,6 @@ export function CardMascotte() {
       if (greetingTimeoutRef.current !== null) {
         window.clearTimeout(greetingTimeoutRef.current);
       }
-      if (typewriterTimeoutRef.current !== null) {
-        window.clearTimeout(typewriterTimeoutRef.current);
-      }
-      if (styleReactionHideTimeoutRef.current !== null) {
-        window.clearTimeout(styleReactionHideTimeoutRef.current);
-      }
-      if (styleReactionClearTimeoutRef.current !== null) {
-        window.clearTimeout(styleReactionClearTimeoutRef.current);
-      }
       if (wardrobeDoneTimeoutRef.current !== null) {
         window.clearTimeout(wardrobeDoneTimeoutRef.current);
       }
@@ -1977,6 +1913,7 @@ export function CardMascotte() {
 
   const router = useRouter();
   const pathname = usePathname();
+  const assoBubble = useAssoBubbleQueue(true);
 
   // Promotional hints - glassmorphism style matching mascot
   const promoHints = useMemo(() => [
@@ -1990,7 +1927,7 @@ export function CardMascotte() {
     },
     {
       id: 'aste',
-      text: 'Vuoi guadagnare di più dalle vendite? Perché non provi le Aste?',
+      text: 'Vuoi guadagnare di piÃ¹ dalle vendite? PerchÃ© non provi le Aste?',
       route: '/aste',
       // Glass tint color (accent only, not solid)
       accent: '#06B6D4',
@@ -2041,82 +1978,40 @@ export function CardMascotte() {
     }
     styleReactionLastIndexRef.current = nextIndex;
 
-    if (styleReactionHideTimeoutRef.current !== null) {
-      window.clearTimeout(styleReactionHideTimeoutRef.current);
-      styleReactionHideTimeoutRef.current = null;
-    }
-    if (styleReactionClearTimeoutRef.current !== null) {
-      window.clearTimeout(styleReactionClearTimeoutRef.current);
-      styleReactionClearTimeoutRef.current = null;
-    }
+    assoBubble.enqueue({
+      id: `style-${source}-${Date.now()}`,
+      text: pool[nextIndex],
+      accent: '#FF7300',
+      kind: 'styleReaction',
+      priority: true,
+    });
+  }, [styleReactionMessages, assoBubble]);
 
-    setStyleReactionText(pool[nextIndex]);
-    setShowStyleReaction(true);
-
-    styleReactionHideTimeoutRef.current = window.setTimeout(() => {
-      setShowStyleReaction(false);
-      styleReactionHideTimeoutRef.current = null;
-
-      styleReactionClearTimeoutRef.current = window.setTimeout(() => {
-        setStyleReactionText(null);
-        styleReactionClearTimeoutRef.current = null;
-      }, 280);
-    }, 3000);
-  }, [styleReactionMessages]);
-
-  // Cycle hint bubble: show briefly, hide, repeat with rotating messages
-  // Promotional hints appear frequently (every 2nd hint = 50% of the time)
+  // Ciclo messaggi promo in coda (typewriter + hold + pausa)
   useEffect(() => {
-    if (styleReactionText) {
+    const hintsEnabled = !isModalOpen && !showChatModal && activePromoHints.length > 0;
+    if (!hintsEnabled) {
+      assoBubble.stopCycle();
       return;
     }
 
-    if (activePromoHints.length === 0) {
-      setShowHint(false);
-      return;
-    }
+    let promoIdx = 0;
+    assoBubble.scheduleCycle(() => {
+      const promo = activePromoHints[promoIdx % activePromoHints.length];
+      promoIdx += 1;
+      return {
+        id: `promo-${promo.id}-${promoIdx}`,
+        text: promo.text,
+        accent: promo.accent,
+        kind: isSleeping ? 'sleepDream' : 'promo',
+        promoId: promo.id,
+        route: promo.route,
+      };
+    });
 
-    const INITIAL_DELAY = 1500; // Very fast first appearance
-    const REGULAR_SHOW_DURATION = 3000; // Brief display
-    const PROMO_SHOW_DURATION = 4500; // Brief but noticeable
-    const HIDE_DURATION = 6000; // Very short hide = almost continuous
-    const PROMO_FREQUENCY = 2; // Every 2nd hint is promotional (more frequent)
-
-    let showTimer: number;
-    let hideTimer: number;
-    let hintCounter = 0;
-
-    const show = () => {
-      hintCounter++;
-      // Only show promo if it's promo time AND there are active promos available
-      const shouldShowPromo = hintCounter % PROMO_FREQUENCY === 0 && activePromoHints.length > 0;
-
-      // Always cycle through promo hints (scambi, aste, bug hint)
-      setPromoHintIndex(prev => (prev + 1) % activePromoHints.length);
-
-      setShowHint(true);
-      const showDuration = shouldShowPromo ? PROMO_SHOW_DURATION : REGULAR_SHOW_DURATION;
-
-      hideTimer = window.setTimeout(() => {
-        setShowHint(false);
-        showTimer = window.setTimeout(show, HIDE_DURATION);
-      }, showDuration);
-    };
-
-    const initialTimer = window.setTimeout(() => {
-      setShowHint(true);
-      hideTimer = window.setTimeout(() => {
-        setShowHint(false);
-        showTimer = window.setTimeout(show, HIDE_DURATION);
-      }, REGULAR_SHOW_DURATION);
-    }, INITIAL_DELAY);
-
-    return () => {
-      window.clearTimeout(initialTimer);
-      window.clearTimeout(showTimer);
-      window.clearTimeout(hideTimer);
-    };
-  }, [activePromoHints.length, styleReactionText]);
+    return () => assoBubble.stopCycle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- scheduleCycle/stopCycle sono stabili
+  }, [activePromoHints, isModalOpen, showChatModal, isSleeping]);
 
   // Listen for sticky bar visibility changes
   useEffect(() => {
@@ -2131,11 +2026,17 @@ export function CardMascotte() {
   // No separate sleep promo cycle - uses same index as awake state
 
   const isOverlayVisible = showChatModal || isModalOpen || isCodingTransition || showCodingCompanion || isExternalModalOpen || isArenaOpen;
-  const isStyleReactionActive = styleReactionText !== null;
-  const isHintVisible = isStyleReactionActive ? showStyleReaction : showHint;
-  const currentPromoHint = activePromoHints[promoHintIndex];
-  const currentHintAccent = isStyleReactionActive ? '#FF7300' : currentPromoHint?.accent ?? null;
-  const currentHintText = isStyleReactionActive ? styleReactionText : currentPromoHint?.text ?? '';
+  const isStyleReactionActive = assoBubble.current?.kind === 'styleReaction';
+
+  const handleAssoPromoClick = useCallback(() => {
+    const msg = assoBubble.current;
+    if (!msg) return;
+    if (msg.promoId === 'bug' || msg.route === '#bug-report') {
+      setIsModalOpen(true);
+    } else if (msg.route) {
+      router.push(msg.route);
+    }
+  }, [assoBubble, router]);
 
   // Snore sound using Web Audio API - soft rhythmic breathing sound
   const playSnoreSound = useCallback(() => {
@@ -2260,7 +2161,7 @@ export function CardMascotte() {
 
   // If there was a critical error, don't render
   if (hasError) {
-    console.error('🎴 CardMascotte has error, not rendering');
+    console.error('ðŸŽ´ CardMascotte has error, not rendering');
     return null;
   }
 
@@ -2308,155 +2209,22 @@ export function CardMascotte() {
         </div>
       )}
 
-      {/* Unified Hint Bubble — single component for all states */}
+      {/* Bubble messaggi Asso (promo, reazioni stile, sogno) */}
       {!isModalOpen && (
-        <div
-          className={`fixed hidden sm:flex flex-col items-center group ${isStyleReactionActive ? 'cursor-default' : 'cursor-pointer'}`}
-          onClick={() => {
-            if (isStyleReactionActive) return;
-
-            const promo = currentPromoHint;
-            if (promo) {
-              if (promo.id === 'bug') {
-                setIsModalOpen(true);
-              } else {
-                router.push(promo.route);
-              }
-            }
-          }}
-          style={{
-            zIndex: isStyleReactionActive ? Z_INDEX.tooltip + 6 : Z_INDEX.tooltip,
-            bottom: isStickyBarVisible ? '210px' : '154px',
-            right: '24px',
-            width: '220px',
-            opacity: isHintVisible ? 1 : 0,
-            transform: isHintVisible ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.9)',
-            transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 500ms ease, transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-            pointerEvents: isHintVisible ? 'auto' : 'none',
-          }}
-        >
-          {isSleeping ? (
-            /* ── DREAM BUBBLE (nuvoletta dei sogni) ── */
-            <div className="relative">
-              {/* Corpo della nuvoletta — più compatta */}
-              <div
-                className="relative rounded-[24px] px-3 py-2 text-center"
-                style={{
-                  background: 'linear-gradient(135deg, #ede9fe 0%, #ddd6fe 60%, #c4b5fd 100%)',
-                  border: '1.5px solid rgba(167,139,250,0.45)',
-                  boxShadow: '0 3px 14px rgba(124,58,237,0.15), 0 1px 6px rgba(0,0,0,0.06)',
-                  minWidth: '160px',
-                  maxWidth: '200px',
-                }}
-              >
-                {/* Messaggio promozionale */}
-                <p
-                  className="text-violet-900 font-semibold leading-snug"
-                  style={{ fontSize: '11px' }}
-                >
-                  {currentHintText}
-                </p>
-                {/* CTA */}
-                {!isStyleReactionActive && (
-                  <div className="mt-1.5 flex items-center justify-center gap-1">
-                    <span className="text-[9px] font-medium text-violet-500">Scopri nel sogno</span>
-                    <ArrowRight className="h-2.5 w-2.5 text-violet-400 transition-transform group-hover:translate-x-0.5" />
-                  </div>
-                )}
-              </div>
-              {/* Coda nuvoletta — tre cerchietti */}
-              <span
-                className="absolute"
-                style={{
-                  bottom: '-8px',
-                  right: '24px',
-                  width: '11px',
-                  height: '11px',
-                  borderRadius: '50%',
-                  background: '#ddd6fe',
-                  border: '1.5px solid rgba(167,139,250,0.4)',
-                }}
-              />
-              <span
-                className="absolute"
-                style={{
-                  bottom: '-15px',
-                  right: '15px',
-                  width: '7px',
-                  height: '7px',
-                  borderRadius: '50%',
-                  background: '#ede9fe',
-                  border: '1px solid rgba(167,139,250,0.3)',
-                }}
-              />
-              <span
-                className="absolute"
-                style={{
-                  bottom: '-20px',
-                  right: '9px',
-                  width: '4px',
-                  height: '4px',
-                  borderRadius: '50%',
-                  background: '#f5f3ff',
-                  border: '1px solid rgba(167,139,250,0.2)',
-                }}
-              />
-            </div>
-          ) : (
-            /* ── NORMAL GLASSMORPHISM BUBBLE (invariata) ── */
-            <div
-              className="relative rounded-xl px-4 py-3 text-center backdrop-blur-md overflow-hidden"
-              style={{
-                background: currentHintAccent
-                  ? `linear-gradient(135deg, ${currentHintAccent}15 0%, rgba(39,39,42,0.85) 100%)`
-                  : 'rgba(39,39,42,0.85)',
-                border: currentHintAccent
-                  ? `1px solid ${currentHintAccent}40`
-                  : '1px solid rgba(255,255,255,0.15)',
-                boxShadow: currentHintAccent
-                  ? `0 4px 20px ${currentHintAccent}25, 0 2px 8px rgba(0,0,0,0.2)`
-                  : '0 4px 16px rgba(0,0,0,0.2)',
-              }}
-            >
-              {currentHintAccent && (
-                <div
-                  className="absolute inset-0 opacity-20 blur-md"
-                  style={{ background: currentHintAccent }}
-                />
-              )}
-              <p
-                className="relative text-white font-semibold leading-tight"
-                style={{ fontSize: '11px', textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}
-              >
-                {currentHintText}
-              </p>
-              {!isStyleReactionActive && (
-                <div className="mt-2 flex items-center justify-center gap-1">
-                  <span className="text-[9px] font-medium text-white/90">Scopri di più</span>
-                  <ArrowRight className="h-3 w-3 text-white/90 transition-transform group-hover:translate-x-1" />
-                </div>
-              )}
-              {/* Glass arrow pointer */}
-              <span
-                className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  background: currentHintAccent
-                    ? `linear-gradient(135deg, ${currentHintAccent}20 0%, rgba(39,39,42,0.9) 100%)`
-                    : 'rgba(39,39,42,0.9)',
-                  borderBottom: currentHintAccent
-                    ? `1px solid ${currentHintAccent}50`
-                    : '1px solid rgba(255,255,255,0.15)',
-                  borderRight: currentHintAccent
-                    ? `1px solid ${currentHintAccent}50`
-                    : '1px solid rgba(255,255,255,0.15)',
-                }}
-              />
-            </div>
-          )}
-        </div>
+        <AssoHintBubble
+          visible={assoBubble.isVisible}
+          message={assoBubble.current}
+          displayedText={assoBubble.displayedText}
+          isTyping={assoBubble.isTyping}
+          isSleeping={isSleeping}
+          isStyleReaction={isStyleReactionActive}
+          isStickyBarVisible={isStickyBarVisible}
+          onDismiss={assoBubble.dismiss}
+          onSkipTyping={assoBubble.skipTyping}
+          onPromoClick={handleAssoPromoClick}
+        />
       )}
+
 
       {/* Unlock Notification */}
       {newUnlock && (
@@ -2772,7 +2540,7 @@ export function CardMascotte() {
         </div>
       )}
 
-      {/* Dressing Sparkles — shown when opening wardrobe (front view) */}
+      {/* Dressing Sparkles â€” shown when opening wardrobe (front view) */}
       {dressingSparkles.length > 0 && (
         <div
           className="fixed pointer-events-none"
@@ -2846,7 +2614,7 @@ export function CardMascotte() {
           aria-label="Apri Asso"
           title="Apri Asso"
         >
-          {/* ── LIQUID GRADIENT ORB AURA ── */}
+          {/* â”€â”€ LIQUID GRADIENT ORB AURA â”€â”€ */}
           <div className="absolute pointer-events-none" style={{ inset: '-24px', overflow: 'visible' }}>
             {/* Blob primario */}
             <div 
@@ -2902,7 +2670,7 @@ export function CardMascotte() {
         </button>
       )}
 
-      {/* Golden Confetti — Easter Egg at 100 flips */}
+      {/* Golden Confetti â€” Easter Egg at 100 flips */}
       {goldenConfetti.length > 0 && (
         <div
           className="fixed pointer-events-none"
@@ -2981,7 +2749,7 @@ export function CardMascotte() {
           }}
         >
 
-          {/* ── FRONT FACE ── */}
+          {/* â”€â”€ FRONT FACE â”€â”€ */}
           <div
             className="mascotte-flip-face absolute inset-0"
             style={{
@@ -2992,7 +2760,7 @@ export function CardMascotte() {
               transition: isMobileView ? 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease' : 'none',
             }}
           >
-            {/* Card container — soft charm style */}
+            {/* Card container â€” soft charm style */}
             <div
               className="relative h-full w-full overflow-visible rounded-2xl"
               style={{ background: 'transparent' }}
@@ -3041,7 +2809,7 @@ export function CardMascotte() {
                 }}
               />
 
-              {/* Bottom pill badge — ASSO */}
+              {/* Bottom pill badge â€” ASSO */}
               <div
                 className={`pointer-events-none absolute left-1/2 -translate-x-1/2 ${isCardHovered ? 'asso-pill-hovered' : ''}`}
                 style={{ bottom: '5px', zIndex: 8 }}
@@ -3089,7 +2857,7 @@ export function CardMascotte() {
                 </div>
               </div>
 
-              {/* Face SVG — parallax offset on hover */}
+              {/* Face SVG â€” parallax offset on hover */}
               <div
                 ref={faceContainerRef}
                 className={`absolute flex items-center justify-center ${isModalOpen ? 'face-glint-active' : ''} face-fixed-neon`}
@@ -3170,7 +2938,7 @@ export function CardMascotte() {
             </div>
           </div>{/* end front face */}
 
-          {/* ── BACK FACE ── */}
+          {/* â”€â”€ BACK FACE â”€â”€ */}
           <div
             ref={backFaceRef}
             className="mascotte-flip-face absolute inset-0"
@@ -3190,7 +2958,7 @@ export function CardMascotte() {
               className="relative h-full w-full overflow-hidden rounded-2xl"
               style={{ background: BACK_VARIANTS[backVariant].gradient }}
             >
-              {/* Holographic overlay — GOLD only */}
+              {/* Holographic overlay â€” GOLD only */}
               {BACK_VARIANTS[backVariant].label === 'GOLD' && (
                 <div
                   className="pointer-events-none absolute inset-0 rounded-2xl holo-overlay"
@@ -3314,7 +3082,7 @@ export function CardMascotte() {
                         }}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-[11px] text-white/90 hover:bg-white/10 transition"
                       >
-                        <span className="text-base">🎮</span>
+                        <span className="text-base">ðŸŽ®</span>
                         <div>
                           <div className="font-semibold">Single Player</div>
                           <div className="text-[9px] text-white/50">vs CPU locale</div>
@@ -3329,7 +3097,7 @@ export function CardMascotte() {
                         }}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-[11px] text-white/90 hover:bg-primary/20 transition group"
                       >
-                        <span className="text-base group-hover:scale-110 transition">⚔️</span>
+                        <span className="text-base group-hover:scale-110 transition">âš”ï¸</span>
                         <div>
                           <div className="font-semibold text-primary">1v1 LAN</div>
                           <div className="text-[9px] text-white/50">vs Amico in rete</div>
@@ -3370,7 +3138,7 @@ export function CardMascotte() {
                       <span className="text-[10px] font-semibold">Report ricevuto</span>
                     </div>
                     <p className="mt-1 text-[9px] leading-relaxed text-zinc-200">
-                      push bugfix/report done • ticket creato
+                      push bugfix/report done â€¢ ticket creato
                     </p>
                   </div>
                 ) : (
@@ -3465,7 +3233,7 @@ export function CardMascotte() {
                   </div>
                 </div>
 
-                {/* Tipo e Priorità */}
+                {/* Tipo e PrioritÃ  */}
                 <div className="mb-3 grid gap-3 md:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-700">Tipo di problema</label>
@@ -3482,14 +3250,14 @@ export function CardMascotte() {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Priorità</label>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">PrioritÃ </label>
                     <select
                       value={bugForm.priority}
                       onChange={(e) => setBugForm({ ...bugForm, priority: e.target.value })}
                       className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       <option value="low">Bassa - Miglioramento</option>
-                      <option value="medium">Media - Funzionalità limitata</option>
+                      <option value="medium">Media - FunzionalitÃ  limitata</option>
                       <option value="high">Alta - Bloccante</option>
                     </select>
                   </div>
@@ -3515,7 +3283,7 @@ export function CardMascotte() {
                     required
                     value={bugForm.message}
                     onChange={(e) => setBugForm({ ...bugForm, message: e.target.value })}
-                    placeholder="Descrivi il problema in dettaglio: cosa stavi facendo, cosa ti aspettavi, cosa è successo invece..."
+                    placeholder="Descrivi il problema in dettaglio: cosa stavi facendo, cosa ti aspettavi, cosa Ã¨ successo invece..."
                     rows={4}
                     className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
@@ -3531,7 +3299,7 @@ export function CardMascotte() {
                     placeholder="https://..."
                     className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
-                  <p className="mt-1 text-xs text-gray-500">L&apos;URL ci aiuta a identificare esattamente dove si è verificato il problema.</p>
+                  <p className="mt-1 text-xs text-gray-500">L&apos;URL ci aiuta a identificare esattamente dove si Ã¨ verificato il problema.</p>
                 </div>
 
                 {/* Screenshot preview */}
@@ -3638,7 +3406,7 @@ export function CardMascotte() {
                 </div>
                 <p className="font-medium text-black">Grazie per il feedback!</p>
                 <p className="text-sm text-gray-500">
-                  Esamineremo la segnalazione al più presto.
+                  Esamineremo la segnalazione al piÃ¹ presto.
                 </p>
               </div>
             )}
@@ -3704,11 +3472,20 @@ export function CardMascotte() {
               )}
 
               {/* Typewriter effect - live text being typed */}
-              {isTypewriting && typewriterText && (
-                <div className="mb-3 flex justify-start chat-message-in">
-                  <div className="max-w-[85%] rounded-2xl rounded-tl-none bg-white text-zinc-800 border border-zinc-200 px-4 py-2.5 text-sm">
-                    {typewriterText}
-                    <span className="typing-cursor inline-block w-0.5 h-4 bg-primary ml-0.5 animate-pulse" />
+              {chatTypewriter.isTyping && chatTypewriter.displayedText && (
+                <div
+                  className="mb-3 flex cursor-pointer justify-start chat-message-in"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => chatTypewriter.skip()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') chatTypewriter.skip();
+                  }}
+                  title="Mostra tutto il messaggio"
+                >
+                  <div className="max-w-[85%] rounded-2xl rounded-tl-none border border-zinc-200 bg-white px-4 py-2.5 text-sm leading-relaxed text-zinc-800">
+                    {chatTypewriter.displayedText}
+                    <span className="asso-typewriter-cursor typing-cursor ml-0.5 inline-block h-4 w-0.5 bg-primary" />
                   </div>
                 </div>
               )}
@@ -3794,7 +3571,7 @@ export function CardMascotte() {
             {/* Footer - Clean */}
             <div className="border-t border-zinc-200 bg-white px-4 py-3">
               <p className="text-center text-xs text-zinc-400">
-                Asso è qui per aiutarti. Scegli un&apos;opzione sopra.
+                Asso Ã¨ qui per aiutarti. Scegli un&apos;opzione sopra.
               </p>
             </div>
           </div>
@@ -4000,6 +3777,24 @@ export function CardMascotte() {
         }
         .hint-bubble {
           animation: hintPopIn 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .asso-hint-bubble-enter {
+          animation: hintPopIn 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        @keyframes assoCursorBlink {
+          0%, 45% { opacity: 1; }
+          50%, 100% { opacity: 0.15; }
+        }
+        .asso-typewriter-cursor {
+          animation: assoCursorBlink 0.95s step-end infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .asso-typewriter-cursor,
+          .asso-hint-bubble-enter,
+          .typing-cursor,
+          .typing-indicator span {
+            animation: none !important;
+          }
         }
         @keyframes backSparkleRotate {
           0% { transform: rotate(0deg) scale(1); }
@@ -4378,7 +4173,7 @@ export function CardMascotte() {
           0%, 100% { opacity: 0.6; width: 8px; }
           50% { opacity: 1; width: 12px; }
         }
-        /* ── ASSO Liquid Gradient Orb ── */
+        /* â”€â”€ ASSO Liquid Gradient Orb â”€â”€ */
         @keyframes assoOrbMorph1 {
           0%   { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; transform: translate(-8px, -6px) scale(1); opacity: 0.6; }
           25%  { border-radius: 65% 35% 30% 70% / 60% 70% 30% 40%; transform: translate(12px, -2px) scale(1.15); opacity: 0.75; }

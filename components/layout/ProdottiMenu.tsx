@@ -77,21 +77,20 @@ export function ProdottiMenu() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'flex h-11 w-11 shrink-0 items-center justify-center gap-2 rounded-[50px] border border-primary/45 px-0 text-sm font-medium text-white shadow-lg ring-1 ring-white/20 backdrop-blur-md backdrop-saturate-150 transition-opacity hover:bg-primary/40 hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] font-sans md:h-auto md:min-h-11 md:w-auto md:px-5 md:py-2',
+          'flex h-11 w-11 shrink-0 items-center justify-center rounded-[50px] border border-primary/45 p-0 text-sm font-medium text-white shadow-lg ring-1 ring-white/20 backdrop-blur-md backdrop-saturate-150 transition-opacity hover:bg-primary/40 hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] font-sans',
           open ? 'bg-primary/50' : 'bg-primary/30'
         )}
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={t('products.menuAria')}
       >
-        <span className="relative flex h-4 w-4 items-center justify-center md:h-4 md:w-4" aria-hidden>
+        <span className="relative flex h-4 w-4 items-center justify-center" aria-hidden>
           {open ? (
             <X className="h-4 w-4 text-white" strokeWidth={2} />
           ) : (
             <LayoutGrid className="h-4 w-4 text-white" strokeWidth={2} />
           )}
         </span>
-        <span className="hidden md:inline">{t('products.button')}</span>
       </button>
 
       {/* Overlay — solo sotto l'header */}
