@@ -4,7 +4,11 @@
  * Flow:
  *   1. Check IndexedDB for a cached copy of the model bytes.
  *   2. Cache hit  → return ArrayBuffer from IDB (< 100 ms).
- *   3. Cache miss → fetch from the provided URL, store in IDB, return ArrayBuffer.
+ *   3. Cache miss → fetch from URL list (fallbacks), store in IDB, return ArrayBuffer.
+ *
+ * Fallback URLs (in order) are built by `buildOnnxModelUrls()` in useBrxScanner.
+ * Primary: `${apiBase}/static/dinov2_small.onnx` (requires backend V3 deploy).
+ * S3 direct may work only if bucket CORS allows the site origin.
  *
  * Uses only the raw IDB API — no external libraries required.
  *
@@ -16,6 +20,9 @@ const IDB_DB_NAME = 'brx-onnx-cache';
 const IDB_STORE_NAME = 'models';
 const MODEL_KEY = 'dinov2_small_v2'; // bump to invalidate cached model
 
+/** Typical dinov2_small.onnx size when Content-Length is missing (proxy/CDN). */
+export const ESTIMATED_ONNX_BYTES = 25_000_000;
+
 // ---------------------------------------------------------------------------
 // Progress type
 // ---------------------------------------------------------------------------
@@ -23,9 +30,11 @@ const MODEL_KEY = 'dinov2_small_v2'; // bump to invalidate cached model
 export type OnnxLoadProgress = {
   loaded: number;
   total: number;
-  /** 0–100 when Content-Length is known; -1 = indeterminate download */
+  /** 0–100 when known or estimated; -1 = indeterminate (no bytes yet) */
   percent: number;
-  phase: 'idle' | 'downloading' | 'caching' | 'ready' | 'failed';
+  phase: 'idle' | 'downloading' | 'caching' | 'initializing' | 'ready' | 'failed';
+  /** Human-readable detail for UI / console (last error, retry hint, etc.) */
+  reason?: string;
 };
 
 export const ONNX_LOAD_PROGRESS_IDLE: OnnxLoadProgress = {
@@ -71,7 +80,6 @@ export async function loadModelFromIDB(): Promise<ArrayBuffer | null> {
       req.onsuccess = () => {
         db.close();
         const result = req.result;
-        // Validate: must be a non-trivial ArrayBuffer
         if (result instanceof ArrayBuffer && result.byteLength > 100_000) {
           resolve(result);
         } else {
@@ -127,6 +135,20 @@ function concatChunks(chunks: Uint8Array[], totalLength: number): ArrayBuffer {
   return merged.buffer;
 }
 
+function computeDownloadPercent(loaded: number, contentLength: number): number {
+  if (contentLength > 0) {
+    return Math.min(100, Math.round((loaded / contentLength) * 100));
+  }
+  if (loaded <= 0) return -1;
+  return Math.min(99, Math.round((loaded / ESTIMATED_ONNX_BYTES) * 100));
+}
+
+function displayTotal(contentLength: number, loaded: number): number {
+  if (contentLength > 0) return contentLength;
+  if (loaded > 0) return ESTIMATED_ONNX_BYTES;
+  return 0;
+}
+
 async function readResponseWithProgress(
   response: Response,
   onProgress?: (progress: OnnxLoadProgress) => void,
@@ -151,13 +173,10 @@ async function readResponseWithProgress(
   let loaded = 0;
 
   const emitDownload = () => {
-    const percent =
-      contentLength > 0
-        ? Math.min(100, Math.round((loaded / contentLength) * 100))
-        : -1;
+    const percent = computeDownloadPercent(loaded, contentLength);
     onProgress?.({
       loaded,
-      total: contentLength,
+      total: displayTotal(contentLength, loaded),
       percent,
       phase: 'downloading',
     });
@@ -176,23 +195,78 @@ async function readResponseWithProgress(
   return concatChunks(chunks, loaded);
 }
 
+async function fetchOnnxFromUrl(
+  url: string,
+  onProgress?: (progress: OnnxLoadProgress) => void,
+): Promise<ArrayBuffer> {
+  const emit = (progress: OnnxLoadProgress) => onProgress?.(progress);
+
+  emit({ loaded: 0, total: 0, percent: -1, phase: 'downloading', reason: url });
+
+  let resp: Response;
+  try {
+    resp = await fetch(url);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[useOnnxLoader] fetch network error:', url, msg);
+    emit({
+      loaded: 0,
+      total: 0,
+      percent: 0,
+      phase: 'failed',
+      reason: `Rete: ${msg}`,
+    });
+    throw new Error(`Network error fetching ONNX from ${url}: ${msg}`);
+  }
+
+  if (!resp.ok) {
+    const reason = `HTTP ${resp.status} da ${url}`;
+    console.error('[useOnnxLoader]', reason);
+    emit({ loaded: 0, total: 0, percent: 0, phase: 'failed', reason });
+    throw new Error(`Failed to fetch ONNX model: ${reason}`);
+  }
+
+  const data = await readResponseWithProgress(resp, onProgress);
+
+  if (data.byteLength < 100_000) {
+    const reason = `File troppo piccolo (${data.byteLength} B) — probabile errore HTML/JSON`;
+    emit({
+      loaded: data.byteLength,
+      total: data.byteLength,
+      percent: 0,
+      phase: 'failed',
+      reason,
+    });
+    throw new Error(reason);
+  }
+
+  return data;
+}
+
 // ---------------------------------------------------------------------------
-// Main export: fetch + cache
+// Main export: fetch + cache (with URL fallbacks)
 // ---------------------------------------------------------------------------
 
 /**
  * Load ONNX model, using IndexedDB as a persistent cache.
  *
- * - First call: fetches from `url`, stores in IDB, returns ArrayBuffer.
+ * - First call: tries each URL in order, stores in IDB, returns ArrayBuffer.
  * - Subsequent calls: loads from IDB in < 100 ms, returns ArrayBuffer.
  *
- * Throws if both IDB and network fail.
+ * Throws if both IDB and all network URLs fail.
  */
 export async function fetchAndCacheOnnxModel(
-  url: string,
+  urls: string | string[],
   onProgress?: (progress: OnnxLoadProgress) => void,
 ): Promise<ArrayBuffer> {
+  const urlList = (Array.isArray(urls) ? urls : [urls]).filter(Boolean);
   const emit = (progress: OnnxLoadProgress) => onProgress?.(progress);
+
+  if (urlList.length === 0) {
+    const reason = 'Nessun URL modello ONNX configurato';
+    emit({ loaded: 0, total: 0, percent: 0, phase: 'failed', reason });
+    throw new Error(reason);
+  }
 
   // 1. IDB fast path
   const cached = await loadModelFromIDB();
@@ -206,37 +280,53 @@ export async function fetchAndCacheOnnxModel(
     return cached;
   }
 
-  // 2. Network fetch with byte tracking
-  emit({ loaded: 0, total: 0, percent: 0, phase: 'downloading' });
+  // 2. Network — try each URL until one succeeds
+  let lastError: Error | null = null;
 
-  const resp = await fetch(url);
-  if (!resp.ok) {
-    emit({ loaded: 0, total: 0, percent: 0, phase: 'failed' });
-    throw new Error(`Failed to fetch ONNX model from ${url}: HTTP ${resp.status}`);
+  for (let i = 0; i < urlList.length; i++) {
+    const url = urlList[i];
+    const isLast = i === urlList.length - 1;
+
+    try {
+      if (i > 0) {
+        console.warn('[useOnnxLoader] Trying fallback URL:', url);
+        emit({
+          loaded: 0,
+          total: 0,
+          percent: -1,
+          phase: 'downloading',
+          reason: `Nuovo tentativo (${i + 1}/${urlList.length})…`,
+        });
+      }
+
+      const data = await fetchOnnxFromUrl(url, onProgress);
+
+      emit({
+        loaded: data.byteLength,
+        total: data.byteLength,
+        percent: 100,
+        phase: 'caching',
+      });
+      await storeModelToIDB(data);
+
+      emit({
+        loaded: data.byteLength,
+        total: data.byteLength,
+        percent: 100,
+        phase: 'ready',
+      });
+
+      return data;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (!isLast) continue;
+    }
   }
 
-  const data = await readResponseWithProgress(resp, onProgress);
-
-  if (data.byteLength < 100_000) {
-    emit({ loaded: data.byteLength, total: data.byteLength, percent: 0, phase: 'failed' });
-    throw new Error(`ONNX model too small (${data.byteLength} bytes) — likely a network error`);
-  }
-
-  // 3. Persist to IDB (await so phase reflects real caching)
-  emit({
-    loaded: data.byteLength,
-    total: data.byteLength,
-    percent: 100,
-    phase: 'caching',
-  });
-  await storeModelToIDB(data);
-
-  emit({
-    loaded: data.byteLength,
-    total: data.byteLength,
-    percent: 100,
-    phase: 'ready',
-  });
-
-  return data;
+  const reason =
+    lastError?.message ??
+    'Download modello fallito — verificare deploy backend V3 o CORS S3';
+  console.error('[useOnnxLoader] All URLs failed:', urlList, reason);
+  emit({ loaded: 0, total: 0, percent: 0, phase: 'failed', reason });
+  throw lastError ?? new Error(reason);
 }

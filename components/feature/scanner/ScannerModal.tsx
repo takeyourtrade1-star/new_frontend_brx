@@ -452,19 +452,21 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
     errorMessage,
     modelStatus,
     modelProgress,
+    modelError,
     videoRef,
     canvasRef,
     openCamera,
     stopScanning,
     restartScanning,
+    retryModelDownload,
   } = useBrxScanner({
-    confidenceThreshold: 0.78,
+    confidenceThreshold: 0.80,
     captureIntervalMs: 320,
     apiBaseUrl: '/brx-match',
     requestTimeoutMs: 4500,
-    scanMode: 'fast',
-    voteWindow: 3,
-    voteRequired: 2,
+    scanMode: 'auto',
+    voteWindow: 5,
+    voteRequired: 3,
   });
 
   useEffect(() => {
@@ -528,7 +530,12 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
     <div className="fixed inset-0 z-[9999] overflow-hidden bg-black" aria-modal aria-label="Scanner Magic">
       <TopLoadingBar active={state === 'processing'} />
 
-      <ModelLoadProgressBar modelStatus={modelStatus} modelProgress={modelProgress} />
+      <ModelLoadProgressBar
+        modelStatus={modelStatus}
+        modelProgress={modelProgress}
+        modelError={modelError}
+        onRetryDownload={retryModelDownload}
+      />
 
       {/* Header */}
       <header

@@ -13,16 +13,22 @@ const OVERLAY_TOP =
 
 /**
  * Top overlay for ONNX download progress (non-blocking; pointer-events-none).
- * Shown only while `modelStatus === 'loading'`; 3s turbo toast when ready.
+ * Loading: byte progress + indeterminate bar when percent === -1.
+ * Ready: 3s turbo toast. Failed: brief standard-mode message.
  */
 export function ModelLoadProgressBar({
   modelStatus,
   modelProgress,
+  modelError,
+  onRetryDownload,
 }: {
   modelStatus: ModelStatus;
   modelProgress: OnnxLoadProgress;
+  modelError?: string | null;
+  onRetryDownload?: () => void;
 }) {
   const [showReadyToast, setShowReadyToast] = useState(false);
+  const [showFailedToast, setShowFailedToast] = useState(false);
 
   useEffect(() => {
     if (modelStatus !== 'ready') return;
@@ -31,15 +37,20 @@ export function ModelLoadProgressBar({
     return () => clearTimeout(t);
   }, [modelStatus]);
 
+  useEffect(() => {
+    if (modelStatus !== 'failed') {
+      setShowFailedToast(false);
+      return;
+    }
+    setShowFailedToast(true);
+  }, [modelStatus]);
+
   const overlayClass =
     'pointer-events-none absolute left-0 right-0 z-[35] flex justify-center px-4';
 
   if (showReadyToast && modelStatus === 'ready') {
     return (
-      <div
-        className={overlayClass}
-        style={{ top: OVERLAY_TOP }}
-      >
+      <div className={overlayClass} style={{ top: OVERLAY_TOP }}>
         <span className="inline-flex items-center gap-1 rounded-xl border border-emerald-500/35 bg-black/60 px-4 py-2 text-[11px] font-semibold text-emerald-200 backdrop-blur-md">
           ⚡ Modalità turbo attiva
         </span>
@@ -47,33 +58,63 @@ export function ModelLoadProgressBar({
     );
   }
 
+  if (showFailedToast && modelStatus === 'failed') {
+    const detail = modelError ?? modelProgress.reason;
+    return (
+      <div className={overlayClass} style={{ top: OVERLAY_TOP }}>
+        <span className="inline-flex max-w-md flex-col items-center gap-2 rounded-xl border border-amber-500/30 bg-black/60 px-4 py-2.5 text-[11px] font-semibold text-amber-100/90 backdrop-blur-md">
+          <span className="text-center leading-snug">
+            Download modello non riuscito — modalità standard
+          </span>
+          {detail && (
+            <span className="text-center text-[10px] font-normal text-white/55 line-clamp-2">
+              {detail}
+            </span>
+          )}
+          {onRetryDownload && (
+            <button
+              type="button"
+              onClick={onRetryDownload}
+              className="pointer-events-auto rounded-lg border border-white/25 bg-white/10 px-3 py-1.5 text-[11px] font-medium text-white transition hover:bg-white/20"
+            >
+              Riprova download
+            </button>
+          )}
+        </span>
+      </div>
+    );
+  }
+
   if (modelStatus !== 'loading') return null;
 
+  const isIndeterminate = modelProgress.percent < 0;
   const hasPercent = modelProgress.percent >= 0;
   const pct = hasPercent ? modelProgress.percent : 0;
   const isCaching = modelProgress.phase === 'caching';
+  const isInitializing = modelProgress.phase === 'initializing';
 
-  const title = isCaching
+  const title = isInitializing
+    ? 'Avvio motore AI…'
+    : isCaching
     ? 'Salvataggio modello offline…'
-    : hasPercent
-      ? `Scaricamento modello AI… ${pct}%`
-      : 'Scaricamento modello AI…';
+    : isIndeterminate
+      ? 'Scaricamento in corso…'
+      : hasPercent
+        ? `Scaricamento modello AI… ${pct}%`
+        : 'Scaricamento modello AI…';
 
-  const showBytes =
-    modelProgress.loaded > 0 &&
-    (modelProgress.total > 0 || !hasPercent);
+  const showBytes = modelProgress.loaded > 0;
 
   const ariaValueText = isCaching
     ? 'Salvataggio modello in cache locale'
-    : hasPercent
-      ? `Scaricamento modello AI, ${pct} percento`
-      : 'Scaricamento modello AI in corso';
+    : isIndeterminate
+      ? 'Scaricamento modello AI in corso'
+      : hasPercent
+        ? `Scaricamento modello AI, ${pct} percento`
+        : 'Scaricamento modello AI in corso';
 
   return (
-    <div
-      className={overlayClass}
-      style={{ top: OVERLAY_TOP }}
-    >
+    <div className={overlayClass} style={{ top: OVERLAY_TOP }}>
       <div
         className="w-full max-w-md rounded-xl bg-black/60 px-4 py-3 backdrop-blur-md"
         role="progressbar"
@@ -96,7 +137,7 @@ export function ModelLoadProgressBar({
           className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/15"
           aria-hidden
         >
-          {hasPercent && !isCaching ? (
+          {hasPercent && !isCaching && !isInitializing ? (
             <div
               className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-[width] duration-300 ease-out"
               style={{ width: `${pct}%` }}
@@ -108,8 +149,14 @@ export function ModelLoadProgressBar({
 
         {showBytes && (
           <p className="mt-1.5 text-[11px] tabular-nums text-white/60">
-            ~{formatMb(modelProgress.loaded)}
-            {modelProgress.total > 0 ? ` / ${formatMb(modelProgress.total)}` : ''}
+            {formatMb(modelProgress.loaded)}
+            {modelProgress.total > 0 ? ` / ~${formatMb(modelProgress.total)}` : ''}
+          </p>
+        )}
+
+        {modelProgress.reason && modelProgress.phase === 'downloading' && (
+          <p className="mt-1 text-[10px] text-white/45 line-clamp-1">
+            {modelProgress.reason}
           </p>
         )}
       </div>

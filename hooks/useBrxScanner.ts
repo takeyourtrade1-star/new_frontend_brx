@@ -14,6 +14,24 @@ import {
   type OnnxLoadProgress,
 } from './useOnnxLoader';
 
+/** S3 fallback — works only if bucket policy + CORS allow browser GET from site origin. */
+const ONNX_S3_FALLBACK_URL =
+  'https://ebartex-brx-match-data.s3.eu-south-1.amazonaws.com/dinov2_small.onnx';
+
+/**
+ * Ordered ONNX download URLs. Primary needs backend V3 (`GET /static/dinov2_small.onnx`).
+ * See DEPLOY_GUIDE_V3.md — without V3 on EC2, only S3/local fallbacks may succeed.
+ */
+export function buildOnnxModelUrls(apiBaseUrl: string): string[] {
+  const base = apiBaseUrl.replace(/\/$/, '');
+  // S3 first: avoids Amplify proxy timeout on ~25MB; needs bucket CORS + CSP allowlist.
+  return [
+    ONNX_S3_FALLBACK_URL,
+    `${base}/static/dinov2_small.onnx`,
+    '/models/dinov2_small.onnx',
+  ];
+}
+
 export type { OnnxLoadProgress } from './useOnnxLoader';
 
 // ---------------------------------------------------------------------------
@@ -94,11 +112,15 @@ export interface UseBrxScannerReturn {
   modelStatus: ModelStatus;
   /** ONNX download / cache progress (bytes + phase). */
   modelProgress: OnnxLoadProgress;
+  /** Last ONNX load failure message (null when loading or ready). */
+  modelError: string | null;
   videoRef: React.RefObject<HTMLVideoElement>;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   openCamera: () => Promise<void>;
   stopScanning: () => void;
   restartScanning: () => void;
+  /** Re-fetch ONNX model (e.g. after failed download or backend V3 deploy). */
+  retryModelDownload: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -202,7 +224,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     apiBaseUrl = '/brx-match',
     countdownSeconds = 3,
     requestTimeoutMs = 4500,
-    scanMode = 'fast',
+    scanMode = 'auto',
     voteWindow = 5,
     voteRequired = 3,
     maxInflight = 3,
@@ -223,6 +245,8 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const [countdown, setCountdown] = useState(0);
   const [modelStatus, setModelStatus] = useState<ModelStatus>('loading');
   const [modelProgress, setModelProgress] = useState<OnnxLoadProgress>(ONNX_LOAD_PROGRESS_IDLE);
+  const [modelError, setModelError] = useState<string | null>(null);
+  const [modelLoadAttempt, setModelLoadAttempt] = useState(0);
   const [debug, setDebug] = useState<DebugInfo>({
     framesSent: 0,
     lastStatus: null,
@@ -269,12 +293,25 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     }
 
     async function loadOnnxModel() {
+      setModelError(null);
+      setModelProgress({ loaded: 0, total: 0, percent: -1, phase: 'downloading' });
+
       try {
-        const modelUrl = `${apiBaseUrl}/static/dinov2_small.onnx`;
-        const modelData = await fetchAndCacheOnnxModel(modelUrl, (progress) => {
+        const modelUrls = buildOnnxModelUrls(apiBaseUrl);
+        const modelData = await fetchAndCacheOnnxModel(modelUrls, (progress) => {
           if (!cancelled) setModelProgress(progress);
         });
         if (cancelled) return;
+
+        if (!cancelled) {
+          setModelProgress({
+            loaded: modelData.byteLength,
+            total: modelData.byteLength,
+            percent: 100,
+            phase: 'initializing',
+            reason: 'Avvio motore AI…',
+          });
+        }
 
         const ort = await import('onnxruntime-web');
         if (cancelled) return;
@@ -285,20 +322,37 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
         ort.env.wasm.numThreads = 1;
         ort.env.wasm.wasmPaths = '/ort-wasm/';
 
-        const session = await ort.InferenceSession.create(modelData, {
-          executionProviders: ['webgl', 'wasm'],
-          graphOptimizationLevel: 'all',
-        });
+        let session: OrtLib.InferenceSession;
+        try {
+          session = await ort.InferenceSession.create(modelData, {
+            executionProviders: ['wasm'],
+            graphOptimizationLevel: 'all',
+          });
+        } catch (wasmErr) {
+          console.warn('[BrxScanner] WASM EP failed, retrying with webgl:', wasmErr);
+          session = await ort.InferenceSession.create(modelData, {
+            executionProviders: ['webgl', 'wasm'],
+            graphOptimizationLevel: 'all',
+          });
+        }
         if (cancelled) return;
 
-        // Type-cast: store and cache
         ortRef.current = ort as unknown as typeof OrtLib;
         sessionRef.current = session;
+        setModelError(null);
         setModelStatus('ready');
       } catch (err) {
         if (!cancelled) {
-          console.warn('[BrxScanner] ONNX model load failed — falling back to /scan:', err);
-          setModelProgress((p) => ({ ...p, phase: 'failed' }));
+          const msg =
+            err instanceof Error ? err.message : 'Download modello ONNX non riuscito';
+          console.warn('[BrxScanner] ONNX model load failed — falling back to /scan:', msg);
+          setModelError(msg);
+          setModelProgress((p) => ({
+            ...p,
+            phase: 'failed',
+            percent: 0,
+            reason: msg,
+          }));
           setModelStatus('failed');
         }
       }
@@ -307,7 +361,16 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     loadOnnxModel();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, modelLoadAttempt]);
+
+  const retryModelDownload = useCallback(() => {
+    sessionRef.current = null;
+    ortRef.current = null;
+    setModelError(null);
+    setModelStatus('loading');
+    setModelProgress({ loaded: 0, total: 0, percent: -1, phase: 'downloading' });
+    setModelLoadAttempt((n) => n + 1);
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Helpers
@@ -794,10 +857,12 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     debug,
     modelStatus,
     modelProgress,
+    modelError,
     videoRef,
     canvasRef,
     openCamera,
     stopScanning,
     restartScanning,
+    retryModelDownload,
   };
 }

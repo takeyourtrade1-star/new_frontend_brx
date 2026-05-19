@@ -686,17 +686,19 @@ function ScannerPageInner() {
     openCamera,
     stopScanning,
     restartScanning,
+    retryModelDownload,
     modelStatus,
     modelProgress,
+    modelError,
   } = useBrxScanner({
-    confidenceThreshold: 0.78,
+    confidenceThreshold: 0.80,
     captureIntervalMs: 320,
     countdownSeconds: COUNTDOWN_SECONDS,
     apiBaseUrl: '/brx-match',
     requestTimeoutMs: 4500,
-    scanMode: 'fast',
-    voteWindow: 3,
-    voteRequired: 2,
+    scanMode: 'auto',
+    voteWindow: 5,
+    voteRequired: 3,
     onMatch: (r) => {
       if (slowTimerRef.current) {
         clearTimeout(slowTimerRef.current);
@@ -910,7 +912,12 @@ function ScannerPageInner() {
       )}
 
       {/* ── ONNX download progress banner ───────────────────────────── */}
-      <ModelLoadProgressBar modelStatus={modelStatus} modelProgress={modelProgress} />
+      <ModelLoadProgressBar
+        modelStatus={modelStatus}
+        modelProgress={modelProgress}
+        modelError={modelError}
+        onRetryDownload={retryModelDownload}
+      />
 
       {/* ── Match preview panel ─────────────────────────────────────── */}
       {state === 'matched' && result && (
