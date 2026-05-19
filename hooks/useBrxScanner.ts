@@ -24,11 +24,11 @@ const ONNX_S3_FALLBACK_URL =
  */
 export function buildOnnxModelUrls(apiBaseUrl: string): string[] {
   const base = apiBaseUrl.replace(/\/$/, '');
-  // S3 first: avoids Amplify proxy timeout on ~25MB; needs bucket CORS + CSP allowlist.
+  // Proxy first (same-origin). S3 only if bucket allows browser GET (CORS + policy).
   return [
-    ONNX_S3_FALLBACK_URL,
     `${base}/static/dinov2_small.onnx`,
     '/models/dinov2_small.onnx',
+    ONNX_S3_FALLBACK_URL,
   ];
 }
 
