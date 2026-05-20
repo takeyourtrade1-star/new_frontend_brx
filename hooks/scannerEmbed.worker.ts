@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 /**
  * ONNX embed worker — keeps WASM inference off the main thread (smooth camera UI).
  */
@@ -16,6 +18,14 @@ type WorkerOut =
   | { type: 'error'; message: string };
 
 let session: ort.InferenceSession | null = null;
+
+function post(out: WorkerOut, transfer?: Transferable[]) {
+  if (transfer?.length) {
+    self.postMessage(out, transfer);
+  } else {
+    self.postMessage(out);
+  }
+}
 
 function l2Normalize(vec: Float32Array): Float32Array {
   let sumSq = 0;
@@ -60,7 +70,7 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
   try {
     if (msg.type === 'init') {
       await initSession(msg.model, msg.wasmBase, msg.useWebGl);
-      (self as DedicatedWorkerGlobalScope).postMessage({ type: 'ready' } satisfies WorkerOut);
+      post({ type: 'ready' });
       return;
     }
 
@@ -71,13 +81,12 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       const raw = outputs[session.outputNames[0]].data as Float32Array;
       const cls = new Float32Array(raw.buffer, raw.byteOffset, VECTOR_DIM);
       const vector = l2Normalize(new Float32Array(cls));
-      (self as DedicatedWorkerGlobalScope).postMessage(
-        { type: 'vector', vector } satisfies WorkerOut,
-        [vector.buffer],
-      );
+      post({ type: 'vector', vector }, [vector.buffer]);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    (self as DedicatedWorkerGlobalScope).postMessage({ type: 'error', message } satisfies WorkerOut);
+    post({ type: 'error', message });
   }
 };
+
+export {};
