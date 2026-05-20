@@ -16,6 +16,8 @@ import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import type { SearchHit } from '@/app/api/search/route';
 import type { GameSlug } from '@/lib/contexts/GameContext';
+import { getProductCategoryIds } from '@/lib/product-categories';
+import { normalizeGameSlug } from '@/lib/search/category-mapping';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 
 const BACKEND_LANG_ORDER = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
@@ -166,7 +168,12 @@ export function ProductCategoryView({
     }
     const q = queryParts.join(' ');
     if (q) params.set('q', q);
-    if (categoryId != null) params.set('category_id', String(categoryId));
+    const categoryIds = getProductCategoryIds(normalizeGameSlug(effectiveGame), categorySlug);
+    if (categoryIds.length > 0) {
+      params.set('category_ids', categoryIds.join(','));
+    } else if (categoryId != null) {
+      params.set('category_id', String(categoryId));
+    }
     params.set('page', String(pageParam));
     params.set('limit', '30');
     params.set('sort', sortParam);
@@ -184,7 +191,7 @@ export function ProductCategoryView({
     } finally {
       setLoading(false);
     }
-  }, [apiGame, nomeInput, edizioneInput, categoryId, pageParam, sortParam]);
+  }, [apiGame, effectiveGame, nomeInput, edizioneInput, categorySlug, categoryId, pageParam, sortParam]);
 
   useEffect(() => {
     fetchResults();

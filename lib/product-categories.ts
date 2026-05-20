@@ -1,3 +1,5 @@
+import { getCategoryIds, type CategoryKey, type GameSlug } from '@/lib/search/category-mapping';
+
 /**
  * Configurazione voci menu Prodotti: slug URL, titolo pagina, label categoria, eventuale category_id Meilisearch.
  * category_id si usa per filtrare sealed/boosters ecc. (se l'indice lo espone).
@@ -13,6 +15,31 @@ export const PRODUCT_CATEGORIES = [
 ] as const;
 
 export type ProductCategorySlug = (typeof PRODUCT_CATEGORIES)[number]['slug'];
+
+const PRODUCT_CATEGORY_KEYS: Partial<Record<ProductCategorySlug, CategoryKey[]>> = {
+  singles: ['singles'],
+  boosters: ['boosters'],
+  'booster-boxes': ['booster_box'],
+  'set-lotti-collezioni': ['bundle_set'],
+  sigillati: ['boosters', 'booster_box', 'starter_precon', 'bundle_set', 'tins'],
+  accessori: ['accessori'],
+};
+
+export function getProductCategoryIds(
+  game: GameSlug | null | undefined,
+  slug: ProductCategorySlug | string
+): number[] {
+  const keys = PRODUCT_CATEGORY_KEYS[slug as ProductCategorySlug];
+  if (!keys) return [];
+
+  const ids = new Set<number>();
+  for (const key of keys) {
+    for (const id of getCategoryIds(game, key)) {
+      ids.add(id);
+    }
+  }
+  return Array.from(ids);
+}
 
 /** Set degli slug categoria per distinguere /products/singles da /products/mtg_123 */
 export const CATEGORY_SLUGS: Set<string> = new Set(PRODUCT_CATEGORIES.map((c) => c.slug));
