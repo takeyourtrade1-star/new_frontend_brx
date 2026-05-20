@@ -9,6 +9,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { SearchHit } from '@/app/api/search/route';
 import { getCardImageUrl } from '@/lib/assets';
 import { getCardDisplayNames } from '@/lib/card-display-name';
+import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 
 type SetPageClientProps = {
   game: string;
@@ -430,13 +431,11 @@ export function SetPageClient({ game, setName }: SetPageClientProps) {
                         >
                           <td className="pl-2 pr-0 py-2 align-middle min-w-0">
                             <div className="flex items-center gap-2 min-w-0">
-                              <div className="relative w-9 h-14 shrink-0 rounded-md border border-gray-200 bg-[#f2f2f7] overflow-hidden">
-                                {imgUrl ? (
-                                  <Image src={imgUrl} alt={primary} fill className="object-cover" sizes="36px" />
-                                ) : (
-                                  <div className="w-full h-full bg-gray-200" />
-                                )}
-                              </div>
+                              <CardImageCameraPeek
+                                imageUrl={imgUrl}
+                                name={primary}
+                                previewSide="left"
+                              />
                               <span className="min-w-0 text-[11px] leading-tight text-gray-600 font-medium truncate max-w-[6.5rem]">
                                 {hit.set_name ?? '–'}
                               </span>

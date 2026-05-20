@@ -13,9 +13,7 @@ import {
   useMemo,
   useRef,
   useState,
-  type MouseEvent as ReactMouseEvent,
 } from 'react';
-import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -27,9 +25,9 @@ import {
   Grid2x2,
   SlidersHorizontal,
   X,
-  Camera,
 } from 'lucide-react';
 import { getCardImageUrl } from '@/lib/assets';
+import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { getMessage } from '@/lib/i18n/getMessage';
@@ -88,40 +86,6 @@ const GAME_TO_HEADER_KEY: Record<string, MessageKey> = {
 };
 
 type ViewMode = 'list' | 'grid';
-
-const LIST_HOVER_PREVIEW_WIDTH_DESKTOP = 208;
-const LIST_HOVER_PREVIEW_WIDTH_MOBILE = 176;
-const LIST_HOVER_PREVIEW_MIN_WIDTH = 140;
-const LIST_HOVER_PREVIEW_ASPECT_RATIO = 88 / 63;
-const LIST_HOVER_PREVIEW_MARGIN = 8;
-const LIST_HOVER_PREVIEW_GAP = 8;
-
-function getListHoverPreviewLayout(
-  anchorRect: DOMRect,
-  preferredWidth: number
-): { left: number; top: number; width: number } {
-  if (typeof window === 'undefined') {
-    return {
-      left: anchorRect.right + LIST_HOVER_PREVIEW_GAP,
-      top: anchorRect.top,
-      width: preferredWidth,
-    };
-  }
-
-  const availableRight = window.innerWidth - LIST_HOVER_PREVIEW_MARGIN - (anchorRect.right + LIST_HOVER_PREVIEW_GAP);
-  const width = Math.max(LIST_HOVER_PREVIEW_MIN_WIDTH, Math.min(preferredWidth, availableRight));
-  const previewHeight = width * LIST_HOVER_PREVIEW_ASPECT_RATIO;
-
-  const left = anchorRect.right + LIST_HOVER_PREVIEW_GAP;
-
-  let top = anchorRect.top + (anchorRect.height - previewHeight) / 2;
-  top = Math.max(
-    LIST_HOVER_PREVIEW_MARGIN,
-    Math.min(top, window.innerHeight - previewHeight - LIST_HOVER_PREVIEW_MARGIN)
-  );
-
-  return { left, top, width };
-}
 
 interface SearchApiResponse {
   hits: SearchHit[];
@@ -288,8 +252,6 @@ function SearchFiltersFields({
   );
 }
 
-type ListHoverPreviewState = { url: string; name: string; left: number; top: number; width: number };
-
 export function SearchResults({
   query: initialQuery,
   game: initialGame,
@@ -348,12 +310,7 @@ export function SearchResults({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [listHoverPreview, setListHoverPreview] = useState<ListHoverPreviewState | null>(null);
-  const [listModalPreview, setListModalPreview] = useState<{ url: string; name: string } | null>(
-    null
-  );
-  const [listPortalsMounted, setListPortalsMounted] = useState(false);
-  const hideHoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [imagePreviewModalOpen, setImagePreviewModalOpen] = useState(false);
 
   // Garantiamo che non resti uno "scroll lock" sporco da route precedenti.
   useEffect(() => {
@@ -368,18 +325,11 @@ export function SearchResults({
     };
   }, []);
 
-  useEffect(() => {
-    setListPortalsMounted(true);
-  }, []);
-
   // Se l'utente passa da lista a griglia mentre un preview/modale era aperto,
   // evitiamo di lasciare body "locked" e creiamo scroll interno indesiderato.
   useEffect(() => {
     if (viewMode === 'grid') {
-      setListHoverPreview(null);
-      setListModalPreview(null);
-      // Hard reset scroll-lock (fallback): evita casi in cui resti overflow='hidden'
-      // e compare uno scroll verticale interno.
+      setImagePreviewModalOpen(false);
       if (typeof document !== 'undefined') {
         document.body.style.overflow = 'auto';
         document.documentElement.style.overflow = 'auto';
@@ -388,73 +338,9 @@ export function SearchResults({
   }, [viewMode]);
 
   useEffect(() => {
-    return () => {
-      if (hideHoverTimerRef.current) clearTimeout(hideHoverTimerRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!listModalPreview) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [listModalPreview]);
-
-  useEffect(() => {
-    if (!listModalPreview) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setListModalPreview(null);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [listModalPreview]);
-
-  useEffect(() => {
     setNomeInput(q);
     setEdizioneInput(setFilter);
   }, [q, setFilter]);
-
-  const cancelHideHoverPreview = useCallback(() => {
-    if (hideHoverTimerRef.current) {
-      clearTimeout(hideHoverTimerRef.current);
-      hideHoverTimerRef.current = null;
-    }
-  }, []);
-
-  const scheduleHideHoverPreview = useCallback(() => {
-    hideHoverTimerRef.current = setTimeout(() => {
-      setListHoverPreview(null);
-    }, 140);
-  }, []);
-
-  const handleListCameraMouseEnter = useCallback(
-    (e: ReactMouseEvent<HTMLButtonElement>, url: string | null, name: string) => {
-      cancelHideHoverPreview();
-      if (!url || typeof window === 'undefined') return;
-      if (!window.matchMedia('(hover: hover)').matches) return;
-      const anchorRect = e.currentTarget.getBoundingClientRect();
-      const preferredWidth = window.innerWidth < 640
-        ? LIST_HOVER_PREVIEW_WIDTH_MOBILE
-        : LIST_HOVER_PREVIEW_WIDTH_DESKTOP;
-      const { left, top, width } = getListHoverPreviewLayout(anchorRect, preferredWidth);
-      setListHoverPreview({ url, name, left, top, width });
-    },
-    [cancelHideHoverPreview]
-  );
-
-  const handleListCameraClick = useCallback((e: ReactMouseEvent, url: string | null, name: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!url || typeof window === 'undefined') return;
-    const coarse = window.matchMedia('(pointer: coarse)').matches;
-    const noHover = !window.matchMedia('(hover: hover)').matches;
-    if (coarse || noHover) {
-      setListModalPreview({ url, name });
-      setListHoverPreview(null);
-    }
-  }, []);
 
   const fetchResults = useCallback(async () => {
     setLoading(true);
@@ -587,11 +473,11 @@ export function SearchResults({
   // (causa tipica dello scroll verticale interno nella tabella).
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    const shouldUnlock = !filtersOpen && !listModalPreview;
+    const shouldUnlock = !filtersOpen && !imagePreviewModalOpen;
     if (!shouldUnlock) return;
     document.body.style.overflow = 'auto';
     document.documentElement.style.overflow = 'auto';
-  }, [filtersOpen, listModalPreview]);
+  }, [filtersOpen, imagePreviewModalOpen]);
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -986,46 +872,13 @@ export function SearchResults({
                           className="pl-2 pr-0 py-2 align-middle min-w-0"
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <button
-                              type="button"
-                              className="relative flex h-14 w-9 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-gray-200 bg-[#f2f2f7] shadow-sm transition-shadow"
-                              aria-label={t('search.previewCardImage')}
-                              disabled={!imgUrl}
-                              onClick={(e) => handleListCameraClick(e, imgUrl, nameOriginal)}
-                              onMouseEnter={(e) => handleListCameraMouseEnter(e, imgUrl, nameOriginal)}
-                              onMouseLeave={scheduleHideHoverPreview}
-                            >
-                              {imgUrl ? (
-                                <>
-                                  <div className="absolute inset-0">
-                                    <Image
-                                      src={imgUrl}
-                                      alt={nameOriginal}
-                                      fill
-                                      sizes="40px"
-                                      className="object-cover"
-                                    />
-                                  </div>
-                                  {/* Overlay + camera al centro */}
-                                  <span className="absolute inset-0 bg-black/30" aria-hidden />
-                              <Camera
-                                    className="absolute inset-0 m-auto h-4 w-4 text-white"
-                                    strokeWidth={1.5}
-                                    aria-hidden
-                                  />
-                                </>
-                              ) : (
-                                <>
-                                  <span className="absolute inset-0 bg-gray-100" aria-hidden />
-                                  <span className="absolute inset-0 bg-black/20" aria-hidden />
-                                  <Camera
-                                    className="absolute inset-0 m-auto h-4 w-4 text-white"
-                                    strokeWidth={1.5}
-                                    aria-hidden
-                                  />
-                                </>
-                              )}
-                            </button>
+                            <CardImageCameraPeek
+                              imageUrl={imgUrl}
+                              name={nameOriginal}
+                              className="rounded-sm"
+                              previewSide="left"
+                              onModalOpenChange={setImagePreviewModalOpen}
+                            />
 
                             <span className="relative inline-flex min-w-0 max-w-[6.5rem] group">
                               <span className="min-w-0 flex-1 text-[10px] leading-tight text-gray-600 font-medium tracking-wide truncate">
@@ -1128,69 +981,6 @@ export function SearchResults({
         </div>
       </div>
 
-      {listPortalsMounted &&
-        listHoverPreview &&
-        createPortal(
-          <div
-            role="presentation"
-            className="fixed z-[250] pointer-events-auto"
-            style={{ left: listHoverPreview.left, top: listHoverPreview.top, width: listHoverPreview.width }}
-            onMouseEnter={cancelHideHoverPreview}
-            onMouseLeave={scheduleHideHoverPreview}
-          >
-            <div className="relative w-full bg-white shadow-[0_12px_40px_rgba(0,0,0,0.35)] animate-in fade-in zoom-in-95 duration-200">
-              <div className="relative aspect-[63/88] w-full bg-gray-100">
-                <Image
-                  src={listHoverPreview.url}
-                  alt={listHoverPreview.name}
-                  fill
-                  className="object-contain"
-                  sizes="208px"
-                />
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
-
-      {listPortalsMounted &&
-        listModalPreview &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('search.previewCardImage')}
-            onClick={() => setListModalPreview(null)}
-          >
-            <button
-              type="button"
-              className="absolute right-3 top-3 z-[1] rounded-full bg-white/95 p-2 shadow-md ring-1 ring-black/10 hover:bg-white"
-              aria-label={t('search.closePreviewModal')}
-              onClick={(e) => {
-                e.stopPropagation();
-                setListModalPreview(null);
-              }}
-            >
-              <X className="h-6 w-6 text-gray-800" aria-hidden />
-            </button>
-            <div
-              className="relative max-h-[85vh] w-full max-w-[min(92vw,320px)] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="relative aspect-[63/88] w-full bg-gray-100">
-                <Image
-                  src={listModalPreview.url}
-                  alt={listModalPreview.name}
-                  fill
-                  className="object-contain"
-                  sizes="(max-width: 640px) 92vw, 320px"
-                />
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
     </section>
   );
 }

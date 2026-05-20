@@ -25,6 +25,13 @@ import { LOCALE_TO_INTL } from '@/lib/i18n/locales';
 import type { UiLocale } from '@/lib/i18n/locales';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
 import { FEATURES } from '@/lib/config/features';
+import {
+  HEADER_BRX_LOGO_COLUMN_CLASS,
+  HEADER_BRX_LOGO_IMAGE_CLASS,
+  HEADER_BRX_LOGO_LINK_CLASS,
+  HEADER_GAME_ROW_GAP_CLASS,
+  HEADER_GAME_TEXT_INSET_CLASS,
+} from '@/components/layout/headerBrxColumn';
 
 const GAME_HOME_PATH: Record<GameSlug, string> = {
   mtg: '/home/magic',
@@ -179,13 +186,15 @@ export function TopBar() {
 
   return (
     <>
-      <div className="flex w-full min-h-0 items-center gap-0 px-2 py-0.5 md:px-3">
-        {/* Left: Logo + selettore gioco — su mobile logo più grande */}
-        <div className="flex min-w-0 shrink-0 items-center">
-          <div className="flex w-11 shrink-0 items-center justify-center">
+      <div className="flex w-full min-h-0 items-center gap-0 py-0.5">
+        {/* Left: Logo + selettore gioco — colonna allineata al menu Prodotti sotto */}
+        <div
+          className={`flex min-w-0 shrink-0 items-center overflow-visible ${HEADER_GAME_ROW_GAP_CLASS}`}
+        >
+          <div className={HEADER_BRX_LOGO_COLUMN_CLASS}>
             <Link
               href="/"
-              className="flex shrink-0 items-center justify-center rounded-lg py-0.5 transition-opacity hover:opacity-90"
+              className={HEADER_BRX_LOGO_LINK_CLASS}
               aria-label={t('topBar.homeAria')}
             >
               <Image
@@ -193,7 +202,7 @@ export function TopBar() {
                 alt="BRX"
                 width={240}
                 height={120}
-                className="h-14 w-auto max-h-14 object-contain md:h-14 md:max-h-none"
+                className={HEADER_BRX_LOGO_IMAGE_CLASS}
                 priority
                 unoptimized
               />
@@ -201,7 +210,13 @@ export function TopBar() {
           </div>
 
           {/* Da tablet in su: selettore in header. Su mobile il gioco si sceglie dal menu hamburger. */}
-          <div className="relative hidden h-full min-w-0 items-center pl-3 md:flex" ref={gamesMenuRef}>
+          <div
+            className={cn(
+              'relative hidden h-full min-w-0 items-center md:flex',
+              HEADER_GAME_TEXT_INSET_CLASS
+            )}
+            ref={gamesMenuRef}
+          >
             <button
               type="button"
               onClick={() => setGamesMenuOpen((o) => !o)}

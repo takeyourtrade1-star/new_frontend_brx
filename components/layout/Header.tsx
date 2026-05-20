@@ -6,6 +6,7 @@ import { TopBar } from './TopBar';
 import { ProdottiMenu } from './ProdottiMenu';
 import { DemoBanner } from './DemoBanner';
 import { AuthToast } from './AuthToast';
+import { HEADER_BRX_MENU_COLUMN_CLASS } from '@/components/layout/headerBrxColumn';
 
 // Import dinamico (ssr:false) per togliere react-instantsearch / instant-meilisearch
 // dal bundle iniziale. Il fallback replica ESATTAMENTE le classi del wrapper più
@@ -67,9 +68,9 @@ export function Header({
       {/* Barra ricerca: stessa fascia, minimo spazio rispetto alla riga logo/menu */}
       <div className="relative z-10 w-full overflow-visible pt-0">
         <div className="container-content container-header overflow-visible">
-          <div className="middle-bar flex flex-row items-stretch gap-3 overflow-visible py-0 pb-1.5 md:gap-3 md:py-1">
+          <div className="middle-bar flex flex-row items-stretch gap-2 overflow-visible py-0 pb-1.5 md:gap-2 md:py-1">
             <div
-              className={`flex w-11 shrink-0 flex-col items-center justify-center md:min-h-11 ${searchOpen ? 'hidden md:flex' : 'flex'}`}
+              className={`${HEADER_BRX_MENU_COLUMN_CLASS} md:min-h-11 ${searchOpen ? 'hidden md:flex' : 'flex'}`}
             >
               <ProdottiMenu />
             </div>
