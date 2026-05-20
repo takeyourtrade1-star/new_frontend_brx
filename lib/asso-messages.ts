@@ -22,8 +22,8 @@ export const ASSO_MESSAGE_BUBBLE_HOLD_MS = {
 
 /** Intervallo tra un messaggio promo e il successivo (visibilità + pausa) */
 export const ASSO_MESSAGE_BUBBLE_CYCLE_MS = {
-  initialDelay: 2800,
-  gapBetween: 14000,
+  initialDelay: 4000,
+  gapBetween: 20000,
 } as const;
 
 /** Chat modale (benvenuto) */
@@ -32,5 +32,5 @@ export const ASSO_MESSAGE_CHAT_MS = {
   menuAfterGreeting: 800,
 } as const;
 
-/** Larghezza massima bubble ancorata alla mascotte */
-export const ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX = 280;
+/** Larghezza massima bubble ancorata alla mascotte (angolo, non invade il centro) */
+export const ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX = 220;

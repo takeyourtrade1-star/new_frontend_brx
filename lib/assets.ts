@@ -19,17 +19,35 @@ function stripImgPrefix(path: string): string {
 
 /**
  * Restituisce l'URL assoluto per l'icona di un set (set_icon_uri).
- * - Se raw è null/undefined/vuoto → null.
- * - Se raw inizia con http → restituito così com'è.
- * - Altrimenti: path relativo (es. sets/mtg/abc.svg) → si prepende ASSETS.cdnUrl.
+ * - Se raw è una URL assoluta o path relativo → gestisci come CDN.
+ * - Se raw è null/vuoto e il gioco è MTG → fallback Scryfall SVG pubblico.
+ * - Altrimenti → null.
  */
-export function getSetIconUrl(raw: string | null | undefined): string | null {
-  if (raw == null || raw === '') return null;
-  const trimmed = raw.trim();
-  if (trimmed.startsWith('http')) return trimmed;
-  const base = (ASSETS.cdnUrl || '').replace(/\/+$/, '');
-  const pathWithSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-  return base ? `${base}${pathWithSlash}` : pathWithSlash;
+export function getSetIconUrl(
+  raw: string | null | undefined,
+  options?: { gameSlug?: string; setCode?: string }
+): string | null {
+  if (raw != null && raw !== '') {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('http')) return trimmed;
+    const base = (ASSETS.cdnUrl || '').replace(/\/+$/, '');
+    const pathWithSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    return base ? `${base}${pathWithSlash}` : pathWithSlash;
+  }
+
+  // Fallback Scryfall per MTG: solo se game_slug è mtg e set_code è disponibile
+  const gameSlug = options?.gameSlug ?? '';
+  const setCode = options?.setCode ?? '';
+  if (
+    (gameSlug === 'mtg' || gameSlug === '') &&
+    setCode &&
+    setCode.trim().length >= 2 &&
+    setCode.trim().length <= 6
+  ) {
+    return `https://svgs.scryfall.io/sets/${setCode.trim().toLowerCase()}.svg`;
+  }
+
+  return null;
 }
 
 /**

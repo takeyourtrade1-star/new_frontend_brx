@@ -54,6 +54,7 @@ type ReprintSearchHit = {
   set_icon_uri?: string | null;
   icon_svg_uri?: string | null;
   set_code?: string | null;
+  game_slug?: string | null;
 };
 
 type ReprintCard = {
@@ -420,7 +421,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             attributesToRetrieve: [
               'id', 'name', 'set_name', 'rarity',
               'image', 'image_uri_small', 'image_uri_normal', 'image_path',
-              'set_icon_uri', 'icon_svg_uri', 'set_code',
+              'set_icon_uri', 'icon_svg_uri', 'set_code', 'game_slug',
             ],
           }),
           cache: 'no-store',
@@ -458,7 +459,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               imageSrc: getCardImageUrl(rawImage),
               setName,
               rarity: hit.rarity ?? 'N/D',
-              setIconSrc: getSetIconUrl(hit.set_icon_uri ?? hit.icon_svg_uri),
+              setIconSrc: getSetIconUrl(hit.set_icon_uri ?? hit.icon_svg_uri, {
+                gameSlug: hit.game_slug ?? card?.game_slug,
+                setCode: hit.set_code ?? undefined,
+              }),
               setCode,
             } as ReprintCard;
           });

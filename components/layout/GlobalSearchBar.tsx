@@ -509,7 +509,10 @@ function CardHit({
     );
     return getCardImageUrl(raw);
   }, [hit.image, hit.image_path, hit.image_uri_normal, hit.image_uri_small]);
-  const setIcon = getSetIconUrl(hit.set_icon_uri ?? hit.icon_svg_uri);
+  const setIcon = getSetIconUrl(hit.set_icon_uri ?? hit.icon_svg_uri, {
+    gameSlug: hit.game_slug,
+    setCode: hit.set_code,
+  });
   const setCode = hit.set_code ?? (hit.set_name ? hit.set_name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) : null);
   const setName = hit.set_name ?? '';
   const { titleType, title, subtitle } = getTitleAndSubtitle(hit, selectedLang);
@@ -632,7 +635,13 @@ function CardHit({
 
       <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded bg-[#E8E8E8]" title={setName}>
         {setIcon ? (
-          <img src={setIcon} alt="" className="w-5 h-5 object-contain" loading="lazy" />
+          <img
+            src={setIcon}
+            alt=""
+            className="w-5 h-5 object-contain"
+            loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
         ) : setCode ? (
           <span className="text-[10px] font-bold text-gray-600">{setCode.slice(0, 2)}</span>
         ) : (

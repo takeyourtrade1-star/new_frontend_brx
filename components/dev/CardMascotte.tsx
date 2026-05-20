@@ -25,9 +25,14 @@ import {
   type WardrobeItem,
 } from './mascotte-wardrobe';
 import { AssoHintBubble } from '@/components/dev/AssoHintBubble';
+import { AssoCollapseTab } from '@/components/dev/AssoCollapseTab';
 import { useAssoBubbleQueue } from '@/hooks/useAssoBubbleQueue';
 import { useAssoTypewriter } from '@/hooks/useAssoTypewriter';
 import { ASSO_MESSAGE_CHAT_MS } from '@/lib/asso-messages';
+import {
+  ASSO_COLLAPSED_STORAGE_KEY,
+  getAssoBubbleBottom,
+} from '@/lib/asso-layout';
 
 // Storage keys for bug report data
 const BUG_REPORT_STORAGE = {
@@ -1295,23 +1300,38 @@ export function CardMascotte() {
   // Sticky bar offset state (when sticky bar appears, mascot moves up)
   const [isStickyBarVisible, setIsStickyBarVisible] = useState(false);
 
-  // Mobile hide state (mascotte moves 80% off-screen when hidden)
-  const [isMobileHidden, setIsMobileHidden] = useState(false);
-  const hasInitializedMobileHide = useRef(false);
+  // Utente può nascondere Asso con la freccia (persistito)
+  const [isAssoCollapsed, setIsAssoCollapsed] = useState(false);
+  const hasLoadedCollapsePref = useRef(false);
 
   // Mobile detection state for flip behavior
   const [isMobileView, setIsMobileView] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => {
-      const isMobile = window.innerWidth < 640;
-      setIsMobileView(isMobile);
+    if (hasLoadedCollapsePref.current) return;
+    hasLoadedCollapsePref.current = true;
+    try {
+      setIsAssoCollapsed(localStorage.getItem(ASSO_COLLAPSED_STORAGE_KEY) === '1');
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
-      if (!hasInitializedMobileHide.current) {
-        setIsMobileHidden(isMobile);
-        hasInitializedMobileHide.current = true;
+  const toggleAssoCollapsed = useCallback(() => {
+    setIsAssoCollapsed((prev) => {
+      const next = !prev;
+      if (next) closeMascottePanels();
+      try {
+        localStorage.setItem(ASSO_COLLAPSED_STORAGE_KEY, next ? '1' : '0');
+      } catch {
+        /* ignore */
       }
-    };
+      return next;
+    });
+  }, [closeMascottePanels]);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobileView(window.innerWidth < 640);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -1341,11 +1361,7 @@ export function CardMascotte() {
     const target = e.target as HTMLElement;
     if (target.closest('button')) return;
 
-    // If mascot is hidden on mobile, restore it
-    if (isMobileHidden) {
-      setIsMobileHidden(false);
-      return;
-    }
+    if (isAssoCollapsed) return;
 
     // If card is flipped, flip it back instead of opening chat
     if (isFlipped) {
@@ -1913,7 +1929,9 @@ export function CardMascotte() {
 
   const router = useRouter();
   const pathname = usePathname();
-  const assoBubble = useAssoBubbleQueue(true);
+  const assoMessagesEnabled =
+    !isAssoCollapsed && !isModalOpen && !showChatModal && !isExternalModalOpen;
+  const assoBubble = useAssoBubbleQueue(assoMessagesEnabled);
   const scheduleCycleRef = useRef(assoBubble.scheduleCycle);
   const stopCycleRef = useRef(assoBubble.stopCycle);
   scheduleCycleRef.current = assoBubble.scheduleCycle;
@@ -1993,7 +2011,8 @@ export function CardMascotte() {
 
   // Ciclo messaggi promo in coda (typewriter + hold + pausa)
   useEffect(() => {
-    const hintsEnabled = !isModalOpen && !showChatModal && activePromoHints.length > 0;
+    const hintsEnabled =
+      !isAssoCollapsed && !isModalOpen && !showChatModal && activePromoHints.length > 0;
     if (!hintsEnabled) {
       stopCycleRef.current();
       return;
@@ -2014,7 +2033,7 @@ export function CardMascotte() {
     });
 
     return () => stopCycleRef.current();
-  }, [activePromoHints, isModalOpen, showChatModal, isSleeping]);
+  }, [activePromoHints, isAssoCollapsed, isModalOpen, showChatModal, isSleeping]);
 
   // Listen for sticky bar visibility changes
   useEffect(() => {
@@ -2212,8 +2231,17 @@ export function CardMascotte() {
         </div>
       )}
 
-      {/* Bubble messaggi Asso (promo, reazioni stile, sogno) */}
-      {!isModalOpen && !showChatModal && (
+      {/* Freccia nascondi / mostra Asso */}
+      {!isExternalModalOpen && (
+        <AssoCollapseTab
+          collapsed={isAssoCollapsed}
+          isStickyBarVisible={isStickyBarVisible}
+          onToggle={toggleAssoCollapsed}
+        />
+      )}
+
+      {/* Bubble messaggi Asso (promo, reazioni stile, sogno) — angolo, non copre il centro */}
+      {!isAssoCollapsed && !isModalOpen && !showChatModal && (
         <AssoHintBubble
           visible={assoBubble.isVisible}
           message={assoBubble.current}
@@ -2221,7 +2249,7 @@ export function CardMascotte() {
           isTyping={assoBubble.isTyping}
           isSleeping={isSleeping}
           isStyleReaction={isStyleReactionActive}
-          isStickyBarVisible={isStickyBarVisible}
+          bubbleBottom={getAssoBubbleBottom(isStickyBarVisible)}
           onDismiss={assoBubble.dismiss}
           onSkipTyping={assoBubble.skipTyping}
           onPromoClick={handleAssoPromoClick}
@@ -2454,7 +2482,7 @@ export function CardMascotte() {
       )}
 
       {/* Achievement Badge */}
-      {showAchievement && (
+      {!isAssoCollapsed && showAchievement && (
         <div
           className="fixed pointer-events-none"
           style={{
@@ -2475,7 +2503,7 @@ export function CardMascotte() {
       )}
 
       {/* Combo Badge */}
-      {showCombo && comboCount >= 2 && (
+      {!isAssoCollapsed && showCombo && comboCount >= 2 && (
         <div
           className="fixed pointer-events-none"
           style={{
@@ -2493,7 +2521,7 @@ export function CardMascotte() {
       )}
 
       {/* Sleep Bubbles - Floating when sleeping */}
-      {isSleeping && !isOverlayVisible && !isFlipped && !isMobileView && (
+      {!isAssoCollapsed && isSleeping && !isOverlayVisible && !isFlipped && !isMobileView && (
         <div
           className="fixed pointer-events-none sleep-bubbles-wrapper"
           style={{
@@ -2577,104 +2605,8 @@ export function CardMascotte() {
         </div>
       )}
 
-      {/* Mobile X button to hide mascot */}
-      {!isMobileHidden && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            closeMascottePanels();
-            setIsMobileHidden(true);
-          }}
-          className="sm:hidden fixed flex items-center justify-center rounded-full border border-white/50 bg-black/45 text-white shadow-[0_4px_12px_rgba(0,0,0,0.24)] ring-1 ring-black/15 backdrop-blur-md transition-all hover:scale-105 hover:bg-black/55 active:scale-95"
-          style={{
-            zIndex: Z_INDEX.mascotteBase + 2,
-            bottom: isStickyBarVisible ? '182px' : '122px',
-            right: '42px',
-            width: '30px',
-            height: '30px',
-          }}
-          aria-label="Chiudi Asso"
-        >
-          <X className="h-4 w-4" strokeWidth={2.25} />
-        </button>
-      )}
-
-      {/* Mobile launcher when Asso is hidden */}
-      {isMobileHidden && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsMobileHidden(false);
-          }}
-          className="sm:hidden fixed flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 group"
-          style={{
-            zIndex: Z_INDEX.mascotteBase + 2,
-            bottom: isStickyBarVisible ? '80px' : '20px',
-            right: '16px',
-          }}
-          aria-label="Apri Asso"
-          title="Apri Asso"
-        >
-          {/* â”€â”€ LIQUID GRADIENT ORB AURA â”€â”€ */}
-          <div className="absolute pointer-events-none" style={{ inset: '-24px', overflow: 'visible' }}>
-            {/* Blob primario */}
-            <div 
-              className="absolute"
-              style={{
-                width: '72px',
-                height: '72px',
-                left: '50%',
-                top: '50%',
-                marginLeft: '-36px',
-                marginTop: '-36px',
-                background: 'radial-gradient(circle at 40% 40%, #FFBA6B, #FF7300 55%, #E65C00)',
-                filter: 'blur(8px)',
-                animation: 'assoOrbMorph1 5s ease-in-out infinite',
-              }}
-            />
-            {/* Blob secondario */}
-            <div 
-              className="absolute"
-              style={{
-                width: '64px',
-                height: '64px',
-                left: '50%',
-                top: '50%',
-                marginLeft: '-32px',
-                marginTop: '-32px',
-                background: 'radial-gradient(circle at 65% 65%, #FFD699, #FF9A40 55%, #FF7300)',
-                filter: 'blur(6px)',
-                animation: 'assoOrbMorph2 6s ease-in-out infinite',
-              }}
-            />
-          </div>
-
-          {/* Corpicino trasparente con solo bordo - usa il colore selezionato */}
-          <div
-            className="relative flex items-center justify-center rounded-full w-[56px] h-[56px] bg-transparent overflow-hidden border-2"
-            style={{
-              borderColor: `${selectedFaceColor.line}80`,
-              boxShadow: `0 4px 16px rgba(0,0,0,0.25), inset 0 0 12px ${selectedFaceColor.glowSoft}`,
-            }}
-          >
-
-            {/* Solo occhietti carini - colorati con il colore selezionato */}
-            <div className="relative w-12 h-12 drop-shadow-md">
-              <svg viewBox="0 0 100 100" fill="none">
-                <ellipse cx="38" cy="46" rx="6.5" ry="11" fill={selectedFaceColor.glowSoft} />
-                <ellipse cx="62" cy="46" rx="6.5" ry="11" fill={selectedFaceColor.glowSoft} />
-                <ellipse cx="38" cy="44" rx="6.5" ry="11" fill="#ffffff" />
-                <ellipse cx="62" cy="44" rx="6.5" ry="11" fill="#ffffff" />
-              </svg>
-            </div>
-          </div>
-        </button>
-      )}
-
       {/* Golden Confetti â€” Easter Egg at 100 flips */}
-      {goldenConfetti.length > 0 && (
+      {!isAssoCollapsed && goldenConfetti.length > 0 && (
         <div
           className="fixed pointer-events-none"
           style={{
@@ -2707,6 +2639,7 @@ export function CardMascotte() {
       )}
 
       {/* Card Mascotte */}
+      {!isAssoCollapsed && (
       <div
         ref={cardRef}
         onClick={handleClick}
@@ -2725,15 +2658,13 @@ export function CardMascotte() {
           height: '128px',
           perspective: '600px',
           filter: 'drop-shadow(0 12px 32px rgba(255, 115, 0, 0.35)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4))',
-          animation: isMobileHidden ? undefined : (justReappeared
+          animation: justReappeared
             ? 'mascotteReappear 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards, mascotteFloat 3s ease-in-out infinite 500ms'
-            : 'mascotteFloat 3s ease-in-out infinite'),
+            : 'mascotteFloat 3s ease-in-out infinite',
           transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-in-out, transform 300ms ease-in-out',
-          // Hide mascot when external modal is open (AuctionBidModal)
           opacity: isExternalModalOpen ? 0 : 1,
           pointerEvents: isExternalModalOpen ? 'none' : 'auto',
-          // On mobile, hide Asso completely and show circular launcher
-          transform: isMobileHidden ? 'translateX(calc(100% + 84px))' : 'translateX(0)',
+          transform: 'translateX(0)',
         }}
         role="button"
         tabIndex={0}
@@ -3162,6 +3093,7 @@ export function CardMascotte() {
           </div>
         )}
       </div>
+      )}
 
       {/* Bug Report Modal */}
       {isModalOpen && (

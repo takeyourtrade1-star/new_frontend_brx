@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowRight, X } from 'lucide-react';
+import { ASSO_LAYOUT } from '@/lib/asso-layout';
 import { ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX } from '@/lib/asso-messages';
 import type { AssoBubblePayload } from '@/hooks/useAssoBubbleQueue';
 
@@ -11,7 +12,7 @@ type AssoHintBubbleProps = {
   isTyping: boolean;
   isSleeping: boolean;
   isStyleReaction: boolean;
-  isStickyBarVisible: boolean;
+  bubbleBottom: number;
   onDismiss: () => void;
   onSkipTyping: () => void;
   onPromoClick?: () => void;
@@ -24,7 +25,7 @@ export function AssoHintBubble({
   isTyping,
   isSleeping,
   isStyleReaction,
-  isStickyBarVisible,
+  bubbleBottom,
   onDismiss,
   onSkipTyping,
   onPromoClick,
@@ -34,19 +35,18 @@ export function AssoHintBubble({
   const accent = isStyleReaction ? '#FF7300' : message.accent ?? null;
   const showCta = !isStyleReaction && message.kind !== 'styleReaction';
   const text = displayedText || (visible && !isTyping ? message.text : '');
-  const bottom = isStickyBarVisible ? '210px' : '154px';
 
   return (
     <div
-      className={`group fixed flex flex-col items-stretch ${isStyleReaction ? 'cursor-default' : showCta ? 'cursor-pointer' : ''}`}
+      className={`group fixed flex flex-col items-end ${isStyleReaction ? 'cursor-default' : showCta ? 'cursor-pointer' : ''}`}
       style={{
         zIndex: isStyleReaction ? 10009 : 10003,
-        bottom,
-        right: '20px',
-        width: `min(92vw, ${ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX}px)`,
-        maxWidth: ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX,
+        bottom: bubbleBottom,
+        right: ASSO_LAYOUT.bubbleRight,
+        width: 'max-content',
+        maxWidth: `min(calc(100vw - ${ASSO_LAYOUT.bubbleRight * 2}px - ${ASSO_LAYOUT.mascotRight}px), ${ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX}px)`,
         opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0) scale(1)' : 'translateY(10px) scale(0.94)',
+        transform: visible ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.96)',
         transition:
           'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 420ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
         pointerEvents: visible ? 'auto' : 'none',
@@ -66,22 +66,22 @@ export function AssoHintBubble({
       }}
     >
       {isSleeping ? (
-        <div className="relative asso-hint-bubble-enter">
+        <div className="relative asso-hint-bubble-enter w-full">
           <div
-            className="relative rounded-2xl px-4 py-3 text-left shadow-lg"
+            className="relative rounded-2xl px-3.5 py-2.5 text-left shadow-lg"
             style={{
               background: 'linear-gradient(145deg, #f5f3ff 0%, #ddd6fe 55%, #c4b5fd 100%)',
               border: '1.5px solid rgba(124,58,237,0.35)',
-              boxShadow: '0 8px 28px rgba(91,33,182,0.18), 0 2px 8px rgba(0,0,0,0.08)',
+              boxShadow: '0 6px 20px rgba(91,33,182,0.14), 0 2px 6px rgba(0,0,0,0.06)',
             }}
           >
             <DismissButton onDismiss={onDismiss} variant="violet" />
-            <p className="pr-7 text-[13px] font-semibold leading-relaxed text-violet-950">
+            <p className="pr-7 text-[12px] font-semibold leading-snug text-violet-950">
               {text}
               {isTyping && <TypewriterCursor variant="violet" />}
             </p>
             {showCta && !isTyping && (
-              <div className="mt-2 flex items-center gap-1 text-[11px] font-medium text-violet-600">
+              <div className="mt-1.5 flex items-center gap-1 text-[10px] font-medium text-violet-600">
                 Scopri nel sogno
                 <ArrowRight className="h-3 w-3" aria-hidden />
               </div>
@@ -90,54 +90,54 @@ export function AssoHintBubble({
           <CloudTail />
         </div>
       ) : (
-        <div className="relative asso-hint-bubble-enter">
+        <div className="relative asso-hint-bubble-enter w-full">
           <div
-            className="relative overflow-hidden rounded-2xl px-4 py-3.5 text-left shadow-xl backdrop-blur-md"
+            className="relative overflow-hidden rounded-xl px-3.5 py-2.5 text-left shadow-lg backdrop-blur-md"
             style={{
               background: accent
-                ? `linear-gradient(145deg, ${accent}22 0%, rgba(24,24,27,0.94) 48%)`
-                : 'rgba(24,24,27,0.94)',
-              border: accent ? `1px solid ${accent}55` : '1px solid rgba(255,255,255,0.18)',
+                ? `linear-gradient(145deg, ${accent}18 0%, rgba(24,24,27,0.92) 52%)`
+                : 'rgba(24,24,27,0.92)',
+              border: accent ? `1px solid ${accent}44` : '1px solid rgba(255,255,255,0.14)',
               boxShadow: accent
-                ? `0 10px 32px ${accent}30, 0 4px 12px rgba(0,0,0,0.35)`
-                : '0 10px 28px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2)',
+                ? `0 6px 20px ${accent}22, 0 2px 8px rgba(0,0,0,0.25)`
+                : '0 6px 18px rgba(0,0,0,0.28)',
             }}
           >
             {accent && (
               <div
-                className="pointer-events-none absolute inset-0 opacity-[0.14] blur-xl"
+                className="pointer-events-none absolute inset-0 opacity-[0.1] blur-lg"
                 style={{ background: accent }}
                 aria-hidden
               />
             )}
             <DismissButton onDismiss={onDismiss} variant="glass" />
             <p
-              className="relative pr-7 text-[13px] font-medium leading-relaxed tracking-[0.01em] text-zinc-50"
-              style={{ textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
+              className="relative pr-7 text-[12px] font-medium leading-snug tracking-[0.01em] text-zinc-50"
+              style={{ textShadow: '0 1px 2px rgba(0,0,0,0.35)' }}
             >
               {text}
               {isTyping && <TypewriterCursor variant="glass" />}
             </p>
             {isTyping && (
-              <p className="relative mt-1.5 text-[10px] text-zinc-400">Tocca per mostrare tutto</p>
+              <p className="relative mt-1 text-[9px] text-zinc-400">Tocca per mostrare tutto</p>
             )}
             {showCta && !isTyping && (
-              <div className="relative mt-2.5 flex items-center gap-1 text-[11px] font-semibold text-white/90">
+              <div className="relative mt-2 flex items-center gap-1 text-[10px] font-semibold text-white/85">
                 Scopri di più
-                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" aria-hidden />
               </div>
             )}
           </div>
           <span
-            className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rotate-45"
+            className="absolute right-6 top-full -translate-y-1/2 rotate-45"
             style={{
-              width: '10px',
-              height: '10px',
+              width: '8px',
+              height: '8px',
               background: accent
-                ? `linear-gradient(135deg, ${accent}28 0%, rgba(24,24,27,0.95) 100%)`
-                : 'rgba(24,24,27,0.95)',
-              borderBottom: accent ? `1px solid ${accent}55` : '1px solid rgba(255,255,255,0.16)',
-              borderRight: accent ? `1px solid ${accent}55` : '1px solid rgba(255,255,255,0.16)',
+                ? `linear-gradient(135deg, ${accent}22 0%, rgba(24,24,27,0.92) 100%)`
+                : 'rgba(24,24,27,0.92)',
+              borderBottom: accent ? `1px solid ${accent}44` : '1px solid rgba(255,255,255,0.12)',
+              borderRight: accent ? `1px solid ${accent}44` : '1px solid rgba(255,255,255,0.12)',
             }}
             aria-hidden
           />
@@ -167,11 +167,11 @@ function DismissButton({
         e.stopPropagation();
         onDismiss();
       }}
-      className={`absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-colors ${base}`}
+      className={`absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full transition-colors ${base}`}
       aria-label="Chiudi messaggio di Asso"
       title="Chiudi"
     >
-      <X className="h-3.5 w-3.5" aria-hidden />
+      <X className="h-3 w-3" aria-hidden />
     </button>
   );
 }
@@ -193,10 +193,10 @@ function CloudTail() {
       <span
         className="absolute"
         style={{
-          bottom: '-8px',
-          right: '28px',
-          width: '11px',
-          height: '11px',
+          bottom: '-6px',
+          right: '20px',
+          width: '9px',
+          height: '9px',
           borderRadius: '50%',
           background: '#ddd6fe',
           border: '1.5px solid rgba(124,58,237,0.35)',
@@ -206,10 +206,10 @@ function CloudTail() {
       <span
         className="absolute"
         style={{
-          bottom: '-15px',
-          right: '18px',
-          width: '7px',
-          height: '7px',
+          bottom: '-11px',
+          right: '14px',
+          width: '6px',
+          height: '6px',
           borderRadius: '50%',
           background: '#ede9fe',
           border: '1px solid rgba(124,58,237,0.28)',

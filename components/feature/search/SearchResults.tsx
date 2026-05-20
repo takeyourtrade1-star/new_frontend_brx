@@ -865,7 +865,10 @@ export function SearchResults({
                     const productHref = `/products/${hit.id}`;
                     const { primary, secondary } = getDisplayNames(hit, selectedLang);
                     const imgUrl = getCardImageUrl(hit.image ?? null);
-                    const setIconUrl = getSetIconUrl(hit.set_icon_uri);
+                    const setIconUrl = getSetIconUrl(hit.set_icon_uri, {
+                      gameSlug: hit.game_slug,
+                      setCode: hit.set_code ?? undefined,
+                    });
                     const setName = hit.set_name ?? '';
                     const nameOriginal = secondary ?? primary;
                     const nameTranslation = secondary ? primary : null;
@@ -896,6 +899,7 @@ export function SearchResults({
                                   height={14}
                                   className="inline-block h-3.5 w-3.5 flex-shrink-0 object-contain"
                                   unoptimized
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                 />
                               )}
                               <span className="min-w-0 flex-1 text-[9px] leading-none text-gray-600 font-medium tracking-wide truncate">
