@@ -694,14 +694,9 @@ function ScannerPageInner() {
     modelError,
   } = useBrxScanner({
     autoOpenCamera: true,
-    confidenceThreshold: 0.80,
-    captureIntervalMs: 180,
     countdownSeconds: COUNTDOWN_SECONDS,
     apiBaseUrl: '/brx-match',
-    requestTimeoutMs: 2800,
     scanMode: 'auto',
-    voteWindow: 3,
-    voteRequired: 2,
     onMatch: (r) => {
       if (slowTimerRef.current) {
         clearTimeout(slowTimerRef.current);

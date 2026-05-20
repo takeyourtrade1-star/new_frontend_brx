@@ -463,13 +463,8 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
     turboSkipped,
   } = useBrxScanner({
     autoOpenCamera: true,
-    confidenceThreshold: 0.80,
-    captureIntervalMs: 180,
     apiBaseUrl: '/brx-match',
-    requestTimeoutMs: 2800,
     scanMode: 'auto',
-    voteWindow: 3,
-    voteRequired: 2,
   });
 
   const showModelGate =

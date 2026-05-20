@@ -16,6 +16,13 @@ import {
 
 import { resolveOnnxDownloadUrls } from './resolveOnnxUrls';
 import {
+  BALANCED,
+  hintStreakRequired,
+  shouldCommitTurboMatch,
+  shouldRunOrbVerify,
+  shouldSkipDuplicateFrame,
+} from '@/lib/scanner/balancedProfile';
+import {
   captureFrame224,
   createTensorBuffer,
   frameFingerprint,
@@ -125,20 +132,8 @@ export interface UseBrxScannerReturn {
 // Constants
 // ---------------------------------------------------------------------------
 
-const HINT_STALE_MS = 900;
-const SCAN_GAP_MIN_MS = 100;
-const SCAN_GAP_MAX_MS = 320;
-
-/** Enterprise thresholds — floors enforced regardless of options. */
-const CONF_FLOOR = 0.80;
-const HINT_CONF_FLOOR = 0.72;
 const ONNX_SIZE = 224;
 const TURBO_MAX_INFLIGHT = 1;
-const FAST_COMMIT_CONF = 0.86;
-const FAST_COMMIT_MARGIN = 0.05;
-const VERIFY_MARGIN_THRESHOLD = 0.025;
-const HINT_INSTANT_CONF = 0.84;
-const VERIFY_MIN_CONF = 0.82;
 
 async function blobToBase64Strip(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -161,22 +156,22 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     onMatch,
     onNoMatch,
     onError,
-    confidenceThreshold: rawConf = 0.80,
-    hintConfidenceMin: rawHint = 0.72,
-    captureIntervalMs = 180,
+    confidenceThreshold: rawConf = BALANCED.confDefault,
+    hintConfidenceMin: rawHint = BALANCED.hintDefault,
+    captureIntervalMs = BALANCED.captureIntervalMs,
     apiBaseUrl = '/brx-match',
     countdownSeconds = 3,
-    requestTimeoutMs = 2800,
+    requestTimeoutMs = BALANCED.requestTimeoutMs,
     scanMode = 'auto',
-    voteWindow = 3,
-    voteRequired = 2,
+    voteWindow = BALANCED.voteWindow,
+    voteRequired = BALANCED.voteRequired,
     maxInflight = 3,
     autoOpenCamera = false,
   } = options;
 
   // Enforce floors
-  const effectiveConf = Math.max(rawConf, CONF_FLOOR);
-  const effectiveHint = Math.max(rawHint, HINT_CONF_FLOOR);
+  const effectiveConf = Math.max(rawConf, BALANCED.confFloor);
+  const effectiveHint = Math.max(rawHint, BALANCED.hintConfFloor);
 
   // ---------------------------------------------------------------------------
   // State
@@ -472,7 +467,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     clearHintStale();
     hintStaleRef.current = setTimeout(() => {
       if (!matchedRef.current) setHint(null);
-    }, HINT_STALE_MS);
+    }, BALANCED.hintStaleMs);
   }, [clearHintStale]);
 
   const stopScanning = useCallback(() => {
@@ -509,7 +504,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       const ctx = canvas.getContext('2d');
       if (!ctx) { resolve(null); return; }
       ctx.drawImage(video, 0, 0, W, H);
-      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.68);
+      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.78);
     });
   }, []);
 
@@ -552,7 +547,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       } else {
         hintStreakRef.current = { name: key, count: 1 };
       }
-      const needStreak = scanResult.confidence >= HINT_INSTANT_CONF ? 1 : 2;
+      const needStreak = hintStreakRequired(scanResult.confidence);
       if (hintStreakRef.current.count >= needStreak && scanResult.confidence >= effectiveHint) {
         const hintKey = `${key}:${Math.round(scanResult.confidence * 100)}`;
         if (hintKey !== lastHintKeyRef.current) {
@@ -602,7 +597,13 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     if (!imageData) return;
 
     const fp = frameFingerprint(imageData);
-    if (fp === lastFrameFpRef.current) return;
+    const leaderKey = recentNamesRef.current[recentNamesRef.current.length - 1] ?? '';
+    const leaderHits = leaderKey
+      ? recentNamesRef.current.filter((n) => n === leaderKey).length
+      : 0;
+    if (shouldSkipDuplicateFrame(fp, lastFrameFpRef.current, recentNamesRef.current, leaderHits)) {
+      return;
+    }
     lastFrameFpRef.current = fp;
 
     syncBusy(inflightRef.current + 1, false);
@@ -618,7 +619,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       const searchResp = await fetch(`${apiBaseUrl}/search-vector`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: vectorSearchJson(vector, 3),
+        body: vectorSearchJson(vector, BALANCED.searchTopK),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -657,11 +658,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       let finalConfidence = top1.confidence;
       let method = 'v3+vec';
 
-      if (
-        margin < VERIFY_MARGIN_THRESHOLD &&
-        top1.confidence >= VERIFY_MIN_CONF &&
-        top1.confidence < FAST_COMMIT_CONF
-      ) {
+      if (shouldRunOrbVerify(margin, top1.confidence)) {
         try {
           const cropBlob = await captureFrame();
           if (cropBlob) {
@@ -686,11 +683,9 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
 
       const elapsed = Math.round(performance.now() - t0);
       scanGapMsRef.current = Math.max(
-        SCAN_GAP_MIN_MS,
-        Math.min(SCAN_GAP_MAX_MS, Math.round(elapsed * 0.25)),
+        BALANCED.scanGapMinMs,
+        Math.min(BALANCED.scanGapMaxMs, Math.round(elapsed * BALANCED.scanGapFactor)),
       );
-      const matched = finalConfidence >= effectiveConf;
-
       if (!top1.card_name || !top1.search_url) return;
 
       const scanResult: ScanResult = {
@@ -707,16 +702,23 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
 
       applyHint(scanResult);
 
+      const key = top1.card_name.trim().toLowerCase();
+      const voteBuf = recentNamesRef.current;
+      voteBuf.push(key);
+      while (voteBuf.length > voteWindow) voteBuf.shift();
+      const voteHits = voteBuf.filter((n) => n === key).length;
+
       if (
         scanResult.search_url &&
-        top1.confidence >= FAST_COMMIT_CONF &&
-        margin >= FAST_COMMIT_MARGIN
+        shouldCommitTurboMatch({
+          finalConfidence,
+          margin,
+          voteHits,
+          effectiveConf,
+          voteRequired,
+        })
       ) {
         commitMatch(scanResult);
-      } else if (matched && scanResult.search_url) {
-        commitMatch(scanResult);
-      } else {
-        recordVote(top1.card_name, scanResult);
       }
     } catch (err) {
       const elapsed = Math.round(performance.now() - t0);
