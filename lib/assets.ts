@@ -50,6 +50,18 @@ export function getSetIconUrl(
   return null;
 }
 
+/** Testo badge set: codice DB, prime 3 lettere del nome, oppure "?". */
+export function getSetCodeDisplay(
+  setCode?: string | null,
+  setName?: string | null
+): string {
+  const code = (setCode ?? '').trim();
+  if (code.length > 0) return code.slice(0, 6).toUpperCase();
+  const name = (setName ?? '').trim();
+  if (name.length > 0) return name.slice(0, 3).toUpperCase();
+  return '?';
+}
+
 /**
  * Restituisce l'URL assoluto per l'immagine di una carta.
  * - Se raw è null/undefined/vuoto → null.

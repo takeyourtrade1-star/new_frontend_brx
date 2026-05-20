@@ -26,7 +26,8 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react';
-import { getCardImageUrl, getSetIconUrl } from '@/lib/assets';
+import { getCardImageUrl } from '@/lib/assets';
+import { SetIconBadge } from '@/components/ui/SetIconBadge';
 import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
@@ -51,10 +52,6 @@ import {
   CATEGORY_KEY_ORDER,
   FRONTEND_TO_GAME_SLUG,
 } from '@/lib/search/category-mapping';
-
-function isSafeUrl(url: string | null | undefined): url is string {
-  return typeof url === 'string' && url.startsWith('https://');
-}
 
 const BACKEND_LANG_ORDER = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
 type SupportedLang = (typeof BACKEND_LANG_ORDER)[number];
@@ -866,23 +863,9 @@ export function SearchResults({
                     const productHref = `/products/${hit.id}`;
                     const { primary, secondary } = getDisplayNames(hit, selectedLang);
                     const imgUrl = getCardImageUrl(hit.image ?? null);
-                    const setIconUrl = getSetIconUrl(hit.set_icon_uri, {
-                      gameSlug: hit.game_slug,
-                      setCode: hit.set_code ?? undefined,
-                    });
                     const setName = hit.set_name ?? '';
                     const setPageGame = resolveSetPageGameSlug(hit.game_slug, gameSlug);
                     const setPageHref = setName ? buildSetPageUrl(setPageGame, setName) : null;
-                    const setCodeFallback =
-                      hit.set_code ??
-                      (setName
-                        ? setName
-                            .split(' ')
-                            .map((w) => w[0])
-                            .join('')
-                            .toUpperCase()
-                            .slice(0, 3)
-                        : null);
                     const nameOriginal = secondary ?? primary;
                     const nameTranslation = secondary ? primary : null;
                     return (
@@ -903,47 +886,34 @@ export function SearchResults({
                               onModalOpenChange={setImagePreviewModalOpen}
                             />
 
-                            {setPageHref ? (
-                              <Link
-                                href={setPageHref}
-                                title={setName}
-                                aria-label={setName ? `Set: ${setName}` : 'Set'}
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex flex-shrink-0 items-center justify-center hover:opacity-80 transition-opacity rounded focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/40"
-                              >
-                                {isSafeUrl(setIconUrl) ? (
-                                  <Image
-                                    src={setIconUrl}
-                                    alt=""
-                                    width={40}
-                                    height={40}
-                                    className="h-9 w-9 md:h-10 md:w-10 object-contain"
-                                    unoptimized
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                    }}
+                            {(setPageHref || setName || hit.set_code) &&
+                              (setPageHref ? (
+                                <Link
+                                  href={setPageHref}
+                                  title={setName}
+                                  aria-label={setName ? `Set: ${setName}` : 'Set'}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="flex flex-shrink-0 items-center justify-center hover:opacity-80 transition-opacity rounded focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/40"
+                                >
+                                  <SetIconBadge
+                                    setIconUri={hit.set_icon_uri}
+                                    setCode={hit.set_code}
+                                    setName={setName}
+                                    gameSlug={hit.game_slug}
+                                    imageClassName="h-9 w-9 md:h-10 md:w-10 object-contain"
                                   />
-                                ) : setCodeFallback ? (
-                                  <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
-                                    {setCodeFallback.slice(0, 3)}
-                                  </span>
-                                ) : null}
-                              </Link>
-                            ) : isSafeUrl(setIconUrl) ? (
-                              <div className="flex flex-shrink-0 items-center justify-center">
-                                <Image
-                                  src={setIconUrl}
-                                  alt=""
-                                  width={40}
-                                  height={40}
-                                  className="h-9 w-9 md:h-10 md:w-10 object-contain"
-                                  unoptimized
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                  }}
-                                />
-                              </div>
-                            ) : null}
+                                </Link>
+                              ) : (
+                                <div className="flex flex-shrink-0 items-center justify-center">
+                                  <SetIconBadge
+                                    setIconUri={hit.set_icon_uri}
+                                    setCode={hit.set_code}
+                                    setName={setName}
+                                    gameSlug={hit.game_slug}
+                                    imageClassName="h-9 w-9 md:h-10 md:w-10 object-contain"
+                                  />
+                                </div>
+                              ))}
                           </div>
                         </td>
                         <td className="pl-2 pr-2 py-1.5 align-middle min-w-0 text-left">
@@ -974,23 +944,9 @@ export function SearchResults({
               {hits.map((hit) => {
                 const imgUrl = getCardImageUrl(hit.image ?? null);
                 const { primary, secondary } = getDisplayNames(hit, selectedLang);
-                const setIconUrl = getSetIconUrl(hit.set_icon_uri, {
-                  gameSlug: hit.game_slug,
-                  setCode: hit.set_code ?? undefined,
-                });
                 const setName = hit.set_name ?? '';
                 const setPageGame = resolveSetPageGameSlug(hit.game_slug, gameSlug);
                 const setPageHref = setName ? buildSetPageUrl(setPageGame, setName) : null;
-                const setCodeFallback =
-                  hit.set_code ??
-                  (setName
-                    ? setName
-                        .split(' ')
-                        .map((w) => w[0])
-                        .join('')
-                        .toUpperCase()
-                        .slice(0, 3)
-                    : null);
                 return (
                   <div
                     key={hit.id}
@@ -1018,30 +974,20 @@ export function SearchResults({
                       )}
                       <p className="text-[#FF7300] font-semibold text-sm mt-1">{t('search.fromPrice')}</p>
                     </Link>
-                    {setPageHref && (isSafeUrl(setIconUrl) || setCodeFallback) && (
+                    {setPageHref && (setName || hit.set_code) && (
                       <Link
                         href={setPageHref}
                         title={setName}
                         aria-label={setName ? `Set: ${setName}` : 'Set'}
                         className="absolute top-3 right-3 flex items-center justify-center hover:opacity-80 transition-opacity rounded focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/40"
                       >
-                        {isSafeUrl(setIconUrl) ? (
-                          <Image
-                            src={setIconUrl}
-                            alt=""
-                            width={36}
-                            height={36}
-                            className="h-9 w-9 object-contain"
-                            unoptimized
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        ) : setCodeFallback ? (
-                          <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
-                            {setCodeFallback.slice(0, 3)}
-                          </span>
-                        ) : null}
+                        <SetIconBadge
+                          setIconUri={hit.set_icon_uri}
+                          setCode={hit.set_code}
+                          setName={setName}
+                          gameSlug={hit.game_slug}
+                          imageClassName="h-9 w-9 object-contain"
+                        />
                       </Link>
                     )}
                   </div>

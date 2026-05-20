@@ -16,7 +16,8 @@ import { searchClient } from '@/lib/meilisearchClient';
 import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
 import { useGame, GAME_OPTIONS, type GameSlug } from '@/lib/contexts/GameContext';
 import { MEILISEARCH } from '@/lib/config';
-import { getCardImageUrl, getSetIconUrl } from '@/lib/assets';
+import { getCardImageUrl } from '@/lib/assets';
+import { SetIconBadge } from '@/components/ui/SetIconBadge';
 import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
 import { generateSlug } from '@/lib/mock-cards';
 import { CATEGORY_SLUGS } from '@/lib/product-categories';
@@ -510,11 +511,6 @@ function CardHit({
     );
     return getCardImageUrl(raw);
   }, [hit.image, hit.image_path, hit.image_uri_normal, hit.image_uri_small]);
-  const setIcon = getSetIconUrl(hit.set_icon_uri ?? hit.icon_svg_uri, {
-    gameSlug: hit.game_slug,
-    setCode: hit.set_code,
-  });
-  const setCode = hit.set_code ?? (hit.set_name ? hit.set_name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) : null);
   const setName = hit.set_name ?? '';
   const setPageGame = resolveSetPageGameSlug(hit.game_slug, gameSlug);
   const setPageHref = setName ? buildSetPageUrl(setPageGame, setName) : null;
@@ -588,8 +584,8 @@ function CardHit({
               key={i}
               className="sparkle"
               style={{
-                left: `${15 + Math.random() * 70}%`,
-                top: `${20 + Math.random() * 60}%`,
+                left: `${15 + ((index * 17 + i * 23) % 70)}%`,
+                top: `${20 + ((index * 13 + i * 31) % 60)}%`,
                 animationDelay: `${i * 0.08}s`,
               }}
             />
@@ -636,39 +632,35 @@ function CardHit({
         )}
       </button>
 
-      {setPageHref ? (
-        <Link
-          href={setPageHref}
-          title={setName || undefined}
-          aria-label={setName ? `Set: ${setName}` : 'Set'}
-          onClick={(e) => e.stopPropagation()}
-          className="flex-shrink-0 flex items-center justify-center hover:opacity-80 transition-opacity rounded focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/40"
-        >
-          {setIcon ? (
-            <img
-              src={setIcon}
-              alt=""
-              className="h-8 w-8 md:h-10 md:w-10 object-contain"
-              loading="lazy"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+      {(setPageHref || hit.set_name || hit.set_code) && (
+        setPageHref ? (
+          <Link
+            href={setPageHref}
+            title={setName || undefined}
+            aria-label={setName ? `Set: ${setName}` : 'Set'}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-shrink-0 flex items-center justify-center hover:opacity-80 transition-opacity rounded focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <SetIconBadge
+              setIconUri={hit.set_icon_uri}
+              iconSvgUri={hit.icon_svg_uri}
+              setCode={hit.set_code}
+              setName={hit.set_name}
+              gameSlug={hit.game_slug}
             />
-          ) : setCode ? (
-            <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
-              {setCode.slice(0, 3)}
-            </span>
-          ) : null}
-        </Link>
-      ) : setIcon ? (
-        <div className="flex-shrink-0 flex items-center justify-center">
-          <img
-            src={setIcon}
-            alt=""
-            className="h-8 w-8 md:h-10 md:w-10 object-contain"
-            loading="lazy"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
-        </div>
-      ) : null}
+          </Link>
+        ) : (
+          <div className="flex-shrink-0 flex items-center justify-center">
+            <SetIconBadge
+              setIconUri={hit.set_icon_uri}
+              iconSvgUri={hit.icon_svg_uri}
+              setCode={hit.set_code}
+              setName={hit.set_name}
+              gameSlug={hit.game_slug}
+            />
+          </div>
+        )
+      )}
 
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 flex-wrap">
@@ -761,7 +753,12 @@ function SearchResultsDropdown({
     rect: DOMRect;
   } | null>(null);
   const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useLayoutEffect(() => {
     if (!anchorRef.current) return;
@@ -930,7 +927,8 @@ function SearchResultsDropdown({
     </>
   );
 
-  return typeof document !== 'undefined' ? createPortal(dropdownContent, document.body) : null;
+  if (!mounted || typeof document === 'undefined') return null;
+  return createPortal(dropdownContent, document.body);
 }
 
 /** Corpo del pannello: input "Digita per cercare carte" + lista risultati (stile Figma) */
@@ -1452,10 +1450,6 @@ interface SetResult {
   release_date: string | null;
 }
 
-function isSafeUrl(url: string | null | undefined): url is string {
-  return typeof url === 'string' && url.startsWith('https://');
-}
-
 function SetSearchResultRow({
   result,
   onNavigate,
@@ -1479,18 +1473,12 @@ function SetSearchResultRow({
       className="flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors hover:bg-[#EEEEEE] bg-white"
     >
       <div className="flex-shrink-0 flex items-center justify-center">
-        {isSafeUrl(result.set_icon_uri) ? (
-          <img
-            src={result.set_icon_uri}
-            alt=""
-            className="h-8 w-8 md:h-10 md:w-10 object-contain"
-            loading="lazy"
-          />
-        ) : result.set_code ? (
-          <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
-            {result.set_code.slice(0, 3).toUpperCase()}
-          </span>
-        ) : null}
+        <SetIconBadge
+          setIconUri={result.set_icon_uri}
+          setCode={result.set_code}
+          setName={result.set_name}
+          gameSlug={result.game_slug}
+        />
       </div>
       <div className="flex-1 min-w-0">
         <span className="font-medium text-[#333333] truncate block" title={result.set_name}>
@@ -1526,6 +1514,11 @@ function SetsResultsDropdown({
 }) {
   const router = useRouter();
   const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useLayoutEffect(() => {
     if (!anchorRef.current) return;
@@ -1552,7 +1545,7 @@ function SetsResultsDropdown({
     };
   }, [anchorRef]);
 
-  if (!position) return null;
+  if (!mounted || !position) return null;
 
   const content = (
     <div
@@ -1598,7 +1591,7 @@ function SetsResultsDropdown({
     </div>
   );
 
-  return typeof document !== 'undefined' ? createPortal(content, document.body) : null;
+  return createPortal(content, document.body);
 }
 
 // ---------------------------------------------------------------------------
