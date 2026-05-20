@@ -10,8 +10,9 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, ChevronDown, ChevronLeft, ChevronRight, Rows3, Grid2x2, Camera, X } from 'lucide-react';
+import { Search, ChevronDown, ChevronLeft, ChevronRight, Rows3, Grid2x2, X } from 'lucide-react';
 import { getCardImageUrl } from '@/lib/assets';
+import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import type { SearchHit } from '@/app/api/search/route';
 import type { GameSlug } from '@/lib/contexts/GameContext';
@@ -431,46 +432,11 @@ export function ProductCategoryView({
                       >
                         <td className="pl-2 pr-0 py-2 align-middle min-w-0">
                           <div className="flex items-center gap-2 min-w-0">
-                            <button
-                              type="button"
-                              className="relative flex h-14 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-[#f2f2f7] shadow-sm transition-shadow"
-                              aria-label="Anteprima immagine"
-                              disabled={!imgUrl}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
-                            >
-                              {imgUrl ? (
-                                <>
-                                  <div className="absolute inset-0">
-                                    <Image
-                                      src={imgUrl}
-                                      alt={nameOriginal}
-                                      fill
-                                      sizes="40px"
-                                      className="object-cover"
-                                    />
-                                  </div>
-                                  {/* Overlay + camera al centro */}
-                                  <span className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-hidden />
-                                  <Camera
-                                    className="absolute inset-0 m-auto h-4 w-4 text-white"
-                                    strokeWidth={1.5}
-                                    aria-hidden
-                                  />
-                                </>
-                              ) : (
-                                <>
-                                  <span className="absolute inset-0 bg-gray-100" aria-hidden />
-                                  <span className="absolute inset-0 bg-black/20" aria-hidden />
-                                  <Camera
-                                    className="absolute inset-0 m-auto h-4 w-4 text-white"
-                                    strokeWidth={1.5}
-                                    aria-hidden
-                                  />
-                                </>
-                              )}
-                            </button>
+                            <CardImageCameraPeek
+                              imageUrl={imgUrl}
+                              name={nameOriginal}
+                              previewSide="left"
+                            />
 
                             <span className="relative inline-flex min-w-0 max-w-[6.5rem] group">
                               <span className="min-w-0 flex-1 text-[10px] leading-tight text-gray-600 font-medium tracking-wide truncate">
