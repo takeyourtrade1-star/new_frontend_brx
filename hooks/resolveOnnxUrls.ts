@@ -8,8 +8,9 @@ const ONNX_S3_PUBLIC_BLOCKED =
 
 export async function resolveOnnxDownloadUrls(apiBaseUrl: string): Promise<string[]> {
   const base = apiBaseUrl.replace(/\/$/, '');
-  const urls: string[] = [`${base}/static/dinov2_small.onnx`];
+  const urls: string[] = [];
 
+  // S3 presigned first — avoids Amplify proxy timeout on ~25 MB static files.
   try {
     const resp = await fetch(`${base}/model/presigned`, { cache: 'no-store' });
     if (resp.ok) {
@@ -19,8 +20,9 @@ export async function resolveOnnxDownloadUrls(apiBaseUrl: string): Promise<strin
       }
     }
   } catch {
-    // presign optional until backend V3 redeployed
+    // presign optional until backend redeployed
   }
 
+  urls.push(`${base}/static/dinov2_small.onnx`);
   return urls;
 }

@@ -72,7 +72,7 @@ const nextConfig = {
               "img-src 'self' data: blob: https://*.cloudfront.net https://*.ebartex.com https://flagcdn.com https://cards.scryfall.io https://*.scryfall.io https://c1.scryfall.com https://c2.scryfall.com",
               "font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com",
               "media-src 'self' https://*.cloudfront.net",
-              "connect-src 'self' https://*.ebartex.com https://*.cloudfront.net https://*.meilisearch.com wss://*.ebartex.com https://ebartex-user-uploads-prod.s3.eu-south-1.amazonaws.com https://ebartex-brx-match-data.s3.eu-south-1.amazonaws.com https://*.s3.eu-south-1.amazonaws.com",
+              "connect-src 'self' https://*.ebartex.com https://*.cloudfront.net https://*.meilisearch.com wss://*.ebartex.com https://ebartex-user-uploads-prod.s3.eu-south-1.amazonaws.com https://ebartex-brx-match-data.s3.eu-south-1.amazonaws.com https://ebartex-brx-match-data.s3.amazonaws.com https://*.s3.eu-south-1.amazonaws.com https://*.s3.amazonaws.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

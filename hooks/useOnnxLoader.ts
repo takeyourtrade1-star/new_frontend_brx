@@ -195,20 +195,30 @@ async function readResponseWithProgress(
   return concatChunks(chunks, loaded);
 }
 
+function shortFetchLabel(url: string): string {
+  try {
+    const u = new URL(url, typeof window !== 'undefined' ? window.location.origin : undefined);
+    return `${u.hostname}${u.pathname}`;
+  } catch {
+    return 'origine sconosciuta';
+  }
+}
+
 async function fetchOnnxFromUrl(
   url: string,
   onProgress?: (progress: OnnxLoadProgress) => void,
 ): Promise<ArrayBuffer> {
   const emit = (progress: OnnxLoadProgress) => onProgress?.(progress);
+  const label = shortFetchLabel(url);
 
-  emit({ loaded: 0, total: 0, percent: -1, phase: 'downloading', reason: url });
+  emit({ loaded: 0, total: 0, percent: -1, phase: 'downloading', reason: label });
 
   let resp: Response;
   try {
-    resp = await fetch(url);
+    resp = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store' });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error('[useOnnxLoader] fetch network error:', url, msg);
+    console.error('[useOnnxLoader] fetch network error:', label, msg);
     emit({
       loaded: 0,
       total: 0,
@@ -216,7 +226,7 @@ async function fetchOnnxFromUrl(
       phase: 'failed',
       reason: `Rete: ${msg}`,
     });
-    throw new Error(`Network error fetching ONNX from ${url}: ${msg}`);
+    throw new Error(`Network error fetching ONNX from ${label}: ${msg}`);
   }
 
   if (!resp.ok) {
