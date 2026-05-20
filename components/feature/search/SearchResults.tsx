@@ -27,6 +27,7 @@ import {
   X,
 } from 'lucide-react';
 import { getCardImageUrl, getSetIconUrl } from '@/lib/assets';
+import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import type { MessageKey } from '@/lib/i18n/messages/en';
@@ -870,6 +871,18 @@ export function SearchResults({
                       setCode: hit.set_code ?? undefined,
                     });
                     const setName = hit.set_name ?? '';
+                    const setPageGame = resolveSetPageGameSlug(hit.game_slug, gameSlug);
+                    const setPageHref = setName ? buildSetPageUrl(setPageGame, setName) : null;
+                    const setCodeFallback =
+                      hit.set_code ??
+                      (setName
+                        ? setName
+                            .split(' ')
+                            .map((w) => w[0])
+                            .join('')
+                            .toUpperCase()
+                            .slice(0, 3)
+                        : null);
                     const nameOriginal = secondary ?? primary;
                     const nameTranslation = secondary ? primary : null;
                     return (
@@ -882,7 +895,7 @@ export function SearchResults({
                         className="search-result-row border-b border-gray-100 cursor-pointer outline-none"
                       >
                         <td className="pl-2 pr-0 py-1.5 align-middle min-w-0">
-                          <div className="flex items-center gap-1.5 min-w-0">
+                          <div className="flex items-center justify-center gap-1.5 min-w-0">
                             <CardImageCameraPeek
                               imageUrl={imgUrl}
                               name={nameOriginal}
@@ -890,28 +903,47 @@ export function SearchResults({
                               onModalOpenChange={setImagePreviewModalOpen}
                             />
 
-                            <span className="relative inline-flex items-center gap-1 min-w-0 max-w-[6.5rem] group">
-                              {isSafeUrl(setIconUrl) && (
+                            {setPageHref ? (
+                              <Link
+                                href={setPageHref}
+                                title={setName}
+                                aria-label={setName ? `Set: ${setName}` : 'Set'}
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex flex-shrink-0 items-center justify-center hover:opacity-80 transition-opacity rounded focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/40"
+                              >
+                                {isSafeUrl(setIconUrl) ? (
+                                  <Image
+                                    src={setIconUrl}
+                                    alt=""
+                                    width={40}
+                                    height={40}
+                                    className="h-9 w-9 md:h-10 md:w-10 object-contain"
+                                    unoptimized
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : setCodeFallback ? (
+                                  <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                                    {setCodeFallback.slice(0, 3)}
+                                  </span>
+                                ) : null}
+                              </Link>
+                            ) : isSafeUrl(setIconUrl) ? (
+                              <div className="flex flex-shrink-0 items-center justify-center">
                                 <Image
                                   src={setIconUrl}
-                                  alt={setName}
-                                  width={14}
-                                  height={14}
-                                  className="inline-block h-3.5 w-3.5 flex-shrink-0 object-contain"
+                                  alt=""
+                                  width={40}
+                                  height={40}
+                                  className="h-9 w-9 md:h-10 md:w-10 object-contain"
                                   unoptimized
-                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
                                 />
-                              )}
-                              <span className="min-w-0 flex-1 text-[9px] leading-none text-gray-600 font-medium tracking-wide truncate">
-                                {setName}
-                              </span>
-                              {/* Tooltip custom: niente delay nativo, stile Apple */}
-                              {setName && (
-                                <span className="pointer-events-none absolute left-0 top-full z-[20] mt-1 w-max max-w-[14rem] break-words rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white shadow-lg opacity-0 transition-opacity duration-75 group-hover:opacity-100">
-                                  {setName}
-                                </span>
-                              )}
-                            </span>
+                              </div>
+                            ) : null}
                           </div>
                         </td>
                         <td className="pl-2 pr-2 py-1.5 align-middle min-w-0 text-left">
@@ -942,36 +974,77 @@ export function SearchResults({
               {hits.map((hit) => {
                 const imgUrl = getCardImageUrl(hit.image ?? null);
                 const { primary, secondary } = getDisplayNames(hit, selectedLang);
+                const setIconUrl = getSetIconUrl(hit.set_icon_uri, {
+                  gameSlug: hit.game_slug,
+                  setCode: hit.set_code ?? undefined,
+                });
+                const setName = hit.set_name ?? '';
+                const setPageGame = resolveSetPageGameSlug(hit.game_slug, gameSlug);
+                const setPageHref = setName ? buildSetPageUrl(setPageGame, setName) : null;
+                const setCodeFallback =
+                  hit.set_code ??
+                  (setName
+                    ? setName
+                        .split(' ')
+                        .map((w) => w[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 3)
+                    : null);
                 return (
-                  <Link
+                  <div
                     key={hit.id}
-                    href={`/products/${hit.id}`}
-                    className="group border border-gray-200 bg-white p-3 hover:border-[#FF7300] hover:shadow-sm transition-all"
+                    className="group relative border border-gray-200 bg-white p-3 hover:border-[#FF7300] hover:shadow-sm transition-all"
                   >
-                    <div className="relative aspect-[63/88] overflow-hidden bg-gray-100 mb-2">
-                      {imgUrl ? (
-                        <Image
-                          src={imgUrl}
-                          alt={primary}
-                          fill
-                          className="object-contain group-hover:scale-105 transition-transform"
-                          sizes="(max-width:640px) 50vw, 20vw"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                          {t('search.noImage')}
-                        </div>
+                    <Link href={`/products/${hit.id}`} className="block">
+                      <div className="relative aspect-[63/88] overflow-hidden bg-gray-100 mb-2">
+                        {imgUrl ? (
+                          <Image
+                            src={imgUrl}
+                            alt={primary}
+                            fill
+                            className="object-contain group-hover:scale-105 transition-transform"
+                            sizes="(max-width:640px) 50vw, 20vw"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                            {t('search.noImage')}
+                          </div>
+                        )}
+                      </div>
+                      <p className="font-medium text-gray-900 text-sm line-clamp-2">{primary}</p>
+                      {secondary && (
+                        <p className="text-xs text-gray-500 line-clamp-1">{secondary}</p>
                       )}
-                    </div>
-                    <p className="font-medium text-gray-900 text-sm line-clamp-2">{primary}</p>
-                    {secondary && (
-                      <p className="text-xs text-gray-500 line-clamp-1">{secondary}</p>
+                      <p className="text-[#FF7300] font-semibold text-sm mt-1">{t('search.fromPrice')}</p>
+                    </Link>
+                    {setPageHref && (isSafeUrl(setIconUrl) || setCodeFallback) && (
+                      <Link
+                        href={setPageHref}
+                        title={setName}
+                        aria-label={setName ? `Set: ${setName}` : 'Set'}
+                        className="absolute top-3 right-3 flex items-center justify-center hover:opacity-80 transition-opacity rounded focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/40"
+                      >
+                        {isSafeUrl(setIconUrl) ? (
+                          <Image
+                            src={setIconUrl}
+                            alt=""
+                            width={36}
+                            height={36}
+                            className="h-9 w-9 object-contain"
+                            unoptimized
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : setCodeFallback ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                            {setCodeFallback.slice(0, 3)}
+                          </span>
+                        ) : null}
+                      </Link>
                     )}
-                    {hit.set_name && (
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{hit.set_name}</p>
-                    )}
-                    <p className="text-[#FF7300] font-semibold text-sm mt-1">{t('search.fromPrice')}</p>
-                  </Link>
+                  </div>
                 );
               })}
             </div>

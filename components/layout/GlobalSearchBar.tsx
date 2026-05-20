@@ -17,6 +17,7 @@ import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
 import { useGame, GAME_OPTIONS, type GameSlug } from '@/lib/contexts/GameContext';
 import { MEILISEARCH } from '@/lib/config';
 import { getCardImageUrl, getSetIconUrl } from '@/lib/assets';
+import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
 import { generateSlug } from '@/lib/mock-cards';
 import { CATEGORY_SLUGS } from '@/lib/product-categories';
 import {
@@ -515,6 +516,8 @@ function CardHit({
   });
   const setCode = hit.set_code ?? (hit.set_name ? hit.set_name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) : null);
   const setName = hit.set_name ?? '';
+  const setPageGame = resolveSetPageGameSlug(hit.game_slug, gameSlug);
+  const setPageHref = setName ? buildSetPageUrl(setPageGame, setName) : null;
   const { titleType, title, subtitle } = getTitleAndSubtitle(hit, selectedLang);
 
   const handleCameraClick = (e: React.MouseEvent) => {
@@ -633,21 +636,39 @@ function CardHit({
         )}
       </button>
 
-      <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded bg-[#E8E8E8]" title={setName}>
-        {setIcon ? (
+      {setPageHref ? (
+        <Link
+          href={setPageHref}
+          title={setName || undefined}
+          aria-label={setName ? `Set: ${setName}` : 'Set'}
+          onClick={(e) => e.stopPropagation()}
+          className="flex-shrink-0 flex items-center justify-center hover:opacity-80 transition-opacity rounded focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          {setIcon ? (
+            <img
+              src={setIcon}
+              alt=""
+              className="h-8 w-8 md:h-10 md:w-10 object-contain"
+              loading="lazy"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : setCode ? (
+            <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+              {setCode.slice(0, 3)}
+            </span>
+          ) : null}
+        </Link>
+      ) : setIcon ? (
+        <div className="flex-shrink-0 flex items-center justify-center">
           <img
             src={setIcon}
             alt=""
-            className="w-5 h-5 object-contain"
+            className="h-8 w-8 md:h-10 md:w-10 object-contain"
             loading="lazy"
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
-        ) : setCode ? (
-          <span className="text-[10px] font-bold text-gray-600">{setCode.slice(0, 2)}</span>
-        ) : (
-          <span className="text-[10px] font-bold text-gray-400">—</span>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 flex-wrap">
@@ -1457,21 +1478,19 @@ function SetSearchResultRow({
       }}
       className="flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors hover:bg-[#EEEEEE] bg-white"
     >
-      <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded bg-[#E8E8E8]">
+      <div className="flex-shrink-0 flex items-center justify-center">
         {isSafeUrl(result.set_icon_uri) ? (
           <img
             src={result.set_icon_uri}
             alt=""
-            className="w-5 h-5 object-contain"
+            className="h-8 w-8 md:h-10 md:w-10 object-contain"
             loading="lazy"
           />
         ) : result.set_code ? (
-          <span className="text-[10px] font-bold text-gray-600">
-            {result.set_code.slice(0, 2).toUpperCase()}
+          <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+            {result.set_code.slice(0, 3).toUpperCase()}
           </span>
-        ) : (
-          <span className="text-[10px] font-bold text-gray-400">—</span>
-        )}
+        ) : null}
       </div>
       <div className="flex-1 min-w-0">
         <span className="font-medium text-[#333333] truncate block" title={result.set_name}>
