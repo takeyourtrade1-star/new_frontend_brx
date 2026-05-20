@@ -56,6 +56,11 @@ export interface CardDocument {
   set_icon_uri?: string | null;
   /** Codice breve del set (es. "BLB", "ONE"). */
   set_code?: string | null;
+  /** MTG: raggruppa tutte le stampe della stessa carta (filterable in Meilisearch). */
+  oracle_id?: string | null;
+  /** OP/PK: raggruppa stampe della stessa carta (filterable in Meilisearch). */
+  card_id?: string | number | null;
+  category_id?: number;
 }
 
 export interface ProductDetailData {

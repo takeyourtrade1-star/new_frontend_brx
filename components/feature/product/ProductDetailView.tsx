@@ -10,7 +10,7 @@ import { getCardImageUrl, getSetIconUrl } from '@/lib/assets';
 import { getCardDisplayNames } from '@/lib/card-display-name';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { getGameLabel, buildBreadcrumbsFromCard, type CardDocument } from '@/lib/product-detail';
+import { getGameLabel, buildBreadcrumbsFromCard } from '@/lib/product-detail';
 import { syncClient, type InventoryItemResponse, type ListingItem } from '@/lib/api/sync-client';
 import { fetchPublicUserProfiles } from '@/lib/api/user-names-cache';
 import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
@@ -20,6 +20,8 @@ import { InventoryEditModal } from '@/components/feature/sync/InventoryEditModal
 import { listingToInventoryEditItem } from '@/lib/product-detail/listing-to-inventory-item';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCdnImageUrl, MEILISEARCH } from '@/lib/config';
+import { getCategoryIds, normalizeGameSlug } from '@/lib/search/category-mapping';
+import type { CardDocument } from '@/lib/product-detail';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { COUNTRIES } from '@/lib/registrati/schema';
 import { ProductPriceChart, type ProductPriceStats, buildPriceHistoryPoints } from '@/components/feature/product/ProductPriceChart';
@@ -69,6 +71,61 @@ type ReprintCard = {
 
 const REPRINTS_PAGE_SIZE = 100;
 const REPRINTS_MAX_PAGES = 20;
+
+function escapeMeiliFilterValue(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function buildReprintCategoryFilter(gameSlug: string, categoryId?: number): string | null {
+  if (categoryId != null && Number.isFinite(categoryId)) {
+    return `category_id = ${categoryId}`;
+  }
+  const game = normalizeGameSlug(gameSlug);
+  if (!game) return null;
+  const ids = getCategoryIds(game, 'singles');
+  if (ids.length === 0) return null;
+  if (ids.length === 1) return `category_id = ${ids[0]}`;
+  return `category_id IN [${ids.join(', ')}]`;
+}
+
+type ReprintSearchStrategy = {
+  q: string;
+  filter: string;
+  matchNameExactly?: boolean;
+};
+
+function buildReprintSearchStrategies(card: CardDocument): ReprintSearchStrategy[] {
+  const gameSlug = escapeMeiliFilterValue(card.game_slug.trim());
+  const filterParts = [`game_slug = "${gameSlug}"`];
+  const categoryFilter = buildReprintCategoryFilter(card.game_slug, card.category_id);
+  if (categoryFilter) filterParts.push(categoryFilter);
+  const baseFilter = filterParts.join(' AND ');
+
+  const strategies: ReprintSearchStrategy[] = [];
+
+  const oracleId = card.oracle_id?.trim();
+  if (oracleId) {
+    strategies.push({
+      q: '',
+      filter: `${baseFilter} AND oracle_id = "${escapeMeiliFilterValue(oracleId)}"`,
+    });
+  }
+
+  const cardId = card.card_id != null ? String(card.card_id).trim() : '';
+  if (cardId) {
+    strategies.push({
+      q: '',
+      filter: `${baseFilter} AND card_id = "${escapeMeiliFilterValue(cardId)}"`,
+    });
+  }
+
+  const name = card.name.trim();
+  if (name) {
+    strategies.push({ q: name, filter: baseFilter, matchNameExactly: true });
+  }
+
+  return strategies;
+}
 
 function mapReprintHit(hit: ReprintSearchHit, cardGameSlug?: string): ReprintCard | null {
   if (!hit.id) return null;
@@ -567,69 +624,77 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         };
         if (MEILISEARCH.apiKey) headers.Authorization = `Bearer ${MEILISEARCH.apiKey}`;
 
-        const escapedName = card.name.replace(/"/g, '\\"');
-        const escapedGameSlug = card.game_slug.replace(/"/g, '\\"');
-
-        // TODO(oracle_id): after reindex, replace name filter with oracle_id for MTG faces.
-        const filter = [
-          `name = "${escapedName}"`,
-          `game_slug = "${escapedGameSlug}"`,
-          `category_id = 1`,
-        ];
         const attributesToRetrieve = [
           'id', 'name', 'set_name', 'rarity',
           'image', 'image_uri_small', 'image_uri_normal', 'image_path',
           'set_icon_uri', 'icon_svg_uri', 'set_code', 'game_slug',
         ];
 
-        const allHits: ReprintSearchHit[] = [];
-        let offset = 0;
+        const strategies = buildReprintSearchStrategies(card);
+        const normalizedCardName = card.name.trim().toLowerCase();
+        let allHits: ReprintSearchHit[] = [];
 
-        let useSort = true;
+        const fetchStrategyHits = async (strategy: ReprintSearchStrategy): Promise<ReprintSearchHit[]> => {
+          const strategyHits: ReprintSearchHit[] = [];
+          let offset = 0;
+          let useSort = true;
 
-        for (let page = 0; page < REPRINTS_MAX_PAGES; page++) {
-          const body: Record<string, unknown> = {
-            q: '',
-            limit: REPRINTS_PAGE_SIZE,
-            offset,
-            filter,
-            attributesToRetrieve,
-          };
-          if (useSort) body.sort = ['set_name:asc'];
+          for (let page = 0; page < REPRINTS_MAX_PAGES; page++) {
+            const body: Record<string, unknown> = {
+              q: strategy.q,
+              limit: REPRINTS_PAGE_SIZE,
+              offset,
+              filter: strategy.filter,
+              attributesToRetrieve,
+            };
+            if (useSort) body.sort = ['set_name:asc'];
 
-          let res = await fetch(`${MEILISEARCH.host}/indexes/${MEILISEARCH.indexName}/search`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(body),
-            cache: 'no-store',
-          });
+            let res = await fetch(`${MEILISEARCH.host}/indexes/${MEILISEARCH.indexName}/search`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(body),
+              cache: 'no-store',
+            });
 
-          if (res.status === 400 && useSort) {
-            useSort = false;
-            offset = 0;
-            allHits.length = 0;
-            page = -1;
-            continue;
+            if (res.status === 400 && useSort) {
+              useSort = false;
+              offset = 0;
+              strategyHits.length = 0;
+              page = -1;
+              continue;
+            }
+
+            if (!res.ok) return [];
+
+            const data = (await res.json()) as {
+              hits?: ReprintSearchHit[];
+              estimatedTotalHits?: number;
+            };
+            const rawPageHits = Array.isArray(data.hits) ? data.hits : [];
+            const pageHits = strategy.matchNameExactly
+              ? rawPageHits.filter(
+                  (hit) => (hit.name ?? '').trim().toLowerCase() === normalizedCardName
+                )
+              : rawPageHits;
+            strategyHits.push(...pageHits);
+
+            if (rawPageHits.length < REPRINTS_PAGE_SIZE) break;
+
+            offset += REPRINTS_PAGE_SIZE;
+            const estimatedTotal =
+              typeof data.estimatedTotalHits === 'number' ? data.estimatedTotalHits : null;
+            if (estimatedTotal != null && offset >= estimatedTotal) break;
           }
 
-          if (!res.ok) {
-            if (!cancelled) setReprints([]);
-            return;
+          return strategyHits;
+        };
+
+        for (const strategy of strategies) {
+          const hits = await fetchStrategyHits(strategy);
+          if (hits.length > 0) {
+            allHits = hits;
+            break;
           }
-
-          const data = (await res.json()) as {
-            hits?: ReprintSearchHit[];
-            estimatedTotalHits?: number;
-          };
-          const pageHits = Array.isArray(data.hits) ? data.hits : [];
-          allHits.push(...pageHits);
-
-          if (pageHits.length < REPRINTS_PAGE_SIZE) break;
-
-          offset += REPRINTS_PAGE_SIZE;
-          const estimatedTotal =
-            typeof data.estimatedTotalHits === 'number' ? data.estimatedTotalHits : null;
-          if (estimatedTotal != null && offset >= estimatedTotal) break;
         }
 
         const mapped = allHits
@@ -649,7 +714,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [card?.id, card?.name, card?.game_slug]);
+  }, [card?.id, card?.name, card?.game_slug, card?.oracle_id, card?.card_id, card?.category_id]);
 
   const pollSyncTaskThenRefresh = useCallback(
     async (taskId: string) => {

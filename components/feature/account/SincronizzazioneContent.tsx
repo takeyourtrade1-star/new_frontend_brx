@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { SyncModeSelector } from '@/components/feature/sync/SyncModeSelector';
 
 type LogEntry = { ts: string; label: string; data: string; isError?: boolean };
 
@@ -405,6 +406,12 @@ export function SincronizzazioneContent() {
       {isDisconnected && (
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           {t('accountPage.syncDisconnectedBanner')}
+        </div>
+      )}
+
+      {integrationReady && (
+        <div className="mb-6">
+          <SyncModeSelector />
         </div>
       )}
 
