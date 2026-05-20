@@ -695,12 +695,12 @@ function ScannerPageInner() {
   } = useBrxScanner({
     autoOpenCamera: true,
     confidenceThreshold: 0.80,
-    captureIntervalMs: 240,
+    captureIntervalMs: 180,
     countdownSeconds: COUNTDOWN_SECONDS,
     apiBaseUrl: '/brx-match',
-    requestTimeoutMs: 3500,
+    requestTimeoutMs: 2800,
     scanMode: 'auto',
-    voteWindow: 4,
+    voteWindow: 3,
     voteRequired: 2,
     onMatch: (r) => {
       if (slowTimerRef.current) {
@@ -858,7 +858,7 @@ function ScannerPageInner() {
           autoPlay
           playsInline
           muted
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover [transform:translateZ(0)]"
           aria-hidden
         />
       )}

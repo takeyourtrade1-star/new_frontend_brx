@@ -15,6 +15,14 @@ import {
 } from './useOnnxLoader';
 
 import { resolveOnnxDownloadUrls } from './resolveOnnxUrls';
+import {
+  captureFrame224,
+  createTensorBuffer,
+  frameFingerprint,
+  imageDataToTensor,
+  isIosDevice,
+  vectorSearchJson,
+} from '@/lib/scanner/preprocess';
 
 export type { OnnxLoadProgress } from './useOnnxLoader';
 
@@ -117,93 +125,20 @@ export interface UseBrxScannerReturn {
 // Constants
 // ---------------------------------------------------------------------------
 
-const HINT_STALE_MS = 1200;
+const HINT_STALE_MS = 900;
+const SCAN_GAP_MIN_MS = 100;
+const SCAN_GAP_MAX_MS = 320;
 
 /** Enterprise thresholds — floors enforced regardless of options. */
 const CONF_FLOOR = 0.80;
 const HINT_CONF_FLOOR = 0.72;
-const VECTOR_DIM = 384;
 const ONNX_SIZE = 224;
-/** Turbo: one ONNX+network pass at a time (parallel runs freeze mobile UI). */
 const TURBO_MAX_INFLIGHT = 1;
-/** High-confidence match → commit without waiting for vote window. */
-const FAST_COMMIT_CONF = 0.87;
-const FAST_COMMIT_MARGIN = 0.06;
-/** ORB verify only when top-1/top-2 are very close (expensive JPEG upload). */
-const VERIFY_MARGIN_THRESHOLD = 0.03;
-const HINT_INSTANT_CONF = 0.85;
-
-/** ImageNet normalisation constants (must match DINOv2 training). */
-const IMAGENET_MEAN = [0.485, 0.456, 0.406] as const;
-const IMAGENET_STD = [0.229, 0.224, 0.225] as const;
-
-// ---------------------------------------------------------------------------
-// Pure helpers (defined outside hook to keep them stable)
-// ---------------------------------------------------------------------------
-
-function l2Normalize(vec: Float32Array): Float32Array {
-  let sumSq = 0;
-  for (let i = 0; i < vec.length; i++) sumSq += vec[i] * vec[i];
-  const norm = Math.sqrt(sumSq);
-  if (norm < 1e-8) return vec;
-  const out = new Float32Array(vec.length);
-  for (let i = 0; i < vec.length; i++) out[i] = vec[i] / norm;
-  return out;
-}
-
-/**
- * Convert RGBA ImageData (224×224) to a CHW float32 tensor normalised
- * with ImageNet mean/std — identical to the Python `preprocess()` in
- * `app/scanner/embedder_dinov2.py`.
- */
-function imageDataToOnnxTensor(imageData: ImageData): Float32Array {
-  const { data } = imageData; // RGBA uint8, length = 4 * 224 * 224
-  const pixels = ONNX_SIZE * ONNX_SIZE;
-  const tensor = new Float32Array(3 * pixels); // CHW: [R_plane, G_plane, B_plane]
-  for (let i = 0; i < pixels; i++) {
-    tensor[i]              = (data[i * 4]     / 255 - IMAGENET_MEAN[0]) / IMAGENET_STD[0]; // R
-    tensor[pixels + i]     = (data[i * 4 + 1] / 255 - IMAGENET_MEAN[1]) / IMAGENET_STD[1]; // G
-    tensor[2 * pixels + i] = (data[i * 4 + 2] / 255 - IMAGENET_MEAN[2]) / IMAGENET_STD[2]; // B
-  }
-  return tensor;
-}
-
-/**
- * Draw a centre-square crop of the video frame at 224×224 px.
- * The canvas is re-used across calls (only dims change on first call).
- */
-function captureFrame224(
-  video: HTMLVideoElement,
-  canvas: HTMLCanvasElement,
-): ImageData | null {
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-  if (!vw || !vh || video.readyState < 2) return null;
-
-  canvas.width = ONNX_SIZE;
-  canvas.height = ONNX_SIZE;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return null;
-
-  // Centre-square crop → scale to 224×224
-  const side = Math.min(vw, vh);
-  const sx = (vw - side) / 2;
-  const sy = (vh - side) / 2;
-  ctx.drawImage(video, sx, sy, side, side, 0, 0, ONNX_SIZE, ONNX_SIZE);
-  return ctx.getImageData(0, 0, ONNX_SIZE, ONNX_SIZE);
-}
-
-/** Compact vector payload (~2 KB) vs JSON number array (~4 KB). */
-function vectorSearchBody(vec: Float32Array, topK: number): string {
-  const u8 = new Uint8Array(vec.buffer, vec.byteOffset, vec.byteLength);
-  let binary = '';
-  for (let i = 0; i < u8.length; i++) binary += String.fromCharCode(u8[i]);
-  return JSON.stringify({
-    vector_b64: btoa(binary),
-    top_k: topK,
-    mode: 'fast',
-  });
-}
+const FAST_COMMIT_CONF = 0.86;
+const FAST_COMMIT_MARGIN = 0.05;
+const VERIFY_MARGIN_THRESHOLD = 0.025;
+const HINT_INSTANT_CONF = 0.84;
+const VERIFY_MIN_CONF = 0.82;
 
 async function blobToBase64Strip(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -228,12 +163,12 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     onError,
     confidenceThreshold: rawConf = 0.80,
     hintConfidenceMin: rawHint = 0.72,
-    captureIntervalMs = 240,
+    captureIntervalMs = 180,
     apiBaseUrl = '/brx-match',
     countdownSeconds = 3,
-    requestTimeoutMs = 3500,
+    requestTimeoutMs = 2800,
     scanMode = 'auto',
-    voteWindow = 4,
+    voteWindow = 3,
     voteRequired = 2,
     maxInflight = 3,
     autoOpenCamera = false,
@@ -278,6 +213,17 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scanLoopActiveRef = useRef(false);
   const scanLoopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scanGapMsRef = useRef(captureIntervalMs);
+  const lastFrameFpRef = useRef(0);
+  const tensorBufferRef = useRef<Float32Array | null>(null);
+  const onnxCtxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const embedWorkerRef = useRef<Worker | null>(null);
+  const workerReadyRef = useRef(false);
+  const embedPendingRef = useRef<{
+    resolve: (v: Float32Array) => void;
+    reject: (e: Error) => void;
+  } | null>(null);
+  const lastHintKeyRef = useRef('');
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inflightRef = useRef(0);
   const recentNamesRef = useRef<string[]>([]);
@@ -305,6 +251,12 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       c.width = ONNX_SIZE;
       c.height = ONNX_SIZE;
       onnxCanvasRef.current = c;
+      onnxCtxRef.current = c.getContext('2d', {
+        alpha: false,
+        desynchronized: true,
+        willReadFrequently: true,
+      });
+      tensorBufferRef.current = createTensorBuffer();
     }
 
     async function loadOnnxModel() {
@@ -331,42 +283,87 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
         const ort = await import('onnxruntime-web');
         if (cancelled) return;
 
-        // Single-threaded WASM — no SharedArrayBuffer required; works in any
-        // browser context including iOS Safari without COOP/COEP headers.
-        // WASM files must be in /ort-wasm/ (copied by postinstall script).
         ort.env.wasm.numThreads = 1;
         ort.env.wasm.simd = true;
         ort.env.wasm.wasmPaths = '/ort-wasm/';
 
-        let session: OrtLib.InferenceSession;
-        try {
-          session = await ort.InferenceSession.create(modelData, {
-            executionProviders: ['wasm'],
-            graphOptimizationLevel: 'all',
-          });
-        } catch (wasmErr) {
-          console.warn('[BrxScanner] WASM EP failed, retrying with webgl:', wasmErr);
-          session = await ort.InferenceSession.create(modelData, {
-            executionProviders: ['webgl', 'wasm'],
-            graphOptimizationLevel: 'all',
-          });
-        }
-        if (cancelled) return;
+        const wasmBase =
+          typeof window !== 'undefined' ? `${window.location.origin}/ort-wasm/` : '/ort-wasm/';
+        const useWebGl = !isIosDevice();
+        let workerOk = false;
 
-        try {
+        if (typeof Worker !== 'undefined') {
+          try {
+            const worker = new Worker(
+              new URL('./scannerEmbed.worker.ts', import.meta.url),
+              { type: 'module' },
+            );
+            workerOk = await new Promise<boolean>((resolve) => {
+              const t = setTimeout(() => resolve(false), 45_000);
+              worker.onmessage = (ev: MessageEvent<{ type: string; vector?: Float32Array; message?: string }>) => {
+                if (ev.data.type === 'ready') {
+                  clearTimeout(t);
+                  workerReadyRef.current = true;
+                  embedWorkerRef.current = worker;
+                  resolve(true);
+                } else if (ev.data.type === 'vector' && ev.data.vector && embedPendingRef.current) {
+                  embedPendingRef.current.resolve(ev.data.vector);
+                  embedPendingRef.current = null;
+                } else if (ev.data.type === 'error') {
+                  if (embedPendingRef.current) {
+                    embedPendingRef.current.reject(new Error(ev.data.message ?? 'worker embed failed'));
+                    embedPendingRef.current = null;
+                  }
+                }
+              };
+              worker.onerror = () => {
+                clearTimeout(t);
+                resolve(false);
+              };
+              const modelCopy = modelData.slice(0);
+              worker.postMessage(
+                { type: 'init', model: modelCopy, wasmBase, useWebGl },
+                [modelCopy],
+              );
+            });
+            if (!workerOk) {
+              worker.terminate();
+              embedWorkerRef.current = null;
+              workerReadyRef.current = false;
+            }
+          } catch {
+            workerOk = false;
+          }
+        }
+
+        if (!workerOk) {
+          let session: OrtLib.InferenceSession;
+          try {
+            session = await ort.InferenceSession.create(modelData, {
+              executionProviders: useWebGl ? ['webgl', 'wasm'] : ['wasm'],
+              graphOptimizationLevel: 'all',
+            });
+          } catch {
+            session = await ort.InferenceSession.create(modelData, {
+              executionProviders: ['wasm'],
+              graphOptimizationLevel: 'all',
+            });
+          }
+          if (cancelled) return;
           const warmup = new ort.Tensor(
             'float32',
             new Float32Array(3 * ONNX_SIZE * ONNX_SIZE),
             [1, 3, ONNX_SIZE, ONNX_SIZE],
           );
           await session.run({ [session.inputNames[0]]: warmup });
-        } catch {
-          /* non-fatal */
+          if (cancelled) return;
+          ortRef.current = ort as unknown as typeof OrtLib;
+          sessionRef.current = session;
+        } else {
+          ortRef.current = { Tensor: ort.Tensor } as unknown as typeof OrtLib;
+          sessionRef.current = {} as OrtLib.InferenceSession;
         }
-        if (cancelled) return;
 
-        ortRef.current = ort as unknown as typeof OrtLib;
-        sessionRef.current = session;
         setModelError(null);
         setModelStatus('ready');
       } catch (err) {
@@ -387,11 +384,19 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     }
 
     loadOnnxModel();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      embedWorkerRef.current?.terminate();
+      embedWorkerRef.current = null;
+      workerReadyRef.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBaseUrl, modelLoadAttempt, turboSkipped]);
 
   const retryModelDownload = useCallback(() => {
+    embedWorkerRef.current?.terminate();
+    embedWorkerRef.current = null;
+    workerReadyRef.current = false;
     sessionRef.current = null;
     ortRef.current = null;
     setModelError(null);
@@ -404,9 +409,40 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     setTurboSkipped(true);
     setModelError(null);
     setModelStatus('failed');
+    embedWorkerRef.current?.terminate();
+    embedWorkerRef.current = null;
+    workerReadyRef.current = false;
     sessionRef.current = null;
     ortRef.current = null;
   }, []);
+
+  const runOnnxEmbed = useCallback(
+    async (tensor: Float32Array): Promise<Float32Array> => {
+      if (workerReadyRef.current && embedWorkerRef.current) {
+        const worker = embedWorkerRef.current;
+        const payload = tensor.slice();
+        return new Promise((resolve, reject) => {
+          embedPendingRef.current = { resolve, reject };
+          worker.postMessage({ type: 'embed', tensor: payload }, [payload.buffer]);
+        });
+      }
+      const ort = ortRef.current;
+      const session = sessionRef.current;
+      if (!ort?.Tensor || !session?.run) {
+        throw new Error('ONNX session not ready');
+      }
+      const t = new ort.Tensor('float32', tensor, [1, 3, ONNX_SIZE, ONNX_SIZE]);
+      const outputs = await session.run({ [session.inputNames[0]]: t });
+      const raw = outputs[session.outputNames[0]].data as Float32Array;
+      const out = new Float32Array(raw.buffer, raw.byteOffset, 384);
+      let sumSq = 0;
+      for (let i = 0; i < out.length; i++) sumSq += out[i] * out[i];
+      const norm = Math.sqrt(sumSq);
+      if (norm > 1e-8) for (let i = 0; i < out.length; i++) out[i] /= norm;
+      return out;
+    },
+    [],
+  );
 
   // ---------------------------------------------------------------------------
   // Helpers
@@ -518,8 +554,12 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       }
       const needStreak = scanResult.confidence >= HINT_INSTANT_CONF ? 1 : 2;
       if (hintStreakRef.current.count >= needStreak && scanResult.confidence >= effectiveHint) {
-        setHint(scanResult);
-        scheduleHintStale();
+        const hintKey = `${key}:${Math.round(scanResult.confidence * 100)}`;
+        if (hintKey !== lastHintKeyRef.current) {
+          lastHintKeyRef.current = hintKey;
+          setHint(scanResult);
+          scheduleHintStale();
+        }
       }
     },
     [effectiveHint, scheduleHintStale],
@@ -554,37 +594,31 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
 
     const video = videoRef.current;
     const onnxCanvas = onnxCanvasRef.current;
-    if (!video || !onnxCanvas || video.readyState < 2) return;
+    const ctx = onnxCtxRef.current;
+    const tensorBuf = tensorBufferRef.current;
+    if (!video || !onnxCanvas || !ctx || !tensorBuf || video.readyState < 2) return;
 
-    const imageData = captureFrame224(video, onnxCanvas);
+    const imageData = captureFrame224(video, onnxCanvas, ctx);
     if (!imageData) return;
+
+    const fp = frameFingerprint(imageData);
+    if (fp === lastFrameFpRef.current) return;
+    lastFrameFpRef.current = fp;
 
     syncBusy(inflightRef.current + 1, false);
     const t0 = performance.now();
 
     try {
-      const ort = ortRef.current;
-      const session = sessionRef.current;
-      if (!ort || !session) return; // Shouldn't happen: caller checks modelStatus
+      imageDataToTensor(imageData, tensorBuf);
+      const vector = await runOnnxEmbed(tensorBuf.slice());
 
-      // --- Embed locally ---
-      const tensorData = imageDataToOnnxTensor(imageData);
-      const tensor = new ort.Tensor('float32', tensorData, [1, 3, ONNX_SIZE, ONNX_SIZE]);
-      const feeds: Record<string, OrtLib.Tensor> = { [session.inputNames[0]]: tensor };
-      const outputs = await session.run(feeds);
-      const rawVec = outputs[session.outputNames[0]].data as Float32Array;
-      // CLS token: first 384 floats (batch dim is 1)
-      const clsVec = new Float32Array(rawVec.buffer, rawVec.byteOffset, VECTOR_DIM);
-      const vector = l2Normalize(new Float32Array(clsVec));
-
-      // --- POST /search-vector ---
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
 
       const searchResp = await fetch(`${apiBaseUrl}/search-vector`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: vectorSearchBody(vector, 3),
+        body: vectorSearchJson(vector, 3),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -623,8 +657,11 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       let finalConfidence = top1.confidence;
       let method = 'v3+vec';
 
-      // --- Optional /verify when margin is too small ---
-      if (margin < VERIFY_MARGIN_THRESHOLD && top1.confidence >= effectiveHint) {
+      if (
+        margin < VERIFY_MARGIN_THRESHOLD &&
+        top1.confidence >= VERIFY_MIN_CONF &&
+        top1.confidence < FAST_COMMIT_CONF
+      ) {
         try {
           const cropBlob = await captureFrame();
           if (cropBlob) {
@@ -648,16 +685,11 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       }
 
       const elapsed = Math.round(performance.now() - t0);
+      scanGapMsRef.current = Math.max(
+        SCAN_GAP_MIN_MS,
+        Math.min(SCAN_GAP_MAX_MS, Math.round(elapsed * 0.25)),
+      );
       const matched = finalConfidence >= effectiveConf;
-
-      setDebug((d) => ({
-        ...d,
-        lastStatus: '200',
-        lastLatencyMs: elapsed,
-        lastError: null,
-        lastOutcome: matched ? 'matched' : 'not_matched',
-        lastMethod: method,
-      }));
 
       if (!top1.card_name || !top1.search_url) return;
 
@@ -709,6 +741,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     effectiveHint,
     recordVote,
     requestTimeoutMs,
+    runOnnxEmbed,
     syncBusy,
   ]);
 
@@ -829,9 +862,10 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   // ---------------------------------------------------------------------------
 
   const sendFrame = useCallback(async (): Promise<void> => {
-    if (sessionRef.current && ortRef.current) {
-      return sendFrameOnnx();
-    }
+    const turboReady =
+      workerReadyRef.current ||
+      Boolean(sessionRef.current && typeof sessionRef.current.run === 'function');
+    if (turboReady) return sendFrameOnnx();
     return sendFrameLegacy();
   }, [sendFrameOnnx, sendFrameLegacy]);
 
@@ -842,10 +876,10 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       if (!scanLoopActiveRef.current || matchedRef.current) return;
       await sendFrame();
       if (!scanLoopActiveRef.current || matchedRef.current) return;
-      scanLoopTimerRef.current = setTimeout(() => void tick(), captureIntervalMs);
+      scanLoopTimerRef.current = setTimeout(() => void tick(), scanGapMsRef.current);
     };
     void tick();
-  }, [captureIntervalMs, clearScanLoop, sendFrame]);
+  }, [clearScanLoop, sendFrame]);
 
   // ---------------------------------------------------------------------------
   // Camera / interval management
@@ -859,15 +893,18 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     matchedRef.current = false;
     recentNamesRef.current = [];
     hintStreakRef.current = { name: '', count: 0 };
+    lastFrameFpRef.current = 0;
+    lastHintKeyRef.current = '';
+    scanGapMsRef.current = captureIntervalMs;
 
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
-          width: { ideal: 640, max: 1280 },
+          width: { ideal: 640, max: 960 },
           height: { ideal: 480, max: 720 },
-          frameRate: { ideal: 24, max: 30 },
+          frameRate: { ideal: 30, max: 30 },
         },
         audio: false,
       });
@@ -915,6 +952,8 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     matchedRef.current = false;
     recentNamesRef.current = [];
     hintStreakRef.current = { name: '', count: 0 };
+    lastFrameFpRef.current = 0;
+    lastHintKeyRef.current = '';
     syncBusy(0);
     setState('scanning');
     if (streamRef.current && !scanLoopActiveRef.current) {

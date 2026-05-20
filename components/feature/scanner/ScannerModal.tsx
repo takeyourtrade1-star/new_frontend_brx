@@ -464,11 +464,11 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
   } = useBrxScanner({
     autoOpenCamera: true,
     confidenceThreshold: 0.80,
-    captureIntervalMs: 240,
+    captureIntervalMs: 180,
     apiBaseUrl: '/brx-match',
-    requestTimeoutMs: 3500,
+    requestTimeoutMs: 2800,
     scanMode: 'auto',
-    voteWindow: 4,
+    voteWindow: 3,
     voteRequired: 2,
   });
 
