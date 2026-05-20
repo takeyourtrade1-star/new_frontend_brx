@@ -26,6 +26,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'ebartex.com', pathname: '/**' },
       { protocol: 'https', hostname: 'cards.scryfall.io', pathname: '/**' },
       { protocol: 'https', hostname: '*.scryfall.io', pathname: '/**' },
+      // set_icon_uri may be stored as direct S3 URLs before/without CloudFront
+      { protocol: 'https', hostname: '*.s3.amazonaws.com', pathname: '/**' },
+      { protocol: 'https', hostname: '*.s3.eu-south-1.amazonaws.com', pathname: '/**' },
     ],
   },
   // Usa le stesse variabili del frontend Vite: mappa VITE_* su NEXT_PUBLIC_* per il client
@@ -69,7 +72,7 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
               "worker-src 'self' blob:",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://*.cloudfront.net https://*.ebartex.com https://flagcdn.com https://cards.scryfall.io https://*.scryfall.io https://c1.scryfall.com https://c2.scryfall.com",
+              "img-src 'self' data: blob: https://*.cloudfront.net https://*.ebartex.com https://flagcdn.com https://cards.scryfall.io https://*.scryfall.io https://c1.scryfall.com https://c2.scryfall.com https://*.s3.amazonaws.com https://*.s3.eu-south-1.amazonaws.com",
               "font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com",
               "media-src 'self' https://*.cloudfront.net",
               "connect-src 'self' https://*.ebartex.com https://*.cloudfront.net https://*.meilisearch.com wss://*.ebartex.com https://ebartex-user-uploads-prod.s3.eu-south-1.amazonaws.com https://ebartex-brx-match-data.s3.eu-south-1.amazonaws.com https://ebartex-brx-match-data.s3.amazonaws.com https://*.s3.eu-south-1.amazonaws.com https://*.s3.amazonaws.com",

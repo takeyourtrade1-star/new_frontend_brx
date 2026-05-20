@@ -145,8 +145,13 @@ function SearchFiltersFields({
   const isSheet = variant === 'sheet';
   const fc = isSheet ? fieldClassSheet : fieldClassDesktop;
 
-  // Ottieni le categorie disponibili per il gioco corrente
-  const availableKeys = useMemo(() => getCategoryKeys(gameSlug), [gameSlug]);
+  // Ottieni le categorie disponibili per il gioco corrente.
+  // 'sets' è escluso: la ricerca per set/edizioni usa un flusso dedicato in GlobalSearchBar
+  // (dropdown /api/sets), non la pagina /search standard.
+  const availableKeys = useMemo(
+    () => getCategoryKeys(gameSlug).filter((k) => k !== 'sets'),
+    [gameSlug]
+  );
 
   const categorySelect = (
     <select

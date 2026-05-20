@@ -404,6 +404,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         const escapedName = card.name.replace(/"/g, '\\"');
         const escapedGameSlug = card.game_slug.replace(/"/g, '\\"');
 
+        // TODO(oracle_id): after reindex, replace name+category filter with
+        // `oracle_id = "${card.oracle_id}"` to group all prints of the same card face
+        // (MTG only — OP/PK use card_id). Check indexer.py _index_mtg_prints for field name.
         const res = await fetch(`${MEILISEARCH.host}/indexes/${MEILISEARCH.indexName}/search`, {
           method: 'POST',
           headers,
