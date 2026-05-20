@@ -30,6 +30,8 @@ import { useUserCountry } from '@/lib/hooks/use-user-country';
 import { useFlyToCart } from '@/lib/hooks/use-fly-to-cart';
 import { useCartStore } from '@/lib/stores/cart-store';
 import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
+import { ProductAuctionsPanel } from '@/components/feature/product/ProductAuctionsPanel';
+import { ProductScambiPanel } from '@/components/feature/product/ProductScambiPanel';
 
 const PRIMARY_BLUE = '#1D3160';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -42,6 +44,7 @@ type ProductDetailViewProps =
 
 type ReprintSearchHit = {
   id: string;
+  name?: string;
   set_name?: string;
   rarity?: string;
   image?: string | null;
@@ -97,7 +100,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const imageSrc = props.imageSrc ?? (card?.image != null ? getCardImageUrl(card.image) : null) ?? getCdnImageUrl('kyurem.png');
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'INFO' | 'VENDI' | 'SCAMBIA' | 'TORNEI' | 'ASTA'>('INFO');
-  const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'ASTA' | 'TCG_EXPRESS'>('VENDITORI');
+  const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'SCAMBI' | 'ASTE' | 'TCG_EXPRESS'>('VENDITORI');
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [soloFoil, setSoloFoil] = useState(false);
@@ -264,6 +267,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const hoverPreviewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [reprints, setReprints] = useState<ReprintCard[]>([]);
   const [reprintsLoading, setReprintsLoading] = useState(false);
+  const [showAllReprints, setShowAllReprints] = useState(false);
 
     const CONDITION_OPTIONS_MAP: { value: string; label: string }[] = [
     { value: 'near_mint', label: 'Near Mint' },
@@ -406,18 +410,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           body: JSON.stringify({
             q: card.name,
             limit: 28,
-            filter: [`name = "${escapedName}"`, `game_slug = "${escapedGameSlug}"`],
+            filter: [
+              `game_slug = "${escapedGameSlug}"`,
+              `category_id = 1`,
+            ],
             attributesToRetrieve: [
-              'id',
-              'set_name',
-              'rarity',
-              'image',
-              'image_uri_small',
-              'image_uri_normal',
-              'image_path',
-              'set_icon_uri',
-              'icon_svg_uri',
-              'set_code',
+              'id', 'name', 'set_name', 'rarity',
+              'image', 'image_uri_small', 'image_uri_normal', 'image_path',
+              'set_icon_uri', 'icon_svg_uri', 'set_code',
             ],
           }),
           cache: 'no-store',
@@ -433,6 +433,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
         const mapped = hits
           .filter((hit) => hit.id && hit.id !== card.id)
+          .filter((hit) => {
+            const hitName = (hit.name ?? '').trim().toLowerCase();
+            const cardName = (card.name ?? '').trim().toLowerCase();
+            return hitName === cardName;
+          })
           .map((hit) => {
             const rawImage = hit.image ?? hit.image_uri_normal ?? hit.image_uri_small ?? hit.image_path ?? null;
             const setName = hit.set_name ?? 'Set sconosciuto';
@@ -1050,7 +1055,18 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   <div className="rounded-xl bg-white p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
                     <div className="mb-2 flex items-center justify-between">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Ristampe</span>
-                      <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400 tabular-nums">{reprints.length}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400 tabular-nums">{reprints.length}</span>
+                        {reprints.length > 6 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowAllReprints((v) => !v)}
+                            className="text-[9px] font-semibold text-primary hover:underline focus-visible:outline-none"
+                          >
+                            {showAllReprints ? 'Meno' : `Tutte (${reprints.length})`}
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {reprintsLoading ? (
                       <div className="flex gap-2 overflow-hidden">
@@ -1060,15 +1076,31 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       </div>
                     ) : reprints.length > 0 ? (
                       <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory -mx-0.5 px-0.5">
-                        {reprints.slice(0, 6).map((r) => (
-                          <div key={r.id} className="relative h-[52px] w-[37px] flex-shrink-0 snap-start overflow-hidden rounded-lg bg-zinc-50 shadow-sm transition-transform duration-200 hover:scale-105" title={r.setName}>
-                            {r.imageSrc ? (
-                              <Image src={r.imageSrc} alt="" fill className="object-cover" sizes="37px" unoptimized />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[8px] font-medium text-zinc-400">N/A</div>
-                            )}
-                          </div>
-                        ))}
+                        {reprints.slice(0, showAllReprints ? 18 : 6).map((r) => {
+                          const safeSetIcon = r.setIconSrc?.startsWith('https://') ? r.setIconSrc : null;
+                          return (
+                            <Link
+                              key={r.id}
+                              href={`/products/${r.id}`}
+                              className="group relative h-[52px] w-[37px] flex-shrink-0 snap-start overflow-hidden rounded-lg bg-zinc-50 shadow-sm transition-transform duration-200 hover:scale-105 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                              title={`${r.setName} • ${r.rarity}`}
+                            >
+                              {r.imageSrc ? (
+                                <Image src={r.imageSrc} alt={r.setName} fill className="object-cover" sizes="37px" unoptimized />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-[8px] font-medium text-zinc-400">N/A</div>
+                              )}
+                              {safeSetIcon && (
+                                <div className="absolute right-0.5 top-0.5 h-3.5 w-3.5 overflow-hidden rounded-sm bg-white/80">
+                                  <Image src={safeSetIcon} alt="" fill className="object-contain p-0.5" sizes="14px" unoptimized />
+                                </div>
+                              )}
+                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1 pb-0.5 pt-2">
+                                <span className="text-[7px] font-bold uppercase tracking-wide text-white/90">{r.setCode || 'SET'}</span>
+                              </div>
+                            </Link>
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-[11px] text-zinc-400">Nessuna ristampa.</p>
@@ -1138,7 +1170,18 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   <div className={cn('flex min-h-0 flex-col rounded-xl bg-white/85', showChart ? 'p-1' : 'p-3')}>
                     <div className={cn('flex items-center justify-between gap-1', showChart ? 'mb-1.5' : 'mb-2')}>
                       <h3 className={cn('font-extrabold uppercase tracking-wider text-zinc-800 truncate', showChart ? 'text-[9px]' : 'text-[10px]')}>Ristampe</h3>
-                      <span className={cn('rounded-full bg-zinc-100 font-bold text-zinc-400 tabular-nums', showChart ? 'px-1 py-0 text-[8px]' : 'px-1.5 py-0.5 text-[9px]')}>{reprints.length}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={cn('rounded-full bg-zinc-100 font-bold text-zinc-400 tabular-nums', showChart ? 'px-1 py-0 text-[8px]' : 'px-1.5 py-0.5 text-[9px]')}>{reprints.length}</span>
+                        {reprints.length > 4 && !showChart && (
+                          <button
+                            type="button"
+                            onClick={() => setShowAllReprints((v) => !v)}
+                            className="text-[9px] font-semibold text-primary hover:underline focus-visible:outline-none"
+                          >
+                            {showAllReprints ? 'Meno' : `Tutte (${reprints.length})`}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {reprintsLoading ? (
@@ -1149,27 +1192,36 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       </div>
                     ) : reprints.length > 0 ? (
                       <div className={cn('grid gap-1.5', showChart ? 'grid-cols-1 gap-0.5' : 'grid-cols-2')}>
-                        {reprints.slice(0, showChart ? 1 : 4).map((reprint) => (
-                          <div
-                            key={reprint.id}
-                            className={cn(
-                              'group relative overflow-hidden rounded-lg bg-zinc-50 shadow-sm ring-1 ring-zinc-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-primary/30',
-                              showChart ? 'h-[26px]' : 'h-[56px]'
-                            )}
-                            title={`${reprint.setName} • ${reprint.rarity}`}
-                          >
-                            {reprint.imageSrc ? (
-                              <Image src={reprint.imageSrc} alt={reprint.setName} fill className="object-cover" sizes="120px" unoptimized />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-[10px] font-semibold text-zinc-400">N/A</div>
-                            )}
-                            {!showChart && (
-                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-3">
-                                <span className="text-[8px] font-bold uppercase tracking-wide text-white/95">{reprint.setCode || 'SET'}</span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                        {reprints.slice(0, showChart ? 1 : showAllReprints ? 18 : 4).map((reprint) => {
+                          const safeSetIcon = reprint.setIconSrc?.startsWith('https://') ? reprint.setIconSrc : null;
+                          return (
+                            <Link
+                              key={reprint.id}
+                              href={`/products/${reprint.id}`}
+                              className={cn(
+                                'group relative overflow-hidden rounded-lg bg-zinc-50 shadow-sm ring-1 ring-zinc-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+                                showChart ? 'h-[26px]' : 'h-[56px]'
+                              )}
+                              title={`${reprint.setName} • ${reprint.rarity}`}
+                            >
+                              {reprint.imageSrc ? (
+                                <Image src={reprint.imageSrc} alt={reprint.setName} fill className="object-cover" sizes="120px" unoptimized />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-[10px] font-semibold text-zinc-400">N/A</div>
+                              )}
+                              {safeSetIcon && !showChart && (
+                                <div className="absolute right-0.5 top-0.5 h-3.5 w-3.5 overflow-hidden rounded-sm bg-white/80">
+                                  <Image src={safeSetIcon} alt="" fill className="object-contain p-0.5" sizes="14px" unoptimized />
+                                </div>
+                              )}
+                              {!showChart && (
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-3">
+                                  <span className="text-[8px] font-bold uppercase tracking-wide text-white/95">{reprint.setCode || 'SET'}</span>
+                                </div>
+                              )}
+                            </Link>
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className={cn('flex flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 text-center', showChart ? 'px-1.5 py-2' : 'px-2 py-3')}>
@@ -1822,63 +1874,99 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               )}
             </aside>
 
-            {/* Tabella Venditori / Asta – subito a destra dei filtri */}
+            {/* Marketplace: IN VENDITA | SCAMBI | ASTE | BRX Express */}
             <div className="flex-1 min-w-0 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-              <div className="flex gap-1 border-b border-gray-200 bg-gray-100 p-1 overflow-x-auto scrollbar-hide">
-                {(['VENDITORI', 'ASTA'] as const).map((tab) => {
-                  const tabLabel = tab === 'VENDITORI' ? 'IN VENDITA' : 'ASTA';
-                  const iconClass = 'h-4 w-4 sm:h-5 sm:w-5 shrink-0';
-                  return (
+              <div
+                className="border-b border-gray-200 bg-white px-2 pt-2 sm:px-3 sm:pt-3"
+                role="tablist"
+                aria-label={t('productDetail.tabs.ariaLabel')}
+              >
+                <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto scrollbar-hide pb-2">
+                  {(
+                    [
+                      { id: 'VENDITORI' as const, label: t('productDetail.tabs.inVendita'), icon: 'vendita' },
+                      { id: 'SCAMBI' as const, label: t('productDetail.tabs.scambi'), icon: 'scambi' },
+                      { id: 'ASTE' as const, label: t('productDetail.tabs.aste'), icon: 'aste' },
+                    ] as const
+                  ).map((tab) => {
+                    const iconClass = 'h-4 w-4 sm:h-5 sm:w-5 shrink-0';
+                    const selected = sellerSubTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        id={`pd-market-tab-${tab.id}`}
+                        aria-selected={selected}
+                        aria-controls={`pd-market-panel-${tab.id}`}
+                        onClick={() => setSellerSubTab(tab.id)}
+                        className={cn(
+                          'flex min-w-[88px] flex-1 items-center justify-center gap-1 rounded-full px-2.5 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors sm:min-w-0 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm',
+                          selected
+                            ? 'bg-[#FF7300] text-white shadow-sm'
+                            : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-900'
+                        )}
+                      >
+                        {tab.icon === 'vendita' && (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden>
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                            <line x1="7" y1="7" x2="7.01" y2="7" />
+                          </svg>
+                        )}
+                        {tab.icon === 'aste' && (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden>
+                            <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8" />
+                            <path d="m16 16 6-6" />
+                            <path d="m8 8 6-6" />
+                            <path d="m9 7 8 8" />
+                            <path d="m21 11-8-8" />
+                          </svg>
+                        )}
+                        {tab.icon === 'scambi' && (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden>
+                            <path d="M16 3h5v5" />
+                            <path d="M8 3H3v5" />
+                            <path d="M12 22v-8.3a4 4 0 0 0 1.172-2.872L21 3" />
+                            <path d="m3 3 7 7" />
+                            <path d="M16 21h5v-5" />
+                            <path d="M8 21H3v-5" />
+                            <path d="M12 14.7V22" />
+                          </svg>
+                        )}
+                        <span className="truncate">{tab.label}</span>
+                      </button>
+                    );
+                  })}
                   <button
-                    key={tab}
                     type="button"
-                    onClick={() => setSellerSubTab(tab)}
+                    role="tab"
+                    id="pd-market-tab-TCG_EXPRESS"
+                    aria-selected={sellerSubTab === 'TCG_EXPRESS'}
+                    aria-controls="pd-market-panel-TCG_EXPRESS"
+                    onClick={() => setSellerSubTab('TCG_EXPRESS')}
                     className={cn(
-                      'flex flex-1 min-w-[96px] sm:min-w-0 min-h-[36px] sm:min-h-[44px] items-center justify-center gap-1 sm:gap-2 rounded-md px-2 sm:px-4 py-1.5 sm:py-2.5 text-[10px] sm:text-sm font-bold uppercase transition-colors whitespace-nowrap',
-                      sellerSubTab === tab
-                        ? 'bg-white text-[#FF8800] shadow-sm ring-1 ring-[#FF8800]/30'
-                        : 'bg-transparent text-gray-600 hover:bg-white/70'
+                      'relative flex min-w-[100px] flex-1 items-center justify-center gap-1 rounded-full px-2.5 py-2 text-[10px] font-extrabold uppercase tracking-wide transition-all sm:min-w-0 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm',
+                      sellerSubTab === 'TCG_EXPRESS'
+                        ? 'bg-gradient-to-r from-[#FF7300] to-amber-500 text-white shadow-md ring-1 ring-orange-300'
+                        : 'bg-white text-orange-600 ring-1 ring-gray-200 hover:bg-orange-50'
                     )}
                   >
-                    {tab === 'VENDITORI' && (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden>
-                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-                        <line x1="7" y1="7" x2="7.01" y2="7" />
-                      </svg>
-                    )}
-                    {tab === 'ASTA' && (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden>
-                        <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8" />
-                        <path d="m16 16 6-6" />
-                        <path d="m8 8 6-6" />
-                        <path d="m9 7 8 8" />
-                        <path d="m21 11-8-8" />
-                      </svg>
-                    )}
-                    <span className="truncate">{tabLabel}</span>
+                    <Zap className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden />
+                    <span className="truncate">{t('productDetail.tabs.brxExpress')}</span>
+                    <span className="inline-flex items-center rounded-full bg-emerald-500 px-1.5 py-[2px] text-[9px] font-bold text-white shadow-sm">
+                      {t('productDetail.tabs.brxNew')}
+                    </span>
                   </button>
-                  );
-                })}
-                {/* Tab BRX Express — design premium */}
-                <button
-                  type="button"
-                  onClick={() => setSellerSubTab('TCG_EXPRESS')}
-                  className={cn(
-                    'relative flex flex-1 min-w-[110px] sm:min-w-0 min-h-[36px] sm:min-h-[44px] items-center justify-center gap-1 sm:gap-2 rounded-md px-2 sm:px-4 py-1.5 sm:py-2.5 text-[10px] sm:text-sm font-extrabold uppercase transition-all whitespace-nowrap overflow-hidden',
-                    sellerSubTab === 'TCG_EXPRESS'
-                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/25 ring-1 ring-orange-300'
-                      : 'bg-transparent text-orange-600 hover:bg-orange-50'
-                  )}
-                >
-                  <Zap className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden />
-                  <span className="truncate">BRX Express</span>
-                  <span className="inline-flex items-center rounded-full bg-emerald-500 px-1.5 py-[2px] text-[9px] font-bold text-white shadow-sm animate-pulse">
-                    NUOVO
-                  </span>
-                </button>
+                </div>
+                <p className="pb-2 text-[11px] text-gray-500 sm:text-xs">{t('productDetail.tabs.hint')}</p>
               </div>
               {sellerSubTab === 'VENDITORI' && (
-                <div className="overflow-x-auto animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div
+                  id="pd-market-panel-VENDITORI"
+                  role="tabpanel"
+                  aria-labelledby="pd-market-tab-VENDITORI"
+                  className="overflow-x-auto animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
                   {listingActionMessage && (
                     <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">{listingActionMessage}</div>
                   )}
@@ -1985,9 +2073,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                                     }
                                     openQtyPopup(item, e.currentTarget, cardImages[currentImageIndex]);
                                   }}
-                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#FF8800]/40 bg-white shadow-sm transition hover:bg-orange-50"
+                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#FF7300]/40 bg-white shadow-sm transition hover:bg-orange-50"
                                   aria-label="Aggiungi al carrello"
-                                  style={{ color: ACCENT_ORANGE }}
+                                  style={{ color: '#FF7300' }}
                                 >
                                   <Image src={getCdnImageUrl('cart-icon.png')} alt="" width={22} height={22} className="h-5 w-5 object-contain" unoptimized />
                                 </button>
@@ -2115,16 +2203,35 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
                 </div>
               )}
-              {sellerSubTab === 'ASTA' && (
-                <div className="p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-6 text-center">
-                    <p className="text-sm font-semibold uppercase tracking-wide text-gray-700">Asta</p>
-                    <p className="mt-1 text-sm text-gray-500">Contenuto in preparazione per Vedi all&apos;asta.</p>
-                  </div>
+              {sellerSubTab === 'SCAMBI' && card && (
+                <div
+                  id="pd-market-panel-SCAMBI"
+                  role="tabpanel"
+                  aria-labelledby="pd-market-tab-SCAMBI"
+                >
+                  <ProductScambiPanel card={card} />
+                </div>
+              )}
+              {sellerSubTab === 'ASTE' && card && (
+                <div
+                  id="pd-market-panel-ASTE"
+                  role="tabpanel"
+                  aria-labelledby="pd-market-tab-ASTE"
+                >
+                  <ProductAuctionsPanel
+                    card={card}
+                    blueprintId={blueprintIdForAuction}
+                    onCreateAuctionEmbedded={() => setActiveTab('ASTA')}
+                  />
                 </div>
               )}
               {sellerSubTab === 'TCG_EXPRESS' && (
-                <div className="p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div
+                  id="pd-market-panel-TCG_EXPRESS"
+                  role="tabpanel"
+                  aria-labelledby="pd-market-tab-TCG_EXPRESS"
+                  className="p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
                   <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50/60 p-6 text-center">
                     <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-400 shadow-md shadow-orange-500/20">
                       <Zap className="h-6 w-6 text-white" aria-hidden />

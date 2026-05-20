@@ -23,6 +23,8 @@ interface Props {
   scambio: ScambioUI;
   mode: 'propose' | 'counter';
   onSubmit: (payload: TradePayload) => void;
+  /** Pre-fill catalog search when opening from product detail. */
+  initialCatalogSearch?: string;
 }
 
 const MOCK_A_PROPOSAL = {
@@ -544,7 +546,7 @@ function SearchBar({
 /*  Main                                                               */
 /* ------------------------------------------------------------------ */
 
-export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: Props) {
+export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, initialCatalogSearch }: Props) {
   const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore(
     (s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
@@ -632,6 +634,12 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit }: P
       void loadInventory();
     }
   }, [open, loadInventory]);
+
+  useEffect(() => {
+    if (open && initialCatalogSearch?.trim()) {
+      setSearchQuery(initialCatalogSearch.trim());
+    }
+  }, [open, initialCatalogSearch]);
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedQuery(searchQuery.trim()), 350);

@@ -33,6 +33,7 @@ export function useAssoBubbleQueue(enabled: boolean) {
   const queueRef = useRef<AssoBubblePayload[]>([]);
   const processingRef = useRef(false);
   const holdTimerRef = useRef<number | null>(null);
+  const exitTimerRef = useRef<number | null>(null);
   const cycleTimerRef = useRef<number | null>(null);
   const dismissedRef = useRef(false);
   const currentRef = useRef<AssoBubblePayload | null>(null);
@@ -48,6 +49,13 @@ export function useAssoBubbleQueue(enabled: boolean) {
     }
   }, []);
 
+  const clearExitTimer = useCallback(() => {
+    if (exitTimerRef.current !== null) {
+      window.clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = null;
+    }
+  }, []);
+
   const clearCycleTimer = useCallback(() => {
     if (cycleTimerRef.current !== null) {
       window.clearTimeout(cycleTimerRef.current);
@@ -56,10 +64,14 @@ export function useAssoBubbleQueue(enabled: boolean) {
   }, []);
 
   const beginHold = useCallback(() => {
-    if (dismissedRef.current) return;
+    if (dismissedRef.current) {
+      processingRef.current = false;
+      return;
+    }
     setPhase('hold');
     const kind = currentRef.current?.kind ?? 'promo';
     clearHoldTimer();
+    clearExitTimer();
     holdTimerRef.current = window.setTimeout(() => {
       holdTimerRef.current = null;
       processingRef.current = false;
@@ -67,7 +79,9 @@ export function useAssoBubbleQueue(enabled: boolean) {
       setIsVisible(false);
       setCurrent(null);
       currentRef.current = null;
-      window.setTimeout(() => {
+      clearExitTimer();
+      exitTimerRef.current = window.setTimeout(() => {
+        exitTimerRef.current = null;
         if (queueRef.current.length > 0) {
           processNextRef.current();
         } else {
@@ -75,20 +89,28 @@ export function useAssoBubbleQueue(enabled: boolean) {
         }
       }, 320);
     }, holdMsForKind(kind));
-  }, [clearHoldTimer]);
+  }, [clearExitTimer, clearHoldTimer]);
 
   const typewriter = useAssoTypewriter({ onComplete: beginHold });
 
-  const hideAndReset = useCallback(() => {
+  const typewriterCancelRef = useRef(typewriter.cancel);
+  typewriterCancelRef.current = typewriter.cancel;
+
+  const interruptCurrent = useCallback(() => {
     clearHoldTimer();
-    typewriter.cancel();
+    clearExitTimer();
+    typewriterCancelRef.current();
     processingRef.current = false;
-    dismissedRef.current = true;
     setPhase('out');
     setIsVisible(false);
     setCurrent(null);
     currentRef.current = null;
-  }, [clearHoldTimer, typewriter]);
+  }, [clearExitTimer, clearHoldTimer]);
+
+  const hideAndReset = useCallback(() => {
+    interruptCurrent();
+    dismissedRef.current = true;
+  }, [interruptCurrent]);
 
   const processNextRef = useRef<() => void>(() => {});
 
@@ -117,7 +139,7 @@ export function useAssoBubbleQueue(enabled: boolean) {
     (message: AssoBubblePayload) => {
       if (message.priority && processingRef.current) {
         queueRef.current = [message, ...queueRef.current.filter((m) => m.id !== message.id)];
-        hideAndReset();
+        interruptCurrent();
         window.setTimeout(() => processNextRef.current(), 360);
         return;
       }
@@ -130,7 +152,7 @@ export function useAssoBubbleQueue(enabled: boolean) {
         processNextRef.current();
       }
     },
-    [hideAndReset],
+    [interruptCurrent],
   );
 
   const dismiss = useCallback(() => {
@@ -161,8 +183,11 @@ export function useAssoBubbleQueue(enabled: boolean) {
 
   const stopCycle = useCallback(() => {
     clearCycleTimer();
-    dismiss();
-  }, [clearCycleTimer, dismiss]);
+    queueRef.current = [];
+    interruptCurrent();
+    dismissedRef.current = false;
+    setPhase('idle');
+  }, [clearCycleTimer, interruptCurrent]);
 
   useEffect(() => {
     if (!enabled) {
@@ -173,10 +198,11 @@ export function useAssoBubbleQueue(enabled: boolean) {
   useEffect(
     () => () => {
       clearHoldTimer();
+      clearExitTimer();
       clearCycleTimer();
-      typewriter.cancel();
+      typewriterCancelRef.current();
     },
-    [clearCycleTimer, clearHoldTimer, typewriter],
+    [clearCycleTimer, clearExitTimer, clearHoldTimer],
   );
 
   return {

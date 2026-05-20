@@ -88,6 +88,7 @@ export function useAssoTypewriter(options: UseAssoTypewriterOptions = {}) {
       if (!text) {
         setDisplayedText('');
         setIsTyping(false);
+        onCompleteRef.current?.();
         return;
       }
 

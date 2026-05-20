@@ -401,16 +401,16 @@ export function ProductCategoryView({
                 </colgroup>
                 <thead>
                   <tr className="bg-gray-100 border-b border-gray-200 text-left text-gray-600 uppercase text-xs font-semibold">
-                    <th className="pl-2 pr-0 py-2 align-bottom text-left">Edizione</th>
-                    <th className="pl-2 pr-2 py-2 align-bottom text-left">Nome</th>
+                    <th className="pl-2 pr-0 py-1.5 align-bottom text-left">Edizione</th>
+                    <th className="pl-2 pr-2 py-1.5 align-bottom text-left">Nome</th>
                     {showCardDetails && (
                       <>
-                        <th className="px-2 py-2 whitespace-nowrap align-bottom text-center">Numero</th>
-                        <th className="px-2 py-2 whitespace-nowrap align-bottom text-center">Rarità</th>
+                        <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">Numero</th>
+                        <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">Rarità</th>
                       </>
                     )}
-                    <th className="px-2 py-2 whitespace-nowrap align-bottom text-center">Disponibile</th>
-                    <th className="px-2 py-2 whitespace-nowrap align-bottom text-center">Da</th>
+                    <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">Disponibile</th>
+                    <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">Da</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -430,8 +430,8 @@ export function ProductCategoryView({
                         onKeyDown={(e) => e.key === 'Enter' && router.push(productHref)}
                         className="search-result-row border-b border-gray-100 cursor-pointer outline-none hover:bg-orange-50/50 transition-colors"
                       >
-                        <td className="pl-2 pr-0 py-2 align-middle min-w-0">
-                          <div className="flex items-center gap-2 min-w-0">
+                        <td className="pl-2 pr-0 py-1.5 align-middle min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <CardImageCameraPeek
                               imageUrl={imgUrl}
                               name={nameOriginal}
@@ -439,7 +439,7 @@ export function ProductCategoryView({
                             />
 
                             <span className="relative inline-flex min-w-0 max-w-[6.5rem] group">
-                              <span className="min-w-0 flex-1 text-[10px] leading-tight text-gray-600 font-medium tracking-wide truncate">
+                              <span className="min-w-0 flex-1 text-[9px] leading-none text-gray-600 font-medium tracking-wide truncate">
                                 {setName}
                               </span>
                               {/* Tooltip custom: niente delay nativo, stile Apple */}
@@ -451,26 +451,26 @@ export function ProductCategoryView({
                             </span>
                           </div>
                         </td>
-                        <td className="pl-2 pr-2 py-2 align-middle min-w-0 text-left">
-                          <div className="flex flex-col justify-center gap-0.5 min-w-0">
-                            <span className="text-sm font-semibold leading-tight text-gray-900 break-words">{nameOriginal}</span>
+                        <td className="pl-2 pr-2 py-1.5 align-middle min-w-0 text-left">
+                          <div className="flex flex-col justify-center gap-0 min-w-0">
+                            <span className="text-sm font-semibold leading-snug text-gray-900 break-words">{nameOriginal}</span>
                             {nameTranslation && (
-                              <p className="text-xs text-gray-500 italic font-light leading-tight break-words">{nameTranslation}</p>
+                              <p className="text-[11px] text-gray-500 italic font-light leading-snug break-words">{nameTranslation}</p>
                             )}
                           </div>
                         </td>
                         {showCardDetails && (
                           <>
-                            <td className="px-2 py-2 text-gray-500 whitespace-nowrap text-center">
+                            <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap text-center align-middle text-xs">
                               {hit.collector_number ?? '–'}
                             </td>
-                            <td className="px-2 py-2 text-gray-500 whitespace-nowrap text-center">
+                            <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap text-center align-middle text-xs">
                               {hit.rarity ?? '–'}
                             </td>
                           </>
                         )}
-                        <td className="px-2 py-2 text-gray-500 whitespace-nowrap text-center">–</td>
-                        <td className="px-2 py-2 text-[#FF7300] font-semibold whitespace-nowrap text-center">–</td>
+                        <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap text-center align-middle text-xs">–</td>
+                        <td className="px-2 py-1.5 text-[#FF7300] font-semibold whitespace-nowrap text-center align-middle text-xs">–</td>
                       </tr>
                     );
                   })}

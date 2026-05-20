@@ -51,6 +51,10 @@ import {
   FRONTEND_TO_GAME_SLUG,
 } from '@/lib/search/category-mapping';
 
+function isSafeUrl(url: string | null | undefined): url is string {
+  return typeof url === 'string' && url.startsWith('https://');
+}
+
 const BACKEND_LANG_ORDER = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
 type SupportedLang = (typeof BACKEND_LANG_ORDER)[number];
 
@@ -843,12 +847,12 @@ export function SearchResults({
                 </colgroup>
                 <thead>
                   <tr className="bg-gray-100 border-b border-gray-200 text-left text-gray-600 uppercase text-xs font-semibold">
-                    <th className="pl-2 pr-0 py-2 align-bottom text-left">{t('search.filterEdition')}</th>
-                    <th className="pl-2 pr-2 py-2 align-bottom text-left">{t('search.thName')}</th>
-                    <th className="px-2 py-2 whitespace-nowrap align-bottom text-center">{t('search.thNumber')}</th>
-                    <th className="px-2 py-2 whitespace-nowrap align-bottom text-center">{t('search.thRarity')}</th>
-                    <th className="px-2 py-2 whitespace-nowrap align-bottom text-center">{t('search.thAvailable')}</th>
-                    <th className="px-2 py-2 whitespace-nowrap align-bottom text-center">{t('search.thFrom')}</th>
+                    <th className="pl-2 pr-0 py-1.5 align-bottom text-left">{t('search.filterEdition')}</th>
+                    <th className="pl-2 pr-2 py-1.5 align-bottom text-left">{t('search.thName')}</th>
+                    <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">{t('search.thNumber')}</th>
+                    <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">{t('search.thRarity')}</th>
+                    <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">{t('search.thAvailable')}</th>
+                    <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">{t('search.thFrom')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -868,20 +872,27 @@ export function SearchResults({
                         onKeyDown={(e) => e.key === 'Enter' && router.push(productHref)}
                         className="search-result-row border-b border-gray-100 cursor-pointer outline-none"
                       >
-                        <td
-                          className="pl-2 pr-0 py-2 align-middle min-w-0"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
+                        <td className="pl-2 pr-0 py-1.5 align-middle min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <CardImageCameraPeek
                               imageUrl={imgUrl}
                               name={nameOriginal}
-                              className="rounded-sm"
                               previewSide="left"
                               onModalOpenChange={setImagePreviewModalOpen}
                             />
 
-                            <span className="relative inline-flex min-w-0 max-w-[6.5rem] group">
-                              <span className="min-w-0 flex-1 text-[10px] leading-tight text-gray-600 font-medium tracking-wide truncate">
+                            <span className="relative inline-flex items-center gap-1 min-w-0 max-w-[6.5rem] group">
+                              {isSafeUrl(hit.set_icon_uri) && (
+                                <Image
+                                  src={hit.set_icon_uri}
+                                  alt={setName}
+                                  width={14}
+                                  height={14}
+                                  className="inline-block h-3.5 w-3.5 flex-shrink-0 object-contain"
+                                  unoptimized
+                                />
+                              )}
+                              <span className="min-w-0 flex-1 text-[9px] leading-none text-gray-600 font-medium tracking-wide truncate">
                                 {setName}
                               </span>
                               {/* Tooltip custom: niente delay nativo, stile Apple */}
@@ -893,22 +904,22 @@ export function SearchResults({
                             </span>
                           </div>
                         </td>
-                        <td className="pl-2 pr-2 py-2 align-middle min-w-0 text-left">
-                          <div className="flex flex-col justify-center gap-0.5 min-w-0">
-                            <span className="text-sm font-semibold leading-tight text-gray-900 break-words">{nameOriginal}</span>
+                        <td className="pl-2 pr-2 py-1.5 align-middle min-w-0 text-left">
+                          <div className="flex flex-col justify-center gap-0 min-w-0">
+                            <span className="text-sm font-semibold leading-snug text-gray-900 break-words">{nameOriginal}</span>
                             {nameTranslation && (
-                              <p className="text-xs text-gray-500 italic font-light leading-tight break-words">{nameTranslation}</p>
+                              <p className="text-[11px] text-gray-500 italic font-light leading-snug break-words">{nameTranslation}</p>
                             )}
                           </div>
                         </td>
-                        <td className="px-2 py-2 text-gray-500 whitespace-nowrap text-center">
+                        <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap text-center align-middle text-xs">
                           {hit.collector_number ?? '–'}
                         </td>
-                        <td className="px-2 py-2 text-gray-500 whitespace-nowrap text-center">
+                        <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap text-center align-middle text-xs">
                           {hit.rarity ?? '–'}
                         </td>
-                        <td className="px-2 py-2 text-gray-500 whitespace-nowrap text-center">–</td>
-                        <td className="px-2 py-2 text-[#FF7300] font-semibold whitespace-nowrap text-center">–</td>
+                        <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap text-center align-middle text-xs">–</td>
+                        <td className="px-2 py-1.5 text-[#FF7300] font-semibold whitespace-nowrap text-center align-middle text-xs">–</td>
                       </tr>
                     );
                   })}

@@ -16,6 +16,7 @@ export type CategoryKey =
   | 'tins'
   | 'accessori'
   | 'collezionabili'
+  | 'sets'
   | 'all';
 
 interface CategoryMappingEntry {
@@ -25,6 +26,12 @@ interface CategoryMappingEntry {
 }
 
 type GameCategoryMapping = Record<CategoryKey, CategoryMappingEntry>;
+
+const SETS_ENTRY: CategoryMappingEntry = {
+  label_it: 'Set & Edizioni',
+  label_en: 'Sets & Editions',
+  ids: [],
+};
 
 export const CATEGORY_MAPPING: Record<GameSlug, GameCategoryMapping> = {
   mtg: {
@@ -68,6 +75,7 @@ export const CATEGORY_MAPPING: Record<GameSlug, GameCategoryMapping> = {
       label_en: 'Collectibles',
       ids: [8, 9, 18, 43, 164],
     },
+    sets: SETS_ENTRY,
     all: {
       label_it: 'Tutte le categorie',
       label_en: 'All categories',
@@ -115,6 +123,7 @@ export const CATEGORY_MAPPING: Record<GameSlug, GameCategoryMapping> = {
       label_en: 'Collectibles',
       ids: [60, 61, 117],
     },
+    sets: SETS_ENTRY,
     all: {
       label_it: 'Tutte le categorie',
       label_en: 'All categories',
@@ -162,6 +171,7 @@ export const CATEGORY_MAPPING: Record<GameSlug, GameCategoryMapping> = {
       label_en: 'Collectibles',
       ids: [253, 257],
     },
+    sets: SETS_ENTRY,
     all: {
       label_it: 'Tutte le categorie',
       label_en: 'All categories',
@@ -209,6 +219,7 @@ export const CATEGORY_MAPPING: Record<GameSlug, GameCategoryMapping> = {
       label_en: 'Collectibles',
       ids: [52],
     },
+    sets: SETS_ENTRY,
     all: {
       label_it: 'Tutte le categorie',
       label_en: 'All categories',
@@ -230,6 +241,7 @@ export const CATEGORY_KEY_ORDER: CategoryKey[] = [
   'tins',
   'accessori',
   'collezionabili',
+  'sets',
   'all',
 ];
 
@@ -254,6 +266,10 @@ const CATEGORY_KEY_ALIASES: Record<string, CategoryKey> = {
   tin: 'tins',
   accessori: 'accessori',
   collezionabili: 'collezionabili',
+  sets: 'sets',
+  set: 'sets',
+  edizioni: 'sets',
+  editions: 'sets',
   all: 'all',
   tutte: 'all',
   'tutte-le-categorie': 'all',
@@ -308,7 +324,7 @@ export function getCategoryIds(game: GameSlug | null | undefined, key: CategoryK
  * Ritorna gli ID categoria aggregati su tutti i giochi per una chiave.
  */
 export function getCategoryIdsAcrossGames(key: CategoryKey): number[] {
-  if (key === 'all') return [];
+  if (key === 'all' || key === 'sets') return [];
   const uniqueIds = new Set<number>();
   const games = Object.keys(CATEGORY_MAPPING) as GameSlug[];
   for (const game of games) {

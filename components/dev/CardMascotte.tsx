@@ -1914,6 +1914,10 @@ export function CardMascotte() {
   const router = useRouter();
   const pathname = usePathname();
   const assoBubble = useAssoBubbleQueue(true);
+  const scheduleCycleRef = useRef(assoBubble.scheduleCycle);
+  const stopCycleRef = useRef(assoBubble.stopCycle);
+  scheduleCycleRef.current = assoBubble.scheduleCycle;
+  stopCycleRef.current = assoBubble.stopCycle;
 
   // Promotional hints - glassmorphism style matching mascot
   const promoHints = useMemo(() => [
@@ -1991,12 +1995,12 @@ export function CardMascotte() {
   useEffect(() => {
     const hintsEnabled = !isModalOpen && !showChatModal && activePromoHints.length > 0;
     if (!hintsEnabled) {
-      assoBubble.stopCycle();
+      stopCycleRef.current();
       return;
     }
 
     let promoIdx = 0;
-    assoBubble.scheduleCycle(() => {
+    scheduleCycleRef.current(() => {
       const promo = activePromoHints[promoIdx % activePromoHints.length];
       promoIdx += 1;
       return {
@@ -2009,8 +2013,7 @@ export function CardMascotte() {
       };
     });
 
-    return () => assoBubble.stopCycle();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- scheduleCycle/stopCycle sono stabili
+    return () => stopCycleRef.current();
   }, [activePromoHints, isModalOpen, showChatModal, isSleeping]);
 
   // Listen for sticky bar visibility changes
@@ -2210,7 +2213,7 @@ export function CardMascotte() {
       )}
 
       {/* Bubble messaggi Asso (promo, reazioni stile, sogno) */}
-      {!isModalOpen && (
+      {!isModalOpen && !showChatModal && (
         <AssoHintBubble
           visible={assoBubble.isVisible}
           message={assoBubble.current}
@@ -3775,11 +3778,16 @@ export function CardMascotte() {
           70% { opacity: 1; transform: translateX(-50%) translateY(-3px) scale(1.02); }
           100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
         }
+        @keyframes assoHintPopIn {
+          0% { opacity: 0; transform: translateY(8px) scale(0.92); }
+          70% { opacity: 1; transform: translateY(-3px) scale(1.02); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
         .hint-bubble {
           animation: hintPopIn 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
         .asso-hint-bubble-enter {
-          animation: hintPopIn 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          animation: assoHintPopIn 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
         @keyframes assoCursorBlink {
           0%, 45% { opacity: 1; }

@@ -18,6 +18,8 @@ export interface SearchHit {
   id: string;
   name: string;
   set_name: string;
+  set_code?: string | null;
+  set_icon_uri?: string | null;
   game_slug: string;
   category_id: number;
   category_name?: string;

@@ -8,6 +8,7 @@
  */
 
 import type { AuctionAPI, BidAPI } from '@/types/auction';
+import { resolveAuctionSetMetadata } from '@/lib/auction/auction-set-metadata';
 
 export type AuctionGame = 'mtg' | 'lorcana' | 'pokemon' | 'op' | 'ygo' | 'other';
 
@@ -52,6 +53,10 @@ export interface AuctionUI {
   shippingNationalEur: number | null;
   shippingEuDefaultEur: number | null;
   shippingCountryPrices: { country_iso: string; price_eur: number }[];
+  /** Parsed or hinted set/edition name for display and links. */
+  setName: string | null;
+  setHref: string | null;
+  catalogGameSlug: string | null;
 }
 
 function asNumber(value: unknown, fallback = 0): number {
@@ -59,11 +64,16 @@ function asNumber(value: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-export function apiToAuctionUI(a: AuctionAPI, bidCount?: number): AuctionUI {
+export function apiToAuctionUI(
+  a: AuctionAPI,
+  bidCount?: number,
+  catalogHint?: { setName?: string | null; gameSlug?: string | null }
+): AuctionUI {
   const endMs = new Date(a.end_time).getTime();
   const nowMs = Date.now();
   const hoursFromNow = (endMs - nowMs) / 3_600_000;
   const isEnded = a.status === 'CLOSED' || hoursFromNow < 0;
+  const { setName, setHref, gameSlug } = resolveAuctionSetMetadata(a.title, a.description, catalogHint);
 
   return {
     id: String(a.id),
@@ -118,6 +128,9 @@ export function apiToAuctionUI(a: AuctionAPI, bidCount?: number): AuctionUI {
           price_eur: asNumber(row.price_eur),
         }))
       : [],
+    setName,
+    setHref,
+    catalogGameSlug: gameSlug,
   };
 }
 

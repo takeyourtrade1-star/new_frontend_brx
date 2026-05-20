@@ -38,7 +38,7 @@ export function AssoHintBubble({
 
   return (
     <div
-      className={`group fixed hidden sm:flex flex-col items-stretch ${isStyleReaction ? 'cursor-default' : showCta ? 'cursor-pointer' : ''}`}
+      className={`group fixed flex flex-col items-stretch ${isStyleReaction ? 'cursor-default' : showCta ? 'cursor-pointer' : ''}`}
       style={{
         zIndex: isStyleReaction ? 10009 : 10003,
         bottom,

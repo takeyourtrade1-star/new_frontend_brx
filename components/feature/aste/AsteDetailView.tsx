@@ -666,10 +666,26 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             <div className="flex-1">
               {/* Riga Titolo + Azioni Compatte dentro una singola Pill */}
               <div className="flex w-full items-center justify-between gap-3 rounded-[2rem] border border-gray-100/80 bg-gray-50/80 p-1.5 pl-4 shadow-sm backdrop-blur-sm sm:pl-5">
-                <h1 className="flex-1 break-words py-1 text-[20px] font-black uppercase leading-[1.1] tracking-tight text-gray-900 sm:text-[24px] md:text-[28px] lg:text-3xl">
-                  {detail.title}
-                </h1>
-                
+                <div className="min-w-0 flex-1">
+                  <h1 className="break-words py-1 text-[20px] font-black uppercase leading-[1.1] tracking-tight text-gray-900 sm:text-[24px] md:text-[28px] lg:text-3xl">
+                    {detail.title}
+                  </h1>
+                  {detail.setName ? (
+                    <p className="mt-1 text-[11px] text-gray-600 sm:text-xs">
+                      <span className="font-semibold uppercase tracking-wide text-gray-500">
+                        {t('auctions.detailEdition')}:
+                      </span>{' '}
+                      {detail.setHref ? (
+                        <Link href={detail.setHref} className="font-bold text-[#FF7300] hover:underline">
+                          {detail.setName}
+                        </Link>
+                      ) : (
+                        <span className="font-bold text-gray-800">{detail.setName}</span>
+                      )}
+                    </p>
+                  ) : null}
+                </div>
+
                 {/* Salva per dopo + Condividi (Icon-only compatte a destra) */}
                 <div className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5">
                   {!isOwner && (

@@ -24,7 +24,7 @@ const HOVER_HIDE_MS = 140;
 type HoverPreview = { url: string; name: string; left: number; top: number; width: number };
 
 export const CARD_IMAGE_CAMERA_TRIGGER_CLASS =
-  'relative flex h-14 w-9 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-[#f2f2f7] shadow-sm transition-all hover:border-[#FF7300]/55 hover:bg-orange-50/90 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/45 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-gray-200 disabled:hover:bg-[#f2f2f7]';
+  'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/90 bg-gradient-to-b from-white via-[#f6f7fa] to-[#e8ebf0] shadow-[0_1px_2px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.95)] transition-[box-shadow,border-color,transform,background] duration-200 ease-out hover:border-[#FF7300]/45 hover:from-orange-50/95 hover:via-white hover:to-[#f2f4f8] hover:shadow-[0_2px_10px_rgba(255,115,0,0.14),0_0_0_3px_rgba(255,115,0,0.1)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-white/90 disabled:hover:from-white disabled:hover:via-[#f6f7fa] disabled:hover:to-[#e8ebf0] disabled:hover:shadow-[0_1px_2px_rgba(15,23,42,0.06)] disabled:active:scale-100';
 
 /**
  * Trigger con icona fotocamera (senza miniatura). Hover desktop → anteprima a sinistra; tap → modale.
@@ -211,12 +211,16 @@ export function CardImageCameraPeek({
         onMouseEnter={openHoverPreview}
         onMouseLeave={scheduleHide}
       >
+        <span
+          className="pointer-events-none absolute inset-[3px] rounded-full bg-white/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-disabled:opacity-0"
+          aria-hidden
+        />
         <Camera
           className={cn(
-            'h-5 w-5 transition-colors',
-            imageUrl ? 'text-[#64748b] group-hover:text-[#FF7300]' : 'text-gray-300'
+            'relative h-[15px] w-[15px] transition-[color,transform] duration-200 group-hover:scale-105',
+            imageUrl ? 'text-[#5c6b7a] group-hover:text-[#FF7300]' : 'text-gray-300'
           )}
-          strokeWidth={1.75}
+          strokeWidth={2}
           aria-hidden
         />
       </button>

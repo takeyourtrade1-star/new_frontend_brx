@@ -52,6 +52,10 @@ export interface CardDocument {
   market_price?: number;
   foil_price?: number;
   keywords_localized?: string[];
+  /** URI icona del set (SVG/PNG, da S3/CDN). */
+  set_icon_uri?: string | null;
+  /** Codice breve del set (es. "BLB", "ONE"). */
+  set_code?: string | null;
 }
 
 export interface ProductDetailData {

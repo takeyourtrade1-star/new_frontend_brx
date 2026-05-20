@@ -407,12 +407,12 @@ export function SetPageClient({ game, setName }: SetPageClientProps) {
                 <table className="w-full min-w-[820px] border-collapse text-sm table-fixed">
                   <thead>
                     <tr className="bg-gray-100 border-b border-gray-200 text-left text-gray-600 uppercase text-xs font-semibold">
-                      <th className="pl-2 pr-0 py-2 text-left">{t('search.filterEdition')}</th>
-                      <th className="pl-2 pr-2 py-2 text-left">{t('search.thName')}</th>
-                      <th className="px-2 py-2 whitespace-nowrap align-middle text-center">{t('search.thNumber')}</th>
-                      <th className="px-2 py-2 whitespace-nowrap align-middle text-center">{t('search.thRarity')}</th>
-                      <th className="px-2 py-2 whitespace-nowrap align-middle text-center">{t('search.thAvailable')}</th>
-                      <th className="px-2 py-2 whitespace-nowrap align-middle text-center">{t('search.thFrom')}</th>
+                      <th className="pl-2 pr-0 py-1.5 text-left">{t('search.filterEdition')}</th>
+                      <th className="pl-2 pr-2 py-1.5 text-left">{t('search.thName')}</th>
+                      <th className="px-2 py-1.5 whitespace-nowrap align-middle text-center">{t('search.thNumber')}</th>
+                      <th className="px-2 py-1.5 whitespace-nowrap align-middle text-center">{t('search.thRarity')}</th>
+                      <th className="px-2 py-1.5 whitespace-nowrap align-middle text-center">{t('search.thAvailable')}</th>
+                      <th className="px-2 py-1.5 whitespace-nowrap align-middle text-center">{t('search.thFrom')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -423,42 +423,42 @@ export function SetPageClient({ game, setName }: SetPageClientProps) {
                       return (
                         <tr
                           key={hit.id}
-                          className="border-b border-gray-100 cursor-pointer hover:bg-orange-50/50 transition-colors"
+                          className="search-result-row border-b border-gray-100 cursor-pointer outline-none hover:bg-orange-50/50 transition-colors"
                           role="button"
                           tabIndex={0}
                           onClick={() => (window.location.href = productHref)}
                           onKeyDown={(e) => e.key === 'Enter' && (window.location.href = productHref)}
                         >
-                          <td className="pl-2 pr-0 py-2 align-middle min-w-0">
-                            <div className="flex items-center gap-2 min-w-0">
+                          <td className="pl-2 pr-0 py-1.5 align-middle min-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0">
                               <CardImageCameraPeek
                                 imageUrl={imgUrl}
                                 name={primary}
                                 previewSide="left"
                               />
-                              <span className="min-w-0 text-[11px] leading-tight text-gray-600 font-medium truncate max-w-[6.5rem]">
+                              <span className="min-w-0 text-[9px] leading-none text-gray-600 font-medium truncate max-w-[6.5rem]">
                                 {hit.set_name ?? '–'}
                               </span>
                             </div>
                           </td>
-                          <td className="pl-2 pr-2 py-2 text-left align-middle min-w-0">
-                            <div className="flex flex-col justify-center gap-0.5 min-w-0">
-                              <span className="text-sm font-semibold leading-tight text-gray-900 truncate break-words">
+                          <td className="pl-2 pr-2 py-1.5 text-left align-middle min-w-0">
+                            <div className="flex flex-col justify-center gap-0 min-w-0">
+                              <span className="text-sm font-semibold leading-snug text-gray-900 truncate break-words">
                                 {primary}
                               </span>
                               {secondary && (
-                                <p className="text-xs text-gray-500 truncate italic font-light leading-tight">{secondary}</p>
+                                <p className="text-[11px] text-gray-500 truncate italic font-light leading-snug">{secondary}</p>
                               )}
                             </div>
                           </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-center text-gray-600 align-middle">
+                          <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-600 align-middle text-xs">
                             {hit.collector_number ?? '–'}
                           </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-center text-gray-600 align-middle">
+                          <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-600 align-middle text-xs">
                             {hit.rarity ?? '–'}
                           </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-center text-gray-600 align-middle">–</td>
-                          <td className="px-2 py-2 whitespace-nowrap text-center text-gray-600 align-middle">–</td>
+                          <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-600 align-middle text-xs">–</td>
+                          <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-600 align-middle text-xs">–</td>
                         </tr>
                       );
                     })}

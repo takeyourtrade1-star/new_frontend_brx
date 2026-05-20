@@ -1238,6 +1238,7 @@ function ProductCategoryButton({
       singles: 'Carte singole', boosters: 'Booster', booster_box: 'Booster box',
       starter_precon: 'Mazzi precostruiti', bundle_set: 'Bundle e set',
       tins: 'Tin box', accessori: 'Accessori', collezionabili: 'Collezionabili',
+      sets: 'Set & Edizioni',
     };
     return labelMap[selectedCategory] || selectedCategory;
   }, [selectedCategory, gameSlug]);
@@ -1249,6 +1250,7 @@ function ProductCategoryButton({
       singles: 'Carte', boosters: 'Booster', booster_box: 'Box',
       starter_precon: 'Mazzi', bundle_set: 'Bundle', tins: 'Tin box',
       accessori: 'Accessori', collezionabili: 'Collezionabili',
+      sets: 'Set',
     };
     return shortMap[selectedCategory] || currentLabel.slice(0, 6);
   }, [selectedCategory, currentLabel]);
@@ -1408,6 +1410,171 @@ function AnimatedSearchPlaceholder({ visible, isDark }: { visible: boolean; isDa
   );
 }
 
+// ---------------------------------------------------------------------------
+// Sets mode: type, helpers, and sub-components
+// ---------------------------------------------------------------------------
+
+interface SetResult {
+  set_name: string;
+  set_code: string | null;
+  set_icon_uri: string | null;
+  game_slug: string;
+  release_date: string | null;
+}
+
+function isSafeUrl(url: string | null | undefined): url is string {
+  return typeof url === 'string' && url.startsWith('https://');
+}
+
+function SetSearchResultRow({
+  result,
+  onNavigate,
+}: {
+  result: SetResult;
+  onNavigate: () => void;
+}) {
+  const year = result.release_date ? result.release_date.slice(0, 4) : null;
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onNavigate}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onNavigate();
+        }
+      }}
+      className="flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors hover:bg-[#EEEEEE] bg-white"
+    >
+      <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded bg-[#E8E8E8]">
+        {isSafeUrl(result.set_icon_uri) ? (
+          <img
+            src={result.set_icon_uri}
+            alt=""
+            className="w-5 h-5 object-contain"
+            loading="lazy"
+          />
+        ) : result.set_code ? (
+          <span className="text-[10px] font-bold text-gray-600">
+            {result.set_code.slice(0, 2).toUpperCase()}
+          </span>
+        ) : (
+          <span className="text-[10px] font-bold text-gray-400">—</span>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className="font-medium text-[#333333] truncate block" title={result.set_name}>
+          {result.set_name}
+        </span>
+        {year && (
+          <span className="text-xs text-[#777777]">{year}</span>
+        )}
+      </div>
+      <span className="flex-shrink-0 text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+        {result.game_slug}
+      </span>
+    </div>
+  );
+}
+
+function SetsResultsDropdown({
+  anchorRef,
+  containerRef,
+  localValue,
+  selectedGame,
+  setResults,
+  setResultsLoading,
+  onClose,
+}: {
+  anchorRef: React.RefObject<HTMLDivElement | null>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  localValue: string;
+  selectedGame: GameSlug | null;
+  setResults: SetResult[];
+  setResultsLoading: boolean;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!anchorRef.current) return;
+    const anchorEl = anchorRef.current;
+    const update = () => {
+      if (anchorEl) {
+        const rect = anchorEl.getBoundingClientRect();
+        setPosition({ top: rect.bottom, left: rect.left, width: rect.width });
+      }
+    };
+    update();
+    const rafId = window.requestAnimationFrame(update);
+    const resizeObserver = new ResizeObserver(update);
+    resizeObserver.observe(anchorEl);
+    anchorEl.addEventListener('transitionend', update);
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
+      anchorEl.removeEventListener('transitionend', update);
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [anchorRef]);
+
+  if (!position) return null;
+
+  const content = (
+    <div
+      ref={containerRef as React.Ref<HTMLDivElement>}
+      className="bg-white rounded-none border border-gray-200 max-h-[400px] overflow-hidden min-h-[80px] flex flex-col border-t-0 shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+      style={{
+        position: 'fixed',
+        top: position.top,
+        left: position.left,
+        width: position.width,
+        zIndex: 1001,
+      }}
+      role="listbox"
+      aria-label="Suggerimenti set"
+    >
+      {setResultsLoading ? (
+        <div className="flex items-center justify-center gap-2 px-4 py-6 text-gray-500">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Ricerca...</span>
+        </div>
+      ) : setResults.length > 0 ? (
+        <div className="overflow-y-auto flex-1">
+          {setResults.map((r) => (
+            <SetSearchResultRow
+              key={r.set_name}
+              result={r}
+              onNavigate={() => {
+                onClose();
+                router.push(
+                  `/set?game=${r.game_slug}&set=${encodeURIComponent(r.set_name)}`
+                );
+              }}
+            />
+          ))}
+        </div>
+      ) : localValue.trim() ? (
+        <div className="px-4 py-4 text-sm text-gray-500">Nessun set trovato.</div>
+      ) : (
+        <div className="px-4 py-4 text-sm text-gray-500">
+          {selectedGame ? 'Digita per cercare set' : 'Seleziona un gioco e digita per cercare set'}
+        </div>
+      )}
+    </div>
+  );
+
+  return typeof document !== 'undefined' ? createPortal(content, document.body) : null;
+}
+
+// ---------------------------------------------------------------------------
+
 function SearchWithInstantSearch({
   selectedGame,
   productCategory,
@@ -1449,8 +1616,41 @@ function SearchWithInstantSearch({
   const energyDecayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isProductsPage = pathname.startsWith('/products') || pathname.startsWith('/search') || pathname === '/';
-  
-  // Notifica il cambio di stato apertura/chiusura
+
+  const isSetsMode = productCategory === 'sets';
+
+  // Sets mode: fetch results from /api/sets
+  const [setResults, setSetResults] = useState<SetResult[]>([]);
+  const [setResultsLoading, setSetResultsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isSetsMode) {
+      setSetResults([]);
+      return;
+    }
+    if (!localValue.trim()) {
+      setSetResults([]);
+      return;
+    }
+    const id = setTimeout(async () => {
+      setSetResultsLoading(true);
+      try {
+        const params = new URLSearchParams({ q: localValue.trim(), limit: '8' });
+        const dbGame = selectedGame ? (FRONTEND_TO_DB_SLUG[selectedGame] ?? selectedGame) : '';
+        if (dbGame) params.set('game', dbGame);
+        const res = await fetch(`/api/sets?${params.toString()}`);
+        if (res.ok) {
+          const data: unknown = await res.json();
+          setSetResults(Array.isArray(data) ? (data as SetResult[]) : []);
+        }
+      } catch {
+        setSetResults([]);
+      } finally {
+        setSetResultsLoading(false);
+      }
+    }, 250);
+    return () => clearTimeout(id);
+  }, [isSetsMode, localValue, selectedGame]);
 
   // Notifica il cambio di stato apertura/chiusura
   useEffect(() => {
@@ -1478,6 +1678,15 @@ function SearchWithInstantSearch({
   }, [pathname]);
 
   const handleEnter = () => {
+    if (isSetsMode) {
+      const q = (localValue ?? '').trim();
+      const dbGame = selectedGame ? (FRONTEND_TO_DB_SLUG[selectedGame] ?? selectedGame) : '';
+      router.push(
+        `/search?q=${encodeURIComponent(q)}&game=${encodeURIComponent(dbGame)}&mode=sets`
+      );
+      closePanel();
+      return;
+    }
     const searchQuery = (localValue ?? '').trim();
     refine(searchQuery);
     inputRef.current?.blur();
@@ -1504,6 +1713,11 @@ function SearchWithInstantSearch({
     (nextCategory: CategoryKey | null) => {
       const normalizedCategory = normalizeCategoryKey(nextCategory);
       setProductCategory(normalizedCategory);
+      // In sets mode, just activate the mode — don't navigate to search page
+      if (normalizedCategory === 'sets') {
+        inputRef.current?.focus();
+        return;
+      }
       const currentQuery = (localValue ?? query ?? urlQueryParam ?? '').trim();
       if (!currentQuery) return;
       refineRef.current(currentQuery);
@@ -1527,22 +1741,36 @@ function SearchWithInstantSearch({
   // Su /search non aprire automaticamente suggerimenti al mount con query in URL.
   const allowAutoDropdownFromText = !pathname.startsWith('/search');
   const showDropdown =
-    selectedGame && (isOpen || (allowAutoDropdownFromText && hasText)) && !dropdownDismissed;
+    (selectedGame || isSetsMode) &&
+    (isOpen || (allowAutoDropdownFromText && hasText)) &&
+    !dropdownDismissed;
   const dropdownContent = showDropdown ? (
-    <SearchResultsDropdown
-      gameSlug={selectedGame}
-      onSelect={closePanel}
-      containerRef={dropdownContainerRef}
-      anchorRef={triggerRef}
-      inputValue={localValue}
-      productCategory={productCategory}
-      isTyping={isTyping}
-      typingKey={typingKey}
-      rowDelay={rowDelay}
-      energyLevel={energyLevel}
-      typingVelocity={typingVelocity}
-      streak={streak}
-    />
+    isSetsMode ? (
+      <SetsResultsDropdown
+        anchorRef={triggerRef}
+        containerRef={dropdownContainerRef}
+        localValue={localValue}
+        selectedGame={selectedGame}
+        setResults={setResults}
+        setResultsLoading={setResultsLoading}
+        onClose={closePanel}
+      />
+    ) : selectedGame ? (
+      <SearchResultsDropdown
+        gameSlug={selectedGame}
+        onSelect={closePanel}
+        containerRef={dropdownContainerRef}
+        anchorRef={triggerRef}
+        inputValue={localValue}
+        productCategory={productCategory}
+        isTyping={isTyping}
+        typingKey={typingKey}
+        rowDelay={rowDelay}
+        energyLevel={energyLevel}
+        typingVelocity={typingVelocity}
+        streak={streak}
+      />
+    ) : null
   ) : null;
 
   // Stile "aperto" (bianco, bordo): barra bianca quando aperta o quando c'è testo
@@ -1753,9 +1981,15 @@ export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOp
   const allFilters = useMemo(() => {
     const filters: string[] = [];
     if (gameFilter) filters.push(...gameFilter);
-    if (categoryFilter.length > 0) filters.push(...categoryFilter);
+    const normalizedCategory = normalizeCategoryKey(productCategory);
+    if (normalizedCategory === 'sets') {
+      // Block InstantSearch hits when in sets mode; results come from /api/sets instead
+      filters.push('category_id = -999');
+    } else if (categoryFilter.length > 0) {
+      filters.push(...categoryFilter);
+    }
     return filters.length > 0 ? filters : undefined;
-  }, [gameFilter, categoryFilter]);
+  }, [gameFilter, categoryFilter, productCategory]);
 
   return (
     <div
