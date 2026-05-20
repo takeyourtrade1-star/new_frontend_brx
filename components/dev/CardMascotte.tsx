@@ -1329,7 +1329,7 @@ export function CardMascotte() {
     }
     // Returning user - familiar, shorter greetings
     return [
-      "Bentornato! Asso Ã¨ qui. Cosa ti serve oggi?",
+      "Bentornato! Asso è qui. Cosa ti serve oggi?",
       "Ciao di nuovo! Pronto ad aiutarti.",
       "Asso al tuo servizio! Come posso esserti utile?",
       "Eccomi! Cosa posso fare per te questa volta?"
@@ -1931,7 +1931,7 @@ export function CardMascotte() {
     },
     {
       id: 'aste',
-      text: 'Vuoi guadagnare di piÃ¹ dalle vendite? PerchÃ© non provi le Aste?',
+      text: 'Vuoi guadagnare di più dalle vendite? Perché non provi le Aste?',
       route: '/aste',
       // Glass tint color (accent only, not solid)
       accent: '#06B6D4',
@@ -3236,7 +3236,7 @@ export function CardMascotte() {
                   </div>
                 </div>
 
-                {/* Tipo e PrioritÃ  */}
+                {/* Tipo e Priorità */}
                 <div className="mb-3 grid gap-3 md:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-700">Tipo di problema</label>
@@ -3253,14 +3253,14 @@ export function CardMascotte() {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">PrioritÃ </label>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Priorità</label>
                     <select
                       value={bugForm.priority}
                       onChange={(e) => setBugForm({ ...bugForm, priority: e.target.value })}
                       className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       <option value="low">Bassa - Miglioramento</option>
-                      <option value="medium">Media - FunzionalitÃ  limitata</option>
+                      <option value="medium">Media - Funzionalità limitata</option>
                       <option value="high">Alta - Bloccante</option>
                     </select>
                   </div>
@@ -3286,7 +3286,7 @@ export function CardMascotte() {
                     required
                     value={bugForm.message}
                     onChange={(e) => setBugForm({ ...bugForm, message: e.target.value })}
-                    placeholder="Descrivi il problema in dettaglio: cosa stavi facendo, cosa ti aspettavi, cosa Ã¨ successo invece..."
+                    placeholder="Descrivi il problema in dettaglio: cosa stavi facendo, cosa ti aspettavi, cosa è successo invece..."
                     rows={4}
                     className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
@@ -3302,7 +3302,7 @@ export function CardMascotte() {
                     placeholder="https://..."
                     className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
-                  <p className="mt-1 text-xs text-gray-500">L&apos;URL ci aiuta a identificare esattamente dove si Ã¨ verificato il problema.</p>
+                  <p className="mt-1 text-xs text-gray-500">L&apos;URL ci aiuta a identificare esattamente dove si è verificato il problema.</p>
                 </div>
 
                 {/* Screenshot preview */}
@@ -3409,7 +3409,7 @@ export function CardMascotte() {
                 </div>
                 <p className="font-medium text-black">Grazie per il feedback!</p>
                 <p className="text-sm text-gray-500">
-                  Esamineremo la segnalazione al piÃ¹ presto.
+                  Esamineremo la segnalazione al più presto.
                 </p>
               </div>
             )}
@@ -3574,7 +3574,7 @@ export function CardMascotte() {
             {/* Footer - Clean */}
             <div className="border-t border-zinc-200 bg-white px-4 py-3">
               <p className="text-center text-xs text-zinc-400">
-                Asso Ã¨ qui per aiutarti. Scegli un&apos;opzione sopra.
+                Asso è qui per aiutarti. Scegli un&apos;opzione sopra.
               </p>
             </div>
           </div>

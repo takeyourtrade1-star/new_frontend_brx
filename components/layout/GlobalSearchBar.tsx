@@ -16,7 +16,7 @@ import { searchClient } from '@/lib/meilisearchClient';
 import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
 import { useGame, GAME_OPTIONS, type GameSlug } from '@/lib/contexts/GameContext';
 import { MEILISEARCH } from '@/lib/config';
-import { getCardImageUrl } from '@/lib/assets';
+import { getCardImageUrl, getSetIconUrl } from '@/lib/assets';
 import { generateSlug } from '@/lib/mock-cards';
 import { CATEGORY_SLUGS } from '@/lib/product-categories';
 import {
@@ -509,7 +509,7 @@ function CardHit({
     );
     return getCardImageUrl(raw);
   }, [hit.image, hit.image_path, hit.image_uri_normal, hit.image_uri_small]);
-  const setIcon = firstNonEmptyString(hit.set_icon_uri, hit.icon_svg_uri);
+  const setIcon = getSetIconUrl(hit.set_icon_uri ?? hit.icon_svg_uri);
   const setCode = hit.set_code ?? (hit.set_name ? hit.set_name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) : null);
   const setName = hit.set_name ?? '';
   const { titleType, title, subtitle } = getTitleAndSubtitle(hit, selectedLang);

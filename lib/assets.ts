@@ -18,9 +18,24 @@ function stripImgPrefix(path: string): string {
 }
 
 /**
- * Restituisce l'URL assoluto per l'immagine di una carta.
+ * Restituisce l'URL assoluto per l'icona di un set (set_icon_uri).
  * - Se raw è null/undefined/vuoto → null.
  * - Se raw inizia con http → restituito così com'è.
+ * - Altrimenti: path relativo (es. sets/mtg/abc.svg) → si prepende ASSETS.cdnUrl.
+ */
+export function getSetIconUrl(raw: string | null | undefined): string | null {
+  if (raw == null || raw === '') return null;
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('http')) return trimmed;
+  const base = (ASSETS.cdnUrl || '').replace(/\/+$/, '');
+  const pathWithSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return base ? `${base}${pathWithSlash}` : pathWithSlash;
+}
+
+/**
+ * Restituisce l'URL assoluto per l'immagine di una carta.
+ * - Se raw è null/undefined/vuoto → null.
+ * - Se raw inizia con http → restituito così com'è (normalizzando il prefisso img/).
  * - Altrimenti: si rimuove il prefisso "img/" e si prepende ASSETS.cdnUrl.
  */
 export function getCardImageUrl(raw: string | null | undefined): string | null {

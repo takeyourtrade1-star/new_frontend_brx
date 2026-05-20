@@ -26,7 +26,7 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react';
-import { getCardImageUrl } from '@/lib/assets';
+import { getCardImageUrl, getSetIconUrl } from '@/lib/assets';
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import type { MessageKey } from '@/lib/i18n/messages/en';
@@ -865,6 +865,7 @@ export function SearchResults({
                     const productHref = `/products/${hit.id}`;
                     const { primary, secondary } = getDisplayNames(hit, selectedLang);
                     const imgUrl = getCardImageUrl(hit.image ?? null);
+                    const setIconUrl = getSetIconUrl(hit.set_icon_uri);
                     const setName = hit.set_name ?? '';
                     const nameOriginal = secondary ?? primary;
                     const nameTranslation = secondary ? primary : null;
@@ -887,9 +888,9 @@ export function SearchResults({
                             />
 
                             <span className="relative inline-flex items-center gap-1 min-w-0 max-w-[6.5rem] group">
-                              {isSafeUrl(hit.set_icon_uri) && (
+                              {isSafeUrl(setIconUrl) && (
                                 <Image
-                                  src={hit.set_icon_uri}
+                                  src={setIconUrl}
                                   alt={setName}
                                   width={14}
                                   height={14}

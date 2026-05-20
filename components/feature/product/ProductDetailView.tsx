@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Loader2, Minus, Pencil, Plus, X, ChevronLeft, ChevronRight, Heart, Eye, EyeOff, Zap, Bookmark, Share2, ShoppingCart } from 'lucide-react';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
-import { getCardImageUrl } from '@/lib/assets';
+import { getCardImageUrl, getSetIconUrl } from '@/lib/assets';
 import { getCardDisplayNames } from '@/lib/card-display-name';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -458,7 +458,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               imageSrc: getCardImageUrl(rawImage),
               setName,
               rarity: hit.rarity ?? 'N/D',
-              setIconSrc: hit.set_icon_uri ?? hit.icon_svg_uri ?? null,
+              setIconSrc: getSetIconUrl(hit.set_icon_uri ?? hit.icon_svg_uri),
               setCode,
             } as ReprintCard;
           });
