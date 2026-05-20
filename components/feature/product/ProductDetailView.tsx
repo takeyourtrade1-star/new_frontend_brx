@@ -32,6 +32,7 @@ import { useCartStore } from '@/lib/stores/cart-store';
 import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
 import { ProductAuctionsPanel } from '@/components/feature/product/ProductAuctionsPanel';
 import { ProductScambiPanel } from '@/components/feature/product/ProductScambiPanel';
+import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 
 const PRIMARY_BLUE = '#1D3160';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -65,6 +66,171 @@ type ReprintCard = {
   setIconSrc: string | null;
   setCode: string;
 };
+
+const REPRINTS_PAGE_SIZE = 100;
+const REPRINTS_MAX_PAGES = 20;
+
+function mapReprintHit(hit: ReprintSearchHit, cardGameSlug?: string): ReprintCard | null {
+  if (!hit.id) return null;
+  const rawImage = hit.image ?? hit.image_uri_normal ?? hit.image_uri_small ?? hit.image_path ?? null;
+  const setName = hit.set_name ?? 'Set sconosciuto';
+  const setCode =
+    hit.set_code ??
+    setName
+      .split(' ')
+      .filter(Boolean)
+      .map((token) => token[0])
+      .join('')
+      .slice(0, 3)
+      .toUpperCase();
+  return {
+    id: hit.id,
+    imageSrc: getCardImageUrl(rawImage),
+    setName,
+    rarity: hit.rarity ?? 'N/D',
+    setIconSrc: getSetIconUrl(hit.set_icon_uri ?? hit.icon_svg_uri, {
+      gameSlug: hit.game_slug ?? cardGameSlug,
+      setCode: hit.set_code ?? undefined,
+    }),
+    setCode,
+  };
+}
+
+function ReprintThumbnail({
+  reprint,
+  columnIndex,
+  className,
+}: {
+  reprint: ReprintCard;
+  columnIndex: number;
+  className?: string;
+}) {
+  const safeSetIcon = reprint.setIconSrc?.startsWith('https://') ? reprint.setIconSrc : null;
+  const previewSide = columnIndex % 2 === 0 ? 'left' : 'right';
+
+  return (
+    <Link
+      href={`/products/${reprint.id}`}
+      className={cn(
+        'group relative h-[62px] overflow-hidden rounded-lg bg-zinc-50 shadow-sm ring-1 ring-zinc-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+        className
+      )}
+      title={`${reprint.setName} • ${reprint.rarity}`}
+    >
+      <div className="absolute inset-0 flex items-center justify-center bg-zinc-50/90 p-0.5">
+        {reprint.imageSrc ? (
+          <Image
+            src={reprint.imageSrc}
+            alt={reprint.setName}
+            fill
+            className="object-contain object-center"
+            sizes="120px"
+            unoptimized
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-zinc-400">N/A</div>
+        )}
+      </div>
+      {safeSetIcon && (
+        <span
+          title={reprint.setName}
+          className="absolute right-0.5 top-0.5 z-[2] flex h-4 w-4 items-center justify-center"
+        >
+          <Image
+            src={safeSetIcon}
+            alt=""
+            width={16}
+            height={16}
+            className="h-4 w-4 object-contain drop-shadow-[0_0_1px_rgba(255,255,255,0.9)]"
+            unoptimized
+          />
+        </span>
+      )}
+      {reprint.imageSrc && (
+        <div
+          className="absolute bottom-0.5 left-0.5 z-[3]"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <CardImageCameraPeek
+            imageUrl={reprint.imageSrc}
+            name={reprint.setName}
+            previewSide={previewSide}
+            className="!h-7 !w-7"
+            ariaLabel={`Anteprima ${reprint.setName}`}
+          />
+        </div>
+      )}
+    </Link>
+  );
+}
+
+/** Compact horizontal row for chart mode: thumbnail + set icon + camera peek (scrollable list). */
+function ReprintListRow({
+  reprint,
+  rowIndex,
+  totalRows,
+}: {
+  reprint: ReprintCard;
+  rowIndex: number;
+  totalRows: number;
+}) {
+  const safeSetIcon = reprint.setIconSrc?.startsWith('https://') ? reprint.setIconSrc : null;
+  const previewSide: 'left' | 'right' = rowIndex < Math.ceil(totalRows / 2) ? 'right' : 'left';
+
+  return (
+    <Link
+      href={`/products/${reprint.id}`}
+      className="group flex h-[34px] shrink-0 items-center gap-1 overflow-hidden rounded-md bg-zinc-50/90 pr-0.5 shadow-sm ring-1 ring-zinc-200/70 transition-all hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      title={`${reprint.setName} • ${reprint.rarity}`}
+    >
+      <div className="relative h-[30px] w-[22px] shrink-0 overflow-hidden rounded-sm bg-zinc-100">
+        {reprint.imageSrc ? (
+          <Image
+            src={reprint.imageSrc}
+            alt={reprint.setName}
+            fill
+            className="object-contain object-center"
+            sizes="44px"
+            unoptimized
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center text-[8px] font-semibold text-zinc-400">N/A</span>
+        )}
+      </div>
+      {safeSetIcon ? (
+        <span title={reprint.setName} className="flex h-4 w-4 shrink-0 items-center justify-center">
+          <Image
+            src={safeSetIcon}
+            alt=""
+            width={16}
+            height={16}
+            className="h-4 w-4 object-contain"
+            unoptimized
+          />
+        </span>
+      ) : (
+        <span className="h-4 w-4 shrink-0" aria-hidden />
+      )}
+      <span className="min-w-0 flex-1" aria-hidden />
+      {reprint.imageSrc && (
+        <div
+          className="shrink-0"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <CardImageCameraPeek
+            imageUrl={reprint.imageSrc}
+            name={reprint.setName}
+            previewSide={previewSide}
+            className="!h-6 !w-6"
+            ariaLabel={`Anteprima ${reprint.setName}`}
+          />
+        </div>
+      )}
+    </Link>
+  );
+}
 
 export function ProductDetailView(props: ProductDetailViewProps) {
   const { card } = props;
@@ -268,7 +434,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const hoverPreviewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [reprints, setReprints] = useState<ReprintCard[]>([]);
   const [reprintsLoading, setReprintsLoading] = useState(false);
-  const [showAllReprints, setShowAllReprints] = useState(false);
 
     const CONDITION_OPTIONS_MAP: { value: string; label: string }[] = [
     { value: 'near_mint', label: 'Near Mint' },
@@ -405,69 +570,74 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         const escapedName = card.name.replace(/"/g, '\\"');
         const escapedGameSlug = card.game_slug.replace(/"/g, '\\"');
 
-        // TODO(oracle_id): after reindex, replace name+category filter with
-        // `oracle_id = "${card.oracle_id}"` to group all prints of the same card face
-        // (MTG only — OP/PK use card_id). Check indexer.py _index_mtg_prints for field name.
-        const res = await fetch(`${MEILISEARCH.host}/indexes/${MEILISEARCH.indexName}/search`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            q: card.name,
-            limit: 28,
-            filter: [
-              `game_slug = "${escapedGameSlug}"`,
-              `category_id = 1`,
-            ],
-            attributesToRetrieve: [
-              'id', 'name', 'set_name', 'rarity',
-              'image', 'image_uri_small', 'image_uri_normal', 'image_path',
-              'set_icon_uri', 'icon_svg_uri', 'set_code', 'game_slug',
-            ],
-          }),
-          cache: 'no-store',
-        });
+        // TODO(oracle_id): after reindex, replace name filter with oracle_id for MTG faces.
+        const filter = [
+          `name = "${escapedName}"`,
+          `game_slug = "${escapedGameSlug}"`,
+          `category_id = 1`,
+        ];
+        const attributesToRetrieve = [
+          'id', 'name', 'set_name', 'rarity',
+          'image', 'image_uri_small', 'image_uri_normal', 'image_path',
+          'set_icon_uri', 'icon_svg_uri', 'set_code', 'game_slug',
+        ];
 
-        if (!res.ok) {
-          if (!cancelled) setReprints([]);
-          return;
-        }
+        const allHits: ReprintSearchHit[] = [];
+        let offset = 0;
 
-        const data = (await res.json()) as { hits?: ReprintSearchHit[] };
-        const hits = Array.isArray(data.hits) ? data.hits : [];
+        let useSort = true;
 
-        const mapped = hits
-          .filter((hit) => hit.id && hit.id !== card.id)
-          .filter((hit) => {
-            const hitName = (hit.name ?? '').trim().toLowerCase();
-            const cardName = (card.name ?? '').trim().toLowerCase();
-            return hitName === cardName;
-          })
-          .map((hit) => {
-            const rawImage = hit.image ?? hit.image_uri_normal ?? hit.image_uri_small ?? hit.image_path ?? null;
-            const setName = hit.set_name ?? 'Set sconosciuto';
-            const setCode =
-              hit.set_code ??
-              setName
-                .split(' ')
-                .filter(Boolean)
-                .map((token) => token[0])
-                .join('')
-                .slice(0, 3)
-                .toUpperCase();
-            return {
-              id: hit.id,
-              imageSrc: getCardImageUrl(rawImage),
-              setName,
-              rarity: hit.rarity ?? 'N/D',
-              setIconSrc: getSetIconUrl(hit.set_icon_uri ?? hit.icon_svg_uri, {
-                gameSlug: hit.game_slug ?? card?.game_slug,
-                setCode: hit.set_code ?? undefined,
-              }),
-              setCode,
-            } as ReprintCard;
+        for (let page = 0; page < REPRINTS_MAX_PAGES; page++) {
+          const body: Record<string, unknown> = {
+            q: '',
+            limit: REPRINTS_PAGE_SIZE,
+            offset,
+            filter,
+            attributesToRetrieve,
+          };
+          if (useSort) body.sort = ['set_name:asc'];
+
+          let res = await fetch(`${MEILISEARCH.host}/indexes/${MEILISEARCH.indexName}/search`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body),
+            cache: 'no-store',
           });
 
-        const dedup = Array.from(new Map(mapped.map((item) => [item.id, item])).values()).slice(0, 18);
+          if (res.status === 400 && useSort) {
+            useSort = false;
+            offset = 0;
+            allHits.length = 0;
+            page = -1;
+            continue;
+          }
+
+          if (!res.ok) {
+            if (!cancelled) setReprints([]);
+            return;
+          }
+
+          const data = (await res.json()) as {
+            hits?: ReprintSearchHit[];
+            estimatedTotalHits?: number;
+          };
+          const pageHits = Array.isArray(data.hits) ? data.hits : [];
+          allHits.push(...pageHits);
+
+          if (pageHits.length < REPRINTS_PAGE_SIZE) break;
+
+          offset += REPRINTS_PAGE_SIZE;
+          const estimatedTotal =
+            typeof data.estimatedTotalHits === 'number' ? data.estimatedTotalHits : null;
+          if (estimatedTotal != null && offset >= estimatedTotal) break;
+        }
+
+        const mapped = allHits
+          .filter((hit) => hit.id && hit.id !== card.id)
+          .map((hit) => mapReprintHit(hit, card.game_slug))
+          .filter((item): item is ReprintCard => item != null);
+
+        const dedup = Array.from(new Map(mapped.map((item) => [item.id, item])).values());
         if (!cancelled) setReprints(dedup);
       } catch {
         if (!cancelled) setReprints([]);
@@ -1062,52 +1232,19 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   <div className="rounded-xl bg-white p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
                     <div className="mb-2 flex items-center justify-between">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Ristampe</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400 tabular-nums">{reprints.length}</span>
-                        {reprints.length > 6 && (
-                          <button
-                            type="button"
-                            onClick={() => setShowAllReprints((v) => !v)}
-                            className="text-[9px] font-semibold text-primary hover:underline focus-visible:outline-none"
-                          >
-                            {showAllReprints ? 'Meno' : `Tutte (${reprints.length})`}
-                          </button>
-                        )}
-                      </div>
+                      <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400 tabular-nums">{reprints.length}</span>
                     </div>
                     {reprintsLoading ? (
-                      <div className="flex gap-2 overflow-hidden">
+                      <div className="grid max-h-[148px] grid-cols-2 gap-1.5 overflow-hidden">
                         {[...Array(4)].map((_, i) => (
-                          <div key={i} className="h-[52px] w-[37px] flex-shrink-0 rounded-lg bg-zinc-100 animate-pulse" />
+                          <div key={i} className="h-[58px] rounded-lg bg-zinc-100 animate-pulse" />
                         ))}
                       </div>
                     ) : reprints.length > 0 ? (
-                      <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory -mx-0.5 px-0.5">
-                        {reprints.slice(0, showAllReprints ? 18 : 6).map((r) => {
-                          const safeSetIcon = r.setIconSrc?.startsWith('https://') ? r.setIconSrc : null;
-                          return (
-                            <Link
-                              key={r.id}
-                              href={`/products/${r.id}`}
-                              className="group relative h-[52px] w-[37px] flex-shrink-0 snap-start overflow-hidden rounded-lg bg-zinc-50 shadow-sm transition-transform duration-200 hover:scale-105 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                              title={`${r.setName} • ${r.rarity}`}
-                            >
-                              {r.imageSrc ? (
-                                <Image src={r.imageSrc} alt={r.setName} fill className="object-cover" sizes="37px" unoptimized />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-[8px] font-medium text-zinc-400">N/A</div>
-                              )}
-                              {safeSetIcon && (
-                                <div className="absolute right-0.5 top-0.5 h-3.5 w-3.5 overflow-hidden rounded-sm bg-white/80">
-                                  <Image src={safeSetIcon} alt="" fill className="object-contain p-0.5" sizes="14px" unoptimized />
-                                </div>
-                              )}
-                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1 pb-0.5 pt-2">
-                                <span className="text-[7px] font-bold uppercase tracking-wide text-white/90">{r.setCode || 'SET'}</span>
-                              </div>
-                            </Link>
-                          );
-                        })}
+                      <div className="grid max-h-[148px] grid-cols-2 gap-1.5 overflow-y-auto overscroll-contain pr-0.5">
+                        {reprints.map((r, i) => (
+                          <ReprintThumbnail key={r.id} reprint={r} columnIndex={i} className="h-[58px]" />
+                        ))}
                       </div>
                     ) : (
                       <p className="text-[11px] text-zinc-400">Nessuna ristampa.</p>
@@ -1174,62 +1311,50 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
 
                   {/* Colonna 2: Ristampe compatte (meno dominante) */}
-                  <div className={cn('flex min-h-0 flex-col rounded-xl bg-white/85', showChart ? 'p-1' : 'p-3')}>
-                    <div className={cn('flex items-center justify-between gap-1', showChart ? 'mb-1.5' : 'mb-2')}>
+                  <div
+                    className={cn(
+                      'flex min-h-0 max-h-[172px] min-w-0 flex-col overflow-hidden rounded-xl bg-white/85',
+                      showChart ? 'p-1' : 'p-3'
+                    )}
+                  >
+                    <div className={cn('flex shrink-0 items-center justify-between gap-1', showChart ? 'mb-1' : 'mb-2')}>
                       <h3 className={cn('font-extrabold uppercase tracking-wider text-zinc-800 truncate', showChart ? 'text-[9px]' : 'text-[10px]')}>Ristampe</h3>
-                      <div className="flex items-center gap-1.5">
-                        <span className={cn('rounded-full bg-zinc-100 font-bold text-zinc-400 tabular-nums', showChart ? 'px-1 py-0 text-[8px]' : 'px-1.5 py-0.5 text-[9px]')}>{reprints.length}</span>
-                        {reprints.length > 4 && !showChart && (
-                          <button
-                            type="button"
-                            onClick={() => setShowAllReprints((v) => !v)}
-                            className="text-[9px] font-semibold text-primary hover:underline focus-visible:outline-none"
-                          >
-                            {showAllReprints ? 'Meno' : `Tutte (${reprints.length})`}
-                          </button>
-                        )}
-                      </div>
+                      <span className={cn('rounded-full bg-zinc-100 font-bold text-zinc-400 tabular-nums', showChart ? 'px-1 py-0 text-[8px]' : 'px-1.5 py-0.5 text-[9px]')}>{reprints.length}</span>
                     </div>
 
                     {reprintsLoading ? (
-                      <div className={cn('grid gap-1.5', showChart ? 'grid-cols-1 gap-0.5' : 'grid-cols-2')}>
-                        {[...Array(showChart ? 1 : 4)].map((_, i) => (
-                          <div key={i} className={cn('rounded-lg bg-zinc-100 animate-pulse', showChart ? 'h-[26px]' : 'h-[56px]')} />
-                        ))}
-                      </div>
+                      showChart ? (
+                        <div className="flex min-h-0 max-h-[130px] flex-1 flex-col gap-0.5 overflow-hidden">
+                          {[...Array(4)].map((_, i) => (
+                            <div key={i} className="h-[34px] shrink-0 rounded-md bg-zinc-100 animate-pulse" />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid min-h-0 max-h-[130px] flex-1 grid-cols-2 gap-1.5 overflow-hidden">
+                          {[...Array(4)].map((_, i) => (
+                            <div key={i} className="h-[62px] rounded-lg bg-zinc-100 animate-pulse" />
+                          ))}
+                        </div>
+                      )
                     ) : reprints.length > 0 ? (
-                      <div className={cn('grid gap-1.5', showChart ? 'grid-cols-1 gap-0.5' : 'grid-cols-2')}>
-                        {reprints.slice(0, showChart ? 1 : showAllReprints ? 18 : 4).map((reprint) => {
-                          const safeSetIcon = reprint.setIconSrc?.startsWith('https://') ? reprint.setIconSrc : null;
-                          return (
-                            <Link
+                      showChart ? (
+                        <div className="flex min-h-0 max-h-[130px] flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain pr-0.5">
+                          {reprints.map((reprint, i) => (
+                            <ReprintListRow
                               key={reprint.id}
-                              href={`/products/${reprint.id}`}
-                              className={cn(
-                                'group relative overflow-hidden rounded-lg bg-zinc-50 shadow-sm ring-1 ring-zinc-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
-                                showChart ? 'h-[26px]' : 'h-[56px]'
-                              )}
-                              title={`${reprint.setName} • ${reprint.rarity}`}
-                            >
-                              {reprint.imageSrc ? (
-                                <Image src={reprint.imageSrc} alt={reprint.setName} fill className="object-cover" sizes="120px" unoptimized />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-[10px] font-semibold text-zinc-400">N/A</div>
-                              )}
-                              {safeSetIcon && !showChart && (
-                                <div className="absolute right-0.5 top-0.5 h-3.5 w-3.5 overflow-hidden rounded-sm bg-white/80">
-                                  <Image src={safeSetIcon} alt="" fill className="object-contain p-0.5" sizes="14px" unoptimized />
-                                </div>
-                              )}
-                              {!showChart && (
-                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-3">
-                                  <span className="text-[8px] font-bold uppercase tracking-wide text-white/95">{reprint.setCode || 'SET'}</span>
-                                </div>
-                              )}
-                            </Link>
-                          );
-                        })}
-                      </div>
+                              reprint={reprint}
+                              rowIndex={i}
+                              totalRows={reprints.length}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid min-h-0 max-h-[130px] flex-1 grid-cols-2 gap-1.5 overflow-y-auto overscroll-contain pr-0.5">
+                          {reprints.map((reprint, i) => (
+                            <ReprintThumbnail key={reprint.id} reprint={reprint} columnIndex={i} />
+                          ))}
+                        </div>
+                      )
                     ) : (
                       <div className={cn('flex flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 text-center', showChart ? 'px-1.5 py-2' : 'px-2 py-3')}>
                         <p className={cn('text-zinc-400', showChart ? 'text-[9px] leading-tight' : 'text-xs')}>Nessuna ristampa trovata.</p>
