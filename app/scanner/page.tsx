@@ -683,7 +683,6 @@ function ScannerPageInner() {
     debug,
     videoRef,
     canvasRef,
-    openCamera,
     stopScanning,
     restartScanning,
     retryModelDownload,
@@ -719,8 +718,7 @@ function ScannerPageInner() {
 
   const handleUseStandard = useCallback(() => {
     continueWithStandardMode();
-    void openCamera();
-  }, [continueWithStandardMode, openCamera]);
+  }, [continueWithStandardMode]);
 
   useEffect(() => {
     return () => {

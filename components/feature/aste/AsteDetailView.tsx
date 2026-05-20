@@ -212,6 +212,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         setDetail(null);
         return;
       }
+      setDetail(baseDetail);
       const [resolved] = await enrichAuctionsWithPublicUsers([baseDetail]);
       if (!isCancelled) {
         setDetail(resolved ?? baseDetail);
@@ -230,6 +231,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         setBidRows([]);
         return;
       }
+      setBidRows(baseBidRows);
       const resolved = await enrichBidRowsWithPublicUsers(baseBidRows);
       if (!isCancelled) {
         setBidRows(resolved);
@@ -331,6 +333,13 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   useEffect(() => {
     setImgIdx(0);
     setThumbStart(0);
+    setMyLastOfferEur(null);
+    setMyMaxBidEur(null);
+    setProxyModalOpen(false);
+    setProxyInput('');
+    setProxyInputError(null);
+    setFloatingNotice(null);
+    previousProxyBidOutbidRef.current = false;
   }, [numericId]);
 
   useEffect(() => {

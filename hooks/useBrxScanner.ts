@@ -214,6 +214,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const onnxCtxRef = useRef<CanvasRenderingContext2D | null>(null);
   const embedWorkerRef = useRef<Worker | null>(null);
   const workerReadyRef = useRef(false);
+  const openingCameraRef = useRef(false);
   const embedPendingRef = useRef<{
     resolve: (v: Float32Array) => void;
     reject: (e: Error) => void;
@@ -475,6 +476,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
     clearHintStale();
+    openingCameraRef.current = false;
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -888,6 +890,9 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   // ---------------------------------------------------------------------------
 
   const openCamera = useCallback(async (): Promise<void> => {
+    if (openingCameraRef.current || streamRef.current) return;
+    openingCameraRef.current = true;
+
     setState('requesting_camera');
     setErrorMessage(null);
     setResult(null);
@@ -918,6 +923,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       setErrorMessage(msg);
       setState('error');
       onError?.(msg);
+      openingCameraRef.current = false;
       return;
     }
 
@@ -929,6 +935,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
 
     setState('scanning');
     setIsBusy(false);
+    openingCameraRef.current = false;
     startScanLoop();
   }, [onError, startScanLoop]);
 

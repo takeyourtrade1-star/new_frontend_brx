@@ -1681,9 +1681,16 @@ function SearchWithInstantSearch({
     if (isSetsMode) {
       const q = (localValue ?? '').trim();
       const dbGame = selectedGame ? (FRONTEND_TO_DB_SLUG[selectedGame] ?? selectedGame) : '';
-      router.push(
-        `/search?q=${encodeURIComponent(q)}&game=${encodeURIComponent(dbGame)}&mode=sets`
-      );
+      const firstSet = setResults[0];
+      if (firstSet) {
+        router.push(
+          `/set?game=${encodeURIComponent(firstSet.game_slug)}&set=${encodeURIComponent(firstSet.set_name)}`
+        );
+      } else if (q && dbGame) {
+        router.push(
+          `/set?game=${encodeURIComponent(dbGame)}&set=${encodeURIComponent(q)}`
+        );
+      }
       closePanel();
       return;
     }

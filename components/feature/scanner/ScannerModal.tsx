@@ -455,7 +455,6 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
     modelError,
     videoRef,
     canvasRef,
-    openCamera,
     stopScanning,
     restartScanning,
     retryModelDownload,
@@ -473,8 +472,7 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
 
   const handleUseStandard = useCallback(() => {
     continueWithStandardMode();
-    void openCamera();
-  }, [continueWithStandardMode, openCamera]);
+  }, [continueWithStandardMode]);
 
   useEffect(() => {
     return () => {
