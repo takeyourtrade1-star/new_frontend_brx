@@ -404,6 +404,37 @@ function AnimatedCounter({ value }: { value: number }) {
 const HOVER_CLOSE_DELAY_MS = 250;
 const SEARCH_PANEL_BORDER_OVERLAP = 1;
 
+type CategoryDropdownRect = { top: number; left: number; width: number };
+
+function getCategoryDropdownPosition(
+  isBarOpen: boolean,
+  buttonEl: HTMLButtonElement,
+  categoryColumnEl: HTMLElement | null,
+  jointEl: HTMLElement | null,
+  searchContainerEl: HTMLElement | null
+): CategoryDropdownRect {
+  if (isBarOpen && categoryColumnEl && searchContainerEl) {
+    const categoryRect = categoryColumnEl.getBoundingClientRect();
+    const containerRect = searchContainerEl.getBoundingClientRect();
+    const jointRect = jointEl?.getBoundingClientRect();
+    const left = Math.round(categoryRect.left);
+    const right = jointRect
+      ? Math.round(jointRect.right)
+      : Math.round(categoryRect.right);
+    return {
+      top: Math.round(containerRect.bottom) - SEARCH_PANEL_BORDER_OVERLAP,
+      left,
+      width: Math.max(0, right - left),
+    };
+  }
+  const rect = buttonEl.getBoundingClientRect();
+  return {
+    top: Math.round(rect.bottom + 4),
+    left: Math.round(rect.left),
+    width: Math.max(Math.round(rect.width), 180),
+  };
+}
+
 type FixedPanelRect = { top: number; left: number; width: number; height?: number };
 
 function snapRect(rect: DOMRect, borderOverlap = 0): FixedPanelRect {
@@ -416,20 +447,189 @@ function snapRect(rect: DOMRect, borderOverlap = 0): FixedPanelRect {
 
 function getSuggestionsPanelPosition(
   anchorEl: HTMLElement,
+  jointEl: HTMLElement | null = null,
   position: 'top' | 'bottom' = 'bottom'
 ): FixedPanelRect {
-  const rect = anchorEl.getBoundingClientRect();
+  const anchorRect = anchorEl.getBoundingClientRect();
+  const jointRect = jointEl?.getBoundingClientRect();
+  const left = jointRect
+    ? Math.round(jointRect.right)
+    : Math.round(anchorRect.left);
+  const width = jointRect
+    ? Math.max(0, Math.round(anchorRect.right) - left)
+    : Math.round(anchorRect.width);
+
   if (position === 'top') {
-    return snapRect(rect);
+    return { top: Math.round(anchorRect.top), left, width };
   }
   return {
-    top: Math.round(rect.bottom) - SEARCH_PANEL_BORDER_OVERLAP,
-    left: Math.round(rect.left),
-    width: Math.round(rect.width),
+    top: Math.round(anchorRect.bottom) - SEARCH_PANEL_BORDER_OVERLAP,
+    left,
+    width,
   };
 }
 
-/** Larghezza anteprima carta inline - aumentata per altezza maggiore */
+function getCompositePanelRect(
+  searchContainerEl: HTMLElement,
+  categoryColumnEl: HTMLElement,
+  jointEl: HTMLElement | null,
+  suggestionsAnchorEl: HTMLElement
+): FixedPanelRect & { categoryWidth: number } {
+  const containerRect = searchContainerEl.getBoundingClientRect();
+  const categoryRect = categoryColumnEl.getBoundingClientRect();
+  const anchorRect = suggestionsAnchorEl.getBoundingClientRect();
+  const jointRect = jointEl?.getBoundingClientRect();
+  const left = Math.round(categoryRect.left);
+  const jointRight = jointRect
+    ? Math.round(jointRect.right)
+    : Math.round(categoryRect.right);
+  const right = Math.round(anchorRect.right);
+  return {
+    top: Math.round(containerRect.bottom) - SEARCH_PANEL_BORDER_OVERLAP,
+    left,
+    width: Math.max(0, right - left),
+    categoryWidth: Math.max(0, jointRight - left),
+  };
+}
+
+/** Lista categorie prodotto (colonna sinistra del pannello composito) */
+function CategoryMenuList({
+  selectedCategory,
+  onSelect,
+  gameSlug,
+  onClose,
+}: {
+  selectedCategory: CategoryKey | null;
+  onSelect: (cat: CategoryKey | null) => void;
+  gameSlug: MappingGameSlug | null;
+  onClose?: () => void;
+}) {
+  const availableKeys = useMemo(() => {
+    if (!gameSlug) return CATEGORY_KEY_ORDER;
+    return getCategoryKeys(gameSlug);
+  }, [gameSlug]);
+
+  return (
+    <div className="search-composite-panel__category py-1" role="listbox" aria-label="Categorie prodotto">
+      {availableKeys.map((key) => {
+        const label = gameSlug ? getCategoryLabel(gameSlug, key, 'it') : key;
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(key === 'all' ? null : key);
+              onClose?.();
+            }}
+            className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium font-sans hover:bg-[#FF7300]/10 transition-colors ${
+              selectedCategory === key || (!selectedCategory && key === 'all')
+                ? 'text-[#FF7300] bg-orange-50/50'
+                : 'text-gray-700'
+            }`}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Pannello unificato: categorie + separatore + suggerimenti in un unico blocco */
+function SearchCompositePanel({
+  searchContainerRef,
+  categoryColumnRef,
+  jointRef,
+  suggestionsAnchorRef,
+  containerRef,
+  selectedCategory,
+  onCategorySelect,
+  onCategoryClose,
+  gameSlug,
+  children,
+}: {
+  searchContainerRef: React.RefObject<HTMLDivElement | null>;
+  categoryColumnRef: React.RefObject<HTMLDivElement | null>;
+  jointRef: React.RefObject<HTMLDivElement | null>;
+  suggestionsAnchorRef: React.RefObject<HTMLDivElement | null>;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
+  selectedCategory: CategoryKey | null;
+  onCategorySelect: (cat: CategoryKey | null) => void;
+  onCategoryClose: () => void;
+  gameSlug: MappingGameSlug | null;
+  children: React.ReactNode;
+}) {
+  const [position, setPosition] = useState<(FixedPanelRect & { categoryWidth: number }) | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    const containerEl = searchContainerRef.current;
+    const categoryEl = categoryColumnRef.current;
+    const anchorEl = suggestionsAnchorRef.current;
+    if (!containerEl || !categoryEl || !anchorEl) return;
+
+    const update = () => {
+      setPosition(
+        getCompositePanelRect(containerEl, categoryEl, jointRef.current, anchorEl)
+      );
+    };
+
+    update();
+    const rafId = window.requestAnimationFrame(update);
+    const resizeObserver = new ResizeObserver(update);
+    resizeObserver.observe(containerEl);
+    resizeObserver.observe(categoryEl);
+    resizeObserver.observe(anchorEl);
+    const jointEl = jointRef.current;
+    if (jointEl) resizeObserver.observe(jointEl);
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [searchContainerRef, categoryColumnRef, jointRef, suggestionsAnchorRef]);
+
+  if (!mounted || !position || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      ref={containerRef as React.Ref<HTMLDivElement>}
+      className="search-composite-panel"
+      style={{
+        position: 'fixed',
+        top: position.top,
+        left: position.left,
+        width: position.width,
+        zIndex: 1001,
+      }}
+    >
+      <div
+        className="search-composite-panel__category-col"
+        style={{ width: position.categoryWidth }}
+      >
+        <CategoryMenuList
+          selectedCategory={selectedCategory}
+          onSelect={onCategorySelect}
+          gameSlug={gameSlug}
+          onClose={onCategoryClose}
+        />
+      </div>
+      <div className="search-composite-panel__divider" aria-hidden="true" />
+      <div className="search-composite-panel__suggestions-col">{children}</div>
+    </div>,
+    document.body
+  );
+}
+
 const INLINE_PREVIEW_WIDTH = 200;
 const INLINE_PREVIEW_MIN_WIDTH = 140;
 const INLINE_PREVIEW_ASPECT_RATIO = 88 / 63;
@@ -713,9 +913,11 @@ function SearchResultsDropdown({
   onSelect,
   containerRef,
   suggestionsAnchorRef,
+  jointRef,
   categoryColumnRef,
   productCategory,
   position: dropdownPosition = 'bottom',
+  layout = 'standalone',
   isTyping = false,
   typingKey = 0,
   rowDelay = 80,
@@ -727,9 +929,11 @@ function SearchResultsDropdown({
   onSelect: () => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
   suggestionsAnchorRef: React.RefObject<HTMLDivElement | null>;
+  jointRef: React.RefObject<HTMLDivElement | null>;
   categoryColumnRef: React.RefObject<HTMLDivElement | null>;
   productCategory: CategoryKey | null;
   position?: 'top' | 'bottom';
+  layout?: 'standalone' | 'composite';
   isTyping?: boolean;
   typingKey?: number;
   rowDelay?: number;
@@ -754,10 +958,12 @@ function SearchResultsDropdown({
   }, []);
 
   useLayoutEffect(() => {
+    if (layout === 'composite') return;
     if (!suggestionsAnchorRef.current) return;
     const anchorEl = suggestionsAnchorRef.current;
+    const jointEl = jointRef.current;
     const update = () => {
-      setPosition(getSuggestionsPanelPosition(anchorEl, dropdownPosition));
+      setPosition(getSuggestionsPanelPosition(anchorEl, jointEl, dropdownPosition));
     };
 
     update();
@@ -766,6 +972,7 @@ function SearchResultsDropdown({
     resizeObserver.observe(anchorEl);
     const categoryEl = categoryColumnRef.current;
     if (categoryEl) resizeObserver.observe(categoryEl);
+    if (jointEl) resizeObserver.observe(jointEl);
     anchorEl.addEventListener('transitionend', update);
     window.addEventListener('scroll', update, true);
     window.addEventListener('resize', update);
@@ -777,7 +984,7 @@ function SearchResultsDropdown({
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
-  }, [suggestionsAnchorRef, categoryColumnRef, dropdownPosition]);
+  }, [layout, suggestionsAnchorRef, jointRef, categoryColumnRef, dropdownPosition]);
 
   const showInlinePreview = (url: string, name: string, buttonRect: DOMRect) => {
     if (closeTimeoutRef.current) {
@@ -810,12 +1017,116 @@ function SearchResultsDropdown({
         )
       : null;
 
+  const suggestionsBody = (
+    <div
+      ref={layout === 'composite' ? undefined : (containerRef as React.Ref<HTMLDivElement>)}
+      className={`search-suggestions-panel__body flex flex-col ${
+        layout === 'composite'
+          ? 'max-h-[min(400px,calc(100vh-8rem))] min-h-[80px]'
+          : 'max-h-[400px] min-h-[80px]'
+      }`}
+      role="listbox"
+      aria-label="Suggerimenti ricerca"
+    >
+      {isSearchStalled ? (
+        <div className="flex items-center justify-center gap-2 px-4 py-6 text-gray-500">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Ricerca in corso...</span>
+        </div>
+      ) : hasHits ? (
+        <>
+          <div
+            className="overflow-y-auto overflow-x-hidden flex-1"
+            onScroll={() => setInlinePreview(null)}
+          >
+            {hits.map((hit, index) => (
+              <CardHit
+                key={(hit as CardSearchHit).id ?? (hit as CardSearchHit).objectID ?? index}
+                hit={hit as unknown as CardSearchHit}
+                index={index}
+                gameSlug={gameSlug}
+                searchQuery={query ?? ''}
+                isTyping={isTyping}
+                typingKey={typingKey}
+                rowDelay={rowDelay}
+                energyLevel={energyLevel}
+                typingVelocity={typingVelocity}
+                streak={streak}
+                onNavigate={() => {
+                  const slug = getCardSlugForUrl(hit as unknown as CardSearchHit);
+                  router.push(`/products/${slug}`);
+                  onSelect();
+                }}
+                onShowInlinePreview={showInlinePreview}
+                onScheduleClose={scheduleClose}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const q = (query ?? '').trim();
+              if (!q) return;
+              const active = document.activeElement;
+              if (active instanceof HTMLElement) active.blur();
+              router.push(buildSearchUrl(q, gameSlug, productCategory));
+              onSelect();
+            }}
+            className="w-full py-4 text-center text-base font-medium text-[#0f172a] bg-[#F8F8F8] hover:bg-[#EEEEEE] transition-colors"
+          >
+            Mostra tutti i risultati (<AnimatedCounter value={hits.length} />+)
+          </button>
+        </>
+      ) : (
+        <div className="px-4 py-4 text-sm text-gray-500">Nessun risultato trovato</div>
+      )}
+    </div>
+  );
+
+  const inlinePreviewPortal =
+    inlinePreview &&
+    inlinePreviewLayout &&
+    typeof document !== 'undefined' ? (
+      createPortal(
+        <div
+          className="fixed z-[1100] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
+          style={{
+            left: inlinePreviewLayout.left,
+            top: inlinePreviewLayout.top,
+            width: inlinePreviewLayout.width,
+          }}
+          onMouseEnter={cancelClose}
+          onMouseLeave={() => setInlinePreview(null)}
+          role="img"
+          aria-label={`Anteprima: ${inlinePreview.name}`}
+        >
+          <img
+            src={inlinePreview.url}
+            alt={inlinePreview.name}
+            className="w-full h-auto block"
+            loading="lazy"
+            draggable={false}
+          />
+        </div>,
+        document.body
+      )
+    ) : null;
+
+  if (layout === 'composite') {
+    return (
+      <>
+        {suggestionsBody}
+        {inlinePreviewPortal}
+      </>
+    );
+  }
+
   if (!position) return null;
 
   const dropdownContent = (
     <>
       <div
-        className={`search-suggestions-panel ${
+        className={`search-suggestions-panel !rounded-t-none !rounded-b-[20px] md:!rounded-b-[24px] ${
           dropdownPosition === 'top' ? 'shadow-[0_-4px_12px_rgba(0,0,0,0.12)]' : ''
         }`}
         style={{
@@ -826,93 +1137,9 @@ function SearchResultsDropdown({
           zIndex: 1001,
         }}
       >
-        <div
-          ref={containerRef as React.Ref<HTMLDivElement>}
-          className="search-suggestions-panel__inner max-h-[400px] min-h-[80px] flex flex-col"
-          role="listbox"
-          aria-label="Suggerimenti ricerca"
-        >
-        {isSearchStalled ? (
-          <div className="flex items-center justify-center gap-2 px-4 py-6 text-gray-500">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span className="text-sm">Ricerca in corso...</span>
-          </div>
-        ) : hasHits ? (
-          <>
-            <div
-              className="overflow-y-auto overflow-x-hidden flex-1"
-              onScroll={() => setInlinePreview(null)}
-            >
-              {hits.map((hit, index) => (
-                <CardHit
-                  key={(hit as CardSearchHit).id ?? (hit as CardSearchHit).objectID ?? index}
-                  hit={hit as unknown as CardSearchHit}
-                  index={index}
-                  gameSlug={gameSlug}
-                  searchQuery={query ?? ''}
-                  isTyping={isTyping}
-                  typingKey={typingKey}
-                  rowDelay={rowDelay}
-                  energyLevel={energyLevel}
-                  typingVelocity={typingVelocity}
-                  streak={streak}
-                  onNavigate={() => {
-                    const slug = getCardSlugForUrl(hit as unknown as CardSearchHit);
-                    router.push(`/products/${slug}`);
-                    onSelect();
-                  }}
-                  onShowInlinePreview={showInlinePreview}
-                  onScheduleClose={scheduleClose}
-                />
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                const q = (query ?? '').trim();
-                if (!q) return;
-                const active = document.activeElement;
-                if (active instanceof HTMLElement) active.blur();
-                router.push(buildSearchUrl(q, gameSlug, productCategory));
-                onSelect();
-              }}
-              className="w-full py-4 text-center text-base font-medium text-[#0f172a] bg-[#F8F8F8] hover:bg-[#EEEEEE] transition-colors"
-            >
-              Mostra tutti i risultati (<AnimatedCounter value={hits.length} />+)
-            </button>
-          </>
-        ) : (
-          <div className="px-4 py-4 text-sm text-gray-500">Nessun risultato trovato</div>
-        )}
-        </div>
+        {suggestionsBody}
       </div>
-
-      {inlinePreview &&
-        inlinePreviewLayout &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            className="fixed z-[1100] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
-            style={{
-              left: inlinePreviewLayout.left,
-              top: inlinePreviewLayout.top,
-              width: inlinePreviewLayout.width,
-            }}
-            onMouseEnter={cancelClose}
-            onMouseLeave={() => setInlinePreview(null)}
-            role="img"
-            aria-label={`Anteprima: ${inlinePreview.name}`}
-          >
-            <img
-              src={inlinePreview.url}
-              alt={inlinePreview.name}
-              className="w-full h-auto block"
-              loading="lazy"
-              draggable={false}
-            />
-          </div>,
-          document.body
-        )}
+      {inlinePreviewPortal}
     </>
   );
 
@@ -1207,16 +1434,33 @@ function ProductCategoryButton({
   onSelect,
   gameSlug,
   isBarOpen = false,
+  categoryColumnRef,
+  jointRef,
+  searchContainerRef,
+  open: controlledOpen,
+  onOpenChange,
+  suppressAttachedPortal = false,
 }: {
   selectedCategory: CategoryKey | null;
   onSelect: (cat: CategoryKey | null) => void;
   gameSlug: MappingGameSlug | null;
   isBarOpen?: boolean;
+  categoryColumnRef: React.RefObject<HTMLDivElement | null>;
+  jointRef: React.RefObject<HTMLDivElement | null>;
+  searchContainerRef: React.RefObject<HTMLDivElement | null>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  suppressAttachedPortal?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpenState = (next: boolean) => {
+    if (onOpenChange) onOpenChange(next);
+    else setInternalOpen(next);
+  };
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [pos, setPos] = useState<CategoryDropdownRect | null>(null);
 
   // Categorie disponibili per il gioco selezionato
   const availableKeys = useMemo(() => {
@@ -1224,18 +1468,43 @@ function ProductCategoryButton({
     return getCategoryKeys(gameSlug);
   }, [gameSlug]);
 
-  // Posiziona il dropdown sopra o sotto il bottone in base al contesto
+  // Posiziona il dropdown: attaccato sotto la colonna categoria se la barra è aperta
   useLayoutEffect(() => {
     if (!open || !buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    if (isBarOpen) {
-      // Barra sticky in basso: dropdown sopra il bottone
-      setPos({ top: rect.top - 4, left: rect.left });
-    } else {
-      // Barra normale: dropdown sotto il bottone
-      setPos({ top: rect.bottom + 4, left: rect.left });
-    }
-  }, [open, isBarOpen]);
+    const buttonEl = buttonRef.current;
+    const categoryEl = categoryColumnRef.current;
+    const jointEl = jointRef.current;
+    const containerEl = searchContainerRef.current;
+
+    const update = () => {
+      setPos(
+        getCategoryDropdownPosition(
+          isBarOpen,
+          buttonEl,
+          categoryEl,
+          jointEl,
+          containerEl
+        )
+      );
+    };
+
+    update();
+    const rafId = window.requestAnimationFrame(update);
+    const resizeObserver = new ResizeObserver(update);
+    resizeObserver.observe(buttonEl);
+    if (categoryEl) resizeObserver.observe(categoryEl);
+    if (jointEl) resizeObserver.observe(jointEl);
+    if (containerEl) resizeObserver.observe(containerEl);
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [open, isBarOpen, categoryColumnRef, jointRef, searchContainerRef]);
 
   // Chiudi cliccando fuori
   useEffect(() => {
@@ -1244,7 +1513,7 @@ function ProductCategoryButton({
       const t = e.target as Node;
       if (buttonRef.current?.contains(t)) return;
       if (dropdownRef.current?.contains(t)) return;
-      setOpen(false);
+      setOpenState(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -1276,14 +1545,21 @@ function ProductCategoryButton({
     return shortMap[selectedCategory] || currentLabel.slice(0, 6);
   }, [selectedCategory, currentLabel]);
 
-  const dropdownMenu = open && pos && typeof document !== 'undefined'
+  const dropdownMenu = open && pos && typeof document !== 'undefined' && !(isBarOpen && suppressAttachedPortal)
     ? createPortal(
         <div
           ref={dropdownRef}
-          className={`fixed z-[1100] min-w-[180px] max-w-[220px] overflow-hidden shadow-xl rounded-lg bg-white border border-gray-100 py-1 ${
-            isBarOpen ? 'border-b-0' : 'border-t-0'
-          }`}
-          style={{ top: pos.top, left: pos.left }}
+          className={
+            isBarOpen
+              ? 'search-category-dropdown-panel search-category-dropdown-panel--attached fixed z-[1100] overflow-hidden bg-white py-1 !rounded-t-none !rounded-br-none !rounded-bl-[20px] md:!rounded-bl-[24px]'
+              : 'fixed z-[1100] min-w-[180px] max-w-[220px] overflow-hidden rounded-lg border border-gray-100 bg-white py-1 shadow-xl'
+          }
+          style={{
+            top: pos.top,
+            left: pos.left,
+            width: isBarOpen ? pos.width : undefined,
+            minWidth: isBarOpen ? pos.width : 180,
+          }}
         >
           {availableKeys.map((key) => {
             const label = gameSlug
@@ -1293,7 +1569,7 @@ function ProductCategoryButton({
               <button
                 key={key}
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onSelect(key === 'all' ? null : key); setOpen(false); }}
+                onClick={(e) => { e.stopPropagation(); onSelect(key === 'all' ? null : key); setOpenState(false); }}
                 className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium font-sans hover:bg-[#FF7300]/10 transition-colors ${
                   (selectedCategory === key || (!selectedCategory && key === 'all'))
                     ? 'text-[#FF7300] bg-orange-50/50'
@@ -1316,7 +1592,7 @@ function ProductCategoryButton({
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          setOpen((o) => !o);
+          setOpenState(!open);
         }}
         className={`flex h-8 items-center gap-1 border-0 bg-transparent px-2.5 text-xs font-medium font-sans leading-none transition-colors duration-200 whitespace-nowrap md:h-9 md:gap-1.5 md:px-3.5 md:text-sm ${
           isBarOpen
@@ -1327,10 +1603,8 @@ function ProductCategoryButton({
         <span className="relative hidden md:inline leading-none text-left" style={{ top: '-0.5px' }}>{currentLabel}</span>
         <span className="relative md:hidden leading-none text-center" style={{ top: '-0.5px' }}>{mobileLabel}</span>
         <ChevronDown
-          className={`h-3 w-3 md:h-4 md:w-4 transition-transform ${
-            isBarOpen
-              ? (open ? 'rotate-0' : 'rotate-180')   // Barra in basso: chiuso=su, aperto=giù (verso dropdown sopra)
-              : (open ? 'rotate-180' : 'rotate-0')   // Barra in alto: chiuso=giù, aperto=su (verso dropdown sotto)
+          className={`h-3 w-3 shrink-0 md:h-4 md:w-4 transition-transform ${
+            open ? 'rotate-180' : 'rotate-0'
           }`}
         />
       </button>
@@ -1490,16 +1764,20 @@ function SetSearchResultRow({
 
 function SetsResultsDropdown({
   suggestionsAnchorRef,
+  jointRef,
   containerRef,
   setResults,
   setResultsLoading,
   onClose,
+  layout = 'standalone',
 }: {
   suggestionsAnchorRef: React.RefObject<HTMLDivElement | null>;
+  jointRef: React.RefObject<HTMLDivElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   setResults: SetResult[];
   setResultsLoading: boolean;
   onClose: () => void;
+  layout?: 'standalone' | 'composite';
 }) {
   const router = useRouter();
   const [position, setPosition] = useState<FixedPanelRect | null>(null);
@@ -1510,15 +1788,18 @@ function SetsResultsDropdown({
   }, []);
 
   useLayoutEffect(() => {
+    if (layout === 'composite') return;
     if (!suggestionsAnchorRef.current) return;
     const anchorEl = suggestionsAnchorRef.current;
+    const jointEl = jointRef.current;
     const update = () => {
-      setPosition(getSuggestionsPanelPosition(anchorEl));
+      setPosition(getSuggestionsPanelPosition(anchorEl, jointEl));
     };
     update();
     const rafId = window.requestAnimationFrame(update);
     const resizeObserver = new ResizeObserver(update);
     resizeObserver.observe(anchorEl);
+    if (jointEl) resizeObserver.observe(jointEl);
     anchorEl.addEventListener('transitionend', update);
     window.addEventListener('scroll', update, true);
     window.addEventListener('resize', update);
@@ -1529,28 +1810,19 @@ function SetsResultsDropdown({
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
-  }, [suggestionsAnchorRef]);
+  }, [layout, suggestionsAnchorRef, jointRef]);
 
-  if (!mounted || !position) return null;
-
-  const content = (
-    <>
-      <div
-        className="search-suggestions-panel"
-        style={{
-          position: 'fixed',
-          top: position.top,
-          left: position.left,
-          width: position.width,
-          zIndex: 1001,
-        }}
-      >
-        <div
-          ref={containerRef as React.Ref<HTMLDivElement>}
-          className="search-suggestions-panel__inner max-h-[400px] min-h-[80px] flex flex-col"
-          role="listbox"
-          aria-label="Suggerimenti set"
-        >
+  const setsBody = (
+    <div
+      ref={layout === 'composite' ? undefined : (containerRef as React.Ref<HTMLDivElement>)}
+      className={`search-suggestions-panel__body flex flex-col ${
+        layout === 'composite'
+          ? 'max-h-[min(400px,calc(100vh-8rem))] min-h-[80px]'
+          : 'max-h-[400px] min-h-[80px]'
+      }`}
+      role="listbox"
+      aria-label="Suggerimenti set"
+    >
       {setResultsLoading ? (
         <div className="flex items-center justify-center gap-2 px-4 py-6 text-gray-500">
           <Loader2 className="w-5 h-5 animate-spin" />
@@ -1574,7 +1846,28 @@ function SetsResultsDropdown({
       ) : (
         <div className="px-4 py-4 text-sm text-gray-500">Nessun set trovato.</div>
       )}
-        </div>
+    </div>
+  );
+
+  if (layout === 'composite') {
+    return setsBody;
+  }
+
+  if (!mounted || !position) return null;
+
+  const content = (
+    <>
+      <div
+        className="search-suggestions-panel !rounded-t-none !rounded-b-[20px] md:!rounded-b-[24px]"
+        style={{
+          position: 'fixed',
+          top: position.top,
+          left: position.left,
+          width: position.width,
+          zIndex: 1001,
+        }}
+      >
+        {setsBody}
       </div>
     </>
   );
@@ -1602,6 +1895,7 @@ function SearchWithInstantSearch({
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
   const categoryColumnRef = useRef<HTMLDivElement>(null);
+  const jointRef = useRef<HTMLDivElement>(null);
   const suggestionsAnchorRef = useRef<HTMLDivElement>(null);
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
   const { query, refine } = useSearchBox();
@@ -1718,6 +2012,7 @@ function SearchWithInstantSearch({
   const closePanel = () => {
     setIsOpen(false);
     setDropdownDismissed(true);
+    setCategoryMenuOpen(false);
   };
 
   const handleCategorySelect = useCallback(
@@ -1749,15 +2044,65 @@ function SearchWithInstantSearch({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
+
   const allowAutoDropdownFromText = !pathname.startsWith('/search');
   const showDropdown =
     (selectedGame || isSetsMode) &&
     hasText &&
     !dropdownDismissed;
-  const dropdownContent = showDropdown ? (
+
+  const showOpenStyle = Boolean(
+    isOpen || (!dropdownDismissed && allowAutoDropdownFromText && hasText)
+  );
+  const showComposite = showOpenStyle && categoryMenuOpen && showDropdown;
+
+  const dropdownContent = showComposite ? (
+    <SearchCompositePanel
+      searchContainerRef={triggerRef}
+      categoryColumnRef={categoryColumnRef}
+      jointRef={jointRef}
+      suggestionsAnchorRef={suggestionsAnchorRef}
+      containerRef={dropdownContainerRef}
+      selectedCategory={productCategory}
+      onCategorySelect={handleCategorySelect}
+      onCategoryClose={() => setCategoryMenuOpen(false)}
+      gameSlug={mappedGame}
+    >
+      {isSetsMode ? (
+        <SetsResultsDropdown
+          layout="composite"
+          suggestionsAnchorRef={suggestionsAnchorRef}
+          jointRef={jointRef}
+          containerRef={dropdownContainerRef}
+          setResults={setResults}
+          setResultsLoading={setResultsLoading}
+          onClose={closePanel}
+        />
+      ) : selectedGame ? (
+        <SearchResultsDropdown
+          layout="composite"
+          gameSlug={selectedGame}
+          onSelect={closePanel}
+          containerRef={dropdownContainerRef}
+          suggestionsAnchorRef={suggestionsAnchorRef}
+          jointRef={jointRef}
+          categoryColumnRef={categoryColumnRef}
+          productCategory={productCategory}
+          isTyping={isTyping}
+          typingKey={typingKey}
+          rowDelay={rowDelay}
+          energyLevel={energyLevel}
+          typingVelocity={typingVelocity}
+          streak={streak}
+        />
+      ) : null}
+    </SearchCompositePanel>
+  ) : showDropdown ? (
     isSetsMode ? (
       <SetsResultsDropdown
         suggestionsAnchorRef={suggestionsAnchorRef}
+        jointRef={jointRef}
         containerRef={dropdownContainerRef}
         setResults={setResults}
         setResultsLoading={setResultsLoading}
@@ -1769,6 +2114,7 @@ function SearchWithInstantSearch({
         onSelect={closePanel}
         containerRef={dropdownContainerRef}
         suggestionsAnchorRef={suggestionsAnchorRef}
+        jointRef={jointRef}
         categoryColumnRef={categoryColumnRef}
         productCategory={productCategory}
         isTyping={isTyping}
@@ -1781,15 +2127,24 @@ function SearchWithInstantSearch({
     ) : null
   ) : null;
 
-  const showOpenStyle = Boolean(
-    isOpen || (!dropdownDismissed && allowAutoDropdownFromText && hasText)
-  );
   const triggerBar = (
     <div
       ref={triggerRef}
       className={`search-container flex w-full min-w-[200px] flex-1 items-stretch gap-0 transition-[background-color,border-color,border-radius,box-shadow] duration-200 h-11 min-h-11 max-h-11 md:h-auto md:min-h-0 md:max-h-none ${
         showOpenStyle ? 'search-container--open bg-white' : 'overflow-hidden rounded-[50px]'
-      } ${showDropdown ? 'search-container--dropdown-active' : ''}`}
+      } ${
+        showDropdown || showComposite
+          ? `search-container--dropdown-active !rounded-tl-[20px] !rounded-tr-[20px] !rounded-br-none md:!rounded-tl-[24px] md:!rounded-tr-[24px] ${
+              categoryMenuOpen ? '!rounded-bl-none md:!rounded-bl-none' : '!rounded-bl-[20px] md:!rounded-bl-[24px]'
+            }`
+          : showOpenStyle
+            ? categoryMenuOpen
+              ? '!rounded-full !rounded-bl-none md:!rounded-bl-none'
+              : '!rounded-full'
+            : ''
+      } ${showComposite ? 'search-container--composite-active' : ''}${
+        categoryMenuOpen && showOpenStyle ? ' search-container--category-menu-open' : ''
+      }`}
       style={{ zIndex: 1000 }}
       onClick={() => inputRef.current?.focus()}
     >
@@ -1802,11 +2157,18 @@ function SearchWithInstantSearch({
           onSelect={handleCategorySelect}
           gameSlug={mappedGame}
           isBarOpen={showOpenStyle}
+          open={categoryMenuOpen}
+          onOpenChange={setCategoryMenuOpen}
+          suppressAttachedPortal={showComposite}
+          categoryColumnRef={categoryColumnRef}
+          jointRef={jointRef}
+          searchContainerRef={triggerRef}
         />
       </div>
 
       <div className="search-input-slot">
         <div
+          ref={jointRef}
           aria-hidden="true"
           className={`search-joint ${showOpenStyle ? 'search-joint--open' : ''}`}
         />
