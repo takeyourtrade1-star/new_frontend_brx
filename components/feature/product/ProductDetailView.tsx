@@ -37,6 +37,8 @@ import { ProductScambiPanel } from '@/components/feature/product/ProductScambiPa
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { RarityIndicator } from '@/components/ui/RarityIndicator';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
+import { ModernSellerTable } from '@/components/feature/product/ModernSellerTable';
+import { ModernSellerFilters } from '@/components/feature/product/ModernSellerFilters';
 
 const PRIMARY_BLUE = '#1D3160';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -96,7 +98,7 @@ function ReprintCardPreview({
     return (
       <div
         className={cn(
-          'flex h-16 w-full items-center justify-center rounded-lg bg-zinc-100 text-[10px] font-semibold text-zinc-400',
+          'flex h-20 w-full items-center justify-center rounded-lg bg-zinc-100 text-[11px] font-semibold text-zinc-400',
           className
         )}
       >
@@ -105,13 +107,13 @@ function ReprintCardPreview({
     );
   }
   return (
-    <div className={cn('relative h-16 w-full overflow-hidden rounded-lg bg-zinc-900/[0.04]', className)}>
+    <div className={cn('relative h-20 w-full overflow-hidden rounded-lg bg-zinc-900/[0.04]', className)}>
       <Image
         src={imageSrc}
         alt={alt}
         fill
         className="object-cover object-top"
-        sizes="200px"
+        sizes="240px"
         unoptimized
       />
     </div>
@@ -144,11 +146,11 @@ function ReprintThumbnail({
       {/* Camera icon - top left */}
       {reprint.imageSrc && (
         <div
-          className="absolute left-1 top-1 z-10"
+          className="absolute left-1.5 top-1.5 z-10"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.preventDefault()}
         >
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm">
             <CardImageCameraPeek
               imageUrl={reprint.imageSrc}
               name={reprint.setName}
@@ -164,14 +166,14 @@ function ReprintThumbnail({
       {safeSetIcon && (
         <div
           title={reprint.setName}
-          className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm"
+          className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm"
         >
           <Image
             src={safeSetIcon}
             alt=""
-            width={14}
-            height={14}
-            className="h-[14px] w-[14px] object-contain"
+            width={16}
+            height={16}
+            className="h-4 w-4 object-contain"
             unoptimized
           />
         </div>
@@ -199,23 +201,23 @@ function ReprintListRow({
       className="group relative shrink-0 overflow-hidden rounded-md shadow-sm ring-1 ring-zinc-200/70 transition-all hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       title={`${reprint.setName} • ${reprint.rarity}`}
     >
-      <div className="h-10 w-full">
-        <ReprintCardPreview imageSrc={reprint.imageSrc} alt={reprint.setName} className="h-10" />
+      <div className="h-14 w-full">
+        <ReprintCardPreview imageSrc={reprint.imageSrc} alt={reprint.setName} className="h-14" />
       </div>
       
-      {/* Camera + Set icons in compact chart mode */}
+      {/* Camera + Set icons in chart mode */}
       {reprint.imageSrc && (
         <div
-          className="absolute left-0.5 top-0.5 z-10"
+          className="absolute left-1 top-1 z-10"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.preventDefault()}
         >
-          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white/90 shadow-sm">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/90 shadow-sm">
             <CardImageCameraPeek
               imageUrl={reprint.imageSrc}
               name={reprint.setName}
               previewSide={previewSide}
-              className="!h-3 !w-3"
+              className="!h-3.5 !w-3.5"
               ariaLabel={`Anteprima ${reprint.setName}`}
             />
           </div>
@@ -225,14 +227,14 @@ function ReprintListRow({
       {safeSetIcon && (
         <div
           title={reprint.setName}
-          className="absolute right-0.5 top-0.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 shadow-sm"
+          className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 shadow-sm"
         >
           <Image
             src={safeSetIcon}
             alt=""
-            width={12}
-            height={12}
-            className="h-3 w-3 object-contain"
+            width={14}
+            height={14}
+            className="h-3.5 w-3.5 object-contain"
             unoptimized
           />
         </div>
@@ -277,14 +279,18 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'INFO' | 'VENDI' | 'SCAMBIA' | 'TORNEI' | 'ASTA'>('INFO');
   const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'SCAMBI' | 'ASTE' | 'TCG_EXPRESS'>('VENDITORI');
-  const [filtersOpen, setFiltersOpen] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [soloFoil, setSoloFoil] = useState(false);
-  const [tipoVenditore, setTipoVenditore] = useState<string | null>(null);
-  const [firmata, setFirmata] = useState<'SÌ' | 'NO' | 'ENTRAMBI'>('ENTRAMBI');
-  const [alterata, setAlterata] = useState<'SÌ' | 'NO' | 'ENTRAMBI'>('ENTRAMBI');
-  const [quantita, setQuantita] = useState(33);
-  const [posizioneVenditore, setPosizioneVenditore] = useState<string>(() => COUNTRIES[0].code);
+
+  // Modern filters states
+  const [sortBy, setSortBy] = useState('price_asc');
+  const [selectedCountry, setSelectedCountry] = useState('all');
+  const [showPrivate, setShowPrivate] = useState(true);
+  const [showProfessional, setShowProfessional] = useState(true);
+  const [showPowerSeller, setShowPowerSeller] = useState(true);
+  const [onlyBrxExpress, setOnlyBrxExpress] = useState(false);
+  const [onlySignedCards, setOnlySignedCards] = useState(false);
+  const [minCondition, setMinCondition] = useState('any');
 
   const [headerHeight, setHeaderHeight] = useState(0);
 
@@ -425,9 +431,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     return localStorage.getItem('hideConditionModal') === 'true';
   }, []);
 
-  const CONDIZIONE_OPTIONS = ['Near Mint', 'Lightly Played', 'Moderately Played', 'Heavily Played', 'Damaged'] as const;
-  const [condizioneMinima, setCondizioneMinima] = useState<string>('HT');
-  const [linguaCarta, setLinguaCarta] = useState<string | null>(null);
 
   /* Lightbox per immagine carta fullscreen */
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -461,14 +464,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   };
 
 
-  const LINGUA_CARTA = [
-    { code: 'IT', label: 'Italia' },
-    { code: 'JP', label: 'Giappone' },
-    { code: 'GB', label: 'Regno Unito' },
-    { code: 'ES', label: 'Spagna' },
-    { code: 'DE', label: 'Germania' },
-    { code: 'FR', label: 'Francia' },
-  ] as const;
 
   /** Mappa codice lingua → etichetta per select Lingua (tab VENDI) e per Lingue disponibili (INFO). */
   const LANG_OPTIONS: { code: string; label: string }[] = useMemo(
@@ -795,15 +790,64 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
   const sortedListings = useMemo(() => {
     if (!listings.length) return listings;
-    const sorted = [...listings];
-    switch (listingsSort) {
+    
+    // Apply filters first
+    let filtered = [...listings];
+    
+    // Country filter
+    if (selectedCountry && selectedCountry !== 'all') {
+      filtered = filtered.filter(item => item.country === selectedCountry);
+    }
+    
+    // Seller type filters (mock logic - in production this would come from API data)
+    const allowedSellerTypes = [];
+    if (showPrivate) allowedSellerTypes.push('PRIVATE');
+    if (showProfessional) allowedSellerTypes.push('PROFESSIONAL');
+    if (showPowerSeller) allowedSellerTypes.push('POWERSELLER');
+    
+    // Foil filter
+    if (onlyFoil) {
+      filtered = filtered.filter(item => item.is_foil === true);
+    }
+    
+    // BRX Express filter (mock - first item always has BRX Express)
+    if (onlyBrxExpress) {
+      filtered = filtered.filter((item, index) => index === 0);
+    }
+    
+    // Signed cards filter (mock logic)
+    if (onlySignedCards) {
+      filtered = filtered.filter(() => Math.random() > 0.8); // Mock: randomly show some as signed
+    }
+    
+    // Minimum condition filter
+    if (minCondition && minCondition !== 'any') {
+      const conditionOrder = ['PO', 'PL', 'MP', 'SP', 'NM'];
+      const minIndex = conditionOrder.indexOf(minCondition);
+      if (minIndex !== -1) {
+        filtered = filtered.filter(item => {
+          const itemCondition = item.condition?.replace(/[^a-zA-Z]/g, '').slice(0, 2) ?? 'NM';
+          const mappedCondition = itemCondition === 'Ne' ? 'NM' : 
+                                  itemCondition === 'Li' || itemCondition === 'Sl' ? 'SP' : 
+                                  itemCondition === 'Mo' ? 'MP' : 
+                                  itemCondition === 'He' || itemCondition === 'Pl' ? 'PL' : 
+                                  itemCondition === 'Da' || itemCondition === 'Po' ? 'PO' : 'NM';
+          const itemIndex = conditionOrder.indexOf(mappedCondition);
+          return itemIndex >= minIndex;
+        });
+      }
+    }
+    
+    // Apply sorting
+    const sorted = [...filtered];
+    switch (sortBy) {
       case 'price_asc':
         sorted.sort((a, b) => a.price_cents - b.price_cents);
         break;
       case 'price_desc':
         sorted.sort((a, b) => b.price_cents - a.price_cents);
         break;
-      case 'seller':
+      case 'seller_name':
         sorted.sort((a, b) => a.seller_display_name.localeCompare(b.seller_display_name));
         break;
       case 'condition':
@@ -814,9 +858,24 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
         });
         break;
+      case 'quantity':
+        sorted.sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
+        break;
     }
+    
     return sorted;
-  }, [listings, listingsSort]);
+  }, [
+    listings, 
+    sortBy, 
+    selectedCountry, 
+    showPrivate, 
+    showProfessional, 
+    showPowerSeller, 
+    onlyFoil, 
+    onlyBrxExpress, 
+    onlySignedCards, 
+    minCondition
+  ]);
 
   const formatEuro = (n: number) => formatEuroNoSpace(n, 'it-IT');
 
@@ -1202,13 +1261,13 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400 tabular-nums">{reprints.length}</span>
                     </div>
                     {reprintsLoading ? (
-                      <div className="grid max-h-48 flex-1 grid-cols-2 gap-1.5 overflow-hidden">
+                      <div className="grid max-h-56 flex-1 grid-cols-2 gap-2 overflow-hidden">
                         {[...Array(6)].map((_, i) => (
-                          <div key={i} className="h-16 rounded-lg bg-zinc-100 animate-pulse" />
+                          <div key={i} className="h-20 rounded-lg bg-zinc-100 animate-pulse" />
                         ))}
                       </div>
                     ) : reprints.length > 0 ? (
-                      <div className="grid max-h-48 flex-1 grid-cols-2 gap-1.5 overflow-y-auto overscroll-contain pr-0.5">
+                      <div className="grid max-h-56 flex-1 grid-cols-2 gap-2 overflow-y-auto overscroll-contain pr-0.5">
                         {reprints.map((r, i) => (
                           <ReprintThumbnail key={r.id} reprint={r} columnIndex={i} />
                         ))}
@@ -1310,21 +1369,21 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
                     {reprintsLoading ? (
                       showChart ? (
-                        <div className="flex max-h-44 min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
+                        <div className="flex max-h-60 min-h-0 flex-1 flex-col gap-1 overflow-hidden">
                           {[...Array(4)].map((_, i) => (
-                            <div key={i} className="h-10 shrink-0 rounded-md bg-zinc-100 animate-pulse" />
+                            <div key={i} className="h-14 shrink-0 rounded-md bg-zinc-100 animate-pulse" />
                           ))}
                         </div>
                       ) : (
-                        <div className="grid max-h-44 min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-hidden">
+                        <div className="grid max-h-60 min-h-0 flex-1 grid-cols-2 gap-2 overflow-hidden">
                           {[...Array(6)].map((_, i) => (
-                            <div key={i} className="h-16 rounded-lg bg-zinc-100 animate-pulse" />
+                            <div key={i} className="h-20 rounded-lg bg-zinc-100 animate-pulse" />
                           ))}
                         </div>
                       )
                     ) : reprints.length > 0 ? (
                       showChart ? (
-                        <div className="flex max-h-44 min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain pr-0.5">
+                        <div className="flex max-h-60 min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain pr-0.5">
                           {reprints.map((reprint, i) => (
                             <ReprintListRow
                               key={reprint.id}
@@ -1335,7 +1394,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           ))}
                         </div>
                       ) : (
-                        <div className="grid max-h-44 min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-y-auto overscroll-contain pr-0.5">
+                        <div className="grid max-h-60 min-h-0 flex-1 grid-cols-2 gap-2 overflow-y-auto overscroll-contain pr-0.5">
                           {reprints.map((reprint, i) => (
                             <ReprintThumbnail key={reprint.id} reprint={reprint} columnIndex={i} />
                           ))}
@@ -1812,190 +1871,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       {/* Sezione FILTRI a fianco della tabella (sinistra) + tab IN VENDITA | DISPONIBILI ALL'ASTA + tabella – filtri in striscia stretta quando chiusi, pannello pieno quando aperti */}
       <section className="w-full bg-[#F0F0F0] border-t border-gray-300">
         <div className="container-content container-content-card-detail py-2.5 sm:py-3 lg:py-4">
-          <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch">
-            {/* Sidebar FILTRI – subito a sinistra della tabella: striscia stretta quando chiusa, pannello largo quando aperta */}
-            <aside
-              className={cn(
-                'flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-out',
-                filtersOpen ? 'w-full lg:w-[280px] xl:w-[300px]' : 'w-full lg:w-14'
-              )}
-            >
-              {!filtersOpen ? (
-                <button
-                  type="button"
-                  onClick={() => setFiltersOpen(true)}
-                  className="w-full lg:h-full lg:min-h-[200px] flex items-center justify-center gap-2 lg:flex-col lg:gap-1.5 rounded-lg border border-gray-200 bg-white p-2 shadow-sm hover:bg-gray-50 transition-colors"
-                  aria-label="Apri filtri"
-                >
-                  {/* MOBILE: Layout orizzontale compatto */}
-                  <svg className="h-4 w-4 text-gray-600 shrink-0 lg:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                  </svg>
-                  <span className="text-xs font-bold uppercase text-gray-600 lg:hidden">Filtri</span>
-                  {/* DESKTOP: Layout verticale - icona sopra, testo sotto */}
-                  <svg className="h-5 w-5 text-gray-600 shrink-0 hidden lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                  </svg>
-                  <span className="text-[10px] font-bold uppercase text-zinc-600 hidden lg:inline leading-none">FILTRI</span>
-                </button>
-              ) : (
-              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm h-full min-w-0">
-                <div className="flex items-center justify-between gap-2 mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold uppercase text-gray-900">Filtri</span>
-                    <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                    </svg>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setFiltersOpen(false)}
-                    className="flex items-center justify-center rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-                    aria-label="Chiudi filtri"
-                  >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  <div className="lg:hidden">
-                    <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Ordina</label>
-                    <select
-                      value={listingsSort}
-                      onChange={(e) => setListingsSort(e.target.value as typeof listingsSort)}
-                      className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700"
-                    >
-                      <option value="price_asc">Prezzo: più basso</option>
-                      <option value="price_desc">Prezzo: più alto</option>
-                      <option value="seller">Venditore: A-Z</option>
-                      <option value="condition">Condizione: migliore</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Posizione venditore</label>
-                    <CountrySelect
-                      options={countryOptions}
-                      value={posizioneVenditore}
-                      onChange={setPosizioneVenditore}
-                      size="sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Tipo venditore</label>
-                    <div className="flex flex-wrap gap-2">
-                      {(['PRIVATO', 'PROFESSIONALE', 'POWERSELLER'] as const).map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setTipoVenditore(tipoVenditore === t ? null : t)}
-                          className={cn(
-                            'rounded-full px-3 py-1.5 text-xs font-bold uppercase',
-                            tipoVenditore === t ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          )}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Condizione minima</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {CONDIZIONE_OPTIONS.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => setCondizioneMinima(c)}
-                          className={cn(
-                            'rounded-full px-2.5 py-1 text-xs font-bold',
-                            condizioneMinima === c ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          )}
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Lingua carta</label>
-                    <div className="flex flex-wrap gap-2">
-                      {LINGUA_CARTA.map(({ code }) => (
-                        <button
-                          key={code}
-                          type="button"
-                          onClick={() => setLinguaCarta(linguaCarta === code ? null : code)}
-                          className={cn(
-                            'flex h-8 w-10 items-center justify-center rounded border text-sm',
-                            linguaCarta === code ? 'border-[#FF8800] bg-orange-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
-                          )}
-                          title={code}
-                        >
-                          {code === 'IT' && '🇮🇹'}
-                          {code === 'JP' && '🇯🇵'}
-                          {code === 'GB' && '🇬🇧'}
-                          {code === 'ES' && '🇪🇸'}
-                          {code === 'DE' && '🇩🇪'}
-                          {code === 'FR' && '🇫🇷'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Firmata</label>
-                    <div className="flex flex-wrap gap-2">
-                      {(['SÌ', 'NO', 'ENTRAMBI'] as const).map((v) => (
-                        <button key={v} type="button" onClick={() => setFirmata(v)} className={cn('rounded-full px-3 py-1.5 text-xs font-bold', firmata === v ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300')}>{v}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Alterata</label>
-                    <div className="flex flex-wrap gap-2">
-                      {(['SÌ', 'NO', 'ENTRAMBI'] as const).map((v) => (
-                        <button key={v} type="button" onClick={() => setAlterata(v)} className={cn('rounded-full px-3 py-1.5 text-xs font-bold', alterata === v ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300')}>{v}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Quantità</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={quantita}
-                      onChange={(e) => setQuantita(Number(e.target.value) || 1)}
-                      className="w-full rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm"
-                      placeholder="Inserire quantità"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase text-gray-600">Solo foil?</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={soloFoil}
-                      onClick={() => setSoloFoil(!soloFoil)}
-                      className={cn(
-                        'relative inline-flex h-7 w-[52px] shrink-0 cursor-pointer items-center rounded-full transition-all duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8800]/40',
-                        soloFoil
-                          ? 'bg-[#FF8800] shadow-[inset_0_1px_2px_rgba(0,0,0,0.15),0_0_12px_rgba(255,136,0,0.45)]'
-                          : 'bg-gray-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]'
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'inline-block h-6 w-6 transform rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.22),0_0_2px_rgba(0,0,0,0.08)] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] will-change-transform',
-                          soloFoil ? 'translate-x-6' : 'translate-x-0.5'
-                        )}
-                        aria-hidden
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              )}
-            </aside>
-
+          <div className="w-full">
             {/* Marketplace: IN VENDITA | SCAMBI | ASTE | BRX Express */}
             <div className="flex-1 min-w-0 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
               <div
@@ -2087,241 +1963,52 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   id="pd-market-panel-VENDITORI"
                   role="tabpanel"
                   aria-labelledby="pd-market-tab-VENDITORI"
-                  className="overflow-x-auto animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  className="animate-in fade-in slide-in-from-bottom-2 duration-300"
                 >
+                  {/* Modern Filters */}
+                  <ModernSellerFilters
+                    sortBy={sortBy}
+                    setSortBy={setSortBy}
+                    selectedCountry={selectedCountry}
+                    setSelectedCountry={setSelectedCountry}
+                    showPrivate={showPrivate}
+                    setShowPrivate={setShowPrivate}
+                    showProfessional={showProfessional}
+                    setShowProfessional={setShowProfessional}
+                    showPowerSeller={showPowerSeller}
+                    setShowPowerSeller={setShowPowerSeller}
+                    onlyFoil={soloFoil}
+                    setOnlyFoil={setSoloFoil}
+                    onlyBrxExpress={onlyBrxExpress}
+                    setOnlyBrxExpress={setOnlyBrxExpress}
+                    onlySignedCards={onlySignedCards}
+                    setOnlySignedCards={setOnlySignedCards}
+                    minCondition={minCondition}
+                    setMinCondition={setMinCondition}
+                  />
+                  
                   {listingActionMessage && (
                     <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">{listingActionMessage}</div>
                   )}
-                  {/* Desktop Table */}
-                  <table className="hidden sm:table w-full table-fixed text-left text-sm">
-                    <colgroup>
-                      <col style={{ width: '33.33%' }} />
-                      <col style={{ width: '33.33%' }} />
-                      <col style={{ width: '33.34%' }} />
-                    </colgroup>
-                    <thead>
-                      <tr className="text-xs font-medium uppercase tracking-wide text-gray-500 bg-gray-50 border-b border-gray-200">
-                        <th className="px-4 py-2.5 text-center">Venditore</th>
-                        <th className="px-4 py-2.5 text-center">Informazioni prodotto</th>
-                        <th className="px-4 py-2.5 text-center">Offerta</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {listingsLoading && (
-                        <tr>
-                          <td colSpan={3} className="px-4 py-6 text-center text-sm text-gray-500">
-                            Caricamento venditori…
-                          </td>
-                        </tr>
-                      )}
-                      {!listingsLoading && listingsError && (
-                        <tr>
-                          <td colSpan={3} className="px-4 py-6 text-center text-sm text-amber-600">
-                            {listingsError}
-                          </td>
-                        </tr>
-                      )}
-                      {!listingsLoading && !listingsError && listings.length === 0 && (
-                        <tr>
-                          <td colSpan={3} className="px-4 py-8 text-center text-sm text-gray-600">
-                            Presto ci saranno articoli in vendita disponibili.
-                          </td>
-                        </tr>
-                      )}
-                      {!listingsLoading && !listingsError && listings.map((item, i) => (
-                        <tr key={item.item_id} className={cn('align-middle', i % 2 === 0 ? 'bg-gray-50' : 'bg-white')}>
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-2">
-                              <span className="min-w-0 truncate text-sm font-medium uppercase text-gray-900">{item.seller_display_name}</span>
-                              {item.country && <FlagIcon country={item.country} size="sm" />}
-                              <Image src={getCdnImageUrl('medal.png')} alt="" width={24} height={24} className="h-6 w-6 shrink-0 object-contain" aria-hidden unoptimized />
-                            </div>
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-2">
-                              <span className="inline-flex h-[22px] min-w-[44px] items-center justify-center rounded-full px-2.5 text-xs font-bold text-white" style={{ backgroundColor: '#1D3160' }}>MT</span>
-                              <Image src={getCdnImageUrl('star.png')} alt="" width={24} height={24} className="h-6 w-6 shrink-0 object-contain" aria-hidden unoptimized />
-                              <span className="text-sm text-gray-700">{item.condition ?? '—'}</span>
-                              {item.mtg_language && <span className="text-xs text-gray-500">({item.mtg_language})</span>}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-2 justify-end flex-wrap">
-                              <span className="text-sm font-semibold text-blue-600 tabular-nums">{formatEuro(item.price_cents / 100)}</span>
-                              <span className="text-sm text-gray-600 tabular-nums">{item.quantity}</span>
-                              {isOwnListing(item) ? (
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    disabled={rowBusyId === item.item_id}
-                                    onClick={() => void handleOwnerQtyDelta(item, -1)}
-                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-500 text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50"
-                                    aria-label="Diminuisci quantità o rimuovi"
-                                    title="Diminuisci quantità o rimuovi"
-                                  >
-                                    {rowBusyId === item.item_id ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Minus className="h-4 w-4" strokeWidth={2.5} />
-                                    )}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={rowBusyId === item.item_id || item.quantity >= 999}
-                                    onClick={() => void handleOwnerQtyDelta(item, 1)}
-                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
-                                    aria-label="Aumenta quantità"
-                                    title="Aumenta quantità"
-                                  >
-                                    <Plus className="h-4 w-4" strokeWidth={2.5} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditingItem(listingToInventoryEditItem(item, card ?? null))}
-                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-400 text-gray-900 shadow-sm transition hover:bg-amber-500"
-                                    aria-label="Modifica inserzione"
-                                    title="Modifica inserzione"
-                                  >
-                                    <Pencil className="h-4 w-4" strokeWidth={2.5} />
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    if (!user || !accessToken) {
-                                      setListingActionMessage('Accedi per aggiungere al carrello.');
-                                      return;
-                                    }
-                                    openQtyPopup(item, e.currentTarget, cardImages[currentImageIndex]);
-                                  }}
-                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#FF7300]/40 bg-white shadow-sm transition hover:bg-orange-50"
-                                  aria-label="Aggiungi al carrello"
-                                  style={{ color: '#FF7300' }}
-                                >
-                                  <Image src={getCdnImageUrl('cart-icon.png')} alt="" width={22} height={22} className="h-5 w-5 object-contain" unoptimized />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {/* Mobile Cards */}
-                  <div className="sm:hidden">
-                    {listingsLoading && (
-                      <div className="divide-y divide-gray-200">
-                        {[...Array(3)].map((_, i) => (
-                          <div key={i} className={cn('px-4 py-4', i % 2 === 0 ? 'bg-gray-50' : 'bg-white')}>
-                            {/* Skeleton Header */}
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-                                <div className="h-5 w-5 bg-gray-200 rounded animate-pulse" />
-                              </div>
-                              <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
-                            </div>
-                            {/* Skeleton Info Row */}
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="h-5 w-10 bg-gray-200 rounded-full animate-pulse" />
-                              <div className="h-5 w-5 bg-gray-200 rounded animate-pulse" />
-                              <div className="h-4 w-12 bg-gray-200 rounded animate-pulse" />
-                              <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" />
-                            </div>
-                            {/* Skeleton Action Row */}
-                            <div className="flex items-center justify-between">
-                              <div className="h-4 w-12 bg-gray-200 rounded animate-pulse" />
-                              <div className="h-9 w-9 bg-gray-200 rounded-full animate-pulse" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {!listingsLoading && listingsError && (
-                      <div className="px-4 py-6 text-center text-sm text-amber-600">
-                        {listingsError}
-                      </div>
-                    )}
-                    {!listingsLoading && !listingsError && sortedListings.length === 0 && (
-                      <div className="px-4 py-8 text-center text-sm text-gray-600">
-                        Presto ci saranno articoli in vendita disponibili.
-                      </div>
-                    )}
-                    {!listingsLoading && !listingsError && sortedListings.map((item, i) => (
-                      <div key={item.item_id} className={cn('px-4 py-4 border-b border-gray-200', i % 2 === 0 ? 'bg-gray-50' : 'bg-white')}>
-                        {/* Header: Venditore + Badge + Price */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-sm font-medium uppercase text-gray-900 truncate">{item.seller_display_name}</span>
-                            <Image src={getCdnImageUrl('medal.png')} alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" aria-hidden unoptimized />
-                          </div>
-                          <span className="text-sm font-semibold text-blue-600 tabular-nums shrink-0">{formatEuro(item.price_cents / 100)}</span>
-                        </div>
-                        {/* Info Row */}
-                        <div className="flex items-center gap-2 mb-3 flex-wrap">
-                          <span className="inline-flex h-[20px] min-w-[40px] items-center justify-center rounded-full px-2 text-xs font-bold text-white" style={{ backgroundColor: '#1D3160' }}>MT</span>
-                          <Image src={getCdnImageUrl('star.png')} alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" aria-hidden unoptimized />
-                          <span className="text-sm text-gray-700">{item.condition ?? '—'}</span>
-                          {item.mtg_language && <span className="text-xs text-gray-500">({item.mtg_language})</span>}
-                          {item.country && <FlagIcon country={item.country} size="xs" />}
-                        </div>
-                        {/* Action Row */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Qty: {item.quantity}</span>
-                          {isOwnListing(item) ? (
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                disabled={rowBusyId === item.item_id}
-                                onClick={() => void handleOwnerQtyDelta(item, -1)}
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-500 text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50"
-                                aria-label="Diminuisci quantità o rimuovi"
-                              >
-                                {rowBusyId === item.item_id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Minus className="h-4 w-4" strokeWidth={2.5} />
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                disabled={rowBusyId === item.item_id || item.quantity >= 999}
-                                onClick={() => void handleOwnerQtyDelta(item, 1)}
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
-                                aria-label="Aumenta quantità"
-                              >
-                                <Plus className="h-4 w-4" strokeWidth={2.5} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditingItem(listingToInventoryEditItem(item, card ?? null))}
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-400 text-gray-900 shadow-sm transition hover:bg-amber-500"
-                                aria-label="Modifica inserzione"
-                              >
-                                <Pencil className="h-4 w-4" strokeWidth={2.5} />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                if (!user || !accessToken) {
-                                  setListingActionMessage('Accedi per aggiungere al carrello.');
-                                  return;
-                                }
-                                openQtyPopup(item, e.currentTarget, cardImages[currentImageIndex]);
-                              }}
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#FF8800]/40 bg-white shadow-sm transition hover:bg-orange-50"
-                              aria-label="Aggiungi al carrello"
-                              style={{ color: ACCENT_ORANGE }}
-                            >
-                              <Image src={getCdnImageUrl('cart-icon.png')} alt="" width={22} height={22} className="h-5 w-5 object-contain" unoptimized />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                  
+                  {/* Modern Seller Table */}
+                  <div className="p-4">
+                    <ModernSellerTable
+                      listings={sortedListings}
+                      loading={listingsLoading}
+                      error={listingsError}
+                      onAddToCart={(item, event) => {
+                        if (!user || !accessToken) {
+                          setListingActionMessage('Accedi per aggiungere al carrello.');
+                          return;
+                        }
+                        openQtyPopup(item, event.currentTarget, cardImages[currentImageIndex]);
+                      }}
+                      isOwnListing={isOwnListing}
+                      onOwnerEdit={(item) => setEditingItem(listingToInventoryEditItem(item, card ?? null))}
+                      onOwnerQuantityChange={handleOwnerQtyDelta}
+                      busyItemId={rowBusyId}
+                    />
                   </div>
                 </div>
               )}
