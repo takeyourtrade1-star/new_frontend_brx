@@ -408,64 +408,32 @@ const INLINE_PREVIEW_WIDTH = 200;
 const INLINE_PREVIEW_MIN_WIDTH = 140;
 const INLINE_PREVIEW_ASPECT_RATIO = 88 / 63;
 const INLINE_PREVIEW_MARGIN = 8;
-const INLINE_PREVIEW_GAP = 8;
 
-/** Rileva se siamo su schermo mobile (sotto i 768px) */
-function isMobileScreen(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.innerWidth < 768;
-}
-
-function getInlinePreviewLayout(
-  anchorRect: DOMRect,
+function getLeftColumnPreviewLayout(
+  categoryColumnRect: DOMRect,
+  rowRect: DOMRect,
   preferredWidth: number
 ): { left: number; top: number; width: number } {
-  if (typeof window === 'undefined') {
-    return {
-      left: anchorRect.left - preferredWidth - INLINE_PREVIEW_GAP,
-      top: anchorRect.top,
-      width: preferredWidth,
-    };
-  }
-
-  const isMobile = isMobileScreen();
-  const width = Math.max(INLINE_PREVIEW_MIN_WIDTH, Math.min(preferredWidth, anchorRect.width));
+  const columnPadding = 6;
+  const availableWidth = Math.max(
+    categoryColumnRect.width - columnPadding * 2,
+    INLINE_PREVIEW_MIN_WIDTH
+  );
+  const width = Math.max(
+    INLINE_PREVIEW_MIN_WIDTH,
+    Math.min(preferredWidth, availableWidth)
+  );
   const previewHeight = width * INLINE_PREVIEW_ASPECT_RATIO;
 
-  let left: number;
-  let top: number;
+  const left = categoryColumnRect.left + (categoryColumnRect.width - width) / 2;
+  let top = rowRect.top + (rowRect.height - previewHeight) / 2;
 
-  if (isMobile) {
-    // Su mobile: posiziona sotto il bottone, centrato
-    left = anchorRect.left + (anchorRect.width - width) / 2;
-    top = anchorRect.bottom + INLINE_PREVIEW_GAP;
-
-    // Se non c'è spazio sotto, mettilo sopra
-    if (top + previewHeight > window.innerHeight - INLINE_PREVIEW_MARGIN) {
-      top = anchorRect.top - previewHeight - INLINE_PREVIEW_GAP;
-    }
-
-    // Contenimento orizzontale
-    left = Math.max(
+  if (typeof window !== 'undefined') {
+    top = Math.max(
       INLINE_PREVIEW_MARGIN,
-      Math.min(left, window.innerWidth - width - INLINE_PREVIEW_MARGIN)
+      Math.min(top, window.innerHeight - previewHeight - INLINE_PREVIEW_MARGIN)
     );
-  } else {
-    // Desktop: posiziona a sinistra del bottone
-    left = anchorRect.left - width - INLINE_PREVIEW_GAP;
-
-    // Se non c'è spazio a sinistra, fallback a destra
-    if (left < INLINE_PREVIEW_MARGIN) {
-      left = anchorRect.right + INLINE_PREVIEW_GAP;
-    }
-
-    top = anchorRect.top + (anchorRect.height - previewHeight) / 2;
   }
-
-  top = Math.max(
-    INLINE_PREVIEW_MARGIN,
-    Math.min(top, window.innerHeight - previewHeight - INLINE_PREVIEW_MARGIN)
-  );
 
   return { left, top, width };
 }
@@ -718,8 +686,8 @@ function SearchResultsDropdown({
   gameSlug,
   onSelect,
   containerRef,
-  anchorRef,
-  inputValue,
+  suggestionsAnchorRef,
+  categoryColumnRef,
   productCategory,
   position: dropdownPosition = 'bottom',
   isTyping = false,
@@ -732,9 +700,8 @@ function SearchResultsDropdown({
   gameSlug: GameSlug;
   onSelect: () => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
-  anchorRef: React.RefObject<HTMLDivElement | null>;
-  /** Valore attuale dell'input (per mostrare suggerimenti subito mentre digiti, prima che query InstantSearch si aggiorni) */
-  inputValue?: string;
+  suggestionsAnchorRef: React.RefObject<HTMLDivElement | null>;
+  categoryColumnRef: React.RefObject<HTMLDivElement | null>;
   productCategory: CategoryKey | null;
   position?: 'top' | 'bottom';
   isTyping?: boolean;
@@ -761,16 +728,14 @@ function SearchResultsDropdown({
   }, []);
 
   useLayoutEffect(() => {
-    if (!anchorRef.current) return;
-    const anchorEl = anchorRef.current;
+    if (!suggestionsAnchorRef.current) return;
+    const anchorEl = suggestionsAnchorRef.current;
     const update = () => {
       if (anchorEl) {
         const rect = anchorEl.getBoundingClientRect();
         if (dropdownPosition === 'top') {
-          // Dropdown sopra la barra
           setPosition({ top: rect.top, left: rect.left, width: rect.width });
         } else {
-          // Dropdown sotto la barra (default)
           setPosition({ top: rect.bottom, left: rect.left, width: rect.width });
         }
       }
@@ -791,7 +756,7 @@ function SearchResultsDropdown({
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
-  }, [anchorRef, dropdownPosition]);
+  }, [suggestionsAnchorRef, dropdownPosition]);
 
   const showInlinePreview = (url: string, name: string, buttonRect: DOMRect) => {
     if (closeTimeoutRef.current) {
@@ -813,13 +778,15 @@ function SearchResultsDropdown({
     }
   };
 
-  const queryTrimmed = (query ?? '').trim();
-  const inputTrimmed = (inputValue ?? '').trim();
-  const hasQuery = queryTrimmed.length > 0 || inputTrimmed.length > 0;
   const hasHits = hits.length > 0;
-  const inlinePreviewLayout = inlinePreview
-    ? getInlinePreviewLayout(inlinePreview.rect, INLINE_PREVIEW_WIDTH)
-    : null;
+  const inlinePreviewLayout =
+    inlinePreview && categoryColumnRef.current
+      ? getLeftColumnPreviewLayout(
+          categoryColumnRef.current.getBoundingClientRect(),
+          inlinePreview.rect,
+          INLINE_PREVIEW_WIDTH
+        )
+      : null;
 
   if (!position) return null;
 
@@ -847,8 +814,6 @@ function SearchResultsDropdown({
             <Loader2 className="w-5 h-5 animate-spin" />
             <span className="text-sm">Ricerca in corso...</span>
           </div>
-        ) : !hasQuery ? (
-          <div className="px-4 py-4 text-sm text-gray-500">Digita per cercare carte</div>
         ) : hasHits ? (
           <>
             <div
@@ -1496,18 +1461,16 @@ function SetSearchResultRow({
 }
 
 function SetsResultsDropdown({
-  anchorRef,
+  suggestionsAnchorRef,
   containerRef,
   localValue,
-  selectedGame,
   setResults,
   setResultsLoading,
   onClose,
 }: {
-  anchorRef: React.RefObject<HTMLDivElement | null>;
+  suggestionsAnchorRef: React.RefObject<HTMLDivElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   localValue: string;
-  selectedGame: GameSlug | null;
   setResults: SetResult[];
   setResultsLoading: boolean;
   onClose: () => void;
@@ -1521,8 +1484,8 @@ function SetsResultsDropdown({
   }, []);
 
   useLayoutEffect(() => {
-    if (!anchorRef.current) return;
-    const anchorEl = anchorRef.current;
+    if (!suggestionsAnchorRef.current) return;
+    const anchorEl = suggestionsAnchorRef.current;
     const update = () => {
       if (anchorEl) {
         const rect = anchorEl.getBoundingClientRect();
@@ -1543,7 +1506,7 @@ function SetsResultsDropdown({
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
-  }, [anchorRef]);
+  }, [suggestionsAnchorRef]);
 
   if (!mounted || !position) return null;
 
@@ -1581,12 +1544,8 @@ function SetsResultsDropdown({
             />
           ))}
         </div>
-      ) : localValue.trim() ? (
-        <div className="px-4 py-4 text-sm text-gray-500">Nessun set trovato.</div>
       ) : (
-        <div className="px-4 py-4 text-sm text-gray-500">
-          {selectedGame ? 'Digita per cercare set' : 'Seleziona un gioco e digita per cercare set'}
-        </div>
+        <div className="px-4 py-4 text-sm text-gray-500">Nessun set trovato.</div>
       )}
     </div>
   );
@@ -1613,6 +1572,8 @@ function SearchWithInstantSearch({
   const [dropdownDismissed, setDropdownDismissed] = useState(() => pathname.startsWith('/search'));
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
+  const categoryColumnRef = useRef<HTMLDivElement>(null);
+  const suggestionsAnchorRef = useRef<HTMLDivElement>(null);
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
   const { query, refine } = useSearchBox();
   const refineRef = useRef(refine);
@@ -1759,19 +1720,17 @@ function SearchWithInstantSearch({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Su /search non aprire automaticamente suggerimenti al mount con query in URL.
   const allowAutoDropdownFromText = !pathname.startsWith('/search');
   const showDropdown =
     (selectedGame || isSetsMode) &&
-    (isOpen || (allowAutoDropdownFromText && hasText)) &&
+    hasText &&
     !dropdownDismissed;
   const dropdownContent = showDropdown ? (
     isSetsMode ? (
       <SetsResultsDropdown
-        anchorRef={triggerRef}
+        suggestionsAnchorRef={suggestionsAnchorRef}
         containerRef={dropdownContainerRef}
         localValue={localValue}
-        selectedGame={selectedGame}
         setResults={setResults}
         setResultsLoading={setResultsLoading}
         onClose={closePanel}
@@ -1781,8 +1740,8 @@ function SearchWithInstantSearch({
         gameSlug={selectedGame}
         onSelect={closePanel}
         containerRef={dropdownContainerRef}
-        anchorRef={triggerRef}
-        inputValue={localValue}
+        suggestionsAnchorRef={suggestionsAnchorRef}
+        categoryColumnRef={categoryColumnRef}
         productCategory={productCategory}
         isTyping={isTyping}
         typingKey={typingKey}
@@ -1794,7 +1753,6 @@ function SearchWithInstantSearch({
     ) : null
   ) : null;
 
-  // Stile "aperto" (bianco, bordo): barra bianca quando aperta o quando c'è testo
   const showOpenStyle = Boolean(
     isOpen || (!dropdownDismissed && allowAutoDropdownFromText && hasText)
   );
@@ -1810,7 +1768,10 @@ function SearchWithInstantSearch({
       onClick={() => inputRef.current?.focus()}
     >
       {/* Menu a tendina Categorie Prodotto visibile sempre */}
-      <div className="flex h-full shrink-0 items-center justify-center pl-0">
+      <div
+        ref={categoryColumnRef}
+        className="flex h-full shrink-0 items-center justify-center pl-0"
+      >
         <ProductCategoryButton
           selectedCategory={productCategory}
           onSelect={handleCategorySelect}
@@ -1820,59 +1781,66 @@ function SearchWithInstantSearch({
       </div>
 
       <div
-        aria-hidden="true"
-        className={`mx-1.5 my-auto h-6 w-px shrink-0 md:mx-2 md:h-7 ${
-          showOpenStyle ? 'bg-gray-300' : 'bg-white/30'
-        }`}
-      />
-
-      <div className="relative min-h-0 min-w-0 flex-1">
-        <AnimatedSearchPlaceholder
-          visible={!hasText}
-          isDark={showOpenStyle}
+        ref={suggestionsAnchorRef}
+        className="flex min-h-0 min-w-0 flex-1 items-stretch"
+      >
+        <div
+          aria-hidden="true"
+          className={`mx-1.5 my-auto h-6 w-px shrink-0 md:mx-2 md:h-7 ${
+            showOpenStyle ? 'bg-gray-300' : 'bg-white/30'
+          }`}
         />
-        <input
-          ref={inputRef}
-          type="text"
-          value={localValue}
-          onChange={(e) => {
-            const v = e.target.value;
-            setLocalValue(v);
-            refine(v);
-            // Rainbow Road: trigger typing wave with adaptive speed
-            const now = Date.now();
-            const gap = now - lastKeystrokeRef.current;
-            lastKeystrokeRef.current = now;
-            // Clamp: fast typing (gap < 80ms) → 30ms delay, slow (gap > 400ms) → 120ms
-            const adaptive = gap > 0 && gap < 600
-              ? Math.round(30 + (90 * Math.min(Math.max(gap - 60, 0), 340)) / 340)
-              : 80;
-            setRowDelay(adaptive);
-            setIsTyping(true);
-            setTypingKey((k) => k + 1);
-            
-            // Gamification: typing velocity and energy
-            keystrokeTimesRef.current = keystrokeTimesRef.current.filter(t => now - t < 1000);
-            keystrokeTimesRef.current.push(now);
-            const velocity = Math.min(keystrokeTimesRef.current.length / 8, 1);
-            setTypingVelocity(velocity);
-            setEnergyLevel(prev => Math.min(prev + 0.12, 1));
-            setStreak(prev => Math.min(prev + 1, 15));
-            if (energyDecayRef.current) clearTimeout(energyDecayRef.current);
-            energyDecayRef.current = setTimeout(() => {
-              setEnergyLevel(prev => Math.max(prev - 0.08, 0));
-              setStreak(0);
-            }, 150);
-            
-            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-            typingTimeoutRef.current = setTimeout(() => {
-              setIsTyping(false);
-              setEnergyLevel(0);
-              setStreak(0);
-              setTypingVelocity(0);
-              keystrokeTimesRef.current = [];
-            }, 1300);
-          }}
+
+        <div className="relative min-h-0 min-w-0 flex-1">
+          <AnimatedSearchPlaceholder
+            visible={!hasText}
+            isDark={showOpenStyle}
+          />
+          <input
+            ref={inputRef}
+            type="text"
+            value={localValue}
+            onChange={(e) => {
+              const v = e.target.value;
+              setLocalValue(v);
+              refine(v);
+              if (v.trim()) {
+                setDropdownDismissed(false);
+              }
+              // Rainbow Road: trigger typing wave with adaptive speed
+              const now = Date.now();
+              const gap = now - lastKeystrokeRef.current;
+              lastKeystrokeRef.current = now;
+              // Clamp: fast typing (gap < 80ms) → 30ms delay, slow (gap > 400ms) → 120ms
+              const adaptive = gap > 0 && gap < 600
+                ? Math.round(30 + (90 * Math.min(Math.max(gap - 60, 0), 340)) / 340)
+                : 80;
+              setRowDelay(adaptive);
+              setIsTyping(true);
+              setTypingKey((k) => k + 1);
+
+              // Gamification: typing velocity and energy
+              keystrokeTimesRef.current = keystrokeTimesRef.current.filter(t => now - t < 1000);
+              keystrokeTimesRef.current.push(now);
+              const velocity = Math.min(keystrokeTimesRef.current.length / 8, 1);
+              setTypingVelocity(velocity);
+              setEnergyLevel(prev => Math.min(prev + 0.12, 1));
+              setStreak(prev => Math.min(prev + 1, 15));
+              if (energyDecayRef.current) clearTimeout(energyDecayRef.current);
+              energyDecayRef.current = setTimeout(() => {
+                setEnergyLevel(prev => Math.max(prev - 0.08, 0));
+                setStreak(0);
+              }, 150);
+
+              if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+              typingTimeoutRef.current = setTimeout(() => {
+                setIsTyping(false);
+                setEnergyLevel(0);
+                setStreak(0);
+                setTypingVelocity(0);
+                keystrokeTimesRef.current = [];
+              }, 1300);
+            }}
           onFocus={openPanel}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -1886,51 +1854,52 @@ function SearchWithInstantSearch({
           className={`h-full w-full border-0 bg-transparent px-3 py-0 text-[16px] leading-normal outline-none font-sans transition-colors duration-200 md:px-4 md:py-2.5 md:text-sm ${
             showOpenStyle ? 'text-gray-900' : 'text-white'
           } search-input-orange-placeholder`}
-          aria-label="Cerca carte"
-          autoComplete="off"
-        />
-      </div>
-      <div
-        className="search-right flex h-full flex-shrink-0 items-center gap-1 pr-1.5 md:pr-2"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {localValue && (
-          <button
-            type="button"
-            onClick={handleClear}
+            aria-label="Cerca carte"
+            autoComplete="off"
+          />
+        </div>
+        <div
+          className="search-right flex h-full flex-shrink-0 items-center gap-1 pr-1.5 md:pr-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {localValue && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200 md:h-9 md:w-9 ${
+                showOpenStyle
+                  ? 'text-gray-400 hover:bg-orange-50 hover:text-orange-500'
+                  : 'text-white/40 hover:bg-white/10 hover:text-white'
+              }`}
+              aria-label="Cancella ricerca"
+            >
+              <X className="h-4 w-4 md:h-5 md:w-5" />
+            </button>
+          )}
+          <Link
+            href="/scanner"
             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200 md:h-9 md:w-9 ${
               showOpenStyle
-                ? 'text-gray-400 hover:bg-orange-50 hover:text-orange-500'
-                : 'text-white/40 hover:bg-white/10 hover:text-white'
+                ? 'text-[#FF7300] hover:bg-orange-50 hover:text-orange-600'
+                : 'text-white hover:bg-white/20'
             }`}
-            aria-label="Cancella ricerca"
+            aria-label="Scansiona carta con fotocamera"
           >
-            <X className="h-4 w-4 md:h-5 md:w-5" />
+            <Camera className="h-4 w-4 md:h-5 md:w-5" />
+          </Link>
+          <button
+            type="button"
+            onClick={handleEnter}
+            className={`search-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200 md:h-9 md:w-9 ${
+              showOpenStyle
+                ? 'text-[#FF7300] hover:bg-orange-50 hover:text-orange-600'
+                : 'text-white hover:bg-white/20'
+            }`}
+            aria-label="Cerca"
+          >
+            <Search className="h-4 w-4 md:h-5 md:w-5" strokeWidth={2} />
           </button>
-        )}
-        <Link
-          href="/scanner"
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200 md:h-9 md:w-9 ${
-            showOpenStyle
-              ? 'text-[#FF7300] hover:bg-orange-50 hover:text-orange-600'
-              : 'text-white hover:bg-white/20'
-          }`}
-          aria-label="Scansiona carta con fotocamera"
-        >
-          <Camera className="h-4 w-4 md:h-5 md:w-5" />
-        </Link>
-        <button
-          type="button"
-          onClick={handleEnter}
-          className={`search-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-200 md:h-9 md:w-9 ${
-            showOpenStyle
-              ? 'text-[#FF7300] hover:bg-orange-50 hover:text-orange-600'
-              : 'text-white hover:bg-white/20'
-          }`}
-          aria-label="Cerca"
-        >
-          <Search className="h-4 w-4 md:h-5 md:w-5" strokeWidth={2} />
-        </button>
+        </div>
       </div>
     </div>
   );
