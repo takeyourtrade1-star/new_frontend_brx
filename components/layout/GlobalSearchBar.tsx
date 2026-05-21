@@ -402,6 +402,47 @@ function AnimatedCounter({ value }: { value: number }) {
 }
 
 const HOVER_CLOSE_DELAY_MS = 250;
+const SEARCH_PANEL_BORDER_OVERLAP = 1;
+
+type FixedPanelRect = { top: number; left: number; width: number; height?: number };
+
+function snapRect(rect: DOMRect, borderOverlap = 0): FixedPanelRect {
+  return {
+    top: Math.round(rect.top + (borderOverlap ? -borderOverlap : 0)),
+    left: Math.round(rect.left),
+    width: Math.round(rect.width),
+  };
+}
+
+function getSuggestionsPanelPosition(
+  anchorEl: HTMLElement,
+  position: 'top' | 'bottom' = 'bottom'
+): FixedPanelRect {
+  const rect = anchorEl.getBoundingClientRect();
+  if (position === 'top') {
+    return snapRect(rect);
+  }
+  return {
+    top: Math.round(rect.bottom) - SEARCH_PANEL_BORDER_OVERLAP,
+    left: Math.round(rect.left),
+    width: Math.round(rect.width),
+  };
+}
+
+function getPreviewColumnPosition(
+  categoryEl: HTMLElement,
+  suggestionsLeft: number,
+  panelTop: number,
+  panelHeight: number
+): FixedPanelRect {
+  const rect = categoryEl.getBoundingClientRect();
+  return {
+    top: panelTop,
+    left: Math.round(rect.left),
+    width: Math.max(Math.round(suggestionsLeft - rect.left), Math.round(rect.width)),
+    height: panelHeight,
+  };
+}
 
 /** Larghezza anteprima carta inline - aumentata per altezza maggiore */
 const INLINE_PREVIEW_WIDTH = 200;
@@ -719,9 +760,11 @@ function SearchResultsDropdown({
     name: string;
     rect: DOMRect;
   } | null>(null);
-  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [position, setPosition] = useState<FixedPanelRect | null>(null);
+  const [panelHeight, setPanelHeight] = useState(0);
   const [mounted, setMounted] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewColumnRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -731,20 +774,15 @@ function SearchResultsDropdown({
     if (!suggestionsAnchorRef.current) return;
     const anchorEl = suggestionsAnchorRef.current;
     const update = () => {
-      if (anchorEl) {
-        const rect = anchorEl.getBoundingClientRect();
-        if (dropdownPosition === 'top') {
-          setPosition({ top: rect.top, left: rect.left, width: rect.width });
-        } else {
-          setPosition({ top: rect.bottom, left: rect.left, width: rect.width });
-        }
-      }
+      setPosition(getSuggestionsPanelPosition(anchorEl, dropdownPosition));
     };
 
     update();
     const rafId = window.requestAnimationFrame(update);
     const resizeObserver = new ResizeObserver(update);
     resizeObserver.observe(anchorEl);
+    const categoryEl = categoryColumnRef.current;
+    if (categoryEl) resizeObserver.observe(categoryEl);
     anchorEl.addEventListener('transitionend', update);
     window.addEventListener('scroll', update, true);
     window.addEventListener('resize', update);
@@ -756,7 +794,17 @@ function SearchResultsDropdown({
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
-  }, [suggestionsAnchorRef, dropdownPosition]);
+  }, [suggestionsAnchorRef, categoryColumnRef, dropdownPosition]);
+
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const panelEl = containerRef.current;
+    const updateHeight = () => setPanelHeight(panelEl.offsetHeight);
+    updateHeight();
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(panelEl);
+    return () => resizeObserver.disconnect();
+  }, [containerRef, position, hits.length, isSearchStalled]);
 
   const showInlinePreview = (url: string, name: string, buttonRect: DOMRect) => {
     if (closeTimeoutRef.current) {
@@ -779,10 +827,22 @@ function SearchResultsDropdown({
   };
 
   const hasHits = hits.length > 0;
+  const previewColumnPosition =
+    position && panelHeight > 0 && categoryColumnRef.current
+      ? getPreviewColumnPosition(
+          categoryColumnRef.current,
+          position.left,
+          position.top,
+          panelHeight
+        )
+      : null;
+  const previewColumnRect =
+    previewColumnRef.current?.getBoundingClientRect() ??
+    categoryColumnRef.current?.getBoundingClientRect();
   const inlinePreviewLayout =
-    inlinePreview && categoryColumnRef.current
+    inlinePreview && previewColumnRect
       ? getLeftColumnPreviewLayout(
-          categoryColumnRef.current.getBoundingClientRect(),
+          previewColumnRect,
           inlinePreview.rect,
           INLINE_PREVIEW_WIDTH
         )
@@ -792,12 +852,24 @@ function SearchResultsDropdown({
 
   const dropdownContent = (
     <>
+      {previewColumnPosition ? (
+        <div
+          ref={previewColumnRef}
+          aria-hidden
+          className="search-preview-slot fixed z-[1000]"
+          style={{
+            top: previewColumnPosition.top,
+            left: previewColumnPosition.left,
+            width: previewColumnPosition.width,
+            height: previewColumnPosition.height,
+          }}
+        />
+      ) : null}
+
       <div
         ref={containerRef as React.Ref<HTMLDivElement>}
-        className={`bg-white rounded-none border border-gray-200 max-h-[400px] overflow-hidden min-h-[80px] flex flex-col ${
-          dropdownPosition === 'top'
-            ? 'border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.12)]'
-            : 'border-t-0 shadow-[0_4px_12px_rgba(0,0,0,0.12)]'
+        className={`search-suggestions-panel max-h-[400px] overflow-hidden min-h-[80px] flex flex-col ${
+          dropdownPosition === 'top' ? 'border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.12)]' : ''
         }`}
         style={{
           position: 'fixed',
@@ -868,7 +940,7 @@ function SearchResultsDropdown({
         typeof document !== 'undefined' &&
         createPortal(
           <div
-            className="fixed z-[1100] rounded-lg shadow-xl border border-gray-200 bg-white overflow-hidden"
+            className="fixed z-[1100] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
             style={{
               left: inlinePreviewLayout.left,
               top: inlinePreviewLayout.top,
@@ -1294,7 +1366,7 @@ function ProductCategoryButton({
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className={`flex h-8 items-center gap-1 border-0 bg-transparent px-2.5 text-xs font-medium font-sans leading-none transition-colors duration-200 whitespace-nowrap md:h-9 md:gap-1.5 md:px-3 md:text-sm ${
+        className={`flex h-8 items-center gap-1 border-0 bg-transparent px-2.5 text-xs font-medium font-sans leading-none transition-colors duration-200 whitespace-nowrap md:h-9 md:gap-1.5 md:px-3.5 md:text-sm ${
           isBarOpen
             ? 'text-gray-800 hover:text-gray-900'
             : 'text-white/90 hover:text-white'
@@ -1466,21 +1538,22 @@ function SetSearchResultRow({
 
 function SetsResultsDropdown({
   suggestionsAnchorRef,
+  categoryColumnRef,
   containerRef,
-  localValue,
   setResults,
   setResultsLoading,
   onClose,
 }: {
   suggestionsAnchorRef: React.RefObject<HTMLDivElement | null>;
+  categoryColumnRef: React.RefObject<HTMLDivElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
-  localValue: string;
   setResults: SetResult[];
   setResultsLoading: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [position, setPosition] = useState<FixedPanelRect | null>(null);
+  const [panelHeight, setPanelHeight] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -1491,15 +1564,14 @@ function SetsResultsDropdown({
     if (!suggestionsAnchorRef.current) return;
     const anchorEl = suggestionsAnchorRef.current;
     const update = () => {
-      if (anchorEl) {
-        const rect = anchorEl.getBoundingClientRect();
-        setPosition({ top: rect.bottom, left: rect.left, width: rect.width });
-      }
+      setPosition(getSuggestionsPanelPosition(anchorEl));
     };
     update();
     const rafId = window.requestAnimationFrame(update);
     const resizeObserver = new ResizeObserver(update);
     resizeObserver.observe(anchorEl);
+    const categoryEl = categoryColumnRef.current;
+    if (categoryEl) resizeObserver.observe(categoryEl);
     anchorEl.addEventListener('transitionend', update);
     window.addEventListener('scroll', update, true);
     window.addEventListener('resize', update);
@@ -1510,24 +1582,57 @@ function SetsResultsDropdown({
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
-  }, [suggestionsAnchorRef]);
+  }, [suggestionsAnchorRef, categoryColumnRef]);
+
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const panelEl = containerRef.current;
+    const updateHeight = () => setPanelHeight(panelEl.offsetHeight);
+    updateHeight();
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(panelEl);
+    return () => resizeObserver.disconnect();
+  }, [containerRef, position, setResults.length, setResultsLoading]);
 
   if (!mounted || !position) return null;
 
+  const previewColumnPosition =
+    panelHeight > 0 && categoryColumnRef.current
+      ? getPreviewColumnPosition(
+          categoryColumnRef.current,
+          position.left,
+          position.top,
+          panelHeight
+        )
+      : null;
+
   const content = (
-    <div
-      ref={containerRef as React.Ref<HTMLDivElement>}
-      className="bg-white rounded-none border border-gray-200 max-h-[400px] overflow-hidden min-h-[80px] flex flex-col border-t-0 shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
-      style={{
-        position: 'fixed',
-        top: position.top,
-        left: position.left,
-        width: position.width,
-        zIndex: 1001,
-      }}
-      role="listbox"
-      aria-label="Suggerimenti set"
-    >
+    <>
+      {previewColumnPosition ? (
+        <div
+          aria-hidden
+          className="search-preview-slot fixed z-[1000]"
+          style={{
+            top: previewColumnPosition.top,
+            left: previewColumnPosition.left,
+            width: previewColumnPosition.width,
+            height: previewColumnPosition.height,
+          }}
+        />
+      ) : null}
+      <div
+        ref={containerRef as React.Ref<HTMLDivElement>}
+        className="search-suggestions-panel max-h-[400px] overflow-hidden min-h-[80px] flex flex-col"
+        style={{
+          position: 'fixed',
+          top: position.top,
+          left: position.left,
+          width: position.width,
+          zIndex: 1001,
+        }}
+        role="listbox"
+        aria-label="Suggerimenti set"
+      >
       {setResultsLoading ? (
         <div className="flex items-center justify-center gap-2 px-4 py-6 text-gray-500">
           <Loader2 className="w-5 h-5 animate-spin" />
@@ -1551,7 +1656,8 @@ function SetsResultsDropdown({
       ) : (
         <div className="px-4 py-4 text-sm text-gray-500">Nessun set trovato.</div>
       )}
-    </div>
+      </div>
+    </>
   );
 
   return createPortal(content, document.body);
@@ -1733,8 +1839,8 @@ function SearchWithInstantSearch({
     isSetsMode ? (
       <SetsResultsDropdown
         suggestionsAnchorRef={suggestionsAnchorRef}
+        categoryColumnRef={categoryColumnRef}
         containerRef={dropdownContainerRef}
-        localValue={localValue}
         setResults={setResults}
         setResultsLoading={setResultsLoading}
         onClose={closePanel}
@@ -1763,18 +1869,15 @@ function SearchWithInstantSearch({
   const triggerBar = (
     <div
       ref={triggerRef}
-      className={`search-container flex w-full min-w-[200px] flex-1 items-stretch gap-0 overflow-hidden transition-[background-color,border-color,border-radius] duration-200 h-11 min-h-11 max-h-11 md:h-auto md:min-h-0 md:max-h-none ${
-        showOpenStyle
-          ? 'search-container--open rounded-b-none rounded-t-[14px] md:rounded-t-[22px] bg-white'
-          : 'rounded-[50px]'
-      }`}
+      className={`search-container flex w-full min-w-[200px] flex-1 items-stretch gap-0 transition-[background-color,border-color,border-radius] duration-200 h-11 min-h-11 max-h-11 md:h-auto md:min-h-0 md:max-h-none ${
+        showOpenStyle ? 'search-container--open bg-white' : 'overflow-hidden rounded-[50px]'
+      } ${showDropdown ? 'search-container--dropdown-active' : ''}`}
       style={{ zIndex: 1000 }}
       onClick={() => inputRef.current?.focus()}
     >
-      {/* Menu a tendina Categorie Prodotto visibile sempre */}
       <div
         ref={categoryColumnRef}
-        className="flex h-full shrink-0 items-center justify-center pl-0"
+        className="search-category-slot shrink-0 pl-0.5 md:pl-1"
       >
         <ProductCategoryButton
           selectedCategory={productCategory}
@@ -1784,18 +1887,17 @@ function SearchWithInstantSearch({
         />
       </div>
 
-      <div
-        ref={suggestionsAnchorRef}
-        className="flex min-h-0 min-w-0 flex-1 items-stretch"
-      >
+      <div className="search-input-slot">
         <div
           aria-hidden="true"
-          className={`mx-1.5 my-auto h-6 w-px shrink-0 md:mx-2 md:h-7 ${
-            showOpenStyle ? 'bg-gray-300' : 'bg-white/30'
-          }`}
+          className={`search-joint ${showOpenStyle ? 'search-joint--open' : ''}`}
         />
 
-        <div className="relative min-h-0 min-w-0 flex-1">
+        <div
+          ref={suggestionsAnchorRef}
+          className="flex min-h-0 min-w-0 flex-1 items-stretch"
+        >
+          <div className="relative min-h-0 min-w-0 flex-1">
           <AnimatedSearchPlaceholder
             visible={!hasText}
             isDark={showOpenStyle}
@@ -1903,6 +2005,7 @@ function SearchWithInstantSearch({
           >
             <Search className="h-4 w-4 md:h-5 md:w-5" strokeWidth={2} />
           </button>
+        </div>
         </div>
       </div>
     </div>
