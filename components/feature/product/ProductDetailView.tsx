@@ -11,6 +11,7 @@ import { getCardDisplayNames } from '@/lib/card-display-name';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { getGameLabel, buildBreadcrumbsFromCard } from '@/lib/product-detail';
+import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
 import { syncClient, type InventoryItemResponse, type ListingItem } from '@/lib/api/sync-client';
 import { fetchPublicUserProfiles } from '@/lib/api/user-names-cache';
 import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
@@ -38,7 +39,6 @@ import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { RarityIndicator } from '@/components/ui/RarityIndicator';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
 import { ModernSellerTable } from '@/components/feature/product/ModernSellerTable';
-import { ModernSellerFilters } from '@/components/feature/product/ModernSellerFilters';
 
 const PRIMARY_BLUE = '#1D3160';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -56,7 +56,15 @@ type ReprintCard = {
   rarity: string;
   setIconSrc: string | null;
   setCode: string;
+  gameSlug?: string;
 };
+
+/** 2 colonne × 4 righe = 8 ristampe visibili; celle h-20 fisse (non si schiacciano). */
+const REPRINT_TILE_CLASS = 'h-20 min-h-20 shrink-0';
+const REPRINT_GRID_SCROLL_CLASS =
+  'max-h-[calc(5rem*4+0.5rem*3)] min-h-[calc(5rem*4+0.5rem*3)]';
+const REPRINT_LIST_SCROLL_CLASS =
+  'max-h-[calc(3.5rem*8+0.25rem*7)] min-h-[calc(3.5rem*8+0.25rem*7)]';
 
 function mapReprintHit(hit: ReprintSearchHit, cardGameSlug?: string): ReprintCard | null {
   if (!hit.id) return null;
@@ -81,7 +89,61 @@ function mapReprintHit(hit: ReprintSearchHit, cardGameSlug?: string): ReprintCar
       setCode: hit.set_code ?? undefined,
     }),
     setCode,
+    gameSlug: hit.game_slug ?? cardGameSlug,
   };
+}
+
+function ReprintSetIconLink({
+  setName,
+  setIconSrc,
+  gameSlug,
+  size = 'md',
+}: {
+  setName: string;
+  setIconSrc: string | null;
+  gameSlug?: string;
+  size?: 'md' | 'sm';
+}) {
+  const safeIcon = setIconSrc?.startsWith('https://') ? setIconSrc : null;
+  const setHref = setName.trim()
+    ? buildSetPageUrl(resolveSetPageGameSlug(gameSlug), setName.trim())
+    : null;
+  if (!safeIcon || !setHref) return null;
+
+  const circleClass = size === 'sm' ? 'h-6 w-6' : 'h-7 w-7';
+  const iconClass = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
+
+  return (
+    <div
+      className="group/seticon relative z-20"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.preventDefault()}
+    >
+      <Link
+        href={setHref}
+        className={cn(
+          'flex items-center justify-center rounded-full bg-white/95 shadow-sm backdrop-blur-sm transition-colors hover:bg-white hover:ring-1 hover:ring-primary/25',
+          circleClass
+        )}
+        aria-label={`Apri set: ${setName}`}
+      >
+        <Image
+          src={safeIcon}
+          alt=""
+          width={size === 'sm' ? 14 : 16}
+          height={size === 'sm' ? 14 : 16}
+          className={cn(iconClass, 'object-contain')}
+          unoptimized
+        />
+      </Link>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full right-0 z-30 mb-1 hidden max-w-[140px] truncate rounded-md bg-zinc-900/95 px-2 py-1 text-[10px] font-medium text-white shadow-lg group-hover/seticon:block"
+      >
+        {setName}
+      </span>
+    </div>
+  );
 }
 
 /** Reprint card with top artwork crop and overlaid icons */
@@ -129,21 +191,24 @@ function ReprintThumbnail({
   columnIndex: number;
   className?: string;
 }) {
-  const safeSetIcon = reprint.setIconSrc?.startsWith('https://') ? reprint.setIconSrc : null;
   const previewSide = columnIndex % 2 === 0 ? 'left' : 'right';
 
   return (
-    <Link
-      href={`/products/${reprint.id}`}
+    <div
       className={cn(
-        'group relative overflow-hidden rounded-lg shadow-sm ring-1 ring-zinc-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+        'group relative overflow-hidden rounded-lg shadow-sm ring-1 ring-zinc-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-primary/30',
+        REPRINT_TILE_CLASS,
         className
       )}
-      title={`${reprint.setName} • ${reprint.rarity}`}
     >
-      <ReprintCardPreview imageSrc={reprint.imageSrc} alt={reprint.setName} />
-      
-      {/* Camera icon - top left */}
+      <Link
+        href={`/products/${reprint.id}`}
+        className="absolute inset-0 z-0 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
+        title={`${reprint.setName} • ${reprint.rarity}`}
+      >
+        <ReprintCardPreview imageSrc={reprint.imageSrc} alt={reprint.setName} className="h-full min-h-20" />
+      </Link>
+
       {reprint.imageSrc && (
         <div
           className="absolute left-1.5 top-1.5 z-10"
@@ -161,24 +226,15 @@ function ReprintThumbnail({
           </div>
         </div>
       )}
-      
-      {/* Set icon - top right */}
-      {safeSetIcon && (
-        <div
-          title={reprint.setName}
-          className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm"
-        >
-          <Image
-            src={safeSetIcon}
-            alt=""
-            width={16}
-            height={16}
-            className="h-4 w-4 object-contain"
-            unoptimized
-          />
-        </div>
-      )}
-    </Link>
+
+      <div className="absolute right-1.5 top-1.5">
+        <ReprintSetIconLink
+          setName={reprint.setName}
+          setIconSrc={reprint.setIconSrc}
+          gameSlug={reprint.gameSlug}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -192,20 +248,18 @@ function ReprintListRow({
   rowIndex: number;
   totalRows: number;
 }) {
-  const safeSetIcon = reprint.setIconSrc?.startsWith('https://') ? reprint.setIconSrc : null;
   const previewSide: 'left' | 'right' = rowIndex < Math.ceil(totalRows / 2) ? 'right' : 'left';
 
   return (
-    <Link
-      href={`/products/${reprint.id}`}
-      className="group relative shrink-0 overflow-hidden rounded-md shadow-sm ring-1 ring-zinc-200/70 transition-all hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-      title={`${reprint.setName} • ${reprint.rarity}`}
-    >
-      <div className="h-14 w-full">
-        <ReprintCardPreview imageSrc={reprint.imageSrc} alt={reprint.setName} className="h-14" />
-      </div>
-      
-      {/* Camera + Set icons in chart mode */}
+    <div className="group relative h-14 min-h-14 shrink-0 overflow-hidden rounded-md shadow-sm ring-1 ring-zinc-200/70 transition-all hover:ring-primary/30">
+      <Link
+        href={`/products/${reprint.id}`}
+        className="absolute inset-0 z-0 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
+        title={`${reprint.setName} • ${reprint.rarity}`}
+      >
+        <ReprintCardPreview imageSrc={reprint.imageSrc} alt={reprint.setName} className="h-full min-h-14" />
+      </Link>
+
       {reprint.imageSrc && (
         <div
           className="absolute left-1 top-1 z-10"
@@ -223,23 +277,16 @@ function ReprintListRow({
           </div>
         </div>
       )}
-      
-      {safeSetIcon && (
-        <div
-          title={reprint.setName}
-          className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 shadow-sm"
-        >
-          <Image
-            src={safeSetIcon}
-            alt=""
-            width={14}
-            height={14}
-            className="h-3.5 w-3.5 object-contain"
-            unoptimized
-          />
-        </div>
-      )}
-    </Link>
+
+      <div className="absolute right-1 top-1">
+        <ReprintSetIconLink
+          setName={reprint.setName}
+          setIconSrc={reprint.setIconSrc}
+          gameSlug={reprint.gameSlug}
+          size="sm"
+        />
+      </div>
+    </div>
   );
 }
 
@@ -279,18 +326,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'INFO' | 'VENDI' | 'SCAMBIA' | 'TORNEI' | 'ASTA'>('INFO');
   const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'SCAMBI' | 'ASTE' | 'TCG_EXPRESS'>('VENDITORI');
+  const [filtersOpen, setFiltersOpen] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [soloFoil, setSoloFoil] = useState(false);
-
-  // Modern filters states
-  const [sortBy, setSortBy] = useState('price_asc');
-  const [selectedCountry, setSelectedCountry] = useState('all');
-  const [showPrivate, setShowPrivate] = useState(true);
-  const [showProfessional, setShowProfessional] = useState(true);
-  const [showPowerSeller, setShowPowerSeller] = useState(true);
-  const [onlyBrxExpress, setOnlyBrxExpress] = useState(false);
-  const [onlySignedCards, setOnlySignedCards] = useState(false);
-  const [minCondition, setMinCondition] = useState('any');
+  const [tipoVenditore, setTipoVenditore] = useState<string | null>(null);
+  const [firmata, setFirmata] = useState<'SÌ' | 'NO' | 'ENTRAMBI'>('ENTRAMBI');
+  const [alterata, setAlterata] = useState<'SÌ' | 'NO' | 'ENTRAMBI'>('ENTRAMBI');
+  const [quantita, setQuantita] = useState(33);
+  const [posizioneVenditore, setPosizioneVenditore] = useState<string>(() => COUNTRIES[0].code);
 
   const [headerHeight, setHeaderHeight] = useState(0);
 
@@ -400,6 +443,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listingsError, setListingsError] = useState<string | null>(null);
   const [listingsSort, setListingsSort] = useState<'price_asc' | 'price_desc' | 'seller' | 'condition'>('price_asc');
+  const CONDIZIONE_OPTIONS = ['Near Mint', 'Lightly Played', 'Moderately Played', 'Heavily Played', 'Damaged'] as const;
+  const [condizioneMinima, setCondizioneMinima] = useState<string>('HT');
+  const [linguaCarta, setLinguaCarta] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItemWithCatalog | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [rowBusyId, setRowBusyId] = useState<number | null>(null);
@@ -482,6 +528,20 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     []
   );
   const langLabelByCode = useMemo(() => Object.fromEntries(LANG_OPTIONS.map((o) => [o.code, o.label])), [LANG_OPTIONS]);
+
+  const LINGUA_CARTA = [
+    { code: 'IT', label: 'Italia' },
+    { code: 'JP', label: 'Giappone' },
+    { code: 'GB', label: 'Regno Unito' },
+    { code: 'ES', label: 'Spagna' },
+    { code: 'DE', label: 'Germania' },
+    { code: 'FR', label: 'Francia' },
+  ] as const;
+
+  useEffect(() => {
+    const t = setTimeout(() => setFiltersOpen(false), 1000);
+    return () => clearTimeout(t);
+  }, []);
 
   /** Opzioni paese con bandiere SVG per il select Posizione venditore */
   const countryOptions: CountryOption[] = useMemo(
@@ -758,9 +818,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   /* Quando l'utente loggato ha un paese, usa quello; altrimenti usa la geolocalizzazione. */
   useEffect(() => {
     if (user?.country) {
-      setSelectedCountry(user.country);
+      setPosizioneVenditore(user.country);
     } else if (detectedCountry) {
-      setSelectedCountry(detectedCountry);
+      setPosizioneVenditore(detectedCountry);
     }
   }, [user?.country, detectedCountry]);
 
@@ -780,66 +840,31 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     return `/set?${params.toString()}`;
   }, [card]);
 
+  const reprintsAllHref = useMemo(() => {
+    if (!card?.name?.trim()) return null;
+    const params = new URLSearchParams();
+    params.set('q', card.name.trim());
+    const game = resolveSetPageGameSlug(card.game_slug);
+    if (game) params.set('game', game);
+    return `/search?${params.toString()}`;
+  }, [card]);
+
   const EBARTEX_LOGO_PLACEHOLDER = '/images/Logo%20Principale%20EBARTEX.png';
 
   const sortedListings = useMemo(() => {
     if (!listings.length) return listings;
-    
-    // Apply filters first
-    let filtered = [...listings];
-    
-    // Country filter
-    if (selectedCountry && selectedCountry !== 'all') {
-      filtered = filtered.filter(item => item.country === selectedCountry);
-    }
-    
-    // Seller type filters (mock logic - in production this would come from API data)
-    const allowedSellerTypes = [];
-    if (showPrivate) allowedSellerTypes.push('PRIVATE');
-    if (showProfessional) allowedSellerTypes.push('PROFESSIONAL');
-    if (showPowerSeller) allowedSellerTypes.push('POWERSELLER');
-    
-    // BRX Express filter (mock - first item always has BRX Express)
-    if (onlyBrxExpress) {
-      filtered = filtered.filter((item, index) => index === 0);
-    }
-    
-    // Signed cards filter (mock logic)
-    if (onlySignedCards) {
-      filtered = filtered.filter(() => Math.random() > 0.8); // Mock: randomly show some as signed
-    }
-    
-    // Minimum condition filter
-    if (minCondition && minCondition !== 'any') {
-      const conditionOrder = ['PO', 'PL', 'MP', 'SP', 'NM'];
-      const minIndex = conditionOrder.indexOf(minCondition);
-      if (minIndex !== -1) {
-        filtered = filtered.filter(item => {
-          const itemCondition = item.condition?.replace(/[^a-zA-Z]/g, '').slice(0, 2) ?? 'NM';
-          const mappedCondition = itemCondition === 'Ne' ? 'NM' : 
-                                  itemCondition === 'Li' || itemCondition === 'Sl' ? 'SP' : 
-                                  itemCondition === 'Mo' ? 'MP' : 
-                                  itemCondition === 'He' || itemCondition === 'Pl' ? 'PL' : 
-                                  itemCondition === 'Da' || itemCondition === 'Po' ? 'PO' : 'NM';
-          const itemIndex = conditionOrder.indexOf(mappedCondition);
-          return itemIndex >= minIndex;
-        });
-      }
-    }
-    
-    // Apply sorting
-    const sorted = [...filtered];
-    switch (sortBy) {
+    const sorted = [...listings];
+    switch (listingsSort) {
       case 'price_asc':
         sorted.sort((a, b) => a.price_cents - b.price_cents);
         break;
       case 'price_desc':
         sorted.sort((a, b) => b.price_cents - a.price_cents);
         break;
-      case 'seller_name':
+      case 'seller':
         sorted.sort((a, b) => a.seller_display_name.localeCompare(b.seller_display_name));
         break;
-      case 'condition':
+      case 'condition': {
         const condOrder = ['Near Mint', 'Lightly Played', 'Moderately Played', 'Heavily Played', 'Damaged'];
         sorted.sort((a, b) => {
           const idxA = condOrder.indexOf(a.condition ?? '');
@@ -847,23 +872,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
         });
         break;
-      case 'quantity':
-        sorted.sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
-        break;
+      }
     }
-    
     return sorted;
-  }, [
-    listings, 
-    sortBy, 
-    selectedCountry, 
-    showPrivate, 
-    showProfessional, 
-    showPowerSeller, 
-    onlyBrxExpress, 
-    onlySignedCards, 
-    minCondition
-  ]);
+  }, [listings, listingsSort]);
 
   const formatEuro = (n: number) => formatEuroNoSpace(n, 'it-IT');
 
@@ -1244,18 +1256,38 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
 
                   <div className="rounded-xl bg-white p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                    <div className="mb-2 flex items-center justify-between">
+                    <div className="mb-2 flex items-center justify-between gap-2">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Ristampe</span>
-                      <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400 tabular-nums">{reprints.length}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400 tabular-nums">{reprints.length}</span>
+                        {reprints.length > 0 && reprintsAllHref && (
+                          <Link
+                            href={reprintsAllHref}
+                            className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[9px] font-semibold text-primary hover:bg-primary/10"
+                          >
+                            Vedi tutte
+                          </Link>
+                        )}
+                      </div>
                     </div>
                     {reprintsLoading ? (
-                      <div className="grid max-h-56 flex-1 grid-cols-2 gap-2 overflow-hidden">
-                        {[...Array(6)].map((_, i) => (
-                          <div key={i} className="h-20 rounded-lg bg-zinc-100 animate-pulse" />
+                      <div
+                        className={cn(
+                          'grid shrink-0 grid-cols-2 gap-2 overflow-hidden',
+                          REPRINT_GRID_SCROLL_CLASS
+                        )}
+                      >
+                        {[...Array(8)].map((_, i) => (
+                          <div key={i} className={cn(REPRINT_TILE_CLASS, 'rounded-lg bg-zinc-100 animate-pulse')} />
                         ))}
                       </div>
                     ) : reprints.length > 0 ? (
-                      <div className="grid max-h-56 flex-1 grid-cols-2 gap-2 overflow-y-auto overscroll-contain pr-0.5">
+                      <div
+                        className={cn(
+                          'grid shrink-0 grid-cols-2 auto-rows-min gap-2 overflow-y-auto overscroll-contain pr-0.5',
+                          REPRINT_GRID_SCROLL_CLASS
+                        )}
+                      >
                         {reprints.map((r, i) => (
                           <ReprintThumbnail key={r.id} reprint={r} columnIndex={i} />
                         ))}
@@ -1276,7 +1308,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     : 'gap-2.5 p-2.5 grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.35fr_0.7fr_0.95fr]'
                 )}>
                   {/* Colonna 1: Dati carta più densi e meglio distribuiti */}
-                  <div className="flex min-h-0 flex-col rounded-xl bg-white/85 p-3">
+                  <div className="flex min-h-0 flex-col rounded-xl bg-white/85 p-3 lg:min-h-[280px]">
                     <div className="mb-2 flex items-center justify-between">
                       <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Dati carta</h3>
                       <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-zinc-500">
@@ -1326,10 +1358,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     </div>
                   </div>
 
-                  {/* Colonna 2: Ristampe — altezza limitata con scroll interno */}
+                  {/* Colonna 2: Ristampe — altezza fissa scroll (max 8 visibili in griglia) */}
                   <div
                     className={cn(
-                      'flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-white/85',
+                      'flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-white/85 lg:min-h-[280px]',
                       showChart ? 'p-1' : 'p-3'
                     )}
                   >
@@ -1337,41 +1369,52 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       <h3 className={cn('font-extrabold uppercase tracking-wider text-zinc-800 truncate', showChart ? 'text-[9px]' : 'text-[10px]')}>Ristampe</h3>
                       <div className="flex items-center gap-1.5">
                         <span className={cn('rounded-full bg-zinc-100 font-bold text-zinc-400 tabular-nums', showChart ? 'px-1 py-0 text-[8px]' : 'px-1.5 py-0.5 text-[9px]')}>{reprints.length}</span>
-                        {reprints.length > 0 && (
-                          <button
-                            type="button"
+                        {reprints.length > 0 && reprintsAllHref && (
+                          <Link
+                            href={reprintsAllHref}
                             className={cn(
                               'rounded-full border border-primary/20 bg-primary/5 font-semibold text-primary transition-colors hover:bg-primary/10',
                               showChart ? 'px-1.5 py-0 text-[8px]' : 'px-2 py-0.5 text-[9px]'
                             )}
-                            onClick={() => {
-                              // TODO: navigate to reprints page
-                              console.log('Navigate to reprints page for', card?.id);
-                            }}
                           >
                             Vedi tutte
-                          </button>
+                          </Link>
                         )}
                       </div>
                     </div>
 
                     {reprintsLoading ? (
                       showChart ? (
-                        <div className="flex max-h-60 min-h-0 flex-1 flex-col gap-1 overflow-hidden">
-                          {[...Array(4)].map((_, i) => (
-                            <div key={i} className="h-14 shrink-0 rounded-md bg-zinc-100 animate-pulse" />
+                        <div
+                          className={cn(
+                            'flex shrink-0 flex-col gap-1 overflow-hidden',
+                            REPRINT_LIST_SCROLL_CLASS
+                          )}
+                        >
+                          {[...Array(8)].map((_, i) => (
+                            <div key={i} className="h-14 min-h-14 shrink-0 rounded-md bg-zinc-100 animate-pulse" />
                           ))}
                         </div>
                       ) : (
-                        <div className="grid max-h-60 min-h-0 flex-1 grid-cols-2 gap-2 overflow-hidden">
-                          {[...Array(6)].map((_, i) => (
-                            <div key={i} className="h-20 rounded-lg bg-zinc-100 animate-pulse" />
+                        <div
+                          className={cn(
+                            'grid shrink-0 grid-cols-2 gap-2 overflow-hidden',
+                            REPRINT_GRID_SCROLL_CLASS
+                          )}
+                        >
+                          {[...Array(8)].map((_, i) => (
+                            <div key={i} className={cn(REPRINT_TILE_CLASS, 'rounded-lg bg-zinc-100 animate-pulse')} />
                           ))}
                         </div>
                       )
                     ) : reprints.length > 0 ? (
                       showChart ? (
-                        <div className="flex max-h-60 min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain pr-0.5">
+                        <div
+                          className={cn(
+                            'flex shrink-0 flex-col gap-1 overflow-y-auto overscroll-contain pr-0.5',
+                            REPRINT_LIST_SCROLL_CLASS
+                          )}
+                        >
                           {reprints.map((reprint, i) => (
                             <ReprintListRow
                               key={reprint.id}
@@ -1382,7 +1425,12 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           ))}
                         </div>
                       ) : (
-                        <div className="grid max-h-60 min-h-0 flex-1 grid-cols-2 gap-2 overflow-y-auto overscroll-contain pr-0.5">
+                        <div
+                          className={cn(
+                            'grid shrink-0 grid-cols-2 auto-rows-min gap-2 overflow-y-auto overscroll-contain pr-0.5',
+                            REPRINT_GRID_SCROLL_CLASS
+                          )}
+                        >
                           {reprints.map((reprint, i) => (
                             <ReprintThumbnail key={reprint.id} reprint={reprint} columnIndex={i} />
                           ))}
