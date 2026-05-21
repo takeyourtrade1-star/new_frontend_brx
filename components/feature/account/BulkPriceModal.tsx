@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { ArrowRight, Minus, Plus, TrendingDown, TrendingUp, X } from 'lucide-react';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
-import { ASSETS, getCdnImageUrl } from '@/lib/config';
+import { getCdnImageUrl } from '@/lib/config';
+import { buildImageUrl, formatEurCents } from '@/lib/utils';
 
 interface BulkPriceModalProps {
   isOpen: boolean;
@@ -12,25 +13,6 @@ interface BulkPriceModalProps {
   selectedItems: InventoryItemWithCatalog[];
   syncStatus: 'active' | 'inactive' | 'syncing';
   onApply: (operation: '+' | '-', percent: number, target: 'local' | 'cardmarket' | 'all') => void;
-}
-
-function buildImageUrl(raw: string | null | undefined): string | null {
-  if (raw == null || raw === '') return null;
-  const trimmed = String(raw).trim();
-  if (trimmed.startsWith('http')) return trimmed;
-  const path = trimmed.replace(/^\/img\//, '').replace(/^img\//, '');
-  if (!path) return null;
-  const withSlash = path.startsWith('/') ? path : `/${path}`;
-  return ASSETS.cdnUrl ? `${ASSETS.cdnUrl}${withSlash}` : withSlash;
-}
-
-function formatEur(cents: number): string {
-  return new Intl.NumberFormat('it-IT', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
 }
 
 type TargetPlatform = 'local' | 'cardmarket' | 'all';
@@ -250,14 +232,14 @@ export function BulkPriceModal({
                           <Image src={imgUrl} alt="" fill className="object-cover" sizes="32px" unoptimized />
                         </div>
                         <span className="min-w-0 flex-1 truncate text-sm text-gray-800">{name}</span>
-                        <span className="text-xs text-gray-400 tabular-nums">{formatEur(currentCents)}</span>
+                        <span className="text-xs text-gray-400 tabular-nums">{formatEurCents(currentCents)}</span>
                         <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-300" />
                         <span
                           className={`min-w-[64px] text-right text-sm font-bold tabular-nums ${
                             delta > 0 ? 'text-emerald-600' : delta < 0 ? 'text-red-600' : 'text-gray-600'
                           }`}
                         >
-                          {formatEur(newCents)}
+                          {formatEurCents(newCents)}
                         </span>
                       </div>
                     );
@@ -266,15 +248,15 @@ export function BulkPriceModal({
                 <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-medium text-gray-600">
                   <span>Totale valore:</span>
                   <span className="flex items-center gap-1.5">
-                    <span className="text-gray-400 tabular-nums">{formatEur(totalCurrent)}</span>
+                    <span className="text-gray-400 tabular-nums">{formatEurCents(totalCurrent)}</span>
                     <ArrowRight className="h-3 w-3 text-gray-300" />
-                    <span className="font-bold text-gray-900 tabular-nums">{formatEur(totalNew)}</span>
+                    <span className="font-bold text-gray-900 tabular-nums">{formatEurCents(totalNew)}</span>
                     <span
                       className={`font-semibold tabular-nums ${
                         totalDelta > 0 ? 'text-emerald-600' : totalDelta < 0 ? 'text-red-600' : 'text-gray-500'
                       }`}
                     >
-                      ({totalDelta >= 0 ? '+' : ''}{formatEur(totalDelta)})
+                      ({totalDelta >= 0 ? '+' : ''}{formatEurCents(totalDelta)})
                     </span>
                   </span>
                 </div>

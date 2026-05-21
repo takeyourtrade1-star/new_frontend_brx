@@ -6,7 +6,8 @@ import { Loader2, Trash2, X } from 'lucide-react';
 import { ConditionBadge } from '@/components/ui/ConditionBadge';
 import type { ConditionCode } from '@/components/ui/ConditionBadge';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
-import { ASSETS, getCdnImageUrl } from '@/lib/config';
+import { getCdnImageUrl } from '@/lib/config';
+import { buildImageUrl, formatEurCents } from '@/lib/utils';
 
 interface BulkDeleteModalProps {
   isOpen: boolean;
@@ -14,25 +15,6 @@ interface BulkDeleteModalProps {
   selectedItems: InventoryItemWithCatalog[];
   syncStatus: 'active' | 'inactive' | 'syncing';
   onConfirm: (deleteFromPlatforms: boolean) => Promise<void>;
-}
-
-function buildImageUrl(raw: string | null | undefined): string | null {
-  if (raw == null || raw === '') return null;
-  const trimmed = String(raw).trim();
-  if (trimmed.startsWith('http')) return trimmed;
-  const path = trimmed.replace(/^\/img\//, '').replace(/^img\//, '');
-  if (!path) return null;
-  const withSlash = path.startsWith('/') ? path : `/${path}`;
-  return ASSETS.cdnUrl ? `${ASSETS.cdnUrl}${withSlash}` : withSlash;
-}
-
-function formatEur(cents: number): string {
-  return new Intl.NumberFormat('it-IT', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
 }
 
 export function BulkDeleteModal({
@@ -123,7 +105,7 @@ export function BulkDeleteModal({
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">{name}</span>
                     {condition && <ConditionBadge condition={condition} size="sm" />}
                     <span className="text-sm font-semibold text-gray-700 tabular-nums">
-                      {formatEur(item.price_cents ?? 0)}
+                      {formatEurCents(item.price_cents ?? 0)}
                     </span>
                   </div>
                 );
