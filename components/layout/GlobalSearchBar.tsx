@@ -927,7 +927,11 @@ function SearchPanelBody({
   const hasQuery = (query ?? '').trim().length > 0;
   const hasHits = hits.length > 0;
   const inlinePreviewLayout = inlinePreview
-    ? getInlinePreviewLayout(inlinePreview.rect, INLINE_PREVIEW_WIDTH)
+    ? getLeftColumnPreviewLayout(
+        inlinePreview.rect,
+        inlinePreview.rect,
+        INLINE_PREVIEW_WIDTH
+      )
     : null;
 
   const showInlinePreview = (url: string, name: string, buttonRect: DOMRect) => {
