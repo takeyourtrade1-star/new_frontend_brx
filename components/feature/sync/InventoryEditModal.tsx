@@ -3,15 +3,14 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
+import type { ConditionCode } from '@/components/ui/ConditionBadge';
 
-export const INVENTORY_CONDITION_OPTIONS = [
-  'Mint',
-  'Near Mint',
-  'Excellent',
-  'Good',
-  'Light Played',
-  'Played',
-  'Poor',
+export const INVENTORY_CONDITION_OPTIONS: { value: ConditionCode; label: string }[] = [
+  { value: 'NM', label: 'Near Mint' },
+  { value: 'SP', label: 'Slightly Played' },
+  { value: 'MP', label: 'Moderately Played' },
+  { value: 'PL', label: 'Played' },
+  { value: 'PO', label: 'Poor' },
 ];
 
 export const INVENTORY_LANG_OPTIONS_EDIT = [
@@ -49,14 +48,16 @@ export function InventoryEditModal({
     mtg_foil?: boolean;
   }) => void;
   saving: boolean;
-  conditionOptions?: string[];
+  conditionOptions?: { value: ConditionCode; label: string }[];
   langOptions?: { code: string; label: string }[];
 }) {
   const props = item.properties as Record<string, unknown> | undefined;
   const [quantity, setQuantity] = useState(item.quantity);
   const [priceEuro, setPriceEuro] = useState((item.price_cents / 100).toFixed(2));
-  const [condition, setCondition] = useState(
-    (typeof props?.condition === 'string' ? props.condition : '') || conditionOptions[0] || ''
+  const [condition, setCondition] = useState<ConditionCode | ''>(
+    (typeof props?.condition === 'string' ? props.condition as ConditionCode : '') ||
+    conditionOptions[0]?.value ||
+    ''
   );
   const [mtgLanguage, setMtgLanguage] = useState(
     (typeof props?.mtg_language === 'string' ? props.mtg_language : '') || 'en'
@@ -119,11 +120,11 @@ export function InventoryEditModal({
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Condizione</label>
-            <select value={condition} onChange={(e) => setCondition(e.target.value)} className={fieldClass}>
+            <select value={condition} onChange={(e) => setCondition(e.target.value as ConditionCode)} className={fieldClass}>
               <option value="">—</option>
               {conditionOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>

@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
-import { AccountShell } from '@/components/feature/account/AccountShell';
-import { PrestoInArrivoBanner } from '@/components/feature/account/PrestoInArrivoBanner';
+import { AccountLayoutShell } from '@/components/feature/account/AccountLayoutShell';
 import { MascotteLoader } from '@/components/dev/MascotteLoader';
 
 export const metadata = {
@@ -20,12 +19,11 @@ export default function AccountLayout({
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
       </Suspense>
-      <PrestoInArrivoBanner />
-      <AccountShell>
+      <AccountLayoutShell>
         <Suspense fallback={<div className="p-8"><MascotteLoader size="sm" /></div>}>
           {children}
         </Suspense>
-      </AccountShell>
+      </AccountLayoutShell>
     </div>
   );
 }

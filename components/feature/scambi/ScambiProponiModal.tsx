@@ -7,6 +7,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { X, Search, Send, Zap, Clock, Check, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { ConditionBadge } from '@/components/ui/ConditionBadge';
+import type { ConditionCode } from '@/components/ui/ConditionBadge';
 import type { ScambioUI, TradePayload } from '@/components/feature/scambi/scambi-types';
 import { MOCK_INVENTORY_A, MOCK_INVENTORY_B } from './mock-trade-inventories';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -189,21 +191,6 @@ function mockItemToTradeCardItem(item: { id: string; name: string; image: string
 /* ------------------------------------------------------------------ */
 /*  Sub-components                                                     */
 /* ------------------------------------------------------------------ */
-
-function ConditionBadge({ condition }: { condition: string }) {
-  const c = condition.toLowerCase();
-  let color = 'bg-gray-100/80 text-gray-600';
-  if (c === 'near mint' || c === 'nm') color = 'bg-emerald-100/80 text-emerald-700';
-  else if (c === 'lightly played' || c.includes('lightly') || c === 'lp') color = 'bg-amber-100/80 text-amber-700';
-  else if (c === 'moderately played' || c.includes('moderately') || c === 'mp') color = 'bg-orange-100/80 text-orange-700';
-  else if (c === 'heavily played' || c.includes('heavily') || c === 'hp') color = 'bg-red-100/80 text-red-700';
-  else if (c === 'damaged' || c === 'po' || c === 'poor') color = 'bg-gray-200/80 text-gray-600';
-  return (
-    <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide backdrop-blur-sm ${color}`}>
-      {condition}
-    </span>
-  );
-}
 
 function MiniCard({
   item,
@@ -895,7 +882,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black uppercase text-[#1D3160]">{scambio.title}</p>
-                  <div className="mt-1"><ConditionBadge condition={scambio.condition} /></div>
+                  <div className="mt-1"><ConditionBadge condition={scambio.condition as ConditionCode} /></div>
                   <p className="mt-1 text-[10px] text-gray-500">
                     di <span className="font-bold text-gray-700">{scambio.seller}</span>
                   </p>
@@ -1108,7 +1095,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-black uppercase text-[#1D3160]">{scambio.title}</p>
-                <div className="mt-1"><ConditionBadge condition={scambio.condition} /></div>
+                <div className="mt-1"><ConditionBadge condition={scambio.condition as ConditionCode} /></div>
               </div>
             </div>
 

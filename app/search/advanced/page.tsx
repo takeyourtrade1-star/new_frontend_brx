@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Search, Filter, X, ChevronDown, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PrestoInArrivoBanner } from '@/components/feature/account/PrestoInArrivoBanner';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 
@@ -144,10 +143,6 @@ export default function AdvancedSearchPage() {
       </Suspense>
 
       <div className="container-content py-6 lg:py-10">
-        {/* Banner presto in arrivo */}
-        <div className="pointer-events-none mb-6 flex justify-center">
-          <PrestoInArrivoBanner />
-        </div>
         {/* Header pagina */}
         <div className="mb-8 text-center lg:mb-10">
           <h1 className="text-2xl font-bold text-[#1D3160] lg:text-4xl">

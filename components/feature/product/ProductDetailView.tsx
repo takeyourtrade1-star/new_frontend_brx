@@ -82,8 +82,8 @@ function mapReprintHit(hit: ReprintSearchHit, cardGameSlug?: string): ReprintCar
   };
 }
 
-/** CardTrader-style: horizontal strip showing top ~50% of card art (name band + artwork). */
-function ReprintArtCrop({
+/** Reprint card with top artwork crop and overlaid icons */
+function ReprintCardPreview({
   imageSrc,
   alt,
   className,
@@ -96,22 +96,22 @@ function ReprintArtCrop({
     return (
       <div
         className={cn(
-          'flex min-h-[36px] flex-1 items-center justify-center bg-zinc-100 text-[10px] font-semibold text-zinc-400',
+          'flex h-16 w-full items-center justify-center rounded-lg bg-zinc-100 text-[10px] font-semibold text-zinc-400',
           className
         )}
       >
-        N/A
+        Immagine N/A
       </div>
     );
   }
   return (
-    <div className={cn('relative min-w-0 flex-1 overflow-hidden bg-zinc-900/[0.04]', className)}>
+    <div className={cn('relative h-16 w-full overflow-hidden rounded-lg bg-zinc-900/[0.04]', className)}>
       <Image
         src={imageSrc}
         alt={alt}
         fill
-        className="!left-0 !right-0 !top-0 !h-[200%] !w-full !max-w-none object-cover object-top"
-        sizes="160px"
+        className="object-cover object-top"
+        sizes="200px"
         unoptimized
       />
     </div>
@@ -134,45 +134,47 @@ function ReprintThumbnail({
     <Link
       href={`/products/${reprint.id}`}
       className={cn(
-        'group flex h-10 min-h-10 items-stretch overflow-hidden rounded-lg bg-zinc-50 shadow-sm ring-1 ring-zinc-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+        'group relative overflow-hidden rounded-lg shadow-sm ring-1 ring-zinc-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
         className
       )}
       title={`${reprint.setName} • ${reprint.rarity}`}
     >
-      {reprint.imageSrc ? (
+      <ReprintCardPreview imageSrc={reprint.imageSrc} alt={reprint.setName} />
+      
+      {/* Camera icon - top left */}
+      {reprint.imageSrc && (
         <div
-          className="z-[3] flex w-7 shrink-0 items-center justify-center border-r border-zinc-200/60 bg-white/80"
+          className="absolute left-1 top-1 z-10"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.preventDefault()}
         >
-          <CardImageCameraPeek
-            imageUrl={reprint.imageSrc}
-            name={reprint.setName}
-            previewSide={previewSide}
-            className="!h-6 !w-6"
-            ariaLabel={`Anteprima ${reprint.setName}`}
-          />
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm">
+            <CardImageCameraPeek
+              imageUrl={reprint.imageSrc}
+              name={reprint.setName}
+              previewSide={previewSide}
+              className="!h-4 !w-4"
+              ariaLabel={`Anteprima ${reprint.setName}`}
+            />
+          </div>
         </div>
-      ) : (
-        <span className="w-1 shrink-0" aria-hidden />
       )}
-      <ReprintArtCrop imageSrc={reprint.imageSrc} alt={reprint.setName} className="min-h-10" />
-      {safeSetIcon ? (
-        <span
+      
+      {/* Set icon - top right */}
+      {safeSetIcon && (
+        <div
           title={reprint.setName}
-          className="z-[2] flex w-7 shrink-0 items-center justify-center border-l border-zinc-200/50 bg-zinc-50/95"
+          className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm"
         >
           <Image
             src={safeSetIcon}
             alt=""
-            width={18}
-            height={18}
-            className="h-[18px] w-[18px] object-contain"
+            width={14}
+            height={14}
+            className="h-[14px] w-[14px] object-contain"
             unoptimized
           />
-        </span>
-      ) : (
-        <span className="w-1 shrink-0" aria-hidden />
+        </div>
       )}
     </Link>
   );
@@ -194,40 +196,47 @@ function ReprintListRow({
   return (
     <Link
       href={`/products/${reprint.id}`}
-      className="group flex h-9 shrink-0 items-stretch overflow-hidden rounded-md bg-zinc-50/90 shadow-sm ring-1 ring-zinc-200/70 transition-all hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      className="group relative shrink-0 overflow-hidden rounded-md shadow-sm ring-1 ring-zinc-200/70 transition-all hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       title={`${reprint.setName} • ${reprint.rarity}`}
     >
-      {reprint.imageSrc ? (
+      <div className="h-10 w-full">
+        <ReprintCardPreview imageSrc={reprint.imageSrc} alt={reprint.setName} className="h-10" />
+      </div>
+      
+      {/* Camera + Set icons in compact chart mode */}
+      {reprint.imageSrc && (
         <div
-          className="z-[3] flex w-6 shrink-0 items-center justify-center border-r border-zinc-200/60 bg-white/80"
+          className="absolute left-0.5 top-0.5 z-10"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.preventDefault()}
         >
-          <CardImageCameraPeek
-            imageUrl={reprint.imageSrc}
-            name={reprint.setName}
-            previewSide={previewSide}
-            className="!h-5 !w-5"
-            ariaLabel={`Anteprima ${reprint.setName}`}
-          />
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white/90 shadow-sm">
+            <CardImageCameraPeek
+              imageUrl={reprint.imageSrc}
+              name={reprint.setName}
+              previewSide={previewSide}
+              className="!h-3 !w-3"
+              ariaLabel={`Anteprima ${reprint.setName}`}
+            />
+          </div>
         </div>
-      ) : null}
-      <ReprintArtCrop imageSrc={reprint.imageSrc} alt={reprint.setName} className="min-h-9" />
-      {safeSetIcon ? (
-        <span
+      )}
+      
+      {safeSetIcon && (
+        <div
           title={reprint.setName}
-          className="flex w-6 shrink-0 items-center justify-center border-l border-zinc-200/50 bg-zinc-50/95"
+          className="absolute right-0.5 top-0.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 shadow-sm"
         >
           <Image
             src={safeSetIcon}
             alt=""
-            width={16}
-            height={16}
-            className="h-4 w-4 object-contain"
+            width={12}
+            height={12}
+            className="h-3 w-3 object-contain"
             unoptimized
           />
-        </span>
-      ) : null}
+        </div>
+      )}
     </Link>
   );
 }
@@ -1193,13 +1202,13 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400 tabular-nums">{reprints.length}</span>
                     </div>
                     {reprintsLoading ? (
-                      <div className="grid min-h-[200px] flex-1 grid-cols-2 gap-1.5 overflow-hidden">
-                        {[...Array(8)].map((_, i) => (
-                          <div key={i} className="h-10 rounded-lg bg-zinc-100 animate-pulse" />
+                      <div className="grid max-h-48 flex-1 grid-cols-2 gap-1.5 overflow-hidden">
+                        {[...Array(6)].map((_, i) => (
+                          <div key={i} className="h-16 rounded-lg bg-zinc-100 animate-pulse" />
                         ))}
                       </div>
                     ) : reprints.length > 0 ? (
-                      <div className="grid min-h-[200px] flex-1 grid-cols-2 gap-1.5 overflow-y-auto overscroll-contain pr-0.5">
+                      <div className="grid max-h-48 flex-1 grid-cols-2 gap-1.5 overflow-y-auto overscroll-contain pr-0.5">
                         {reprints.map((r, i) => (
                           <ReprintThumbnail key={r.id} reprint={r} columnIndex={i} />
                         ))}
@@ -1220,7 +1229,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     : 'gap-2.5 p-2.5 grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.35fr_0.7fr_0.95fr]'
                 )}>
                   {/* Colonna 1: Dati carta più densi e meglio distribuiti */}
-                  <div className="flex min-h-0 flex-col rounded-xl bg-white/85 p-3 lg:min-h-[280px]">
+                  <div className="flex min-h-0 flex-col rounded-xl bg-white/85 p-3">
                     <div className="mb-2 flex items-center justify-between">
                       <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Dati carta</h3>
                       <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-zinc-500">
@@ -1270,35 +1279,52 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     </div>
                   </div>
 
-                  {/* Colonna 2: Ristampe — altezza allineata alle colonne adiacenti, scroll interno */}
+                  {/* Colonna 2: Ristampe — altezza limitata con scroll interno */}
                   <div
                     className={cn(
-                      'flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-white/85 lg:min-h-[280px]',
+                      'flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-white/85',
                       showChart ? 'p-1' : 'p-3'
                     )}
                   >
                     <div className={cn('flex shrink-0 items-center justify-between gap-1', showChart ? 'mb-1' : 'mb-2')}>
                       <h3 className={cn('font-extrabold uppercase tracking-wider text-zinc-800 truncate', showChart ? 'text-[9px]' : 'text-[10px]')}>Ristampe</h3>
-                      <span className={cn('rounded-full bg-zinc-100 font-bold text-zinc-400 tabular-nums', showChart ? 'px-1 py-0 text-[8px]' : 'px-1.5 py-0.5 text-[9px]')}>{reprints.length}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={cn('rounded-full bg-zinc-100 font-bold text-zinc-400 tabular-nums', showChart ? 'px-1 py-0 text-[8px]' : 'px-1.5 py-0.5 text-[9px]')}>{reprints.length}</span>
+                        {reprints.length > 0 && (
+                          <button
+                            type="button"
+                            className={cn(
+                              'rounded-full border border-primary/20 bg-primary/5 font-semibold text-primary transition-colors hover:bg-primary/10',
+                              showChart ? 'px-1.5 py-0 text-[8px]' : 'px-2 py-0.5 text-[9px]'
+                            )}
+                            onClick={() => {
+                              // TODO: navigate to reprints page
+                              console.log('Navigate to reprints page for', card?.id);
+                            }}
+                          >
+                            Vedi tutte
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {reprintsLoading ? (
                       showChart ? (
-                        <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
-                          {[...Array(6)].map((_, i) => (
-                            <div key={i} className="h-9 shrink-0 rounded-md bg-zinc-100 animate-pulse" />
+                        <div className="flex max-h-44 min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
+                          {[...Array(4)].map((_, i) => (
+                            <div key={i} className="h-10 shrink-0 rounded-md bg-zinc-100 animate-pulse" />
                           ))}
                         </div>
                       ) : (
-                        <div className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-hidden">
-                          {[...Array(8)].map((_, i) => (
-                            <div key={i} className="h-10 rounded-lg bg-zinc-100 animate-pulse" />
+                        <div className="grid max-h-44 min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-hidden">
+                          {[...Array(6)].map((_, i) => (
+                            <div key={i} className="h-16 rounded-lg bg-zinc-100 animate-pulse" />
                           ))}
                         </div>
                       )
                     ) : reprints.length > 0 ? (
                       showChart ? (
-                        <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain pr-0.5">
+                        <div className="flex max-h-44 min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain pr-0.5">
                           {reprints.map((reprint, i) => (
                             <ReprintListRow
                               key={reprint.id}
@@ -1309,7 +1335,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           ))}
                         </div>
                       ) : (
-                        <div className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-y-auto overscroll-contain pr-0.5">
+                        <div className="grid max-h-44 min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-y-auto overscroll-contain pr-0.5">
                           {reprints.map((reprint, i) => (
                             <ReprintThumbnail key={reprint.id} reprint={reprint} columnIndex={i} />
                           ))}
@@ -1327,7 +1353,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
 
                   {/* Colonna 3: KPI in verticale + grafico */}
-                  <div className={cn('flex min-h-0 flex-col rounded-xl bg-white/85 sm:col-span-2 md:col-span-2 lg:col-span-1 lg:min-h-[280px]', showChart ? 'p-2.5' : 'p-3')}>
+                  <div className={cn('flex min-h-0 flex-col rounded-xl bg-white/85 sm:col-span-2 md:col-span-2 lg:col-span-1', showChart ? 'p-2.5' : 'p-3')}>
                     <div className="mb-2 flex items-center justify-between">
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{trendRangeLabel}</span>
                       <button

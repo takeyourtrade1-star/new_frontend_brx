@@ -3,40 +3,29 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { ConditionBadge } from '@/components/ui/ConditionBadge';
+import type { ConditionCode } from '@/components/ui/ConditionBadge';
 import {
-  ArrowDown,
   CheckSquare,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
-  Copy,
-  CreditCard,
   Download,
   Edit3,
   FileJson,
   FileSpreadsheet,
-  Filter,
   Flame,
   Globe,
-  Grid3X3,
-  History,
-  Layers,
   Library,
-  List,
   Loader2,
   Package,
   Pencil,
   RefreshCw,
-  Search,
   ShoppingCart,
-  Sparkles,
   Square,
   Star,
   Timer,
   Trash2,
   TrendingUp,
-  Wallet,
   X,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -54,6 +43,11 @@ import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
 import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { getCardDisplayNames } from '@/lib/card-display-name';
 import { ASSETS, getCdnImageUrl } from '@/lib/config';
+import { InventoryFiltersPanel, DEFAULT_FILTERS } from '@/components/feature/account/InventoryFiltersPanel';
+import type { InventoryFilters } from '@/components/feature/account/InventoryFiltersPanel';
+import { InventorySortBar } from '@/components/feature/account/InventorySortBar';
+import { BulkPriceModal } from '@/components/feature/account/BulkPriceModal';
+import { BulkDeleteModal } from '@/components/feature/account/BulkDeleteModal';
 
 function buildImageUrl(raw: string | null | undefined): string | null {
   if (raw == null || raw === '') return null;
@@ -362,8 +356,6 @@ function getItemKind(item: InventoryItemWithCatalog): 'singole' | 'oggetti' {
   return 'singole';
 }
 
-type KindFilterValue = 'all' | 'singole' | 'oggetti';
-type SmartFilterValue = 'all' | 'unsold' | 'duplicates' | 'below-market';
 
 const LOW_STOCK_THRESHOLD = 5;
 const DAYS_UNSOLD_THRESHOLD = 30;
@@ -839,15 +831,7 @@ function OggettiTable({
 
                 {/* Stats Row - Condition, Language, Rarity - Glass Effect */}
                 <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm border shadow-sm ${
-                    condition === 'NM' ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' :
-                    condition === 'LP' ? 'bg-amber-500/15 text-amber-700 border-amber-500/30' :
-                    condition === 'MP' ? 'bg-orange-500/15 text-orange-700 border-orange-500/30' :
-                    condition === 'HP' ? 'bg-red-500/15 text-red-700 border-red-500/30' :
-                    'bg-gray-500/10 text-gray-600 border-gray-500/20'
-                  }`}>
-                    {condition}
-                  </span>
+                  <ConditionBadge condition={condition as ConditionCode} size="sm" />
                   {languageLabel && (
                     <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-gray-700 bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-sm">
                       <Globe className="h-3 w-3 text-gray-500" />
@@ -1052,15 +1036,7 @@ function OggettiTable({
                   {/* Details Column - Condition, Rarity, Language - Glass Effect */}
                   <td className="p-3">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm border shadow-sm ${
-                        condition === 'NM' ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' :
-                        condition === 'LP' ? 'bg-amber-500/15 text-amber-700 border-amber-500/30' :
-                        condition === 'MP' ? 'bg-orange-500/15 text-orange-700 border-orange-500/30' :
-                        condition === 'HP' ? 'bg-red-500/15 text-red-700 border-red-500/30' :
-                        'bg-gray-500/10 text-gray-600 border-gray-500/20'
-                      }`}>
-                        {condition}
-                      </span>
+                      <ConditionBadge condition={condition as ConditionCode} size="sm" />
                       {item.card?.rarity && (
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm border shadow-sm ${
                           item.card.rarity === 'Rare' ? 'bg-purple-500/15 text-purple-700 border-purple-500/30' :
@@ -1289,21 +1265,14 @@ export function OggettiContent() {
   const [syncBanner, setSyncBanner] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [syncPending, setSyncPending] = useState(false);
   const [syncNowPending, setSyncNowPending] = useState(false);
-  const [inventorySearchQuery, setInventorySearchQuery] = useState('');
-  /** Filtro per tipo: tutti, solo singole (carte), solo oggetti (sealed). */
-  const [kindFilter, setKindFilter] = useState<KindFilterValue>('all');
-  const [smartFilter, setSmartFilter] = useState<SmartFilterValue>('all');
-  const [bulkPriceModalOpen, setBulkPriceModalOpen] = useState(false);
-  const [bulkPriceChangePercent, setBulkPriceChangePercent] = useState(10);
-  /** Selezione per eliminazione in blocco (solo quando sincronizzazione non attiva). */
+  const [filters, setFilters] = useState<InventoryFilters>(DEFAULT_FILTERS);
+  const [isBulkPriceOpen, setIsBulkPriceOpen] = useState(false);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
-  /** Modale export: scelta CSV o JSON (solo client-side, nessun carico server). */
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<OggettiViewMode>('table');
-  /** Stato per la sticky bottom bar espandibile */
-  const [bottomBarExpanded, setBottomBarExpanded] = useState(false);
-  const [showStickyBar, setShowStickyBar] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   /** Verifica lato frontend: chiamate al sync service solo se integrazione CardTrader attiva. */
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
@@ -1332,35 +1301,62 @@ export function OggettiContent() {
   const syncAnyPending = syncPending || syncNowPending;
   const canSyncNow = integrationConnected && syncStatus?.sync_status !== 'initial_sync';
 
-  /** Filtro per tipo (singole/oggetti), smart filter e ricerca testuale. */
   const filteredInventoryItems = useMemo(() => {
     let list = inventoryItems;
-    
-    // Filtro per tipo
-    if (kindFilter !== 'all') {
-      list = list.filter((item) => getItemKind(item) === kindFilter);
+
+    if (filters.kind !== 'all') {
+      list = list.filter((item) => getItemKind(item) === filters.kind);
     }
-    
-    // Smart filters venditore
-    if (smartFilter !== 'all') {
+
+    if (filters.game !== 'all') {
+      list = list.filter((item) => item.card?.game_slug === filters.game);
+    }
+
+    if (filters.conditions.length > 0) {
+      list = list.filter((item) => {
+        const cond = item.properties?.condition as string | undefined;
+        return cond ? filters.conditions.includes(cond as ConditionCode) : false;
+      });
+    }
+
+    if (filters.languages.length > 0) {
+      list = list.filter((item) => {
+        const lang = item.properties?.mtg_language as string | undefined;
+        return lang ? filters.languages.includes(lang) : false;
+      });
+    }
+
+    if (filters.rarities.length > 0) {
+      list = list.filter((item) => {
+        const rarity = item.card?.rarity;
+        return rarity ? filters.rarities.includes(rarity) : false;
+      });
+    }
+
+    if (filters.priceMin !== null) {
+      list = list.filter((item) => (item.price_cents ?? 0) / 100 >= filters.priceMin!);
+    }
+
+    if (filters.priceMax !== null) {
+      list = list.filter((item) => (item.price_cents ?? 0) / 100 <= filters.priceMax!);
+    }
+
+    if (filters.smartFilter !== 'all') {
       list = list.filter((item) => {
         const data = salesData.get(item.id);
-        
-        switch (smartFilter) {
+        switch (filters.smartFilter) {
           case 'unsold': {
-            // Non venduti da più di X giorni o mai venduti
             if (!data) return true;
             const daysSinceSold = Math.floor((Date.now() - data.lastSold.getTime()) / (1000 * 60 * 60 * 24));
             return daysSinceSold > DAYS_UNSOLD_THRESHOLD || data.salesCount === 0;
           }
           case 'duplicates': {
-            // Duplicati: stesso blueprint_id con quantità > 1
-            const sameBlueprint = inventoryItems.filter(i => i.blueprint_id === item.blueprint_id);
+            const sameBlueprint = inventoryItems.filter((i) => i.blueprint_id === item.blueprint_id);
             return sameBlueprint.length > 1 || (item.quantity ?? 0) > 1;
           }
           case 'below-market': {
-            // Prezzo sotto mercato (simulato: prezzo < 80% della media inventario)
-            const avgPrice = inventoryItems.reduce((sum, i) => sum + (i.price_cents ?? 0), 0) / inventoryItems.length;
+            const avgPrice =
+              inventoryItems.reduce((sum, i) => sum + (i.price_cents ?? 0), 0) / inventoryItems.length;
             return (item.price_cents ?? 0) < avgPrice * 0.8;
           }
           default:
@@ -1368,54 +1364,43 @@ export function OggettiContent() {
         }
       });
     }
-    
-    // Ricerca testuale
-    if (inventorySearchQuery.trim()) {
-      list = list.filter((item) => matchInventorySearch(item, inventorySearchQuery));
-    }
-    
-    return list;
-  }, [inventoryItems, kindFilter, smartFilter, inventorySearchQuery, salesData]);
 
-  /** Conteggi per tipo (per le etichette dei tab). */
-  const countsByKind = useMemo(() => {
-    let singole = 0;
-    let oggetti = 0;
-    for (const item of inventoryItems) {
-      if (getItemKind(item) === 'oggetti') oggetti++;
-      else singole++;
+    if (filters.search.trim()) {
+      list = list.filter((item) => matchInventorySearch(item, filters.search));
     }
-    return { singole, oggetti };
-  }, [inventoryItems]);
 
-  /** KPI: totale oggetti unici, totale oggetti (somma quantità), valore totale (quantità × prezzo). Calcolati su tutti i dati filtrati (precisi). */
-  const totalUnique = filteredInventoryItems.length;
-  const totalQuantity = useMemo(
-    () => filteredInventoryItems.reduce((sum, item) => sum + (item.quantity ?? 0), 0),
-    [filteredInventoryItems]
-  );
-  const totalValueCents = useMemo(
-    () =>
-      filteredInventoryItems.reduce(
-        (sum, item) => sum + (item.quantity ?? 0) * (item.price_cents ?? 0),
-        0
-      ),
-    [filteredInventoryItems]
-  );
-  const totalValueFormatted =
-    totalValueCents >= 0
-      ? new Intl.NumberFormat('it-IT', {
-          style: 'currency',
-          currency: 'EUR',
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(totalValueCents / 100)
-      : '—';
-  /** Carte in inventario = righe di tipo "singole" nella vista corrente. */
-  const cardsInView = useMemo(
-    () => filteredInventoryItems.filter((item) => getItemKind(item) === 'singole').length,
-    [filteredInventoryItems]
-  );
+    const CONDITION_ORDER: Record<string, number> = { NM: 0, SP: 1, MP: 2, PL: 3, PO: 4 };
+    const sorted = [...list].sort((a, b) => {
+      switch (filters.sortBy) {
+        case 'price-desc':
+          return (b.price_cents ?? 0) - (a.price_cents ?? 0);
+        case 'price-asc':
+          return (a.price_cents ?? 0) - (b.price_cents ?? 0);
+        case 'condition-desc': {
+          const aO = CONDITION_ORDER[a.properties?.condition as string ?? ''] ?? 99;
+          const bO = CONDITION_ORDER[b.properties?.condition as string ?? ''] ?? 99;
+          return aO - bO;
+        }
+        case 'condition-asc': {
+          const aO = CONDITION_ORDER[a.properties?.condition as string ?? ''] ?? 99;
+          const bO = CONDITION_ORDER[b.properties?.condition as string ?? ''] ?? 99;
+          return bO - aO;
+        }
+        case 'name-asc':
+          return (a.card?.name ?? '').localeCompare(b.card?.name ?? '');
+        case 'name-desc':
+          return (b.card?.name ?? '').localeCompare(a.card?.name ?? '');
+        case 'date-desc':
+          return new Date(b.updated_at ?? 0).getTime() - new Date(a.updated_at ?? 0).getTime();
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  }, [inventoryItems, filters, salesData]);
+
+
 
   const ITEMS_PER_PAGE = 200;
   const [currentPage, setCurrentPage] = useState(1);
@@ -1427,22 +1412,12 @@ export function OggettiContent() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [kindFilter, smartFilter, inventorySearchQuery]);
+  }, [filters]);
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(Math.max(1, totalPages));
   }, [currentPage, totalPages]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      // Mostra sticky bar quando l'utente ha scrollato oltre i controlli principali
-      const scrollY = window.scrollY;
-      setShowStickyBar(scrollY > 400);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // 1) Verifica stato sync con CardTrader (una sola chiamata, prima di qualsiasi altra al sync service)
   useEffect(() => {
@@ -1708,6 +1683,53 @@ export function OggettiContent() {
     [user?.id, accessToken, loadInventory, t]
   );
 
+  const handleBulkPriceApply = useCallback(
+    (operation: '+' | '-', percent: number, target: 'local' | 'cardmarket' | 'all') => {
+      setInventoryItems((prev) =>
+        prev.map((item) => {
+          if (!selectedIds.has(item.id)) return item;
+          const currentCents = item.price_cents ?? 0;
+          const factor = operation === '+' ? 1 + percent / 100 : 1 - percent / 100;
+          const newPriceCents = Math.round(currentCents * factor);
+          return { ...item, price_cents: newPriceCents };
+        })
+      );
+      if (target !== 'local') {
+        // TODO: Backend integration — sync price updates to external platforms
+        console.log('TODO: sync price updates to platforms:', target, Array.from(selectedIds));
+      }
+      setToast({
+        message: `Prezzi aggiornati: ${operation === '+' ? '+' : '-'}${percent}% su ${selectedIds.size} carte`,
+        type: 'success',
+      });
+      setSelectedIds(new Set());
+    },
+    [selectedIds]
+  );
+
+  const handleBulkDelete = useCallback(
+    async (deleteFromPlatforms: boolean): Promise<void> => {
+      const idsToDelete = new Set(selectedIds);
+      setInventoryItems((prev) => prev.filter((item) => !idsToDelete.has(item.id)));
+      setSelectedIds(new Set());
+      if (deleteFromPlatforms) {
+        // TODO: Backend integration — delete from external platforms
+        console.log('TODO: delete from external platforms', Array.from(idsToDelete));
+      }
+      setToast({
+        message: `${idsToDelete.size} carte eliminate dall'inventario`,
+        type: 'success',
+      });
+    },
+    [selectedIds]
+  );
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   /** Export selezione in CSV. */
   const handleExportSelectionCSV = useCallback(() => {
     const selectedItems = filteredInventoryItems.filter(item => selectedIds.has(item.id));
@@ -1758,9 +1780,6 @@ export function OggettiContent() {
     setExportModalOpen(false);
   }, [filteredInventoryItems]);
 
-  const cardWord =
-    total === 1 ? t('accountPage.itemsCardOne') : t('accountPage.itemsCardMany');
-
   if (!user || !accessToken) {
     return (
       <div className="text-gray-900">
@@ -1777,110 +1796,51 @@ export function OggettiContent() {
   }
 
   return (
-    <div className="text-gray-900 space-y-6">
+    <div className="flex min-h-screen bg-[#F5F4F0]">
+      <InventoryFiltersPanel
+        filters={filters}
+        onFiltersChange={setFilters}
+        itemCount={filteredInventoryItems.length}
+        totalCount={inventoryItems.length}
+        syncStatus={syncAnyPending ? 'syncing' : syncEnabled ? 'active' : 'inactive'}
+      />
+      <main className="flex-1 min-w-0 overflow-x-hidden p-6">
+        <nav
+          className="mb-5 flex items-center gap-1.5 text-sm text-gray-500"
+          aria-label="Breadcrumb"
+        >
+          <Link href="/account" className="transition-colors hover:text-gray-900">
+            Account
+          </Link>
+          <span className="text-gray-300">/</span>
+          <span className="font-medium text-gray-900">I Miei Oggetti</span>
+        </nav>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1 - Oggetti Unici */}
-        <div className="group flex items-center gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-300 hover:border-gray-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
-            <IconBox className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{t('accountPage.itemsKpiUnique')}</p>
-            <p className="text-lg font-bold tabular-nums tracking-tight text-gray-900">
-              {loading ? '—' : totalUnique.toLocaleString('it-IT')}
-            </p>
-            <p className="text-[11px] text-gray-400">
-              {kindFilter !== 'all' || inventorySearchQuery.trim()
-                ? t('accountPage.itemsKpiUniqueSubFiltered')
-                : t('accountPage.itemsKpiUniqueSubTotal')}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 2 - Totale Quantità */}
-        <div className="group flex items-center gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-300 hover:border-gray-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-            <IconStack className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{t('accountPage.itemsKpiTotal')}</p>
-            <p className="text-lg font-bold tabular-nums tracking-tight text-gray-900">
-              {loading ? '—' : totalQuantity.toLocaleString('it-IT')}
-            </p>
-            <p className="text-[11px] text-gray-400">
-              {kindFilter !== 'all' || inventorySearchQuery.trim()
-                ? t('accountPage.itemsKpiTotalSubFiltered')
-                : t('accountPage.itemsKpiTotalSubSum')}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 3 - Valore Totale */}
-        <div className="group flex items-center gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-300 hover:border-gray-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-            <IconWallet className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{t('accountPage.itemsKpiValue')}</p>
-            <p className="text-lg font-bold tabular-nums tracking-tight text-gray-900">
-              {loading ? '—' : totalValueFormatted}
-            </p>
-            <p className="text-[11px] text-gray-400">
-              {kindFilter !== 'all' || inventorySearchQuery.trim()
-                ? t('accountPage.itemsKpiValueSubFiltered')
-                : t('accountPage.itemsKpiValueSubCalc')}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 4 - Carte in Inventario */}
-        <div className="group flex items-center gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-300 hover:border-gray-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-            <IconCard className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{t('accountPage.itemsKpiCards')}</p>
-            <p className="text-lg font-bold tabular-nums tracking-tight text-gray-900">
-              {loading ? '—' : cardsInView.toLocaleString('it-IT')}
-            </p>
-            <p className="text-[11px] text-gray-400">
-              {kindFilter === 'singole'
-                ? t('accountPage.itemsKpiCardsSubSingles')
-                : kindFilter === 'all'
-                  ? t('accountPage.itemsKpiCardsSubAll')
-                  : '—'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Search + Actions Row - Separated on top - Extended */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Search - Extended full width */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="search"
-            value={inventorySearchQuery}
-            onChange={(e) => setInventorySearchQuery(e.target.value)}
-            placeholder={t('accountPage.itemsSearchPlaceholder')}
-            className="w-full rounded-xl border border-gray-200 bg-white/80 backdrop-blur-sm py-2.5 pl-10 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-          />
-          {inventorySearchQuery.length > 0 && (
+        {syncBanner && (
+          <div
+            className={`mb-4 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-medium ${
+              syncBanner.type === 'success'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                : syncBanner.type === 'error'
+                  ? 'border-red-200 bg-red-50 text-red-700'
+                  : 'border-sky-200 bg-sky-50 text-sky-700'
+            }`}
+          >
+            <span>
+              {syncBanner.message ||
+                (syncBanner.type === 'success' ? 'Sincronizzazione completata' : '')}
+            </span>
             <button
               type="button"
-              onClick={() => setInventorySearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              onClick={() => setSyncBanner(null)}
+              className="rounded p-1 opacity-60 transition-opacity hover:opacity-100"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="mb-4 flex items-center justify-end gap-2">
           {!syncStatusLoading && (
             <button
               type="button"
@@ -1888,7 +1848,11 @@ export function OggettiContent() {
               disabled={!integrationConnected || !canSyncNow || syncAnyPending}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50"
             >
-              {syncNowPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {syncNowPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
               Sync
             </button>
           )}
@@ -1902,172 +1866,15 @@ export function OggettiContent() {
             {t('accountPage.itemsExport')}
           </button>
         </div>
-      </div>
 
-      {/* Main Card - Filters, View Toggle, Status & Table */}
-      <div className="overflow-hidden rounded-2xl border border-stroke-grey bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-        {/* Filters & View Toggle - Unified row */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 p-4">
-          {/* Left: All 6 Filters - Unified pill style */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Kind Filters - Unified pill style */}
-            <button
-              type="button"
-              onClick={() => setKindFilter('all')}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                kindFilter === 'all'
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-              }`}
-            >
-              <Grid3X3 className="h-3.5 w-3.5" />
-              Tutti ({inventoryItems.length.toLocaleString('it-IT')})
-            </button>
-            <button
-              type="button"
-              onClick={() => setKindFilter('singole')}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                kindFilter === 'singole'
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-              }`}
-            >
-              <CreditCard className="h-3.5 w-3.5" />
-              Singole ({countsByKind.singole.toLocaleString('it-IT')})
-            </button>
-            <button
-              type="button"
-              onClick={() => setKindFilter('oggetti')}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                kindFilter === 'oggetti'
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-              }`}
-            >
-              <Package className="h-3.5 w-3.5" />
-              Oggetti ({countsByKind.oggetti.toLocaleString('it-IT')})
-            </button>
+        <InventorySortBar
+          sortBy={filters.sortBy}
+          onSortChange={(sortBy) => setFilters((prev) => ({ ...prev, sortBy }))}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          itemCount={filteredInventoryItems.length}
+        />
 
-            <div className="h-5 w-px bg-gray-200 mx-1" />
-
-            {/* Smart Filters - Same pill style */}
-            <button
-              type="button"
-              onClick={() => setSmartFilter('unsold')}
-              className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                smartFilter === 'unsold'
-                  ? 'bg-amber-500 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-              }`}
-              title="Non venduti da 30+ giorni"
-            >
-              <History className="h-3 w-3" />
-              Non venduti
-            </button>
-            <button
-              type="button"
-              onClick={() => setSmartFilter('duplicates')}
-              className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                smartFilter === 'duplicates'
-                  ? 'bg-blue-500 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-              }`}
-              title="Duplicati in inventario"
-            >
-              <Copy className="h-3 w-3" />
-              Duplicati
-            </button>
-            <button
-              type="button"
-              onClick={() => setSmartFilter('below-market')}
-              className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                smartFilter === 'below-market'
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-              }`}
-              title="Prezzo sotto mercato"
-            >
-              <ArrowDown className="h-3 w-3" />
-              Sotto mercato
-            </button>
-            {smartFilter !== 'all' && (
-              <button
-                type="button"
-                onClick={() => setSmartFilter('all')}
-                className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-500 hover:bg-gray-50 transition-all"
-              >
-                <X className="h-3 w-3" />
-                Reset
-              </button>
-            )}
-          </div>
-
-          {/* Right: View Toggle - Standardized orange glass style */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">{t('account.itemsViewTableLabel')}</span>
-            <div className="flex rounded-lg bg-gray-100 p-1">
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-                  viewMode === 'table'
-                    ? 'bg-white text-primary shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <List className="h-4 w-4" />
-                {t('account.itemsViewListLabel')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('cards')}
-                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-                  viewMode === 'cards'
-                    ? 'bg-white text-primary shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Grid3X3 className="h-4 w-4" />
-                {t('account.itemsViewCardsLabel')}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Status & Stats */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-50/50 px-4 py-2.5 text-xs">
-          <div className="flex items-center gap-2">
-            {!syncStatusLoading && (
-              syncEnabled ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-600">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  {t('accountPage.itemsSyncActive')}
-                </span>
-              ) : (
-                <Link
-                  href="/account/sincronizzazione"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-600 hover:bg-amber-100 transition-colors"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                  {t('accountPage.itemsSyncInactive')}
-                </Link>
-              )
-            )}
-            {integrationConnected && syncAnyPending && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 font-medium text-sky-600">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                {t('accountPage.itemsSyncRunningShort')}
-              </span>
-            )}
-          </div>
-          <p className="text-gray-500">
-            {filteredInventoryItems.length.toLocaleString()} {t('accountPage.itemsOf')} {total.toLocaleString()} {cardWord}
-            {inventorySearchQuery.trim() && (
-              <span className="ml-1 text-gray-400">(filtro: &quot;{inventorySearchQuery}&quot;)</span>
-            )}
-          </p>
-        </div>
-      </div>
 
       {error && (
         <div className="mb-6 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -2097,10 +1904,10 @@ export function OggettiContent() {
       ) : filteredInventoryItems.length === 0 ? (
         <div className="border border-gray-200 bg-white p-10 shadow-sm">
           <p className="text-center text-gray-600">
-            {t('accountPage.itemsNoResults', { query: inventorySearchQuery })}{' '}
+            {t('accountPage.itemsNoResults', { query: filters.search })}{' '}
             <button
               type="button"
-              onClick={() => setInventorySearchQuery('')}
+              onClick={() => setFilters((prev) => ({ ...prev, search: '' }))}
               className="font-medium text-primary hover:underline"
             >
               {t('accountPage.itemsClearSearch')}
@@ -2112,9 +1919,8 @@ export function OggettiContent() {
         <>
           {!syncEnabled && filteredInventoryItems.length > 0 && (
             <div className="mb-5 overflow-hidden rounded-2xl border border-stroke-grey bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-              {/* Selection Controls & Bulk Actions */}
               <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                {/* Left: Selection Counter & Controls */}
+                {/* Counter */}
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
@@ -2123,7 +1929,8 @@ export function OggettiContent() {
                     <div className="flex flex-col">
                       <span className="text-xs text-gray-500">{t('accountPage.itemsSelected')}</span>
                       <span className="text-sm font-bold text-gray-900">
-                        {selectedIds.size} <span className="text-xs font-normal text-gray-400">/ {filteredInventoryItems.length}</span>
+                        {selectedIds.size}{' '}
+                        <span className="text-xs font-normal text-gray-400">/ {filteredInventoryItems.length}</span>
                       </span>
                     </div>
                   </div>
@@ -2132,65 +1939,31 @@ export function OggettiContent() {
                     <button
                       type="button"
                       onClick={onSelectAll}
-                      disabled={bulkDeleting}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-primary hover:text-primary disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-primary hover:text-primary"
                     >
-                      {t('accountPage.itemsSelectAll')}
+                      {t('accountPage.itemsSelectAll')} ({filteredInventoryItems.length})
                     </button>
                     <button
                       type="button"
                       onClick={onDeselectAll}
-                      disabled={bulkDeleting}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-red-400 hover:text-red-500 disabled:opacity-50"
+                      disabled={selectedIds.size === 0}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-red-400 hover:text-red-500 disabled:opacity-40"
                     >
                       {t('accountPage.itemsSelectNone')}
                     </button>
                   </div>
                 </div>
-
-                {/* Right: Bulk Actions */}
-                <div className="flex items-center gap-2">
-                  {selectedIds.size > 0 && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setBulkPriceModalOpen(true)}
-                        disabled={bulkDeleting}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-primary/90 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:shadow-md hover:shadow-primary/20 active:scale-95 disabled:opacity-50"
-                      >
-                        <Edit3 className="h-3.5 w-3.5" />
-                        {t('accountPage.itemsPriceChange')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleExportSelectionCSV}
-                        disabled={bulkDeleting}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:shadow-md hover:shadow-emerald-500/20 active:scale-95 disabled:opacity-50"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        {t('accountPage.itemsExport')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDeleteSelected(Array.from(selectedIds))}
-                        disabled={bulkDeleting || selectedIds.size === 0}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-4 py-2 text-xs font-bold text-red-500 transition-all hover:bg-red-50 hover:border-red-300 active:scale-95 disabled:opacity-50"
-                      >
-                        {bulkDeleting ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                        {t('accountPage.itemsDeleteSelected')}
-                      </button>
-                    </>
-                  )}
-                  {selectedIds.size === 0 && (
-                    <span className="text-xs text-gray-400 italic">
-                      {t('accountPage.itemsSelectItemsForBulk')}
-                    </span>
-                  )}
-                </div>
+                {/* Export selezione */}
+                {selectedIds.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleExportSelectionCSV}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-emerald-400 hover:text-emerald-600"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {t('accountPage.itemsExport')} ({selectedIds.size})
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -2284,296 +2057,76 @@ export function OggettiContent() {
         </>
       )}
 
-      {/* Sticky Bottom Bar - Search + Expandable Filters & Selection */}
-      {showStickyBar && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-4 fade-in duration-300">
-          {/* Collapsed State - Solo ricerca visibile */}
-          <div className="flex items-center gap-3 px-4 py-3">
-            {/* Search Compact */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                type="search"
-                value={inventorySearchQuery}
-                onChange={(e) => setInventorySearchQuery(e.target.value)}
-                placeholder={t('accountPage.itemsSearchPlaceholder')}
-                className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-8 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-              {inventorySearchQuery.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setInventorySearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
+      </main>
 
-            {/* Toggle Expand Button */}
+      <BulkPriceModal
+        isOpen={isBulkPriceOpen}
+        onClose={() => setIsBulkPriceOpen(false)}
+        selectedItems={filteredInventoryItems.filter((item) => selectedIds.has(item.id))}
+        syncStatus={syncAnyPending ? 'syncing' : syncEnabled ? 'active' : 'inactive'}
+        onApply={handleBulkPriceApply}
+      />
+      <BulkDeleteModal
+        isOpen={isBulkDeleteOpen}
+        onClose={() => setIsBulkDeleteOpen(false)}
+        selectedItems={filteredInventoryItems.filter((item) => selectedIds.has(item.id))}
+        syncStatus={syncAnyPending ? 'syncing' : syncEnabled ? 'active' : 'inactive'}
+        onConfirm={handleBulkDelete}
+      />
+
+      {/* Sticky action bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/90 px-6 py-4 shadow-2xl backdrop-blur-lg">
+          <div className="mx-auto flex max-w-screen-xl items-center justify-between gap-4">
+            {/* Left */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-bold text-gray-900">
+                {selectedIds.size} carte selezionate
+              </span>
+              <button
+                type="button"
+                onClick={onDeselectAll}
+                className="text-sm text-gray-400 transition-colors hover:text-gray-700"
+              >
+                Deseleziona tutto
+              </button>
+            </div>
+            {/* Center */}
             <button
               type="button"
-              onClick={() => setBottomBarExpanded(!bottomBarExpanded)}
-              className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition-all hover:bg-gray-50"
-              title={bottomBarExpanded ? t('accountPage.itemsCollapse') : t('accountPage.itemsExpand')}
+              onClick={() => setIsBulkPriceOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md active:scale-95"
             >
-              {bottomBarExpanded ? (
-                <ChevronDown className="h-5 w-5" />
-              ) : (
-                <ChevronUp className="h-5 w-5" />
-              )}
+              <TrendingUp className="h-4 w-4" />
+              Modifica Prezzi
             </button>
-
-            {/* Quick Selection Count Badge */}
-            {!syncEnabled && selectedIds.size > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-white">
-                <CheckSquare className="h-3.5 w-3.5" />
-                {selectedIds.size}
-              </span>
-            )}
+            {/* Right */}
+            <button
+              type="button"
+              onClick={() => setIsBulkDeleteOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-5 py-2.5 text-sm font-bold text-red-500 transition-all hover:border-red-400 hover:bg-red-50 active:scale-95"
+            >
+              <Trash2 className="h-4 w-4" />
+              Elimina selezionate
+            </button>
           </div>
-
-          {/* Expanded State - Filtri e Selezione */}
-          {bottomBarExpanded && (
-            <div className="border-t border-gray-100 px-4 py-3">
-              {/* Filters Row */}
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-gray-500">{t('accountPage.itemsFilters')}</span>
-                {/* Kind Filters */}
-                <button
-                  type="button"
-                  onClick={() => setKindFilter('all')}
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
-                    kindFilter === 'all'
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {t('accountPage.itemsFilterAll')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setKindFilter('singole')}
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
-                    kindFilter === 'singole'
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {t('accountPage.itemsFilterSingles')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setKindFilter('oggetti')}
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
-                    kindFilter === 'oggetti'
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {t('accountPage.itemsFilterSealed')}
-                </button>
-
-                {/* Smart Filters */}
-                <button
-                  type="button"
-                  onClick={() => setSmartFilter('unsold')}
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
-                    smartFilter === 'unsold'
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {t('accountPage.itemsFilterUnsold')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSmartFilter('duplicates')}
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
-                    smartFilter === 'duplicates'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {t('accountPage.itemsFilterDuplicates')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSmartFilter('below-market')}
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
-                    smartFilter === 'below-market'
-                      ? 'bg-emerald-500 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {t('accountPage.itemsFilterUnderMarket')}
-                </button>
-                {smartFilter !== 'all' && (
-                  <button
-                    type="button"
-                    onClick={() => setSmartFilter('all')}
-                    className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-500 hover:bg-gray-50"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-
-              {/* Selection Controls */}
-              {!syncEnabled && filteredInventoryItems.length > 0 && (
-                <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">{t('accountPage.itemsSelected')}:</span>
-                    <span className="text-sm font-bold text-gray-900">
-                      {selectedIds.size} / {filteredInventoryItems.length}
-                    </span>
-                    <div className="flex gap-1 ml-2">
-                      <button
-                        type="button"
-                        onClick={onSelectAll}
-                        disabled={bulkDeleting}
-                        className="inline-flex items-center rounded border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:border-primary hover:text-primary"
-                      >
-                        {t('accountPage.itemsSelectAll')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={onDeselectAll}
-                        disabled={bulkDeleting}
-                        className="inline-flex items-center rounded border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:border-red-400 hover:text-red-500"
-                      >
-                        {t('accountPage.itemsSelectNone')}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Quick Bulk Actions */}
-                  {selectedIds.size > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setBulkPriceModalOpen(true)}
-                        disabled={bulkDeleting}
-                        className="inline-flex items-center gap-1 rounded bg-primary px-2.5 py-1.5 text-xs font-medium text-white"
-                      >
-                        <Edit3 className="h-3 w-3" />
-                        {t('accountPage.itemsTablePrice')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleExportSelectionCSV}
-                        disabled={bulkDeleting}
-                        className="inline-flex items-center gap-1 rounded bg-emerald-500 px-2.5 py-1.5 text-xs font-medium text-white"
-                      >
-                        <Download className="h-3 w-3" />
-                        CSV
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
-      {bulkPriceModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-opacity duration-200"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="bulk-price-modal-title"
-          onClick={() => setBulkPriceModalOpen(false)}
-        >
-          <div
-            className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/20 bg-white/95 p-6 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed right-5 top-5 z-[60] flex items-center gap-3 rounded-xl border border-emerald-200 bg-white px-4 py-3 shadow-lg transition-all duration-300">
+          <span
+            className={`h-2 w-2 shrink-0 rounded-full ${toast.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}
+          />
+          <span className="text-sm font-medium text-gray-800">{toast.message}</span>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            className="ml-1 rounded-full p-0.5 text-gray-400 transition-colors hover:text-gray-600"
           >
-            {/* Header */}
-            <div className="mb-6 flex items-start justify-between">
-              <div>
-                <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
-                  <Edit3 className="h-5 w-5" />
-                </div>
-                <h2 id="bulk-price-modal-title" className="text-lg font-bold text-gray-900">
-                  {t('accountPage.itemsPriceChange')}
-                </h2>
-                <p className="text-sm text-gray-500">
-                  {selectedIds.size} {t('accountPage.itemsBulkNounMany')}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setBulkPriceModalOpen(false)}
-                className="rounded-lg p-2 text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-600"
-                aria-label={t('accountPage.itemsClose')}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Percentage Selector */}
-            <div className="mb-6">
-              <label className="mb-3 block text-sm font-medium text-gray-700">
-                {t('accountPage.itemsPriceChangePercent')}
-              </label>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setBulkPriceChangePercent(Math.max(-50, bulkPriceChangePercent - 5))}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50"
-                >
-                  -
-                </button>
-                <div className="flex-1">
-                  <div className={`text-center text-2xl font-bold ${bulkPriceChangePercent >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {bulkPriceChangePercent > 0 ? '+' : ''}{bulkPriceChangePercent}%
-                  </div>
-                  <input
-                    type="range"
-                    min="-50"
-                    max="50"
-                    step="5"
-                    value={bulkPriceChangePercent}
-                    onChange={(e) => setBulkPriceChangePercent(Number(e.target.value))}
-                    className="mt-2 w-full accent-primary"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setBulkPriceChangePercent(Math.min(50, bulkPriceChangePercent + 5))}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50"
-                >
-                  +
-                </button>
-              </div>
-              <p className="mt-2 text-xs text-gray-500 text-center">
-                {bulkPriceChangePercent > 0 ? t('accountPage.itemsPriceIncrease') : t('accountPage.itemsPriceDecrease')}
-              </p>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setBulkPriceModalOpen(false)}
-                className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  // TODO: Implementare API per cambio prezzo bulk
-                  alert(`Cambio prezzo del ${bulkPriceChangePercent}% su ${selectedIds.size} ${t('accountPage.itemsBulkNounMany')}`);
-                  setBulkPriceModalOpen(false);
-                }}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md"
-              >
-                <Edit3 className="h-4 w-4" />
-                {t('accountPage.itemsPriceApply')}
-              </button>
-            </div>
-          </div>
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
       {exportModalOpen && (
