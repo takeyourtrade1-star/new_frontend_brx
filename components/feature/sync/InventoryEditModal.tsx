@@ -26,6 +26,14 @@ export const INVENTORY_LANG_OPTIONS_EDIT = [
 const fieldClass =
   'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25';
 
+export function parseInventoryPriceCents(value: string): number | null {
+  const normalized = value.trim().replace(',', '.');
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return Math.round(parsed * 100);
+}
+
 export function InventoryEditModal({
   item,
   onClose,
@@ -67,10 +75,16 @@ export function InventoryEditModal({
   const [signed, setSigned] = useState(!!props?.signed);
   const [altered, setAltered] = useState(!!props?.altered);
   const [mtgFoil, setMtgFoil] = useState(!!props?.mtg_foil);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const priceCents = Math.round(parseFloat(priceEuro) * 100) || 0;
+    const priceCents = parseInventoryPriceCents(priceEuro);
+    if (priceCents == null) {
+      setFormError('Inserisci un prezzo valido.');
+      return;
+    }
+    setFormError(null);
     onSubmit({
       quantity,
       price_cents: priceCents,
@@ -113,11 +127,20 @@ export function InventoryEditModal({
                 type="text"
                 inputMode="decimal"
                 value={priceEuro}
-                onChange={(e) => setPriceEuro(e.target.value)}
+                onChange={(e) => {
+                  setPriceEuro(e.target.value);
+                  if (formError) setFormError(null);
+                }}
+                aria-invalid={formError != null}
                 className={fieldClass}
               />
             </div>
           </div>
+          {formError && (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {formError}
+            </p>
+          )}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Condizione</label>
             <select value={condition} onChange={(e) => setCondition(e.target.value as ConditionCode)} className={fieldClass}>
