@@ -12,10 +12,13 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, ChevronDown, ChevronLeft, ChevronRight, Rows3, Grid2x2, X } from 'lucide-react';
 import { getCardImageUrl } from '@/lib/assets';
-import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
+import { SearchResultsTable } from '@/components/feature/search/SearchResultsTable';
 import type { SearchHit } from '@/app/api/search/route';
 import type { GameSlug } from '@/lib/contexts/GameContext';
+import { normalizeGameSlug, type GameSlug as SearchGameSlug } from '@/lib/search/category-mapping';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 
 const BACKEND_LANG_ORDER = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
@@ -201,8 +204,10 @@ export function ProductCategoryView({
 
   const formatEuro = (n: number | undefined) =>
     n != null ? formatEuroNoSpace(n, 'it-IT') : '–';
+  const { t } = useTranslation();
 
   return (
+    <RarityLegendProvider>
     <section className="min-h-screen pb-12 bg-[#F0F0F0]">
       {/* ─── Hero Header ─── */}
       {['singles', 'boosters', 'booster-boxes'].includes(categorySlug) && (
@@ -371,7 +376,7 @@ export function ProductCategoryView({
         </div>
 
         {/* Contenuto: tabella lista o griglia */}
-        <div className="border border-gray-300 bg-white overflow-hidden search-results-card">
+        <div className="overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm search-results-card">
           {error && (
             <div className="p-6 text-center text-red-600 bg-red-50">{error}</div>
           )}
@@ -385,98 +390,15 @@ export function ProductCategoryView({
           )}
 
           {!loading && !error && hits.length > 0 && viewMode === 'list' && (
-            <div className="overflow-x-auto search-results-table-wrapper">
-              <table className="w-full min-w-[640px] border-collapse text-sm table-fixed">
-                <colgroup>
-                  <col className="min-w-0" style={{ width: 'min(9%, 6.5rem)' }} />
-                  <col className="min-w-0" style={{ width: 'min(22%, 13rem)' }} />
-                  {showCardDetails && (
-                    <>
-                      <col style={{ width: '8%' }} />
-                      <col style={{ width: '8%' }} />
-                    </>
-                  )}
-                  <col style={{ width: '8%' }} />
-                  <col style={{ width: '8%' }} />
-                </colgroup>
-                <thead>
-                  <tr className="bg-gray-100 border-b border-gray-200 text-left text-gray-600 uppercase text-xs font-semibold">
-                    <th className="pl-2 pr-0 py-1.5 align-bottom text-left">Edizione</th>
-                    <th className="pl-2 pr-2 py-1.5 align-bottom text-left">Nome</th>
-                    {showCardDetails && (
-                      <>
-                        <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">Numero</th>
-                        <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">Rarità</th>
-                      </>
-                    )}
-                    <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">Disponibile</th>
-                    <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">Da</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {hits.map((hit) => {
-                    const productHref = `/products/${hit.id}`;
-                    const { primary, secondary } = getDisplayNames(hit, selectedLang);
-                    const imgUrl = getCardImageUrl(hit.image ?? null);
-                    const setName = hit.set_name ?? '';
-                    const nameOriginal = secondary ?? primary;
-                    const nameTranslation = secondary ? primary : null;
-                    return (
-                      <tr
-                        key={hit.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => router.push(productHref)}
-                        onKeyDown={(e) => e.key === 'Enter' && router.push(productHref)}
-                        className="search-result-row border-b border-gray-100 cursor-pointer outline-none hover:bg-orange-50/50 transition-colors"
-                      >
-                        <td className="pl-2 pr-0 py-1.5 align-middle min-w-0">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <CardImageCameraPeek
-                              imageUrl={imgUrl}
-                              name={nameOriginal}
-                              previewSide="left"
-                            />
-
-                            <span className="relative inline-flex min-w-0 max-w-[6.5rem] group">
-                              <span className="min-w-0 flex-1 text-[9px] leading-none text-gray-600 font-medium tracking-wide truncate">
-                                {setName}
-                              </span>
-                              {/* Tooltip custom: niente delay nativo, stile Apple */}
-                              {setName && (
-                                <span className="pointer-events-none absolute left-0 top-full z-[20] mt-1 w-max max-w-[14rem] break-words rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white shadow-lg opacity-0 transition-opacity duration-75 group-hover:opacity-100">
-                                  {setName}
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="pl-2 pr-2 py-1.5 align-middle min-w-0 text-left">
-                          <div className="flex flex-col justify-center gap-0 min-w-0">
-                            <span className="text-sm font-semibold leading-snug text-gray-900 break-words">{nameOriginal}</span>
-                            {nameTranslation && (
-                              <p className="text-[11px] text-gray-500 italic font-light leading-snug break-words">{nameTranslation}</p>
-                            )}
-                          </div>
-                        </td>
-                        {showCardDetails && (
-                          <>
-                            <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap text-center align-middle text-xs">
-                              {hit.collector_number ?? '–'}
-                            </td>
-                            <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap text-center align-middle text-xs">
-                              {hit.rarity ?? '–'}
-                            </td>
-                          </>
-                        )}
-                        <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap text-center align-middle text-xs">–</td>
-                        <td className="px-2 py-1.5 text-[#FF7300] font-semibold whitespace-nowrap text-center align-middle text-xs">–</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <SearchResultsTable
+              hits={hits}
+              selectedLang={selectedLang}
+              gameSlug={normalizeGameSlug(effectiveGame) as SearchGameSlug | null}
+              t={t}
+              editionVariant="text"
+              showCardDetails={showCardDetails}
+              formatPrice={(hit) => formatEuro((hit as SinglesHit).market_price)}
+            />
           )}
 
           {!loading && !error && hits.length > 0 && viewMode === 'grid' && (
@@ -555,6 +477,7 @@ export function ProductCategoryView({
         </div>
       </div>
     </section>
+    </RarityLegendProvider>
   );
 }
 

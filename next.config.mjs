@@ -46,6 +46,7 @@ const nextConfig = {
     NEXT_PUBLIC_SYNC_API_URL:
       process.env.NEXT_PUBLIC_SYNC_API_URL || process.env.VITE_SYNC_API_URL,
     NEXT_PUBLIC_AUCTION_API_URL: process.env.NEXT_PUBLIC_AUCTION_API_URL,
+    NEXT_PUBLIC_MARKETPLACE_API_URL: process.env.NEXT_PUBLIC_MARKETPLACE_API_URL,
   },
   async headers() {
     // Skip security headers in development for easier debugging
@@ -90,6 +91,7 @@ const nextConfig = {
     const searchApiUrl = process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL || 'http://localhost:8000';
     const syncApiUrl = (process.env.SYNC_API_URL || process.env.NEXT_PUBLIC_SYNC_API_URL || process.env.VITE_SYNC_API_URL || 'https://sync.ebartex.com').replace(/\/+$/, '');
     const brxMatchUrl = (process.env.BRX_MATCH_API_URL || 'http://15.160.8.178:8005').replace(/\/+$/, '');
+    const marketplaceApiUrl = (process.env.MARKETPLACE_API_URL || process.env.NEXT_PUBLIC_MARKETPLACE_API_URL || 'http://15.160.8.178:8004').replace(/\/+$/, '');
 
     return [
       // Favicon: evita 404 su /favicon.ico servendo logo-pwa.svg
@@ -108,6 +110,11 @@ const nextConfig = {
       {
         source: '/brx-match/:path*',
         destination: `${brxMatchUrl}/brx-match/:path*`,
+      },
+      // Proxy per BRX Marketplace: /api/marketplace/* → 15.160.8.178:8004/api/v1/*
+      {
+        source: '/api/marketplace/:path*',
+        destination: `${marketplaceApiUrl}/api/v1/:path*`,
       },
     ];
   },

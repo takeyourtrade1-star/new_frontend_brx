@@ -9,7 +9,9 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { SearchHit } from '@/app/api/search/route';
 import { getCardImageUrl } from '@/lib/assets';
 import { getCardDisplayNames } from '@/lib/card-display-name';
-import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
+import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
+import { SearchResultsTable } from '@/components/feature/search/SearchResultsTable';
+import type { GameSlug } from '@/lib/search/category-mapping';
 
 type SetPageClientProps = {
   game: string;
@@ -271,6 +273,7 @@ export function SetPageClient({ game, setName }: SetPageClientProps) {
   };
 
   return (
+    <RarityLegendProvider>
     <div className="container-content py-4 sm:py-6">
       {/* Nota: l'Header è già presente nella pagina /set server component */}
       <div className="mb-4">
@@ -403,73 +406,21 @@ export function SetPageClient({ game, setName }: SetPageClientProps) {
             )}
 
             {viewMode === 'list' && (
-              <div ref={resultsRef} className="overflow-x-auto search-results-table-wrapper">
-                <table className="w-full min-w-[820px] border-collapse text-sm table-fixed">
-                  <thead>
-                    <tr className="bg-gray-100 border-b border-gray-200 text-left text-gray-600 uppercase text-xs font-semibold">
-                      <th className="pl-2 pr-0 py-1.5 text-left">{t('search.filterEdition')}</th>
-                      <th className="pl-2 pr-2 py-1.5 text-left">{t('search.thName')}</th>
-                      <th className="px-2 py-1.5 whitespace-nowrap align-middle text-center">{t('search.thNumber')}</th>
-                      <th className="px-2 py-1.5 whitespace-nowrap align-middle text-center">{t('search.thRarity')}</th>
-                      <th className="px-2 py-1.5 whitespace-nowrap align-middle text-center">{t('search.thAvailable')}</th>
-                      <th className="px-2 py-1.5 whitespace-nowrap align-middle text-center">{t('search.thFrom')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeHits.map((hit) => {
-                      const productHref = `/products/${hit.id}`;
-                      const imgUrl = getCardImageUrl(hit.image ?? null);
-                      const { primary, secondary } = getCardDisplayNames(hit, selectedLang);
-                      return (
-                        <tr
-                          key={hit.id}
-                          className="search-result-row border-b border-gray-100 cursor-pointer outline-none hover:bg-orange-50/50 transition-colors"
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => (window.location.href = productHref)}
-                          onKeyDown={(e) => e.key === 'Enter' && (window.location.href = productHref)}
-                        >
-                          <td className="pl-2 pr-0 py-1.5 align-middle min-w-0">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <CardImageCameraPeek
-                                imageUrl={imgUrl}
-                                name={primary}
-                                previewSide="left"
-                              />
-                              <span className="min-w-0 text-[9px] leading-none text-gray-600 font-medium truncate max-w-[6.5rem]">
-                                {hit.set_name ?? '–'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="pl-2 pr-2 py-1.5 text-left align-middle min-w-0">
-                            <div className="flex flex-col justify-center gap-0 min-w-0">
-                              <span className="text-sm font-semibold leading-snug text-gray-900 truncate break-words">
-                                {primary}
-                              </span>
-                              {secondary && (
-                                <p className="text-[11px] text-gray-500 truncate italic font-light leading-snug">{secondary}</p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-600 align-middle text-xs">
-                            {hit.collector_number ?? '–'}
-                          </td>
-                          <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-600 align-middle text-xs">
-                            {hit.rarity ?? '–'}
-                          </td>
-                          <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-600 align-middle text-xs">–</td>
-                          <td className="px-2 py-1.5 whitespace-nowrap text-center text-gray-600 align-middle text-xs">–</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div ref={resultsRef} className="overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm">
+                <SearchResultsTable
+                  hits={activeHits}
+                  selectedLang={selectedLang}
+                  gameSlug={(BACKEND_GAME_MAP[game] ?? game) as GameSlug}
+                  t={t}
+                  editionVariant="text"
+                />
               </div>
             )}
           </>
         )}
       </div>
     </div>
+    </RarityLegendProvider>
   );
 }
 

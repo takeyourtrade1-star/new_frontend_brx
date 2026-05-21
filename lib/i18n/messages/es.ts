@@ -1320,6 +1320,12 @@ export const es: Record<MessageKey, string> = {
   'search.previewCardImage': 'Ver vista previa de la carta',
   'search.closePreviewModal': 'Cerrar',
 
+  'rarity.legendTitle': 'Leyenda de rareza',
+  'rarity.legendDescription': 'Los colores indican la rareza de la carta en el set.',
+  'rarity.legendClose': 'Cerrar leyenda',
+  'rarity.openLegend': 'Abrir leyenda de rareza ({name})',
+  'rarity.unknown': 'Otro / sin clasificar',
+
   'bidding.backToAuction': 'Volver a la subasta',
   'bidding.title': 'Puja Máxima',
   'bidding.subtitle': 'Esta función estará disponible próximamente.',

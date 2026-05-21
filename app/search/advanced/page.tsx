@@ -12,14 +12,7 @@ import { PrestoInArrivoBanner } from '@/components/feature/account/PrestoInArriv
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 
-// Opzioni per i filtri
-const RARITIES = [
-  { value: 'common', labelKey: 'searchAdvanced.rarity.common', color: '#1a1a1a' },
-  { value: 'uncommon', labelKey: 'searchAdvanced.rarity.uncommon', color: '#707883' },
-  { value: 'rare', labelKey: 'searchAdvanced.rarity.rare', color: '#d7b03e' },
-  { value: 'mythic', labelKey: 'searchAdvanced.rarity.mythic', color: '#e85f1c' },
-  { value: 'special', labelKey: 'searchAdvanced.rarity.special', color: '#c25ae6' },
-];
+import { RARITY_FILTER_OPTIONS } from '@/lib/rarity';
 
 const CONDITIONS = [
   { value: 'mt', labelKey: 'searchAdvanced.condition.mt' },
@@ -212,7 +205,7 @@ export default function AdvancedSearchPage() {
                   {/* Rarità */}
                   <FilterSection title={t('searchAdvanced.rarity')} defaultOpen={true}>
                     <div className="space-y-2">
-                      {RARITIES.map((rarity) => (
+                      {RARITY_FILTER_OPTIONS.map((rarity) => (
                         <label
                           key={rarity.value}
                           className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50"
@@ -442,7 +435,7 @@ export default function AdvancedSearchPage() {
             {hasActiveFilters && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {selectedRarities.map((r) => {
-                  const rarity = RARITIES.find(x => x.value === r);
+                  const rarity = RARITY_FILTER_OPTIONS.find(x => x.value === r);
                   return (
                     <span
                       key={r}

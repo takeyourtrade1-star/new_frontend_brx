@@ -1322,6 +1322,12 @@ export const en = {
   'search.previewCardImage': 'Show card image preview',
   'search.closePreviewModal': 'Close',
 
+  'rarity.legendTitle': 'Rarity legend',
+  'rarity.legendDescription': 'Colors indicate the card’s rarity in the set.',
+  'rarity.legendClose': 'Close legend',
+  'rarity.openLegend': 'Open rarity legend ({name})',
+  'rarity.unknown': 'Other / unclassified',
+
   'bidding.backToAuction': 'Back to auction',
   'bidding.title': 'Maximum Bid',
   'bidding.subtitle': 'This feature will be available soon.',

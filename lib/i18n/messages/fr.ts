@@ -1320,6 +1320,12 @@ export const fr: Record<MessageKey, string> = {
   'search.previewCardImage': 'Aperçu de la carte',
   'search.closePreviewModal': 'Fermer',
 
+  'rarity.legendTitle': 'Légende des raretés',
+  'rarity.legendDescription': 'Les couleurs indiquent la rareté de la carte dans l’édition.',
+  'rarity.legendClose': 'Fermer la légende',
+  'rarity.openLegend': 'Ouvrir la légende des raretés ({name})',
+  'rarity.unknown': 'Autre / non classé',
+
   'bidding.backToAuction': 'Retour à l’enchère',
   'bidding.title': 'Offre Maximale',
   'bidding.subtitle': 'Cette fonctionnalité sera bientôt disponible.',

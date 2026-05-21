@@ -19,8 +19,8 @@ import { AuctionCreateWizard } from '@/components/feature/aste/create/AuctionCre
 import { InventoryEditModal } from '@/components/feature/sync/InventoryEditModal';
 import { listingToInventoryEditItem } from '@/lib/product-detail/listing-to-inventory-item';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
-import { getCdnImageUrl, MEILISEARCH } from '@/lib/config';
-import { getCategoryIds, normalizeGameSlug } from '@/lib/search/category-mapping';
+import { getCdnImageUrl } from '@/lib/config';
+import type { ReprintSearchHit } from '@/lib/reprints-search';
 import type { CardDocument } from '@/lib/product-detail';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { COUNTRIES } from '@/lib/registrati/schema';
@@ -35,6 +35,8 @@ import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
 import { ProductAuctionsPanel } from '@/components/feature/product/ProductAuctionsPanel';
 import { ProductScambiPanel } from '@/components/feature/product/ProductScambiPanel';
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
+import { RarityIndicator } from '@/components/ui/RarityIndicator';
+import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
 
 const PRIMARY_BLUE = '#1D3160';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -45,21 +47,6 @@ type ProductDetailViewProps =
   | { card: CardDocument; slug?: string; title?: string; subtitle?: string; breadcrumbs?: { label: string; href?: string }[]; imageSrc?: string }
   | { card?: never; slug: string; title?: string; subtitle?: string; breadcrumbs?: { label: string; href?: string }[]; imageSrc?: string };
 
-type ReprintSearchHit = {
-  id: string;
-  name?: string;
-  set_name?: string;
-  rarity?: string;
-  image?: string | null;
-  image_uri_small?: string | null;
-  image_uri_normal?: string | null;
-  image_path?: string | null;
-  set_icon_uri?: string | null;
-  icon_svg_uri?: string | null;
-  set_code?: string | null;
-  game_slug?: string | null;
-};
-
 type ReprintCard = {
   id: string;
   imageSrc: string | null;
@@ -68,64 +55,6 @@ type ReprintCard = {
   setIconSrc: string | null;
   setCode: string;
 };
-
-const REPRINTS_PAGE_SIZE = 100;
-const REPRINTS_MAX_PAGES = 20;
-
-function escapeMeiliFilterValue(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-}
-
-function buildReprintCategoryFilter(gameSlug: string, categoryId?: number): string | null {
-  if (categoryId != null && Number.isFinite(categoryId)) {
-    return `category_id = ${categoryId}`;
-  }
-  const game = normalizeGameSlug(gameSlug);
-  if (!game) return null;
-  const ids = getCategoryIds(game, 'singles');
-  if (ids.length === 0) return null;
-  if (ids.length === 1) return `category_id = ${ids[0]}`;
-  return `category_id IN [${ids.join(', ')}]`;
-}
-
-type ReprintSearchStrategy = {
-  q: string;
-  filter: string;
-  matchNameExactly?: boolean;
-};
-
-function buildReprintSearchStrategies(card: CardDocument): ReprintSearchStrategy[] {
-  const gameSlug = escapeMeiliFilterValue(card.game_slug.trim());
-  const filterParts = [`game_slug = "${gameSlug}"`];
-  const categoryFilter = buildReprintCategoryFilter(card.game_slug, card.category_id);
-  if (categoryFilter) filterParts.push(categoryFilter);
-  const baseFilter = filterParts.join(' AND ');
-
-  const strategies: ReprintSearchStrategy[] = [];
-
-  const oracleId = card.oracle_id?.trim();
-  if (oracleId) {
-    strategies.push({
-      q: '',
-      filter: `${baseFilter} AND oracle_id = "${escapeMeiliFilterValue(oracleId)}"`,
-    });
-  }
-
-  const cardId = card.card_id != null ? String(card.card_id).trim() : '';
-  if (cardId) {
-    strategies.push({
-      q: '',
-      filter: `${baseFilter} AND card_id = "${escapeMeiliFilterValue(cardId)}"`,
-    });
-  }
-
-  const name = card.name.trim();
-  if (name) {
-    strategies.push({ q: name, filter: baseFilter, matchNameExactly: true });
-  }
-
-  return strategies;
-}
 
 function mapReprintHit(hit: ReprintSearchHit, cardGameSlug?: string): ReprintCard | null {
   if (!hit.id) return null;
@@ -608,7 +537,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   }, [refreshListings]);
 
   useEffect(() => {
-    if (!card?.id || !card.name || !card.game_slug || !MEILISEARCH.host) {
+    if (!card?.id || !card.name || !card.game_slug) {
       setReprints([]);
       setReprintsLoading(false);
       return;
@@ -619,89 +548,19 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
     (async () => {
       try {
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        };
-        if (MEILISEARCH.apiKey) headers.Authorization = `Bearer ${MEILISEARCH.apiKey}`;
-
-        const attributesToRetrieve = [
-          'id', 'name', 'set_name', 'rarity',
-          'image', 'image_uri_small', 'image_uri_normal', 'image_path',
-          'set_icon_uri', 'icon_svg_uri', 'set_code', 'game_slug',
-        ];
-
-        const strategies = buildReprintSearchStrategies(card);
-        const normalizedCardName = card.name.trim().toLowerCase();
-        let allHits: ReprintSearchHit[] = [];
-
-        const fetchStrategyHits = async (strategy: ReprintSearchStrategy): Promise<ReprintSearchHit[]> => {
-          const strategyHits: ReprintSearchHit[] = [];
-          let offset = 0;
-          let useSort = true;
-
-          for (let page = 0; page < REPRINTS_MAX_PAGES; page++) {
-            const body: Record<string, unknown> = {
-              q: strategy.q,
-              limit: REPRINTS_PAGE_SIZE,
-              offset,
-              filter: strategy.filter,
-              attributesToRetrieve,
-            };
-            if (useSort) body.sort = ['set_name:asc'];
-
-            let res = await fetch(`${MEILISEARCH.host}/indexes/${MEILISEARCH.indexName}/search`, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify(body),
-              cache: 'no-store',
-            });
-
-            if (res.status === 400 && useSort) {
-              useSort = false;
-              offset = 0;
-              strategyHits.length = 0;
-              page = -1;
-              continue;
-            }
-
-            if (!res.ok) return [];
-
-            const data = (await res.json()) as {
-              hits?: ReprintSearchHit[];
-              estimatedTotalHits?: number;
-            };
-            const rawPageHits = Array.isArray(data.hits) ? data.hits : [];
-            const pageHits = strategy.matchNameExactly
-              ? rawPageHits.filter(
-                  (hit) => (hit.name ?? '').trim().toLowerCase() === normalizedCardName
-                )
-              : rawPageHits;
-            strategyHits.push(...pageHits);
-
-            if (rawPageHits.length < REPRINTS_PAGE_SIZE) break;
-
-            offset += REPRINTS_PAGE_SIZE;
-            const estimatedTotal =
-              typeof data.estimatedTotalHits === 'number' ? data.estimatedTotalHits : null;
-            if (estimatedTotal != null && offset >= estimatedTotal) break;
-          }
-
-          return strategyHits;
-        };
-
-        for (const strategy of strategies) {
-          const hits = await fetchStrategyHits(strategy);
-          if (hits.length > 0) {
-            allHits = hits;
-            break;
-          }
+        const res = await fetch(
+          `/api/reprints?card_id=${encodeURIComponent(card.id)}`,
+          { cache: 'no-store' }
+        );
+        if (!res.ok) {
+          if (!cancelled) setReprints([]);
+          return;
         }
-
-        const mapped = allHits
-          .filter((hit) => hit.id && hit.id !== card.id)
+        const data = (await res.json()) as { hits?: ReprintSearchHit[] };
+        const hits = Array.isArray(data.hits) ? data.hits : [];
+        const mapped = hits
           .map((hit) => mapReprintHit(hit, card.game_slug))
           .filter((item): item is ReprintCard => item != null);
-
         const dedup = Array.from(new Map(mapped.map((item) => [item.id, item])).values());
         if (!cancelled) setReprints(dedup);
       } catch {
@@ -1054,6 +913,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   ];
 
   return (
+    <RarityLegendProvider>
     <div className="min-h-screen font-sans bg-[#F0F0F0] text-gray-900">
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
@@ -1241,7 +1101,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     <div className="divide-y divide-zinc-100">
                       <div className="flex items-center justify-between pb-2">
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Rarità</span>
-                        <span className="text-xs font-bold text-zinc-900">{card?.rarity ?? 'N/A'}</span>
+                        <RarityIndicator rarity={card?.rarity} showLabel size="md" />
                       </div>
                       <div className="flex items-center justify-between py-2">
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Numero</span>
@@ -1335,9 +1195,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     <div className="grid grid-cols-2 gap-2">
                       <div className="rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Rarità</p>
-                        <p className="mt-1 text-sm font-extrabold text-zinc-900">
-                          {card?.rarity || <Image src={getCdnImageUrl('stellina.png')} alt="" width={14} height={14} className="h-3.5 w-3.5 object-contain" aria-hidden unoptimized />}
-                        </p>
+                        <div className="mt-1">
+                          <RarityIndicator rarity={card?.rarity} showLabel size="md" />
+                        </div>
                       </div>
                       <div className="rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2 text-right">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Numero</p>
@@ -2788,5 +2648,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         </div>
       )}
     </div>
+    </RarityLegendProvider>
   );
 }

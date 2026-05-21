@@ -266,6 +266,30 @@
   background-color: #f3f4f6;
 }
 
+/* Tabella risultati — header stile Cardmarket, righe compatte */
+.search-results-table .search-results-thead {
+  background-color: #1d3160;
+  color: #fff;
+}
+.search-results-table .search-results-th {
+  padding: 0.35rem 0.5rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+.search-results-table .search-results-td {
+  padding: 0.2rem 0.35rem;
+  vertical-align: middle;
+}
+@media (min-width: 768px) {
+  .search-results-table .search-results-td {
+    padding: 0.28rem 0.4rem;
+  }
+}
+
 /* Marquee: font COMODO, oro in gradiente verso il basso */
 .marquee {
   font-family: var(--font-comodo), sans-serif;

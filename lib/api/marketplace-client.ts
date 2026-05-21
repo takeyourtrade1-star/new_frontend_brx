@@ -8,7 +8,13 @@
  * Auth: all requests attach the user's JWT as Authorization: Bearer <token>
  */
 
+import { config } from '@/lib/config';
 import { tokenManager } from '@/lib/api/refresh-token';
+
+function getStoredAccessToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(config.auth.tokenKey);
+}
 
 export type SyncMode = 'demo' | 'partial' | 'real';
 
@@ -43,7 +49,7 @@ async function marketplaceFetch<T>(
   options: RequestInit = {},
   retried = false,
 ): Promise<T> {
-  const token = await tokenManager.getAccessToken();
+  const token = getStoredAccessToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -55,9 +61,11 @@ async function marketplaceFetch<T>(
     headers,
   });
 
-  if (res.status === 401 && !retried) {
-    await tokenManager.refresh();
-    return marketplaceFetch<T>(path, options, true);
+  if (res.status === 401 && !retried && typeof window !== 'undefined') {
+    const newToken = await tokenManager.ensureFreshToken();
+    if (newToken) {
+      return marketplaceFetch<T>(path, options, true);
+    }
   }
 
   if (!res.ok) {

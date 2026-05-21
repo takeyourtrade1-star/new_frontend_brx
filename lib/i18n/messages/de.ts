@@ -1320,6 +1320,12 @@ export const de: Record<MessageKey, string> = {
   'search.previewCardImage': 'Kartenbild-Vorschau',
   'search.closePreviewModal': 'Schließen',
 
+  'rarity.legendTitle': 'Seltenheits-Legende',
+  'rarity.legendDescription': 'Die Farben zeigen die Seltenheit der Karte im Set.',
+  'rarity.legendClose': 'Legende schließen',
+  'rarity.openLegend': 'Seltenheits-Legende öffnen ({name})',
+  'rarity.unknown': 'Sonstige / nicht klassifiziert',
+
   'bidding.backToAuction': 'Zur Auktion zurück',
   'bidding.title': 'Maximales Gebot',
   'bidding.subtitle': 'Diese Funktion ist bald verfügbar.',

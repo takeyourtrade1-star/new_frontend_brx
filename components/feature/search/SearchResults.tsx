@@ -37,6 +37,12 @@ import { DEFAULT_LOCALE } from '@/lib/i18n/locales';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { SearchHit } from '@/app/api/search/route';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
+import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
+import { SearchResultsTable } from '@/components/feature/search/SearchResultsTable';
+import {
+  SearchResultsToolbar,
+  type ViewMode,
+} from '@/components/feature/search/SearchResultsToolbar';
 import {
   type GameSlug,
   type CategoryKey,
@@ -86,8 +92,6 @@ const GAME_TO_HEADER_KEY: Record<string, MessageKey> = {
   op: 'games.header.op',
   'one-piece': 'games.header.op',
 };
-
-type ViewMode = 'list' | 'grid';
 
 interface SearchApiResponse {
   hits: SearchHit[];
@@ -496,6 +500,7 @@ export function SearchResults({
   }, [filtersOpen]);
 
   return (
+    <RarityLegendProvider>
     <section className="pb-12" style={{ backgroundColor: '#F5F4F0' }}>
       <div className="container-content py-6">
         {/* Breadcrumb */}
@@ -754,73 +759,25 @@ export function SearchResults({
           </div>
         )}
 
-        {/* Barra risultati + ordinamento + vista (mobile: solo conteggio + lista/griglia; sort nel sheet Filtri) */}
-        <div className="hidden md:flex flex-col gap-2 py-2 px-3 border border-gray-200 bg-white mb-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
-          <p className="min-w-0 text-xs text-gray-700 sm:max-w-[min(100%,28rem)]">
-            <strong>{total}</strong> {t('search.results')}
-            {total > 0 && (
-              <span className="mt-1 block text-[11px] text-gray-500 sm:ml-2 sm:mt-0 sm:inline">
-                {t('search.advancedHint')}
-              </span>
-            )}
-          </p>
-          <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-            <div className="hidden min-w-0 w-full flex-col gap-1 md:flex md:w-auto md:flex-row md:items-center md:gap-2">
-              <span className="shrink-0 text-[11px] font-semibold text-gray-500">{t('search.sortBy')}</span>
-              <select
-                className="min-h-[32px] w-full min-w-0 rounded-[10px] border border-gray-200 bg-[#f2f2f7] px-2 py-1 text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5AC8FA]/30"
-                value={sortParam}
-                onChange={(e) => {
-                  router.replace(buildSearchUrl({ sort: e.target.value, page: '1' }));
-                }}
-              >
-                {sortOptions.map((o) => (
-                  <option key={o.value} value={o.value} className="bg-white text-gray-900">
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="hidden md:flex items-center">
-              <div className="flex h-10 overflow-hidden rounded-full bg-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('list')}
-                  aria-label={t('search.viewList')}
-                  title={t('search.viewList')}
-                  className={`flex h-10 w-12 items-center justify-center transition-colors ${
-                    viewMode === 'list'
-                      ? 'bg-primary text-white'
-                      : 'text-gray-500 hover:bg-gray-200'
-                  }`}
-                >
-                  <Rows3 className="h-4 w-4 shrink-0" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('grid')}
-                  aria-label={t('search.viewGrid')}
-                  title={t('search.viewGrid')}
-                  className={`flex h-10 w-12 items-center justify-center transition-colors ${
-                    viewMode === 'grid'
-                      ? 'bg-primary text-white'
-                      : 'text-gray-500 hover:bg-gray-200'
-                  }`}
-                >
-                  <Grid2x2 className="h-4 w-4 shrink-0" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        {!loading && !error && hits.length > 0 && (
+          <SearchResultsToolbar
+            className="mb-3"
+            total={total}
+            sortParam={sortParam}
+            sortOptions={sortOptions}
+            viewMode={viewMode}
+            onSortChange={(value) => router.replace(buildSearchUrl({ sort: value, page: '1' }))}
+            onViewModeChange={setViewMode}
+            t={t}
+          />
+        )}
 
         {/* Contenuto: lista o griglia */}
-        <div className="border border-gray-300 bg-white search-results-card">
-          {!loading && !error && (
-            <div className="px-4 py-3 border-b border-gray-200 bg-white md:hidden">
+        <div className="overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm search-results-card">
+          {!loading && !error && hits.length === 0 && (
+            <div className="px-4 py-2 border-b border-gray-100 bg-white md:hidden">
               <p className="text-xs font-semibold text-gray-700">
-                <strong>{total}</strong> {t('search.results')}
+                <strong className="tabular-nums">{total}</strong> {t('search.results')}
               </p>
             </div>
           )}
@@ -836,108 +793,14 @@ export function SearchResults({
             <div className="p-12 text-center text-gray-500">{t('search.noResults')}</div>
           )}
           {!loading && !error && hits.length > 0 && viewMode === 'list' && (
-            <div
-              className="overflow-x-auto search-results-table-wrapper"
-            >
-              <table className="w-full min-w-[640px] border-collapse text-sm table-fixed">
-                <colgroup>
-                  <col className="min-w-0" style={{ width: 'min(9%, 6.5rem)' }} />
-                  <col className="min-w-0" style={{ width: 'min(22%, 13rem)' }} />
-                  <col style={{ width: '8%' }} />
-                  <col style={{ width: '8%' }} />
-                  <col style={{ width: '8%' }} />
-                  <col style={{ width: '8%' }} />
-                </colgroup>
-                <thead>
-                  <tr className="bg-gray-100 border-b border-gray-200 text-left text-gray-600 uppercase text-xs font-semibold">
-                    <th className="pl-2 pr-0 py-1.5 align-bottom text-left">{t('search.filterEdition')}</th>
-                    <th className="pl-2 pr-2 py-1.5 align-bottom text-left">{t('search.thName')}</th>
-                    <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">{t('search.thNumber')}</th>
-                    <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">{t('search.thRarity')}</th>
-                    <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">{t('search.thAvailable')}</th>
-                    <th className="px-2 py-1.5 whitespace-nowrap align-bottom text-center">{t('search.thFrom')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {hits.map((hit) => {
-                    const productHref = `/products/${hit.id}`;
-                    const { primary, secondary } = getDisplayNames(hit, selectedLang);
-                    const imgUrl = getCardImageUrl(hit.image ?? null);
-                    const setName = hit.set_name ?? '';
-                    const setPageGame = resolveSetPageGameSlug(hit.game_slug, gameSlug);
-                    const setPageHref = setName ? buildSetPageUrl(setPageGame, setName) : null;
-                    const nameOriginal = secondary ?? primary;
-                    const nameTranslation = secondary ? primary : null;
-                    return (
-                      <tr
-                        key={hit.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => router.push(productHref)}
-                        onKeyDown={(e) => e.key === 'Enter' && router.push(productHref)}
-                        className="search-result-row border-b border-gray-100 cursor-pointer outline-none"
-                      >
-                        <td className="pl-2 pr-0 py-1.5 align-middle min-w-0">
-                          <div className="flex items-center justify-center gap-1.5 min-w-0">
-                            <CardImageCameraPeek
-                              imageUrl={imgUrl}
-                              name={nameOriginal}
-                              previewSide="left"
-                              onModalOpenChange={setImagePreviewModalOpen}
-                            />
-
-                            {(setPageHref || setName || hit.set_code) &&
-                              (setPageHref ? (
-                                <Link
-                                  href={setPageHref}
-                                  title={setName}
-                                  aria-label={setName ? `Set: ${setName}` : 'Set'}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="flex flex-shrink-0 items-center justify-center hover:opacity-80 transition-opacity rounded focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/40"
-                                >
-                                  <SetIconBadge
-                                    setIconUri={hit.set_icon_uri}
-                                    setCode={hit.set_code}
-                                    setName={setName}
-                                    gameSlug={hit.game_slug}
-                                    imageClassName="h-9 w-9 md:h-10 md:w-10 object-contain"
-                                  />
-                                </Link>
-                              ) : (
-                                <div className="flex flex-shrink-0 items-center justify-center">
-                                  <SetIconBadge
-                                    setIconUri={hit.set_icon_uri}
-                                    setCode={hit.set_code}
-                                    setName={setName}
-                                    gameSlug={hit.game_slug}
-                                    imageClassName="h-9 w-9 md:h-10 md:w-10 object-contain"
-                                  />
-                                </div>
-                              ))}
-                          </div>
-                        </td>
-                        <td className="pl-2 pr-2 py-1.5 align-middle min-w-0 text-left">
-                          <div className="flex flex-col justify-center gap-0 min-w-0">
-                            <span className="text-sm font-semibold leading-snug text-gray-900 break-words">{nameOriginal}</span>
-                            {nameTranslation && (
-                              <p className="text-[11px] text-gray-500 italic font-light leading-snug break-words">{nameTranslation}</p>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap text-center align-middle text-xs">
-                          {hit.collector_number ?? '–'}
-                        </td>
-                        <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap text-center align-middle text-xs">
-                          {hit.rarity ?? '–'}
-                        </td>
-                        <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap text-center align-middle text-xs">–</td>
-                        <td className="px-2 py-1.5 text-[#FF7300] font-semibold whitespace-nowrap text-center align-middle text-xs">–</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <SearchResultsTable
+              hits={hits}
+              selectedLang={selectedLang}
+              gameSlug={gameSlug}
+              t={t}
+              editionVariant="icon"
+              onImagePreviewOpenChange={setImagePreviewModalOpen}
+            />
           )}
           {!loading && !error && hits.length > 0 && viewMode === 'grid' && (
             <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -1022,5 +885,6 @@ export function SearchResults({
       </div>
 
     </section>
+    </RarityLegendProvider>
   );
 }
