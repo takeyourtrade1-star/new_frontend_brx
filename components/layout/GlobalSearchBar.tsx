@@ -1506,9 +1506,9 @@ function ProductCategoryButton({
     };
   }, [open, isBarOpen, categoryColumnRef, jointRef, searchContainerRef]);
 
-  // Chiudi cliccando fuori
+  // Chiudi cliccando fuori (disabilitato in modalità composita: il pannello è gestito dal parent)
   useEffect(() => {
-    if (!open) return;
+    if (!open || suppressAttachedPortal) return;
     const handler = (e: MouseEvent) => {
       const t = e.target as Node;
       if (buttonRef.current?.contains(t)) return;
@@ -1517,7 +1517,7 @@ function ProductCategoryButton({
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+  }, [open, suppressAttachedPortal]);
 
   // Label corrente
   const currentLabel = useMemo(() => {
@@ -2019,25 +2019,29 @@ function SearchWithInstantSearch({
     (nextCategory: CategoryKey | null) => {
       const normalizedCategory = normalizeCategoryKey(nextCategory);
       setProductCategory(normalizedCategory);
-      // In sets mode, just activate the mode — don't navigate to search page
+      setCategoryMenuOpen(false);
+
       if (normalizedCategory === 'sets') {
         inputRef.current?.focus();
         return;
       }
+
       const currentQuery = (localValue ?? query ?? urlQueryParam ?? '').trim();
-      if (!currentQuery) return;
-      refineRef.current(currentQuery);
-      inputRef.current?.blur();
-      closePanel();
-      router.push(buildSearchUrl(currentQuery, selectedGame, normalizedCategory));
+      if (currentQuery) {
+        refineRef.current(currentQuery);
+      }
+      inputRef.current?.focus();
     },
-    [localValue, query, router, selectedGame, setProductCategory, urlQueryParam]
+    [localValue, query, urlQueryParam, setProductCategory]
   );
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as Node;
-      if (triggerRef.current?.contains(target) || dropdownContainerRef.current?.contains(target)) return;
+      if (triggerRef.current?.contains(target)) return;
+      if (dropdownContainerRef.current?.contains(target)) return;
+      const el = target instanceof Element ? target : null;
+      if (el?.closest('.search-category-dropdown-panel--attached, .search-composite-panel')) return;
       closePanel();
     }
     document.addEventListener('mousedown', handleClickOutside);
