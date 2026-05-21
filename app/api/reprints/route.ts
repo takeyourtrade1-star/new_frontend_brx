@@ -1,38 +1,44 @@
 /**
  * GET /api/reprints?card_id=mtg_40679
- * Ristampe della stessa carta (server-side Meilisearch, niente CORS).
+ * Ristampe della stessa carta (server-side Meilisearch, niente CORS / chiavi in browser).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getCardDocumentById } from '@/lib/product-detail';
+import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
 import {
   fetchReprintsForCard,
+  isValidReprintCardId,
   type ReprintSearchHit,
+  type ReprintsApiResponse,
 } from '@/lib/reprints-search';
 
-const MEILI_URL = (
-  process.env.NEXT_PUBLIC_MEILISEARCH_URL ||
-  process.env.NEXT_PUBLIC_MEILISEARCH_HOST ||
-  process.env.VITE_MEILISEARCH_URL ||
-  ''
-).replace(/\/+$/, '');
-const MEILI_KEY =
-  process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ||
-  process.env.VITE_MEILISEARCH_API_KEY ||
-  '';
-const INDEX = process.env.NEXT_PUBLIC_MEILISEARCH_INDEX || 'cards';
-
 export async function GET(request: NextRequest) {
-  if (!MEILI_URL) {
+  const { url: meiliUrl, apiKey: meiliKey, index } = getMeilisearchServerConfig();
+
+  if (!meiliUrl) {
     return NextResponse.json(
-      { error: 'Meilisearch non configurato (NEXT_PUBLIC_MEILISEARCH_URL)' },
+      {
+        error:
+          'Meilisearch non configurato (MEILISEARCH_URL o NEXT_PUBLIC_MEILISEARCH_URL)',
+      },
       { status: 503 }
     );
   }
 
-  const cardId = request.nextUrl.searchParams.get('card_id')?.trim();
+  const cardId = request.nextUrl.searchParams.get('card_id')?.trim() ?? '';
   if (!cardId) {
     return NextResponse.json({ error: 'Parametro card_id mancante' }, { status: 400 });
+  }
+
+  if (!isValidReprintCardId(cardId)) {
+    return NextResponse.json(
+      {
+        error: 'card_id non valido (attesi mtg_|op_|pk_ seguito da numeri)',
+        card_id: cardId,
+      },
+      { status: 400 }
+    );
   }
 
   const card = await getCardDocumentById(cardId);
@@ -40,9 +46,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Carta non trovata', card_id: cardId }, { status: 404 });
   }
 
-  const searchUrl = `${MEILI_URL}/indexes/${INDEX}/search`;
+  const searchUrl = `${meiliUrl}/indexes/${index}/search`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (MEILI_KEY) headers.Authorization = `Bearer ${MEILI_KEY}`;
+  if (meiliKey) headers.Authorization = `Bearer ${meiliKey}`;
 
   const search = async (body: Record<string, unknown>) => {
     const res = await fetch(searchUrl, {
@@ -66,13 +72,14 @@ export async function GET(request: NextRequest) {
 
   try {
     const hits = await fetchReprintsForCard(card, search);
-    return NextResponse.json({
+    const payload: ReprintsApiResponse = {
       card_id: card.id,
       oracle_id: card.oracle_id ?? null,
       card_entity_id: card.card_id ?? null,
       count: hits.length,
       hits,
-    });
+    };
+    return NextResponse.json(payload);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(

@@ -1,6 +1,6 @@
 /**
  * Ricerca ristampe (stampe della stessa carta) su Meilisearch.
- * Usato da /api/reprints (server) e testabile in isolamento.
+ * Single source of truth: usato da /api/reprints (server) e testabile in isolamento.
  */
 
 import type { CardDocument } from '@/lib/product-detail';
@@ -23,8 +23,19 @@ export type ReprintSearchHit = {
   card_id?: string | number | null;
 };
 
+export type ReprintsApiResponse = {
+  card_id: string;
+  oracle_id: string | null;
+  card_entity_id: string | number | null;
+  count: number;
+  hits: ReprintSearchHit[];
+};
+
 export const REPRINTS_PAGE_SIZE = 100;
 export const REPRINTS_MAX_PAGES = 20;
+
+/** Pattern id documento Meilisearch (allineato a isIndexProductId). */
+export const REPRINT_CARD_ID_PATTERN = /^(mtg_|op_|pk_)\d+$/;
 
 export const REPRINT_ATTRIBUTES_TO_RETRIEVE = [
   'id',
@@ -42,6 +53,10 @@ export const REPRINT_ATTRIBUTES_TO_RETRIEVE = [
   'set_code',
   'game_slug',
 ] as const;
+
+export function isValidReprintCardId(cardId: string): boolean {
+  return REPRINT_CARD_ID_PATTERN.test(cardId.trim());
+}
 
 export function escapeMeiliFilterValue(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -180,12 +195,42 @@ export function filterReprintHits(
   });
 }
 
+/** Deduplica per id preservando l'ordine (set_name:asc dal server). */
+export function dedupeReprintHits(hits: ReprintSearchHit[]): ReprintSearchHit[] {
+  const seen = new Set<string>();
+  const out: ReprintSearchHit[] = [];
+  for (const hit of hits) {
+    const id = hit.id?.trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(hit);
+  }
+  return out;
+}
+
 export type MeilisearchSearchFn = (body: Record<string, unknown>) => Promise<{
   ok: boolean;
   status: number;
   hits: ReprintSearchHit[];
   estimatedTotalHits?: number;
 }>;
+
+function buildSearchBody(
+  strategy: ReprintSearchStrategy,
+  filter: string,
+  offset: number,
+  useSort: boolean
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    limit: REPRINTS_PAGE_SIZE,
+    offset,
+    filter,
+    attributesToRetrieve: [...REPRINT_ATTRIBUTES_TO_RETRIEVE],
+  };
+  if (strategy.q) body.q = strategy.q;
+  if (useSort) body.sort = ['set_name:asc'];
+  return body;
+}
 
 /** Esegue le strategie fino al primo risultato non vuoto. */
 export async function fetchReprintsForCard(
@@ -201,31 +246,29 @@ export async function fetchReprintsForCard(
 
   const strategies = buildReprintSearchStrategies(card);
   const normalizedCardName = card.name.trim().toLowerCase();
+  const excludeId = card.id.trim();
 
   for (const strategy of strategies) {
     for (const filter of buildFilterFallbackChain(strategy.filters)) {
       const strategyHits: ReprintSearchHit[] = [];
       let offset = 0;
       let useSort = true;
+      let filterRejected = false;
 
-      for (let page = 0; page < REPRINTS_MAX_PAGES; page++) {
-        const body: Record<string, unknown> = {
-          limit: REPRINTS_PAGE_SIZE,
-          offset,
-          filter,
-          attributesToRetrieve: [...REPRINT_ATTRIBUTES_TO_RETRIEVE],
-        };
-        if (strategy.q) body.q = strategy.q;
-        if (useSort) body.sort = ['set_name:asc'];
-
-        let result = await search(body);
+      for (let page = 0; page < REPRINTS_MAX_PAGES && !filterRejected; page++) {
+        let result = await search(buildSearchBody(strategy, filter, offset, useSort));
 
         if (result.status === 400 && useSort) {
           useSort = false;
           offset = 0;
           strategyHits.length = 0;
           page = -1;
-          result = await search(body);
+          result = await search(buildSearchBody(strategy, filter, offset, false));
+        }
+
+        if (result.status === 400) {
+          filterRejected = true;
+          break;
         }
 
         if (!result.ok) break;
@@ -242,7 +285,9 @@ export async function fetchReprintsForCard(
       }
 
       if (strategyHits.length > 0) {
-        return strategyHits.filter((hit) => hit.id && hit.id !== card.id);
+        return dedupeReprintHits(
+          strategyHits.filter((hit) => hit.id && hit.id !== excludeId)
+        );
       }
     }
   }
