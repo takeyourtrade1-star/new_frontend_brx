@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { ArrowRight, Minus, Plus, TrendingDown, TrendingUp, X } from 'lucide-react';
+import { ArrowRight, Loader2, Minus, Plus, TrendingDown, TrendingUp, X } from 'lucide-react';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { ASSETS, getCdnImageUrl } from '@/lib/config';
 
@@ -11,7 +11,7 @@ interface BulkPriceModalProps {
   onClose: () => void;
   selectedItems: InventoryItemWithCatalog[];
   syncStatus: 'active' | 'inactive' | 'syncing';
-  onApply: (operation: '+' | '-', percent: number, target: 'local' | 'cardmarket' | 'all') => void;
+  onApply: (operation: '+' | '-', percent: number, target: 'local' | 'cardmarket' | 'all') => Promise<void>;
 }
 
 function buildImageUrl(raw: string | null | undefined): string | null {
@@ -51,6 +51,7 @@ export function BulkPriceModal({
   const [operation, setOperation] = useState<'+' | '-'>('+');
   const [percent, setPercent] = useState(10);
   const [target, setTarget] = useState<TargetPlatform>('local');
+  const [isApplying, setIsApplying] = useState(false);
 
   const defaultImage = getCdnImageUrl('Logo%20Principale%20EBARTEX.png');
   const syncActive = syncStatus === 'active' || syncStatus === 'syncing';
@@ -77,9 +78,14 @@ export function BulkPriceModal({
   const totalNew = preview.reduce((s, p) => s + p.newCents, 0);
   const totalDelta = totalNew - totalCurrent;
 
-  const handleApply = useCallback(() => {
-    onApply(operation, percent, target);
-    onClose();
+  const handleApply = useCallback(async () => {
+    setIsApplying(true);
+    try {
+      await onApply(operation, percent, target);
+      onClose();
+    } finally {
+      setIsApplying(false);
+    }
   }, [operation, percent, target, onApply, onClose]);
 
   const visibleTargets = TARGET_OPTIONS.filter((opt) => !opt.syncOnly || syncActive);
@@ -92,7 +98,9 @@ export function BulkPriceModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="bulk-price-modal-title"
-      onClick={onClose}
+      onClick={() => {
+        if (!isApplying) onClose();
+      }}
     >
       <div
         className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-white/20 bg-white/95 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all duration-200 opacity-100 scale-100"
@@ -117,6 +125,7 @@ export function BulkPriceModal({
             <button
               type="button"
               onClick={onClose}
+              disabled={isApplying}
               className="rounded-lg p-2 text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-600"
               aria-label="Chiudi"
             >
@@ -288,18 +297,19 @@ export function BulkPriceModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+            disabled={isApplying}
+            className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50"
           >
             Annulla
           </button>
           <button
             type="button"
             onClick={handleApply}
-            disabled={percent === 0}
+            disabled={percent === 0 || isApplying}
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
           >
-            <TrendingUp className="h-4 w-4" />
-            Applica a {selectedItems.length} carte
+            {isApplying ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
+            {isApplying ? 'Aggiornamento...' : `Applica a ${selectedItems.length} carte`}
           </button>
         </div>
       </div>

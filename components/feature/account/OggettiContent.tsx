@@ -48,6 +48,7 @@ import type { InventoryFilters } from '@/components/feature/account/InventoryFil
 import { InventorySortBar } from '@/components/feature/account/InventorySortBar';
 import { BulkPriceModal } from '@/components/feature/account/BulkPriceModal';
 import { BulkDeleteModal } from '@/components/feature/account/BulkDeleteModal';
+import { buildBulkPriceUpdates } from '@/lib/inventory-bulk-actions';
 
 function buildImageUrl(raw: string | null | undefined): string | null {
   if (raw == null || raw === '') return null;
@@ -668,8 +669,106 @@ function OggettiTable({
     }
   };
 
+  const actionOverlays = (
+    <>
+      {actionError && (
+        <div className="border-t border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+          {actionError}
+        </div>
+      )}
+      {purchaseItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="purchase-modal-title"
+        >
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-white/20 bg-white/95 p-6 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] backdrop-blur-xl">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 text-emerald-600">
+                <ShoppingCart className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 id="purchase-modal-title" className="text-lg font-bold text-gray-900">
+                  {t('accountPage.itemsCart')}
+                </h2>
+                <p className="text-xs text-gray-500">{t('accountPage.itemsSyncActive')}</p>
+              </div>
+            </div>
+
+            <div className="mb-4 rounded-xl bg-gray-50 p-3">
+              <p className="font-medium text-gray-900">{purchaseItem.card?.name ?? `Carta #${purchaseItem.blueprint_id}`}</p>
+              <p className="text-xs text-gray-500">{t('accountPage.itemsTableQty')}: <span className="font-semibold">{purchaseItem.quantity}</span></p>
+            </div>
+
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              {t('accountPage.itemsTableQty')}
+            </label>
+            <div className="mb-6 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setPurchaseQty(Math.max(1, purchaseQty - 1))}
+                disabled={purchaseQty <= 1}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50"
+              >
+                -
+              </button>
+              <input
+                type="number"
+                min={1}
+                max={purchaseItem.quantity}
+                value={purchaseQty}
+                onChange={(e) => setPurchaseQty(Math.min(purchaseItem.quantity, Math.max(1, Number(e.target.value) || 1)))}
+                className="h-10 w-20 rounded-lg border border-gray-200 bg-white text-center text-lg font-semibold text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+              <button
+                type="button"
+                onClick={() => setPurchaseQty(Math.min(purchaseItem.quantity, purchaseQty + 1))}
+                disabled={purchaseQty >= purchaseItem.quantity}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50"
+              >
+                +
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setPurchaseItem(null); }}
+                className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+                disabled={purchaseSubmitting}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPurchase}
+                disabled={purchaseSubmitting}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-emerald-500/20 transition-all hover:bg-emerald-600 hover:shadow-md disabled:opacity-50"
+              >
+                {purchaseSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+                {purchaseSubmitting ? t('accountPage.itemsLoadingInventoryShort') : t('accountPage.itemsPriceApply')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {editItem && (
+        <InventoryEditModal
+          item={editItem}
+          onClose={() => { setEditItem(null); setActionError(null); }}
+          onSubmit={handleEditSubmit}
+          saving={saving}
+          conditionOptions={INVENTORY_CONDITION_OPTIONS}
+          langOptions={INVENTORY_LANG_OPTIONS_EDIT}
+        />
+      )}
+    </>
+  );
+
   if (viewMode === 'cards') {
     return (
+      <>
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5">
         {items.map((item) => {
           const imgUrl = item.card?.image
@@ -887,6 +986,8 @@ function OggettiTable({
           );
         })}
       </div>
+      {actionOverlays}
+      </>
     );
   }
 
@@ -1109,102 +1210,7 @@ function OggettiTable({
           </tbody>
         </table>
       </div>
-      {actionError && (
-        <div className="border-t border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-          {actionError}
-        </div>
-      )}
-      {purchaseItem && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="purchase-modal-title"
-        >
-          <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-white/20 bg-white/95 p-6 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] backdrop-blur-xl">
-            {/* Header */}
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 text-emerald-600">
-                <ShoppingCart className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 id="purchase-modal-title" className="text-lg font-bold text-gray-900">
-                  {t('accountPage.itemsCart')}
-                </h2>
-                <p className="text-xs text-gray-500">{t('accountPage.itemsSyncActive')}</p>
-              </div>
-            </div>
-
-            {/* Product */}
-            <div className="mb-4 rounded-xl bg-gray-50 p-3">
-              <p className="font-medium text-gray-900">{purchaseItem.card?.name ?? `Carta #${purchaseItem.blueprint_id}`}</p>
-              <p className="text-xs text-gray-500">{t('accountPage.itemsTableQty')}: <span className="font-semibold">{purchaseItem.quantity}</span></p>
-            </div>
-
-            {/* Quantity Input */}
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              {t('accountPage.itemsTableQty')}
-            </label>
-            <div className="mb-6 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setPurchaseQty(Math.max(1, purchaseQty - 1))}
-                disabled={purchaseQty <= 1}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50"
-              >
-                -
-              </button>
-              <input
-                type="number"
-                min={1}
-                max={purchaseItem.quantity}
-                value={purchaseQty}
-                onChange={(e) => setPurchaseQty(Math.min(purchaseItem.quantity, Math.max(1, Number(e.target.value) || 1)))}
-                className="h-10 w-20 rounded-lg border border-gray-200 bg-white text-center text-lg font-semibold text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-              <button
-                type="button"
-                onClick={() => setPurchaseQty(Math.min(purchaseItem.quantity, purchaseQty + 1))}
-                disabled={purchaseQty >= purchaseItem.quantity}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50"
-              >
-                +
-              </button>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => { setPurchaseItem(null); }}
-                className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
-                disabled={purchaseSubmitting}
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmPurchase}
-                disabled={purchaseSubmitting}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-emerald-500/20 transition-all hover:bg-emerald-600 hover:shadow-md disabled:opacity-50"
-              >
-                {purchaseSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
-                {purchaseSubmitting ? t('accountPage.itemsLoadingInventoryShort') : t('accountPage.itemsPriceApply')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {editItem && (
-        <InventoryEditModal
-          item={editItem}
-          onClose={() => { setEditItem(null); setActionError(null); }}
-          onSubmit={handleEditSubmit}
-          saving={saving}
-          conditionOptions={INVENTORY_CONDITION_OPTIONS}
-          langOptions={INVENTORY_LANG_OPTIONS_EDIT}
-        />
-      )}
+      {actionOverlays}
     </div>
   );
 }
@@ -1270,6 +1276,7 @@ export function OggettiContent() {
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkPriceUpdating, setBulkPriceUpdating] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<OggettiViewMode>('table');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -1441,8 +1448,7 @@ export function OggettiContent() {
     return () => { cancelled = true; };
   }, [user?.id, accessToken]);
 
-  /** Carica tutto l'inventario (pagine da 500) per avere dati completi e KPIs corrette. 
-   * Se l'API fallisce, usa dati mock per demo. */
+  /** Carica tutto l'inventario (pagine da 500) per avere dati completi e KPIs corrette. */
   const loadInventory = useCallback(async () => {
     if (!user?.id || !accessToken) {
       // Use mock data when not logged in
@@ -1482,11 +1488,11 @@ export function OggettiContent() {
       setInventoryItems(merged);
       setError(null);
     } catch (e) {
-      // Use mock data on API error
-      // Fallback to mock data on API error
-      setInventoryItems(MOCK_INVENTORY_ITEMS);
-      setTotal(MOCK_INVENTORY_ITEMS.length);
-      setError(null);
+      const msg = e instanceof Error ? e.message : 'Errore durante il caricamento inventario';
+      setInventoryItems([]);
+      setTotal(0);
+      setSelectedIds(new Set());
+      setError(msg);
     }
   }, [user?.id, accessToken]);
 
@@ -1684,44 +1690,81 @@ export function OggettiContent() {
   );
 
   const handleBulkPriceApply = useCallback(
-    (operation: '+' | '-', percent: number, target: 'local' | 'cardmarket' | 'all') => {
-      setInventoryItems((prev) =>
-        prev.map((item) => {
-          if (!selectedIds.has(item.id)) return item;
-          const currentCents = item.price_cents ?? 0;
-          const factor = operation === '+' ? 1 + percent / 100 : 1 - percent / 100;
-          const newPriceCents = Math.round(currentCents * factor);
-          return { ...item, price_cents: newPriceCents };
-        })
-      );
+    async (operation: '+' | '-', percent: number, target: 'local' | 'cardmarket' | 'all') => {
+      if (!user?.id || !accessToken || selectedIds.size === 0) return;
       if (target !== 'local') {
-        // TODO: Backend integration — sync price updates to external platforms
-        console.log('TODO: sync price updates to platforms:', target, Array.from(selectedIds));
+        setToast({
+          message: 'Aggiornamento prezzi su piattaforme esterne non disponibile',
+          type: 'error',
+        });
+        return;
       }
-      setToast({
-        message: `Prezzi aggiornati: ${operation === '+' ? '+' : '-'}${percent}% su ${selectedIds.size} carte`,
-        type: 'success',
-      });
-      setSelectedIds(new Set());
+
+      const updates = buildBulkPriceUpdates(inventoryItems, selectedIds, operation, percent);
+      if (updates.length === 0) return;
+
+      setBulkPriceUpdating(true);
+      try {
+        for (const update of updates) {
+          await syncClient.updateInventoryItem(
+            user.id,
+            update.item.id,
+            { price_cents: update.price_cents },
+            accessToken
+          );
+        }
+        await loadInventory();
+        setToast({
+          message: `Prezzi aggiornati: ${operation === '+' ? '+' : '-'}${percent}% su ${updates.length} carte`,
+          type: 'success',
+        });
+        setSelectedIds(new Set());
+      } catch (e) {
+        await loadInventory().catch(() => undefined);
+        const msg = e instanceof Error ? e.message : 'Errore durante l\'aggiornamento prezzi';
+        setError(msg);
+        setToast({ message: msg, type: 'error' });
+      } finally {
+        setBulkPriceUpdating(false);
+      }
     },
-    [selectedIds]
+    [user?.id, accessToken, selectedIds, inventoryItems, loadInventory]
   );
 
   const handleBulkDelete = useCallback(
     async (deleteFromPlatforms: boolean): Promise<void> => {
-      const idsToDelete = new Set(selectedIds);
-      setInventoryItems((prev) => prev.filter((item) => !idsToDelete.has(item.id)));
-      setSelectedIds(new Set());
+      if (!user?.id || !accessToken || selectedIds.size === 0) return;
+      const idsToDelete = Array.from(selectedIds);
+      setBulkDeleting(true);
       if (deleteFromPlatforms) {
-        // TODO: Backend integration — delete from external platforms
-        console.log('TODO: delete from external platforms', Array.from(idsToDelete));
+        setToast({
+          message: 'Eliminazione su piattaforme esterne non disponibile',
+          type: 'error',
+        });
+        setBulkDeleting(false);
+        return;
       }
-      setToast({
-        message: `${idsToDelete.size} carte eliminate dall'inventario`,
-        type: 'success',
-      });
+
+      try {
+        for (const id of idsToDelete) {
+          await syncClient.deleteInventoryItem(user.id, id, accessToken);
+        }
+        await loadInventory();
+        setSelectedIds(new Set());
+        setToast({
+          message: `${idsToDelete.length} carte eliminate dall'inventario`,
+          type: 'success',
+        });
+      } catch (e) {
+        await loadInventory().catch(() => undefined);
+        const msg = e instanceof Error ? e.message : t('accountPage.itemsBulkDeleteError');
+        setError(msg);
+        setToast({ message: msg, type: 'error' });
+      } finally {
+        setBulkDeleting(false);
+      }
     },
-    [selectedIds]
+    [user?.id, accessToken, selectedIds, loadInventory, t]
   );
 
   useEffect(() => {
@@ -2095,18 +2138,20 @@ export function OggettiContent() {
             <button
               type="button"
               onClick={() => setIsBulkPriceOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md active:scale-95"
+              disabled={bulkPriceUpdating || bulkDeleting}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
             >
-              <TrendingUp className="h-4 w-4" />
+              {bulkPriceUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
               Modifica Prezzi
             </button>
             {/* Right */}
             <button
               type="button"
               onClick={() => setIsBulkDeleteOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-5 py-2.5 text-sm font-bold text-red-500 transition-all hover:border-red-400 hover:bg-red-50 active:scale-95"
+              disabled={bulkPriceUpdating || bulkDeleting}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-5 py-2.5 text-sm font-bold text-red-500 transition-all hover:border-red-400 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
             >
-              <Trash2 className="h-4 w-4" />
+              {bulkDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               Elimina selezionate
             </button>
           </div>
