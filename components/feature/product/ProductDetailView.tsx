@@ -59,12 +59,12 @@ type ReprintCard = {
   gameSlug?: string;
 };
 
-/** 2 colonne × 4 righe = 8 ristampe visibili; celle h-20 fisse (non si schiacciano). */
+/** 2 colonne × 3 righe = 6 ristampe visibili; celle h-20 fisse (non si schiacciano). */
 const REPRINT_TILE_CLASS = 'h-20 min-h-20 shrink-0';
 const REPRINT_GRID_SCROLL_CLASS =
-  'max-h-[calc(5rem*4+0.5rem*3)] min-h-[calc(5rem*4+0.5rem*3)]';
+  'max-h-[calc(5rem*3+0.5rem*2)] min-h-[calc(5rem*3+0.5rem*2)]';
 const REPRINT_LIST_SCROLL_CLASS =
-  'max-h-[calc(3.5rem*8+0.25rem*7)] min-h-[calc(3.5rem*8+0.25rem*7)]';
+  'max-h-[calc(3.5rem*6+0.25rem*5)] min-h-[calc(3.5rem*6+0.25rem*5)]';
 
 function mapReprintHit(hit: ReprintSearchHit, cardGameSlug?: string): ReprintCard | null {
   if (!hit.id) return null;
@@ -1277,7 +1277,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           REPRINT_GRID_SCROLL_CLASS
                         )}
                       >
-                        {[...Array(8)].map((_, i) => (
+                        {[...Array(6)].map((_, i) => (
                           <div key={i} className={cn(REPRINT_TILE_CLASS, 'rounded-lg bg-zinc-100 animate-pulse')} />
                         ))}
                       </div>
@@ -1391,7 +1391,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                             REPRINT_LIST_SCROLL_CLASS
                           )}
                         >
-                          {[...Array(8)].map((_, i) => (
+                          {[...Array(6)].map((_, i) => (
                             <div key={i} className="h-14 min-h-14 shrink-0 rounded-md bg-zinc-100 animate-pulse" />
                           ))}
                         </div>
@@ -1402,7 +1402,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                             REPRINT_GRID_SCROLL_CLASS
                           )}
                         >
-                          {[...Array(8)].map((_, i) => (
+                          {[...Array(6)].map((_, i) => (
                             <div key={i} className={cn(REPRINT_TILE_CLASS, 'rounded-lg bg-zinc-100 animate-pulse')} />
                           ))}
                         </div>
