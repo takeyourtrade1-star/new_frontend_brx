@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import { ConditionBadge } from '@/components/ui/ConditionBadge';
 import type { ConditionCode } from '@/components/ui/ConditionBadge';
+import { useHeaderStickyOffset } from '@/lib/hooks/useHeaderStickyOffset';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import type { InventoryFacets } from '@/lib/inventory/inventory-filter-utils';
 
 export interface InventoryFilters {
   search: string;
@@ -21,7 +24,7 @@ export interface InventoryFilters {
   rarities: string[];
   priceMin: number | null;
   priceMax: number | null;
-  smartFilter: 'all' | 'unsold' | 'duplicates' | 'below-market';
+  smartFilter: 'all' | 'duplicates';
   sortBy:
     | 'price-desc'
     | 'price-asc'
@@ -51,30 +54,9 @@ export interface InventoryFiltersPanelProps {
   itemCount: number;
   totalCount: number;
   syncStatus: 'active' | 'inactive' | 'syncing';
+  facets: InventoryFacets;
+  disabled?: boolean;
 }
-
-const CONDITIONS: ConditionCode[] = ['NM', 'SP', 'MP', 'PL', 'PO'];
-
-const LANGUAGES: { code: string; label: string; flag: string }[] = [
-  { code: 'en', label: 'English', flag: '🇺🇸' },
-  { code: 'it', label: 'Italiano', flag: '🇮🇹' },
-  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  { code: 'ja', label: '日本語', flag: '🇯🇵' },
-  { code: 'pt', label: 'Português', flag: '🇵🇹' },
-  { code: 'es', label: 'Español', flag: '🇪🇸' },
-];
-
-const RARITIES = ['Common', 'Uncommon', 'Rare', 'Mythic', 'Special'];
-
-const GAMES: { value: string; label: string }[] = [
-  { value: 'all', label: 'Tutti' },
-  { value: 'mtg', label: 'Magic: The Gathering' },
-  { value: 'pokemon', label: 'Pokémon' },
-  { value: 'yugioh', label: 'Yu-Gi-Oh!' },
-  { value: 'onepiece', label: 'One Piece' },
-  { value: 'sealed', label: 'Sealed / Buste' },
-];
 
 function countActiveFilters(f: InventoryFilters): number {
   return [
@@ -118,7 +100,11 @@ export function InventoryFiltersPanel({
   itemCount,
   totalCount,
   syncStatus,
+  facets,
+  disabled = false,
 }: InventoryFiltersPanelProps) {
+  const { t } = useTranslation();
+  const { stickyTopWithGap } = useHeaderStickyOffset();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(filters.search);
@@ -129,6 +115,7 @@ export function InventoryFiltersPanel({
     rarities: false,
     price: false,
     game: false,
+    smart: false,
   });
 
   useEffect(() => {
@@ -177,7 +164,9 @@ export function InventoryFiltersPanel({
   const activeCount = countActiveFilters(filters);
 
   const panelContent = (
-    <div className="flex h-full flex-col overflow-y-auto">
+    <div
+      className={`flex h-full flex-col overflow-y-auto ${disabled ? 'pointer-events-none opacity-60' : ''}`}
+    >
       <div className="p-4 pb-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -185,7 +174,8 @@ export function InventoryFiltersPanel({
             type="search"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            placeholder="Cerca nelle tue carte..."
+            placeholder={t('accountPage.itemsSearchPlaceholder')}
+            disabled={disabled}
             className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-8 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
           />
           {searchValue.length > 0 && (
@@ -196,7 +186,7 @@ export function InventoryFiltersPanel({
                 onFiltersChange({ ...filters, search: '' });
               }}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-              aria-label="Cancella ricerca"
+              aria-label={t('accountPage.itemsClearSearchAria')}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -228,6 +218,18 @@ export function InventoryFiltersPanel({
                 <button
                   type="button"
                   onClick={() => update('kind', 'all')}
+                  className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {filters.game !== 'all' && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm">
+                {facets.games.find((g) => g.key === filters.game)?.label ?? filters.game}
+                <button
+                  type="button"
+                  onClick={() => update('game', 'all')}
                   className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors"
                 >
                   <X className="h-3 w-3" />
@@ -279,12 +281,24 @@ export function InventoryFiltersPanel({
                 </button>
               </span>
             ))}
+            {filters.smartFilter === 'duplicates' && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm">
+                {t('accountPage.itemsFiltersDuplicates')}
+                <button
+                  type="button"
+                  onClick={() => update('smartFilter', 'all')}
+                  className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
             <button
               type="button"
               onClick={clearAll}
               className="ml-auto text-xs font-medium text-primary hover:underline"
             >
-              Pulisci tutti
+              {t('accountPage.itemsFiltersClearAll')}
             </button>
           </div>
         </div>
@@ -293,115 +307,141 @@ export function InventoryFiltersPanel({
       <div className="flex-1 divide-y divide-gray-100 overflow-y-auto px-4">
         <div className="py-1">
           <SectionHeader
-            label="Tipo"
+            label={t('accountPage.itemsFiltersSectionTipo')}
             expanded={sections.tipo}
             onToggle={() => toggleSection('tipo')}
           />
           {sections.tipo && (
             <div className="flex flex-wrap gap-1.5 pb-2">
-              {(['all', 'singole', 'oggetti'] as const).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => update('kind', k)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                    filters.kind === k
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-                  }`}
-                >
-                  {k === 'all' ? 'Tutti' : k.charAt(0).toUpperCase() + k.slice(1)}
-                </button>
-              ))}
+              {(['all', 'singole', 'oggetti'] as const)
+                .filter((k) => {
+                  if (k === 'all') return facets.kinds.all > 0;
+                  if (k === 'singole') return facets.kinds.singole > 0;
+                  return facets.kinds.oggetti > 0;
+                })
+                .map((k) => {
+                  const count =
+                    k === 'all'
+                      ? facets.kinds.all
+                      : k === 'singole'
+                        ? facets.kinds.singole
+                        : facets.kinds.oggetti;
+                  const label =
+                    k === 'all'
+                      ? t('accountPage.itemsFilterTabAll', { count })
+                      : k === 'singole'
+                        ? t('accountPage.itemsFilterTabSingles', { count })
+                        : t('accountPage.itemsFilterTabSealed', { count });
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => update('kind', k)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                        filters.kind === k
+                          ? 'bg-primary text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
             </div>
           )}
         </div>
 
-        <div className="py-1">
-          <SectionHeader
-            label="Condizione"
-            expanded={sections.conditions}
-            onToggle={() => toggleSection('conditions')}
-          />
-          {sections.conditions && (
-            <div className="space-y-2.5 pb-2">
-              {CONDITIONS.map((c) => (
-                <label
-                  key={c}
-                  className="flex cursor-pointer items-center gap-3 rounded-lg px-1 py-0.5 transition-colors hover:bg-gray-50"
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.conditions.includes(c)}
-                    onChange={() => toggleMulti('conditions', c)}
-                    className="h-4 w-4 shrink-0 rounded border-gray-300 accent-primary"
-                  />
-                  <ConditionBadge condition={c} size="sm" />
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
+        {facets.conditions.length > 0 && (
+          <div className="py-1">
+            <SectionHeader
+              label={t('accountPage.itemsFiltersSectionCondition')}
+              expanded={sections.conditions}
+              onToggle={() => toggleSection('conditions')}
+            />
+            {sections.conditions && (
+              <div className="space-y-2.5 pb-2">
+                {facets.conditions.map(({ code, count }) => (
+                  <label
+                    key={code}
+                    className="flex cursor-pointer items-center gap-3 rounded-lg px-1 py-0.5 transition-colors hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.conditions.includes(code)}
+                      onChange={() => toggleMulti('conditions', code)}
+                      className="h-4 w-4 shrink-0 rounded border-gray-300 accent-primary"
+                    />
+                    <ConditionBadge condition={code} size="sm" />
+                    <span className="ml-auto text-xs tabular-nums text-gray-400">{count}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {facets.languages.length > 0 && (
+          <div className="py-1">
+            <SectionHeader
+              label={t('accountPage.itemsFiltersSectionLanguage')}
+              expanded={sections.languages}
+              onToggle={() => toggleSection('languages')}
+            />
+            {sections.languages && (
+              <div className="space-y-2 pb-2">
+                {facets.languages.map(({ code, label, count }) => (
+                  <label
+                    key={code}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-0.5 transition-colors hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.languages.includes(code)}
+                      onChange={() => toggleMulti('languages', code)}
+                      className="h-4 w-4 shrink-0 rounded border-gray-300 accent-primary"
+                    />
+                    <span className="flex-1 text-sm text-gray-700">{label}</span>
+                    <span className="font-mono text-[11px] text-gray-400">{code.toUpperCase()}</span>
+                    <span className="text-xs tabular-nums text-gray-400">{count}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {facets.rarities.length > 0 && (
+          <div className="py-1">
+            <SectionHeader
+              label={t('accountPage.itemsFiltersSectionRarity')}
+              expanded={sections.rarities}
+              onToggle={() => toggleSection('rarities')}
+            />
+            {sections.rarities && (
+              <div className="space-y-2 pb-2">
+                {facets.rarities.map(({ value, count }) => (
+                  <label
+                    key={value}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-0.5 transition-colors hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.rarities.includes(value)}
+                      onChange={() => toggleMulti('rarities', value)}
+                      className="h-4 w-4 shrink-0 rounded border-gray-300 accent-primary"
+                    />
+                    <span className="flex-1 text-sm text-gray-700">{value}</span>
+                    <span className="text-xs tabular-nums text-gray-400">{count}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="py-1">
           <SectionHeader
-            label="Lingua"
-            expanded={sections.languages}
-            onToggle={() => toggleSection('languages')}
-          />
-          {sections.languages && (
-            <div className="space-y-2 pb-2">
-              {LANGUAGES.map(({ code, label, flag }) => (
-                <label
-                  key={code}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-0.5 transition-colors hover:bg-gray-50"
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.languages.includes(code)}
-                    onChange={() => toggleMulti('languages', code)}
-                    className="h-4 w-4 shrink-0 rounded border-gray-300 accent-primary"
-                  />
-                  <span className="text-base leading-none">{flag}</span>
-                  <span className="flex-1 text-sm text-gray-700">{label}</span>
-                  <span className="font-mono text-[11px] text-gray-400">
-                    {code.toUpperCase()}
-                  </span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="py-1">
-          <SectionHeader
-            label="Rarità"
-            expanded={sections.rarities}
-            onToggle={() => toggleSection('rarities')}
-          />
-          {sections.rarities && (
-            <div className="space-y-2 pb-2">
-              {RARITIES.map((r) => (
-                <label
-                  key={r}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-0.5 transition-colors hover:bg-gray-50"
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.rarities.includes(r)}
-                    onChange={() => toggleMulti('rarities', r)}
-                    className="h-4 w-4 shrink-0 rounded border-gray-300 accent-primary"
-                  />
-                  <span className="text-sm text-gray-700">{r}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="py-1">
-          <SectionHeader
-            label="Prezzo"
+            label={t('accountPage.itemsFiltersSectionPrice')}
             expanded={sections.price}
             onToggle={() => toggleSection('price')}
           />
@@ -417,7 +457,7 @@ export function InventoryFiltersPanel({
                 <input
                   type="number"
                   min={0}
-                  placeholder="Min €"
+                  placeholder={t('accountPage.itemsFiltersPriceMin')}
                   value={filters.priceMin ?? ''}
                   onChange={(e) =>
                     update('priceMin', e.target.value ? Number(e.target.value) : null)
@@ -428,7 +468,7 @@ export function InventoryFiltersPanel({
                 <input
                   type="number"
                   min={0}
-                  placeholder="Max €"
+                  placeholder={t('accountPage.itemsFiltersPriceMax')}
                   value={filters.priceMax ?? ''}
                   onChange={(e) =>
                     update('priceMax', e.target.value ? Number(e.target.value) : null)
@@ -440,37 +480,83 @@ export function InventoryFiltersPanel({
           )}
         </div>
 
-        <div className="py-1">
-          <SectionHeader
-            label="Gioco"
-            expanded={sections.game}
-            onToggle={() => toggleSection('game')}
-          />
-          {sections.game && (
-            <div className="space-y-1.5 pb-2">
-              {GAMES.map(({ value, label }) => (
-                <label
-                  key={value}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-gray-50"
-                >
+        {facets.games.length > 0 && (
+          <div className="py-1">
+            <SectionHeader
+              label={t('accountPage.itemsFiltersSectionGame')}
+              expanded={sections.game}
+              onToggle={() => toggleSection('game')}
+            />
+            {sections.game && (
+              <div className="space-y-1.5 pb-2">
+                <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-gray-50">
                   <input
                     type="radio"
                     name="game-filter"
-                    checked={filters.game === value}
-                    onChange={() => update('game', value)}
+                    checked={filters.game === 'all'}
+                    onChange={() => update('game', 'all')}
                     className="h-4 w-4 shrink-0 border-gray-300 accent-primary"
                   />
-                  <span className="text-sm text-gray-700">{label}</span>
+                  <span className="flex-1 text-sm text-gray-700">
+                    {t('accountPage.itemsFilterAll')}
+                  </span>
+                  <span className="text-xs tabular-nums text-gray-400">{facets.kinds.all}</span>
                 </label>
-              ))}
-            </div>
-          )}
-        </div>
+                {facets.games.map(({ key, label, count }) => (
+                  <label
+                    key={key}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-gray-50"
+                  >
+                    <input
+                      type="radio"
+                      name="game-filter"
+                      checked={filters.game === key}
+                      onChange={() => update('game', key)}
+                      className="h-4 w-4 shrink-0 border-gray-300 accent-primary"
+                    />
+                    <span className="flex-1 text-sm text-gray-700">{label}</span>
+                    <span className="text-xs tabular-nums text-gray-400">{count}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {totalCount > 0 && (
+          <div className="py-1">
+            <SectionHeader
+              label={t('accountPage.itemsFilters')}
+              expanded={sections.smart}
+              onToggle={() => toggleSection('smart')}
+            />
+            {sections.smart && (
+              <div className="pb-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    update(
+                      'smartFilter',
+                      filters.smartFilter === 'duplicates' ? 'all' : 'duplicates'
+                    )
+                  }
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                    filters.smartFilter === 'duplicates'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                  }`}
+                >
+                  {t('accountPage.itemsFilterDuplicates')}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="shrink-0 border-t border-gray-100 p-4">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-          Stato sync
+          {t('accountPage.itemsFiltersSyncSection')}
         </p>
         <Link
           href="/account/sincronizzazione"
@@ -501,41 +587,47 @@ export function InventoryFiltersPanel({
             }`}
           >
             {syncStatus === 'active'
-              ? 'Sincronizzazione attiva'
+              ? t('accountPage.itemsFiltersSyncActive')
               : syncStatus === 'syncing'
-                ? 'Sincronizzazione in corso...'
-                : 'Sincronizzazione non attiva'}
+                ? t('accountPage.itemsFiltersSyncSyncing')
+                : t('accountPage.itemsFiltersSyncInactive')}
           </span>
-          <span className="text-xs font-medium text-gray-400">Gestisci</span>
+          <span className="text-xs font-medium text-gray-400">
+            {t('accountPage.itemsFiltersSyncManage')}
+          </span>
           <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-400" />
         </Link>
         <p className="mt-2 text-center text-[11px] text-gray-400">
-          {itemCount.toLocaleString('it-IT')} /{' '}
-          {totalCount.toLocaleString('it-IT')} carte
+          {t('accountPage.itemsFiltersCardsCount', {
+            filtered: itemCount,
+            total: totalCount,
+          })}
         </p>
       </div>
     </div>
   );
 
+  const stickyStyle = {
+    top: stickyTopWithGap,
+    maxHeight: `calc(100vh - ${stickyTopWithGap}px)`,
+  };
+
   return (
     <>
       <aside
-        className={`relative hidden lg:flex flex-col shrink-0 transition-all duration-300 ${
+        className={`relative hidden lg:flex flex-col shrink-0 self-start z-20 sticky transition-all duration-300 ${
           collapsed ? 'w-12' : 'w-[280px]'
         }`}
-        style={{
-          position: 'sticky',
-          top: '80px',
-          height: 'calc(100vh - 80px)',
-          alignSelf: 'flex-start',
-        }}
+        style={stickyStyle}
       >
-        <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white/70 shadow-sm backdrop-blur-md">
+        <div className="flex h-full max-h-[inherit] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white/70 shadow-sm backdrop-blur-md">
           <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3">
             {!collapsed && (
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-semibold text-gray-900">Filtri</span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {t('accountPage.itemsFiltersPanelTitle')}
+                </span>
                 {activeCount > 0 && (
                   <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
                     {activeCount}
@@ -549,7 +641,11 @@ export function InventoryFiltersPanel({
               className={`rounded-lg p-1.5 text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-700 ${
                 collapsed ? 'mx-auto' : 'ml-auto'
               }`}
-              aria-label={collapsed ? 'Espandi filtri' : 'Comprimi filtri'}
+              aria-label={
+                collapsed
+                  ? t('accountPage.itemsFiltersExpand')
+                  : t('accountPage.itemsFiltersCollapse')
+              }
             >
               <ChevronLeft
                 className={`h-4 w-4 transition-transform duration-200 ${collapsed ? 'rotate-180' : ''}`}
@@ -575,7 +671,7 @@ export function InventoryFiltersPanel({
         type="button"
         onClick={() => setMobileOpen(true)}
         className="fixed bottom-6 right-6 z-40 flex lg:hidden h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 active:scale-95"
-        aria-label="Apri filtri"
+        aria-label={t('accountPage.itemsFiltersOpen')}
       >
         <SlidersHorizontal className="h-5 w-5" />
         {activeCount > 0 && (
@@ -595,7 +691,9 @@ export function InventoryFiltersPanel({
             <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="h-4 w-4 text-gray-500" />
-                <span className="font-semibold text-gray-900">Filtri</span>
+                <span className="font-semibold text-gray-900">
+                  {t('accountPage.itemsFiltersPanelTitle')}
+                </span>
                 {activeCount > 0 && (
                   <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
                     {activeCount}
@@ -617,7 +715,7 @@ export function InventoryFiltersPanel({
                 onClick={() => setMobileOpen(false)}
                 className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary/90"
               >
-                Mostra {itemCount.toLocaleString('it-IT')} risultati
+                {t('accountPage.itemsFiltersShowResults', { count: itemCount })}
               </button>
             </div>
           </div>

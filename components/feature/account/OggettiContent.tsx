@@ -23,7 +23,6 @@ import {
   ShoppingCart,
   Square,
   Star,
-  Timer,
   Trash2,
   TrendingUp,
   X,
@@ -46,6 +45,12 @@ import { ASSETS, getCdnImageUrl } from '@/lib/config';
 import { InventoryFiltersPanel, DEFAULT_FILTERS } from '@/components/feature/account/InventoryFiltersPanel';
 import type { InventoryFilters } from '@/components/feature/account/InventoryFiltersPanel';
 import { InventorySortBar } from '@/components/feature/account/InventorySortBar';
+import {
+  applyInventoryFilters,
+  buildInventoryFacets,
+  getInventoryLanguageLabel,
+  sanitizeInventoryFilters,
+} from '@/lib/inventory/inventory-filter-utils';
 import { BulkPriceModal } from '@/components/feature/account/BulkPriceModal';
 import { BulkDeleteModal } from '@/components/feature/account/BulkDeleteModal';
 
@@ -61,282 +66,6 @@ function buildImageUrl(raw: string | null | undefined): string | null {
 
 const DEFAULT_IMAGE = getCdnImageUrl('Logo%20Principale%20EBARTEX.png');
 
-/** Mock inventory data for demo when backend is unavailable */
-const MOCK_INVENTORY_ITEMS: InventoryItemWithCatalog[] = [
-  {
-    id: 1,
-    blueprint_id: 1001,
-    quantity: 5,
-    price_cents: 1250,
-    description: 'Near Mint condition, English',
-    graded: false,
-    external_stock_id: 'ct-12345',
-    properties: { condition: 'NM', mtg_language: 'en' },
-    updated_at: new Date().toISOString(),
-    card: {
-      id: 'mtg-001',
-      name: 'Black Lotus',
-      set_name: 'Alpha',
-      rarity: 'Rare',
-      collector_number: '232',
-      game_slug: 'mtg',
-      image: null,
-      keywords_localized: [],
-    },
-  },
-  {
-    id: 2,
-    blueprint_id: 1002,
-    quantity: 3,
-    price_cents: 850,
-    description: 'Light Play, Italian',
-    graded: false,
-    external_stock_id: 'ct-12346',
-    properties: { condition: 'LP', mtg_language: 'it' },
-    updated_at: new Date().toISOString(),
-    card: {
-      id: 'mtg-002',
-      name: 'Mox Pearl',
-      set_name: 'Beta',
-      rarity: 'Rare',
-      collector_number: '25',
-      game_slug: 'mtg',
-      image: null,
-      keywords_localized: [],
-    },
-  },
-  {
-    id: 3,
-    blueprint_id: 1003,
-    quantity: 8,
-    price_cents: 450,
-    description: 'Near Mint, English Foil',
-    graded: false,
-    external_stock_id: 'ct-12347',
-    properties: { condition: 'NM', mtg_language: 'en', mtg_foil: true },
-    updated_at: new Date().toISOString(),
-    card: {
-      id: 'mtg-003',
-      name: 'Counterspell',
-      set_name: 'Modern Horizons 2',
-      rarity: 'Uncommon',
-      collector_number: '267',
-      game_slug: 'mtg',
-      image: null,
-      keywords_localized: [],
-    },
-  },
-  {
-    id: 4,
-    blueprint_id: 1004,
-    quantity: 2,
-    price_cents: 2500,
-    description: 'Moderate Play, English',
-    graded: false,
-    external_stock_id: 'ct-12348',
-    properties: { condition: 'MP', mtg_language: 'en' },
-    updated_at: new Date().toISOString(),
-    card: {
-      id: 'mtg-004',
-      name: 'Underground Sea',
-      set_name: 'Revised',
-      rarity: 'Rare',
-      collector_number: '291',
-      game_slug: 'mtg',
-      image: null,
-      keywords_localized: [],
-    },
-  },
-  {
-    id: 5,
-    blueprint_id: 1005,
-    quantity: 12,
-    price_cents: 150,
-    description: 'Near Mint, German',
-    graded: false,
-    external_stock_id: 'ct-12349',
-    properties: { condition: 'NM', mtg_language: 'de' },
-    updated_at: new Date().toISOString(),
-    card: {
-      id: 'mtg-005',
-      name: 'Lightning Bolt',
-      set_name: 'Fourth Edition',
-      rarity: 'Common',
-      collector_number: '208',
-      game_slug: 'mtg',
-      image: null,
-      keywords_localized: [],
-    },
-  },
-  {
-    id: 6,
-    blueprint_id: 1006,
-    quantity: 1,
-    price_cents: 15000,
-    description: 'Graded PSA 9',
-    graded: true,
-    external_stock_id: 'ct-12350',
-    properties: { condition: 'NM', mtg_language: 'en' },
-    updated_at: new Date().toISOString(),
-    card: {
-      id: 'mtg-006',
-      name: 'Tropical Island',
-      set_name: 'Alpha',
-      rarity: 'Rare',
-      collector_number: '294',
-      game_slug: 'mtg',
-      image: null,
-      keywords_localized: [],
-    },
-  },
-  {
-    id: 7,
-    blueprint_id: 1007,
-    quantity: 4,
-    price_cents: 320,
-    description: 'Near Mint, English',
-    graded: false,
-    external_stock_id: 'ct-12351',
-    properties: { condition: 'NM', mtg_language: 'en' },
-    updated_at: new Date().toISOString(),
-    card: {
-      id: 'mtg-007',
-      name: 'Sol Ring',
-      set_name: 'Commander Legends',
-      rarity: 'Uncommon',
-      collector_number: '472',
-      game_slug: 'mtg',
-      image: null,
-      keywords_localized: [],
-    },
-  },
-  {
-    id: 8,
-    blueprint_id: 1008,
-    quantity: 6,
-    price_cents: 180,
-    description: 'Near Mint, Japanese',
-    graded: false,
-    external_stock_id: 'ct-12352',
-    properties: { condition: 'NM', mtg_language: 'ja' },
-    updated_at: new Date().toISOString(),
-    card: {
-      id: 'mtg-008',
-      name: 'Brainstorm',
-      set_name: 'Ice Age',
-      rarity: 'Common',
-      collector_number: '61',
-      game_slug: 'mtg',
-      image: null,
-      keywords_localized: [],
-    },
-  },
-  {
-    id: 9,
-    blueprint_id: 1009,
-    quantity: 2,
-    price_cents: 750,
-    description: 'Light Play, English Foil',
-    graded: false,
-    external_stock_id: 'ct-12353',
-    properties: { condition: 'LP', mtg_language: 'en', mtg_foil: true },
-    updated_at: new Date().toISOString(),
-    card: {
-      id: 'sealed-001',
-      name: 'Modern Horizons 2 - Collector Booster',
-      set_name: 'Modern Horizons 2',
-      rarity: 'Special',
-      collector_number: '',
-      game_slug: 'sealed',
-      image: null,
-      keywords_localized: [],
-    },
-  },
-  {
-    id: 10,
-    blueprint_id: 1010,
-    quantity: 15,
-    price_cents: 45,
-    description: 'Near Mint, English',
-    graded: false,
-    external_stock_id: 'ct-12354',
-    properties: { condition: 'NM', mtg_language: 'en' },
-    updated_at: new Date().toISOString(),
-    card: {
-      id: 'mtg-010',
-      name: 'Path to Exile',
-      set_name: 'Conflux',
-      rarity: 'Uncommon',
-      collector_number: '15',
-      game_slug: 'mtg',
-      image: null,
-      keywords_localized: [],
-    },
-  },
-  {
-    id: 11,
-    blueprint_id: 1011,
-    quantity: 20,
-    price_cents: 25,
-    description: 'Near Mint, English',
-    graded: false,
-    external_stock_id: 'ct-12355',
-    properties: { condition: 'NM', mtg_language: 'en' },
-    updated_at: new Date().toISOString(),
-    card: {
-      id: 'mtg-011',
-      name: 'Island',
-      set_name: 'Unfinity',
-      rarity: 'Basic Land',
-      collector_number: '536',
-      game_slug: 'mtg',
-      image: null,
-      keywords_localized: [],
-    },
-  },
-  {
-    id: 12,
-    blueprint_id: 1012,
-    quantity: 3,
-    price_cents: 1200,
-    description: 'Signed, Near Mint',
-    graded: false,
-    external_stock_id: 'ct-12356',
-    properties: { condition: 'NM', mtg_language: 'en', signed: true },
-    updated_at: new Date().toISOString(),
-    card: {
-      id: 'mtg-012',
-      name: 'Force of Will',
-      set_name: 'Alliances',
-      rarity: 'Uncommon',
-      collector_number: '92',
-      game_slug: 'mtg',
-      image: null,
-      keywords_localized: [],
-    },
-  },
-];
-
-/** Codice lingua (dalla singola riga inventario) → etichetta per visualizzazione. */
-const LANG_CODE_TO_LABEL: Record<string, string> = {
-  en: 'English',
-  it: 'Italiano',
-  de: 'Deutsch',
-  fr: 'Français',
-  es: 'Español',
-  pt: 'Português',
-  ja: '日本語',
-  jp: '日本語',
-  ko: '한국어',
-  zh: '中文',
-};
-
-function getLanguageLabel(code: string | null | undefined): string {
-  if (code == null || code === '') return '—';
-  const c = String(code).toLowerCase().trim();
-  return LANG_CODE_TO_LABEL[c] ?? c;
-}
-
 function formatPrice(priceCents: number | null | undefined): string {
   const cents = priceCents ?? 0;
   return new Intl.NumberFormat('it-IT', {
@@ -347,18 +76,7 @@ function formatPrice(priceCents: number | null | undefined): string {
   }).format(cents / 100);
 }
 
-/** Distingue singole (carte: mtg, op, pk) da oggetti (sealed). Basato su id/game_slug del catalogo Meilisearch (cards_prints, op_prints, pk_prints = singole; sealed_products = oggetti). */
-function getItemKind(item: InventoryItemWithCatalog): 'singole' | 'oggetti' {
-  const id = item.card?.id;
-  const gameSlug = item.card?.game_slug;
-  if (typeof id === 'string' && id.startsWith('sealed_')) return 'oggetti';
-  if (gameSlug === 'sealed' || gameSlug === 'sealed_products') return 'oggetti';
-  return 'singole';
-}
-
-
 const LOW_STOCK_THRESHOLD = 5;
-const DAYS_UNSOLD_THRESHOLD = 30;
 
 /** Oggetto serializzabile per export CSV/JSON (tutti i campi utili, niente riferimenti circolari). */
 function itemToExportRow(item: InventoryItemWithCatalog): Record<string, unknown> {
@@ -401,49 +119,6 @@ function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-/** Normalizza per ricerca multilingua: minuscolo e senza accenti (é→e, ü→u, etc.). */
-function normalizeForSearch(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Mc}/gu, '')
-    .replace(/\p{Mn}/gu, '');
-}
-
-/** Testa se un item inventario matcha la query di ricerca (solo client-side, nessuna chiamata API).
- * Cerca in tutte le lingue: name, set_name, e tutti i nomi in keywords_localized (en, de, es, fr, it, pt). */
-function matchInventorySearch(item: InventoryItemWithCatalog, query: string): boolean {
-  const q = query.trim();
-  if (!q) return true;
-  const qNorm = normalizeForSearch(q);
-  const condition =
-    item.properties && typeof item.properties.condition === 'string' ? item.properties.condition : '';
-  const langCode =
-    item.properties && typeof item.properties.mtg_language === 'string'
-      ? item.properties.mtg_language
-      : '';
-  const langLabel = getLanguageLabel(langCode);
-  const localizedNames = (item.card?.keywords_localized ?? [])
-    .filter((s): s is string => typeof s === 'string' && String(s).trim().length > 0)
-    .join(' ');
-  const searchable = [
-    item.card?.name ?? '',
-    item.card?.set_name ?? '',
-    item.card?.rarity ?? '',
-    item.card?.collector_number ?? '',
-    localizedNames,
-    String(item.blueprint_id),
-    item.description ?? '',
-    condition,
-    langLabel,
-    langCode,
-  ]
-    .join(' ');
-  const searchableNorm = normalizeForSearch(searchable);
-  const parts = qNorm.split(/\s+/).filter(Boolean);
-  return parts.every((part) => searchableNorm.includes(part));
-}
-
 type OggettiViewMode = 'table' | 'cards';
 
 function OggettiTable({
@@ -466,7 +141,6 @@ function OggettiTable({
   onDeleteSelected,
   bulkDeleting,
   viewMode = 'table',
-  salesData,
   t,
 }: {
   items: InventoryItemWithCatalog[];
@@ -488,7 +162,6 @@ function OggettiTable({
   onDeleteSelected?: (ids: number[]) => void;
   bulkDeleting?: boolean;
   viewMode?: OggettiViewMode;
-  salesData?: Map<number, { lastSold: Date; salesCount: number; views: number }>;
   t: (key: import('@/lib/i18n/messages/en').MessageKey, vars?: Record<string, string | number>) => string;
 }) {
   const { selectedLang } = useLanguage();
@@ -683,7 +356,7 @@ function OggettiTable({
             item.properties && typeof item.properties.mtg_language === 'string'
               ? item.properties.mtg_language
               : null;
-          const languageLabel = getLanguageLabel(languageCode);
+          const languageLabel = getInventoryLanguageLabel(languageCode);
           const displayNames: { primary: string; secondary: string | null } = item.card
             ? getCardDisplayNames(
                 { name: item.card.name ?? '', keywords_localized: item.card.keywords_localized },
@@ -691,11 +364,8 @@ function OggettiTable({
               )
             : { primary: `Carta #${item.blueprint_id}`, secondary: null };
           const namePrimary = (displayNames.primary || item.card?.name) ?? `Carta #${item.blueprint_id}`;
-          const salesInfo = salesData?.get(item.id);
-          const daysUnsold = salesInfo ? Math.floor((Date.now() - salesInfo.lastSold.getTime()) / (1000 * 60 * 60 * 24)) : null;
-          const isPopular = (salesInfo?.views ?? 0) > 50;
-          const isStagnant = daysUnsold !== null && daysUnsold > 60;
-          const isTrending = (salesInfo?.salesCount ?? 0) > 2;
+          const isPopular = false;
+          const isTrending = false;
           const hasFoil = item.properties?.mtg_foil === true;
           const isSigned = item.properties?.signed === true;
           const isGraded = item.graded === true;
@@ -758,12 +428,6 @@ function OggettiTable({
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 backdrop-blur-sm px-2.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-500/30 shadow-sm">
                         <TrendingUp className="h-3 w-3" />
                         {t('accountPage.itemsBadgeTop')}
-                      </span>
-                    )}
-                    {isStagnant && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-500/20 backdrop-blur-sm px-2.5 py-1 text-xs font-bold text-slate-700 border border-slate-500/30 shadow-sm">
-                        <Timer className="h-3 w-3" />
-                        {daysUnsold}{t('accountPage.itemsDaysUnsold')}
                       </span>
                     )}
                   </div>
@@ -934,7 +598,7 @@ function OggettiTable({
                 item.properties && typeof item.properties.mtg_language === 'string'
                   ? item.properties.mtg_language
                   : null;
-              const languageLabel = getLanguageLabel(languageCode);
+              const languageLabel = getInventoryLanguageLabel(languageCode);
               const displayNames: { primary: string; secondary: string | null } = item.card
                 ? getCardDisplayNames(
                     { name: item.card.name ?? '', keywords_localized: item.card.keywords_localized },
@@ -1278,21 +942,6 @@ export function OggettiContent() {
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
   const [syncStatusLoading, setSyncStatusLoading] = useState(true);
   
-  /** Mock data per demo - in produzione verrebbero dall'API */
-  const getMockSalesData = useCallback(() => {
-    const mockMap = new Map<number, { lastSold: Date; salesCount: number; views: number }>();
-    inventoryItems.forEach((item) => {
-      const daysAgo = Math.random() > 0.7 ? Math.floor(Math.random() * 60) : Math.floor(Math.random() * 10);
-      mockMap.set(item.id, {
-        lastSold: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000),
-        salesCount: Math.floor(Math.random() * 5),
-        views: Math.floor(Math.random() * 100),
-      });
-    });
-    return mockMap;
-  }, [inventoryItems]);
-  
-  const salesData = useMemo(() => getMockSalesData(), [getMockSalesData]);
   const syncEnabled =
     Boolean(syncStatus && !syncStatus.disconnected) &&
     (syncStatus?.sync_status === 'active' || syncStatus?.sync_status === 'initial_sync');
@@ -1301,104 +950,19 @@ export function OggettiContent() {
   const syncAnyPending = syncPending || syncNowPending;
   const canSyncNow = integrationConnected && syncStatus?.sync_status !== 'initial_sync';
 
-  const filteredInventoryItems = useMemo(() => {
-    let list = inventoryItems;
+  const facets = useMemo(() => buildInventoryFacets(inventoryItems), [inventoryItems]);
 
-    if (filters.kind !== 'all') {
-      list = list.filter((item) => getItemKind(item) === filters.kind);
-    }
+  const filteredInventoryItems = useMemo(
+    () => applyInventoryFilters(inventoryItems, filters, inventoryItems),
+    [inventoryItems, filters]
+  );
 
-    if (filters.game !== 'all') {
-      list = list.filter((item) => item.card?.game_slug === filters.game);
-    }
-
-    if (filters.conditions.length > 0) {
-      list = list.filter((item) => {
-        const cond = item.properties?.condition as string | undefined;
-        return cond ? filters.conditions.includes(cond as ConditionCode) : false;
-      });
-    }
-
-    if (filters.languages.length > 0) {
-      list = list.filter((item) => {
-        const lang = item.properties?.mtg_language as string | undefined;
-        return lang ? filters.languages.includes(lang) : false;
-      });
-    }
-
-    if (filters.rarities.length > 0) {
-      list = list.filter((item) => {
-        const rarity = item.card?.rarity;
-        return rarity ? filters.rarities.includes(rarity) : false;
-      });
-    }
-
-    if (filters.priceMin !== null) {
-      list = list.filter((item) => (item.price_cents ?? 0) / 100 >= filters.priceMin!);
-    }
-
-    if (filters.priceMax !== null) {
-      list = list.filter((item) => (item.price_cents ?? 0) / 100 <= filters.priceMax!);
-    }
-
-    if (filters.smartFilter !== 'all') {
-      list = list.filter((item) => {
-        const data = salesData.get(item.id);
-        switch (filters.smartFilter) {
-          case 'unsold': {
-            if (!data) return true;
-            const daysSinceSold = Math.floor((Date.now() - data.lastSold.getTime()) / (1000 * 60 * 60 * 24));
-            return daysSinceSold > DAYS_UNSOLD_THRESHOLD || data.salesCount === 0;
-          }
-          case 'duplicates': {
-            const sameBlueprint = inventoryItems.filter((i) => i.blueprint_id === item.blueprint_id);
-            return sameBlueprint.length > 1 || (item.quantity ?? 0) > 1;
-          }
-          case 'below-market': {
-            const avgPrice =
-              inventoryItems.reduce((sum, i) => sum + (i.price_cents ?? 0), 0) / inventoryItems.length;
-            return (item.price_cents ?? 0) < avgPrice * 0.8;
-          }
-          default:
-            return true;
-        }
-      });
-    }
-
-    if (filters.search.trim()) {
-      list = list.filter((item) => matchInventorySearch(item, filters.search));
-    }
-
-    const CONDITION_ORDER: Record<string, number> = { NM: 0, SP: 1, MP: 2, PL: 3, PO: 4 };
-    const sorted = [...list].sort((a, b) => {
-      switch (filters.sortBy) {
-        case 'price-desc':
-          return (b.price_cents ?? 0) - (a.price_cents ?? 0);
-        case 'price-asc':
-          return (a.price_cents ?? 0) - (b.price_cents ?? 0);
-        case 'condition-desc': {
-          const aO = CONDITION_ORDER[a.properties?.condition as string ?? ''] ?? 99;
-          const bO = CONDITION_ORDER[b.properties?.condition as string ?? ''] ?? 99;
-          return aO - bO;
-        }
-        case 'condition-asc': {
-          const aO = CONDITION_ORDER[a.properties?.condition as string ?? ''] ?? 99;
-          const bO = CONDITION_ORDER[b.properties?.condition as string ?? ''] ?? 99;
-          return bO - aO;
-        }
-        case 'name-asc':
-          return (a.card?.name ?? '').localeCompare(b.card?.name ?? '');
-        case 'name-desc':
-          return (b.card?.name ?? '').localeCompare(a.card?.name ?? '');
-        case 'date-desc':
-          return new Date(b.updated_at ?? 0).getTime() - new Date(a.updated_at ?? 0).getTime();
-        default:
-          return 0;
-      }
+  useEffect(() => {
+    setFilters((prev) => {
+      const sanitized = sanitizeInventoryFilters(prev, facets);
+      return JSON.stringify(sanitized) === JSON.stringify(prev) ? prev : sanitized;
     });
-
-    return sorted;
-  }, [inventoryItems, filters, salesData]);
+  }, [facets]);
 
 
 
@@ -1441,16 +1005,15 @@ export function OggettiContent() {
     return () => { cancelled = true; };
   }, [user?.id, accessToken]);
 
-  /** Carica tutto l'inventario (pagine da 500) per avere dati completi e KPIs corrette. 
-   * Se l'API fallisce, usa dati mock per demo. */
+  /** Carica tutto l'inventario (pagine da 500) per dati completi e filtri precisi. */
   const loadInventory = useCallback(async () => {
     if (!user?.id || !accessToken) {
-      // Use mock data when not logged in
-      setInventoryItems(MOCK_INVENTORY_ITEMS);
-      setTotal(MOCK_INVENTORY_ITEMS.length);
+      setInventoryItems([]);
+      setTotal(0);
       setLoading(false);
       return;
     }
+    setLoading(true);
     try {
       const allItems: InventoryItemResponse[] = [];
       const pageSize = 500;
@@ -1481,14 +1044,14 @@ export function OggettiContent() {
       }));
       setInventoryItems(merged);
       setError(null);
-    } catch (e) {
-      // Use mock data on API error
-      // Fallback to mock data on API error
-      setInventoryItems(MOCK_INVENTORY_ITEMS);
-      setTotal(MOCK_INVENTORY_ITEMS.length);
-      setError(null);
+    } catch {
+      setInventoryItems([]);
+      setTotal(0);
+      setError(t('accountPage.itemsLoadError'));
+    } finally {
+      setLoading(false);
     }
-  }, [user?.id, accessToken]);
+  }, [user?.id, accessToken, t]);
 
   const handleSyncNow = useCallback(async () => {
     if (!user?.id || !accessToken || !syncStatus) return;
@@ -1610,23 +1173,8 @@ export function OggettiContent() {
       setLoading(false);
       return;
     }
-
-    let cancelled = false;
-    setLoading(true);
     setError(null);
-
-    (async () => {
-      try {
-        await loadInventory();
-        if (!cancelled) setLoading(false);
-      } catch {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    void loadInventory();
   }, [user?.id, accessToken, loadInventory]);
 
   const onToggleSelect = useCallback((id: number) => {
@@ -1796,13 +1344,15 @@ export function OggettiContent() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F5F4F0]">
+    <div className="flex min-h-screen items-start gap-4 bg-[#F5F4F0] p-4 lg:gap-6 lg:p-6">
       <InventoryFiltersPanel
         filters={filters}
         onFiltersChange={setFilters}
         itemCount={filteredInventoryItems.length}
         totalCount={inventoryItems.length}
         syncStatus={syncAnyPending ? 'syncing' : syncEnabled ? 'active' : 'inactive'}
+        facets={facets}
+        disabled={loading}
       />
       <main className="flex-1 min-w-0 overflow-x-hidden p-6">
         <nav
@@ -1813,7 +1363,7 @@ export function OggettiContent() {
             Account
           </Link>
           <span className="text-gray-300">/</span>
-          <span className="font-medium text-gray-900">I Miei Oggetti</span>
+          <span className="font-medium text-gray-900">{t('accountPage.itemsTitle')}</span>
         </nav>
 
         {syncBanner && (
@@ -1994,7 +1544,6 @@ export function OggettiContent() {
             onDeleteSelected={(ids) => onDeleteSelected(ids)}
             bulkDeleting={bulkDeleting}
             viewMode={viewMode}
-            salesData={salesData}
             t={t}
           />
           {totalPages > 1 && (
