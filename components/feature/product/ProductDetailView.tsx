@@ -1907,7 +1907,188 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       {/* Sezione FILTRI a fianco della tabella (sinistra) + tab IN VENDITA | DISPONIBILI ALL'ASTA + tabella – filtri in striscia stretta quando chiusi, pannello pieno quando aperti */}
       <section className="w-full bg-[#F0F0F0] border-t border-gray-300">
         <div className="container-content container-content-card-detail py-2.5 sm:py-3 lg:py-4">
-          <div className="w-full">
+          <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch">
+            {/* Sidebar FILTRI – subito a sinistra della tabella */}
+            <aside
+              className={cn(
+                'flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-out',
+                filtersOpen ? 'w-full lg:w-[280px] xl:w-[300px]' : 'w-full lg:w-14'
+              )}
+            >
+              {!filtersOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen(true)}
+                  className="w-full lg:h-full lg:min-h-[200px] flex items-center justify-center gap-2 lg:flex-col lg:gap-1.5 rounded-lg border border-gray-200 bg-white p-2 shadow-sm hover:bg-gray-50 transition-colors"
+                  aria-label="Apri filtri"
+                >
+                  <svg className="h-4 w-4 text-gray-600 shrink-0 lg:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  <span className="text-xs font-bold uppercase text-gray-600 lg:hidden">Filtri</span>
+                  <svg className="h-5 w-5 text-gray-600 shrink-0 hidden lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  <span className="text-[10px] font-bold uppercase text-zinc-600 hidden lg:inline leading-none">FILTRI</span>
+                </button>
+              ) : (
+                <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm h-full min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold uppercase text-gray-900">Filtri</span>
+                      <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                      </svg>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFiltersOpen(false)}
+                      className="flex items-center justify-center rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                      aria-label="Chiudi filtri"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="lg:hidden">
+                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Ordina</label>
+                      <select
+                        value={listingsSort}
+                        onChange={(e) => setListingsSort(e.target.value as typeof listingsSort)}
+                        className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700"
+                      >
+                        <option value="price_asc">Prezzo: più basso</option>
+                        <option value="price_desc">Prezzo: più alto</option>
+                        <option value="seller">Venditore: A-Z</option>
+                        <option value="condition">Condizione: migliore</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Posizione venditore</label>
+                      <CountrySelect
+                        options={countryOptions}
+                        value={posizioneVenditore}
+                        onChange={setPosizioneVenditore}
+                        size="sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Tipo venditore</label>
+                      <div className="flex flex-wrap gap-2">
+                        {(['PRIVATO', 'PROFESSIONALE', 'POWERSELLER'] as const).map((tipo) => (
+                          <button
+                            key={tipo}
+                            type="button"
+                            onClick={() => setTipoVenditore(tipoVenditore === tipo ? null : tipo)}
+                            className={cn(
+                              'rounded-full px-3 py-1.5 text-xs font-bold uppercase',
+                              tipoVenditore === tipo ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            )}
+                          >
+                            {tipo}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Condizione minima</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {CONDIZIONE_OPTIONS.map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setCondizioneMinima(c)}
+                            className={cn(
+                              'rounded-full px-2.5 py-1 text-xs font-bold',
+                              condizioneMinima === c ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            )}
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Lingua carta</label>
+                      <div className="flex flex-wrap gap-2">
+                        {LINGUA_CARTA.map(({ code }) => (
+                          <button
+                            key={code}
+                            type="button"
+                            onClick={() => setLinguaCarta(linguaCarta === code ? null : code)}
+                            className={cn(
+                              'flex h-8 w-10 items-center justify-center rounded border text-sm',
+                              linguaCarta === code ? 'border-[#FF8800] bg-orange-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                            )}
+                            title={code}
+                          >
+                            {code === 'IT' && '🇮🇹'}
+                            {code === 'JP' && '🇯🇵'}
+                            {code === 'GB' && '🇬🇧'}
+                            {code === 'ES' && '🇪🇸'}
+                            {code === 'DE' && '🇩🇪'}
+                            {code === 'FR' && '🇫🇷'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Firmata</label>
+                      <div className="flex flex-wrap gap-2">
+                        {(['SÌ', 'NO', 'ENTRAMBI'] as const).map((v) => (
+                          <button key={v} type="button" onClick={() => setFirmata(v)} className={cn('rounded-full px-3 py-1.5 text-xs font-bold', firmata === v ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300')}>{v}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Alterata</label>
+                      <div className="flex flex-wrap gap-2">
+                        {(['SÌ', 'NO', 'ENTRAMBI'] as const).map((v) => (
+                          <button key={v} type="button" onClick={() => setAlterata(v)} className={cn('rounded-full px-3 py-1.5 text-xs font-bold', alterata === v ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300')}>{v}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Quantità</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={quantita}
+                        onChange={(e) => setQuantita(Number(e.target.value) || 1)}
+                        className="w-full rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm"
+                        placeholder="Inserire quantità"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase text-gray-600">Solo foil?</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={soloFoil}
+                        onClick={() => setSoloFoil(!soloFoil)}
+                        className={cn(
+                          'relative inline-flex h-7 w-[52px] shrink-0 cursor-pointer items-center rounded-full transition-all duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8800]/40',
+                          soloFoil
+                            ? 'bg-[#FF8800] shadow-[inset_0_1px_2px_rgba(0,0,0,0.15),0_0_12px_rgba(255,136,0,0.45)]'
+                            : 'bg-gray-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]'
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'inline-block h-6 w-6 transform rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.22),0_0_2px_rgba(0,0,0,0.08)] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] will-change-transform',
+                            soloFoil ? 'translate-x-6' : 'translate-x-0.5'
+                          )}
+                          aria-hidden
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </aside>
+
             {/* Marketplace: IN VENDITA | SCAMBI | ASTE | BRX Express */}
             <div className="flex-1 min-w-0 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
               <div
@@ -1999,53 +2180,29 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   id="pd-market-panel-VENDITORI"
                   role="tabpanel"
                   aria-labelledby="pd-market-tab-VENDITORI"
-                  className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  className="overflow-x-auto animate-in fade-in slide-in-from-bottom-2 duration-300"
                 >
-                  {/* Modern Filters */}
-                  <ModernSellerFilters
-                    sortBy={sortBy}
-                    setSortBy={setSortBy}
-                    selectedCountry={selectedCountry}
-                    setSelectedCountry={setSelectedCountry}
-                    showPrivate={showPrivate}
-                    setShowPrivate={setShowPrivate}
-                    showProfessional={showProfessional}
-                    setShowProfessional={setShowProfessional}
-                    showPowerSeller={showPowerSeller}
-                    setShowPowerSeller={setShowPowerSeller}
-                    onlyFoil={soloFoil}
-                    setOnlyFoil={setSoloFoil}
-                    onlyBrxExpress={onlyBrxExpress}
-                    setOnlyBrxExpress={setOnlyBrxExpress}
-                    onlySignedCards={onlySignedCards}
-                    setOnlySignedCards={setOnlySignedCards}
-                    minCondition={minCondition}
-                    setMinCondition={setMinCondition}
-                  />
-                  
                   {listingActionMessage && (
                     <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">{listingActionMessage}</div>
                   )}
-                  
-                  {/* Modern Seller Table */}
-                  <div className="p-4">
-                    <ModernSellerTable
-                      listings={sortedListings}
-                      loading={listingsLoading}
-                      error={listingsError}
-                      onAddToCart={(item, event) => {
-                        if (!user || !accessToken) {
-                          setListingActionMessage('Accedi per aggiungere al carrello.');
-                          return;
-                        }
-                        openQtyPopup(item, event.currentTarget, cardImages[currentImageIndex]);
-                      }}
-                      isOwnListing={isOwnListing}
-                      onOwnerEdit={(item) => setEditingItem(listingToInventoryEditItem(item, card ?? null))}
-                      onOwnerQuantityChange={handleOwnerQtyDelta}
-                      busyItemId={rowBusyId}
-                    />
-                  </div>
+                  <ModernSellerTable
+                    listings={sortedListings}
+                    loading={listingsLoading}
+                    error={listingsError}
+                    cardImageSrc={cardImages[currentImageIndex]}
+                    cardName={card?.name}
+                    onAddToCart={(item, event) => {
+                      if (!user || !accessToken) {
+                        setListingActionMessage('Accedi per aggiungere al carrello.');
+                        return;
+                      }
+                      openQtyPopup(item, event.currentTarget, cardImages[currentImageIndex]);
+                    }}
+                    isOwnListing={isOwnListing}
+                    onOwnerEdit={(item) => setEditingItem(listingToInventoryEditItem(item, card ?? null))}
+                    onOwnerQuantityChange={handleOwnerQtyDelta}
+                    busyItemId={rowBusyId}
+                  />
                 </div>
               )}
               {sellerSubTab === 'SCAMBI' && card && (

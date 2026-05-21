@@ -1,49 +1,65 @@
 'use client';
 
-import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Zap, ShoppingCart, Plus, Minus, Pencil, Loader2, Clock, Gavel } from 'lucide-react';
+import { Camera, Loader2, Minus, Pencil, Plus, User } from 'lucide-react';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { ConditionBadge, type ConditionCode } from '@/components/ui/ConditionBadge';
-import { BrxExpressIcon, BrxExpressBadge } from '@/components/ui/BrxExpressIcon';
+import { BrxExpressIcon } from '@/components/ui/BrxExpressIcon';
+import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { getCdnImageUrl } from '@/lib/config';
 import { type ListingItem } from '@/lib/api/sync-client';
 
-type SellerListingItem = ListingItem & {
-  seller_type?: 'PRIVATE' | 'PROFESSIONAL' | 'POWERSELLER';
-  is_auction?: boolean;
-  auction_end_time?: string;
-  is_signed?: boolean;
-  has_brx_express?: boolean;
-  is_foil?: boolean;
-};
-
-// Mock data per BRX Express - da sostituire con logica reale
-const MOCK_BRX_EXPRESS = new Set<number>();
-
-// Mappa condizioni testuali a codici per ConditionBadge
 const CONDITION_TEXT_TO_CODE: Record<string, ConditionCode> = {
   'Near Mint': 'NM',
-  'near_mint': 'NM',
+  near_mint: 'NM',
   'Lightly Played': 'SP',
-  'lightly_played': 'SP',
+  lightly_played: 'SP',
   'Slightly Played': 'SP',
   'Moderately Played': 'MP',
-  'moderately_played': 'MP',
+  moderately_played: 'MP',
   'Heavily Played': 'PL',
-  'heavily_played': 'PL',
-  'Played': 'PL',
-  'Damaged': 'PO',
-  'damaged': 'PO',
-  'Poor': 'PO',
+  heavily_played: 'PL',
+  Played: 'PL',
+  Damaged: 'PO',
+  damaged: 'PO',
+  Poor: 'PO',
 };
+
+const LANGUAGE_TO_FLAG: Record<string, string> = {
+  en: 'GB',
+  it: 'IT',
+  fr: 'FR',
+  de: 'DE',
+  es: 'ES',
+  pt: 'PT',
+  jp: 'JP',
+  ja: 'JP',
+};
+
+function getConditionCode(conditionText?: string | null): ConditionCode {
+  if (!conditionText) return 'NM';
+  return CONDITION_TEXT_TO_CODE[conditionText] ?? 'NM';
+}
+
+function languageFlagCode(language?: string | null): string | null {
+  if (!language) return null;
+  const key = language.trim().toLowerCase();
+  return LANGUAGE_TO_FLAG[key] ?? key.toUpperCase().slice(0, 2);
+}
+
+function formatLanguageLabel(language?: string | null): string {
+  if (!language) return '—';
+  return language.toUpperCase();
+}
 
 interface ModernSellerTableProps {
   listings: ListingItem[];
   loading?: boolean;
   error?: string | null;
+  cardImageSrc?: string;
+  cardName?: string;
   onAddToCart?: (item: ListingItem, event: React.MouseEvent<HTMLButtonElement>) => void;
   isOwnListing?: (item: ListingItem) => boolean;
   onOwnerEdit?: (item: ListingItem) => void;
@@ -55,304 +71,243 @@ export function ModernSellerTable({
   listings,
   loading = false,
   error = null,
+  cardImageSrc,
+  cardName,
   onAddToCart,
   isOwnListing = () => false,
   onOwnerEdit,
   onOwnerQuantityChange,
-  busyItemId = null
+  busyItemId = null,
 }: ModernSellerTableProps) {
-  
-  // Utility function for formatting Euro currency
   const formatEuro = (n: number) => formatEuroNoSpace(n, 'it-IT');
-  
-  // Processa i listing aggiungendo i campi mock
-  const processedListings = useMemo((): SellerListingItem[] => {
-    return listings.map((listing, index) => ({
-      ...listing,
-      // Mock data per demo - in produzione questi dati arriverebbero dall'API
-      seller_type: index === 0 ? 'POWERSELLER' : index < 3 ? 'PROFESSIONAL' : 'PRIVATE',
-      is_auction: Math.random() > 0.7,
-      auction_end_time: new Date(Date.now() + Math.random() * 24 * 60 * 60 * 1000).toISOString(),
-      is_signed: Math.random() > 0.8,
-      is_foil: index === 1,
-      has_brx_express: MOCK_BRX_EXPRESS.has(listing.item_id) || index === 0,
-    }));
-  }, [listings]);
-
-  // Funzione per ottenere il codice condizione
-  const getConditionCode = (conditionText?: string | null): ConditionCode => {
-    if (!conditionText) return 'NM';
-    return CONDITION_TEXT_TO_CODE[conditionText] || 'NM';
-  };
-
-  // Funzione per calcolare il tempo rimanente per aste
-  const getAuctionTimeLeft = (endTime: string) => {
-    const now = new Date();
-    const end = new Date(endTime);
-    const diff = end.getTime() - now.getTime();
-    
-    if (diff <= 0) return 'Terminata';
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (hours > 24) {
-      const days = Math.floor(hours / 24);
-      return `${days}g ${hours % 24}h`;
-    } else if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
-    }
-  };
-
-  // Render seller type badge
-  const renderSellerTypeBadge = (type: string) => {
-    switch (type) {
-      case 'POWERSELLER':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-400 to-amber-500 text-white shadow-sm">
-            ⭐ PowerSeller
-          </span>
-        );
-      case 'PROFESSIONAL':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            PRO
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="animate-pulse">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-6 w-24 bg-gray-200 rounded"></div>
-                <div className="h-5 w-5 bg-gray-200 rounded"></div>
-                <div className="h-5 w-16 bg-gray-200 rounded-full"></div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-8 bg-gray-200 rounded"></div>
-                  <div className="h-4 w-12 bg-gray-200 rounded"></div>
-                </div>
-                <div className="h-6 w-16 bg-gray-200 rounded"></div>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="px-4 py-8 text-center text-sm text-gray-500">
+        <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin text-gray-400" />
+        Caricamento venditori…
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-center">
-        <p className="text-sm text-amber-600">{error}</p>
-      </div>
+      <div className="px-4 py-8 text-center text-sm text-amber-600">{error}</div>
     );
   }
 
-  if (processedListings.length === 0) {
+  if (listings.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-        <p className="text-sm text-gray-600">Presto ci saranno articoli in vendita disponibili.</p>
+      <div className="px-4 py-10 text-center text-sm text-gray-600">
+        Presto ci saranno articoli in vendita disponibili.
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {processedListings.map((listing, index) => {
-        const isOwn = isOwnListing(listing);
-        const isBusy = busyItemId === listing.item_id;
-        const conditionCode = getConditionCode(listing.condition);
-        
-        return (
-          <div
-            key={listing.item_id}
-            className={cn(
-              "group relative rounded-lg border transition-all duration-200 hover:shadow-md",
-              listing.has_brx_express 
-                ? "border-orange-200 bg-gradient-to-r from-orange-50/50 to-amber-50/30 hover:from-orange-50 hover:to-amber-50/50" 
-                : "border-gray-200 bg-white hover:bg-gray-50",
-              index === 0 && "ring-1 ring-orange-200" // Evidenzia il primo risultato
-            )}
-          >
-            {/* BRX Express Badge */}
-            {listing.has_brx_express && (
-              <div className="absolute -top-2 -right-2 z-10">
-                <BrxExpressBadge />
-              </div>
-            )}
+    <>
+      {/* Desktop – stile Cardmarket */}
+      <table className="hidden w-full table-fixed text-left text-sm sm:table">
+        <colgroup>
+          <col style={{ width: '28%' }} />
+          <col style={{ width: '44%' }} />
+          <col style={{ width: '28%' }} />
+        </colgroup>
+        <thead>
+          <tr className="bg-[#1D3160] text-xs font-semibold uppercase tracking-wide text-white">
+            <th className="px-4 py-3">Venditore</th>
+            <th className="px-4 py-3">Informazioni prodotto</th>
+            <th className="px-4 py-3 text-right">Offerta</th>
+          </tr>
+        </thead>
+        <tbody>
+          {listings.map((item, index) => {
+            const isOwn = isOwnListing(item);
+            const isBusy = busyItemId === item.item_id;
+            const conditionCode = getConditionCode(item.condition);
+            const langFlag = languageFlagCode(item.mtg_language);
+            const hasBrxExpress = index === 0;
+            const salesLabel = index === 0 ? '5K' : index === 1 ? '357' : '10K';
 
-            <div className="p-4">
-              {/* Header: Seller Info */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  {/* Seller Name + Flag */}
+            return (
+              <tr
+                key={item.item_id}
+                className={cn(
+                  'border-b border-gray-200 align-middle transition-colors hover:bg-orange-50/40',
+                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50/80'
+                )}
+              >
+                {/* Venditore */}
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Link 
-                      href={`/users/${listing.seller_display_name}`}
-                      className="text-sm font-semibold text-gray-900 hover:text-orange-600 transition-colors truncate uppercase"
+                    <span className="inline-flex min-w-[2.25rem] items-center justify-center rounded border border-gray-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-gray-600">
+                      {salesLabel}
+                    </span>
+                    {item.country && <FlagIcon country={item.country} size="sm" />}
+                    <Link
+                      href={`/users/${item.seller_display_name}`}
+                      className="truncate text-sm font-medium text-[#3D65C6] hover:underline"
                     >
-                      {listing.seller_display_name}
+                      {item.seller_display_name}
                     </Link>
-                    {listing.country && (
-                      <FlagIcon country={listing.country} size="sm" />
+                    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700" title="Venditore verificato">
+                      <User className="h-3 w-3" strokeWidth={2.5} />
+                    </span>
+                    {hasBrxExpress && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white" title="BRX Express">
+                        <BrxExpressIcon size="sm" className="text-white" />
+                      </span>
                     )}
                   </div>
+                </td>
 
-                  {/* Seller Type Badge */}
-                  {listing.seller_type && renderSellerTypeBadge(listing.seller_type)}
-
-                  {/* Medal Icon */}
-                  <Image 
-                    src={getCdnImageUrl('medal.png')} 
-                    alt="" 
-                    width={20} 
-                    height={20} 
-                    className="h-5 w-5 shrink-0 object-contain" 
-                    unoptimized 
-                  />
-
-                  {/* Signed Badge */}
-                  {listing.is_signed && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                      ✍️ Firmata
-                    </span>
-                  )}
-                </div>
-
-                {/* Price */}
-                <div className="text-right shrink-0">
-                  <div className={cn(
-                    "text-lg font-bold tabular-nums",
-                    listing.has_brx_express ? "text-orange-600" : "text-blue-600"
-                  )}>
-                    {formatEuro(listing.price_cents / 100)}
+                {/* Informazioni prodotto */}
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ConditionBadge condition={conditionCode} size="md" />
+                    {langFlag && <FlagIcon country={langFlag} size="xs" />}
+                    <span className="text-xs text-gray-600">{formatLanguageLabel(item.mtg_language)}</span>
+                    {cardImageSrc && (
+                      <CardImageCameraPeek
+                        imageUrl={cardImageSrc}
+                        name={cardName ?? item.seller_display_name}
+                        className="!h-5 !w-5 text-[#3D65C6]"
+                        ariaLabel="Anteprima foto carta"
+                      />
+                    )}
+                    {!cardImageSrc && (
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-blue-50 text-[#3D65C6]" title="Foto disponibile">
+                        <Camera className="h-3.5 w-3.5" />
+                      </span>
+                    )}
                   </div>
-                  {listing.is_auction && (
-                    <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
-                      <Gavel className="h-3 w-3" />
-                      <span>{getAuctionTimeLeft(listing.auction_end_time!)}</span>
+                  <p className="mt-1 text-xs italic text-gray-500 line-clamp-1">
+                    {item.condition ?? 'Near Mint'}
+                    {item.mtg_language ? ` (${item.mtg_language})` : ''}
+                  </p>
+                </td>
+
+                {/* Offerta */}
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-3">
+                    <div className="text-right">
+                      <div className="text-sm font-bold tabular-nums text-[#3D65C6]">
+                        {formatEuro(item.price_cents / 100)}
+                      </div>
+                      <div className="text-xs tabular-nums text-gray-500">{item.quantity}</div>
                     </div>
-                  )}
+                    {isOwn ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={isBusy}
+                          onClick={() => onOwnerQuantityChange?.(item, -1)}
+                          className="flex h-8 w-8 items-center justify-center rounded-md bg-red-500 text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50"
+                          aria-label="Diminuisci quantità"
+                        >
+                          {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Minus className="h-4 w-4" />}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isBusy || item.quantity >= 999}
+                          onClick={() => onOwnerQuantityChange?.(item, 1)}
+                          className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                          aria-label="Aumenta quantità"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onOwnerEdit?.(item)}
+                          className="flex h-8 w-8 items-center justify-center rounded-md bg-amber-400 text-gray-900 shadow-sm transition hover:bg-amber-500"
+                          aria-label="Modifica inserzione"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => onAddToCart?.(item, e)}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-gray-300 bg-gray-100 text-gray-700 shadow-sm transition hover:bg-gray-200"
+                        aria-label="Aggiungi al carrello"
+                      >
+                        <Image src={getCdnImageUrl('cart-icon.png')} alt="" width={20} height={20} className="h-5 w-5 object-contain" unoptimized />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {/* Mobile */}
+      <div className="divide-y divide-gray-200 sm:hidden">
+        {listings.map((item, index) => {
+          const isOwn = isOwnListing(item);
+          const isBusy = busyItemId === item.item_id;
+          const conditionCode = getConditionCode(item.condition);
+          const langFlag = languageFlagCode(item.mtg_language);
+          const hasBrxExpress = index === 0;
+
+          return (
+            <div key={item.item_id} className={cn('px-4 py-4', index % 2 === 0 ? 'bg-white' : 'bg-gray-50')}>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  {item.country && <FlagIcon country={item.country} size="sm" />}
+                  <Link href={`/users/${item.seller_display_name}`} className="truncate text-sm font-semibold text-[#3D65C6]">
+                    {item.seller_display_name}
+                  </Link>
+                  {hasBrxExpress && <BrxExpressIcon size="sm" className="text-orange-500" />}
                 </div>
+                <span className="shrink-0 text-sm font-bold tabular-nums text-[#3D65C6]">
+                  {formatEuro(item.price_cents / 100)}
+                </span>
               </div>
-
-              {/* Content Row: Condition, Language, Quantity, Actions */}
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <ConditionBadge condition={conditionCode} size="sm" />
+                {langFlag && <FlagIcon country={langFlag} size="xs" />}
+                <span className="text-xs text-gray-600">{item.condition ?? '—'}</span>
+                {cardImageSrc && (
+                  <CardImageCameraPeek
+                    imageUrl={cardImageSrc}
+                    name={cardName ?? item.seller_display_name}
+                    className="!h-5 !w-5 text-[#3D65C6]"
+                    ariaLabel="Anteprima foto carta"
+                  />
+                )}
+              </div>
               <div className="flex items-center justify-between">
-                {/* Left: Condition + Language + Star */}
-                <div className="flex items-center gap-3">
-                  {/* Condition Badge */}
-                  <ConditionBadge condition={conditionCode} size="md" />
-
-                  {/* Language Badge */}
-                  <span className="inline-flex items-center justify-center h-[22px] min-w-[44px] px-2.5 rounded-full text-xs font-bold text-white bg-[#1D3160]">
-                    {listing.mtg_language || 'EN'}
-                  </span>
-
-                  {/* Star Rating */}
+                <span className="text-sm text-gray-600">Qty: {item.quantity}</span>
+                {isOwn ? (
                   <div className="flex items-center gap-1">
-                    <Image 
-                      src={getCdnImageUrl('star.png')} 
-                      alt="" 
-                      width={16} 
-                      height={16} 
-                      className="h-4 w-4 object-contain" 
-                      unoptimized 
-                    />
-                    <span className="text-xs text-gray-500">4.9</span>
-                  </div>
-
-                  {/* Foil indicator */}
-                  {listing.is_foil && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900">
-                      Foil
-                    </span>
-                  )}
-
-                  {/* Auction/Exchange indicator */}
-                  {listing.is_auction ? (
-                    <div className="flex items-center gap-1 text-xs text-red-600">
-                      <Gavel className="h-3 w-3" />
-                      <span>Asta</span>
-                    </div>
-                  ) : null}
-                </div>
-
-                {/* Right: Quantity + Actions */}
-                <div className="flex items-center gap-3">
-                  {/* Quantity */}
-                  <span className="text-sm text-gray-600">
-                    Qty: <span className="font-medium tabular-nums">{listing.quantity}</span>
-                  </span>
-
-                  {/* Action Buttons */}
-                  {isOwn ? (
-                    /* Owner Controls */
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        disabled={isBusy}
-                        onClick={() => onOwnerQuantityChange?.(listing, -1)}
-                        className="flex h-8 w-8 items-center justify-center rounded-md bg-red-500 text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50"
-                        aria-label="Diminuisci quantità"
-                      >
-                        {isBusy ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Minus className="h-4 w-4" />
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isBusy || listing.quantity >= 999}
-                        onClick={() => onOwnerQuantityChange?.(listing, 1)}
-                        className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
-                        aria-label="Aumenta quantità"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onOwnerEdit?.(listing)}
-                        className="flex h-8 w-8 items-center justify-center rounded-md bg-amber-400 text-gray-900 shadow-sm transition hover:bg-amber-500"
-                        aria-label="Modifica inserzione"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    /* Buy Button */
-                    <button
-                      type="button"
-                      onClick={(e) => onAddToCart?.(listing, e)}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all shadow-sm",
-                        listing.has_brx_express
-                          ? "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-orange-200"
-                          : "bg-white hover:bg-orange-50 text-orange-600 border border-orange-200 hover:border-orange-300"
-                      )}
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                      {listing.has_brx_express && <BrxExpressIcon size="sm" />}
-                      <span>Acquista</span>
+                    <button type="button" disabled={isBusy} onClick={() => onOwnerQuantityChange?.(item, -1)} className="flex h-8 w-8 items-center justify-center rounded-md bg-red-500 text-white disabled:opacity-50" aria-label="Diminuisci">
+                      {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Minus className="h-4 w-4" />}
                     </button>
-                  )}
-                </div>
+                    <button type="button" disabled={isBusy || item.quantity >= 999} onClick={() => onOwnerQuantityChange?.(item, 1)} className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-600 text-white disabled:opacity-50" aria-label="Aumenta">
+                      <Plus className="h-4 w-4" />
+                    </button>
+                    <button type="button" onClick={() => onOwnerEdit?.(item)} className="flex h-8 w-8 items-center justify-center rounded-md bg-amber-400 text-gray-900" aria-label="Modifica">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => onAddToCart?.(item, e)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-[#FF7300]/40 bg-white shadow-sm"
+                    aria-label="Aggiungi al carrello"
+                  >
+                    <Image src={getCdnImageUrl('cart-icon.png')} alt="" width={20} height={20} className="h-5 w-5 object-contain" unoptimized />
+                  </button>
+                )}
               </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
