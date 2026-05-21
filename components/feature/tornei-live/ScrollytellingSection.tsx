@@ -270,7 +270,7 @@ function DemoViewport({ activeView, language }: { activeView: ViewId; language: 
       <div className="grid grid-cols-2 gap-3">
         {[
           { label: "Our Vault", value: 12489 },
-          { label: "Cardmarket Official Account", value: 12489 },
+          { label: "Account Ebartex", value: 12489 },
         ].map((item, idx) => (
           <motion.div
             key={item.label}

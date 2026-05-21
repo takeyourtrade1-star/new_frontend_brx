@@ -223,7 +223,7 @@ const liveTournaments: LiveTournamentItem[] = [
   },
   {
     id: "upcoming-weekly",
-    title: "Cardmarket Weekly Cup",
+    title: "Ebartex Weekly Cup",
     format: "Pioneer",
     status: "upcoming",
     viewers: 0,
@@ -466,7 +466,7 @@ const desktopUiCopy: Record<
     liveScoreboard: "Live-Scoreboard",
     spectatorChat: "Zuschauer-Chat",
     typing: "schreibt...",
-    cardmarketValue: "Cardmarket Mehrwert",
+    cardmarketValue: "Marktwert",
     valueBullets: [
       "Reduzierte UPU-sensitive Versandexposition",
       "Ready One Day: 24h Versand aus lokalen Hubs",
@@ -507,7 +507,7 @@ const desktopUiCopy: Record<
     liveScoreboard: "Live Scoreboard",
     spectatorChat: "Spectator Chat",
     typing: "typing...",
-    cardmarketValue: "Cardmarket Value",
+    cardmarketValue: "Market value",
     valueBullets: [
       "Reduced UPU-sensitive shipping exposure",
       "Ready One Day: 24h dispatch from local hubs",
@@ -548,7 +548,7 @@ const desktopUiCopy: Record<
     liveScoreboard: "Scoreboard live",
     spectatorChat: "Chat spettatori",
     typing: "sta scrivendo...",
-    cardmarketValue: "Valore Cardmarket",
+    cardmarketValue: "Valore di mercato",
     valueBullets: [
       "Riduzione esposizione spedizioni sensibili UPU",
       "Ready One Day: dispatch 24h da hub locali",
@@ -2911,7 +2911,7 @@ function DesktopWindow() {
                   Sync Stock Integration Preview
                 </p>
                 <p className="mt-1 text-xs text-zinc-500">
-                  Automazione inventory per ecosistema Cardmarket
+                  Automazione inventory per ecosistema Ebartex
                 </p>
               </div>
               <button
@@ -2934,7 +2934,7 @@ function DesktopWindow() {
               </p>
               <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">
                 Obiettivo partnership: inventory sempre allineato tra Vault, account
-                ufficiale Cardmarket e marketplace, senza attrito operativo.
+                account Ebartex e marketplace, senza attrito operativo.
               </p>
             </div>
             <div className="mt-4 flex justify-end">

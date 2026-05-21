@@ -19,7 +19,7 @@ type TargetPlatform = 'local' | 'cardmarket' | 'all';
 
 const TARGET_OPTIONS: { value: TargetPlatform; label: string; desc: string; syncOnly: boolean }[] = [
   { value: 'local', label: 'Solo inventario locale', desc: 'Nessuna sincronizzazione esterna', syncOnly: false },
-  { value: 'cardmarket', label: 'Cardmarket', desc: 'Sincronizza solo su Cardmarket', syncOnly: true },
+  { value: 'cardmarket', label: 'Marketplace collegato', desc: 'Sincronizza solo sul marketplace collegato', syncOnly: true },
   { value: 'all', label: 'Tutti i siti collegati', desc: 'Tutte le piattaforme sync attive', syncOnly: true },
 ];
 

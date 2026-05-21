@@ -37,7 +37,7 @@ export function TorneiLiveLandingPage() {
           custom={0.1}
           className="mt-2 text-3xl font-extrabold leading-tight text-zinc-900 sm:text-4xl lg:text-5xl"
         >
-          Partecipa ai Tornei Ufficiali <br className="hidden sm:block" />
+          Partecipa ai Tornei Live <br className="hidden sm:block" />
           dalla tua Webcam
         </motion.h1>
         <motion.p

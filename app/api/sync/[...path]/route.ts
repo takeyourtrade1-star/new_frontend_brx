@@ -1,5 +1,5 @@
 /**
- * Proxy to BRX Sync microservice (CardTrader).
+ * Proxy to BRX Sync microservice.
  * Browser calls same-origin /api/sync/... (correct); this route forwards to the Sync backend.
  * Use SYNC_API_URL for server-side (runtime on Amplify). NEXT_PUBLIC_* is for client/build.
  */

@@ -101,7 +101,7 @@ const nextConfig = {
         source: '/search-api/:path*',
         destination: `${searchApiUrl}/:path*`,
       },
-      // Proxy per BRX Sync (CardTrader): /api/sync/* → sync.ebartex.com (imposta SYNC_API_URL su Amplify)
+      // Proxy per BRX Sync: /api/sync/* → sync.ebartex.com (imposta SYNC_API_URL su Amplify)
       {
         source: '/api/sync/:path*',
         destination: `${syncApiUrl}/api/v1/sync/:path*`,

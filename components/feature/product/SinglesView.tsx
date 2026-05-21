@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Pagina Singles – layout stile Cardmarket:
+ * Pagina Singles – layout marketplace compatto:
  * Breadcrumb Prodotti (game) / Singles, filtri (Categoria, Edizione, Nome, Nome esatto, Solo disponibile),
  * CERCA, Mostra opzioni filtri, Ordina per, VISTA LISTA / VISTA GRIGLIA, dati da /api/search (Meilisearch).
  */

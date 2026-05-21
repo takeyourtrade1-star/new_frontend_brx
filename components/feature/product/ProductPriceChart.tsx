@@ -9,7 +9,7 @@ const SALES_BLUE = '#2563EB';
 const GRID_COLOR = '#DDE3EA';
 const AXIS_TEXT = '#4B5563';
 
-/** Max punti evidenziati sulla linea (Cardmarket: pochi marker) */
+/** Max punti evidenziati sulla linea */
 const MAX_VISIBLE_DOTS = 12;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -52,7 +52,7 @@ export function buildPriceHistoryPoints(slug: string): { t: number; price: numbe
     const wave = 16 + Math.sin(progress * 14 + seed * 0.0001) * 6 + Math.sin(progress * 28) * 2.5;
     const noise = (prng(seed, d) - 0.5) * 5;
     let price = wave + noise;
-    /* Picco tipo Cardmarket verso fine timeline */
+    /* Picco verso fine timeline */
     if (progress > 0.82 && progress < 0.88) price += (progress - 0.82) * 280;
     if (progress > 0.88 && progress < 0.92) price -= (progress - 0.88) * 120;
     price = Math.max(8, Math.min(48, price));
@@ -544,7 +544,7 @@ export function ProductPriceChart({
           onMouseMove={onSvgMove}
           onMouseLeave={() => setHover(null)}
         >
-          {/* Sfondo area grafico: grigio chiarissimo tipo Cardmarket (niente fill sotto linea) */}
+          {/* Sfondo area grafico: grigio chiarissimo (niente fill sotto linea) */}
           <rect x={pad.l} y={pad.t} width={iw} height={ih} fill="#F8FAFC" rx={4} />
 
           {/* Griglia orizzontale */}

@@ -25,7 +25,7 @@ const SYNC_MODES: {
     badgeClass: 'bg-blue-100 text-blue-700 ring-blue-200',
     icon: <WifiOff className="h-4 w-4" aria-hidden />,
     description:
-      'Legge i webhook CardTrader e aggiorna lo stato locale. Non esegue mai scritture verso CardTrader.',
+      'Legge i webhook del marketplace e aggiorna lo stato locale. Non esegue mai scritture verso piattaforme esterne.',
   },
   {
     value: 'partial',
@@ -33,7 +33,7 @@ const SYNC_MODES: {
     badgeClass: 'bg-orange-100 text-orange-700 ring-orange-200',
     icon: <Wifi className="h-4 w-4" aria-hidden />,
     description:
-      'Sincronizza i tuoi listing verso CardTrader. Gli acquisti sulla piattaforma sono mock: le quantità su CardTrader non vengono decrementate.',
+      'Sincronizza i tuoi listing verso il marketplace collegato. Gli acquisti sulla piattaforma sono mock: le quantità esterne non vengono decrementate.',
   },
   {
     value: 'real',
@@ -41,9 +41,9 @@ const SYNC_MODES: {
     badgeClass: 'bg-green-100 text-green-700 ring-green-200',
     icon: <Zap className="h-4 w-4" aria-hidden />,
     description:
-      'Sincronizzazione bidirezionale completa. Ogni acquisto rimuove la carta da CardTrader tramite saga transazionale.',
+      'Sincronizzazione bidirezionale completa. Ogni acquisto rimuove la carta dal marketplace collegato tramite saga transazionale.',
     warning:
-      'Passare a modalità REALE attiva operazioni dirette su CardTrader. Assicurati che la tua chiave API abbia i permessi di scrittura.',
+      'Passare a modalità REALE attiva operazioni dirette sul marketplace collegato. Assicurati che la tua chiave API abbia i permessi di scrittura.',
   },
 ];
 
@@ -71,17 +71,17 @@ function ConfirmRealModal({
               Attiva sincronizzazione REALE?
             </h2>
             <p className="mt-1 text-sm text-gray-600">
-              In questa modalità ogni acquisto effettuato sulla piattaforma decremente la
-              quantità direttamente su CardTrader tramite la tua API key. Assicurati che:
+              In questa modalità ogni acquisto effettuato sulla piattaforma decrementa la
+              quantità direttamente sul marketplace collegato tramite la tua API key. Assicurati che:
             </p>
             <ul className="mt-2 space-y-1 text-sm text-gray-700">
               <li className="flex items-start gap-1.5">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-                La tua API key CardTrader ha permessi di scrittura
+                La tua API key ha permessi di scrittura sul marketplace
               </li>
               <li className="flex items-start gap-1.5">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-                I tuoi listing sono già sincronizzati su CardTrader
+                I tuoi listing sono già sincronizzati sul marketplace collegato
               </li>
               <li className="flex items-start gap-1.5">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
@@ -200,7 +200,7 @@ export function SyncModeSelector() {
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Modalità Sincronizzazione</h3>
             <p className="mt-0.5 text-xs text-gray-500">
-              Controlla come la piattaforma interagisce con CardTrader
+              Controlla come la piattaforma interagisce con i marketplace collegati
             </p>
           </div>
           <button

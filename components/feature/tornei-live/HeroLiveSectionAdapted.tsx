@@ -94,7 +94,7 @@ const translations: Record<string, any> = {
     liveScoreboard: "Scoreboard live",
     spectatorChat: "Chat spettatori",
     typing: "Alex_M sta scrivendo...",
-    cardmarketValue: "Valore Cardmarket",
+    cardmarketValue: "Valore di mercato",
     valueBullets: [
       "Riduzione esposizione spedizioni UPU",
       "Ready One Day: dispatch 24h da hub locali",
@@ -125,7 +125,7 @@ const translations: Record<string, any> = {
     liveScoreboard: "Live Scoreboard",
     spectatorChat: "Spectator Chat",
     typing: "Alex_M is typing...",
-    cardmarketValue: "Cardmarket Value",
+    cardmarketValue: "Market value",
     valueBullets: [
       "Reduced UPU shipping exposure",
       "Ready One Day: 24h dispatch from local hubs",
@@ -156,7 +156,7 @@ const translations: Record<string, any> = {
     liveScoreboard: "Live-Scoreboard",
     spectatorChat: "Zuschauer-Chat",
     typing: "Alex_M tippt...",
-    cardmarketValue: "Cardmarket-Wert",
+    cardmarketValue: "Marktwert",
     valueBullets: [
       "Reduzierte UPU-Versandbelastung",
       "Ready One Day: 24h-Dispatch von lokalen Hubs",
@@ -721,7 +721,7 @@ export function HeroLiveSectionAdapted() {
                 {[
                   { name: "Neo Tactical Finals", format: "Standard", status: "LIVE", viewers: "4.6K" },
                   { name: "Mythic Pro League", format: "Modern", status: "LIVE", viewers: "2.3K" },
-                  { name: "Cardmarket Weekly", format: "Pioneer", status: "In 35m", viewers: "-" },
+                  { name: "Ebartex Weekly", format: "Pioneer", status: "In 35m", viewers: "-" },
                 ].map((tournament, idx) => (
                   <div key={idx} className="rounded-lg border border-zinc-200 bg-white p-3">
                     <div className="flex items-center justify-between">

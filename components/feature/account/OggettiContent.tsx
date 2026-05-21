@@ -510,7 +510,7 @@ function OggettiTable({
 
   const openPurchaseModal = (item: InventoryItemWithCatalog) => {
     if (!item.external_stock_id) {
-      setActionError('Questo oggetto non è collegato a CardTrader. Sincronizza l\'inventario per abilitare il carrello.');
+      setActionError('Questo oggetto non è collegato al marketplace. Sincronizza l\'inventario per abilitare il carrello.');
       return;
     }
     if (item.quantity < 1) {
@@ -544,14 +544,14 @@ function OggettiTable({
         if (rawMsg.toLowerCase().includes('quantità insufficiente')) {
           setActionError(rawMsg);
         } else {
-          setActionError('Errore durante la verifica con CardTrader. Riprova più tardi.');
+          setActionError('Errore durante la verifica con il marketplace collegato. Riprova più tardi.');
         }
         onSyncResult({ success: false, message: rawMsg });
       }
     } catch (e) {
       const err = e as Error & { data?: { detail?: string } };
       const technical = err.data?.detail ?? err.message ?? 'Errore durante la simulazione acquisto';
-      setActionError('Errore interno durante l\'allineamento con CardTrader. Riprova più tardi.');
+      setActionError('Errore interno durante l\'allineamento con il marketplace collegato. Riprova più tardi.');
       onSyncResult({ success: false, message: technical });
     } finally {
       setPurchasingId(null);
@@ -591,7 +591,7 @@ function OggettiTable({
   );
 
   const handleDelete = async (item: InventoryItemWithCatalog) => {
-    if (!confirm('Eliminare questo oggetto dall\'inventario? Se la sincronizzazione con CardTrader è attiva, la rimozione verrà inviata anche lì.')) return;
+    if (!confirm('Eliminare questo oggetto dall\'inventario? Se la sincronizzazione esterna è attiva, la rimozione verrà inviata anche lì.')) return;
     setActionError(null);
     setDeletingId(item.id);
     try {
@@ -600,7 +600,7 @@ function OggettiTable({
       if (res.sync_queue_error) {
         onSyncResult({ success: false, message: res.sync_queue_error });
       } else if (res.sync_task_id) {
-        onSyncResult({ success: true, message: 'Aggiornamento CardTrader in coda. Attendi il completamento task.' });
+        onSyncResult({ success: true, message: 'Aggiornamento marketplace in coda. Attendi il completamento task.' });
         pollSyncTaskThenNotify(res.sync_task_id);
       } else {
         onSyncResult({ success: true });
@@ -654,7 +654,7 @@ function OggettiTable({
       if (res.sync_queue_error) {
         onSyncResult({ success: false, message: res.sync_queue_error });
       } else if (res.sync_task_id) {
-        onSyncResult({ success: true, message: 'Aggiornamento CardTrader in coda. Attendi il completamento task.' });
+        onSyncResult({ success: true, message: 'Aggiornamento marketplace in coda. Attendi il completamento task.' });
         pollSyncTaskThenNotify(res.sync_task_id);
       } else {
         onSyncResult({ success: true });
@@ -1274,7 +1274,7 @@ export function OggettiContent() {
   const [viewMode, setViewMode] = useState<OggettiViewMode>('table');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  /** Verifica lato frontend: chiamate al sync service solo se integrazione CardTrader attiva. */
+  /** Verifica lato frontend: chiamate al sync service solo se integrazione marketplace attiva. */
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
   const [syncStatusLoading, setSyncStatusLoading] = useState(true);
   
@@ -1419,7 +1419,7 @@ export function OggettiContent() {
   }, [currentPage, totalPages]);
 
 
-  // 1) Verifica stato sync con CardTrader (una sola chiamata, prima di qualsiasi altra al sync service)
+  // 1) Verifica stato sync con il marketplace (una sola chiamata, prima di qualsiasi altra al sync service)
   useEffect(() => {
     if (!user?.id || !accessToken) {
       setSyncStatusLoading(false);
@@ -1604,7 +1604,7 @@ export function OggettiContent() {
     }
   }, [user?.id, accessToken, syncStatus, isDisconnected, loadInventory, t]);
 
-  // 2) Carica inventario sempre (la collezione esiste anche senza sincronizzazione CardTrader)
+  // 2) Carica inventario sempre (la collezione esiste anche senza sincronizzazione esterna)
   useEffect(() => {
     if (!user?.id || !accessToken) {
       setLoading(false);

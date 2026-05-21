@@ -196,7 +196,7 @@
   background-size: 100% 100%, auto;
 }
 
-/* Menu Prodotti / Menu Giochi: highlight con barretta arancione a sinistra (stile Cardmarket) */
+/* Menu Prodotti / Menu Giochi: highlight con barretta arancione a sinistra */
 .prodotti-menu-item,
 .games-menu-item {
   position: relative;
@@ -266,7 +266,7 @@
   background-color: #f3f4f6;
 }
 
-/* Tabella risultati — header stile Cardmarket, righe compatte */
+/* Tabella risultati — header compatto, righe compatte */
 .search-results-table .search-results-thead {
   background-color: #1d3160;
   color: #fff;

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Pagina dedicata Ebartex Boutique: stile proprio (non elenco Cardmarket).
+ * Pagina dedicata Ebartex Boutique: stile proprio.
  * Carousel, categorie, sezione Stampa 3D in arrivo.
  */
 

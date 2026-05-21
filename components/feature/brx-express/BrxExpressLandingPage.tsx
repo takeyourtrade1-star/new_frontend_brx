@@ -380,7 +380,7 @@ export function BrxExpressLandingPage() {
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-rose-500" />
-              <h3 className="text-sm font-bold text-zinc-900">vs CardTrader Zero</h3>
+              <h3 className="text-sm font-bold text-zinc-900">vs altri servizi di vendita</h3>
             </div>
             <p className="text-xs leading-relaxed text-zinc-600">
               Il loro modello a magazzino unico causa una latenza estrema (9-14 giorni). I nostri hub

@@ -710,7 +710,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         if (delta === -1 && item.quantity <= 1) {
           if (
             !confirm(
-              'Rimuovere questo articolo dall’inventario? Se la sincronizzazione CardTrader è attiva, verrà aggiornata anche lì.'
+              'Rimuovere questo articolo dall’inventario? Se la sincronizzazione esterna è attiva, verrà aggiornata anche lì.'
             )
           ) {
             return;
@@ -1845,7 +1845,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 <p className="text-xs text-zinc-400 text-center max-w-[260px] leading-relaxed">
                   {!card
                     ? 'Seleziona un prodotto dal catalogo per creare un’asta.'
-                    : 'Blueprint CardTrader non disponibile per questo prodotto: usa la pagina Nuova asta dal menu Aste.'}
+                    : 'Identificativo prodotto non disponibile per questo articolo: usa la pagina Nuova asta dal menu Aste.'}
                 </p>
               </div>
             )}

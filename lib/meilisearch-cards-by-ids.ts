@@ -63,7 +63,7 @@ export async function fetchCardsByBlueprintIds(
     const hits = Array.isArray(data.hits) ? data.hits : [];
     const map: BlueprintToCardMap = {};
     for (const hit of hits) {
-      // Prefer cardtrader_id (CardTrader blueprint_id) per il mapping inventario
+      // Prefer blueprint_id per il mapping inventario
       const blueprintId =
         hit.cardtrader_id ??
         (typeof hit.id === 'number' ? hit.id : null) ??

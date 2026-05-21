@@ -7,7 +7,6 @@ import {
   Copy,
   Check,
   Loader2,
-  ExternalLink,
   PauseCircle,
   Unlink,
 } from 'lucide-react';
@@ -469,16 +468,7 @@ export function SincronizzazioneContent() {
               </div>
               {copied && <p className="mb-3 text-xs font-medium text-emerald-600">{t('accountPage.syncCopied')}</p>}
               <ol className="mb-4 list-inside list-decimal space-y-1 text-sm text-gray-600">
-                <li>
-                  <a
-                    href="https://www.cardtrader.com/it/full_api_app"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[#FF7300] hover:underline"
-                  >
-                    {t('accountPage.syncWebhookStep1')} <ExternalLink className="h-3 w-3" />
-                  </a>
-                </li>
+                <li>{t('accountPage.syncWebhookStep1')}</li>
                 <li>{t('accountPage.syncWebhookStep2')}</li>
                 <li>{t('accountPage.syncWebhookStep3')}</li>
               </ol>

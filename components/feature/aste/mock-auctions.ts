@@ -21,7 +21,7 @@ export type AuctionMock = {
   seller: string;
   /** Codice paese venditore (ISO2) per bandierina */
   sellerCountry: string;
-  /** Affidabilità tipo Cardmarket 0–100 */
+  /** Affidabilità venditore 0–100 */
   sellerRating: number;
   sellerReviewCount: number;
   game: AuctionGame;

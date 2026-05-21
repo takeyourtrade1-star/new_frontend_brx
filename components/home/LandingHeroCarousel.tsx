@@ -81,7 +81,7 @@ const SLIDES: SlideConfig[] = [
     tabLabel: 'Tornei live',
     headline: 'Competi in diretta',
     description:
-      'Iscriviti ai tornei ufficiali, verifica la webcam e gioca round Swiss con tabellone live. Montepremi, classifiche e community attiva ogni settimana.',
+      'Iscriviti ai tornei live, verifica la webcam e gioca round Swiss con tabellone live. Montepremi, classifiche e community attiva ogni settimana.',
     cta: 'Scopri i tornei',
     href: '/tornei-live',
     ariaLabel: 'Vai ai tornei live',

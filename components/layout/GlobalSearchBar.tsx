@@ -403,7 +403,7 @@ function AnimatedCounter({ value }: { value: number }) {
 
 const HOVER_CLOSE_DELAY_MS = 250;
 
-/** Larghezza anteprima carta inline (stile CardTrader) - aumentata per altezza maggiore */
+/** Larghezza anteprima carta inline - aumentata per altezza maggiore */
 const INLINE_PREVIEW_WIDTH = 200;
 const INLINE_PREVIEW_MIN_WIDTH = 140;
 const INLINE_PREVIEW_ASPECT_RATIO = 88 / 63;

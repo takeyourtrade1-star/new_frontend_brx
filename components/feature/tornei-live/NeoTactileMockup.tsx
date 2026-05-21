@@ -211,9 +211,9 @@ export function NeoTactileMockup() {
                 </div>
               </div>
 
-              {/* Valore Cardmarket */}
+              {/* Valore di mercato */}
               <div className="rounded-lg border border-[#FF7300]/20 bg-[#FF7300]/8 p-2.5">
-                <p className="text-[10px] font-semibold text-[#FF7300]">Valore Cardmarket</p>
+                <p className="text-[10px] font-semibold text-[#FF7300]">Valore di mercato</p>
                 <div className="mt-1.5 space-y-1 text-[10px] text-orange-300/80">
                   <div className="flex items-start gap-1">
                     <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0 text-[#FF7300]" />

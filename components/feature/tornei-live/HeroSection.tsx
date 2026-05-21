@@ -57,7 +57,7 @@ export function HeroSection() {
                   <p className="mt-2 text-lg font-semibold text-zinc-900">Shipping</p>
                 </div>
                 <div className="col-span-3 rounded-xl border border-emerald-200 bg-emerald-50/80 p-4">
-                  <p className="text-xs text-emerald-700">Cardmarket Partner Vault</p>
+                  <p className="text-xs text-emerald-700">Ebartex Partner Vault</p>
                   <p className="mt-2 text-xl font-semibold text-emerald-900">Live Inventory Synced</p>
                 </div>
               </div>

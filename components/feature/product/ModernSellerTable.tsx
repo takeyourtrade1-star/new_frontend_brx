@@ -106,7 +106,7 @@ export function ModernSellerTable({
 
   return (
     <>
-      {/* Desktop – stile Cardmarket */}
+      {/* Desktop – layout tabella venditori */}
       <table className="hidden w-full table-fixed text-left text-sm sm:table">
         <colgroup>
           <col style={{ width: '28%' }} />

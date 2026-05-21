@@ -1,6 +1,6 @@
 import type { MessageKey } from '@/lib/i18n/messages/en';
 
-/** Chiavi rarità normalizzate (allineate a Scryfall / CardsTrader). */
+/** Chiavi rarità normalizzate (allineate a Scryfall). */
 export type RarityKey = 'common' | 'uncommon' | 'rare' | 'mythic' | 'special' | 'unknown';
 
 export type RarityDefinition = {
@@ -11,7 +11,7 @@ export type RarityDefinition = {
   aliases: string[];
 };
 
-/** Palette CardsTrader / ricerca avanzata Ebartex. */
+/** Palette rarità / ricerca avanzata Ebartex. */
 export const RARITY_DEFINITIONS: readonly RarityDefinition[] = [
   {
     key: 'common',

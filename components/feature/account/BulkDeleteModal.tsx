@@ -134,7 +134,7 @@ export function BulkDeleteModal({
                   />
                   <span className="text-sm text-gray-800">
                     Sì, elimina ovunque{' '}
-                    <span className="text-gray-500">(CardTrader, Cardmarket…)</span>
+                    <span className="text-gray-500">(marketplace collegati…)</span>
                   </span>
                 </label>
                 <label className="flex cursor-pointer items-center gap-2.5">

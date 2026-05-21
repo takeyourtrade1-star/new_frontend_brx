@@ -181,7 +181,7 @@ const SECTIONS: PlatformSectionConfig[] = [
   {
     id: 'landing-tornei',
     eyebrow: 'Tornei live',
-    title: 'Tornei ufficiali, dal divano al tabellone',
+    title: 'Tornei live, dal divano al tabellone',
     subtitle:
       'Partecipa a eventi settimanali con verifica webcam, pairing live e montepremi. Gioca, scala le classifiche e segui i match in diretta.',
     steps: [

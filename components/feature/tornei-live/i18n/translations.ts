@@ -51,9 +51,9 @@ export const translations: Record<Language, TranslationSchema> = {
     hero: {
       title: "Logistik-Reibung beseitigen. Europa synchronisieren.",
       subtitle:
-        "Die dezentralisierte Fulfillment-Lösung exklusiv für Cardmarket. 24h-Versand, API-Echtzeitsynchronisation und null Doppelverkäufe.",
+        "Die dezentralisierte Fulfillment-Lösung exklusiv für Ebartex. 24h-Versand, API-Echtzeitsynchronisation und null Doppelverkäufe.",
       cta: "Partnerschaft entdecken",
-      eyebrow: "Exklusive B2B API-Partnerschaft für Cardmarket",
+      eyebrow: "Exklusive B2B API-Partnerschaft für Ebartex",
     },
     scroll: {
       sectionLabel: "Scroll-Story",
@@ -66,24 +66,24 @@ export const translations: Record<Language, TranslationSchema> = {
         "Lokale Hubs in ganz Europa sammeln das Inventar. Kunden zahlen nur noch einmal Versand für den gesamten Einkauf.",
       step3Title: "I Sell For You Vault",
       step3Desc:
-        "Karten werden für 0,30€ geprüft und über die API sofort im offiziellen Cardmarket-Account gelistet.",
+        "Karten werden für 0,30€ geprüft und über die API sofort im offiziellen Ebartex-Account gelistet.",
     },
     bento: {
       title: "Unit Economics auf Enterprise-Niveau",
-      subtitle: "Skalierbare Vorteile für Cardmarket als Plattformpartner.",
+      subtitle: "Skalierbare Vorteile für Ebartex als Plattformpartner.",
       feat1: "10% Provision (Max 100€)",
       feat2: "0,30€ Grading-Gebühr",
       feat3: "Europaweiter Versand in 24h",
       feat4: "Anti-Doppelverkaufs-System",
     },
     roi: {
-      title: "Reservierte Kommissionen für Cardmarket",
+      title: "Reservierte Kommissionen für Ebartex",
       subtitle:
         "Der Wettbewerb verlangt typischerweise 17-18%. Wir berechnen 10% und ihr entscheidet den finalen Nutzertarif.",
       volume: "Monatliches Kartenvolumen",
       benchmark: "Markt-Benchmark: Konkurrenz bei 17-18% für diesen Service.",
       resaleFee: "Eure Endkunden-Kommission (%)",
-      netCommission: "Netto-Kommission für Cardmarket",
+      netCommission: "Netto-Kommission für Ebartex",
     },
     slides: {
       s1: {
@@ -111,11 +111,11 @@ export const translations: Record<Language, TranslationSchema> = {
         kicker: "Slide 3",
         title: "Europaweite Konsolidierung durch lokale Hubs",
         description:
-          "Um UPU-2026-Kosten (bis zu 40€) zu umgehen, bieten wir Cardmarket exklusiv den Service I Sell For You.",
+          "Um UPU-2026-Kosten (bis zu 40€) zu umgehen, bieten wir Ebartex exklusiv den Service I Sell For You.",
         bullets: [
           "Dezentrale Logistik-Hubs in Europa minimieren Versandkosten.",
           "Grading, Foto und Upload für nur 0,30€ pro Karte.",
-          "Listung auf Cardmarket via gesponsertem offiziellen Account.",
+          "Listung auf Ebartex via gesponsertem offiziellen Account.",
           "Konsolidierte 24h-Lieferung für hunderte Karten in einer Sendung.",
         ],
       },
@@ -132,13 +132,13 @@ export const translations: Record<Language, TranslationSchema> = {
       },
       s5: {
         kicker: "Slide 5",
-        title: "Risikofreier Profit für Cardmarket (Zero CAPEX)",
+        title: "Risikofreier Profit für Ebartex (Zero CAPEX)",
         description:
-          "Cardmarket behält die volle Kontrolle über Preisstrategie und Marge ohne Lager- oder Personalkosten.",
+          "Ebartex behält die volle Kontrolle über Preisstrategie und Marge ohne Lager- oder Personalkosten.",
         bullets: [
           "Wholesale: 10% Servicegebühr mit Schutz-Cap von 100€ pro Karte.",
           "Retail-Markup flexibel: z.B. 15% oder 16% je nach Markt-Test.",
-          "Differenz bleibt als reiner Netto-Profit bei Cardmarket.",
+          "Differenz bleibt als reiner Netto-Profit bei Ebartex.",
         ],
       },
     },
@@ -153,9 +153,9 @@ export const translations: Record<Language, TranslationSchema> = {
     hero: {
       title: "Eradicate Logistics Friction. Synchronize Europe.",
       subtitle:
-        "The decentralized fulfillment solution exclusively for Cardmarket. 24h shipping, real-time API sync, and zero double sales.",
+        "The decentralized fulfillment solution exclusively for Ebartex. 24h shipping, real-time API sync, and zero double sales.",
       cta: "Explore Partnership",
-      eyebrow: "Exclusive B2B API Partnership for Cardmarket",
+      eyebrow: "Exclusive B2B API Partnership for Ebartex",
     },
     scroll: {
       sectionLabel: "Scrollytelling",
@@ -168,31 +168,31 @@ export const translations: Record<Language, TranslationSchema> = {
         "Local hubs across Europe collect inventory. Customers pay for shipping only once for their entire order.",
       step3Title: "I Sell For You Vault",
       step3Desc:
-        "Cards are graded for 0.30€ and instantly listed on the official Cardmarket account via API.",
+        "Cards are graded for 0.30€ and instantly listed on the official Ebartex account via API.",
     },
     bento: {
       title: "Enterprise-Grade Unit Economics",
-      subtitle: "Scalable upside for Cardmarket as strategic platform partner.",
+      subtitle: "Scalable upside for Ebartex as strategic platform partner.",
       feat1: "10% Commission (Max 100€)",
       feat2: "0.30€ Grading Fee",
       feat3: "24h European Shipping",
       feat4: "Anti-Double Sales System",
     },
     roi: {
-      title: "Reserved Commissions for Cardmarket",
+      title: "Reserved Commissions for Ebartex",
       subtitle:
         "Competitors usually charge around 17-18%. We charge 10%, and you set the final customer fee.",
       volume: "Monthly Card Volume",
       benchmark: "Market benchmark: competitors sit around 17-18% for this service.",
       resaleFee: "Your End-Customer Fee (%)",
-      netCommission: "Net Commission for Cardmarket",
+      netCommission: "Net Commission for Ebartex",
     },
     slides: {
       s1: {
         kicker: "Slide 1",
         title: "More Than a Marketplace – The Home of the Community",
         description:
-          "Our platform is not just commerce. It is a phygital ecosystem powered by official webcam tournaments.",
+          "Our platform is not just commerce. It is a phygital ecosystem powered by live webcam tournaments.",
         bullets: [
           "Live interaction with chat, spectator mode, and community judges.",
           "From entertainment to purchase: viewers analyze decks and buy instantly.",
@@ -213,11 +213,11 @@ export const translations: Record<Language, TranslationSchema> = {
         kicker: "Slide 3",
         title: "European Consolidation via Local Hubs",
         description:
-          "To bypass UPU 2026 postal pressure (up to EUR40 parcels), we offer Cardmarket the exclusive I Sell For You model.",
+          "To bypass UPU 2026 postal pressure (up to EUR40 parcels), we offer Ebartex the exclusive I Sell For You model.",
         bullets: [
           "Users ship to decentralized hubs strategically distributed across Europe.",
           "We handle grading, photography, and upload for just EUR0.30 per card.",
-          "Listings appear under a sponsored official Cardmarket account.",
+          "Listings appear under a sponsored official Ebartex account.",
           "Customers receive one consolidated 24h shipment across multi-seller orders.",
         ],
       },
@@ -234,13 +234,13 @@ export const translations: Record<Language, TranslationSchema> = {
       },
       s5: {
         kicker: "Slide 5",
-        title: "Risk-Free Profit Generation for Cardmarket (Zero CAPEX)",
+        title: "Risk-Free Profit Generation for Ebartex (Zero CAPEX)",
         description:
-          "Cardmarket keeps full pricing control and captures margin upside without physical warehouse investment.",
+          "Ebartex keeps full pricing control and captures margin upside without physical warehouse investment.",
         bullets: [
           "Wholesale fee: 10% with a protective EUR100 cap per card.",
           "Flexible retail markup: test 15%, 16%, or any market-fit fee.",
-          "The spread remains pure net profit for Cardmarket.",
+          "The spread remains pure net profit for Ebartex.",
         ],
       },
     },
@@ -255,9 +255,9 @@ export const translations: Record<Language, TranslationSchema> = {
     hero: {
       title: "Eradica l'Attrito Logistico. Sincronizza l'Europa.",
       subtitle:
-        "La soluzione di fulfillment decentralizzata in esclusiva per Cardmarket. Spedizioni in 24h, sync API in tempo reale e zero doppie vendite.",
+        "La soluzione di fulfillment decentralizzata in esclusiva per Ebartex. Spedizioni in 24h, sync API in tempo reale e zero doppie vendite.",
       cta: "Scopri la Partnership",
-      eyebrow: "Partnership API B2B esclusiva per Cardmarket",
+      eyebrow: "Partnership API B2B esclusiva per Ebartex",
     },
     scroll: {
       sectionLabel: "Scrollytelling",
@@ -270,11 +270,11 @@ export const translations: Record<Language, TranslationSchema> = {
         "Hub locali in tutta Europa raccolgono l'inventario. I clienti pagano una sola spedizione per l'intero ordine.",
       step3Title: "Vault I Sell For You",
       step3Desc:
-        "Le carte vengono gradate per 0,30€ e listate istantaneamente sull'account ufficiale Cardmarket tramite API.",
+        "Le carte vengono gradate per 0,30€ e listate istantaneamente sull'account ufficiale Ebartex tramite API.",
     },
     bento: {
       title: "Unit Economics a livello enterprise",
-      subtitle: "Vantaggi scalabili per Cardmarket come partner strategico.",
+      subtitle: "Vantaggi scalabili per Ebartex come partner strategico.",
       feat1: "Commissione 10% (Max 100€)",
       feat2: "Costo Grading 0,30€",
       feat3: "Spedizioni Europee in 24h",
@@ -287,14 +287,14 @@ export const translations: Record<Language, TranslationSchema> = {
       volume: "Volume Mensile Carte",
       benchmark: "Benchmark mercato: concorrenti tra 17% e 18% su questo servizio.",
       resaleFee: "Fee finale verso i vostri utenti (%)",
-      netCommission: "Commissione netta per Cardmarket",
+      netCommission: "Commissione netta per Ebartex",
     },
     slides: {
       s1: {
         kicker: "Slide 1",
         title: "Più di un Marketplace – La Casa della Community",
         description:
-          "Il cuore della piattaforma non è solo la vendita, ma un ecosistema phygital con tornei ufficiali via webcam.",
+          "Il cuore della piattaforma non è solo la vendita, ma un ecosistema phygital con tornei live via webcam.",
         bullets: [
           "Interazione live con chat, spettatori e judges della community.",
           "Dall'intrattenimento all'acquisto: analisi deck in tempo reale e buy istantaneo.",
@@ -315,11 +315,11 @@ export const translations: Record<Language, TranslationSchema> = {
         kicker: "Slide 3",
         title: "Consolidamento Europeo tramite Hub Locali",
         description:
-          "Per superare le normative UPU 2026 (pacchi tra 15€ e 40€), offriamo a Cardmarket il servizio esclusivo I Sell For You.",
+          "Per superare le normative UPU 2026 (pacchi tra 15€ e 40€), offriamo a Ebartex il servizio esclusivo I Sell For You.",
         bullets: [
           "Hub decentralizzati in Europa per ridurre i costi di spedizione locali.",
           "Grading, foto e upload a costo fisso di 0,30€ per carta.",
-          "Carte pubblicate su account Cardmarket ufficiale sponsorizzato.",
+          "Carte pubblicate su account Ebartex ufficiale sponsorizzato.",
           "Spedizione consolidata unica in 24h anche su ordini multi-venditore.",
         ],
       },

@@ -7,7 +7,7 @@ export function LivePlaySection() {
         <div className="glass-panel rounded-3xl border border-zinc-200 bg-white/80 p-6 sm:p-10">
           <p className="text-sm text-zinc-500">Tornei Live Webcam</p>
           <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
-            Partecipa ai Tornei Ufficiali dalla tua Webcam
+            Partecipa ai Tornei Live dalla tua Webcam
           </h2>
           <p className="mt-4 max-w-2xl text-sm text-zinc-600">
             Gioca tornei settimanali MTG, Pokemon e altri giochi di carte con premi in denaro. 

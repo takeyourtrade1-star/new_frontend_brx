@@ -52,7 +52,7 @@ export function createEmbeddedDraftFromProduct(card: CardDocument): AuctionCreat
   };
 }
 
-/** Mappa testo condizione inventario → valore select wizard (CardTrader 5 condizioni). */
+/** Mappa testo condizione inventario → valore select wizard (5 condizioni standard). */
 export function inventoryConditionToWizardValue(raw: string | null | undefined): string {
   if (!raw || typeof raw !== 'string') return 'near_mint';
   const s = raw.trim();

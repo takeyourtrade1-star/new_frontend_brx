@@ -41,7 +41,7 @@ export interface CardDocument {
   game_slug: string;
   image?: string | null;
   category_name?: string;
-  /** CardTrader blueprint ID (per fetch listings/venditori). */
+  /** Blueprint ID (per fetch listings/venditori). */
   cardtrader_id?: number;
   /** MTG: Rare, Mythic, Common, Uncommon, etc. */
   rarity?: string;

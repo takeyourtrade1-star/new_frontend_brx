@@ -134,7 +134,7 @@ export function SetPageClient({ game, setName }: SetPageClientProps) {
         };
 
         const totalPages = Math.max(1, Number(firstJson.totalPages ?? 1) || 1);
-        // Per far combaciare i conti delle categorie con CardTrader serve caricare
+        // Per far combaciare i conti delle categorie serve caricare
         // tutte le pagine (con limit=100 → pagesToLoad = totalPages).
         const pagesToLoad = debouncedSearch ? Math.min(totalPages, 1) : totalPages;
 

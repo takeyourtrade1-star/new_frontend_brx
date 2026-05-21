@@ -1,5 +1,5 @@
 /**
- * Sync API Client - BRX Sync microservice (CardTrader)
+ * Sync API Client - BRX Sync microservice
  * Le richieste vanno direttamente al server Sync (NEXT_PUBLIC_SYNC_API_URL + /api/v1).
  * sync.ebartex.com deve essere raggiungibile: DNS + reverse proxy su 80/443 → :8002 (vedi SYNC_DOMAIN_SETUP.md).
  * Su 401 (token scaduto) tenta un refresh automatico e ritenta la richiesta una volta.
@@ -24,7 +24,7 @@ export interface SyncStatusResponse {
   sync_status: SyncStatus;
   last_sync_at: string | null;
   last_error: string | null;
-  /** True if CardTrader link was removed (no token); user must re-configure. */
+  /** True if marketplace link was removed (no token); user must re-configure. */
   disconnected?: boolean | null;
 }
 
@@ -101,7 +101,7 @@ export interface ListingsByBlueprintResponse {
   listings: ListingItem[];
 }
 
-/** Response from purchase (simulate buyer) endpoint: checks inventory + CardTrader availability then decrements. */
+/** Response from purchase (simulate buyer) endpoint: checks inventory + external availability then decrements. */
 export interface PurchaseItemResponse {
   status: string;
   item_id: number;
@@ -348,7 +348,7 @@ export const syncClient = {
 
   /**
    * POST /api/v1/sync/purchase/{userId}/item/{itemId}
-   * Simula acquisto: verifica inventario locale + disponibilità su CardTrader, poi decrementa entrambi (evita doppie vendite).
+   * Simula acquisto: verifica inventario locale + disponibilità esterna, poi decrementa entrambi (evita doppie vendite).
    */
   purchaseInventoryItem(
     userId: string,

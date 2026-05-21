@@ -114,7 +114,7 @@ export default function CondizioniPage() {
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-gray-500">
             Cinque livelli di qualità chiari e universali, allineati agli standard internazionali
-            di CardTrader e TCGPlayer. Usali per valutare, comprare e scambiare con trasparenza.
+            del mercato TCG. Usali per valutare, comprare e scambiare con trasparenza.
           </p>
         </div>
       </section>
@@ -218,11 +218,7 @@ export default function CondizioniPage() {
       {/* Footer note */}
       <footer className="border-t border-gray-100 bg-white/40 px-6 py-8 text-center backdrop-blur-sm">
         <p className="text-xs text-gray-400">
-          Standard allineato a{' '}
-          <span className="font-semibold text-gray-500">CardTrader</span>
-          {' '}·{' '}
-          <span className="font-semibold text-gray-500">TCGPlayer</span>
-          {' '}— Ebartex adotta questi gradi per garantire coerenza e trasparenza in ogni transazione.
+          Standard allineato agli gradi internazionali del mercato TCG — Ebartex adotta questi gradi per garantire coerenza e trasparenza in ogni transazione.
         </p>
       </footer>
     </main>
