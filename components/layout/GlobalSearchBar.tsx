@@ -429,21 +429,6 @@ function getSuggestionsPanelPosition(
   };
 }
 
-function getPreviewColumnPosition(
-  categoryEl: HTMLElement,
-  suggestionsLeft: number,
-  panelTop: number,
-  panelHeight: number
-): FixedPanelRect {
-  const rect = categoryEl.getBoundingClientRect();
-  return {
-    top: panelTop,
-    left: Math.round(rect.left),
-    width: Math.max(Math.round(suggestionsLeft - rect.left), Math.round(rect.width)),
-    height: panelHeight,
-  };
-}
-
 /** Larghezza anteprima carta inline - aumentata per altezza maggiore */
 const INLINE_PREVIEW_WIDTH = 200;
 const INLINE_PREVIEW_MIN_WIDTH = 140;
@@ -761,10 +746,8 @@ function SearchResultsDropdown({
     rect: DOMRect;
   } | null>(null);
   const [position, setPosition] = useState<FixedPanelRect | null>(null);
-  const [panelHeight, setPanelHeight] = useState(0);
   const [mounted, setMounted] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const previewColumnRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -796,16 +779,6 @@ function SearchResultsDropdown({
     };
   }, [suggestionsAnchorRef, categoryColumnRef, dropdownPosition]);
 
-  useLayoutEffect(() => {
-    if (!containerRef.current) return;
-    const panelEl = containerRef.current;
-    const updateHeight = () => setPanelHeight(panelEl.offsetHeight);
-    updateHeight();
-    const resizeObserver = new ResizeObserver(updateHeight);
-    resizeObserver.observe(panelEl);
-    return () => resizeObserver.disconnect();
-  }, [containerRef, position, hits.length, isSearchStalled]);
-
   const showInlinePreview = (url: string, name: string, buttonRect: DOMRect) => {
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
@@ -827,18 +800,7 @@ function SearchResultsDropdown({
   };
 
   const hasHits = hits.length > 0;
-  const previewColumnPosition =
-    position && panelHeight > 0 && categoryColumnRef.current
-      ? getPreviewColumnPosition(
-          categoryColumnRef.current,
-          position.left,
-          position.top,
-          panelHeight
-        )
-      : null;
-  const previewColumnRect =
-    previewColumnRef.current?.getBoundingClientRect() ??
-    categoryColumnRef.current?.getBoundingClientRect();
+  const previewColumnRect = categoryColumnRef.current?.getBoundingClientRect();
   const inlinePreviewLayout =
     inlinePreview && previewColumnRect
       ? getLeftColumnPreviewLayout(
@@ -852,24 +814,9 @@ function SearchResultsDropdown({
 
   const dropdownContent = (
     <>
-      {previewColumnPosition ? (
-        <div
-          ref={previewColumnRef}
-          aria-hidden
-          className="search-preview-slot fixed z-[1000]"
-          style={{
-            top: previewColumnPosition.top,
-            left: previewColumnPosition.left,
-            width: previewColumnPosition.width,
-            height: previewColumnPosition.height,
-          }}
-        />
-      ) : null}
-
       <div
-        ref={containerRef as React.Ref<HTMLDivElement>}
-        className={`search-suggestions-panel max-h-[400px] overflow-hidden min-h-[80px] flex flex-col ${
-          dropdownPosition === 'top' ? 'border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.12)]' : ''
+        className={`search-suggestions-panel ${
+          dropdownPosition === 'top' ? 'shadow-[0_-4px_12px_rgba(0,0,0,0.12)]' : ''
         }`}
         style={{
           position: 'fixed',
@@ -878,9 +825,13 @@ function SearchResultsDropdown({
           width: position.width,
           zIndex: 1001,
         }}
-        role="listbox"
-        aria-label="Suggerimenti ricerca"
       >
+        <div
+          ref={containerRef as React.Ref<HTMLDivElement>}
+          className="search-suggestions-panel__inner max-h-[400px] min-h-[80px] flex flex-col"
+          role="listbox"
+          aria-label="Suggerimenti ricerca"
+        >
         {isSearchStalled ? (
           <div className="flex items-center justify-center gap-2 px-4 py-6 text-gray-500">
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -925,7 +876,7 @@ function SearchResultsDropdown({
                 router.push(buildSearchUrl(q, gameSlug, productCategory));
                 onSelect();
               }}
-              className="w-full py-4 text-center text-base font-medium text-[#0f172a] bg-[#F8F8F8] rounded-none hover:bg-[#EEEEEE] transition-colors"
+              className="w-full py-4 text-center text-base font-medium text-[#0f172a] bg-[#F8F8F8] hover:bg-[#EEEEEE] transition-colors"
             >
               Mostra tutti i risultati (<AnimatedCounter value={hits.length} />+)
             </button>
@@ -933,6 +884,7 @@ function SearchResultsDropdown({
         ) : (
           <div className="px-4 py-4 text-sm text-gray-500">Nessun risultato trovato</div>
         )}
+        </div>
       </div>
 
       {inlinePreview &&
@@ -1538,14 +1490,12 @@ function SetSearchResultRow({
 
 function SetsResultsDropdown({
   suggestionsAnchorRef,
-  categoryColumnRef,
   containerRef,
   setResults,
   setResultsLoading,
   onClose,
 }: {
   suggestionsAnchorRef: React.RefObject<HTMLDivElement | null>;
-  categoryColumnRef: React.RefObject<HTMLDivElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   setResults: SetResult[];
   setResultsLoading: boolean;
@@ -1553,7 +1503,6 @@ function SetsResultsDropdown({
 }) {
   const router = useRouter();
   const [position, setPosition] = useState<FixedPanelRect | null>(null);
-  const [panelHeight, setPanelHeight] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -1570,8 +1519,6 @@ function SetsResultsDropdown({
     const rafId = window.requestAnimationFrame(update);
     const resizeObserver = new ResizeObserver(update);
     resizeObserver.observe(anchorEl);
-    const categoryEl = categoryColumnRef.current;
-    if (categoryEl) resizeObserver.observe(categoryEl);
     anchorEl.addEventListener('transitionend', update);
     window.addEventListener('scroll', update, true);
     window.addEventListener('resize', update);
@@ -1582,47 +1529,14 @@ function SetsResultsDropdown({
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
-  }, [suggestionsAnchorRef, categoryColumnRef]);
-
-  useLayoutEffect(() => {
-    if (!containerRef.current) return;
-    const panelEl = containerRef.current;
-    const updateHeight = () => setPanelHeight(panelEl.offsetHeight);
-    updateHeight();
-    const resizeObserver = new ResizeObserver(updateHeight);
-    resizeObserver.observe(panelEl);
-    return () => resizeObserver.disconnect();
-  }, [containerRef, position, setResults.length, setResultsLoading]);
+  }, [suggestionsAnchorRef]);
 
   if (!mounted || !position) return null;
 
-  const previewColumnPosition =
-    panelHeight > 0 && categoryColumnRef.current
-      ? getPreviewColumnPosition(
-          categoryColumnRef.current,
-          position.left,
-          position.top,
-          panelHeight
-        )
-      : null;
-
   const content = (
     <>
-      {previewColumnPosition ? (
-        <div
-          aria-hidden
-          className="search-preview-slot fixed z-[1000]"
-          style={{
-            top: previewColumnPosition.top,
-            left: previewColumnPosition.left,
-            width: previewColumnPosition.width,
-            height: previewColumnPosition.height,
-          }}
-        />
-      ) : null}
       <div
-        ref={containerRef as React.Ref<HTMLDivElement>}
-        className="search-suggestions-panel max-h-[400px] overflow-hidden min-h-[80px] flex flex-col"
+        className="search-suggestions-panel"
         style={{
           position: 'fixed',
           top: position.top,
@@ -1630,9 +1544,13 @@ function SetsResultsDropdown({
           width: position.width,
           zIndex: 1001,
         }}
-        role="listbox"
-        aria-label="Suggerimenti set"
       >
+        <div
+          ref={containerRef as React.Ref<HTMLDivElement>}
+          className="search-suggestions-panel__inner max-h-[400px] min-h-[80px] flex flex-col"
+          role="listbox"
+          aria-label="Suggerimenti set"
+        >
       {setResultsLoading ? (
         <div className="flex items-center justify-center gap-2 px-4 py-6 text-gray-500">
           <Loader2 className="w-5 h-5 animate-spin" />
@@ -1656,6 +1574,7 @@ function SetsResultsDropdown({
       ) : (
         <div className="px-4 py-4 text-sm text-gray-500">Nessun set trovato.</div>
       )}
+        </div>
       </div>
     </>
   );
@@ -1839,7 +1758,6 @@ function SearchWithInstantSearch({
     isSetsMode ? (
       <SetsResultsDropdown
         suggestionsAnchorRef={suggestionsAnchorRef}
-        categoryColumnRef={categoryColumnRef}
         containerRef={dropdownContainerRef}
         setResults={setResults}
         setResultsLoading={setResultsLoading}
@@ -1869,7 +1787,7 @@ function SearchWithInstantSearch({
   const triggerBar = (
     <div
       ref={triggerRef}
-      className={`search-container flex w-full min-w-[200px] flex-1 items-stretch gap-0 transition-[background-color,border-color,border-radius] duration-200 h-11 min-h-11 max-h-11 md:h-auto md:min-h-0 md:max-h-none ${
+      className={`search-container flex w-full min-w-[200px] flex-1 items-stretch gap-0 transition-[background-color,border-color,border-radius,box-shadow] duration-200 h-11 min-h-11 max-h-11 md:h-auto md:min-h-0 md:max-h-none ${
         showOpenStyle ? 'search-container--open bg-white' : 'overflow-hidden rounded-[50px]'
       } ${showDropdown ? 'search-container--dropdown-active' : ''}`}
       style={{ zIndex: 1000 }}
