@@ -9,9 +9,19 @@ import { ConditionBadge, type ConditionCode } from '@/components/ui/ConditionBad
 import { BrxExpressIcon, BrxExpressBadge } from '@/components/ui/BrxExpressIcon';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { getCdnImageUrl } from '@/lib/config';
+import { type ListingItem } from '@/lib/api/sync-client';
+
+type SellerListingItem = ListingItem & {
+  seller_type?: 'PRIVATE' | 'PROFESSIONAL' | 'POWERSELLER';
+  is_auction?: boolean;
+  auction_end_time?: string;
+  is_signed?: boolean;
+  has_brx_express?: boolean;
+  is_foil?: boolean;
+};
 
 // Mock data per BRX Express - da sostituire con logica reale
-const MOCK_BRX_EXPRESS = new Set(['item_1']); // item_id che hanno BRX Express
+const MOCK_BRX_EXPRESS = new Set<number>();
 
 // Mappa condizioni testuali a codici per ConditionBadge
 const CONDITION_TEXT_TO_CODE: Record<string, ConditionCode> = {
@@ -30,25 +40,6 @@ const CONDITION_TEXT_TO_CODE: Record<string, ConditionCode> = {
   'Poor': 'PO',
 };
 
-interface ListingItem {
-  item_id: string;
-  seller_display_name: string;
-  seller_id?: string;
-  condition?: string;
-  price_cents: number;
-  quantity: number;
-  country?: string;
-  mtg_language?: string;
-  is_foil?: boolean;
-  created_at?: string;
-  // Mock fields per demo
-  seller_type?: 'PRIVATE' | 'PROFESSIONAL' | 'POWERSELLER';
-  is_auction?: boolean;
-  auction_end_time?: string;
-  is_signed?: boolean;
-  has_brx_express?: boolean;
-}
-
 interface ModernSellerTableProps {
   listings: ListingItem[];
   loading?: boolean;
@@ -56,8 +47,8 @@ interface ModernSellerTableProps {
   onAddToCart?: (item: ListingItem, event: React.MouseEvent<HTMLButtonElement>) => void;
   isOwnListing?: (item: ListingItem) => boolean;
   onOwnerEdit?: (item: ListingItem) => void;
-  onOwnerQuantityChange?: (item: ListingItem, delta: number) => Promise<void>;
-  busyItemId?: string | null;
+  onOwnerQuantityChange?: (item: ListingItem, delta: -1 | 1) => Promise<void>;
+  busyItemId?: number | null;
 }
 
 export function ModernSellerTable({
@@ -75,7 +66,7 @@ export function ModernSellerTable({
   const formatEuro = (n: number) => formatEuroNoSpace(n, 'it-IT');
   
   // Processa i listing aggiungendo i campi mock
-  const processedListings = useMemo(() => {
+  const processedListings = useMemo((): SellerListingItem[] => {
     return listings.map((listing, index) => ({
       ...listing,
       // Mock data per demo - in produzione questi dati arriverebbero dall'API
@@ -83,12 +74,13 @@ export function ModernSellerTable({
       is_auction: Math.random() > 0.7,
       auction_end_time: new Date(Date.now() + Math.random() * 24 * 60 * 60 * 1000).toISOString(),
       is_signed: Math.random() > 0.8,
-      has_brx_express: MOCK_BRX_EXPRESS.has(listing.item_id) || index === 0, // Primo risultato ha sempre BRX Express
+      is_foil: index === 1,
+      has_brx_express: MOCK_BRX_EXPRESS.has(listing.item_id) || index === 0,
     }));
   }, [listings]);
 
   // Funzione per ottenere il codice condizione
-  const getConditionCode = (conditionText?: string): ConditionCode => {
+  const getConditionCode = (conditionText?: string | null): ConditionCode => {
     if (!conditionText) return 'NM';
     return CONDITION_TEXT_TO_CODE[conditionText] || 'NM';
   };

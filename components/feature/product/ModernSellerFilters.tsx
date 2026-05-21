@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Filter, ChevronDown, MapPin, Shield } from 'lucide-react';
-import { CountrySelect } from '@/components/ui/CountrySelect';
+import { CountrySelect, type CountryOption } from '@/components/ui/CountrySelect';
+import { COUNTRIES } from '@/lib/registrati/schema';
 import { BrxExpressIcon } from '@/components/ui/BrxExpressIcon';
 import { cn } from '@/lib/utils';
 
@@ -72,6 +73,18 @@ export function ModernSellerFilters({
 }: ModernSellerFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const countryOptions: CountryOption[] = useMemo(
+    () => [
+      { code: 'all', label: 'Tutti i paesi', flagCode: 'all' },
+      ...COUNTRIES.map((c) => ({
+        code: c.code,
+        label: c.label,
+        flagCode: c.code,
+      })),
+    ],
+    []
+  );
+
   return (
     <div className="bg-white border-b border-gray-200">
       {/* Main Filter Bar */}
@@ -101,10 +114,12 @@ export function ModernSellerFilters({
             <label className="text-xs font-medium text-gray-500 mb-1 block">Posizione venditore</label>
             <div className="relative">
               <CountrySelect
+                options={countryOptions}
                 value={selectedCountry}
-                onValueChange={setSelectedCountry}
+                onChange={setSelectedCountry}
                 placeholder="Tutti i paesi"
                 className="w-[200px]"
+                size="sm"
               />
             </div>
           </div>

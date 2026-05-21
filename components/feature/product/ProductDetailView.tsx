@@ -755,18 +755,12 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     }
   }, [purchaseListing, purchaseQty, user?.id, accessToken, refreshListings]);
 
-  /* All’apertura della pagina i filtri partono aperti e dopo 1 secondo si chiudono in automatico (per far vedere che ci sono). */
-  useEffect(() => {
-    const t = setTimeout(() => setFiltersOpen(false), 1000);
-    return () => clearTimeout(t);
-  }, []);
-
   /* Quando l'utente loggato ha un paese, usa quello; altrimenti usa la geolocalizzazione. */
   useEffect(() => {
     if (user?.country) {
-      setPosizioneVenditore(user.country);
+      setSelectedCountry(user.country);
     } else if (detectedCountry) {
-      setPosizioneVenditore(detectedCountry);
+      setSelectedCountry(detectedCountry);
     }
   }, [user?.country, detectedCountry]);
 
@@ -804,11 +798,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     if (showPrivate) allowedSellerTypes.push('PRIVATE');
     if (showProfessional) allowedSellerTypes.push('PROFESSIONAL');
     if (showPowerSeller) allowedSellerTypes.push('POWERSELLER');
-    
-    // Foil filter
-    if (onlyFoil) {
-      filtered = filtered.filter(item => item.is_foil === true);
-    }
     
     // BRX Express filter (mock - first item always has BRX Express)
     if (onlyBrxExpress) {
@@ -871,7 +860,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     showPrivate, 
     showProfessional, 
     showPowerSeller, 
-    onlyFoil, 
     onlyBrxExpress, 
     onlySignedCards, 
     minCondition

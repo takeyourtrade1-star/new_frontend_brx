@@ -7,40 +7,34 @@ import { ModernSellerFilters } from '@/components/feature/product/ModernSellerFi
 // Mock data per testare la tabella
 const MOCK_LISTINGS = [
   {
-    item_id: 'item_1',
+    item_id: 1,
     seller_display_name: 'LCDT14',
     seller_id: 'user_1',
     condition: 'Near Mint',
-    price_cents: 30000, // 300€
+    price_cents: 30000,
     quantity: 5,
     country: 'IT',
     mtg_language: 'EN',
-    is_foil: false,
-    created_at: '2024-01-01T00:00:00Z',
   },
   {
-    item_id: 'item_2', 
+    item_id: 2,
     seller_display_name: 'JULIAN',
     seller_id: 'user_2',
     condition: 'Lightly Played',
-    price_cents: 30000, // 300€
+    price_cents: 30000,
     quantity: 1,
     country: 'FR',
     mtg_language: 'EN',
-    is_foil: true,
-    created_at: '2024-01-02T00:00:00Z',
   },
   {
-    item_id: 'item_3',
+    item_id: 3,
     seller_display_name: 'LCDT',
-    seller_id: 'user_3', 
+    seller_id: 'user_3',
     condition: 'Near Mint',
-    price_cents: 30000, // 300€
+    price_cents: 30000,
     quantity: 5,
     country: 'IT',
     mtg_language: 'EN',
-    is_foil: false,
-    created_at: '2024-01-03T00:00:00Z',
   },
 ];
 
