@@ -1,12 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   buildFilterFallbackChain,
+  buildReprintCategoryFilter,
   buildReprintSearchStrategies,
   dedupeReprintHits,
   escapeMeiliFilterValue,
   fetchReprintsForCard,
   isValidReprintCardId,
   resolveReprintGameSlug,
+  shouldFetchReprints,
 } from '@/lib/reprints-search';
 
 describe('isValidReprintCardId', () => {
@@ -27,6 +29,32 @@ describe('resolveReprintGameSlug', () => {
   it('does not map op to one-piece', () => {
     expect(resolveReprintGameSlug('op')).toBe('op');
     expect(resolveReprintGameSlug('  mtg ')).toBe('mtg');
+  });
+});
+
+describe('buildReprintCategoryFilter', () => {
+  it('uses index category_id 1 for op without normalizeGameSlug', () => {
+    expect(buildReprintCategoryFilter('op')).toBe('category_id = 1');
+    expect(buildReprintCategoryFilter('pk')).toBe('category_id = 1');
+    expect(buildReprintCategoryFilter('mtg')).toBe('category_id = 1');
+  });
+
+  it('prefers document category_id when present', () => {
+    expect(buildReprintCategoryFilter('op', 42)).toBe('category_id = 42');
+  });
+});
+
+describe('shouldFetchReprints', () => {
+  it('skips sealed products', () => {
+    expect(
+      shouldFetchReprints({ id: 'sealed_10', name: 'Box', game_slug: 'mtg' })
+    ).toBe(false);
+  });
+
+  it('allows mtg/op/pk singles', () => {
+    expect(
+      shouldFetchReprints({ id: 'mtg_1', name: 'Bolt', game_slug: 'mtg' })
+    ).toBe(true);
   });
 });
 

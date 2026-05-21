@@ -16,11 +16,11 @@ import {
 export async function GET(request: NextRequest) {
   const { url: meiliUrl, apiKey: meiliKey, index } = getMeilisearchServerConfig();
 
-  if (!meiliUrl) {
+  if (!meiliUrl || !meiliKey) {
     return NextResponse.json(
       {
         error:
-          'Meilisearch non configurato (MEILISEARCH_URL o NEXT_PUBLIC_MEILISEARCH_URL)',
+          'Meilisearch non configurato (MEILISEARCH_URL + MEILISEARCH_API_KEY, o equivalenti MEILI_*)',
       },
       { status: 503 }
     );
@@ -82,9 +82,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(payload);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    const status =
+      message.includes('auth failed') || message.includes('budget exceeded') ? 503 : 502;
     return NextResponse.json(
       { error: 'Ricerca ristampe non disponibile', detail: message },
-      { status: 502 }
+      { status }
     );
   }
 }

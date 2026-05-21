@@ -20,7 +20,7 @@ import { InventoryEditModal } from '@/components/feature/sync/InventoryEditModal
 import { listingToInventoryEditItem } from '@/lib/product-detail/listing-to-inventory-item';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCdnImageUrl } from '@/lib/config';
-import type { ReprintSearchHit } from '@/lib/reprints-search';
+import { shouldFetchReprints, type ReprintSearchHit } from '@/lib/reprints-search';
 import type { CardDocument } from '@/lib/product-detail';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { COUNTRIES } from '@/lib/registrati/schema';
@@ -420,6 +420,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const hoverPreviewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [reprints, setReprints] = useState<ReprintCard[]>([]);
   const [reprintsLoading, setReprintsLoading] = useState(false);
+  const [reprintsDegraded, setReprintsDegraded] = useState(false);
 
     const CONDITION_OPTIONS_MAP: { value: string; label: string }[] = [
     { value: 'near_mint', label: 'Near Mint' },
@@ -537,34 +538,52 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   }, [refreshListings]);
 
   useEffect(() => {
-    if (!card?.id || !card.name || !card.game_slug) {
+    if (!shouldFetchReprints(card)) {
       setReprints([]);
+      setReprintsDegraded(false);
       setReprintsLoading(false);
       return;
     }
 
     let cancelled = false;
     setReprintsLoading(true);
+    setReprintsDegraded(false);
 
     (async () => {
       try {
         const res = await fetch(
-          `/api/reprints?card_id=${encodeURIComponent(card.id)}`,
+          `/api/reprints?card_id=${encodeURIComponent(card!.id)}`,
           { cache: 'no-store' }
         );
         if (!res.ok) {
-          if (!cancelled) setReprints([]);
+          if (!cancelled) {
+            setReprints([]);
+            setReprintsDegraded(true);
+          }
           return;
         }
-        const data = (await res.json()) as { hits?: ReprintSearchHit[] };
+        const data = (await res.json()) as { hits?: ReprintSearchHit[]; error?: string };
+        if (data.error) {
+          if (!cancelled) {
+            setReprints([]);
+            setReprintsDegraded(true);
+          }
+          return;
+        }
         const hits = Array.isArray(data.hits) ? data.hits : [];
         const mapped = hits
-          .map((hit) => mapReprintHit(hit, card.game_slug))
+          .map((hit) => mapReprintHit(hit, card!.game_slug))
           .filter((item): item is ReprintCard => item != null);
         const dedup = Array.from(new Map(mapped.map((item) => [item.id, item])).values());
-        if (!cancelled) setReprints(dedup);
+        if (!cancelled) {
+          setReprints(dedup);
+          setReprintsDegraded(false);
+        }
       } catch {
-        if (!cancelled) setReprints([]);
+        if (!cancelled) {
+          setReprints([]);
+          setReprintsDegraded(true);
+        }
       } finally {
         if (!cancelled) setReprintsLoading(false);
       }
@@ -1171,6 +1190,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           <ReprintThumbnail key={r.id} reprint={r} columnIndex={i} className="h-[58px]" />
                         ))}
                       </div>
+                    ) : reprintsDegraded ? (
+                      <p className="text-[11px] text-amber-700">Ristampe non disponibili.</p>
                     ) : (
                       <p className="text-[11px] text-zinc-400">Nessuna ristampa.</p>
                     )}
@@ -1280,6 +1301,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           ))}
                         </div>
                       )
+                    ) : reprintsDegraded ? (
+                      <div className={cn('flex flex-1 items-center justify-center rounded-lg border border-dashed border-amber-200/80 bg-amber-50/40 text-center', showChart ? 'px-1.5 py-2' : 'px-2 py-3')}>
+                        <p className={cn('text-amber-800', showChart ? 'text-[9px] leading-tight' : 'text-xs')}>Ristampe non disponibili.</p>
+                      </div>
                     ) : (
                       <div className={cn('flex flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 text-center', showChart ? 'px-1.5 py-2' : 'px-2 py-3')}>
                         <p className={cn('text-zinc-400', showChart ? 'text-[9px] leading-tight' : 'text-xs')}>Nessuna ristampa trovata.</p>

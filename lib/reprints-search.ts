@@ -4,7 +4,6 @@
  */
 
 import type { CardDocument } from '@/lib/product-detail';
-import { getCategoryIds, normalizeGameSlug } from '@/lib/search/category-mapping';
 
 export type ReprintSearchHit = {
   id: string;
@@ -33,6 +32,11 @@ export type ReprintsApiResponse = {
 
 export const REPRINTS_PAGE_SIZE = 100;
 export const REPRINTS_MAX_PAGES = 20;
+/** Limite richieste Meilisearch per singola GET /api/reprints. */
+export const REPRINTS_MAX_MEILI_CALLS = 24;
+
+/** category_id sulle singole nell'indice (indexer: sempre 1 per mtg/op/pk). */
+const REPRINT_INDEX_SINGLES_CATEGORY_ID = 1;
 
 /** Pattern id documento Meilisearch (allineato a isIndexProductId). */
 export const REPRINT_CARD_ID_PATTERN = /^(mtg_|op_|pk_)\d+$/;
@@ -77,12 +81,19 @@ export function buildReprintCategoryFilter(gameSlug: string, categoryId?: number
   if (categoryId != null && Number.isFinite(categoryId)) {
     return `category_id = ${categoryId}`;
   }
-  const game = normalizeGameSlug(gameSlug);
-  if (!game) return null;
-  const ids = getCategoryIds(game, 'singles');
-  if (ids.length === 0) return null;
-  if (ids.length === 1) return `category_id = ${ids[0]}`;
-  return `category_id IN [${ids.join(', ')}]`;
+  const slug = resolveReprintGameSlug(gameSlug).toLowerCase();
+  if (slug === 'mtg' || slug === 'op' || slug === 'pk') {
+    return `category_id = ${REPRINT_INDEX_SINGLES_CATEGORY_ID}`;
+  }
+  return null;
+}
+
+export function shouldFetchReprints(
+  card: Pick<CardDocument, 'id' | 'name' | 'game_slug'> | null | undefined
+): boolean {
+  if (!card?.id?.trim() || !card.name?.trim() || !card.game_slug?.trim()) return false;
+  if (card.id.startsWith('sealed_')) return false;
+  return true;
 }
 
 export function buildReprintFilterParts(
@@ -232,6 +243,13 @@ function buildSearchBody(
   return body;
 }
 
+export class ReprintsSearchBudgetError extends Error {
+  constructor() {
+    super('Reprints Meilisearch call budget exceeded');
+    this.name = 'ReprintsSearchBudgetError';
+  }
+}
+
 /** Esegue le strategie fino al primo risultato non vuoto. */
 export async function fetchReprintsForCard(
   card: Pick<
@@ -240,13 +258,21 @@ export async function fetchReprintsForCard(
   >,
   search: MeilisearchSearchFn
 ): Promise<ReprintSearchHit[]> {
-  if (!card.id?.trim() || !card.name?.trim() || !card.game_slug?.trim()) {
+  if (!shouldFetchReprints(card)) {
     return [];
   }
 
   const strategies = buildReprintSearchStrategies(card);
   const normalizedCardName = card.name.trim().toLowerCase();
   const excludeId = card.id.trim();
+  let meiliCalls = 0;
+
+  const guardedSearch: MeilisearchSearchFn = async (body) => {
+    if (++meiliCalls > REPRINTS_MAX_MEILI_CALLS) {
+      throw new ReprintsSearchBudgetError();
+    }
+    return search(body);
+  };
 
   for (const strategy of strategies) {
     for (const filter of buildFilterFallbackChain(strategy.filters)) {
@@ -256,14 +282,14 @@ export async function fetchReprintsForCard(
       let filterRejected = false;
 
       for (let page = 0; page < REPRINTS_MAX_PAGES && !filterRejected; page++) {
-        let result = await search(buildSearchBody(strategy, filter, offset, useSort));
+        let result = await guardedSearch(buildSearchBody(strategy, filter, offset, useSort));
 
         if (result.status === 400 && useSort) {
           useSort = false;
           offset = 0;
           strategyHits.length = 0;
           page = -1;
-          result = await search(buildSearchBody(strategy, filter, offset, false));
+          result = await guardedSearch(buildSearchBody(strategy, filter, offset, false));
         }
 
         if (result.status === 400) {
@@ -271,7 +297,12 @@ export async function fetchReprintsForCard(
           break;
         }
 
-        if (!result.ok) break;
+        if (!result.ok) {
+          if (result.status === 401 || result.status === 403) {
+            throw new Error(`Meilisearch auth failed (${result.status})`);
+          }
+          break;
+        }
 
         const rawPageHits = Array.isArray(result.hits) ? result.hits : [];
         strategyHits.push(...filterReprintHits(rawPageHits, strategy, normalizedCardName));
