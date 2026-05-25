@@ -10,6 +10,9 @@ export interface CardCatalogHit {
   id: string;
   name?: string;
   set_name?: string;
+  set_code?: string | null;
+  set_icon_uri?: string | null;
+  icon_svg_uri?: string | null;
   game_slug?: string;
   image?: string | null;
   cardtrader_id?: number;
@@ -20,6 +23,21 @@ export interface CardCatalogHit {
   /** MTG: numero collezionista (es. "028", "1910") */
   collector_number?: string;
 }
+
+const CATALOG_ATTRIBUTES_TO_RETRIEVE = [
+  'id',
+  'name',
+  'set_name',
+  'set_code',
+  'set_icon_uri',
+  'icon_svg_uri',
+  'game_slug',
+  'image',
+  'cardtrader_id',
+  'keywords_localized',
+  'rarity',
+  'collector_number',
+] as const;
 
 /** Map blueprint_id (number) -> card data for display (name, set_name, image_url). */
 export type BlueprintToCardMap = Record<number, CardCatalogHit>;
@@ -56,7 +74,11 @@ export async function fetchCardsByBlueprintIds(
     const res = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ filter, limit: uniq.length }),
+      body: JSON.stringify({
+        filter,
+        limit: uniq.length,
+        attributesToRetrieve: [...CATALOG_ATTRIBUTES_TO_RETRIEVE],
+      }),
     });
     if (!res.ok) return {};
     const data = (await res.json()) as { hits?: CardCatalogHit[] };

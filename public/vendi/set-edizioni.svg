@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <rect width="400" height="300" fill="#f8f9fb"/>
+  <g transform="translate(200 150)">
+    <rect x="-88" y="-70" width="176" height="115" rx="5" fill="#fff" stroke="#d1d5db" stroke-width="1.5"/>
+    <rect x="-78" y="-58" width="156" height="92" rx="3" fill="#f3f4f6"/>
+    <g transform="translate(-65 -45)">
+      <rect width="28" height="38" rx="2" fill="#1D3160" opacity="0.15"/>
+      <rect x="32" width="28" height="38" rx="2" fill="#1D3160" opacity="0.15"/>
+      <rect x="64" width="28" height="38" rx="2" fill="#1D3160" opacity="0.15"/>
+      <rect x="96" width="28" height="38" rx="2" fill="#1D3160" opacity="0.15"/>
+      <rect x="16" y="42" width="28" height="38" rx="2" fill="#FF7300" opacity="0.25"/>
+      <rect x="48" y="42" width="28" height="38" rx="2" fill="#FF7300" opacity="0.25"/>
+      <rect x="80" y="42" width="28" height="38" rx="2" fill="#FF7300" opacity="0.25"/>
+    </g>
+    <rect x="-72" y="52" width="144" height="10" rx="2" fill="#1D3160" opacity="0.2"/>
+    <circle cx="0" cy="-82" r="14" fill="#FF7300" opacity="0.2"/>
+  </g>
+</svg>

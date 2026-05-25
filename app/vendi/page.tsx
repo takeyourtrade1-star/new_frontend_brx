@@ -3,8 +3,8 @@ import { VendiLandingPage } from '@/components/feature/vendi/VendiLandingPage';
 import { Header } from '@/components/layout/Header';
 
 export const metadata = {
-  title: 'Vendi su Ebartex | Il Marketplace di Carte Collezionabili',
-  description: 'Vendi le tue carte Magic, Pokémon, One Piece e altre. Sincronizza l\'inventario, crea aste, gestisci il tuo catalogo. Facile, veloce e sicuro.',
+  title: 'Metodi di inserzione | Vendi su Ebartex',
+  description: 'Scegli cosa vendere: singole, oggetti sigillati o set e edizioni. Struttura guidata come su Cardmarket.',
 };
 
 export default function VendiPage() {

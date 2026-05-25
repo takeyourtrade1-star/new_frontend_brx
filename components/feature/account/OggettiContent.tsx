@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { ConditionBadge } from '@/components/ui/ConditionBadge';
 import {
   CheckSquare,
@@ -56,10 +57,10 @@ import { FlagIcon } from '@/components/ui/FlagIcon';
 import { RarityIndicator } from '@/components/ui/RarityIndicator';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
 import { SetIconBadge } from '@/components/ui/SetIconBadge';
-import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
+import { CardArtStripHoverPreview } from '@/components/ui/CardArtStripHoverPreview';
 import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
 import { formatEuroNoSpace } from '@/lib/utils';
-import { BulkPriceModal } from '@/components/feature/account/BulkPriceModal';
+import { BulkPriceWizardModal } from '@/components/feature/account/BulkPriceWizardModal';
 import { BulkDeleteModal } from '@/components/feature/account/BulkDeleteModal';
 
 function buildImageUrl(raw: string | null | undefined): string | null {
@@ -144,8 +145,7 @@ function OggettiTable({
   onToggleSelect,
   onSelectAll,
   onDeselectAll,
-  onSelectAllPage,
-  onDeselectAllPage,
+  allFilteredSelected,
   onDeleteSelected,
   bulkDeleting,
   viewMode = 'table',
@@ -165,13 +165,13 @@ function OggettiTable({
   onToggleSelect?: (id: number) => void;
   onSelectAll?: () => void;
   onDeselectAll?: () => void;
-  onSelectAllPage?: () => void;
-  onDeselectAllPage?: () => void;
+  allFilteredSelected?: boolean;
   onDeleteSelected?: (ids: number[]) => void;
   bulkDeleting?: boolean;
   viewMode?: OggettiViewMode;
   t: (key: import('@/lib/i18n/messages/en').MessageKey, vars?: Record<string, string | number>) => string;
 }) {
+  const router = useRouter();
   const { selectedLang } = useLanguage();
   const [editItem, setEditItem] = useState<InventoryItemWithCatalog | null>(null);
   const [saving, setSaving] = useState(false);
@@ -182,12 +182,11 @@ function OggettiTable({
   const [purchaseSubmitting, setPurchaseSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const selectionMode = !syncEnabled && selectedIds != null && onToggleSelect != null;
-  const allSelected = selectionMode && items.length > 0 && items.every((i) => selectedIds!.has(i.id));
-  const someSelected = selectionMode && items.some((i) => selectedIds!.has(i.id));
-  const selectedCount = selectionMode ? items.filter((i) => selectedIds!.has(i.id)).length : 0;
-  const selectAllHandler = onSelectAllPage ?? onSelectAll;
-  const deselectAllHandler = onDeselectAllPage ?? onDeselectAll;
+  const selectionMode = selectedIds != null && onToggleSelect != null;
+  const allSelected =
+    selectionMode &&
+    (allFilteredSelected ??
+      (items.length > 0 && items.every((i) => selectedIds!.has(i.id))));
 
   const openPurchaseModal = (item: InventoryItemWithCatalog) => {
     if (!item.external_stock_id) {
@@ -574,10 +573,10 @@ function OggettiTable({
                 <th className="search-results-th pl-2 pr-0">
                   <button
                     type="button"
-                    onClick={() => (allSelected ? deselectAllHandler?.() : selectAllHandler?.())}
+                    onClick={() => (allSelected ? onDeselectAll?.() : onSelectAll?.())}
                     className="inline-flex items-center justify-center rounded p-1 text-white/90 transition-colors hover:bg-white/10"
-                    title={allSelected ? (onDeselectAllPage ? 'Deseleziona pagina' : 'Deseleziona tutte') : (onSelectAllPage ? 'Seleziona pagina' : 'Seleziona tutte')}
-                    aria-label={allSelected ? 'Deseleziona' : 'Seleziona pagina'}
+                    title={allSelected ? t('accountPage.itemsDeselectAll') : t('accountPage.itemsSelectAll')}
+                    aria-label={allSelected ? t('accountPage.itemsDeselectAll') : t('accountPage.itemsSelectAll')}
                   >
                     {allSelected ? (
                       <CheckSquare className="h-4 w-4" aria-hidden />
@@ -626,17 +625,31 @@ function OggettiTable({
               const setPageGame = resolveSetPageGameSlug(item.card?.game_slug);
               const setPageHref = setName ? buildSetPageUrl(setPageGame, setName) : null;
               const productHref = item.card?.id ? `/products/${item.card.id}` : null;
+              const rowNavigable = Boolean(productHref);
 
               return (
                 <tr
                   key={item.id}
-                  className="search-result-row border-b border-gray-100/90"
+                  role={rowNavigable ? 'button' : undefined}
+                  tabIndex={rowNavigable ? 0 : undefined}
+                  onClick={rowNavigable ? () => router.push(productHref!) : undefined}
+                  onKeyDown={
+                    rowNavigable
+                      ? (e) => {
+                          if (e.key === 'Enter') router.push(productHref!);
+                        }
+                      : undefined
+                  }
+                  className={`search-result-row border-b border-gray-100/90${rowNavigable ? ' cursor-pointer outline-none' : ''}`}
                 >
                   {selectionMode && (
                     <td className="search-results-td pl-2 pr-0 align-middle">
                       <button
                         type="button"
-                        onClick={() => onToggleSelect?.(item.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleSelect?.(item.id);
+                        }}
                         className={`inline-flex items-center justify-center rounded p-1 transition-colors ${
                           selectedIds!.has(item.id)
                             ? 'text-primary'
@@ -653,71 +666,49 @@ function OggettiTable({
                     </td>
                   )}
                   <td className="search-results-td min-w-0 pl-2 pr-3 align-middle">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <CardImageCameraPeek
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <CardArtStripHoverPreview
                         imageUrl={imgUrl}
                         name={namePrimary}
                         previewSide="right"
-                        className="!h-5 !w-5 shrink-0 text-[#3D65C6]"
                       />
-                      <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-50">
-                        {productHref ? (
-                          <Link href={productHref} className="block h-full w-full">
-                            <Image
-                              src={imgUrl}
-                              alt=""
-                              fill
-                              className="object-cover object-top"
-                              sizes="36px"
-                              unoptimized={imgUrl.startsWith('http') || imgUrl === defaultImage}
-                            />
-                          </Link>
-                        ) : (
-                          <Image
-                            src={imgUrl}
-                            alt=""
-                            fill
-                            className="object-cover object-top"
-                            sizes="36px"
-                            unoptimized={imgUrl.startsWith('http') || imgUrl === defaultImage}
-                          />
-                        )}
-                      </div>
-                      {(setName || item.card?.game_slug) && (
-                        setPageHref ? (
+                      {(setPageHref || setName || item.card?.set_code) &&
+                        (setPageHref ? (
                           <Link
                             href={setPageHref}
                             title={setName}
                             onClick={(e) => e.stopPropagation()}
-                            className="flex shrink-0 items-center justify-center rounded transition-opacity hover:opacity-80"
+                            className="flex shrink-0 items-center justify-center rounded transition-opacity hover:opacity-80 focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/40"
                           >
                             <SetIconBadge
+                              setIconUri={item.card?.set_icon_uri}
+                              iconSvgUri={item.card?.icon_svg_uri}
+                              setCode={item.card?.set_code}
                               setName={setName}
                               gameSlug={item.card?.game_slug}
                               imageClassName="h-6 w-6 object-contain"
                             />
                           </Link>
                         ) : (
-                          <SetIconBadge
-                            setName={setName}
-                            gameSlug={item.card?.game_slug}
-                            imageClassName="h-6 w-6 object-contain"
-                          />
-                        )
-                      )}
+                          <div className="flex shrink-0 items-center justify-center">
+                            <SetIconBadge
+                              setIconUri={item.card?.set_icon_uri}
+                              iconSvgUri={item.card?.icon_svg_uri}
+                              setCode={item.card?.set_code}
+                              setName={setName}
+                              gameSlug={item.card?.game_slug}
+                              imageClassName="h-6 w-6 object-contain"
+                            />
+                          </div>
+                        ))}
                       <div className="min-w-0 flex-1">
-                        {productHref ? (
-                          <Link
-                            href={productHref}
-                            className="block truncate text-[13px] font-semibold leading-tight text-[#1a5fb4] hover:underline"
-                          >
-                            {nameOriginal}
-                          </Link>
-                        ) : (
-                          <span className="block truncate text-[13px] font-semibold leading-tight text-gray-900">
-                            {nameOriginal}
-                          </span>
-                        )}
+                        <span
+                          className={`block truncate text-[13px] font-semibold leading-tight ${
+                            rowNavigable ? 'text-[#1a5fb4]' : 'text-gray-900'
+                          }`}
+                        >
+                          {nameOriginal}
+                        </span>
                         {nameTranslation && (
                           <p className="truncate text-[11px] leading-tight text-gray-500">{nameTranslation}</p>
                         )}
@@ -729,7 +720,10 @@ function OggettiTable({
                       </div>
                     </div>
                   </td>
-                  <td className="search-results-td px-1 align-middle text-center">
+                  <td
+                    className="search-results-td px-1 align-middle text-center"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {conditionCode ? (
                       <div className="flex justify-center">
                         <ConditionBadge condition={conditionCode} size="md" />
@@ -783,21 +777,27 @@ function OggettiTable({
                   <td className="search-results-td px-1 align-middle text-right text-[13px] font-bold tabular-nums text-[#FF7300]">
                     {formatEuroNoSpace((item.price_cents ?? 0) / 100, 'it-IT')}
                   </td>
-                  <td className="search-results-td px-2 pr-3 align-middle">
+                  <td
+                    className="search-results-td px-2 pr-3 align-middle"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="flex items-center justify-end gap-1.5">
                       <button
                         type="button"
                         onClick={() => setEditItem(item)}
                         disabled={mutationsDisabled}
-                        className="inline-flex items-center gap-1 rounded bg-[#1D3160] px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-[#162847] disabled:opacity-50"
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-md shadow-orange-500/25 transition-all hover:bg-[#e86a00] hover:shadow-lg active:scale-95 disabled:opacity-50"
                         title={t('accountPage.itemsEdit')}
+                        aria-label={t('accountPage.itemsEdit')}
                       >
-                        <Pencil className="h-3 w-3 shrink-0" aria-hidden />
-                        <span>{t('accountPage.itemsEdit')}</span>
+                        <Pencil className="h-4 w-4 shrink-0" aria-hidden />
                       </button>
                       <button
                         type="button"
-                        onClick={() => openPurchaseModal(item)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openPurchaseModal(item);
+                        }}
                         disabled={
                           Boolean(mutationsDisabled) ||
                           purchasingId === item.id ||
@@ -999,6 +999,9 @@ export function OggettiContent() {
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteProgress, setBulkDeleteProgress] = useState<{ current: number; total: number } | null>(
+    null
+  );
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<OggettiViewMode>('table');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -1031,7 +1034,7 @@ export function OggettiContent() {
 
 
 
-  const ITEMS_PER_PAGE = 200;
+  const ITEMS_PER_PAGE = 80;
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(filteredInventoryItems.length / ITEMS_PER_PAGE));
   const paginatedItems = useMemo(() => {
@@ -1242,6 +1245,10 @@ export function OggettiContent() {
     void loadInventory();
   }, [user?.id, accessToken, loadInventory]);
 
+  const allFilteredSelected =
+    filteredInventoryItems.length > 0 &&
+    filteredInventoryItems.every((i) => selectedIds.has(i.id));
+
   const onToggleSelect = useCallback((id: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -1257,87 +1264,138 @@ export function OggettiContent() {
 
   const onDeselectAll = useCallback(() => setSelectedIds(new Set()), []);
 
-  const onSelectAllPage = useCallback(() => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      paginatedItems.forEach((i) => next.add(i.id));
-      return next;
-    });
-  }, [paginatedItems]);
-
-  const onDeselectAllPage = useCallback(() => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      paginatedItems.forEach((i) => next.delete(i.id));
-      return next;
-    });
-  }, [paginatedItems]);
-
   const onDeleteSelected = useCallback(
     async (ids: number[]) => {
       if (!user?.id || !accessToken || ids.length === 0) return;
-      const noun =
-        ids.length === 1 ? t('accountPage.itemsBulkNounOne') : t('accountPage.itemsBulkNounMany');
-      if (!confirm(t('accountPage.itemsBulkConfirm', { count: ids.length, noun }))) return;
       setBulkDeleting(true);
+      setBulkDeleteProgress({ current: 0, total: ids.length });
+      let successCount = 0;
+      let failCount = 0;
+      const failedIds: number[] = [];
       try {
-        for (const id of ids) {
-          await syncClient.deleteInventoryItem(user.id, id, accessToken);
+        for (let i = 0; i < ids.length; i++) {
+          try {
+            await syncClient.deleteInventoryItem(user.id, ids[i], accessToken);
+            successCount++;
+          } catch {
+            failCount++;
+            failedIds.push(ids[i]);
+          }
+          setBulkDeleteProgress({ current: i + 1, total: ids.length });
         }
         await loadInventory();
-        setSelectedIds(new Set());
+        setSelectedIds(new Set(failedIds));
+        if (failCount > 0) {
+          setToast({
+            message: t('accountPage.itemsBulkDeletePartial', { success: successCount, failed: failCount }),
+            type: 'error',
+          });
+          setError(t('accountPage.itemsBulkDeleteError'));
+        } else {
+          setToast({
+            message: t('accountPage.itemsBulkDeleteSuccess', { count: successCount }),
+            type: 'success',
+          });
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.message : t('accountPage.itemsBulkDeleteError');
         setError(msg);
       } finally {
         setBulkDeleting(false);
+        setBulkDeleteProgress(null);
       }
     },
     [user?.id, accessToken, loadInventory, t]
   );
 
   const handleBulkPriceApply = useCallback(
-    (operation: '+' | '-', percent: number, target: 'local' | 'cardmarket' | 'all') => {
+    (
+      ids: number[],
+      operation: '+' | '-',
+      percent: number,
+      platform: 'ebartex' | 'all'
+    ) => {
+      const idSet = new Set(ids);
       setInventoryItems((prev) =>
         prev.map((item) => {
-          if (!selectedIds.has(item.id)) return item;
+          if (!idSet.has(item.id)) return item;
           const currentCents = item.price_cents ?? 0;
           const factor = operation === '+' ? 1 + percent / 100 : 1 - percent / 100;
           const newPriceCents = Math.round(currentCents * factor);
           return { ...item, price_cents: newPriceCents };
         })
       );
-      if (target !== 'local') {
-        // TODO: Backend integration — sync price updates to external platforms
-        console.log('TODO: sync price updates to platforms:', target, Array.from(selectedIds));
+      if (platform === 'all') {
+        console.log('TODO: sync price updates to all platforms', ids);
       }
       setToast({
-        message: `Prezzi aggiornati: ${operation === '+' ? '+' : '-'}${percent}% su ${selectedIds.size} carte`,
+        message: t('accountPage.bulkPriceSuccess', {
+          count: ids.length,
+          sign: operation === '+' ? '+' : '−',
+          pct: percent,
+        }),
         type: 'success',
       });
-      setSelectedIds(new Set());
     },
-    [selectedIds]
+    [t]
   );
 
   const handleBulkDelete = useCallback(
     async (deleteFromPlatforms: boolean): Promise<void> => {
-      const idsToDelete = new Set(selectedIds);
-      setInventoryItems((prev) => prev.filter((item) => !idsToDelete.has(item.id)));
-      setSelectedIds(new Set());
-      if (deleteFromPlatforms) {
-        // TODO: Backend integration — delete from external platforms
-        console.log('TODO: delete from external platforms', Array.from(idsToDelete));
+      if (!user?.id || !accessToken) return;
+      const ids = Array.from(selectedIds);
+      if (ids.length === 0) return;
+
+      setBulkDeleting(true);
+      setBulkDeleteProgress({ current: 0, total: ids.length });
+      let successCount = 0;
+      let failCount = 0;
+      const failedIds: number[] = [];
+
+      try {
+        for (let i = 0; i < ids.length; i++) {
+          try {
+            await syncClient.deleteInventoryItem(user.id, ids[i], accessToken);
+            successCount++;
+          } catch {
+            failCount++;
+            failedIds.push(ids[i]);
+          }
+          setBulkDeleteProgress({ current: i + 1, total: ids.length });
+        }
+
+        if (deleteFromPlatforms) {
+          console.log('TODO: delete from external platforms', ids);
+        }
+
+        await loadInventory();
+        setSelectedIds(new Set(failedIds));
+
+        if (failCount > 0) {
+          setToast({
+            message: t('accountPage.itemsBulkDeletePartial', { success: successCount, failed: failCount }),
+            type: 'error',
+          });
+          setError(t('accountPage.itemsBulkDeleteError'));
+        } else {
+          setToast({
+            message: t('accountPage.itemsBulkDeleteSuccess', { count: successCount }),
+            type: 'success',
+          });
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : t('accountPage.itemsBulkDeleteError');
+        setError(msg);
+      } finally {
+        setBulkDeleting(false);
+        setBulkDeleteProgress(null);
       }
-      setToast({
-        message: `${idsToDelete.size} carte eliminate dall'inventario`,
-        type: 'success',
-      });
     },
-    [selectedIds]
+    [user?.id, accessToken, selectedIds, loadInventory, t]
   );
 
-  useEffect(() => {
+  const PLACEHOLDER_DELETE_REMOVED = null;
+  const _removedOnSelectAllPage = useCallback(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 3500);
     return () => clearTimeout(timer);
