@@ -98,6 +98,12 @@ export function BulkPriceWizardModal({
     return STEPS;
   }, [scope]);
 
+  useEffect(() => {
+    if (step >= visibleSteps.length) {
+      setStep(Math.max(0, visibleSteps.length - 1));
+    }
+  }, [visibleSteps.length, step]);
+
   const currentStepKey = visibleSteps[step] ?? STEPS[0];
 
   const toggleWizardSelect = (id: number) => {

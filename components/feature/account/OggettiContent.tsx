@@ -1400,9 +1400,6 @@ export function OggettiContent() {
     [user?.id, accessToken, selectedIds, loadInventory, t]
   );
 
-  const PLACEHOLDER_DELETE_REMOVED = null;
-  void PLACEHOLDER_DELETE_REMOVED;
-
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 3500);
@@ -1598,7 +1595,7 @@ export function OggettiContent() {
         </div>
       ) : (
         <>
-          {!syncEnabled && filteredInventoryItems.length > 0 && (
+          {filteredInventoryItems.length > 0 && (
             <div className="mb-5 overflow-hidden rounded-2xl border border-stroke-grey bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
               <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 {/* Counter */}
@@ -1616,7 +1613,7 @@ export function OggettiContent() {
                     </div>
                   </div>
                   <div className="h-8 w-px bg-gray-200" />
-                  <div className="flex gap-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                     <button
                       type="button"
                       onClick={onSelectAll}
@@ -1632,19 +1629,51 @@ export function OggettiContent() {
                     >
                       {t('accountPage.itemsSelectNone')}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsBulkPriceOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-all hover:bg-primary/10"
+                    >
+                      <TrendingUp className="h-3.5 w-3.5" />
+                      {t('accountPage.itemsModifyPrices')}
+                    </button>
+                    {selectedIds.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setIsBulkDeleteOpen(true)}
+                        disabled={bulkDeleting}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-all hover:border-red-300 hover:bg-red-100 disabled:opacity-50"
+                      >
+                        {bulkDeleting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        {t('accountPage.itemsDeleteSelected')} ({selectedIds.size})
+                      </button>
+                    )}
                   </div>
                 </div>
-                {/* Export selezione */}
-                {selectedIds.size > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleExportSelectionCSV}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-emerald-400 hover:text-emerald-600"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    {t('accountPage.itemsExport')} ({selectedIds.size})
-                  </button>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {bulkDeleteProgress && (
+                    <span className="text-xs text-gray-500">
+                      {t('accountPage.itemsBulkDeleteProgress', {
+                        current: bulkDeleteProgress.current,
+                        total: bulkDeleteProgress.total,
+                      })}
+                    </span>
+                  )}
+                  {selectedIds.size > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleExportSelectionCSV}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-emerald-400 hover:text-emerald-600"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      {t('accountPage.itemsExport')} ({selectedIds.size})
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -1738,18 +1767,18 @@ export function OggettiContent() {
 
       </main>
 
-      <BulkPriceModal
+      <BulkPriceWizardModal
         isOpen={isBulkPriceOpen}
         onClose={() => setIsBulkPriceOpen(false)}
-        selectedItems={filteredInventoryItems.filter((item) => selectedIds.has(item.id))}
-        syncStatus={syncAnyPending ? 'syncing' : syncEnabled ? 'active' : 'inactive'}
+        filteredInventoryItems={filteredInventoryItems}
         onApply={handleBulkPriceApply}
       />
       <BulkDeleteModal
         isOpen={isBulkDeleteOpen}
         onClose={() => setIsBulkDeleteOpen(false)}
-        selectedItems={filteredInventoryItems.filter((item) => selectedIds.has(item.id))}
+        selectedItems={inventoryItems.filter((item) => selectedIds.has(item.id))}
         syncStatus={syncAnyPending ? 'syncing' : syncEnabled ? 'active' : 'inactive'}
+        deleteProgress={bulkDeleteProgress}
         onConfirm={handleBulkDelete}
       />
 
@@ -1760,33 +1789,44 @@ export function OggettiContent() {
             {/* Left */}
             <div className="flex items-center gap-3">
               <span className="text-sm font-bold text-gray-900">
-                {selectedIds.size} carte selezionate
+                {t('accountPage.itemsSelectedCount', { count: selectedIds.size })}
               </span>
               <button
                 type="button"
                 onClick={onDeselectAll}
                 className="text-sm text-gray-400 transition-colors hover:text-gray-700"
               >
-                Deseleziona tutto
+                {t('accountPage.itemsDeselectAll')}
               </button>
             </div>
-            {/* Center */}
+            {bulkDeleteProgress && (
+              <span className="text-xs text-gray-500">
+                {t('accountPage.itemsBulkDeleteProgress', {
+                  current: bulkDeleteProgress.current,
+                  total: bulkDeleteProgress.total,
+                })}
+              </span>
+            )}
             <button
               type="button"
               onClick={() => setIsBulkPriceOpen(true)}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md active:scale-95"
             >
               <TrendingUp className="h-4 w-4" />
-              Modifica Prezzi
+              {t('accountPage.itemsModifyPrices')}
             </button>
-            {/* Right */}
             <button
               type="button"
               onClick={() => setIsBulkDeleteOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-5 py-2.5 text-sm font-bold text-red-500 transition-all hover:border-red-400 hover:bg-red-50 active:scale-95"
+              disabled={bulkDeleting}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-5 py-2.5 text-sm font-bold text-red-500 transition-all hover:border-red-400 hover:bg-red-50 active:scale-95 disabled:opacity-50"
             >
-              <Trash2 className="h-4 w-4" />
-              Elimina selezionate
+              {bulkDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              {t('accountPage.itemsDeleteSelected')}
             </button>
           </div>
         </div>

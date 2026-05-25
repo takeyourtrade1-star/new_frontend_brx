@@ -14,6 +14,7 @@ interface BulkDeleteModalProps {
   onClose: () => void;
   selectedItems: InventoryItemWithCatalog[];
   syncStatus: 'active' | 'inactive' | 'syncing';
+  deleteProgress?: { current: number; total: number } | null;
   onConfirm: (deleteFromPlatforms: boolean) => Promise<void>;
 }
 
@@ -22,6 +23,7 @@ export function BulkDeleteModal({
   onClose,
   selectedItems,
   syncStatus,
+  deleteProgress,
   onConfirm,
 }: BulkDeleteModalProps) {
   const [deleteFromPlatforms, setDeleteFromPlatforms] = useState(false);
@@ -89,6 +91,11 @@ export function BulkDeleteModal({
         </div>
 
         <div className="p-6 space-y-5">
+          {deleteProgress && (
+            <p className="text-sm font-medium text-gray-600">
+              Eliminazione {deleteProgress.current} di {deleteProgress.total}…
+            </p>
+          )}
           {/* Sezione 1 — Riepilogo carte */}
           <div className="overflow-hidden rounded-xl border border-gray-200">
             <div className="max-h-48 divide-y divide-gray-100 overflow-y-auto">
