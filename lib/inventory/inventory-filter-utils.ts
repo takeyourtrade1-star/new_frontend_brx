@@ -60,6 +60,24 @@ export function getInventoryLanguageLabel(code: string | null | undefined): stri
   return LANG_CODE_TO_LABEL[c] ?? c;
 }
 
+/** Codice lingua inventario → codice paese per FlagIcon (allineato a ModernSellerTable). */
+const INVENTORY_LANGUAGE_TO_FLAG: Record<string, string> = {
+  en: 'GB',
+  it: 'IT',
+  de: 'DE',
+  fr: 'FR',
+  es: 'ES',
+  pt: 'PT',
+  ja: 'JP',
+  jp: 'JP',
+};
+
+export function getInventoryLanguageFlag(code: string | null | undefined): string | null {
+  if (code == null || code === '') return null;
+  const key = String(code).toLowerCase().trim();
+  return INVENTORY_LANGUAGE_TO_FLAG[key] ?? key.toUpperCase().slice(0, 2);
+}
+
 export function getInventoryConditionCode(raw: string | null | undefined): ConditionCode | null {
   if (raw == null || raw === '') return null;
   const trimmed = String(raw).trim();

@@ -656,6 +656,8 @@ export const pt: Record<MessageKey, string> = {
   'accountPage.itemsTableCard': 'Carta',
   'accountPage.itemsTableSet': 'Set',
   'accountPage.itemsTableDetails': 'Detalhes',
+  'accountPage.itemsTableCondShort': 'Cond.',
+  'accountPage.itemsTableLangShort': 'Idioma',
   'accountPage.itemsTableQty': 'Qtd',
   'accountPage.itemsTablePrice': 'Preço',
   'accountPage.itemsTableActions': 'Ações',

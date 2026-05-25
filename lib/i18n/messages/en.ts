@@ -654,6 +654,8 @@ export const en = {
   'accountPage.itemsTableCard': 'Card',
   'accountPage.itemsTableSet': 'Set',
   'accountPage.itemsTableDetails': 'Details',
+  'accountPage.itemsTableCondShort': 'Cond.',
+  'accountPage.itemsTableLangShort': 'Lang.',
   'accountPage.itemsTableQty': 'Qty',
   'accountPage.itemsTablePrice': 'Price',
   'accountPage.itemsTableActions': 'Actions',

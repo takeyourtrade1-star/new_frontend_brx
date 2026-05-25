@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ConditionBadge } from '@/components/ui/ConditionBadge';
-import type { ConditionCode } from '@/components/ui/ConditionBadge';
 import {
   CheckSquare,
   ChevronLeft,
@@ -14,15 +13,15 @@ import {
   FileJson,
   FileSpreadsheet,
   Flame,
-  Globe,
   Library,
+  PenLine,
+  Sparkles,
   Loader2,
   Package,
   Pencil,
   RefreshCw,
   ShoppingCart,
   Square,
-  Star,
   Trash2,
   TrendingUp,
   X,
@@ -48,9 +47,18 @@ import { InventorySortBar } from '@/components/feature/account/InventorySortBar'
 import {
   applyInventoryFilters,
   buildInventoryFacets,
+  getInventoryConditionCode,
+  getInventoryLanguageFlag,
   getInventoryLanguageLabel,
   sanitizeInventoryFilters,
 } from '@/lib/inventory/inventory-filter-utils';
+import { FlagIcon } from '@/components/ui/FlagIcon';
+import { RarityIndicator } from '@/components/ui/RarityIndicator';
+import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
+import { SetIconBadge } from '@/components/ui/SetIconBadge';
+import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
+import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
+import { formatEuroNoSpace } from '@/lib/utils';
 import { BulkPriceModal } from '@/components/feature/account/BulkPriceModal';
 import { BulkDeleteModal } from '@/components/feature/account/BulkDeleteModal';
 
@@ -343,20 +351,20 @@ function OggettiTable({
 
   if (viewMode === 'cards') {
     return (
+      <RarityLegendProvider>
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5">
         {items.map((item) => {
           const imgUrl = item.card?.image
             ? buildImageUrl(item.card.image) || defaultImage
             : defaultImage;
-          const condition =
-            item.properties && typeof item.properties.condition === 'string'
-              ? item.properties.condition
-              : '—';
           const languageCode =
             item.properties && typeof item.properties.mtg_language === 'string'
               ? item.properties.mtg_language
               : null;
-          const languageLabel = getInventoryLanguageLabel(languageCode);
+          const langFlag = getInventoryLanguageFlag(languageCode);
+          const conditionCode = getInventoryConditionCode(
+            item.properties?.condition as string | undefined
+          );
           const displayNames: { primary: string; secondary: string | null } = item.card
             ? getCardDisplayNames(
                 { name: item.card.name ?? '', keywords_localized: item.card.keywords_localized },
@@ -493,26 +501,15 @@ function OggettiTable({
                   <span className="truncate font-medium">{item.card?.set_name || '—'}</span>
                 </div>
 
-                {/* Stats Row - Condition, Language, Rarity - Glass Effect */}
+                {/* Stats Row - Condition, Language, Rarity */}
                 <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <ConditionBadge condition={condition as ConditionCode} size="sm" />
-                  {languageLabel && (
-                    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-gray-700 bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-sm">
-                      <Globe className="h-3 w-3 text-gray-500" />
-                      {languageLabel}
-                    </span>
+                  {conditionCode ? (
+                    <ConditionBadge condition={conditionCode} size="sm" />
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
                   )}
-                  {item.card?.rarity && (
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm border shadow-sm ${
-                      item.card.rarity === 'Rare' ? 'bg-purple-500/15 text-purple-700 border-purple-500/30' :
-                      item.card.rarity === 'Mythic' ? 'bg-amber-500/15 text-amber-700 border-amber-500/30' :
-                      item.card.rarity === 'Uncommon' ? 'bg-blue-500/15 text-blue-700 border-blue-500/30' :
-                      'bg-gray-500/10 text-gray-600 border-gray-500/20'
-                    }`}>
-                      <Star className="h-2.5 w-2.5 mr-0.5" />
-                      {item.card.rarity}
-                    </span>
-                  )}
+                  {langFlag && <FlagIcon country={langFlag} size="xs" title={getInventoryLanguageLabel(languageCode)} />}
+                  {item.card?.rarity && <RarityIndicator rarity={item.card.rarity} size="sm" showLabel />}
                 </div>
 
                 {/* Price & Quantity Footer */}
@@ -551,219 +548,286 @@ function OggettiTable({
           );
         })}
       </div>
+      </RarityLegendProvider>
     );
   }
 
   return (
-    <div className="max-w-full overflow-hidden rounded-2xl border border-stroke-grey bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+    <RarityLegendProvider>
+    <div className="max-w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="max-w-full overflow-x-auto">
-        <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+        <table className="search-results-table w-full min-w-[980px] table-fixed border-collapse text-left text-sm">
+          <colgroup>
+            {selectionMode && <col style={{ width: '2.5rem' }} />}
+            <col style={{ width: '36%' }} />
+            <col style={{ width: '4.5rem' }} />
+            <col style={{ width: '5.5rem' }} />
+            <col style={{ width: '4rem' }} />
+            <col style={{ width: '4rem' }} />
+            <col style={{ width: '5rem' }} />
+            <col style={{ width: '7rem' }} />
+            <col style={{ width: '11rem' }} />
+          </colgroup>
           <thead>
-            <tr className="border-b border-stroke-grey bg-gray-50/80">
+            <tr className="search-results-thead">
               {selectionMode && (
-                <th className="w-0 p-3">
+                <th className="search-results-th pl-2 pr-0">
                   <button
                     type="button"
                     onClick={() => (allSelected ? deselectAllHandler?.() : selectAllHandler?.())}
-                    className="inline-flex items-center justify-center rounded-lg p-2 text-gray-500 transition-colors hover:bg-white hover:shadow-sm"
+                    className="inline-flex items-center justify-center rounded p-1 text-white/90 transition-colors hover:bg-white/10"
                     title={allSelected ? (onDeselectAllPage ? 'Deseleziona pagina' : 'Deseleziona tutte') : (onSelectAllPage ? 'Seleziona pagina' : 'Seleziona tutte')}
                     aria-label={allSelected ? 'Deseleziona' : 'Seleziona pagina'}
                   >
                     {allSelected ? (
-                      <CheckSquare className="h-5 w-5 text-primary" aria-hidden />
+                      <CheckSquare className="h-4 w-4" aria-hidden />
                     ) : (
-                      <Square className="h-5 w-5" aria-hidden />
+                      <Square className="h-4 w-4" aria-hidden />
                     )}
                   </button>
                 </th>
               )}
-              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">{t('accountPage.itemsTableCard')}</th>
-              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">{t('accountPage.itemsTableSet')}</th>
-              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">{t('accountPage.itemsTableDetails')}</th>
-              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">{t('accountPage.itemsTableQty')}</th>
-              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500">{t('accountPage.itemsTablePrice')}</th>
-              <th className="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500 text-right">{t('accountPage.itemsTableActions')}</th>
+              <th className="search-results-th pl-2 pr-3 text-left">{t('accountPage.itemsTableCard')}</th>
+              <th className="search-results-th px-1 text-center">{t('accountPage.itemsTableCondShort')}</th>
+              <th className="search-results-th px-1 text-center">{t('accountPage.itemsTableLangShort')}</th>
+              <th className="search-results-th px-1 text-right">{t('search.thNumber')}</th>
+              <th className="search-results-th px-1 text-center">{t('search.thRarity')}</th>
+              <th className="search-results-th px-1 text-right">{t('accountPage.itemsTableQty')}</th>
+              <th className="search-results-th px-1 text-right">{t('accountPage.itemsTablePrice')}</th>
+              <th className="search-results-th px-2 pr-3 text-right">{t('accountPage.itemsTableActions')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stroke-grey">
+          <tbody>
             {items.map((item) => {
               const imgUrl = item.card?.image
                 ? buildImageUrl(item.card.image) || defaultImage
                 : defaultImage;
-              const condition =
-                item.properties && typeof item.properties.condition === 'string'
-                  ? item.properties.condition
-                  : '—';
               const languageCode =
                 item.properties && typeof item.properties.mtg_language === 'string'
                   ? item.properties.mtg_language
                   : null;
-              const languageLabel = getInventoryLanguageLabel(languageCode);
+              const langFlag = getInventoryLanguageFlag(languageCode);
+              const conditionCode = getInventoryConditionCode(
+                item.properties?.condition as string | undefined
+              );
               const displayNames: { primary: string; secondary: string | null } = item.card
                 ? getCardDisplayNames(
                     { name: item.card.name ?? '', keywords_localized: item.card.keywords_localized },
                     selectedLang
                   )
                 : { primary: `Carta #${item.blueprint_id}`, secondary: null };
+              const nameOriginal = displayNames.secondary ?? displayNames.primary;
+              const nameTranslation = displayNames.secondary ? displayNames.primary : null;
               const namePrimary = (displayNames.primary || item.card?.name) ?? `Carta #${item.blueprint_id}`;
               const hasFoil = item.properties?.mtg_foil === true;
               const isSigned = item.properties?.signed === true;
               const isGraded = item.graded === true;
+              const setName = item.card?.set_name ?? '';
+              const setPageGame = resolveSetPageGameSlug(item.card?.game_slug);
+              const setPageHref = setName ? buildSetPageUrl(setPageGame, setName) : null;
+              const productHref = item.card?.id ? `/products/${item.card.id}` : null;
 
               return (
                 <tr
                   key={item.id}
-                  className="group transition-all duration-200 hover:bg-gray-50/60"
+                  className="search-result-row border-b border-gray-100/90"
                 >
                   {selectionMode && (
-                    <td className="w-0 p-3 align-middle">
+                    <td className="search-results-td pl-2 pr-0 align-middle">
                       <button
                         type="button"
                         onClick={() => onToggleSelect?.(item.id)}
-                        className={`inline-flex items-center justify-center rounded-lg p-2 transition-colors ${
-                          selectedIds!.has(item.id) 
-                            ? 'text-primary' 
+                        className={`inline-flex items-center justify-center rounded p-1 transition-colors ${
+                          selectedIds!.has(item.id)
+                            ? 'text-primary'
                             : 'text-gray-400 hover:text-primary'
                         }`}
                         aria-label={selectedIds!.has(item.id) ? 'Deseleziona' : 'Seleziona'}
                       >
                         {selectedIds!.has(item.id) ? (
-                          <CheckSquare className="h-5 w-5" aria-hidden />
+                          <CheckSquare className="h-4 w-4" aria-hidden />
                         ) : (
-                          <Square className="h-5 w-5" aria-hidden />
+                          <Square className="h-4 w-4" aria-hidden />
                         )}
                       </button>
                     </td>
                   )}
-                  {/* Card Column - Image + Name */}
-                  <td className="p-3">
-                    <div className="flex items-center gap-3">
-                      {item.card?.id ? (
-                        <Link
-                          href={`/products/${item.card.id}`}
-                          className="group/img relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100 ring-1 ring-gray-200 transition-all hover:ring-primary/50"
-                        >
+                  <td className="search-results-td min-w-0 pl-2 pr-3 align-middle">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <CardImageCameraPeek
+                        imageUrl={imgUrl}
+                        name={namePrimary}
+                        previewSide="right"
+                        className="!h-5 !w-5 shrink-0 text-[#3D65C6]"
+                      />
+                      <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-50">
+                        {productHref ? (
+                          <Link href={productHref} className="block h-full w-full">
+                            <Image
+                              src={imgUrl}
+                              alt=""
+                              fill
+                              className="object-cover object-top"
+                              sizes="36px"
+                              unoptimized={imgUrl.startsWith('http') || imgUrl === defaultImage}
+                            />
+                          </Link>
+                        ) : (
                           <Image
                             src={imgUrl}
                             alt=""
                             fill
                             className="object-cover object-top"
-                            sizes="40px"
+                            sizes="36px"
                             unoptimized={imgUrl.startsWith('http') || imgUrl === defaultImage}
                           />
-                        </Link>
-                      ) : (
-                        <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100 ring-1 ring-gray-200">
-                          <Image
-                            src={imgUrl}
-                            alt=""
-                            fill
-                            className="object-cover object-top"
-                            sizes="40px"
-                            unoptimized={imgUrl.startsWith('http') || imgUrl === defaultImage}
+                        )}
+                      </div>
+                      {(setName || item.card?.game_slug) && (
+                        setPageHref ? (
+                          <Link
+                            href={setPageHref}
+                            title={setName}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex shrink-0 items-center justify-center rounded transition-opacity hover:opacity-80"
+                          >
+                            <SetIconBadge
+                              setName={setName}
+                              gameSlug={item.card?.game_slug}
+                              imageClassName="h-6 w-6 object-contain"
+                            />
+                          </Link>
+                        ) : (
+                          <SetIconBadge
+                            setName={setName}
+                            gameSlug={item.card?.game_slug}
+                            imageClassName="h-6 w-6 object-contain"
                           />
-                        </div>
+                        )
                       )}
                       <div className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold text-gray-900">{namePrimary}</span>
-                        {displayNames.secondary && (
-                          <span className="block truncate text-xs text-gray-500">{displayNames.secondary}</span>
+                        {productHref ? (
+                          <Link
+                            href={productHref}
+                            className="block truncate text-[13px] font-semibold leading-tight text-[#1a5fb4] hover:underline"
+                          >
+                            {nameOriginal}
+                          </Link>
+                        ) : (
+                          <span className="block truncate text-[13px] font-semibold leading-tight text-gray-900">
+                            {nameOriginal}
+                          </span>
                         )}
-                        {/* Special Tags - Table View - Glass Effect */}
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {hasFoil && (
-                            <span className="rounded-full bg-amber-500/20 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-700 border border-amber-500/30">
-                              {t('accountPage.itemsBadgeFoil')}
-                            </span>
-                          )}
-                          {isSigned && (
-                            <span className="rounded-full bg-purple-500/20 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-bold uppercase text-purple-700 border border-purple-500/30">
-                              {t('accountPage.itemsBadgeSigned')}
-                            </span>
-                          )}
-                          {isGraded && (
-                            <span className="rounded-full bg-blue-500/20 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-700 border border-blue-500/30">
-                              {t('accountPage.itemsBadgeGraded')}
-                            </span>
-                          )}
-                        </div>
+                        {nameTranslation && (
+                          <p className="truncate text-[11px] leading-tight text-gray-500">{nameTranslation}</p>
+                        )}
+                        {setName && (
+                          <p className="truncate text-[10px] leading-tight text-gray-400" title={setName}>
+                            {setName}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </td>
-                  {/* Set Column */}
-                  <td className="p-3">
-                    <span className="block truncate max-w-[140px] text-sm text-gray-600">{item.card?.set_name ?? '—'}</span>
-                    {item.card?.collector_number && (
-                      <span className="text-xs text-gray-400">#{item.card.collector_number}</span>
+                  <td className="search-results-td px-1 align-middle text-center">
+                    {conditionCode ? (
+                      <div className="flex justify-center">
+                        <ConditionBadge condition={conditionCode} size="md" />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">–</span>
                     )}
                   </td>
-                  {/* Details Column - Condition, Rarity, Language - Glass Effect */}
-                  <td className="p-3">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <ConditionBadge condition={condition as ConditionCode} size="sm" />
-                      {item.card?.rarity && (
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm border shadow-sm ${
-                          item.card.rarity === 'Rare' ? 'bg-purple-500/15 text-purple-700 border-purple-500/30' :
-                          item.card.rarity === 'Mythic' ? 'bg-amber-500/15 text-amber-700 border-amber-500/30' :
-                          item.card.rarity === 'Uncommon' ? 'bg-blue-500/15 text-blue-700 border-blue-500/30' :
-                          'bg-gray-500/10 text-gray-600 border-gray-500/20'
-                        }`}>
-                          {item.card.rarity}
+                  <td className="search-results-td px-1 align-middle">
+                    <div className="flex items-center justify-center gap-1">
+                      {langFlag ? (
+                        <FlagIcon
+                          country={langFlag}
+                          size="xs"
+                          title={getInventoryLanguageLabel(languageCode)}
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-400">–</span>
+                      )}
+                      {hasFoil && (
+                        <span title={t('accountPage.itemsBadgeFoil')} className="text-amber-500">
+                          <Sparkles className="h-3.5 w-3.5" aria-hidden />
                         </span>
                       )}
-                      {languageLabel && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-white/60 backdrop-blur-sm px-2 py-0.5 text-[11px] font-medium text-gray-700 border border-gray-200/60 shadow-sm">
-                          <Globe className="h-3 w-3 text-gray-500" />
-                          {languageLabel}
+                      {isSigned && (
+                        <span title={t('accountPage.itemsBadgeSigned')} className="text-gray-700">
+                          <PenLine className="h-3.5 w-3.5" aria-hidden />
+                        </span>
+                      )}
+                      {isGraded && (
+                        <span
+                          title={t('accountPage.itemsBadgeGraded')}
+                          className="text-[9px] font-bold uppercase text-blue-600"
+                        >
+                          PSA
                         </span>
                       )}
                     </div>
                   </td>
-                  {/* Quantity Column - Glass Effect */}
-                  <td className="p-3">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/60 backdrop-blur-sm px-2.5 py-1 text-sm font-semibold text-gray-700 border border-gray-200/60 shadow-sm">
-                      <Package className="h-3.5 w-3.5 text-gray-500" />
-                      {item.quantity}
-                    </span>
+                  <td className="search-results-td px-1 align-middle text-right text-[11px] tabular-nums text-gray-600">
+                    {item.card?.collector_number ?? '–'}
                   </td>
-                  {/* Price Column */}
-                  <td className="p-3">
-                    <span className="text-base font-bold text-primary tabular-nums">
-                      {(item.price_cents / 100).toFixed(2)}€
-                    </span>
+                  <td className="search-results-td px-1 align-middle text-center">
+                    <div className="flex justify-center">
+                      <RarityIndicator rarity={item.card?.rarity} size="sm" />
+                    </div>
                   </td>
-                  {/* Actions Column */}
-                  <td className="p-3">
-                    <div className="flex items-center justify-end gap-1">
+                  <td className="search-results-td px-1 align-middle text-right text-[13px] font-semibold tabular-nums text-gray-800">
+                    {item.quantity}
+                  </td>
+                  <td className="search-results-td px-1 align-middle text-right text-[13px] font-bold tabular-nums text-[#FF7300]">
+                    {formatEuroNoSpace((item.price_cents ?? 0) / 100, 'it-IT')}
+                  </td>
+                  <td className="search-results-td px-2 pr-3 align-middle">
+                    <div className="flex items-center justify-end gap-1.5">
                       <button
                         type="button"
                         onClick={() => setEditItem(item)}
                         disabled={mutationsDisabled}
-                        className="inline-flex items-center justify-center rounded-lg p-2 text-gray-500 transition-all hover:bg-primary/10 hover:text-primary disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded bg-[#1D3160] px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-[#162847] disabled:opacity-50"
                         title={t('accountPage.itemsEdit')}
-                        aria-label={t('accountPage.itemsEdit')}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-3 w-3 shrink-0" aria-hidden />
+                        <span>{t('accountPage.itemsEdit')}</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => openPurchaseModal(item)}
-                        disabled={Boolean(mutationsDisabled) || purchasingId === item.id || deletingId === item.id || !item.external_stock_id || item.quantity < 1}
-                        className="inline-flex items-center justify-center rounded-lg p-2 text-emerald-600 transition-all hover:bg-emerald-50 disabled:opacity-50"
+                        disabled={
+                          Boolean(mutationsDisabled) ||
+                          purchasingId === item.id ||
+                          deletingId === item.id ||
+                          !item.external_stock_id ||
+                          item.quantity < 1
+                        }
+                        className="inline-flex h-7 w-7 items-center justify-center rounded border border-gray-200 bg-white text-emerald-600 transition-colors hover:bg-emerald-50 disabled:opacity-50"
                         title={t('accountPage.itemsCart')}
                         aria-label={t('accountPage.itemsCart')}
                       >
-                        {purchasingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+                        {purchasingId === item.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <ShoppingCart className="h-3.5 w-3.5" />
+                        )}
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDelete(item)}
                         disabled={mutationsDisabled || deletingId === item.id}
-                        className="inline-flex items-center justify-center rounded-lg p-2 text-red-400 transition-all hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded bg-red-600 text-white transition-colors hover:bg-red-700 disabled:opacity-50"
                         title={t('accountPage.itemsDelete')}
                         aria-label={t('accountPage.itemsDelete')}
                       >
-                        {deletingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        {deletingId === item.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
                       </button>
                     </div>
                   </td>
@@ -870,6 +934,7 @@ function OggettiTable({
         />
       )}
     </div>
+    </RarityLegendProvider>
   );
 }
 

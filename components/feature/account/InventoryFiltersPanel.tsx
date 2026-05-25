@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type CSSProperties } from 'react';
 import Link from 'next/link';
 import {
   ChevronLeft,
@@ -607,20 +607,28 @@ export function InventoryFiltersPanel({
     </div>
   );
 
-  const stickyStyle = {
+  const panelWidth = collapsed ? 48 : 280;
+
+  const fixedPanelStyle: CSSProperties = {
     top: stickyTopWithGap,
-    maxHeight: `calc(100vh - ${stickyTopWithGap}px)`,
+    left: 'max(1.5rem, env(safe-area-inset-left, 0px))',
+    width: panelWidth,
+    height: `calc(100vh - ${stickyTopWithGap}px)`,
   };
 
   return (
     <>
+      {/* Spacer: riserva spazio nel flex mentre il pannello è position:fixed */}
+      <div
+        className="hidden shrink-0 transition-all duration-300 lg:block"
+        style={{ width: panelWidth }}
+        aria-hidden
+      />
       <aside
-        className={`relative hidden lg:flex flex-col shrink-0 self-start z-20 sticky transition-all duration-300 ${
-          collapsed ? 'w-12' : 'w-[280px]'
-        }`}
-        style={stickyStyle}
+        className="fixed z-30 hidden flex-col transition-all duration-300 lg:flex"
+        style={fixedPanelStyle}
       >
-        <div className="flex h-full max-h-[inherit] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white/70 shadow-sm backdrop-blur-md">
+        <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white/70 shadow-sm backdrop-blur-md">
           <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3">
             {!collapsed && (
               <div className="flex items-center gap-2">
