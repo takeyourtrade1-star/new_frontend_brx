@@ -784,7 +784,10 @@ function OggettiTable({
                     <div className="flex items-center justify-end gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setEditItem(item)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditItem(item);
+                        }}
                         disabled={mutationsDisabled}
                         className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-md shadow-orange-500/25 transition-all hover:bg-[#e86a00] hover:shadow-lg active:scale-95 disabled:opacity-50"
                         title={t('accountPage.itemsEdit')}
@@ -817,7 +820,10 @@ function OggettiTable({
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(item)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(item);
+                        }}
                         disabled={mutationsDisabled || deletingId === item.id}
                         className="inline-flex h-7 w-7 items-center justify-center rounded bg-red-600 text-white transition-colors hover:bg-red-700 disabled:opacity-50"
                         title={t('accountPage.itemsDelete')}
@@ -1395,7 +1401,9 @@ export function OggettiContent() {
   );
 
   const PLACEHOLDER_DELETE_REMOVED = null;
-  const _removedOnSelectAllPage = useCallback(() => {
+  void PLACEHOLDER_DELETE_REMOVED;
+
+  useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 3500);
     return () => clearTimeout(timer);
@@ -1662,8 +1670,7 @@ export function OggettiContent() {
             onToggleSelect={onToggleSelect}
             onSelectAll={onSelectAll}
             onDeselectAll={onDeselectAll}
-            onSelectAllPage={onSelectAllPage}
-            onDeselectAllPage={onDeselectAllPage}
+            allFilteredSelected={allFilteredSelected}
             onDeleteSelected={(ids) => onDeleteSelected(ids)}
             bulkDeleting={bulkDeleting}
             viewMode={viewMode}
