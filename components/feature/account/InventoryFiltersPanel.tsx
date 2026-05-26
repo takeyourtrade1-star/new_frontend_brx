@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { ConditionBadge } from '@/components/ui/ConditionBadge';
 import type { ConditionCode } from '@/components/ui/ConditionBadge';
+import { CardLanguageFlag } from '@/components/ui/CardLanguageFlag';
 import { useHeaderStickyOffset } from '@/lib/hooks/useHeaderStickyOffset';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { InventoryFacets } from '@/lib/inventory/inventory-filter-utils';
@@ -254,9 +255,9 @@ export function InventoryFiltersPanel({
             {filters.languages.map((l) => (
               <span
                 key={l}
-                className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm"
               >
-                {l.toUpperCase()}
+                <CardLanguageFlag code={l} size="xs" title={l} />
                 <button
                   type="button"
                   onClick={() => toggleMulti('languages', l)}
@@ -400,8 +401,8 @@ export function InventoryFiltersPanel({
                       onChange={() => toggleMulti('languages', code)}
                       className="h-4 w-4 shrink-0 rounded border-gray-300 accent-primary"
                     />
+                    <CardLanguageFlag code={code} size="xs" title={label} />
                     <span className="flex-1 text-sm text-gray-700">{label}</span>
-                    <span className="font-mono text-[11px] text-gray-400">{code.toUpperCase()}</span>
                     <span className="text-xs tabular-nums text-gray-400">{count}</span>
                   </label>
                 ))}

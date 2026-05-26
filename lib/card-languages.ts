@@ -26,21 +26,6 @@ export const CARD_LANGUAGE_LABEL_BY_CODE: Readonly<Record<string, string>> = {
   ro: 'Română',
 };
 
-/** Codici con componente SVG in FlagIcon. */
-export const CARD_LANGUAGE_SVG_FLAG_CODES = new Set([
-  'IT',
-  'DE',
-  'FR',
-  'ES',
-  'AT',
-  'CH',
-  'GB',
-  'US',
-  'PT',
-  'UK',
-  'EN',
-]);
-
 const CARD_LANGUAGE_TO_FLAG: Readonly<Record<string, string>> = {
   en: 'GB',
   it: 'IT',
@@ -64,19 +49,6 @@ const CARD_LANGUAGE_TO_FLAG: Readonly<Record<string, string>> = {
   'zh-tw': 'TW',
 };
 
-/** Bandiera emoji quando non c’è SVG dedicato in FlagIcon. */
-const CARD_LANGUAGE_EMOJI: Readonly<Record<string, string>> = {
-  JP: '🇯🇵',
-  KR: '🇰🇷',
-  CN: '🇨🇳',
-  TW: '🇹🇼',
-  RU: '🇷🇺',
-  PL: '🇵🇱',
-  CZ: '🇨🇿',
-  HU: '🇭🇺',
-  RO: '🇷🇴',
-};
-
 export type CardLanguageOption = {
   /** Codice conservato per API (primo alias visto in available_languages). */
   code: string;
@@ -84,7 +56,6 @@ export type CardLanguageOption = {
   canonical: string;
   label: string;
   flagCode: string;
-  emoji: string | null;
 };
 
 /** Normalizza per label/flag/dedupe; non altera il valore inviato all’API se si usa `code` grezzo. */
@@ -110,14 +81,6 @@ export function getCardLanguageFlagCode(code: string | null | undefined): string
   return CARD_LANGUAGE_TO_FLAG[key] ?? key.toUpperCase().slice(0, 2);
 }
 
-export function getCardLanguageEmoji(flagCode: string): string | null {
-  return CARD_LANGUAGE_EMOJI[flagCode.toUpperCase()] ?? null;
-}
-
-export function hasCardLanguageSvgFlag(flagCode: string): boolean {
-  return CARD_LANGUAGE_SVG_FLAG_CODES.has(flagCode.toUpperCase());
-}
-
 /**
  * Tutte le lingue disponibili per una carta, senza limite numerico.
  * Deduplica per chiave canonica (es. jp+ja → una voce).
@@ -132,7 +95,6 @@ export function buildCardLanguageOptions(
         canonical: 'en',
         label: 'English',
         flagCode: 'GB',
-        emoji: null,
       },
     ];
   }
@@ -152,7 +114,6 @@ export function buildCardLanguageOptions(
       canonical,
       label: getCardLanguageLabel(canonical),
       flagCode,
-      emoji: hasCardLanguageSvgFlag(flagCode) ? null : getCardLanguageEmoji(flagCode),
     });
   }
 
@@ -164,7 +125,6 @@ export function buildCardLanguageOptions(
           canonical: 'en',
           label: 'English',
           flagCode: 'GB',
-          emoji: null,
         },
       ];
 }

@@ -49,11 +49,10 @@ import {
   applyInventoryFilters,
   buildInventoryFacets,
   getInventoryConditionCode,
-  getInventoryLanguageFlag,
   getInventoryLanguageLabel,
   sanitizeInventoryFilters,
 } from '@/lib/inventory/inventory-filter-utils';
-import { FlagIcon } from '@/components/ui/FlagIcon';
+import { CardLanguageFlag } from '@/components/ui/CardLanguageFlag';
 import { RarityIndicator } from '@/components/ui/RarityIndicator';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
 import { SetIconBadge } from '@/components/ui/SetIconBadge';
@@ -382,7 +381,6 @@ function OggettiTable({
             item.properties && typeof item.properties.mtg_language === 'string'
               ? item.properties.mtg_language
               : null;
-          const langFlag = getInventoryLanguageFlag(languageCode);
           const conditionCode = getInventoryConditionCode(
             item.properties?.condition as string | undefined
           );
@@ -520,7 +518,13 @@ function OggettiTable({
                   ) : (
                     <span className="text-xs text-gray-400">—</span>
                   )}
-                  {langFlag && <FlagIcon country={langFlag} size="xs" title={getInventoryLanguageLabel(languageCode)} />}
+                  {languageCode && (
+                    <CardLanguageFlag
+                      code={languageCode}
+                      size="xs"
+                      title={getInventoryLanguageLabel(languageCode)}
+                    />
+                  )}
                   {item.card?.rarity && <RarityIndicator rarity={item.card.rarity} size="sm" showLabel />}
                 </div>
 
@@ -646,7 +650,6 @@ function OggettiTable({
                 item.properties && typeof item.properties.mtg_language === 'string'
                   ? item.properties.mtg_language
                   : null;
-              const langFlag = getInventoryLanguageFlag(languageCode);
               const conditionCode = getInventoryConditionCode(
                 item.properties?.condition as string | undefined
               );
@@ -775,9 +778,9 @@ function OggettiTable({
                   </td>
                   <td className="search-results-td px-1 align-middle">
                     <div className="flex items-center justify-center gap-1">
-                      {langFlag ? (
-                        <FlagIcon
-                          country={langFlag}
+                      {languageCode ? (
+                        <CardLanguageFlag
+                          code={languageCode}
                           size="xs"
                           title={getInventoryLanguageLabel(languageCode)}
                         />
