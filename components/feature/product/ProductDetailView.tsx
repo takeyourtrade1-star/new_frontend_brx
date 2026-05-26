@@ -39,6 +39,9 @@ import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { RarityIndicator } from '@/components/ui/RarityIndicator';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
 import { ModernSellerTable } from '@/components/feature/product/ModernSellerTable';
+import { buildCardLanguageOptions } from '@/lib/card-languages';
+import { CardLanguageFlags } from '@/components/ui/CardLanguageFlags';
+import { CardLanguageSelect } from '@/components/ui/CardLanguageSelect';
 
 const PRIMARY_BLUE = '#1D3160';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -511,24 +514,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
 
 
-  /** Mappa codice lingua → etichetta per select Lingua (tab VENDI) e per Lingue disponibili (INFO). */
-  const LANG_OPTIONS: { code: string; label: string }[] = useMemo(
-    () => [
-      { code: 'en', label: 'English' },
-      { code: 'it', label: 'Italiano' },
-      { code: 'de', label: 'Deutsch' },
-      { code: 'fr', label: 'Français' },
-      { code: 'es', label: 'Español' },
-      { code: 'pt', label: 'Português' },
-      { code: 'ja', label: '日本語' },
-      { code: 'jp', label: '日本語' },
-      { code: 'ko', label: '한국어' },
-      { code: 'zh', label: '中文' },
-    ],
-    []
-  );
-  const langLabelByCode = useMemo(() => Object.fromEntries(LANG_OPTIONS.map((o) => [o.code, o.label])), [LANG_OPTIONS]);
-
   const LINGUA_CARTA = [
     { code: 'IT', label: 'Italia' },
     { code: 'JP', label: 'Giappone' },
@@ -554,21 +539,17 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     []
   );
 
-  /** Opzioni Lingua nel tab VENDI: SOLO le lingue in available_languages. Se vuoto/assente → solo English. */
-  const vendiLanguageOptions = useMemo(() => {
-    if (card?.available_languages?.length) {
-      return card.available_languages
-        .map((code) => ({ code, label: langLabelByCode[code] ?? code }))
-        .filter((o, i, arr) => arr.findIndex((x) => x.code === o.code) === i);
-    }
-    return [{ code: 'en', label: langLabelByCode['en'] ?? 'English' }];
-  }, [card?.available_languages, langLabelByCode]);
+  /** Tutte le lingue blueprint (tab INFO + VENDI), senza limite. */
+  const cardLanguageOptions = useMemo(
+    () => buildCardLanguageOptions(card?.available_languages),
+    [card?.available_languages]
+  );
 
   useEffect(() => {
-    if (vendiLanguageOptions.length && !vendiLanguageOptions.some((o) => o.code === linguaVendi)) {
-      setLinguaVendi(vendiLanguageOptions[0].code);
+    if (cardLanguageOptions.length && !cardLanguageOptions.some((o) => o.code === linguaVendi)) {
+      setLinguaVendi(cardLanguageOptions[0].code);
     }
-  }, [vendiLanguageOptions, linguaVendi]);
+  }, [cardLanguageOptions, linguaVendi]);
 
   const refreshListings = useCallback(async () => {
     const raw = card?.cardtrader_id;
@@ -1223,15 +1204,15 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lingue</span>
-                        <span className="truncate ml-4 text-[11px] font-medium text-zinc-600 text-right">
-                          {card?.game_slug === 'mtg'
-                            ? (card?.available_languages?.length
-                              ? card.available_languages.slice(0, 2).map((code) => langLabelByCode[code] ?? code).join(', ')
-                              : 'English')
-                            : 'N/D'}
-                        </span>
+                      <div className="flex items-start justify-between gap-2 py-2">
+                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lingue</span>
+                        <div className="ml-2 flex min-w-0 justify-end">
+                          {card?.game_slug === 'mtg' ? (
+                            <CardLanguageFlags languages={card?.available_languages} size="xs" showActiveLabel />
+                          ) : (
+                            <span className="text-[11px] font-medium text-zinc-500">N/D</span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center justify-between pt-2">
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">In vendita</span>
@@ -1343,13 +1324,13 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       )}
                       <div className="col-span-2 rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Lingue disponibili</p>
-                        <p className="mt-1 truncate text-[12px] font-semibold text-zinc-700">
-                          {card?.game_slug === 'mtg'
-                            ? (card?.available_languages?.length
-                              ? card.available_languages.slice(0, 4).map((code) => langLabelByCode[code] ?? code).join(', ')
-                              : 'English')
-                            : 'N/D'}
-                        </p>
+                        <div className="mt-1.5">
+                          {card?.game_slug === 'mtg' ? (
+                            <CardLanguageFlags languages={card?.available_languages} size="sm" showActiveLabel />
+                          ) : (
+                            <span className="text-[12px] font-semibold text-zinc-500">N/D</span>
+                          )}
+                        </div>
                       </div>
                       <div className="col-span-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-2">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-primary/70">In vendita</p>
@@ -1540,17 +1521,12 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       </div>
                       <div>
                         <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lingua</label>
-                        <select
+                        <CardLanguageSelect
+                          options={cardLanguageOptions}
                           value={linguaVendi}
-                          onChange={(e) => setLinguaVendi(e.target.value)}
-                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
-                        >
-                          {vendiLanguageOptions.map((opt) => (
-                            <option key={opt.code} value={opt.code}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={setLinguaVendi}
+                          className="[&_button]:rounded-lg [&_button]:border-zinc-200 [&_button]:bg-zinc-50/50 [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs"
+                        />
                       </div>
                       <div>
                         <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Condizione</label>
@@ -1662,17 +1638,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       </div>
                       <div>
                         <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Lingua</label>
-                        <select
+                        <CardLanguageSelect
+                          options={cardLanguageOptions}
                           value={linguaVendi}
-                          onChange={(e) => setLinguaVendi(e.target.value)}
-                          className="w-full rounded-md border border-zinc-200/80 bg-zinc-50/40 px-2 py-1 text-[13px] font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/15"
-                        >
-                          {vendiLanguageOptions.map((opt) => (
-                            <option key={opt.code} value={opt.code}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={setLinguaVendi}
+                        />
                       </div>
                       <div>
                         <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Condizione</label>
@@ -2191,12 +2161,13 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     error={listingsError}
                     cardImageSrc={cardImages[currentImageIndex]}
                     cardName={card?.name}
-                    onAddToCart={(item, event) => {
+                    onAddToCart={(item, quantity, sourceEl) => {
                       if (!user || !accessToken) {
                         setListingActionMessage('Accedi per aggiungere al carrello.');
                         return;
                       }
-                      openQtyPopup(item, event.currentTarget, cardImages[currentImageIndex]);
+                      flyToCart(sourceEl, { imageSrc: cardImages[currentImageIndex] });
+                      addToCartStore(`mock-${item.item_id}-qty${quantity}-${Date.now()}`);
                     }}
                     isOwnListing={isOwnListing}
                     onOwnerEdit={(item) => setEditingItem(listingToInventoryEditItem(item, card ?? null))}

@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 const FLASH_DURATION_MS = 4500;
 const ERROR_DURATION_MS = 5000;
 const EXIT_DURATION_MS = 240;
+/** Sotto header (z-100) e menu nav (z-110+), sopra il contenuto pagina. */
+const AUTH_TOAST_Z = 90;
 
 export function AuthToast({ headerHeight }: { headerHeight: number }) {
   const flashMessage = useAuthStore((s) => s.flashMessage);
@@ -100,10 +102,10 @@ export function AuthToast({ headerHeight }: { headerHeight: number }) {
       {showFlash && (
         <div
           className={cn(
-            'fixed left-1/2 z-[140] w-[min(88vw,500px)]',
+            'fixed left-1/2 w-[min(88vw,500px)]',
             flashExiting ? 'auth-toast-exit' : 'auth-toast-enter'
           )}
-          style={{ top: topOffset }}
+          style={{ top: topOffset, zIndex: AUTH_TOAST_Z }}
           role="status"
           aria-live="polite"
         >
@@ -123,10 +125,10 @@ export function AuthToast({ headerHeight }: { headerHeight: number }) {
       {showError && (
         <div
           className={cn(
-            'fixed left-1/2 z-[140] w-[min(88vw,500px)]',
+            'fixed left-1/2 w-[min(88vw,500px)]',
             errorExiting ? 'auth-toast-exit' : 'auth-toast-enter'
           )}
-          style={{ top: topOffset }}
+          style={{ top: topOffset, zIndex: AUTH_TOAST_Z }}
           role="alert"
           aria-live="assertive"
         >

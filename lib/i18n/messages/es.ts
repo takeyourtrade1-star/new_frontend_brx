@@ -788,8 +788,8 @@ export const es: Record<MessageKey, string> = {
 
   'vendi.breadcrumbAria': 'Ruta de navegación de venta',
   'vendi.breadcrumb.stock': 'Stock',
-  'vendi.breadcrumb.methods': 'Métodos de publicación',
-  'vendi.pageTitle': 'Métodos de publicación',
+  'vendi.breadcrumb.methods': 'Cómo vender',
+  'vendi.pageTitle': 'Cómo vender',
   'vendi.category.singles': 'Singles',
   'vendi.category.singlesDesc': 'Cartas individuales del catálogo',
   'vendi.category.products': 'Objetos',

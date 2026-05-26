@@ -86,9 +86,9 @@ export default function DemoSellerTablePage() {
               listings={MOCK_LISTINGS}
               loading={false}
               error={null}
-              onAddToCart={(item, event) => {
-                console.log('Add to cart:', item);
-                alert(`Aggiungendo ${item.seller_display_name} al carrello!`);
+              onAddToCart={(item, quantity) => {
+                console.log('Add to cart:', item, quantity);
+                alert(`Aggiungendo ${quantity}× ${item.seller_display_name} al carrello!`);
               }}
               isOwnListing={() => false}
               onOwnerEdit={(item) => console.log('Edit:', item)}

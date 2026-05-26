@@ -94,6 +94,12 @@ export interface ListingItem {
   price_cents: number;
   condition: string | null;
   mtg_language: string | null;
+  /** Media recensioni (es. 4.5) — opzionale, da API venditore */
+  seller_rating?: number | null;
+  /** Numero recensioni — opzionale */
+  seller_review_count?: number | null;
+  /** Vendite completate — opzionale */
+  seller_sales_count?: number | null;
 }
 
 export interface ListingsByBlueprintResponse {

@@ -786,8 +786,8 @@ export const en = {
 
   'vendi.breadcrumbAria': 'Sell navigation breadcrumb',
   'vendi.breadcrumb.stock': 'Stock',
-  'vendi.breadcrumb.methods': 'Listing methods',
-  'vendi.pageTitle': 'Listing methods',
+  'vendi.breadcrumb.methods': 'How to sell',
+  'vendi.pageTitle': 'How to sell',
   'vendi.category.singles': 'Singles',
   'vendi.category.singlesDesc': 'Individual cards from the catalog',
   'vendi.category.products': 'Products',

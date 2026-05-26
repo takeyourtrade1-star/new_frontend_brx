@@ -2,6 +2,11 @@ import type { AuctionGame } from '@/components/feature/aste/mock-auctions';
 import type { UploadedPhoto } from '@/lib/api/auction-photo-client';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
+import {
+  CARD_LANGUAGE_LABEL_BY_CODE,
+  getCardLanguageLabel,
+  normalizeCardLanguageCode,
+} from '@/lib/card-languages';
 
 export type AuctionCreateShippingPayer = 'buyer' | 'seller';
 
@@ -91,30 +96,8 @@ export const AUCTION_CARD_CONDITION_OPTIONS = [
   { value: 'damaged', labelKey: 'auctions.cardConditionDamaged' },
 ] as const satisfies ReadonlyArray<{ value: string; labelKey: MessageKey }>;
 
-/**
- * Mappa codice lingua → etichetta leggibile.
- * Copre sia i codici ISO standard che alias comuni (es. "jp" usato da alcuni DB).
- * Usata per costruire le opzioni del dropdown direttamente dai codici di Meilisearch.
- */
-export const AUCTION_LANG_LABEL_BY_CODE: Readonly<Record<string, string>> = {
-  en: 'English',
-  it: 'Italiano',
-  de: 'Deutsch',
-  fr: 'Français',
-  es: 'Español',
-  pt: 'Português',
-  ja: '日本語',
-  jp: '日本語',
-  ko: '한국어',
-  zh: '中文',
-  'zh-hans': '中文 (简体)',
-  'zh-hant': '中文 (繁體)',
-  ru: 'Русский',
-  pl: 'Polski',
-  cs: 'Čeština',
-  hu: 'Magyar',
-  ro: 'Română',
-};
+/** @deprecated Preferire CARD_LANGUAGE_LABEL_BY_CODE da @/lib/card-languages */
+export const AUCTION_LANG_LABEL_BY_CODE = CARD_LANGUAGE_LABEL_BY_CODE;
 
 /**
  * Costruisce le opzioni del dropdown lingua DIRETTAMENTE dai codici di Meilisearch.
@@ -131,9 +114,12 @@ export function buildAuctionLanguageOptions(
   const seen = new Set<string>();
   const options: { value: string; label: string }[] = [];
   for (const code of langs) {
-    if (!code || seen.has(code)) continue;
-    seen.add(code);
-    options.push({ value: code, label: AUCTION_LANG_LABEL_BY_CODE[code] ?? code });
+    const trimmed = String(code).trim();
+    if (!trimmed) continue;
+    const canonical = normalizeCardLanguageCode(trimmed);
+    if (!canonical || seen.has(canonical)) continue;
+    seen.add(canonical);
+    options.push({ value: trimmed.toLowerCase(), label: getCardLanguageLabel(canonical) });
   }
   return options.length > 0 ? options : [{ value: 'en', label: 'English' }];
 }
@@ -157,10 +143,7 @@ export const AUCTION_CARD_LANGUAGE_OPTIONS: ReadonlyArray<{ value: string; label
  * qualsiasi codice non vuoto viene restituito così com'è per non perdere lingue.
  */
 export function normalizeAuctionCardLanguage(value: string | null | undefined): string {
-  const raw = (value ?? '').trim().toLowerCase();
-  if (!raw) return '';
-  if (raw === 'jp') return 'ja';
-  return raw;
+  return normalizeCardLanguageCode(value);
 }
 
 /** Migrazione da vecchi valori nm/mp del wizard. */

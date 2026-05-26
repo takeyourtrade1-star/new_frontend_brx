@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -18,10 +18,10 @@ import {
   PenLine,
   Sparkles,
   Loader2,
-  Package,
+  Minus,
   Pencil,
+  Plus,
   RefreshCw,
-  ShoppingCart,
   Square,
   Trash2,
   TrendingUp,
@@ -39,7 +39,7 @@ import {
   INVENTORY_LANG_OPTIONS_EDIT,
 } from '@/components/feature/sync/InventoryEditModal';
 import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
-import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
+import type { BlueprintToCardMap } from '@/lib/meilisearch-cards-by-ids';
 import { getCardDisplayNames } from '@/lib/card-display-name';
 import { ASSETS, getCdnImageUrl } from '@/lib/config';
 import { InventoryFiltersPanel, DEFAULT_FILTERS } from '@/components/feature/account/InventoryFiltersPanel';
@@ -86,6 +86,25 @@ function formatPrice(priceCents: number | null | undefined): string {
 }
 
 const LOW_STOCK_THRESHOLD = 5;
+
+/** Righe massime renderizzate per pagina (performance UI). */
+const INVENTORY_ITEMS_PER_PAGE = 50;
+/** Chunk API inventario (solo dati grezzi, senza catalogo). */
+const INVENTORY_API_CHUNK = 200;
+/** Batch Meilisearch per arricchire le carte. */
+const CATALOG_FETCH_BATCH = 80;
+
+async function fetchCatalogBatched(blueprintIds: number[]): Promise<BlueprintToCardMap> {
+  const unique = [...new Set(blueprintIds.filter((id) => Number.isFinite(id) && id > 0))];
+  if (unique.length === 0) return {};
+  const map: BlueprintToCardMap = {};
+  for (let i = 0; i < unique.length; i += CATALOG_FETCH_BATCH) {
+    const batch = unique.slice(i, i + CATALOG_FETCH_BATCH);
+    const fetched = await fetchCardsByBlueprintIds(batch);
+    Object.assign(map, fetched);
+  }
+  return map;
+}
 
 /** Oggetto serializzabile per export CSV/JSON (tutti i campi utili, niente riferimenti circolari). */
 function itemToExportRow(item: InventoryItemWithCatalog): Record<string, unknown> {
@@ -176,10 +195,7 @@ function OggettiTable({
   const [editItem, setEditItem] = useState<InventoryItemWithCatalog | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [purchasingId, setPurchasingId] = useState<number | null>(null);
-  const [purchaseItem, setPurchaseItem] = useState<InventoryItemWithCatalog | null>(null);
-  const [purchaseQty, setPurchaseQty] = useState<number>(1);
-  const [purchaseSubmitting, setPurchaseSubmitting] = useState(false);
+  const [qtyUpdatingId, setQtyUpdatingId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const selectionMode = selectedIds != null && onToggleSelect != null;
@@ -187,57 +203,6 @@ function OggettiTable({
     selectionMode &&
     (allFilteredSelected ??
       (items.length > 0 && items.every((i) => selectedIds!.has(i.id))));
-
-  const openPurchaseModal = (item: InventoryItemWithCatalog) => {
-    if (!item.external_stock_id) {
-      setActionError('Questo oggetto non è collegato al marketplace. Sincronizza l\'inventario per abilitare il carrello.');
-      return;
-    }
-    if (item.quantity < 1) {
-      setActionError('Quantità insufficiente per simulare l\'acquisto.');
-      return;
-    }
-    setActionError(null);
-    setPurchaseItem(item);
-    setPurchaseQty(1);
-  };
-
-  const handleConfirmPurchase = async () => {
-    if (!purchaseItem) return;
-    const safeQty = Math.max(1, Math.min(purchaseQty, purchaseItem.quantity));
-    if (safeQty < 1) {
-      setActionError('Quantità non valida.');
-      return;
-    }
-    setActionError(null);
-    setPurchasingId(purchaseItem.id);
-    setPurchaseSubmitting(true);
-    try {
-      const res = await syncClient.purchaseInventoryItem(userId, purchaseItem.id, { quantity: safeQty }, accessToken);
-      if (res.status === 'success') {
-        await onRefresh();
-        onSyncResult({ success: true });
-        setPurchaseItem(null);
-      } else {
-        const rawMsg = res.message || res.error || 'Acquisto non completato';
-        // Messaggio più leggibile per quantità insufficiente
-        if (rawMsg.toLowerCase().includes('quantità insufficiente')) {
-          setActionError(rawMsg);
-        } else {
-          setActionError('Errore durante la verifica con il marketplace collegato. Riprova più tardi.');
-        }
-        onSyncResult({ success: false, message: rawMsg });
-      }
-    } catch (e) {
-      const err = e as Error & { data?: { detail?: string } };
-      const technical = err.data?.detail ?? err.message ?? 'Errore durante la simulazione acquisto';
-      setActionError('Errore interno durante l\'allineamento con il marketplace collegato. Riprova più tardi.');
-      onSyncResult({ success: false, message: technical });
-    } finally {
-      setPurchasingId(null);
-      setPurchaseSubmitting(false);
-    }
-  };
 
   /** Poll sync task until ready, then report success/error. No blocking UI. */
   const pollSyncTaskThenNotify = useCallback(
@@ -291,6 +256,63 @@ function OggettiTable({
       onSyncResult({ success: false, message: msg });
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleQtyDelta = async (item: InventoryItemWithCatalog, delta: -1 | 1) => {
+    if (mutationsDisabled) return;
+    setActionError(null);
+    setQtyUpdatingId(item.id);
+    try {
+      if (delta === -1 && item.quantity <= 1) {
+        if (
+          !confirm(
+            'Rimuovere questo oggetto dall\'inventario? Se la sincronizzazione esterna è attiva, verrà aggiornata anche lì.'
+          )
+        ) {
+          return;
+        }
+        const res = await syncClient.deleteInventoryItem(userId, item.id, accessToken);
+        await onRefresh();
+        if (res.sync_queue_error) {
+          onSyncResult({ success: false, message: res.sync_queue_error });
+        } else if (res.sync_task_id) {
+          onSyncResult({
+            success: true,
+            message: 'Aggiornamento marketplace in coda. Attendi il completamento task.',
+          });
+          pollSyncTaskThenNotify(res.sync_task_id);
+        } else {
+          onSyncResult({ success: true });
+        }
+      } else {
+        const nextQty = Math.max(0, item.quantity + delta);
+        if (nextQty < 1) return;
+        const res = await syncClient.updateInventoryItem(
+          userId,
+          item.id,
+          { quantity: nextQty },
+          accessToken
+        );
+        await onRefresh();
+        if (res.sync_queue_error) {
+          onSyncResult({ success: false, message: res.sync_queue_error });
+        } else if (res.sync_task_id) {
+          onSyncResult({
+            success: true,
+            message: 'Aggiornamento marketplace in coda. Attendi il completamento task.',
+          });
+          pollSyncTaskThenNotify(res.sync_task_id);
+        } else {
+          onSyncResult({ success: true });
+        }
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Operazione non riuscita';
+      setActionError(msg);
+      onSyncResult({ success: false, message: msg });
+    } finally {
+      setQtyUpdatingId(null);
     }
   };
 
@@ -469,15 +491,6 @@ function OggettiTable({
                       <Edit3 className="h-3.5 w-3.5" />
                       {t('accountPage.itemsEdit')}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => openPurchaseModal(item)}
-                      disabled={mutationsDisabled || purchasingId === item.id || deletingId === item.id || !item.external_stock_id || item.quantity < 1}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-primary to-primary/80 backdrop-blur-sm px-3 py-2 text-xs font-semibold text-white shadow-lg border border-white/30 transition-all hover:from-primary/90 hover:to-primary/70 active:scale-95 disabled:opacity-50"
-                    >
-                      {purchasingId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShoppingCart className="h-3.5 w-3.5" />}
-                      {t('accountPage.itemsCart')}
-                    </button>
                   </div>
                 </div>
               </div>
@@ -519,12 +532,40 @@ function OggettiTable({
                       {(item.price_cents / 100).toFixed(2)}€
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-end gap-1">
                     <span className="text-xs text-gray-400">{t('accountPage.itemsTableQty')}</span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-white/70 backdrop-blur-sm px-2.5 py-1 text-sm font-bold text-gray-700 border border-gray-200/60 shadow-sm">
-                      <Package className="h-3.5 w-3.5 text-gray-500" />
-                      {item.quantity}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        disabled={mutationsDisabled || qtyUpdatingId === item.id || deletingId === item.id}
+                        onClick={() => handleQtyDelta(item, -1)}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-red-500 text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50"
+                        aria-label="Diminuisci quantità"
+                      >
+                        {qtyUpdatingId === item.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Minus className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                      <span className="min-w-[1.5rem] text-center text-sm font-bold tabular-nums text-gray-800">
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={
+                          mutationsDisabled ||
+                          qtyUpdatingId === item.id ||
+                          deletingId === item.id ||
+                          item.quantity >= 999
+                        }
+                        onClick={() => handleQtyDelta(item, 1)}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                        aria-label="Aumenta quantità"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -563,9 +604,9 @@ function OggettiTable({
             <col style={{ width: '5.5rem' }} />
             <col style={{ width: '4rem' }} />
             <col style={{ width: '4rem' }} />
-            <col style={{ width: '5rem' }} />
+            <col style={{ width: '8.5rem' }} />
             <col style={{ width: '7rem' }} />
-            <col style={{ width: '11rem' }} />
+            <col style={{ width: '7.5rem' }} />
           </colgroup>
           <thead>
             <tr className="search-results-thead">
@@ -771,8 +812,44 @@ function OggettiTable({
                       <RarityIndicator rarity={item.card?.rarity} size="sm" />
                     </div>
                   </td>
-                  <td className="search-results-td px-1 align-middle text-right text-[13px] font-semibold tabular-nums text-gray-800">
-                    {item.quantity}
+                  <td
+                    className="search-results-td px-1 align-middle"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-end gap-0.5">
+                      <button
+                        type="button"
+                        disabled={
+                          mutationsDisabled || qtyUpdatingId === item.id || deletingId === item.id
+                        }
+                        onClick={() => handleQtyDelta(item, -1)}
+                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-red-500 text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50"
+                        aria-label="Diminuisci quantità"
+                      >
+                        {qtyUpdatingId === item.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Minus className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                      <span className="min-w-[1.25rem] text-center text-[13px] font-semibold tabular-nums text-gray-800">
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={
+                          mutationsDisabled ||
+                          qtyUpdatingId === item.id ||
+                          deletingId === item.id ||
+                          item.quantity >= 999
+                        }
+                        onClick={() => handleQtyDelta(item, 1)}
+                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                        aria-label="Aumenta quantità"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </td>
                   <td className="search-results-td px-1 align-middle text-right text-[13px] font-bold tabular-nums text-[#FF7300]">
                     {formatEuroNoSpace((item.price_cents ?? 0) / 100, 'it-IT')}
@@ -794,29 +871,6 @@ function OggettiTable({
                         aria-label={t('accountPage.itemsEdit')}
                       >
                         <Pencil className="h-4 w-4 shrink-0" aria-hidden />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openPurchaseModal(item);
-                        }}
-                        disabled={
-                          Boolean(mutationsDisabled) ||
-                          purchasingId === item.id ||
-                          deletingId === item.id ||
-                          !item.external_stock_id ||
-                          item.quantity < 1
-                        }
-                        className="inline-flex h-7 w-7 items-center justify-center rounded border border-gray-200 bg-white text-emerald-600 transition-colors hover:bg-emerald-50 disabled:opacity-50"
-                        title={t('accountPage.itemsCart')}
-                        aria-label={t('accountPage.itemsCart')}
-                      >
-                        {purchasingId === item.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <ShoppingCart className="h-3.5 w-3.5" />
-                        )}
                       </button>
                       <button
                         type="button"
@@ -846,87 +900,6 @@ function OggettiTable({
       {actionError && (
         <div className="border-t border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
           {actionError}
-        </div>
-      )}
-      {purchaseItem && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="purchase-modal-title"
-        >
-          <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-white/20 bg-white/95 p-6 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] backdrop-blur-xl">
-            {/* Header */}
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 text-emerald-600">
-                <ShoppingCart className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 id="purchase-modal-title" className="text-lg font-bold text-gray-900">
-                  {t('accountPage.itemsCart')}
-                </h2>
-                <p className="text-xs text-gray-500">{t('accountPage.itemsSyncActive')}</p>
-              </div>
-            </div>
-
-            {/* Product */}
-            <div className="mb-4 rounded-xl bg-gray-50 p-3">
-              <p className="font-medium text-gray-900">{purchaseItem.card?.name ?? `Carta #${purchaseItem.blueprint_id}`}</p>
-              <p className="text-xs text-gray-500">{t('accountPage.itemsTableQty')}: <span className="font-semibold">{purchaseItem.quantity}</span></p>
-            </div>
-
-            {/* Quantity Input */}
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              {t('accountPage.itemsTableQty')}
-            </label>
-            <div className="mb-6 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setPurchaseQty(Math.max(1, purchaseQty - 1))}
-                disabled={purchaseQty <= 1}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50"
-              >
-                -
-              </button>
-              <input
-                type="number"
-                min={1}
-                max={purchaseItem.quantity}
-                value={purchaseQty}
-                onChange={(e) => setPurchaseQty(Math.min(purchaseItem.quantity, Math.max(1, Number(e.target.value) || 1)))}
-                className="h-10 w-20 rounded-lg border border-gray-200 bg-white text-center text-lg font-semibold text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-              <button
-                type="button"
-                onClick={() => setPurchaseQty(Math.min(purchaseItem.quantity, purchaseQty + 1))}
-                disabled={purchaseQty >= purchaseItem.quantity}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50"
-              >
-                +
-              </button>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => { setPurchaseItem(null); }}
-                className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
-                disabled={purchaseSubmitting}
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmPurchase}
-                disabled={purchaseSubmitting}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-emerald-500/20 transition-all hover:bg-emerald-600 hover:shadow-md disabled:opacity-50"
-              >
-                {purchaseSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
-                {purchaseSubmitting ? t('accountPage.itemsLoadingInventoryShort') : t('accountPage.itemsPriceApply')}
-              </button>
-            </div>
-          </div>
         </div>
       )}
       {editItem && (
@@ -993,7 +966,10 @@ export function OggettiContent() {
     (s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
   );
 
-  const [inventoryItems, setInventoryItems] = useState<InventoryItemWithCatalog[]>([]);
+  const [inventoryRaw, setInventoryRaw] = useState<InventoryItemResponse[]>([]);
+  const [catalogMap, setCatalogMap] = useState<BlueprintToCardMap>({});
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const catalogLoadGenRef = useRef(0);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1024,6 +1000,15 @@ export function OggettiContent() {
   const syncAnyPending = syncPending || syncNowPending;
   const canSyncNow = integrationConnected && syncStatus?.sync_status !== 'initial_sync';
 
+  const inventoryItems = useMemo<InventoryItemWithCatalog[]>(
+    () =>
+      inventoryRaw.map((item) => ({
+        ...item,
+        card: catalogMap[item.blueprint_id],
+      })),
+    [inventoryRaw, catalogMap]
+  );
+
   const facets = useMemo(() => buildInventoryFacets(inventoryItems), [inventoryItems]);
 
   const filteredInventoryItems = useMemo(
@@ -1040,12 +1025,11 @@ export function OggettiContent() {
 
 
 
-  const ITEMS_PER_PAGE = 80;
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.max(1, Math.ceil(filteredInventoryItems.length / ITEMS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(filteredInventoryItems.length / INVENTORY_ITEMS_PER_PAGE));
   const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredInventoryItems.slice(start, start + ITEMS_PER_PAGE);
+    const start = (currentPage - 1) * INVENTORY_ITEMS_PER_PAGE;
+    return filteredInventoryItems.slice(start, start + INVENTORY_ITEMS_PER_PAGE);
   }, [filteredInventoryItems, currentPage]);
 
   useEffect(() => {
@@ -1055,6 +1039,43 @@ export function OggettiContent() {
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(Math.max(1, totalPages));
   }, [currentPage, totalPages]);
+
+  const paginatedBlueprintKey = useMemo(
+    () => paginatedItems.map((i) => `${i.id}:${i.blueprint_id}`).join(','),
+    [paginatedItems]
+  );
+
+  const prevPageRef = useRef(currentPage);
+  useEffect(() => {
+    if (prevPageRef.current !== currentPage) {
+      prevPageRef.current = currentPage;
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  }, [currentPage]);
+
+  /** Arricchisce subito le carte della pagina corrente se mancano nel cache. */
+  useEffect(() => {
+    if (paginatedItems.length === 0) return;
+    const missing = [
+      ...new Set(
+        paginatedItems
+          .map((i) => i.blueprint_id)
+          .filter((id): id is number => Boolean(id) && !catalogMap[id])
+      ),
+    ];
+    if (missing.length === 0) return;
+    let cancelled = false;
+    void fetchCatalogBatched(missing).then((fetched) => {
+      if (cancelled || Object.keys(fetched).length === 0) return;
+      setCatalogMap((prev) => ({ ...prev, ...fetched }));
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- catalogMap letto per missing; key evita loop
+  }, [paginatedBlueprintKey]);
 
 
   // 1) Verifica stato sync con il marketplace (una sola chiamata, prima di qualsiasi altra al sync service)
@@ -1079,53 +1100,87 @@ export function OggettiContent() {
     return () => { cancelled = true; };
   }, [user?.id, accessToken]);
 
-  /** Carica tutto l'inventario (pagine da 500) per dati completi e filtri precisi. */
+  const loadCatalogInBackground = useCallback(async (allItems: InventoryItemResponse[], generation: number) => {
+    const allBlueprintIds = [
+      ...new Set(allItems.map((i) => i.blueprint_id).filter((id): id is number => Boolean(id))),
+    ];
+    if (allBlueprintIds.length === 0) return;
+
+    setCatalogLoading(true);
+    try {
+      const priorityCount = Math.min(INVENTORY_ITEMS_PER_PAGE, allItems.length);
+      const priorityIds = [
+        ...new Set(
+          allItems.slice(0, priorityCount).map((i) => i.blueprint_id).filter((id): id is number => Boolean(id))
+        ),
+      ];
+      const restIds = allBlueprintIds.filter((id) => !priorityIds.includes(id));
+
+      const priorityMap = await fetchCatalogBatched(priorityIds);
+      if (catalogLoadGenRef.current !== generation) return;
+      setCatalogMap((prev) => ({ ...prev, ...priorityMap }));
+
+      for (let i = 0; i < restIds.length; i += CATALOG_FETCH_BATCH) {
+        if (catalogLoadGenRef.current !== generation) return;
+        const batch = restIds.slice(i, i + CATALOG_FETCH_BATCH);
+        const fetched = await fetchCardsByBlueprintIds(batch);
+        if (catalogLoadGenRef.current !== generation) return;
+        setCatalogMap((prev) => ({ ...prev, ...fetched }));
+      }
+    } finally {
+      if (catalogLoadGenRef.current === generation) {
+        setCatalogLoading(false);
+      }
+    }
+  }, []);
+
+  /** Carica inventario grezzo (veloce); catalogo carte in batch senza bloccare la UI. */
   const loadInventory = useCallback(async () => {
     if (!user?.id || !accessToken) {
-      setInventoryItems([]);
+      setInventoryRaw([]);
+      setCatalogMap({});
       setTotal(0);
       setLoading(false);
+      setCatalogLoading(false);
       return;
     }
+    const generation = catalogLoadGenRef.current + 1;
+    catalogLoadGenRef.current = generation;
     setLoading(true);
+    setCatalogMap({});
+    setCatalogLoading(false);
     try {
       const allItems: InventoryItemResponse[] = [];
-      const pageSize = 500;
       let offset = 0;
       let totalFromApi = 0;
 
       do {
-        const res = await syncClient.getInventory(user.id, accessToken, pageSize, offset);
+        const res = await syncClient.getInventory(user.id, accessToken, INVENTORY_API_CHUNK, offset);
         const items = res.items ?? [];
         totalFromApi = res.total ?? allItems.length + items.length;
         allItems.push(...items);
         offset += items.length;
-        if (items.length < pageSize || offset >= totalFromApi) break;
+        if (items.length < INVENTORY_API_CHUNK || offset >= totalFromApi) break;
       } while (true);
 
+      if (catalogLoadGenRef.current !== generation) return;
+
+      setInventoryRaw(allItems);
       setTotal(totalFromApi);
-
-      const blueprintIds = [...new Set(allItems.map((i) => i.blueprint_id).filter(Boolean))] as number[];
-      let blueprintToCard: Record<number, CardCatalogHit> = {};
-      if (blueprintIds.length > 0) {
-        const map = await fetchCardsByBlueprintIds(blueprintIds);
-        blueprintToCard = { ...map };
-      }
-
-      const merged: InventoryItemWithCatalog[] = allItems.map((item) => ({
-        ...item,
-        card: blueprintToCard[item.blueprint_id],
-      }));
-      setInventoryItems(merged);
       setError(null);
+      setLoading(false);
+
+      void loadCatalogInBackground(allItems, generation);
     } catch {
-      setInventoryItems([]);
+      if (catalogLoadGenRef.current !== generation) return;
+      setInventoryRaw([]);
+      setCatalogMap({});
       setTotal(0);
       setError(t('accountPage.itemsLoadError'));
-    } finally {
       setLoading(false);
+      setCatalogLoading(false);
     }
-  }, [user?.id, accessToken, t]);
+  }, [user?.id, accessToken, t, loadCatalogInBackground]);
 
   const handleSyncNow = useCallback(async () => {
     if (!user?.id || !accessToken || !syncStatus) return;
@@ -1322,7 +1377,7 @@ export function OggettiContent() {
       platform: 'ebartex' | 'all'
     ) => {
       const idSet = new Set(ids);
-      setInventoryItems((prev) =>
+      setInventoryRaw((prev) =>
         prev.map((item) => {
           if (!idSet.has(item.id)) return item;
           const currentCents = item.price_cents ?? 0;
@@ -1569,7 +1624,7 @@ export function OggettiContent() {
             </span>
           </div>
         </div>
-      ) : inventoryItems.length === 0 ? (
+      ) : inventoryRaw.length === 0 ? (
         <div className="border border-gray-200 bg-white p-10 shadow-sm">
           <p className="text-center text-gray-600">
             {t('accountPage.itemsEmptyLine1')}
@@ -1705,27 +1760,49 @@ export function OggettiContent() {
             viewMode={viewMode}
             t={t}
           />
-          {totalPages > 1 && (
+          {filteredInventoryItems.length > 0 && (
             <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white p-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-              <div className="flex items-center gap-3 text-sm">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className="text-gray-500">
                   {t('accountPage.itemsPage')} <span className="font-semibold text-gray-900">{currentPage}</span> {t('accountPage.itemsOf')}{' '}
                   <span className="font-semibold text-gray-900">{totalPages.toLocaleString()}</span>
                 </span>
                 <span className="text-gray-300">·</span>
-                <span className="text-xs text-gray-400">{ITEMS_PER_PAGE} {t('accountPage.itemsPerPage')}</span>
+                <span className="text-xs text-gray-400">
+                  {INVENTORY_ITEMS_PER_PAGE} {t('accountPage.itemsPerPage')}
+                </span>
+                <span className="text-gray-300">·</span>
+                <span className="text-xs text-gray-500 tabular-nums">
+                  {(filteredInventoryItems.length === 0
+                    ? 0
+                    : (currentPage - 1) * INVENTORY_ITEMS_PER_PAGE + 1
+                  ).toLocaleString('it-IT')}
+                  –
+                  {Math.min(currentPage * INVENTORY_ITEMS_PER_PAGE, filteredInventoryItems.length).toLocaleString('it-IT')}{' '}
+                  {t('accountPage.itemsOf')}{' '}
+                  {filteredInventoryItems.length.toLocaleString('it-IT')}
+                </span>
+                {catalogLoading && (
+                  <>
+                    <span className="text-gray-300">·</span>
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                      <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                      Catalogo…
+                    </span>
+                  </>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage <= 1}
+                  disabled={currentPage <= 1 || totalPages <= 1}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-40"
                   aria-label={t('accountPage.itemsPrevPage')}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <div className="flex items-center gap-1 px-1">
+                <div className={`flex items-center gap-1 px-1 ${totalPages <= 1 ? 'opacity-50 pointer-events-none' : ''}`}>
                   {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
                     let pageNum: number;
                     if (totalPages <= 7) pageNum = i + 1;
@@ -1753,7 +1830,7 @@ export function OggettiContent() {
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage >= totalPages}
+                  disabled={currentPage >= totalPages || totalPages <= 1}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-40"
                   aria-label={t('accountPage.itemsNextPage')}
                 >

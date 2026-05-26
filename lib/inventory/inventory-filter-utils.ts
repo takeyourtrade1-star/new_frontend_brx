@@ -2,6 +2,10 @@ import type { ConditionCode } from '@/components/ui/ConditionBadge';
 import type { InventoryFilters } from '@/components/feature/account/InventoryFiltersPanel';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getGameLabel } from '@/lib/product-detail';
+import {
+  getCardLanguageFlagCode,
+  getCardLanguageLabel,
+} from '@/lib/card-languages';
 
 const CONDITION_TEXT_TO_CODE: Record<string, ConditionCode> = {
   'Near Mint': 'NM',
@@ -43,39 +47,13 @@ const GAME_FILTER_ORDER = ['mtg', 'pokemon', 'one-piece', 'yugioh', 'sealed'] as
 
 export type InventoryGameFilterKey = (typeof GAME_FILTER_ORDER)[number];
 
-const LANG_CODE_TO_LABEL: Record<string, string> = {
-  en: 'English',
-  it: 'Italiano',
-  de: 'Deutsch',
-  fr: 'Français',
-  es: 'Español',
-  pt: 'Português',
-  ja: '日本語',
-  jp: '日本語',
-};
-
 export function getInventoryLanguageLabel(code: string | null | undefined): string {
-  if (code == null || code === '') return '—';
-  const c = String(code).toLowerCase().trim();
-  return LANG_CODE_TO_LABEL[c] ?? c;
+  return getCardLanguageLabel(code);
 }
-
-/** Codice lingua inventario → codice paese per FlagIcon (allineato a ModernSellerTable). */
-const INVENTORY_LANGUAGE_TO_FLAG: Record<string, string> = {
-  en: 'GB',
-  it: 'IT',
-  de: 'DE',
-  fr: 'FR',
-  es: 'ES',
-  pt: 'PT',
-  ja: 'JP',
-  jp: 'JP',
-};
 
 export function getInventoryLanguageFlag(code: string | null | undefined): string | null {
   if (code == null || code === '') return null;
-  const key = String(code).toLowerCase().trim();
-  return INVENTORY_LANGUAGE_TO_FLAG[key] ?? key.toUpperCase().slice(0, 2);
+  return getCardLanguageFlagCode(code);
 }
 
 export function getInventoryConditionCode(raw: string | null | undefined): ConditionCode | null {

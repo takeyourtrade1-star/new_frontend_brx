@@ -788,8 +788,8 @@ export const fr: Record<MessageKey, string> = {
 
   'vendi.breadcrumbAria': "Fil d'Ariane vente",
   'vendi.breadcrumb.stock': 'Stock',
-  'vendi.breadcrumb.methods': "Méthodes d'annonce",
-  'vendi.pageTitle': "Méthodes d'annonce",
+  'vendi.breadcrumb.methods': 'Comment vendre',
+  'vendi.pageTitle': 'Comment vendre',
   'vendi.category.singles': 'Singles',
   'vendi.category.singlesDesc': 'Cartes individuelles du catalogue',
   'vendi.category.products': 'Objets',
