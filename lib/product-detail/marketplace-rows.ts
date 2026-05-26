@@ -151,34 +151,48 @@ function rowConditionRank(row: MarketplaceRow): number {
   return CONDITION_RANK[listingConditionCode(row.listing.condition)];
 }
 
+function sortListingRows(rows: MarketplaceRow[], sort: MarketplaceSort): MarketplaceRow[] {
+  const sorted = [...rows];
+  switch (sort) {
+    case 'price_asc':
+      sorted.sort((a, b) => rowPriceEur(a) - rowPriceEur(b));
+      break;
+    case 'price_desc':
+      sorted.sort((a, b) => rowPriceEur(b) - rowPriceEur(a));
+      break;
+    case 'seller':
+      sorted.sort((a, b) => rowSellerName(a).localeCompare(rowSellerName(b)));
+      break;
+    case 'condition':
+      sorted.sort((a, b) => rowConditionRank(a) - rowConditionRank(b));
+      break;
+  }
+  return sorted;
+}
+
 export function sortMarketplaceRows(
   rows: MarketplaceRow[],
   sort: MarketplaceSort,
-  hideAuctions: boolean
+  hideAuctions: boolean,
+  isOwnListing?: (listing: ListingItem) => boolean
 ): MarketplaceRow[] {
   const auctions = rows.filter((r) => r.kind === 'auction');
   const listings = rows.filter((r) => r.kind === 'listing');
 
   const sortedAuctions = [...auctions].sort((a, b) => auctionEndMs(a.auction) - auctionEndMs(b.auction));
 
-  const sortedListings = [...listings];
-  switch (sort) {
-    case 'price_asc':
-      sortedListings.sort((a, b) => rowPriceEur(a) - rowPriceEur(b));
-      break;
-    case 'price_desc':
-      sortedListings.sort((a, b) => rowPriceEur(b) - rowPriceEur(a));
-      break;
-    case 'seller':
-      sortedListings.sort((a, b) => rowSellerName(a).localeCompare(rowSellerName(b)));
-      break;
-    case 'condition':
-      sortedListings.sort((a, b) => rowConditionRank(a) - rowConditionRank(b));
-      break;
+  let ownListings: MarketplaceRow[] = [];
+  let otherListings: MarketplaceRow[] = listings;
+  if (isOwnListing) {
+    ownListings = listings.filter((r) => r.kind === 'listing' && isOwnListing(r.listing));
+    otherListings = listings.filter((r) => r.kind === 'listing' && !isOwnListing(r.listing));
   }
 
-  if (hideAuctions) return sortedListings;
-  return [...sortedAuctions, ...sortedListings];
+  const sortedOwn = sortListingRows(ownListings, sort);
+  const sortedOthers = sortListingRows(otherListings, sort);
+
+  if (hideAuctions) return [...sortedOwn, ...sortedOthers];
+  return [...sortedOwn, ...sortedAuctions, ...sortedOthers];
 }
 
 /** Language filter options: canonical codes with flag ISO. */

@@ -1173,6 +1173,8 @@ export const de: Record<MessageKey, string> = {
   'productDetail.filters.traitSigned': 'Signiert',
   'productDetail.filters.traitAltered': 'Alteriert',
   'productDetail.marketplace.emptyFiltered': 'Keine Ergebnisse für die gewählten Filter.',
+  'productDetail.mobile.showReprints': 'Neudrucke anzeigen',
+  'productDetail.mobile.hideReprints': 'Neudrucke ausblenden',
   'productDetail.auctions.emptyTitle': 'Derzeit keine Auktionen für diesen Artikel',
   'productDetail.auctions.emptyBody': 'Erstellen Sie die erste Auktion oder durchsuchen Sie andere offene Auktionen.',
   'productDetail.auctions.createNow': 'Jetzt Auktion erstellen',

@@ -1185,6 +1185,8 @@ export const pt: Record<MessageKey, string> = {
   'productDetail.filters.traitSigned': 'Assinada',
   'productDetail.filters.traitAltered': 'Alterada',
   'productDetail.marketplace.emptyFiltered': 'Nenhum resultado com os filtros selecionados.',
+  'productDetail.mobile.showReprints': 'Mostrar reimpressões',
+  'productDetail.mobile.hideReprints': 'Ocultar reimpressões',
   'productDetail.auctions.emptyTitle': 'Sem leilões deste objeto no momento',
   'productDetail.auctions.emptyBody': 'Crie o primeiro leilão ou explore outros leilões abertos.',
   'productDetail.auctions.createNow': 'Criar leilão agora',

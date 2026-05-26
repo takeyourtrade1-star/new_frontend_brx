@@ -1187,6 +1187,8 @@ export const it: Record<MessageKey, string> = {
   'productDetail.filters.traitSigned': 'Firmata',
   'productDetail.filters.traitAltered': 'Alterata',
   'productDetail.marketplace.emptyFiltered': 'Nessun risultato con i filtri selezionati.',
+  'productDetail.mobile.showReprints': 'Mostra ristampe',
+  'productDetail.mobile.hideReprints': 'Nascondi ristampe',
   'productDetail.auctions.emptyTitle': 'Non ci sono aste al momento su questo oggetto',
   'productDetail.auctions.emptyBody':
     'Crea la prima asta su questa carta oppure esplora le altre aste aperte sulla piattaforma.',

@@ -1172,6 +1172,8 @@ export const en = {
   'productDetail.filters.traitSigned': 'Signed',
   'productDetail.filters.traitAltered': 'Altered',
   'productDetail.marketplace.emptyFiltered': 'No results match the selected filters.',
+  'productDetail.mobile.showReprints': 'Show reprints',
+  'productDetail.mobile.hideReprints': 'Hide reprints',
   'productDetail.auctions.emptyTitle': 'No auctions on this item right now',
   'productDetail.auctions.emptyBody': 'Be the first to list this card at auction, or browse other open auctions.',
   'productDetail.auctions.createNow': 'Create an auction now',

@@ -39,7 +39,8 @@ const CONDITION_MAP: Record<ConditionCode, ConditionMeta> = {
   },
 };
 
-const SIZE_CLASS: Record<'sm' | 'md' | 'lg' | 'xl', { box: string; text: string }> = {
+const SIZE_CLASS: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', { box: string; text: string }> = {
+  xs: { box: 'h-[18px] w-[18px]', text: 'text-[9px]' },
   sm: { box: 'w-5 h-5', text: 'text-[10px]' },
   md: { box: 'w-[26px] h-[26px]', text: 'text-[11px]' },
   lg: { box: 'w-8 h-8', text: 'text-[13px]' },
@@ -48,7 +49,7 @@ const SIZE_CLASS: Record<'sm' | 'md' | 'lg' | 'xl', { box: string; text: string 
 
 interface ConditionBadgeProps {
   condition: ConditionCode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export function ConditionBadge({ condition, size = 'md' }: ConditionBadgeProps) {

@@ -168,18 +168,10 @@ function MobileCardGeneralInfo({
   card,
   setCatalogHref,
   cardsInSaleLabel,
-  formatEuro,
-  trendPriceValue,
-  soldCopiesValue,
-  averageSalePriceValue,
 }: {
   card?: CardDocument;
   setCatalogHref: string | null;
   cardsInSaleLabel: string;
-  formatEuro: (n: number) => string;
-  trendPriceValue: number;
-  soldCopiesValue: number;
-  averageSalePriceValue: number;
 }) {
   return (
     <div className="border-b border-zinc-100 bg-white px-2.5 py-2">
@@ -219,25 +211,33 @@ function MobileCardGeneralInfo({
             )}
           </dd>
         </div>
-        <div className="flex min-w-0 items-center justify-between gap-1">
+        <div className="col-span-2 flex min-w-0 items-center justify-between gap-1">
           <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">In vendita</dt>
           <dd className="text-[12px] font-extrabold tabular-nums text-primary">{cardsInSaleLabel}</dd>
         </div>
-        <div className="flex min-w-0 items-center justify-between gap-1">
-          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Trend</dt>
-          <dd className="text-[11px] font-extrabold tabular-nums text-amber-700">{formatEuro(trendPriceValue)}</dd>
-        </div>
-        <div className="flex min-w-0 items-center justify-between gap-1">
-          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Vend.</dt>
-          <dd className="text-[11px] font-extrabold tabular-nums text-sky-700">
-            {new Intl.NumberFormat('it-IT').format(soldCopiesValue)}
-          </dd>
-        </div>
-        <div className="flex min-w-0 items-center justify-between gap-1">
-          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Media</dt>
-          <dd className="text-[11px] font-extrabold tabular-nums text-zinc-800">{formatEuro(averageSalePriceValue)}</dd>
-        </div>
       </dl>
+    </div>
+  );
+}
+
+function MobileChartKpiRow({
+  formatEuro,
+  trendPriceValue,
+  soldCopiesValue,
+  averageSalePriceValue,
+}: {
+  formatEuro: (n: number) => string;
+  trendPriceValue: number;
+  soldCopiesValue: number;
+  averageSalePriceValue: number;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5 text-[10px] font-bold tabular-nums">
+      <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-amber-700">{formatEuro(trendPriceValue)}</span>
+      <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-sky-700">
+        {new Intl.NumberFormat('it-IT').format(soldCopiesValue)} vend.
+      </span>
+      <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-zinc-800">{formatEuro(averageSalePriceValue)}</span>
     </div>
   );
 }
@@ -500,6 +500,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   }));
   const imageSrc = props.imageSrc ?? (card?.image != null ? getCardImageUrl(card.image) : null) ?? getCdnImageUrl('kyurem.png');
   const [activeTab, setActiveTab] = useState<ProductDetailTabId>('INFO');
+  const [mobileReprintsOpen, setMobileReprintsOpen] = useState(false);
   const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'SCAMBI' | 'ASTE' | 'TCG_EXPRESS'>('VENDITORI');
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -1067,8 +1068,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const sortedMarketplaceRows = useMemo(() => {
     const built = buildMarketplaceRows(enrichedCardAuctions, listings);
     const filtered = filterMarketplaceRows(built, marketplaceFilters);
-    return sortMarketplaceRows(filtered, listingsSort, hideAuctions);
-  }, [enrichedCardAuctions, listings, marketplaceFilters, listingsSort, hideAuctions]);
+    return sortMarketplaceRows(filtered, listingsSort, hideAuctions, isOwnListing);
+  }, [enrichedCardAuctions, listings, marketplaceFilters, listingsSort, hideAuctions, isOwnListing]);
 
   const marketplaceEmptyMessage = useMemo(() => {
     if (listings.length === 0 && enrichedCardAuctions.length === 0) {
@@ -1300,52 +1301,295 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   : 'sm:h-[320px]'
             )}
           >
-            {/* MOBILE: tab sopra immagine, carta grande, info sempre visibili */}
+            {/* MOBILE: tab, slot hero (immagine o azione), info compatte, ristampe collassabili */}
             <div className="flex w-full flex-col sm:hidden">
               <ProductDetailIconTabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} compact />
-              <div className="flex justify-center bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60 px-0.5 py-2.5">
-                <div
-                  className="relative w-[min(calc(100vw-1.25rem),22.5rem)] cursor-pointer overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-transform active:scale-[0.99]"
-                  style={{ aspectRatio: '63/88' }}
-                  onClick={handleLightboxOpen}
-                  role="button"
-                  aria-label="Clicca per ingrandire l'immagine"
-                >
-                  {showImagePlaceholder ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
-                      <img src={EBARTEX_LOGO_PLACEHOLDER} alt="Ebartex" className="h-14 w-14 shrink-0 object-contain" />
-                      <p className="mt-2 text-[10px] font-medium leading-tight text-gray-600">Immagine non disponibile</p>
+              <div
+                className={cn(
+                  'bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60',
+                  activeTab === 'INFO' ? 'flex justify-center px-0.5 py-2.5' : 'min-h-[200px] overflow-y-auto p-2.5',
+                  activeTab === 'ASTA' && 'min-h-[280px]'
+                )}
+              >
+                {activeTab === 'INFO' && (
+                  <div
+                    className="relative w-[min(62vw,11.5rem)] cursor-pointer overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-transform active:scale-[0.99]"
+                    style={{ aspectRatio: '63/88' }}
+                    onClick={handleLightboxOpen}
+                    role="button"
+                    aria-label="Clicca per ingrandire l'immagine"
+                  >
+                    {showImagePlaceholder ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
+                        <img src={EBARTEX_LOGO_PLACEHOLDER} alt="Ebartex" className="h-14 w-14 shrink-0 object-contain" />
+                        <p className="mt-2 text-[10px] font-medium leading-tight text-gray-600">Immagine non disponibile</p>
+                      </div>
+                    ) : isLocalImage ? (
+                      <img
+                        src={effectiveImageSrc}
+                        alt={card?.name ?? title}
+                        className="h-full w-full object-contain"
+                        onError={() => setImageError(true)}
+                      />
+                    ) : (
+                      <Image
+                        src={effectiveImageSrc}
+                        alt={card?.name ?? title}
+                        fill
+                        className="object-contain"
+                        sizes="(max-width: 640px) 62vw, 200px"
+                        unoptimized
+                        onError={() => setImageError(true)}
+                        priority
+                      />
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'VENDI' && (
+                  <div className="rounded-xl bg-white p-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                    <div className="mb-2 flex items-center justify-between">
+                      <h3 className="text-[13px] font-extrabold uppercase tracking-wider text-zinc-900">Vendi subito</h3>
+                      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">Rapido</span>
                     </div>
-                  ) : isLocalImage ? (
-                    <img
-                      src={effectiveImageSrc}
-                      alt={card?.name ?? title}
-                      className="h-full w-full object-contain"
-                      onError={() => setImageError(true)}
-                    />
-                  ) : (
-                    <Image
-                      src={effectiveImageSrc}
-                      alt={card?.name ?? title}
-                      fill
-                      className="object-contain"
-                      sizes="(max-width: 640px) 90vw, 200px"
-                      unoptimized
-                      onError={() => setImageError(true)}
-                      priority
-                    />
-                  )}
-                </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Quantità</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={quantitaVendi}
+                          onChange={(e) => setQuantitaVendi(Number(e.target.value) || 1)}
+                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Prezzo (€)</label>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={prezzoVendi}
+                          onChange={(e) => setPrezzoVendi(e.target.value)}
+                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lingua</label>
+                        <CardLanguageSelect
+                          options={cardLanguageOptions}
+                          value={linguaVendi}
+                          onChange={setLinguaVendi}
+                          className="[&_button]:rounded-lg [&_button]:border-zinc-200 [&_button]:bg-zinc-50/50 [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Condizione</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalCondition(condizioneVendi);
+                            setIsConditionModalOpen(true);
+                          }}
+                          className="w-full truncate rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-left text-xs font-medium text-zinc-900 transition-colors hover:border-zinc-300"
+                        >
+                          {CONDITION_OPTIONS_MAP.find((opt) => opt.value === condizioneVendi)?.label ?? 'Near Mint'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Note</label>
+                      <input
+                        type="text"
+                        value={commentiVendi}
+                        onChange={(e) => setCommentiVendi(e.target.value)}
+                        placeholder="Commenti per acquirente"
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
+                      />
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-1.5">
+                      <div className="rounded-lg bg-zinc-50/80 p-1.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Unit.</p>
+                        <p className="mt-0.5 text-xs font-extrabold text-zinc-800">{formatEuro(prezzoVendiValue)}</p>
+                      </div>
+                      <div className="rounded-lg bg-sky-50/60 p-1.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600/80">Qtà</p>
+                        <p className="mt-0.5 text-xs font-extrabold text-sky-700">{new Intl.NumberFormat('it-IT').format(quantitaVendiValue)}</p>
+                      </div>
+                      <div className="rounded-lg bg-amber-50/70 p-1.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/80">Tot.</p>
+                        <p className="mt-0.5 text-xs font-extrabold text-amber-700">{formatEuro(vendiTotaleValue)}</p>
+                      </div>
+                    </div>
+                    <div className="mt-2.5 flex items-center justify-between border-t border-zinc-100 pt-2">
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-600">
+                          <input
+                            type="checkbox"
+                            checked={extraFoil}
+                            onChange={(e) => setExtraFoil(e.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-zinc-300 text-primary focus:ring-primary/25"
+                          />
+                          Foil
+                        </label>
+                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-600">
+                          <input
+                            type="checkbox"
+                            checked={extraSigned}
+                            onChange={(e) => setExtraSigned(e.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-zinc-300 text-primary focus:ring-primary/25"
+                          />
+                          Firm.
+                        </label>
+                      </div>
+                      <button
+                        type="button"
+                        className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+                      >
+                        Vendi
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'SCAMBIA' && (
+                  <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                    <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10" aria-hidden>
+                      <svg className="h-5 w-5 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <polyline points="17 1 21 5 17 9" />
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                        <polyline points="7 23 3 19 7 15" />
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                      </svg>
+                    </div>
+                    <h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-800">Scambio</h3>
+                    <p className="mt-1.5 max-w-[200px] text-center text-xs leading-relaxed text-zinc-400">
+                      Funzionalità in arrivo prossimamente.
+                    </p>
+                  </div>
+                )}
+
+                {activeTab === 'ASTA' && card && blueprintIdForAuction && (
+                  <div className="rounded-xl bg-white p-2 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                    {auctionInventoryLoading ? (
+                      <div className="flex min-h-[200px] flex-col items-center justify-center gap-2.5 text-xs text-zinc-500">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
+                        <span>{t('accountPage.itemsLoadingInventory')}</span>
+                      </div>
+                    ) : (
+                      <AuctionCreateWizard
+                        key={`mobile-${card.id}-${auctionInventoryItems.length}`}
+                        variant="embedded"
+                        embeddedCard={card}
+                        embeddedInventoryItems={auctionInventoryItems}
+                        onEmbeddedCancel={() => setActiveTab('INFO')}
+                        className="!max-w-full"
+                      />
+                    )}
+                  </div>
+                )}
+                {activeTab === 'ASTA' && (!card || !blueprintIdForAuction) && (
+                  <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl bg-white p-4">
+                    <p className="max-w-[260px] text-center text-xs leading-relaxed text-zinc-400">
+                      {!card
+                        ? 'Seleziona un prodotto dal catalogo per creare un’asta.'
+                        : 'Identificativo prodotto non disponibile per questo articolo: usa la pagina Nuova asta dal menu Aste.'}
+                    </p>
+                  </div>
+                )}
+
+                {activeTab === 'GRAFICO' && (
+                  <div className="flex w-full flex-col gap-2 rounded-xl bg-white p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">{trendRangeLabel}</h3>
+                      <MobileChartKpiRow
+                        formatEuro={formatEuro}
+                        trendPriceValue={trendPriceValue}
+                        soldCopiesValue={soldCopiesValue}
+                        averageSalePriceValue={averageSalePriceValue}
+                      />
+                    </div>
+                    <div className="min-h-[200px] rounded-lg bg-white/60">
+                      <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
+                    </div>
+                  </div>
+                )}
               </div>
+
               <MobileCardGeneralInfo
                 card={card}
                 setCatalogHref={setCatalogHref}
                 cardsInSaleLabel={cardsInSaleLabel}
-                formatEuro={formatEuro}
-                trendPriceValue={trendPriceValue}
-                soldCopiesValue={soldCopiesValue}
-                averageSalePriceValue={averageSalePriceValue}
               />
+
+              {activeTab === 'INFO' && (
+                <div className="border-b border-zinc-100 bg-white px-2.5 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setMobileReprintsOpen((open) => !open)}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200/80 bg-zinc-50/80 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-zinc-700 transition-colors hover:bg-zinc-100/80"
+                    aria-expanded={mobileReprintsOpen}
+                  >
+                    {mobileReprintsOpen ? (
+                      <>
+                        <X className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {t('productDetail.mobile.hideReprints')}
+                      </>
+                    ) : (
+                      <>
+                        {t('productDetail.mobile.showReprints')}
+                        {reprints.length > 0 && (
+                          <span className="rounded-full bg-zinc-200/80 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-zinc-500">
+                            {reprints.length}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </button>
+                  {mobileReprintsOpen && (
+                    <div className="mt-2 rounded-xl bg-white p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Ristampe</span>
+                        {reprints.length > 0 && reprintsAllHref && (
+                          <Link
+                            href={reprintsAllHref}
+                            className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[9px] font-semibold text-primary hover:bg-primary/10"
+                          >
+                            Vedi tutte
+                          </Link>
+                        )}
+                      </div>
+                      {reprintsLoading ? (
+                        <div
+                          className={cn(
+                            'grid shrink-0 grid-cols-2 gap-2 overflow-hidden',
+                            REPRINT_GRID_SCROLL_CLASS
+                          )}
+                        >
+                          {[...Array(6)].map((_, i) => (
+                            <div key={i} className={cn(REPRINT_TILE_CLASS, 'rounded-lg bg-zinc-100 animate-pulse')} />
+                          ))}
+                        </div>
+                      ) : reprints.length > 0 ? (
+                        <div
+                          className={cn(
+                            'grid shrink-0 grid-cols-2 auto-rows-min gap-2 overflow-y-auto overscroll-contain pr-0.5',
+                            REPRINT_GRID_SCROLL_CLASS
+                          )}
+                        >
+                          {reprints.map((r, i) => (
+                            <ReprintThumbnail key={r.id} reprint={r} columnIndex={i} />
+                          ))}
+                        </div>
+                      ) : reprintsDegraded ? (
+                        <p className="text-[11px] text-amber-700">Ristampe non disponibili.</p>
+                      ) : (
+                        <p className="text-[11px] text-zinc-400">Nessuna ristampa.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* DESKTOP: colonna immagine */}
@@ -1387,7 +1631,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             </aside>
 
             {/* Contenuto tab */}
-            <div id="product-detail-tab-panel" className="flex min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 sm:h-full">
+            <div id="product-detail-tab-panel" className="hidden min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 sm:flex sm:h-full">
               <ProductDetailIconTabBar
                 tabs={tabs}
                 activeTab={activeTab}
@@ -1398,53 +1642,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             {/* Contenuto tab INFO: MOBILE compatta con espansione grafico; DESKTOP layout completo */}
             {activeTab === 'INFO' && (
               <>
-                {/* MOBILE tab INFO: ristampe (info generali sempre visibili sopra) */}
-                <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-2 overflow-y-auto p-2.5 sm:hidden">
-                  <div className="rounded-xl bg-white p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Ristampe</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400 tabular-nums">{reprints.length}</span>
-                        {reprints.length > 0 && reprintsAllHref && (
-                          <Link
-                            href={reprintsAllHref}
-                            className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[9px] font-semibold text-primary hover:bg-primary/10"
-                          >
-                            Vedi tutte
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                    {reprintsLoading ? (
-                      <div
-                        className={cn(
-                          'grid shrink-0 grid-cols-2 gap-2 overflow-hidden',
-                          REPRINT_GRID_SCROLL_CLASS
-                        )}
-                      >
-                        {[...Array(6)].map((_, i) => (
-                          <div key={i} className={cn(REPRINT_TILE_CLASS, 'rounded-lg bg-zinc-100 animate-pulse')} />
-                        ))}
-                      </div>
-                    ) : reprints.length > 0 ? (
-                      <div
-                        className={cn(
-                          'grid shrink-0 grid-cols-2 auto-rows-min gap-2 overflow-y-auto overscroll-contain pr-0.5',
-                          REPRINT_GRID_SCROLL_CLASS
-                        )}
-                      >
-                        {reprints.map((r, i) => (
-                          <ReprintThumbnail key={r.id} reprint={r} columnIndex={i} />
-                        ))}
-                      </div>
-                    ) : reprintsDegraded ? (
-                      <p className="text-[11px] text-amber-700">Ristampe non disponibili.</p>
-                    ) : (
-                      <p className="text-[11px] text-zinc-400">Nessuna ristampa.</p>
-                    )}
-                  </div>
-                </div>
-
                 {/* DESKTOP: Layout ottimizzato - Dati prioritari | Ristampe compatte | KPI verticali */}
                 <div className={cn(
                   'hidden sm:grid min-w-0 w-full items-stretch transition-all duration-500',
@@ -1654,116 +1851,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             {/* Tab VENDI: form ultra-compatto */}
             {activeTab === 'VENDI' && (
               <>
-                <div className="sm:hidden flex h-full min-h-0 w-full min-w-0 flex-col gap-2 overflow-y-auto p-2.5">
-                  <div className="rounded-xl bg-white p-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                    <div className="mb-2 flex items-center justify-between">
-                      <h3 className="text-[13px] font-extrabold uppercase tracking-wider text-zinc-900">Vendi subito</h3>
-                      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">Rapido</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Quantità</label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={quantitaVendi}
-                          onChange={(e) => setQuantitaVendi(Number(e.target.value) || 1)}
-                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Prezzo (€)</label>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={prezzoVendi}
-                          onChange={(e) => setPrezzoVendi(e.target.value)}
-                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lingua</label>
-                        <CardLanguageSelect
-                          options={cardLanguageOptions}
-                          value={linguaVendi}
-                          onChange={setLinguaVendi}
-                          className="[&_button]:rounded-lg [&_button]:border-zinc-200 [&_button]:bg-zinc-50/50 [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Condizione</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setModalCondition(condizioneVendi);
-                            setIsConditionModalOpen(true);
-                          }}
-                          className="w-full truncate rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-left text-xs font-medium text-zinc-900 transition-colors hover:border-zinc-300"
-                        >
-                          {CONDITION_OPTIONS_MAP.find((opt) => opt.value === condizioneVendi)?.label ?? 'Near Mint'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="mt-2">
-                      <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Note</label>
-                      <input
-                        type="text"
-                        value={commentiVendi}
-                        onChange={(e) => setCommentiVendi(e.target.value)}
-                        placeholder="Commenti per acquirente"
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
-                      />
-                    </div>
-
-                    <div className="mt-2 grid grid-cols-3 gap-1.5">
-                      <div className="rounded-lg bg-zinc-50/80 p-1.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Unit.</p>
-                        <p className="mt-0.5 text-xs font-extrabold text-zinc-800">{formatEuro(prezzoVendiValue)}</p>
-                      </div>
-                      <div className="rounded-lg bg-sky-50/60 p-1.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600/80">Qtà</p>
-                        <p className="mt-0.5 text-xs font-extrabold text-sky-700">{new Intl.NumberFormat('it-IT').format(quantitaVendiValue)}</p>
-                      </div>
-                      <div className="rounded-lg bg-amber-50/70 p-1.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/80">Tot.</p>
-                        <p className="mt-0.5 text-xs font-extrabold text-amber-700">{formatEuro(vendiTotaleValue)}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-2.5 flex items-center justify-between border-t border-zinc-100 pt-2">
-                      <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-600">
-                          <input
-                            type="checkbox"
-                            checked={extraFoil}
-                            onChange={(e) => setExtraFoil(e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-zinc-300 text-primary focus:ring-primary/25"
-                          />
-                          Foil
-                        </label>
-                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-600">
-                          <input
-                            type="checkbox"
-                            checked={extraSigned}
-                            onChange={(e) => setExtraSigned(e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-zinc-300 text-primary focus:ring-primary/25"
-                          />
-                          Firm.
-                        </label>
-                      </div>
-                      <button
-                        type="button"
-                        className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
-                      >
-                        Vendi
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="hidden h-full min-h-0 w-full min-w-0 gap-3 overflow-y-auto p-3 sm:grid sm:grid-cols-1 lg:grid-cols-[1.3fr_1fr]">
                   {/* LEFT: Selling form */}
                   <div className="flex min-h-0 flex-col gap-0 rounded-2xl bg-white ring-1 ring-zinc-900/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
@@ -1941,7 +2028,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
             {/* Tab METTI ALL'ASTA: flusso creazione asta compatta */}
             {activeTab === 'ASTA' && card && blueprintIdForAuction && (
-              <div className="min-h-0 bg-zinc-50/30 p-2 sm:p-2.5">
+              <div className="hidden min-h-0 bg-zinc-50/30 p-2 sm:block sm:p-2.5">
                 {auctionInventoryLoading ? (
                   <div className="flex min-h-[200px] flex-col items-center justify-center gap-2.5 text-xs text-zinc-500">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
@@ -1960,7 +2047,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               </div>
             )}
             {activeTab === 'ASTA' && (!card || !blueprintIdForAuction) && (
-              <div className="flex flex-1 flex-col items-center justify-center p-6 min-w-0 w-full">
+              <div className="hidden flex-1 flex-col items-center justify-center p-6 min-w-0 w-full sm:flex">
                 <p className="text-xs text-zinc-400 text-center max-w-[260px] leading-relaxed">
                   {!card
                     ? 'Seleziona un prodotto dal catalogo per creare un’asta.'
@@ -1970,7 +2057,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             )}
             {/* Tab SCAMBIA */}
             {activeTab === 'SCAMBIA' && (
-              <div className="flex flex-1 flex-col items-center justify-center p-6 min-w-0 w-full">
+              <div className="hidden flex-1 flex-col items-center justify-center p-6 min-w-0 w-full sm:flex">
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 mb-3" aria-hidden>
                   <svg className="w-5 h-5 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <polyline points="17 1 21 5 17 9" />
@@ -1985,7 +2072,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             )}
             {/* Tab GRAFICO: andamento prezzi */}
             {activeTab === 'GRAFICO' && (
-              <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto p-2.5 sm:p-3">
+              <div className="hidden min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto p-2.5 sm:flex sm:p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800 sm:text-xs">
                     {trendRangeLabel}
@@ -2340,6 +2427,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     emptyMessage={marketplaceEmptyMessage}
                     cardImageSrc={cardImages[currentImageIndex]}
                     cardName={card?.name}
+                    cardLanguage={card?.available_languages?.[0] ?? null}
                     onAddToCart={(item, quantity, sourceEl) => {
                       if (!user || !accessToken) {
                         setListingActionMessage('Accedi per aggiungere al carrello.');
