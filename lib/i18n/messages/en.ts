@@ -105,6 +105,8 @@ export const en = {
   'nav.tcgExpress': 'BRX Express',
   'nav.trades': 'Trades',
   'nav.auctions': 'Auctions',
+  'nav.tournamentsPortal': 'Tournaments',
+  'nav.tournamentsPortalAria': 'Open Ebartex tournaments platform (new tab)',
   'nav.cartAria': 'Cart {total}',
 
   'games.header.mtg': 'MAGIC: THE GATHERING',

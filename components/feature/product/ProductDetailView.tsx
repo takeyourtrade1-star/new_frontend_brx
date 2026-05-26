@@ -3,7 +3,28 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Loader2, Minus, Pencil, Plus, X, ChevronLeft, ChevronRight, Heart, Eye, EyeOff, Zap, Bookmark, Share2, ShoppingCart } from 'lucide-react';
+import {
+  Loader2,
+  Minus,
+  Pencil,
+  Plus,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  Eye,
+  EyeOff,
+  Zap,
+  Bookmark,
+  Share2,
+  ShoppingCart,
+  Info,
+  Tag,
+  ArrowLeftRight,
+  Gavel,
+  LineChart,
+  type LucideIcon,
+} from 'lucide-react';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 import { getCardImageUrl, getSetIconUrl } from '@/lib/assets';
@@ -68,6 +89,143 @@ const REPRINT_GRID_SCROLL_CLASS =
   'max-h-[calc(5rem*3+0.5rem*2)] min-h-[calc(5rem*3+0.5rem*2)]';
 const REPRINT_LIST_SCROLL_CLASS =
   'max-h-[calc(3.5rem*6+0.25rem*5)] min-h-[calc(3.5rem*6+0.25rem*5)]';
+
+type ProductDetailTabId = 'INFO' | 'VENDI' | 'SCAMBIA' | 'ASTA' | 'GRAFICO';
+
+type ProductDetailTabConfig = {
+  id: ProductDetailTabId;
+  label: string;
+  mobileLabel: string;
+  icon: LucideIcon;
+};
+
+function ProductDetailIconTabBar({
+  tabs,
+  activeTab,
+  onTabChange,
+  className,
+  compact = false,
+}: {
+  tabs: ProductDetailTabConfig[];
+  activeTab: ProductDetailTabId;
+  onTabChange: (id: ProductDetailTabId) => void;
+  className?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={cn('flex border-b border-zinc-200/80 bg-white', className)} role="tablist" aria-label="Azioni carta">
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        const isActive = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            aria-label={tab.label}
+            onClick={() => onTabChange(tab.id)}
+            className={cn(
+              'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-colors',
+              compact ? 'px-0.5 py-2' : 'px-1 py-2 sm:py-2.5',
+              isActive
+                ? 'text-primary after:absolute after:bottom-0 after:left-1 after:right-1 after:h-0.5 after:rounded-full after:bg-primary sm:after:left-2 sm:after:right-2'
+                : 'text-zinc-500 hover:bg-zinc-50/80 hover:text-zinc-700'
+            )}
+          >
+            <Icon className={cn('shrink-0', compact ? 'h-4 w-4' : 'h-4 w-4 sm:h-[18px] sm:w-[18px]')} aria-hidden />
+            <span
+              className={cn(
+                'truncate font-bold uppercase tracking-wide',
+                compact ? 'text-[8px]' : 'text-[8px] sm:text-[10px]'
+              )}
+            >
+              {tab.mobileLabel}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function MobileCardGeneralInfo({
+  card,
+  setCatalogHref,
+  cardsInSaleLabel,
+  formatEuro,
+  trendPriceValue,
+  soldCopiesValue,
+  averageSalePriceValue,
+}: {
+  card?: CardDocument;
+  setCatalogHref: string | null;
+  cardsInSaleLabel: string;
+  formatEuro: (n: number) => string;
+  trendPriceValue: number;
+  soldCopiesValue: number;
+  averageSalePriceValue: number;
+}) {
+  return (
+    <div className="border-b border-zinc-100 bg-white px-2.5 py-2">
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+        <div className="flex min-w-0 items-center justify-between gap-1">
+          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Rarità</dt>
+          <dd className="min-w-0 text-right">
+            <RarityIndicator rarity={card?.rarity} showLabel size="sm" />
+          </dd>
+        </div>
+        <div className="flex min-w-0 items-center justify-between gap-1">
+          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Numero</dt>
+          <dd className="truncate text-[11px] font-bold tabular-nums text-zinc-900">{card?.collector_number ?? '—'}</dd>
+        </div>
+        <div className="col-span-2 flex min-w-0 items-center justify-between gap-1">
+          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Set</dt>
+          <dd className="min-w-0 truncate text-right">
+            {setCatalogHref ? (
+              <Link
+                href={setCatalogHref}
+                className="text-[11px] font-bold text-primary underline-offset-2 hover:underline"
+              >
+                {card?.set_name ?? '—'}
+              </Link>
+            ) : (
+              <span className="text-[11px] font-bold text-zinc-900">{card?.set_name ?? '—'}</span>
+            )}
+          </dd>
+        </div>
+        <div className="col-span-2 flex min-w-0 items-start justify-between gap-1">
+          <dt className="shrink-0 pt-0.5 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Lingue</dt>
+          <dd className="min-w-0">
+            {card?.game_slug === 'mtg' ? (
+              <CardLanguageFlags languages={card?.available_languages} size="xs" showActiveLabel />
+            ) : (
+              <span className="text-[10px] font-medium text-zinc-500">N/D</span>
+            )}
+          </dd>
+        </div>
+        <div className="flex min-w-0 items-center justify-between gap-1">
+          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">In vendita</dt>
+          <dd className="text-[12px] font-extrabold tabular-nums text-primary">{cardsInSaleLabel}</dd>
+        </div>
+        <div className="flex min-w-0 items-center justify-between gap-1">
+          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Trend</dt>
+          <dd className="text-[11px] font-extrabold tabular-nums text-amber-700">{formatEuro(trendPriceValue)}</dd>
+        </div>
+        <div className="flex min-w-0 items-center justify-between gap-1">
+          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Vend.</dt>
+          <dd className="text-[11px] font-extrabold tabular-nums text-sky-700">
+            {new Intl.NumberFormat('it-IT').format(soldCopiesValue)}
+          </dd>
+        </div>
+        <div className="flex min-w-0 items-center justify-between gap-1">
+          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Media</dt>
+          <dd className="text-[11px] font-extrabold tabular-nums text-zinc-800">{formatEuro(averageSalePriceValue)}</dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
 
 function mapReprintHit(hit: ReprintSearchHit, cardGameSlug?: string): ReprintCard | null {
   if (!hit.id) return null;
@@ -326,8 +484,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     isCurrent: index === breadcrumbs.length - 1,
   }));
   const imageSrc = props.imageSrc ?? (card?.image != null ? getCardImageUrl(card.image) : null) ?? getCdnImageUrl('kyurem.png');
-  const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'INFO' | 'VENDI' | 'SCAMBIA' | 'TORNEI' | 'ASTA'>('INFO');
+  const [activeTab, setActiveTab] = useState<ProductDetailTabId>('INFO');
   const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'SCAMBI' | 'ASTE' | 'TCG_EXPRESS'>('VENDITORI');
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -986,12 +1143,12 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setTouchEndX(null);
   };
 
-  const tabs = [
-    { id: 'INFO' as const, label: 'INFO', mobileLabel: 'INFO' },
-    { id: 'VENDI' as const, label: 'VENDI', mobileLabel: 'VENDI' },
-    ...(scambiVisible ? [{ id: 'SCAMBIA' as const, label: 'SCAMBIA', mobileLabel: 'SCAMBIA' }] : []),
-    { id: 'ASTA' as const, label: "METTI ALL'ASTA", mobileLabel: 'ASTA' },
-    { id: 'TORNEI' as const, label: 'TORNEI LIVE', mobileLabel: 'TORNEI' },
+  const tabs: ProductDetailTabConfig[] = [
+    { id: 'INFO', label: 'INFO', mobileLabel: 'INFO', icon: Info },
+    { id: 'VENDI', label: 'VENDI', mobileLabel: 'VENDI', icon: Tag },
+    ...(scambiVisible ? [{ id: 'SCAMBIA' as const, label: 'SCAMBIA', mobileLabel: 'SCAMBIA', icon: ArrowLeftRight }] : []),
+    { id: 'ASTA', label: "METTI ALL'ASTA", mobileLabel: 'ASTA', icon: Gavel },
+    { id: 'GRAFICO', label: 'GRAFICO PREZZI', mobileLabel: 'GRAFICO', icon: LineChart },
   ];
 
   return (
@@ -1073,23 +1230,63 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               'flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-[2px] shadow-[0_1px_4px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] sm:flex-row',
               activeTab === 'ASTA'
                 ? 'sm:min-h-[420px]'
-                : activeTab === 'INFO'
+                : activeTab === 'INFO' || activeTab === 'GRAFICO'
                   ? 'sm:min-h-[320px] sm:h-auto'
                   : 'sm:h-[320px]'
             )}
           >
-            {/* Colonna sinistra: immagine carta compatta */}
-            <aside
-              className={cn(
-                'flex w-full flex-shrink-0 flex-col items-center justify-center bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60 p-3 sm:h-full sm:w-[180px] sm:max-w-none sm:justify-center sm:border-b-0 sm:border-r sm:border-zinc-200/50 sm:p-4 md:w-[200px] lg:w-[220px]',
-                mobileDetailsOpen ? 'border-b border-zinc-200/50' : 'border-b-0'
-              )}
-            >
+            {/* MOBILE: tab sopra immagine, carta grande, info sempre visibili */}
+            <div className="flex w-full flex-col sm:hidden">
+              <ProductDetailIconTabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} compact />
+              <div className="flex justify-center bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60 px-0.5 py-2.5">
+                <div
+                  className="relative w-[min(calc(100vw-1.25rem),22.5rem)] cursor-pointer overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-transform active:scale-[0.99]"
+                  style={{ aspectRatio: '63/88' }}
+                  onClick={handleLightboxOpen}
+                  role="button"
+                  aria-label="Clicca per ingrandire l'immagine"
+                >
+                  {showImagePlaceholder ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
+                      <img src={EBARTEX_LOGO_PLACEHOLDER} alt="Ebartex" className="h-14 w-14 shrink-0 object-contain" />
+                      <p className="mt-2 text-[10px] font-medium leading-tight text-gray-600">Immagine non disponibile</p>
+                    </div>
+                  ) : isLocalImage ? (
+                    <img
+                      src={effectiveImageSrc}
+                      alt={card?.name ?? title}
+                      className="h-full w-full object-contain"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <Image
+                      src={effectiveImageSrc}
+                      alt={card?.name ?? title}
+                      fill
+                      className="object-contain"
+                      sizes="(max-width: 640px) 90vw, 200px"
+                      unoptimized
+                      onError={() => setImageError(true)}
+                      priority
+                    />
+                  )}
+                </div>
+              </div>
+              <MobileCardGeneralInfo
+                card={card}
+                setCatalogHref={setCatalogHref}
+                cardsInSaleLabel={cardsInSaleLabel}
+                formatEuro={formatEuro}
+                trendPriceValue={trendPriceValue}
+                soldCopiesValue={soldCopiesValue}
+                averageSalePriceValue={averageSalePriceValue}
+              />
+            </div>
+
+            {/* DESKTOP: colonna immagine */}
+            <aside className="hidden w-[180px] flex-shrink-0 flex-col items-center justify-center border-r border-zinc-200/50 bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60 p-4 sm:flex sm:h-full md:w-[200px] lg:w-[220px]">
               <div
-                className={cn(
-                  'relative flex w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md sm:max-w-[180px] sm:max-h-[300px] md:max-w-[200px] md:max-h-[360px] lg:max-w-[220px] lg:max-h-[420px]',
-                  mobileDetailsOpen ? 'max-w-[144px] max-h-[201px]' : 'max-w-[96px] max-h-[134px]'
-                )}
+                className="relative flex w-full max-w-[180px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md md:max-w-[200px] md:max-h-[360px] lg:max-w-[220px] lg:max-h-[420px] sm:max-h-[300px]"
                 style={{ aspectRatio: '63/88' }}
                 onClick={handleLightboxOpen}
                 onMouseEnter={handleHoverPreviewOpen}
@@ -1097,145 +1294,47 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 role="button"
                 aria-label="Clicca per ingrandire l'immagine"
               >
-              {showImagePlaceholder ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
+                {showImagePlaceholder ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
+                    <img src={EBARTEX_LOGO_PLACEHOLDER} alt="Ebartex" className="h-14 w-14 shrink-0 object-contain" />
+                    <p className="mt-2 text-[10px] font-medium leading-tight text-gray-600">Immagine non disponibile</p>
+                  </div>
+                ) : isLocalImage ? (
                   <img
-                    src={EBARTEX_LOGO_PLACEHOLDER}
-                    alt="Ebartex"
-                    className="w-14 h-14 object-contain shrink-0"
+                    src={effectiveImageSrc}
+                    alt={card?.name ?? title}
+                    className="h-full w-full object-contain"
+                    onError={() => setImageError(true)}
                   />
-                  <p className="mt-2 text-[10px] font-medium text-gray-600 leading-tight">
-                    Immagine non disponibile
-                  </p>
-                </div>
-              ) : isLocalImage ? (
-                <img
-                  src={effectiveImageSrc}
-                  alt={card?.name ?? title}
-                  className="h-full w-full object-contain"
-                  onError={() => setImageError(true)}
-                />
-              ) : (
-                <Image
-                  src={effectiveImageSrc}
-                  alt={card?.name ?? title}
-                  fill
-                  className="object-contain"
-                  sizes="200px"
-                  unoptimized
-                  onError={() => setImageError(true)}
-                  priority
-                />
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setMobileDetailsOpen((prev) => !prev)}
-              className="mt-3 inline-flex w-auto max-w-full items-center gap-2 self-center rounded-full border border-zinc-200/60 bg-white/90 px-3 py-1.5 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-colors hover:bg-zinc-50 sm:hidden"
-              aria-expanded={mobileDetailsOpen}
-              aria-controls="product-mobile-info-panel"
-            >
-              <span className="text-[11px] font-bold uppercase tracking-wide text-gray-700">
-                {mobileDetailsOpen ? 'Nascondi dettagli' : 'Mostra dettagli'}
-              </span>
-              <svg
-                className={cn('h-3.5 w-3.5 text-zinc-400 transition-transform duration-300', mobileDetailsOpen && 'rotate-180')}
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden
-              >
-                <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </aside>
+                ) : (
+                  <Image
+                    src={effectiveImageSrc}
+                    alt={card?.name ?? title}
+                    fill
+                    className="object-contain"
+                    sizes="220px"
+                    unoptimized
+                    onError={() => setImageError(true)}
+                    priority
+                  />
+                )}
+              </div>
+            </aside>
 
-          {/* Colonna destra: tab minimali + contenuto */}
-          <div
-            id="product-mobile-info-panel"
-            className={cn('flex-1 min-w-0 flex flex-col bg-zinc-50/80 overflow-hidden sm:h-full', !mobileDetailsOpen && 'hidden sm:flex')}
-          >
-            <div className="flex gap-1 border-b border-zinc-100 bg-zinc-100/70 p-1 sm:p-1.5">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'relative flex-1 min-w-0 rounded-lg px-1.5 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold uppercase tracking-[0.06em] transition-all duration-250',
-                    activeTab === tab.id
-                      ? 'bg-white text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)] ring-1 ring-zinc-900/[0.04]'
-                      : 'text-zinc-500 hover:text-zinc-700 hover:bg-white/50'
-                  )}
-                >
-                  <span className="block truncate text-center sm:hidden">{tab.mobileLabel}</span>
-                  <span className="hidden truncate text-center sm:block">{tab.label}</span>
-                </button>
-              ))}
-            </div>
+            {/* Contenuto tab */}
+            <div id="product-detail-tab-panel" className="flex min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 sm:h-full">
+              <ProductDetailIconTabBar
+                tabs={tabs}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                className="hidden sm:flex"
+              />
 
             {/* Contenuto tab INFO: MOBILE compatta con espansione grafico; DESKTOP layout completo */}
             {activeTab === 'INFO' && (
               <>
-                {/* MOBILE: blocco compatto premium */}
-                <div className="sm:hidden flex h-full min-h-0 w-full min-w-0 flex-col gap-2 overflow-y-auto p-2.5">
-                  <div className="rounded-xl bg-white p-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                    <div className="divide-y divide-zinc-100">
-                      <div className="flex items-center justify-between pb-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Rarità</span>
-                        <RarityIndicator rarity={card?.rarity} showLabel size="md" />
-                      </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Numero</span>
-                        <span className="text-xs font-bold text-zinc-900 tabular-nums">{card?.collector_number ?? '015'}</span>
-                      </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Set</span>
-                        {setCatalogHref ? (
-                          <Link
-                            href={setCatalogHref}
-                            className="truncate ml-4 max-w-[68%] text-right text-xs font-bold text-primary underline-offset-2 transition-colors hover:text-primary/80 hover:underline"
-                          >
-                            {card?.set_name ?? 'SUSSURRI NEL POZZO'}
-                          </Link>
-                        ) : (
-                          <span className="truncate ml-4 text-xs font-bold text-zinc-900 text-right">
-                            {card?.set_name ?? 'SUSSURRI NEL POZZO'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-start justify-between gap-2 py-2">
-                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lingue</span>
-                        <div className="ml-2 flex min-w-0 justify-end">
-                          {card?.game_slug === 'mtg' ? (
-                            <CardLanguageFlags languages={card?.available_languages} size="xs" showActiveLabel />
-                          ) : (
-                            <span className="text-[11px] font-medium text-zinc-500">N/D</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between pt-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">In vendita</span>
-                        <span className="text-sm font-extrabold text-primary tabular-nums">{cardsInSaleLabel}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="rounded-xl bg-amber-50/80 p-2.5 text-center">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/80">Trend</p>
-                      <p className="mt-0.5 text-sm font-extrabold text-amber-700">{formatEuro(trendPriceValue)}</p>
-                    </div>
-                    <div className="rounded-xl bg-sky-50/70 p-2.5 text-center">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600/80">Vend.</p>
-                      <p className="mt-0.5 text-sm font-extrabold text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
-                    </div>
-                    <div className="rounded-xl bg-zinc-100/70 p-2.5 text-center">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Media</p>
-                      <p className="mt-0.5 text-sm font-extrabold text-zinc-800">{formatEuro(averageSalePriceValue)}</p>
-                    </div>
-                  </div>
-
+                {/* MOBILE tab INFO: ristampe (info generali sempre visibili sopra) */}
+                <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-2 overflow-y-auto p-2.5 sm:hidden">
                   <div className="rounded-xl bg-white p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Ristampe</span>
@@ -1598,21 +1697,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       </button>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="rounded-xl bg-amber-50/80 p-2.5 text-center">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/80">Trend</p>
-                      <p className="mt-0.5 text-sm font-extrabold text-amber-700">{formatEuro(trendPriceValue)}</p>
-                    </div>
-                    <div className="rounded-xl bg-sky-50/70 p-2.5 text-center">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600/80">Vend.</p>
-                      <p className="mt-0.5 text-sm font-extrabold text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
-                    </div>
-                    <div className="rounded-xl bg-zinc-100/70 p-2.5 text-center">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Media</p>
-                      <p className="mt-0.5 text-sm font-extrabold text-zinc-800">{formatEuro(averageSalePriceValue)}</p>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="hidden h-full min-h-0 w-full min-w-0 gap-3 overflow-y-auto p-3 sm:grid sm:grid-cols-1 lg:grid-cols-[1.3fr_1fr]">
@@ -1834,39 +1918,23 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 <p className="mt-1.5 text-xs text-zinc-400 max-w-[200px] text-center leading-relaxed">Funzionalità in arrivo prossimamente.</p>
               </div>
             )}
-            {/* Tab TORNEI LIVE: mock tornei */}
-            {activeTab === 'TORNEI' && (
-              <div className="flex flex-1 flex-col p-4 min-w-0 w-full gap-3">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-800">Tornei in diretta</h3>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-600">
-                    <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                    LIVE
-                  </span>
-                </div>
-                {[
-                  { name: 'Weekly Modern League', game: 'MTG', players: 32, prize: '€150', time: 'In corso' },
-                  { name: 'Pokémon Standard Cup', game: 'Pokémon', players: 24, prize: '€100', time: 'In corso' },
-                  { name: 'Commander Night', game: 'MTG', players: 16, prize: 'Carte promozionali', time: 'Tra 2h' },
-                ].map((t) => (
-                  <div key={t.name} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                        <path d="M2 17l10 5 10-5" />
-                        <path d="M2 12l10 5 10-5" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-zinc-900">{t.name}</p>
-                      <p className="text-[11px] text-zinc-500">{t.game} · {t.players} giocatori · {t.prize}</p>
-                    </div>
-                    <span className="shrink-0 rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600">
-                      {t.time}
+            {/* Tab GRAFICO: andamento prezzi */}
+            {activeTab === 'GRAFICO' && (
+              <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto p-2.5 sm:p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800 sm:text-xs">
+                    {trendRangeLabel}
+                  </h3>
+                  <div className="flex gap-1.5 text-[10px] font-bold tabular-nums">
+                    <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-amber-700">{formatEuro(trendPriceValue)}</span>
+                    <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-sky-700">
+                      {new Intl.NumberFormat('it-IT').format(soldCopiesValue)} vend.
                     </span>
                   </div>
-                ))}
-                <p className="text-center text-[11px] text-zinc-400 mt-1">Partecipa e vinci carte esclusive — prossimamente su Ebartex</p>
+                </div>
+                <div className="min-h-[220px] flex-1 rounded-xl bg-white p-2 shadow-[0_1px_3px_rgba(0,0,0,0.05)] sm:min-h-[280px]">
+                  <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
+                </div>
               </div>
             )}
           </div>

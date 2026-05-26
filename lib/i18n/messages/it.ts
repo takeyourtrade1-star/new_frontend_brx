@@ -105,6 +105,8 @@ export const it: Record<MessageKey, string> = {
   'nav.tcgExpress': 'BRX Express',
   'nav.trades': 'SCAMBI',
   'nav.auctions': 'ASTE',
+  'nav.tournamentsPortal': 'Tornei',
+  'nav.tournamentsPortalAria': 'Apri la piattaforma tornei Ebartex (nuova scheda)',
   'nav.cartAria': 'Carrello {total}',
 
   'games.header.mtg': 'MAGIC: THE GATHERING',

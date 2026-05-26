@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeftRight, ChevronDown, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
 import { HamburgerMenu } from './HamburgerMenu';
+import { TournamentsPortalButton } from './TournamentsPortalButton';
 import { CartDropdown } from './CartDropdown';
 import { NotificationBell } from '@/components/feature/notifiche/NotificationBell';
 import { Button } from '@/components/ui/button';
@@ -875,9 +876,10 @@ export function TopBar() {
             </>
           ) : null}
         </div>
-        {/* Destra: notifiche (se loggato) + hamburger */}
-        <div className="ml-1 flex shrink-0 items-center gap-0.5" aria-label={t('header.menuAria')}>
+        {/* Destra: notifiche, portale tornei (esterno), hamburger */}
+        <div className="ml-1 flex shrink-0 items-center gap-2 sm:gap-3" aria-label={t('header.menuAria')}>
           {isAuthenticated ? <NotificationBell /> : null}
+          <TournamentsPortalButton className="mr-0.5 sm:mr-1" />
           <HamburgerMenu />
         </div>
       </div>
