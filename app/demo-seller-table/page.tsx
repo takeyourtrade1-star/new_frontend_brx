@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ModernSellerTable } from '@/components/feature/product/ModernSellerTable';
 import { ModernSellerFilters } from '@/components/feature/product/ModernSellerFilters';
+import { buildMarketplaceRows } from '@/lib/product-detail/marketplace-rows';
 
 // Mock data per testare la tabella
 const MOCK_LISTINGS = [
@@ -83,7 +84,7 @@ export default function DemoSellerTablePage() {
           {/* Modern Seller Table */}
           <div className="p-4">
             <ModernSellerTable
-              listings={MOCK_LISTINGS}
+              rows={buildMarketplaceRows([], MOCK_LISTINGS)}
               loading={false}
               error={null}
               onAddToCart={(item, quantity) => {

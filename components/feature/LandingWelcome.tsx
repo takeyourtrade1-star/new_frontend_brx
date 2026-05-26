@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
+import React, { useEffect, useCallback, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -8,7 +8,7 @@ import {
   ArrowRightLeft, Scale, Package, TrendingUp, X, Mail,
   CheckCircle2, ArrowLeft, BellRing, Users, ChevronUp, ArrowRight,
 } from 'lucide-react';
-import { getCdnImageUrl, getCdnVideoUrl } from '@/lib/config';
+import { getCdnImageUrl } from '@/lib/config';
 import { useGame } from '@/lib/contexts/GameContext';
 import type { GameSlug } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -17,12 +17,11 @@ import { SignedAlteredShowcase } from './SignedAlteredShowcase';
 import { motion } from 'framer-motion';
 import { LandingHeroCarousel } from '@/components/home/LandingHeroCarousel';
 import { LandingPlatformSections } from '@/components/home/LandingPlatformSections';
+import { LandingBackgroundVideo } from '@/components/feature/LandingBackgroundVideo';
 
 /* ═══════════════════════════════════════════════════════════
    CONSTANTS
    ═══════════════════════════════════════════════════════════ */
-
-const LANDING_BG_VIDEO = 'videos/sfondo_carte.mp4';
 
 type LandingGameSlug = GameSlug | 'clear';
 
@@ -223,62 +222,12 @@ export function LandingWelcome() {
 
   const MAIN_GAMES = getMainGames();
   const COMING_SOON_GAMES = getComingSoonGames();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const parallaxRef = useRef<HTMLDivElement>(null);
-
-  /* ─── parallax scroll effect ─── */
-  useEffect(() => {
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) return;
-
-    let ticking = false;
-    const onScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(() => {
-          if (parallaxRef.current) {
-            const scrollY = window.scrollY;
-            // Subtle zoom as you scroll → depth parallax feel
-            const scale = 1 + scrollY * 0.00005;
-            parallaxRef.current.style.transform = `scale(${scale})`;
-          }
-          ticking = false;
-        });
-      }
-    };
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  useEffect(() => {
-    videoRef.current?.play().catch(() => {});
-  }, []);
 
   /* ─── render ─── */
   return (
     <div className="relative w-full overflow-x-hidden text-white bg-[#0F172A]">
 
-      {/* ══════ BACKGROUND VIDEO — parallax scroll effect ══════ */}
-      <div
-        ref={parallaxRef}
-        className="pointer-events-none fixed inset-0 z-0 h-screen w-screen will-change-transform"
-      >
-        <video
-          ref={videoRef}
-          src={getCdnVideoUrl(LANDING_BG_VIDEO)}
-          className="absolute inset-0 w-full h-full object-cover object-center"
-          autoPlay loop muted playsInline
-          disablePictureInPicture disableRemotePlayback aria-hidden
-        />
-        {/* Dark overlay */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(180deg, rgba(15,23,42,0.55) 0%, rgba(29,49,96,0.40) 50%, rgba(15,23,42,0.65) 100%)',
-          }}
-        />
-      </div>
+      <LandingBackgroundVideo />
 
       {/* ══════ CONTENT LAYER ══════ */}
       <div className="relative z-[2] flex flex-col">

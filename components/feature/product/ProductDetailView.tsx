@@ -63,6 +63,21 @@ import { ModernSellerTable } from '@/components/feature/product/ModernSellerTabl
 import { buildCardLanguageOptions } from '@/lib/card-languages';
 import { CardLanguageFlags } from '@/components/ui/CardLanguageFlags';
 import { CardLanguageSelect } from '@/components/ui/CardLanguageSelect';
+import { useAuctionList } from '@/lib/hooks/use-auctions';
+import { apiToAuctionUI } from '@/lib/auction/auction-adapter';
+import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
+import type { AuctionUI } from '@/lib/auction/auction-adapter';
+import {
+  buildMarketplaceRows,
+  filterMarketplaceRows,
+  sortMarketplaceRows,
+  CONDITION_FILTER_OPTIONS,
+  MARKETPLACE_LANGUAGE_FILTER_OPTIONS,
+  type MarketplaceFilterState,
+  type MarketplaceSort,
+  type SellerTypeFilter,
+} from '@/lib/product-detail/marketplace-rows';
+import { ConditionBadge, type ConditionCode } from '@/components/ui/ConditionBadge';
 
 const PRIMARY_BLUE = '#1D3160';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -492,8 +507,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [tipoVenditore, setTipoVenditore] = useState<string | null>(null);
   const [firmata, setFirmata] = useState<'SÌ' | 'NO' | 'ENTRAMBI'>('ENTRAMBI');
   const [alterata, setAlterata] = useState<'SÌ' | 'NO' | 'ENTRAMBI'>('ENTRAMBI');
-  const [quantita, setQuantita] = useState(33);
-  const [posizioneVenditore, setPosizioneVenditore] = useState<string>(() => COUNTRIES[0].code);
+  const [quantita, setQuantita] = useState(1);
+  const [hideAuctions, setHideAuctions] = useState(false);
+  const [posizioneVenditore, setPosizioneVenditore] = useState('');
 
   const [headerHeight, setHeaderHeight] = useState(0);
 
@@ -602,9 +618,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [listings, setListings] = useState<ListingItem[]>([]);
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listingsError, setListingsError] = useState<string | null>(null);
-  const [listingsSort, setListingsSort] = useState<'price_asc' | 'price_desc' | 'seller' | 'condition'>('price_asc');
-  const CONDIZIONE_OPTIONS = ['Near Mint', 'Lightly Played', 'Moderately Played', 'Heavily Played', 'Damaged'] as const;
-  const [condizioneMinima, setCondizioneMinima] = useState<string>('HT');
+  const [listingsSort, setListingsSort] = useState<MarketplaceSort>('price_asc');
+  const [condizioneMinima, setCondizioneMinima] = useState<ConditionCode | null>(null);
   const [linguaCarta, setLinguaCarta] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItemWithCatalog | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -687,13 +702,15 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
   /** Opzioni paese con bandiere SVG per il select Posizione venditore */
   const countryOptions: CountryOption[] = useMemo(
-    () =>
-      COUNTRIES.map((c) => ({
+    () => [
+      { code: '', label: t('productDetail.filters.allCountries'), flagCode: 'EU' },
+      ...COUNTRIES.map((c) => ({
         code: c.code,
         label: c.label,
         flagCode: c.code,
       })),
-    []
+    ],
+    [t]
   );
 
   /** Tutte le lingue blueprint (tab INFO + VENDI), senza limite. */
@@ -736,10 +753,15 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       // The sync service stores raw user IDs as seller_display_name; we resolve them here.
       const sellerIds = [...new Set(rawListings.map((l) => l.seller_id).filter(Boolean))];
       const profiles = sellerIds.length > 0 ? await fetchPublicUserProfiles(sellerIds) : {};
-      const enriched: ListingItem[] = rawListings.map((l) => ({
-        ...l,
-        seller_display_name: profiles[l.seller_id]?.username ?? l.seller_display_name,
-      }));
+      const enriched: ListingItem[] = rawListings.map((l) => {
+        const profile = profiles[l.seller_id];
+        return {
+          ...l,
+          seller_display_name: profile?.username ?? l.seller_display_name,
+          country: profile?.country_code ?? l.country ?? null,
+          seller_account_type: profile?.account_type ?? null,
+        };
+      });
       setListings(enriched);
     } catch (err) {
       setListings([]);
@@ -989,31 +1011,74 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
   const EBARTEX_LOGO_PLACEHOLDER = '/images/Logo%20Principale%20EBARTEX.png';
 
-  const sortedListings = useMemo(() => {
-    if (!listings.length) return listings;
-    const sorted = [...listings];
-    switch (listingsSort) {
-      case 'price_asc':
-        sorted.sort((a, b) => a.price_cents - b.price_cents);
-        break;
-      case 'price_desc':
-        sorted.sort((a, b) => b.price_cents - a.price_cents);
-        break;
-      case 'seller':
-        sorted.sort((a, b) => a.seller_display_name.localeCompare(b.seller_display_name));
-        break;
-      case 'condition': {
-        const condOrder = ['Near Mint', 'Lightly Played', 'Moderately Played', 'Heavily Played', 'Damaged'];
-        sorted.sort((a, b) => {
-          const idxA = condOrder.indexOf(a.condition ?? '');
-          const idxB = condOrder.indexOf(b.condition ?? '');
-          return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
-        });
-        break;
-      }
+  const cardNameForAuctions = card?.name?.trim() ?? '';
+  const cardAuctionsQuery = useAuctionList(
+    { q: cardNameForAuctions || undefined, status: 'ACTIVE', limit: 20 },
+    { enabled: cardNameForAuctions.length > 0 }
+  );
+
+  const [enrichedCardAuctions, setEnrichedCardAuctions] = useState<AuctionUI[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const base = (cardAuctionsQuery.data?.data ?? []).map((a) => apiToAuctionUI(a));
+    if (base.length === 0) {
+      if (!cancelled) setEnrichedCardAuctions([]);
+      return;
     }
-    return sorted;
-  }, [listings, listingsSort]);
+    void enrichAuctionsWithPublicUsers(base).then((next) => {
+      if (!cancelled) setEnrichedCardAuctions(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [cardAuctionsQuery.data]);
+
+  const [marketplaceNowMs, setMarketplaceNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setMarketplaceNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const marketplaceFilters: MarketplaceFilterState = useMemo(
+    () => ({
+      hideAuctions,
+      condizioneMinima,
+      linguaCarta,
+      soloFoil,
+      firmata,
+      alterata,
+      quantitaMin: quantita,
+      posizioneVenditore,
+      tipoVenditore: tipoVenditore as SellerTypeFilter | null,
+    }),
+    [
+      hideAuctions,
+      condizioneMinima,
+      linguaCarta,
+      soloFoil,
+      firmata,
+      alterata,
+      quantita,
+      posizioneVenditore,
+      tipoVenditore,
+    ]
+  );
+
+  const sortedMarketplaceRows = useMemo(() => {
+    const built = buildMarketplaceRows(enrichedCardAuctions, listings);
+    const filtered = filterMarketplaceRows(built, marketplaceFilters);
+    return sortMarketplaceRows(filtered, listingsSort, hideAuctions);
+  }, [enrichedCardAuctions, listings, marketplaceFilters, listingsSort, hideAuctions]);
+
+  const marketplaceEmptyMessage = useMemo(() => {
+    if (listings.length === 0 && enrichedCardAuctions.length === 0) {
+      return 'Presto ci saranno articoli in vendita disponibili.';
+    }
+    if (sortedMarketplaceRows.length === 0) {
+      return t('productDetail.marketplace.emptyFiltered');
+    }
+    return undefined;
+  }, [listings.length, enrichedCardAuctions.length, sortedMarketplaceRows.length, t]);
 
   const formatEuro = (n: number) => formatEuroNoSpace(n, 'it-IT');
 
@@ -1990,11 +2055,24 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     </button>
                   </div>
                   <div className="space-y-4">
-                    <div className="lg:hidden">
-                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Ordina</label>
+                    {sellerSubTab === 'VENDITORI' && (
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                        <input
+                          type="checkbox"
+                          checked={hideAuctions}
+                          onChange={(e) => setHideAuctions(e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/30"
+                        />
+                        <span className="text-xs font-bold uppercase tracking-wide text-gray-700">
+                          {t('productDetail.filters.hideAuctions')}
+                        </span>
+                      </label>
+                    )}
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase text-gray-600">Ordina</label>
                       <select
                         value={listingsSort}
-                        onChange={(e) => setListingsSort(e.target.value as typeof listingsSort)}
+                        onChange={(e) => setListingsSort(e.target.value as MarketplaceSort)}
                         className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700"
                       >
                         <option value="price_asc">Prezzo: più basso</option>
@@ -2003,75 +2081,105 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                         <option value="condition">Condizione: migliore</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Posizione venditore</label>
-                      <CountrySelect
-                        options={countryOptions}
-                        value={posizioneVenditore}
-                        onChange={setPosizioneVenditore}
-                        size="sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Tipo venditore</label>
-                      <div className="flex flex-wrap gap-2">
-                        {(['PRIVATO', 'PROFESSIONALE', 'POWERSELLER'] as const).map((tipo) => (
-                          <button
-                            key={tipo}
-                            type="button"
-                            onClick={() => setTipoVenditore(tipoVenditore === tipo ? null : tipo)}
-                            className={cn(
-                              'rounded-full px-3 py-1.5 text-xs font-bold uppercase',
-                              tipoVenditore === tipo ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            )}
-                          >
-                            {tipo}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Condizione minima</label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {CONDIZIONE_OPTIONS.map((c) => (
-                          <button
-                            key={c}
-                            type="button"
-                            onClick={() => setCondizioneMinima(c)}
-                            className={cn(
-                              'rounded-full px-2.5 py-1 text-xs font-bold',
-                              condizioneMinima === c ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            )}
-                          >
-                            {c}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Lingua carta</label>
-                      <div className="flex flex-wrap gap-2">
-                        {LINGUA_CARTA.map(({ code }) => (
-                          <button
-                            key={code}
-                            type="button"
-                            onClick={() => setLinguaCarta(linguaCarta === code ? null : code)}
-                            className={cn(
-                              'flex h-8 w-10 items-center justify-center rounded border text-sm',
-                              linguaCarta === code ? 'border-[#FF8800] bg-orange-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
-                            )}
-                            title={code}
-                          >
-                            {code === 'IT' && '🇮🇹'}
-                            {code === 'JP' && '🇯🇵'}
-                            {code === 'GB' && '🇬🇧'}
-                            {code === 'ES' && '🇪🇸'}
-                            {code === 'DE' && '🇩🇪'}
-                            {code === 'FR' && '🇫🇷'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    {sellerSubTab === 'VENDITORI' && (
+                      <>
+                        <div>
+                          <label className="mb-1 block text-[10px] font-bold uppercase text-gray-600">
+                            Posizione venditore
+                          </label>
+                          <CountrySelect
+                            options={countryOptions}
+                            value={posizioneVenditore}
+                            onChange={setPosizioneVenditore}
+                            size="sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-[10px] font-bold uppercase text-gray-600">Tipo venditore</label>
+                          <div className="flex flex-wrap gap-2">
+                            {(['PRIVATO', 'PROFESSIONALE', 'POWERSELLER'] as const).map((tipo) => (
+                              <button
+                                key={tipo}
+                                type="button"
+                                onClick={() => setTipoVenditore(tipoVenditore === tipo ? null : tipo)}
+                                className={cn(
+                                  'rounded-full px-3 py-1.5 text-xs font-bold uppercase',
+                                  tipoVenditore === tipo ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                )}
+                              >
+                                {tipo}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-[10px] font-bold uppercase text-gray-600">
+                            {t('productDetail.filters.minCondition')}
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setCondizioneMinima(null)}
+                              className={cn(
+                                'rounded-full px-2 py-1 text-[10px] font-bold uppercase',
+                                condizioneMinima === null
+                                  ? 'bg-gray-700 text-white'
+                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                              )}
+                            >
+                              {t('productDetail.filters.any')}
+                            </button>
+                            {CONDITION_FILTER_OPTIONS.map((code) => (
+                              <button
+                                key={code}
+                                type="button"
+                                onClick={() => setCondizioneMinima(condizioneMinima === code ? null : code)}
+                                className={cn(
+                                  'rounded ring-2 ring-offset-1 transition',
+                                  condizioneMinima === code ? 'ring-[#FF8800]' : 'ring-transparent opacity-80 hover:opacity-100'
+                                )}
+                                aria-pressed={condizioneMinima === code}
+                              >
+                                <ConditionBadge condition={code} size="md" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-[10px] font-bold uppercase text-gray-600">
+                            {t('productDetail.filters.cardLanguage')}
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setLinguaCarta(null)}
+                              className={cn(
+                                'rounded-full px-2 py-1 text-[10px] font-bold',
+                                linguaCarta === null ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-600'
+                              )}
+                            >
+                              {t('productDetail.filters.any')}
+                            </button>
+                            {MARKETPLACE_LANGUAGE_FILTER_OPTIONS.map(({ code }) => (
+                              <button
+                                key={code}
+                                type="button"
+                                onClick={() => setLinguaCarta(linguaCarta === code ? null : code)}
+                                className={cn(
+                                  'flex h-8 w-10 items-center justify-center rounded border transition',
+                                  linguaCarta === code
+                                    ? 'border-[#FF8800] bg-orange-50 ring-1 ring-orange-300'
+                                    : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                                )}
+                                title={code}
+                              >
+                                <FlagIcon country={code} size="sm" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
                     <div>
                       <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Firmata</label>
                       <div className="flex flex-wrap gap-2">
@@ -2224,9 +2332,12 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">{listingActionMessage}</div>
                   )}
                   <ModernSellerTable
-                    listings={sortedListings}
+                    rows={sortedMarketplaceRows}
                     loading={listingsLoading}
+                    auctionsLoading={cardAuctionsQuery.isLoading}
                     error={listingsError}
+                    nowMs={marketplaceNowMs}
+                    emptyMessage={marketplaceEmptyMessage}
                     cardImageSrc={cardImages[currentImageIndex]}
                     cardName={card?.name}
                     onAddToCart={(item, quantity, sourceEl) => {

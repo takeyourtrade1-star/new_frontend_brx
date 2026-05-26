@@ -94,6 +94,13 @@ export interface ListingItem {
   price_cents: number;
   condition: string | null;
   mtg_language: string | null;
+  description?: string | null;
+  mtg_foil?: boolean;
+  signed?: boolean;
+  altered?: boolean;
+  graded?: boolean;
+  /** Tipo account venditore (da profilo pubblico) */
+  seller_account_type?: string | null;
   /** Media recensioni (es. 4.5) — opzionale, da API venditore */
   seller_rating?: number | null;
   /** Numero recensioni — opzionale */

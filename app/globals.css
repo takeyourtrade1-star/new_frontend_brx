@@ -2258,7 +2258,57 @@
   outline-offset: 2px;
 }
 
+/* Tornei portal — bordo sottile + alone pulsante */
+@keyframes tournaments-portal-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 5px rgba(255, 115, 0, 0.45),
+      0 0 14px rgba(255, 115, 0, 0.22),
+      0 0 26px rgba(255, 115, 0, 0.08);
+    border-color: #ff7300;
+  }
+  50% {
+    box-shadow:
+      0 0 10px rgba(255, 136, 0, 0.7),
+      0 0 22px rgba(255, 115, 0, 0.38),
+      0 0 36px rgba(255, 115, 0, 0.14);
+    border-color: #ff9933;
+  }
+}
 
+.btn-tournaments-portal {
+  border: 1px solid #ff7300;
+  background: transparent;
+  animation: tournaments-portal-glow 2.2s ease-in-out infinite;
+  transition:
+    border-color 200ms ease,
+    color 200ms ease,
+    transform 150ms ease;
+}
+
+.btn-tournaments-portal:hover {
+  animation-duration: 1.4s;
+  transform: translateY(-1px);
+}
+
+.btn-tournaments-portal:active {
+  transform: translateY(0);
+}
+
+.btn-tournaments-portal:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.55);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-tournaments-portal {
+    animation: none;
+    box-shadow:
+      0 0 8px rgba(255, 115, 0, 0.4),
+      0 0 18px rgba(255, 115, 0, 0.18);
+  }
+}
 
 /* ========== INFINITE HORIZONTAL SCROLL ANIMATION ========== */
 @keyframes marquee {

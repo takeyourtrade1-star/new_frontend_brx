@@ -138,7 +138,7 @@ function FeatureSlide({ slide, direction, reduced }: FeatureSlideProps) {
       initial="enter"
       animate="center"
       exit="exit"
-      className="absolute inset-0 flex flex-col p-4 sm:p-5 group/card"
+      className="absolute inset-0 flex flex-col p-3.5 pb-4 sm:p-5 group/card"
     >
       <Link href={slide.href} className="absolute inset-0 z-10 rounded-2xl" aria-label={slide.ariaLabel} />
 
@@ -180,7 +180,7 @@ function FeatureSlide({ slide, direction, reduced }: FeatureSlideProps) {
       </motion.h3>
 
       <motion.p
-        className="relative z-20 mt-2 flex-1 text-xs sm:text-sm md:text-[0.95rem] leading-relaxed text-white/80 pointer-events-none pr-1"
+        className="relative z-20 mt-2 text-xs sm:text-sm md:text-[0.95rem] leading-relaxed text-white/80 pointer-events-none pr-0.5 line-clamp-4 sm:line-clamp-none"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.18, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
@@ -189,7 +189,7 @@ function FeatureSlide({ slide, direction, reduced }: FeatureSlideProps) {
       </motion.p>
 
       <motion.div
-        className="relative z-20 mt-3 flex items-center justify-between rounded-xl border px-4 py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider pointer-events-none sm:flex"
+        className="relative z-20 mt-3 flex items-center justify-between rounded-xl border px-3 py-2 sm:px-4 sm:py-2.5 text-[9px] sm:text-xs font-bold uppercase tracking-wider pointer-events-none"
         style={{
           borderColor: `${slide.accent}66`,
           backgroundColor: `${slide.accent}22`,
@@ -232,7 +232,7 @@ function HeroTab({ slide, isActive, onSelect, reduced, progressKey }: HeroTabPro
       onClick={onSelect}
       layout
       variants={staggerItem}
-      className={`bento-entry relative overflow-hidden rounded-xl border px-2.5 py-2.5 sm:px-3 sm:py-3 text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-white transition-colors duration-300 ${isActive ? slide.borderActive : slide.border} ${isActive ? 'bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.08)]' : 'bg-white/5 hover:bg-white/[0.08]'}`}
+      className={`bento-entry relative overflow-hidden rounded-xl border px-2 py-2 sm:px-3 sm:py-3 text-[8px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-white transition-colors duration-300 min-h-[2.75rem] sm:min-h-0 ${isActive ? slide.borderActive : slide.border} ${isActive ? 'bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.08)]' : 'bg-white/5 hover:bg-white/[0.08]'}`}
       style={{
         background: isActive ? slide.gradient : undefined,
         backdropFilter: 'blur(12px)',
@@ -306,14 +306,14 @@ export function LandingHeroCarousel() {
 
   return (
     <motion.div
-      className="relative flex flex-col gap-3 sm:gap-4 min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px]"
+      className="relative flex flex-col gap-2.5 sm:gap-4 min-h-0 sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px]"
       initial="hidden"
       animate="visible"
       variants={rootVariants}
     >
       <LayoutGroup>
         <motion.div
-          className="grid grid-cols-2 gap-2 sm:gap-2.5 lg:grid-cols-4"
+          className="grid grid-cols-2 gap-1.5 sm:gap-2.5 lg:grid-cols-4 shrink-0"
           variants={motionVariants(staggerContainerFast, reduced)}
           initial="hidden"
           animate="visible"
@@ -332,7 +332,7 @@ export function LandingHeroCarousel() {
       </LayoutGroup>
 
       <motion.div
-        className="relative flex-1 overflow-hidden rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md"
+        className="relative min-h-[13.5rem] sm:min-h-[11rem] md:min-h-[12rem] flex-1 overflow-hidden rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md"
         whileHover={reduced ? undefined : { boxShadow: '0 12px 48px rgba(0,0,0,0.28)' }}
         transition={{ duration: 0.4 }}
       >

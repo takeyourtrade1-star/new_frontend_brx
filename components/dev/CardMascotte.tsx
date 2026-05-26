@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare, ArrowRight, Sparkles, Loader2, Play, Users, Shirt } from 'lucide-react';
@@ -31,7 +31,9 @@ import { useAssoTypewriter } from '@/hooks/useAssoTypewriter';
 import { ASSO_MESSAGE_CHAT_MS } from '@/lib/asso-messages';
 import {
   ASSO_COLLAPSED_STORAGE_KEY,
+  ASSO_MOBILE_MAX_WIDTH,
   getAssoBubbleBottom,
+  getInitialAssoCollapsed,
 } from '@/lib/asso-layout';
 
 // Storage keys for bug report data
@@ -1307,14 +1309,10 @@ export function CardMascotte() {
   // Mobile detection state for flip behavior
   const [isMobileView, setIsMobileView] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (hasLoadedCollapsePref.current) return;
     hasLoadedCollapsePref.current = true;
-    try {
-      setIsAssoCollapsed(localStorage.getItem(ASSO_COLLAPSED_STORAGE_KEY) === '1');
-    } catch {
-      /* ignore */
-    }
+    setIsAssoCollapsed(getInitialAssoCollapsed());
   }, []);
 
   const toggleAssoCollapsed = useCallback(() => {
@@ -1331,7 +1329,7 @@ export function CardMascotte() {
   }, [closeMascottePanels]);
 
   useEffect(() => {
-    const checkMobile = () => setIsMobileView(window.innerWidth < 640);
+    const checkMobile = () => setIsMobileView(window.innerWidth <= ASSO_MOBILE_MAX_WIDTH);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);

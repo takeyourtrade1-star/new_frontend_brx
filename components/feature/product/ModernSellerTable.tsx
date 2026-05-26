@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   Camera,
   Check,
+  Gavel,
   Loader2,
   Minus,
   Pencil,
@@ -16,10 +17,11 @@ import {
 } from 'lucide-react';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { ConditionBadge, type ConditionCode } from '@/components/ui/ConditionBadge';
-import { BrxExpressIcon } from '@/components/ui/BrxExpressIcon';
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { type ListingItem } from '@/lib/api/sync-client';
+import { auctionDetailPath } from '@/lib/auction/auction-paths';
+import { listingConditionCode, type MarketplaceRow } from '@/lib/product-detail/marketplace-rows';
 
 const CONDITION_TEXT_TO_CODE: Record<string, ConditionCode> = {
   'Near Mint': 'NM',
@@ -97,10 +99,25 @@ function formatSalesCount(count: number): string {
   return count.toLocaleString('it-IT');
 }
 
+function formatCountdownDuration(ms: number): string {
+  if (ms <= 0) return '—';
+  const totalMinutes = Math.ceil(ms / 60000);
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}g ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 interface ModernSellerTableProps {
-  listings: ListingItem[];
+  rows?: MarketplaceRow[];
+  listings?: ListingItem[];
   loading?: boolean;
+  auctionsLoading?: boolean;
   error?: string | null;
+  nowMs?: number;
+  emptyMessage?: string;
   cardImageSrc?: string;
   cardName?: string;
   onAddToCart?: (item: ListingItem, quantity: number, sourceEl: HTMLElement) => void;
@@ -111,9 +128,13 @@ interface ModernSellerTableProps {
 }
 
 export function ModernSellerTable({
-  listings,
+  rows,
+  listings = [],
   loading = false,
+  auctionsLoading = false,
   error = null,
+  nowMs = Date.now(),
+  emptyMessage,
   cardImageSrc,
   cardName,
   onAddToCart,
@@ -122,6 +143,13 @@ export function ModernSellerTable({
   onOwnerQuantityChange,
   busyItemId = null,
 }: ModernSellerTableProps) {
+  const displayRows: MarketplaceRow[] =
+    rows ??
+    listings.map((l) => ({
+      kind: 'listing' as const,
+      id: `listing-${l.item_id}`,
+      listing: l,
+    }));
   const formatEuro = (n: number) => formatEuroNoSpace(n, 'it-IT');
   const [activeCartItemId, setActiveCartItemId] = useState<number | null>(null);
   const [cartQtyByItem, setCartQtyByItem] = useState<Record<number, number>>({});
@@ -149,11 +177,11 @@ export function ModernSellerTable({
 
   const closeInlineCart = () => setActiveCartItemId(null);
 
-  if (loading) {
+  if (loading || auctionsLoading) {
     return (
       <div className="px-4 py-8 text-center text-sm text-gray-500">
         <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin text-gray-400" />
-        Caricamento venditori…
+        Caricamento offerte…
       </div>
     );
   }
@@ -164,10 +192,10 @@ export function ModernSellerTable({
     );
   }
 
-  if (listings.length === 0) {
+  if (displayRows.length === 0) {
     return (
       <div className="px-4 py-10 text-center text-sm text-gray-600">
-        Presto ci saranno articoli in vendita disponibili.
+        {emptyMessage ?? 'Presto ci saranno articoli in vendita disponibili.'}
       </div>
     );
   }
@@ -177,31 +205,86 @@ export function ModernSellerTable({
       {/* Desktop */}
       <table className="hidden w-full table-fixed text-left text-sm sm:table">
         <colgroup>
-          <col style={{ width: '32%' }} />
-          <col style={{ width: '38%' }} />
           <col style={{ width: '30%' }} />
+          <col style={{ width: '45%' }} />
+          <col style={{ width: '25%' }} />
         </colgroup>
         <thead>
           <tr className="bg-[#1D3160] text-xs font-semibold uppercase tracking-wide text-white">
-            <th className="px-4 py-3">Venditore</th>
-            <th className="px-4 py-3">Informazioni prodotto</th>
-            <th className="px-4 py-3 text-right">Offerta</th>
+            <th className="px-3 py-2.5">Venditore</th>
+            <th className="px-3 py-2.5">Informazioni sul prodotto</th>
+            <th className="px-3 py-2.5 text-right">Offerta</th>
           </tr>
         </thead>
         <tbody>
-          {listings.map((item, index) => {
+          {displayRows.map((row, index) => {
+            if (row.kind === 'auction') {
+              const a = row.auction;
+              const remaining = new Date(a.endsAt).getTime() - nowMs;
+              const rep = { rating: a.sellerRating, reviewCount: a.sellerReviewCount, salesCount: 0 };
+              return (
+                <tr
+                  key={row.id}
+                  className={cn(
+                    'border-b border-gray-100 align-middle',
+                    index % 2 === 0 ? 'bg-violet-50/30' : 'bg-violet-50/50'
+                  )}
+                >
+                  <td className="px-3 py-2.5">
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        {a.sellerCountry && <FlagIcon country={a.sellerCountry} size="sm" />}
+                        <span className="truncate text-sm font-semibold text-[#2563eb]">
+                          {a.sellerDisplayName || a.seller}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-600">
+                        <Star className="mr-0.5 inline h-3 w-3 fill-amber-400 text-amber-500" />
+                        {formatReviewRating(rep.rating)} ({rep.reviewCount})
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span className="rounded bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase text-violet-900">
+                      Asta
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center justify-end gap-2">
+                      <div className="text-right">
+                        <p className="text-base font-bold tabular-nums text-[#1D3160]">
+                          {formatEuro(a.currentBidEur || a.startingBidEur)}
+                        </p>
+                        <p className="text-[11px] font-semibold text-violet-700">
+                          {formatCountdownDuration(remaining)}
+                        </p>
+                      </div>
+                      <Link
+                        href={auctionDetailPath(String(a.numericId))}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#1D3160] text-white"
+                        aria-label="Apri asta"
+                      >
+                        <Gavel className="h-4 w-4" />
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              );
+            }
+
+            const item = row.listing;
             const isOwn = isOwnListing(item);
             const isBusy = busyItemId === item.item_id;
-            const conditionCode = getConditionCode(item.condition);
+            const conditionCode = listingConditionCode(item.condition);
             const langFlag = languageFlagCode(item.mtg_language);
-            const hasBrxExpress = index === 0;
             const rep = getSellerReputation(item);
             const isCartOpen = activeCartItemId === item.item_id;
             const cartQty = getCartQty(item);
+            const description = item.description?.trim();
 
             return (
               <tr
-                key={item.item_id}
+                key={row.id}
                 className={cn(
                   'border-b border-gray-100 align-middle transition-colors',
                   index % 2 === 0 ? 'bg-white' : 'bg-slate-50/70',
@@ -209,10 +292,9 @@ export function ModernSellerTable({
                   !isCartOpen && 'hover:bg-orange-50/30'
                 )}
               >
-                {/* Venditore */}
-                <td className="px-4 py-3.5">
-                  <div className="flex min-w-0 flex-col gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
+                <td className="px-3 py-2.5">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <div className="flex min-w-0 items-center gap-1.5">
                       {item.country && <FlagIcon country={item.country} size="sm" />}
                       <Link
                         href={`/users/${item.seller_display_name}`}
@@ -220,71 +302,59 @@ export function ModernSellerTable({
                       >
                         {item.seller_display_name}
                       </Link>
-                      <span
-                        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"
-                        title="Venditore verificato"
-                      >
+                      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
                         <User className="h-3 w-3" strokeWidth={2.5} />
                       </span>
-                      {hasBrxExpress && (
-                        <span
-                          className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white"
-                          title="BRX Express"
-                        >
-                          <BrxExpressIcon size="sm" className="text-white" />
+                      {item.seller_account_type === 'business' && (
+                        <span className="rounded bg-slate-700 px-1 text-[9px] font-bold uppercase text-white">Pro</span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-600">
+                      <Star className="mr-0.5 inline h-3 w-3 fill-amber-400 text-amber-500" />
+                      {formatReviewRating(rep.rating)} ({rep.reviewCount.toLocaleString('it-IT')}) ·{' '}
+                      {formatSalesCount(rep.salesCount)} vendite
+                    </div>
+                  </div>
+                </td>
+
+                <td className="px-3 py-2.5">
+                  <div className="flex min-w-0 flex-col gap-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ConditionBadge condition={conditionCode} size="xl" />
+                      {langFlag && <FlagIcon country={langFlag} size="sm" title={item.mtg_language ?? undefined} />}
+                      {cardImageSrc && (
+                        <CardImageCameraPeek
+                          imageUrl={cardImageSrc}
+                          name={cardName ?? item.seller_display_name}
+                          className="!h-6 !w-6 text-[#3D65C6]"
+                          ariaLabel="Anteprima foto"
+                        />
+                      )}
+                      {item.mtg_foil && (
+                        <span className="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-violet-800 ring-1 ring-violet-200">
+                          Foil
+                        </span>
+                      )}
+                      {item.signed && (
+                        <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-sky-800 ring-1 ring-sky-200">
+                          Firm.
+                        </span>
+                      )}
+                      {item.altered && (
+                        <span className="rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-rose-800 ring-1 ring-rose-200">
+                          Alt.
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 ring-1 ring-amber-200/80"
-                        title="Valutazione media"
-                      >
-                        <Star className="h-3 w-3 fill-amber-400 text-amber-500" aria-hidden />
-                        <span className="tabular-nums">{formatReviewRating(rep.rating)}</span>
-                        <span className="font-medium text-amber-800/70">/5</span>
-                        <span className="font-normal text-amber-700/80 tabular-nums">
-                          ({rep.reviewCount.toLocaleString('it-IT')})
-                        </span>
-                      </span>
-                      <span
-                        className="text-[11px] font-medium tabular-nums text-slate-500"
-                        title="Vendite completate"
-                      >
-                        {formatSalesCount(rep.salesCount)}{' '}
-                        <span className="font-normal text-slate-400">vendite</span>
-                      </span>
-                    </div>
+                    {description ? (
+                      <p className="line-clamp-2 text-xs italic text-slate-500" title={description}>
+                        {description}
+                      </p>
+                    ) : null}
                   </div>
                 </td>
 
-                {/* Informazioni prodotto */}
-                <td className="px-4 py-3.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <ConditionBadge condition={conditionCode} size="md" />
-                    {langFlag && (
-                      <FlagIcon country={langFlag} size="xs" title={item.mtg_language ?? undefined} />
-                    )}
-                    {cardImageSrc ? (
-                      <CardImageCameraPeek
-                        imageUrl={cardImageSrc}
-                        name={cardName ?? item.seller_display_name}
-                        className="!h-5 !w-5 text-[#3D65C6]"
-                        ariaLabel="Anteprima foto carta"
-                      />
-                    ) : (
-                      <span
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 text-[#3D65C6]"
-                        title="Foto disponibile"
-                      >
-                        <Camera className="h-3.5 w-3.5" />
-                      </span>
-                    )}
-                  </div>
-                </td>
-
-                {/* Offerta */}
-                <td className="px-4 py-3.5">
+                <td className="px-3 py-2.5">
                   <div className="flex items-center justify-end gap-3">
                     <div className="flex flex-col items-end gap-1">
                       <div className="text-base font-bold tabular-nums tracking-tight text-[#1D3160]">
@@ -382,10 +452,10 @@ export function ModernSellerTable({
                       <button
                         type="button"
                         onClick={() => openInlineCart(item)}
-                        className="group inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF7300] to-amber-500 text-white shadow-md shadow-orange-500/25 transition hover:from-[#e86a00] hover:to-amber-600 hover:shadow-lg active:scale-95"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#1D3160] text-white shadow-sm transition hover:bg-[#152847] active:scale-95"
                         aria-label="Aggiungi al carrello"
                       >
-                        <ShoppingCart className="h-4 w-4 transition group-hover:scale-110" strokeWidth={2.25} />
+                        <ShoppingCart className="h-4 w-4" strokeWidth={2.25} />
                       </button>
                     )}
                   </div>
@@ -398,19 +468,37 @@ export function ModernSellerTable({
 
       {/* Mobile */}
       <div className="divide-y divide-gray-100 sm:hidden">
-        {listings.map((item, index) => {
+        {displayRows.map((row, index) => {
+          if (row.kind === 'auction') {
+            const a = row.auction;
+            const remaining = new Date(a.endsAt).getTime() - nowMs;
+            return (
+              <div key={row.id} className="px-3 py-3 bg-violet-50/40">
+                <p className="text-sm font-semibold text-[#2563eb]">{a.sellerDisplayName || a.seller}</p>
+                <p className="mt-1 text-base font-bold">{formatEuro(a.currentBidEur || a.startingBidEur)}</p>
+                <p className="text-[11px] text-violet-700">{formatCountdownDuration(remaining)}</p>
+                <Link
+                  href={auctionDetailPath(String(a.numericId))}
+                  className="mt-2 flex h-11 items-center justify-center gap-2 rounded-lg bg-[#1D3160] text-sm font-bold text-white"
+                >
+                  <Gavel className="h-4 w-4" /> Apri asta
+                </Link>
+              </div>
+            );
+          }
+
+          const item = row.listing;
           const isOwn = isOwnListing(item);
           const isBusy = busyItemId === item.item_id;
-          const conditionCode = getConditionCode(item.condition);
+          const conditionCode = listingConditionCode(item.condition);
           const langFlag = languageFlagCode(item.mtg_language);
-          const hasBrxExpress = index === 0;
           const rep = getSellerReputation(item);
           const isCartOpen = activeCartItemId === item.item_id;
           const cartQty = getCartQty(item);
 
           return (
             <div
-              key={item.item_id}
+              key={row.id}
               className={cn('px-4 py-4', index % 2 === 0 ? 'bg-white' : 'bg-slate-50/70', isCartOpen && 'bg-orange-50/40')}
             >
               <div className="mb-2 flex items-start justify-between gap-2">
@@ -423,7 +511,6 @@ export function ModernSellerTable({
                     >
                       {item.seller_display_name}
                     </Link>
-                    {hasBrxExpress && <BrxExpressIcon size="sm" className="text-orange-500" />}
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 ring-1 ring-amber-200/80">
@@ -446,7 +533,7 @@ export function ModernSellerTable({
               </div>
 
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <ConditionBadge condition={conditionCode} size="sm" />
+                <ConditionBadge condition={conditionCode} size="lg" />
                 {langFlag && <FlagIcon country={langFlag} size="xs" />}
                 {cardImageSrc && (
                   <CardImageCameraPeek

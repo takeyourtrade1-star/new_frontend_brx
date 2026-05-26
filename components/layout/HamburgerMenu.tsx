@@ -23,6 +23,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
 import { AnimatePresence, motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
+import { TournamentsPortalLink } from './TournamentsPortalButton';
 
 const GAME_HOME_PATH: Record<GameSlug, string> = {
   mtg: '/home/magic',
@@ -433,6 +434,8 @@ export function HamburgerMenu() {
               </form>
             </div>
           )}
+
+          <TournamentsPortalLink variant="drawer" onNavigate={() => setOpen(false)} />
 
           {isAuthenticated && (
             <div className="relative md:hidden" ref={accountDropdownRef}>
