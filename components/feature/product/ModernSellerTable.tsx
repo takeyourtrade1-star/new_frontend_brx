@@ -3,13 +3,17 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
+  ChevronLeft,
+  ChevronRight,
   Gavel,
   Loader2,
+  MessageSquare,
   Minus,
   Pencil,
   Plus,
   ShoppingCart,
   Star,
+  X,
 } from 'lucide-react';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { ConditionBadge, type ConditionCode } from '@/components/ui/ConditionBadge';
@@ -150,13 +154,13 @@ function MarketplaceSellerCell({
   const reviewTitle = `${reviewCount.toLocaleString('it-IT')} recensioni`;
 
   return (
-    <div className="flex min-w-0 items-center gap-1 overflow-hidden text-[11px] leading-none whitespace-nowrap">
+    <div className="flex min-w-0 items-center gap-1.5 overflow-hidden text-xs leading-none whitespace-nowrap">
       <Link
         href={href}
         className="inline-flex shrink-0 items-center gap-0.5 text-amber-800 hover:text-amber-900"
         title={reviewTitle}
       >
-        <Star className="h-2.5 w-2.5 shrink-0 fill-amber-400 text-amber-500" aria-hidden />
+        <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-500" aria-hidden />
         <span className="font-semibold tabular-nums">{formatReviewRating(rating)}/5</span>
       </Link>
       <span className="shrink-0 text-slate-300">·</span>
@@ -175,11 +179,166 @@ function MarketplaceSellerCell({
   );
 }
 
-function MarketplaceProductInfoCell({
+function dedupePhotoUrls(urls: (string | null | undefined)[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of urls) {
+    const u = raw?.trim();
+    if (!u || seen.has(u)) continue;
+    seen.add(u);
+    out.push(u);
+  }
+  return out;
+}
+
+function getAuctionPhotoUrls(
+  a: { photoUrls?: string[]; imageFront?: string; imageBack?: string; image?: string },
+  fallback?: string
+): string[] {
+  return dedupePhotoUrls([...(a.photoUrls ?? []), a.imageFront, a.imageBack, a.image, fallback]);
+}
+
+function getListingPhotoUrls(fallback?: string | null): string[] {
+  return dedupePhotoUrls([fallback]);
+}
+
+function MarketplacePhotoCarousel({
+  imageUrls,
+  name,
+  compact = false,
+}: {
+  imageUrls: string[];
+  name: string;
+  compact?: boolean;
+}) {
+  const [index, setIndex] = useState(0);
+  const urls = imageUrls.filter(Boolean);
+  if (urls.length === 0) return null;
+
+  const safeIndex = index % urls.length;
+  const current = urls[safeIndex];
+  const hasMultiple = urls.length > 1;
+  const peekClass = compact ? '!h-6 !w-6' : '!h-7 !w-7';
+
+  return (
+    <div className="flex shrink-0 items-center gap-px">
+      {hasMultiple && !compact ? (
+        <button
+          type="button"
+          onClick={() => setIndex((i) => (i - 1 + urls.length) % urls.length)}
+          className="inline-flex h-6 w-5 items-center justify-center rounded-sm text-slate-500 hover:bg-slate-100"
+          aria-label="Foto precedente"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+      <CardImageCameraPeek
+        key={current}
+        imageUrl={current}
+        name={name}
+        className={cn(peekClass, 'shrink-0 text-[#3D65C6]')}
+        ariaLabel={`Anteprima foto ${hasMultiple ? `${safeIndex + 1} di ${urls.length}` : ''}`.trim()}
+      />
+      {hasMultiple ? (
+        compact ? (
+          <button
+            type="button"
+            onClick={() => setIndex((i) => (i + 1) % urls.length)}
+            className="ml-px text-[9px] font-semibold tabular-nums text-slate-500"
+            aria-label="Foto successiva"
+          >
+            {safeIndex + 1}/{urls.length}
+          </button>
+        ) : (
+          <>
+            <span className="min-w-[1.4rem] text-center text-[10px] font-semibold tabular-nums text-slate-500">
+              {safeIndex + 1}/{urls.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => setIndex((i) => (i + 1) % urls.length)}
+              className="inline-flex h-6 w-5 items-center justify-center rounded-sm text-slate-500 hover:bg-slate-100"
+              aria-label="Foto successiva"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )
+      ) : null}
+    </div>
+  );
+}
+
+function MobileDescriptionNote({ description }: { description: string }) {
+  const [open, setOpen] = useState(false);
+  const trimmed = description.trim();
+  if (!trimmed) return null;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#3D65C6] hover:bg-sky-50"
+        aria-label="Note venditore"
+        title="Note venditore"
+      >
+        <MessageSquare className="h-3.5 w-3.5" strokeWidth={2} />
+      </button>
+      {open ? (
+        <div
+          className="fixed inset-0 z-[200] flex items-end justify-center bg-black/40 p-3 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Note venditore"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-t-2xl bg-white p-4 shadow-2xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">Note venditore</h4>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
+                aria-label="Chiudi"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-sm leading-relaxed text-slate-600">{trimmed}</p>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="mt-4 w-full rounded-lg bg-slate-100 py-2.5 text-sm font-semibold text-slate-800"
+            >
+              Chiudi
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function MobileTraitLetters({ foil, signed, altered }: { foil?: boolean; signed?: boolean; altered?: boolean }) {
+  if (!foil && !signed && !altered) return null;
+  return (
+    <span className="flex shrink-0 items-center gap-0.5 text-[8px] font-bold uppercase leading-none">
+      {foil ? <span className="text-violet-700">F</span> : null}
+      {signed ? <span className="text-sky-700">S</span> : null}
+      {altered ? <span className="text-rose-700">A</span> : null}
+    </span>
+  );
+}
+
+function MobileProductAttributes({
   conditionCode,
   langFlag,
   langTitle,
-  imageUrl,
+  imageUrls,
   imageName,
   description,
   auctionTag,
@@ -190,7 +349,7 @@ function MarketplaceProductInfoCell({
   conditionCode: ConditionCode;
   langFlag: string | null;
   langTitle?: string;
-  imageUrl?: string | null;
+  imageUrls: string[];
   imageName?: string;
   description: string;
   auctionTag?: boolean;
@@ -199,58 +358,96 @@ function MarketplaceProductInfoCell({
   altered?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-1 overflow-hidden">
+    <div className="flex min-w-0 flex-1 items-center gap-1">
       <ConditionBadge condition={conditionCode} size="xs" />
       {langFlag ? <FlagIcon country={langFlag} size="xs" title={langTitle} className="shrink-0" /> : null}
-      {imageUrl ? (
-        <CardImageCameraPeek
-          imageUrl={imageUrl}
-          name={imageName ?? 'Carta'}
-          className="!h-3.5 !w-3.5 shrink-0 text-[#3D65C6]"
-          ariaLabel="Anteprima foto"
-        />
-      ) : null}
+      <MarketplacePhotoCarousel imageUrls={imageUrls} name={imageName ?? 'Carta'} compact />
+      <MobileDescriptionNote description={description} />
+      <MobileTraitLetters foil={foil} signed={signed} altered={altered} />
       {auctionTag ? (
-        <span className="shrink-0 rounded bg-violet-100 px-1 py-px text-[8px] font-bold uppercase leading-none text-violet-800">
+        <span className="shrink-0 rounded bg-violet-100 px-1 py-px text-[8px] font-bold uppercase text-violet-800">
           Asta
         </span>
       ) : null}
-      {foil ? (
-        <span className="shrink-0 text-[8px] font-bold uppercase text-violet-700" title="Foil">
-          F
-        </span>
-      ) : null}
-      {signed ? (
-        <span className="shrink-0 text-[8px] font-bold uppercase text-sky-700" title="Firmata">
-          S
-        </span>
-      ) : null}
-      {altered ? (
-        <span className="shrink-0 text-[8px] font-bold uppercase text-rose-700" title="Alterata">
-          A
-        </span>
-      ) : null}
-      <p className="min-w-0 flex-1 truncate text-[10px] italic text-slate-500" title={description}>
+    </div>
+  );
+}
+
+function MarketplaceProductInfoCell({
+  conditionCode,
+  langFlag,
+  langTitle,
+  imageUrls,
+  imageName,
+  description,
+  auctionTag,
+  foil,
+  signed,
+  altered,
+}: {
+  conditionCode: ConditionCode;
+  langFlag: string | null;
+  langTitle?: string;
+  imageUrls: string[];
+  imageName?: string;
+  description: string;
+  auctionTag?: boolean;
+  foil?: boolean;
+  signed?: boolean;
+  altered?: boolean;
+}) {
+  return (
+    <div className="flex min-w-0 items-center">
+      <div className="flex shrink-0 items-center gap-1.5 border-r border-slate-200/90 pr-3">
+        <ConditionBadge condition={conditionCode} size="sm" />
+        {langFlag ? <FlagIcon country={langFlag} size="sm" title={langTitle} className="shrink-0" /> : null}
+        <MarketplacePhotoCarousel imageUrls={imageUrls} name={imageName ?? 'Carta'} />
+        {auctionTag ? (
+          <span className="shrink-0 rounded bg-violet-100 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-violet-800">
+            Asta
+          </span>
+        ) : null}
+        {foil ? (
+          <span className="shrink-0 text-[9px] font-bold uppercase text-violet-700" title="Foil">
+            F
+          </span>
+        ) : null}
+        {signed ? (
+          <span className="shrink-0 text-[9px] font-bold uppercase text-sky-700" title="Firmata">
+            S
+          </span>
+        ) : null}
+        {altered ? (
+          <span className="shrink-0 text-[9px] font-bold uppercase text-rose-700" title="Alterata">
+            A
+          </span>
+        ) : null}
+      </div>
+      <p
+        className="min-w-0 flex-1 truncate pl-3 text-[11px] italic leading-snug text-slate-500"
+        title={description}
+      >
         {description}
       </p>
     </div>
   );
 }
 
-function MarketplaceOfferCell({
-  priceLabel,
+/** Tre colonne allineate: prezzo | quantità | azioni */
+function MarketplaceOfferGrid({
+  price,
   quantity,
-  children,
+  actions,
 }: {
-  priceLabel: string;
-  quantity: number | string;
-  children: ReactNode;
+  price: ReactNode;
+  quantity: ReactNode;
+  actions: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-      <span className="text-[13px] font-bold tabular-nums text-[#1D3160]">{priceLabel}</span>
-      <span className="w-6 text-center text-[11px] font-medium tabular-nums text-slate-600">{quantity}</span>
-      {children}
+    <div className="grid w-full grid-cols-[minmax(0,1fr)_2.75rem_4.5rem] items-center">
+      <div className="pr-2 text-right text-sm font-bold tabular-nums text-[#1D3160]">{price}</div>
+      <div className="text-center text-xs font-semibold tabular-nums text-slate-600">{quantity}</div>
+      <div className="flex justify-end">{actions}</div>
     </div>
   );
 }
@@ -260,13 +457,6 @@ function getAuctionDescription(a: { description?: string | null; numericId: numb
   if (trimmed) return trimmed;
   const h = hashSellerId(String(a.numericId));
   return MOCK_SELLER_DESCRIPTIONS[h % MOCK_SELLER_DESCRIPTIONS.length] ?? MOCK_SELLER_DESCRIPTIONS[0];
-}
-
-function getAuctionPhotoUrl(
-  a: { photoUrls?: string[]; imageFront?: string; image?: string },
-  fallback?: string
-): string | null {
-  return a.photoUrls?.[0] ?? a.imageFront ?? a.image ?? fallback ?? null;
 }
 
 interface ModernSellerTableProps {
@@ -367,15 +557,21 @@ export function ModernSellerTable({
       {/* Desktop — layout Cardmarket compatto */}
       <table className="hidden w-full table-fixed border-collapse text-left text-sm sm:table">
         <colgroup>
+          <col style={{ width: '24%' }} />
+          <col style={{ width: '50%' }} />
           <col style={{ width: '26%' }} />
-          <col style={{ width: '52%' }} />
-          <col style={{ width: '22%' }} />
         </colgroup>
         <thead>
-          <tr className="bg-[#1D3160] text-[10px] font-semibold uppercase tracking-wide text-white">
-            <th className="border-r border-white/15 px-2 py-1.5">Venditore</th>
-            <th className="border-r border-white/15 px-2 py-1.5">Informazioni sul prodotto</th>
-            <th className="px-2 py-1.5 text-right">Offerta</th>
+          <tr className="bg-[#1D3160] text-[11px] font-semibold uppercase tracking-wide text-white">
+            <th className="border-r border-white/15 px-2.5 py-2">Venditore</th>
+            <th className="border-r border-white/15 px-2.5 py-2">Informazioni sul prodotto</th>
+            <th className="px-0 py-0">
+              <div className="grid grid-cols-[minmax(0,1fr)_2.75rem_4.5rem] border-l border-white/10 px-2.5 py-2 text-right">
+                <span>Offerta</span>
+                <span className="sr-only">Quantità</span>
+                <span className="sr-only">Azioni</span>
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -386,7 +582,7 @@ export function ModernSellerTable({
               const sellerName = a.sellerDisplayName || a.seller;
               const auctionCondition = getConditionCode(a.condition);
               const auctionLang = languageFlagCode(cardLanguage);
-              const auctionPhoto = getAuctionPhotoUrl(a, cardImageSrc);
+              const auctionPhotos = getAuctionPhotoUrls(a, cardImageSrc);
               const auctionDesc = getAuctionDescription(a);
 
               return (
@@ -397,7 +593,7 @@ export function ModernSellerTable({
                     index % 2 === 0 ? 'bg-violet-50/20' : 'bg-violet-50/35'
                   )}
                 >
-                  <td className="border-r border-gray-200/80 px-2 py-1">
+                  <td className="border-r border-gray-200/80 px-2.5 py-2">
                     <MarketplaceSellerCell
                       username={sellerName}
                       country={a.sellerCountry}
@@ -406,34 +602,34 @@ export function ModernSellerTable({
                       salesCount={0}
                     />
                   </td>
-                  <td className="border-r border-gray-200/80 px-2 py-1">
+                  <td className="border-r border-gray-200/80 px-2.5 py-2">
                     <MarketplaceProductInfoCell
                       conditionCode={auctionCondition}
                       langFlag={auctionLang}
                       langTitle={cardLanguage ?? undefined}
-                      imageUrl={auctionPhoto}
+                      imageUrls={auctionPhotos}
                       imageName={a.title || cardName}
                       description={auctionDesc}
                       auctionTag
                     />
                   </td>
-                  <td className="px-2 py-1">
-                    <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                      <span className="text-[13px] font-bold tabular-nums text-[#1D3160]">
-                        {formatEuro(a.currentBidEur || a.startingBidEur)}
-                      </span>
-                      <span className="w-10 text-center text-[10px] font-semibold tabular-nums text-violet-700">
-                        {formatCountdownDuration(remaining)}
-                      </span>
-                      <Link
-                        href={auctionDetailPath(String(a.numericId))}
-                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-violet-600 text-white shadow-sm transition hover:bg-violet-700"
-                        aria-label="Apri asta"
-                        title={`Asta · ${formatCountdownDuration(remaining)}`}
-                      >
-                        <Gavel className="h-3 w-3" strokeWidth={2.25} />
-                      </Link>
-                    </div>
+                  <td className="px-2.5 py-2">
+                    <MarketplaceOfferGrid
+                      price={formatEuro(a.currentBidEur || a.startingBidEur)}
+                      quantity={
+                        <span className="text-violet-700">{formatCountdownDuration(remaining)}</span>
+                      }
+                      actions={
+                        <Link
+                          href={auctionDetailPath(String(a.numericId))}
+                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-violet-600 text-white shadow-sm transition hover:bg-violet-700"
+                          aria-label="Apri asta"
+                          title={`Asta · ${formatCountdownDuration(remaining)}`}
+                        >
+                          <Gavel className="h-3.5 w-3.5" strokeWidth={2.25} />
+                        </Link>
+                      }
+                    />
                   </td>
                 </tr>
               );
@@ -460,7 +656,7 @@ export function ModernSellerTable({
                   !isCartOpen && !isOwn && 'hover:bg-orange-50/20'
                 )}
               >
-                <td className="border-r border-gray-200/80 px-2 py-1">
+                <td className="border-r border-gray-200/80 px-2.5 py-2">
                   <MarketplaceSellerCell
                     username={item.seller_display_name}
                     country={item.country}
@@ -471,12 +667,12 @@ export function ModernSellerTable({
                   />
                 </td>
 
-                <td className="border-r border-gray-200/80 px-2 py-1">
+                <td className="border-r border-gray-200/80 px-2.5 py-2">
                   <MarketplaceProductInfoCell
                     conditionCode={conditionCode}
                     langFlag={langFlag}
                     langTitle={item.mtg_language ?? undefined}
-                    imageUrl={cardImageSrc}
+                    imageUrls={getListingPhotoUrls(cardImageSrc)}
                     imageName={cardName ?? item.seller_display_name}
                     description={description}
                     foil={item.mtg_foil}
@@ -485,87 +681,91 @@ export function ModernSellerTable({
                   />
                 </td>
 
-                <td className="px-2 py-1">
-                  <MarketplaceOfferCell priceLabel={formatEuro(item.price_cents / 100)} quantity={item.quantity}>
-                    {isOwn ? (
-                      <div className="inline-flex items-center rounded-sm border border-slate-200 bg-white">
+                <td className="px-2.5 py-2">
+                  <MarketplaceOfferGrid
+                    price={formatEuro(item.price_cents / 100)}
+                    quantity={item.quantity}
+                    actions={
+                      isOwn ? (
+                        <div className="inline-flex items-center rounded-sm border border-slate-200 bg-white">
+                          <button
+                            type="button"
+                            disabled={isBusy}
+                            onClick={() => onOwnerQuantityChange?.(item, -1)}
+                            className="inline-flex h-7 w-6 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                            aria-label="Diminuisci quantità"
+                          >
+                            {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
+                          </button>
+                          <span className="min-w-[1.25rem] border-x border-slate-200 text-center text-[11px] font-bold tabular-nums text-slate-800">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={isBusy || item.quantity >= 999}
+                            onClick={() => onOwnerQuantityChange?.(item, 1)}
+                            className="inline-flex h-7 w-6 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                            aria-label="Aumenta quantità"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onOwnerEdit?.(item)}
+                            className="inline-flex h-7 w-6 items-center justify-center border-l border-slate-200 text-slate-500 hover:bg-amber-50"
+                            aria-label="Modifica inserzione"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : isCartOpen ? (
+                        <div className="inline-flex items-center rounded-sm border border-orange-200 bg-white">
+                          <button
+                            type="button"
+                            onClick={() => setCartQty(item.item_id, cartQty - 1, item.quantity)}
+                            disabled={cartQty <= 1}
+                            className="inline-flex h-7 w-6 items-center justify-center text-slate-500 disabled:opacity-40"
+                            aria-label="Meno"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="min-w-[1.25rem] border-x border-orange-100 text-center text-[11px] font-bold tabular-nums">
+                            {cartQty}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setCartQty(item.item_id, cartQty + 1, item.quantity)}
+                            disabled={cartQty >= item.quantity}
+                            className="inline-flex h-7 w-6 items-center justify-center text-slate-500 disabled:opacity-40"
+                            aria-label="Più"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              onAddToCart?.(item, cartQty, e.currentTarget);
+                              closeInlineCart();
+                            }}
+                            className="inline-flex h-7 w-7 items-center justify-center border-l border-orange-200 bg-[#FF7300] text-white hover:bg-[#e86a00]"
+                            aria-label="Conferma carrello"
+                          >
+                            <ShoppingCart className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
                         <button
                           type="button"
-                          disabled={isBusy}
-                          onClick={() => onOwnerQuantityChange?.(item, -1)}
-                          className="inline-flex h-6 w-5 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-                          aria-label="Diminuisci quantità"
+                          onClick={() => openInlineCart(item)}
+                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
+                          aria-label="Aggiungi al carrello"
+                          title="Acquista"
                         >
-                          {isBusy ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Minus className="h-2.5 w-2.5" />}
+                          <ShoppingCart className="h-3.5 w-3.5" strokeWidth={2.25} />
                         </button>
-                        <span className="min-w-[1.1rem] border-x border-slate-200 text-center text-[10px] font-bold tabular-nums text-slate-800">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          disabled={isBusy || item.quantity >= 999}
-                          onClick={() => onOwnerQuantityChange?.(item, 1)}
-                          className="inline-flex h-6 w-5 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-                          aria-label="Aumenta quantità"
-                        >
-                          <Plus className="h-2.5 w-2.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onOwnerEdit?.(item)}
-                          className="inline-flex h-6 w-5 items-center justify-center border-l border-slate-200 text-slate-500 hover:bg-amber-50"
-                          aria-label="Modifica inserzione"
-                        >
-                          <Pencil className="h-2.5 w-2.5" />
-                        </button>
-                      </div>
-                    ) : isCartOpen ? (
-                      <div className="inline-flex items-center rounded-sm border border-orange-200 bg-white">
-                        <button
-                          type="button"
-                          onClick={() => setCartQty(item.item_id, cartQty - 1, item.quantity)}
-                          disabled={cartQty <= 1}
-                          className="inline-flex h-6 w-5 items-center justify-center text-slate-500 disabled:opacity-40"
-                          aria-label="Meno"
-                        >
-                          <Minus className="h-2.5 w-2.5" />
-                        </button>
-                        <span className="min-w-[1.1rem] border-x border-orange-100 text-center text-[10px] font-bold tabular-nums">
-                          {cartQty}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setCartQty(item.item_id, cartQty + 1, item.quantity)}
-                          disabled={cartQty >= item.quantity}
-                          className="inline-flex h-6 w-5 items-center justify-center text-slate-500 disabled:opacity-40"
-                          aria-label="Più"
-                        >
-                          <Plus className="h-2.5 w-2.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            onAddToCart?.(item, cartQty, e.currentTarget);
-                            closeInlineCart();
-                          }}
-                          className="inline-flex h-6 w-6 items-center justify-center border-l border-orange-200 bg-[#FF7300] text-white hover:bg-[#e86a00]"
-                          aria-label="Conferma carrello"
-                        >
-                          <ShoppingCart className="h-2.5 w-2.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => openInlineCart(item)}
-                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
-                        aria-label="Aggiungi al carrello"
-                        title="Acquista"
-                      >
-                        <ShoppingCart className="h-3 w-3" strokeWidth={2.25} />
-                      </button>
-                    )}
-                  </MarketplaceOfferCell>
+                      )
+                    }
+                  />
                 </td>
               </tr>
             );
@@ -573,8 +773,8 @@ export function ModernSellerTable({
         </tbody>
       </table>
 
-      {/* Mobile */}
-      <div className="divide-y divide-gray-100 sm:hidden">
+      {/* Mobile — layout Cardmarket: venditore | articolo+prezzo | azione */}
+      <div className="sm:hidden">
         {displayRows.map((row, index) => {
           if (row.kind === 'auction') {
             const a = row.auction;
@@ -582,39 +782,53 @@ export function ModernSellerTable({
             const sellerName = a.sellerDisplayName || a.seller;
             const auctionCondition = getConditionCode(a.condition);
             const auctionLang = languageFlagCode(cardLanguage);
-            const auctionPhoto = getAuctionPhotoUrl(a, cardImageSrc);
+            const auctionPhotos = getAuctionPhotoUrls(a, cardImageSrc);
+            const auctionDesc = getAuctionDescription(a);
 
             return (
-              <div key={row.id} className="bg-violet-50/35 px-3 py-2.5">
-                <MarketplaceSellerCell
-                  username={sellerName}
-                  country={a.sellerCountry}
-                  rating={normalizeRatingToFive(a.sellerRating)}
-                  reviewCount={a.sellerReviewCount}
-                  salesCount={0}
-                />
-                <div className="mt-1.5">
-                  <MarketplaceProductInfoCell
-                    conditionCode={auctionCondition}
-                    langFlag={auctionLang}
-                    langTitle={cardLanguage ?? undefined}
-                    imageUrl={auctionPhoto}
-                    imageName={a.title || cardName}
-                    description={getAuctionDescription(a)}
-                    auctionTag
+              <article
+                key={row.id}
+                className={cn(
+                  'flex gap-2 border-b border-slate-200/90 px-3 py-2.5',
+                  index % 2 === 0 ? 'bg-violet-50/25' : 'bg-violet-50/40'
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <MarketplaceSellerCell
+                    username={sellerName}
+                    country={a.sellerCountry}
+                    rating={normalizeRatingToFive(a.sellerRating)}
+                    reviewCount={a.sellerReviewCount}
+                    salesCount={0}
                   />
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
+                    <MobileProductAttributes
+                      conditionCode={auctionCondition}
+                      langFlag={auctionLang}
+                      langTitle={cardLanguage ?? undefined}
+                      imageUrls={auctionPhotos}
+                      imageName={a.title || cardName}
+                      description={auctionDesc}
+                      auctionTag
+                    />
+                    <div className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
+                      <span className="text-xs font-medium text-violet-700">{formatCountdownDuration(remaining)}</span>
+                      <span className="text-sm font-bold text-slate-900">
+                        {formatEuro(a.currentBidEur || a.startingBidEur)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-2 flex items-center justify-end gap-2">
-                  <span className="text-sm font-bold tabular-nums">{formatEuro(a.currentBidEur || a.startingBidEur)}</span>
-                  <span className="text-[10px] font-semibold text-violet-700">{formatCountdownDuration(remaining)}</span>
+                <div className="flex shrink-0 items-center self-center">
                   <Link
                     href={auctionDetailPath(String(a.numericId))}
-                    className="inline-flex h-8 items-center gap-1 rounded-sm bg-violet-600 px-2.5 text-xs font-bold text-white"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-violet-600 text-white shadow-sm"
+                    aria-label="Apri asta"
                   >
-                    <Gavel className="h-3.5 w-3.5" /> Asta
+                    <Gavel className="h-4 w-4" strokeWidth={2.25} />
                   </Link>
                 </div>
-              </div>
+              </article>
             );
           }
 
@@ -626,129 +840,130 @@ export function ModernSellerTable({
           const rep = getSellerReputation(item);
           const isCartOpen = activeCartItemId === item.item_id;
           const cartQty = getCartQty(item);
+          const description = getListingDescription(item);
 
           return (
-            <div
+            <article
               key={row.id}
               className={cn(
-                'px-3 py-2.5',
-                index % 2 === 0 ? 'bg-white' : 'bg-slate-50/70',
-                isOwn && 'bg-sky-50/40',
-                isCartOpen && 'bg-orange-50/40'
+                'flex gap-2 border-b border-slate-200/90 px-3 py-2.5',
+                index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60',
+                isOwn && 'bg-sky-50/35',
+                isCartOpen && 'bg-orange-50/35'
               )}
             >
-              <div className="mb-2 flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <MarketplaceSellerCell
-                    username={item.seller_display_name}
-                    country={item.country}
-                    rating={rep.rating}
-                    reviewCount={rep.reviewCount}
-                    salesCount={rep.salesCount}
-                    isPro={item.seller_account_type === 'business'}
-                  />
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
-                  <span className="text-sm font-bold tabular-nums text-[#1D3160]">
-                    {formatEuro(item.price_cents / 100)}
-                  </span>
-                  <span className="text-[11px] font-semibold tabular-nums text-slate-500">×{item.quantity}</span>
-                </div>
-              </div>
-
-              <div className="mb-2">
-                <MarketplaceProductInfoCell
-                  conditionCode={conditionCode}
-                  langFlag={langFlag}
-                  langTitle={item.mtg_language ?? undefined}
-                  imageUrl={cardImageSrc}
-                  imageName={cardName ?? item.seller_display_name}
-                  description={getListingDescription(item)}
-                  foil={item.mtg_foil}
-                  signed={item.signed}
-                  altered={item.altered}
+              <div className="min-w-0 flex-1">
+                <MarketplaceSellerCell
+                  username={item.seller_display_name}
+                  country={item.country}
+                  rating={rep.rating}
+                  reviewCount={rep.reviewCount}
+                  salesCount={rep.salesCount}
+                  isPro={item.seller_account_type === 'business'}
                 />
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <MobileProductAttributes
+                    conditionCode={conditionCode}
+                    langFlag={langFlag}
+                    langTitle={item.mtg_language ?? undefined}
+                    imageUrls={getListingPhotoUrls(cardImageSrc)}
+                    imageName={cardName ?? item.seller_display_name}
+                    description={description}
+                    foil={item.mtg_foil}
+                    signed={item.signed}
+                    altered={item.altered}
+                  />
+                  <div className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
+                    <span className="text-xs font-medium text-slate-600">{item.quantity}</span>
+                    <span className="text-sm font-bold text-slate-900">{formatEuro(item.price_cents / 100)}</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-2 flex items-center justify-end gap-2">
-                <MarketplaceOfferCell priceLabel={formatEuro(item.price_cents / 100)} quantity={item.quantity}>
-                  {isOwn ? (
-                    <div className="inline-flex items-center rounded-sm border border-slate-200 bg-white">
+              <div className="flex shrink-0 items-center self-center">
+                {isOwn ? (
+                  <div className="inline-flex flex-col overflow-hidden rounded-sm border border-slate-200 bg-white shadow-sm">
+                    <div className="flex items-center border-b border-slate-200">
                       <button
                         type="button"
                         disabled={isBusy}
                         onClick={() => onOwnerQuantityChange?.(item, -1)}
-                        className="inline-flex h-7 w-6 items-center justify-center text-slate-600 disabled:opacity-40"
+                        className="inline-flex h-8 w-8 items-center justify-center text-slate-600 disabled:opacity-40"
                         aria-label="Diminuisci"
                       >
-                        {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
+                        {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
                       </button>
-                      <span className="min-w-[1.1rem] border-x border-slate-200 text-center text-[10px] font-bold tabular-nums">
+                      <span className="min-w-[1.5rem] border-x border-slate-200 text-center text-xs font-bold tabular-nums">
                         {item.quantity}
                       </span>
                       <button
                         type="button"
                         disabled={isBusy || item.quantity >= 999}
                         onClick={() => onOwnerQuantityChange?.(item, 1)}
-                        className="inline-flex h-7 w-6 items-center justify-center text-slate-600 disabled:opacity-40"
+                        className="inline-flex h-8 w-8 items-center justify-center text-slate-600 disabled:opacity-40"
                         aria-label="Aumenta"
                       >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onOwnerEdit?.(item)}
-                        className="inline-flex h-7 w-6 items-center justify-center border-l border-slate-200 text-slate-500"
-                        aria-label="Modifica"
-                      >
-                        <Pencil className="h-3 w-3" />
+                        <Plus className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                  ) : isCartOpen ? (
-                    <div className="inline-flex items-center rounded-sm border border-orange-200 bg-white">
+                    <button
+                      type="button"
+                      onClick={() => onOwnerEdit?.(item)}
+                      className="inline-flex h-7 w-full items-center justify-center text-slate-500 hover:bg-amber-50"
+                      aria-label="Modifica"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : isCartOpen ? (
+                  <div className="inline-flex flex-col overflow-hidden rounded-sm border border-orange-200 bg-white shadow-sm">
+                    <div className="flex items-center">
                       <button
                         type="button"
                         onClick={() => setCartQty(item.item_id, cartQty - 1, item.quantity)}
                         disabled={cartQty <= 1}
-                        className="inline-flex h-7 w-6 items-center justify-center disabled:opacity-40"
+                        className="inline-flex h-8 w-8 items-center justify-center disabled:opacity-40"
+                        aria-label="Meno"
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className="h-3.5 w-3.5" />
                       </button>
-                      <span className="min-w-[1.1rem] border-x border-orange-100 text-center text-[10px] font-bold tabular-nums">
+                      <span className="min-w-[1.5rem] border-x border-orange-100 text-center text-xs font-bold tabular-nums">
                         {cartQty}
                       </span>
                       <button
                         type="button"
                         onClick={() => setCartQty(item.item_id, cartQty + 1, item.quantity)}
                         disabled={cartQty >= item.quantity}
-                        className="inline-flex h-7 w-6 items-center justify-center disabled:opacity-40"
+                        className="inline-flex h-8 w-8 items-center justify-center disabled:opacity-40"
+                        aria-label="Più"
                       >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          onAddToCart?.(item, cartQty, e.currentTarget);
-                          closeInlineCart();
-                        }}
-                        className="inline-flex h-7 w-7 items-center justify-center border-l border-orange-200 bg-[#FF7300] text-white"
-                      >
-                        <ShoppingCart className="h-3 w-3" />
+                        <Plus className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                  ) : (
                     <button
                       type="button"
-                      onClick={() => openInlineCart(item)}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-sm bg-[#2563eb] text-white"
-                      aria-label="Carrello"
+                      onClick={(e) => {
+                        onAddToCart?.(item, cartQty, e.currentTarget);
+                        closeInlineCart();
+                      }}
+                      className="inline-flex h-8 w-full items-center justify-center bg-[#2563eb] text-white"
+                      aria-label="Aggiungi al carrello"
                     >
-                      <ShoppingCart className="h-3.5 w-3.5" />
+                      <ShoppingCart className="h-4 w-4" />
                     </button>
-                  )}
-                </MarketplaceOfferCell>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openInlineCart(item)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-[#2563eb] text-white shadow-sm"
+                    aria-label="Aggiungi al carrello"
+                  >
+                    <ShoppingCart className="h-4 w-4" strokeWidth={2.25} />
+                  </button>
+                )}
               </div>
-            </div>
+            </article>
           );
         })}
       </div>
