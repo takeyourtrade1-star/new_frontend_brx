@@ -1,5 +1,5 @@
 import type { ListingItem } from '@/lib/api/sync-client';
-import type { ListingResponse, PublicListingResponse } from '@/lib/api/marketplace-client';
+import type { ListingResponse, PublicListingResponse, SyncMode } from '@/lib/api/marketplace-client';
 import { marketplaceConditionToSync } from '@/lib/marketplace/condition-map';
 import { normalizeCardLanguageCode } from '@/lib/card-languages';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
@@ -63,7 +63,7 @@ export function mapListingResponseToInventoryItem(listing: ListingResponse): Inv
     created_at: listing.created_at,
     listing_source: 'marketplace',
     marketplace_listing_id: listing.id,
-    sync_mode_at_creation: listing.sync_mode_at_creation,
+    sync_mode_at_creation: listing.sync_mode_at_creation as SyncMode | undefined,
     card_id: listing.card_id,
   };
 }

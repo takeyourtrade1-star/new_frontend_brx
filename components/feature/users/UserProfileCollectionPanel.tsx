@@ -10,6 +10,7 @@ import { usePublicUserCollection } from '@/lib/hooks/use-public-user-collection'
 import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
 import type { BlueprintToCardMap } from '@/lib/meilisearch-cards-by-ids';
 import { getCardDisplayNames } from '@/lib/card-display-name';
+import { getInventoryConditionCode } from '@/lib/inventory/inventory-filter-utils';
 import { ASSETS, getCdnImageUrl } from '@/lib/config';
 import type { PublicInventoryItem } from '@/types';
 
@@ -32,12 +33,6 @@ function formatPrice(cents: number): string {
     currency: 'EUR',
     minimumFractionDigits: 2,
   }).format(cents / 100);
-}
-
-function getConditionCode(item: PublicInventoryItem): string | null {
-  const props = (item.properties as Record<string, unknown>) || {};
-  const raw = props.condition ?? props.card_condition;
-  return typeof raw === 'string' && raw.trim() ? raw.trim() : null;
 }
 
 interface UserProfileCollectionPanelProps {
@@ -162,10 +157,18 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {items.map((item) => {
           const card = catalog[item.blueprint_id];
-          const names = card ? getCardDisplayNames(card, 'it') : null;
+          const names = card
+            ? getCardDisplayNames(
+                { name: card.name ?? '', keywords_localized: card.keywords_localized },
+                'it'
+              )
+            : null;
           const title = names?.primary ?? card?.name ?? `Carta #${item.blueprint_id}`;
           const imageUrl = buildImageUrl(card?.image ?? null);
-          const condition = getConditionCode(item);
+          const condition = getInventoryConditionCode(
+            ((item.properties as Record<string, unknown>)?.condition ??
+              (item.properties as Record<string, unknown>)?.card_condition) as string | undefined
+          );
           const searchHref = card?.id
             ? `/search?q=${encodeURIComponent(card.name ?? title)}`
             : '/search';

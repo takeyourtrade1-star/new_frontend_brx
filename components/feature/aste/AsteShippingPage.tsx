@@ -15,6 +15,7 @@ import {
   Truck,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import type { MessageKey } from '@/lib/i18n/messages/en';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
@@ -79,8 +80,8 @@ function fmtClosedDate(iso: string) {
   });
 }
 
-function statusLabelKey(status: ShippingOrderStatus): string {
-  const map: Record<ShippingOrderStatus, string> = {
+function statusLabelKey(status: ShippingOrderStatus): MessageKey {
+  const map: Record<ShippingOrderStatus, MessageKey> = {
     processing: 'auctions.shippingStatusProcessing',
     ready_to_ship: 'auctions.shippingStatusReady',
     in_transit: 'auctions.shippingStatusTransit',
@@ -89,7 +90,7 @@ function statusLabelKey(status: ShippingOrderStatus): string {
   return map[status];
 }
 
-function tabLabelKey(tab: StatusFilter): string {
+function tabLabelKey(tab: StatusFilter): MessageKey {
   if (tab === 'all') return 'auctions.shippingTabAll';
   return statusLabelKey(tab);
 }
@@ -137,7 +138,7 @@ function ShippingCard({
 }: {
   order: ShippingOrderMock;
   highlight: boolean;
-  t: (key: string, params?: Record<string, string | number>) => string;
+  t: (key: MessageKey, params?: Record<string, string | number>) => string;
 }) {
   const meta = STATUS_META[order.status];
   const StatusIcon = meta.icon;

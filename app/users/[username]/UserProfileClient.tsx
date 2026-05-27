@@ -137,8 +137,8 @@ function ProfileHero({
     auctionsCount != null && auctionsCount > 0
       ? { label: 'Aste', value: String(auctionsCount) }
       : null,
-    profile.feedback_count > 0
-      ? { label: 'Feedback', value: String(profile.feedback_count) }
+    (profile.feedback_count ?? 0) > 0
+      ? { label: 'Feedback', value: String(profile.feedback_count ?? 0) }
       : null,
   ].filter(Boolean) as { label: string; value: string }[];
 
