@@ -808,6 +808,7 @@ export const it: Record<MessageKey, string> = {
   'vendi.singles.select': 'Seleziona',
   'vendi.singles.noResults': 'Nessuna carta trovata. Prova con un altro termine.',
   'vendi.sell.stepPhotos': 'Foto dell\'oggetto',
+  'vendi.sell.stepConfirm': 'Foto e pubblicazione',
   'vendi.sell.stepPhotosHint':
     'Carica foto nitide della carta reale (fronte e retro se possibile). Servono per la fiducia degli acquirenti sul marketplace EBARTEX.',
   'vendi.sell.photoFromPhone': 'Carica da telefono (QR)',

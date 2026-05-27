@@ -33,7 +33,6 @@ import {
 } from '@/lib/marketplace/sell-single-draft';
 import { buildCardLanguageOptions, type CardLanguageOption } from '@/lib/card-languages';
 import type { CardDocument } from '@/lib/product-detail';
-import { getCardImageUrl } from '@/lib/assets';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
 import {
@@ -43,9 +42,9 @@ import {
   type ListingPhotoUploadStatus,
 } from './ListingPhotoUpload';
 import { SellSingleDetailsStep } from './SellSingleDetailsStep';
-import { SellSingleReviewStep } from './SellSingleReviewStep';
+import { SellSingleConfirmStep } from './SellSingleConfirmStep';
 
-type WizardStepId = 'details' | 'photos' | 'review';
+type WizardStepId = 'details' | 'confirm';
 
 function slotIncludedIn(slots: ListingPhotoSlot[], s: ListingPhotoSlot): boolean {
   if (s.kind === 'local') {
@@ -119,11 +118,6 @@ export function SellSingleWizard({
     const t = window.setTimeout(() => setPublishToast(null), 4500);
     return () => window.clearTimeout(t);
   }, [publishToast]);
-
-  const imageSrc = useMemo(() => {
-    const raw = embeddedCard.image ?? '';
-    return getCardImageUrl(raw) ?? (raw.trim().startsWith('http') ? raw : null);
-  }, [embeddedCard.image]);
 
   const unitPrice = useMemo(() => parseSellSinglePriceInput(draft.price), [draft.price]);
   const quantity = Number.isFinite(draft.quantity) ? Math.max(1, draft.quantity) : 1;
@@ -288,7 +282,7 @@ export function SellSingleWizard({
   }, [pairingSessionId, pairingUploadToken]);
 
   useEffect(() => {
-    if (stepId !== 'photos') {
+    if (stepId !== 'confirm') {
       setPairingSessionId(null);
       setPairingUploadToken(null);
       setPhoneUploadModalOpen(false);
@@ -297,7 +291,7 @@ export function SellSingleWizard({
   }, [stepId]);
 
   useEffect(() => {
-    if (stepId !== 'photos' || !pairingSessionId) {
+    if (stepId !== 'confirm' || !pairingSessionId) {
       if (pairingPollRef.current) {
         clearInterval(pairingPollRef.current);
         pairingPollRef.current = null;
@@ -377,22 +371,13 @@ export function SellSingleWizard({
   const goNext = () => {
     if (stepId === 'details') {
       if (!validateDetails()) return;
-      setStepId('photos');
-      return;
-    }
-    if (stepId === 'photos') {
-      if (!validatePhotos()) return;
-      setStepId('review');
+      setStepId('confirm');
     }
   };
 
   const goBack = () => {
     setError(null);
-    if (stepId === 'review') {
-      setStepId('photos');
-      return;
-    }
-    if (stepId === 'photos') {
+    if (stepId === 'confirm') {
       setStepId('details');
     }
   };
@@ -416,7 +401,7 @@ export function SellSingleWizard({
       return;
     }
     if (!validatePhotos()) {
-      setStepId('photos');
+      setStepId('confirm');
       return;
     }
 
@@ -425,7 +410,7 @@ export function SellSingleWizard({
       setError(
         t('vendi.sell.validationPhotosMin').replace('{min}', String(AUCTION_LISTING_PHOTO_MIN)),
       );
-      setStepId('photos');
+      setStepId('confirm');
       return;
     }
 
@@ -470,17 +455,12 @@ export function SellSingleWizard({
     setActionMessage(null);
   };
 
-  const stepLabels = ['Dettagli', 'Foto', 'Riepilogo'];
-  const stepIndex = stepId === 'details' ? 0 : stepId === 'photos' ? 1 : 2;
-  const continueDisabled =
-    (stepId === 'photos' && !allPhotosUploaded) || (stepId === 'review' && !allPhotosUploaded);
+  const stepLabels = ['Dettagli', 'Foto e conferma'];
+  const stepIndex = stepId === 'details' ? 0 : 1;
+  const continueDisabled = stepId === 'confirm' && !allPhotosUploaded;
 
   const stepHeading =
-    stepId === 'details'
-      ? 'Dettagli inserzione'
-      : stepId === 'photos'
-        ? t('vendi.sell.stepPhotos')
-        : 'Conferma e pubblica';
+    stepId === 'details' ? 'Dettagli inserzione' : t('vendi.sell.stepConfirm');
 
   if (done) {
     return (
@@ -520,7 +500,7 @@ export function SellSingleWizard({
         <div className={cn('mb-2', isEmbedded && 'mb-1.5')}>
           <div className="flex items-center justify-between px-0.5">
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-              Passo {stepIndex + 1} di 3
+              Passo {stepIndex + 1} di 2
             </span>
           </div>
           <div className="mt-1.5 flex gap-[3px]">
@@ -581,7 +561,6 @@ export function SellSingleWizard({
                 draft={draft}
                 update={update}
                 cardTitle={embeddedCard.name}
-                imageSrc={imageSrc}
                 languageOptions={languageOptions}
                 unitPrice={unitPrice}
                 totalPrice={totalPrice}
@@ -593,16 +572,23 @@ export function SellSingleWizard({
               />
             )}
 
-            {stepId === 'photos' && (
-              <div className={cn('space-y-3', isEmbedded && 'space-y-2')}>
-                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+            {stepId === 'confirm' && (
+              <SellSingleConfirmStep
+                draft={draft}
+                cardTitle={embeddedCard.name}
+                languageOptions={languageOptions}
+                unitPrice={unitPrice}
+                totalPrice={totalPrice}
+                compact={isEmbedded}
+              >
+                <div className={cn('space-y-2', isEmbedded && 'space-y-1.5')}>
                   <button
                     type="button"
                     onClick={() => void openPhoneUploadModal()}
                     disabled={pairingActionLoading}
                     className={cn(
-                      'inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#1D3160]/25 bg-[#f8f9fb] px-4 py-2.5 text-sm font-semibold text-[#1D3160] transition hover:border-[#FF7300]/50 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-60',
-                      isEmbedded && 'py-2 text-xs',
+                      'inline-flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#1D3160]/25 bg-[#f8f9fb] px-3 py-2 text-xs font-semibold text-[#1D3160] transition hover:border-[#FF7300]/50 hover:bg-orange-50/40 disabled:opacity-60',
+                      isEmbedded && 'py-1.5 text-[11px]',
                     )}
                   >
                     {pairingActionLoading
@@ -610,46 +596,38 @@ export function SellSingleWizard({
                       : t('vendi.sell.photoFromPhone')}
                   </button>
                   {pairingSessionId && !phoneUploadModalOpen ? (
-                    <p className="text-xs text-gray-600">{t('vendi.sell.photoFromPhonePollingHint')}</p>
+                    <p className="text-[10px] leading-snug text-zinc-600">
+                      {t('vendi.sell.photoFromPhonePollingHint')}
+                    </p>
                   ) : null}
-                </div>
-                {pairingActionError ? <p className="text-sm text-red-700">{pairingActionError}</p> : null}
-                <ListingPhotoUpload
-                  photos={draft.listingPhotos}
-                  onPhotosChange={setListingPhotos}
-                  compact={isEmbedded}
-                  uploadStatuses={photoUploadStatuses}
-                />
-                {failedUploadFiles.length > 0 && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-                    <p className="font-semibold">Alcune foto non sono state caricate.</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {failedUploadFiles.map((file, i) => (
-                        <button
-                          key={`${file.name}-${i}`}
-                          type="button"
-                          onClick={() => retryFailedUpload(file)}
-                          className="inline-flex items-center gap-1 rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-red-800 transition hover:bg-red-100"
-                        >
-                          Riprova: {file.name}
-                        </button>
-                      ))}
+                  {pairingActionError ? (
+                    <p className="text-[11px] text-red-700">{pairingActionError}</p>
+                  ) : null}
+                  <ListingPhotoUpload
+                    photos={draft.listingPhotos}
+                    onPhotosChange={setListingPhotos}
+                    compact
+                    uploadStatuses={photoUploadStatuses}
+                  />
+                  {failedUploadFiles.length > 0 && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-900">
+                      <p className="font-semibold">Alcune foto non sono state caricate.</p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {failedUploadFiles.map((file, i) => (
+                          <button
+                            key={`${file.name}-${i}`}
+                            type="button"
+                            onClick={() => retryFailedUpload(file)}
+                            className="rounded border border-red-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-red-800 hover:bg-red-100"
+                          >
+                            Riprova
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {stepId === 'review' && (
-              <SellSingleReviewStep
-                draft={draft}
-                cardTitle={embeddedCard.name}
-                imageSrc={imageSrc}
-                languageOptions={languageOptions}
-                unitPrice={unitPrice}
-                totalPrice={totalPrice}
-                compact={isEmbedded}
-              />
+                  )}
+                </div>
+              </SellSingleConfirmStep>
             )}
           </div>
 
@@ -668,15 +646,11 @@ export function SellSingleWizard({
                 Indietro
               </button>
 
-              {stepId !== 'review' ? (
+              {stepId === 'details' ? (
                 <button
                   type="button"
                   onClick={goNext}
-                  disabled={continueDisabled}
-                  title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
-                  className={cn(
-                    'inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50',
-                  )}
+                  className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white hover:bg-primary/90"
                 >
                   Continua
                   <ChevronRight className="h-3 w-3" aria-hidden />
@@ -686,7 +660,8 @@ export function SellSingleWizard({
                   type="button"
                   disabled={publishSubmitting || continueDisabled}
                   onClick={() => void publish()}
-                  className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white hover:bg-primary/90 disabled:opacity-50"
+                  className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
                 >
                   {publishSubmitting ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />

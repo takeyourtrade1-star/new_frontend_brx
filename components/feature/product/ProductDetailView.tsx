@@ -1449,7 +1449,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               'flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-[2px] shadow-[0_1px_4px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] sm:flex-row',
               activeTab === 'ASTA'
                 ? 'sm:min-h-[420px]'
-                : activeTab === 'INFO' || activeTab === 'GRAFICO'
+                : activeTab === 'INFO' || activeTab === 'GRAFICO' || activeTab === 'VENDI'
                   ? 'sm:min-h-[320px] sm:h-auto'
                   : 'sm:h-[320px]'
             )}
@@ -1460,7 +1460,11 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               <div
                 className={cn(
                   'bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60',
-                  activeTab === 'INFO' ? 'flex justify-center px-0.5 py-2.5' : 'min-h-[200px] overflow-y-auto p-2.5',
+                  activeTab === 'INFO'
+                    ? 'flex justify-center px-0.5 py-2.5'
+                    : activeTab === 'VENDI'
+                      ? 'p-2'
+                      : 'min-h-[200px] overflow-y-auto p-2.5',
                   activeTab === 'ASTA' && 'min-h-[280px]'
                 )}
               >
@@ -1500,16 +1504,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 )}
 
                 {activeTab === 'VENDI' && card && (
-                  <div className="rounded-xl bg-white p-2 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                    <SellSingleWizard
-                      key={`mobile-sell-${card.id}`}
-                      variant="embedded"
-                      embeddedCard={card}
-                      blueprintId={blueprintIdForAuction}
-                      onPublished={handleSellSinglePublished}
-                      className="!max-w-full"
-                    />
-                  </div>
+                  <SellSingleWizard
+                    key={`mobile-sell-${card.id}`}
+                    variant="embedded"
+                    embeddedCard={card}
+                    blueprintId={blueprintIdForAuction}
+                    onPublished={handleSellSinglePublished}
+                    className="!max-w-full"
+                  />
                 )}
                 {activeTab === 'VENDI' && !card && (
                   <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl bg-white p-4 text-center text-xs text-zinc-400">
@@ -1916,7 +1918,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             {/* Tab VENDI: wizard vendita singola + contesto prezzi */}
             {activeTab === 'VENDI' && card && (
               <>
-                <div className="hidden h-full min-h-0 w-full min-w-0 gap-3 overflow-y-auto p-3 sm:grid sm:grid-cols-1 lg:grid-cols-[1.3fr_1fr]">
+                <div className="hidden h-full min-h-0 w-full min-w-0 gap-3 p-3 sm:grid sm:grid-cols-1 lg:grid-cols-[1.3fr_1fr]">
                   <div className="min-h-0">
                     <SellSingleWizard
                       key={`desktop-sell-${card.id}`}

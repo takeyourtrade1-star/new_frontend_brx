@@ -113,29 +113,40 @@ export function AuctionListingPhotoUpload({
   };
 
   return (
-    <div className={cn('space-y-5', compact && 'space-y-3')}>
-      <p className={cn('text-sm text-gray-600', compact && 'text-xs leading-snug')}>
-        {t('auctions.createStepPhotosIntro', {
-          min: AUCTION_LISTING_PHOTO_MIN,
-          max: AUCTION_LISTING_PHOTO_MAX,
-        })}
-      </p>
-      <p className={cn('text-xs font-semibold text-[#1D3160]/80', compact && 'text-[11px]')}>
+    <div className={cn('space-y-5', compact && 'space-y-2')}>
+      {!compact ? (
+        <p className="text-sm text-gray-600">
+          {t('auctions.createStepPhotosIntro', {
+            min: AUCTION_LISTING_PHOTO_MIN,
+            max: AUCTION_LISTING_PHOTO_MAX,
+          })}
+        </p>
+      ) : (
+        <p className="text-[10px] leading-snug text-zinc-600">
+          {t('vendi.sell.stepPhotosHint')}
+        </p>
+      )}
+      <p className={cn('text-xs font-semibold text-[#1D3160]/80', compact && 'text-[10px]')}>
         {t('auctions.createPhotoCountHint', {
           current: photos.length,
           min: AUCTION_LISTING_PHOTO_MIN,
           max: AUCTION_LISTING_PHOTO_MAX,
         })}
       </p>
-      <div className={cn('grid gap-4 sm:grid-cols-2', compact && 'gap-3')}>
+      <div
+        className={cn(
+          'grid gap-4 sm:grid-cols-2',
+          compact && 'grid-cols-2 gap-2 sm:grid-cols-2',
+        )}
+      >
         {photos.map((_, slot) => {
           const url = previewUrls[slot];
           const galleryId = `${baseId}-gallery-${slot}`;
           const cameraId = `${baseId}-camera-${slot}`;
 
           return (
-            <div key={`filled-${slot}`} className="flex flex-col gap-2">
-              <p className="text-xs font-bold uppercase tracking-wide text-gray-600">
+            <div key={`filled-${slot}`} className={cn('flex flex-col gap-2', compact && 'gap-1')}>
+              <p className={cn('text-xs font-bold uppercase tracking-wide text-gray-600', compact && 'text-[9px]')}>
                 {t('auctions.createPhotoSlotLabel', { n: slot + 1 })}
               </p>
               <div
@@ -158,7 +169,7 @@ export function AuctionListingPhotoUpload({
                 onDrop={(e) => handleDrop(e, slot)}
                 className={cn(
                   'relative flex min-h-[200px] flex-col overflow-hidden rounded-xl border-2 border-dashed bg-gray-50/80 transition-colors',
-                  compact && 'min-h-[140px] rounded-lg',
+                  compact && 'min-h-0 rounded-lg border border-solid',
                   dragOverIndex === slot ? 'border-[#FF7300] bg-orange-50/60' : 'border-gray-300',
                   'border-solid border-gray-200 bg-white'
                 )}
@@ -193,14 +204,22 @@ export function AuctionListingPhotoUpload({
                     <img
                       src={url}
                       alt=""
-                      className={cn('h-48 w-full object-contain sm:h-56', compact && 'h-36 sm:h-40')}
+                      className={cn('h-48 w-full object-contain sm:h-56', compact && 'h-20 w-full sm:h-20')}
                     />
                     <UploadStatusOverlay status={uploadStatuses?.[slot]} compact={compact} />
-                    <div className="flex flex-wrap gap-2 border-t border-gray-100 bg-white/95 p-2">
+                    <div
+                      className={cn(
+                        'flex flex-wrap gap-2 border-t border-gray-100 bg-white/95 p-2',
+                        compact && 'p-1',
+                      )}
+                    >
                       <button
                         type="button"
                         onClick={() => replaceAt(slot, null)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-800 transition hover:bg-red-100"
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-800 transition hover:bg-red-100',
+                          compact && 'px-1.5 py-0.5 text-[10px]',
+                        )}
                       >
                         <Trash2 className="h-3.5 w-3.5" aria-hidden />
                         {t('auctions.createPhotoRemove')}
@@ -214,11 +233,13 @@ export function AuctionListingPhotoUpload({
         })}
 
         {canAddMore && (
-          <div className="flex flex-col gap-2">
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-600">
+          <div className={cn('flex flex-col gap-2', compact && 'gap-1')}>
+            <p className={cn('text-xs font-bold uppercase tracking-wide text-gray-600', compact && 'text-[9px]')}>
               {t('auctions.createPhotoSlotLabel', { n: photos.length + 1 })}
               {photos.length + 1 > AUCTION_LISTING_PHOTO_MIN ? (
-                <span className="ml-1 font-normal normal-case text-gray-400">({t('auctions.createPhotoOptionalSlot')})</span>
+                <span className="ml-1 font-normal normal-case text-gray-400">
+                  ({t('auctions.createPhotoOptionalSlot')})
+                </span>
               ) : null}
             </p>
             <div
@@ -241,8 +262,8 @@ export function AuctionListingPhotoUpload({
               onDrop={(e) => handleDrop(e, photos.length)}
               className={cn(
                 'relative flex min-h-[200px] flex-col overflow-hidden rounded-xl border-2 border-dashed bg-gray-50/80 transition-colors',
-                compact && 'min-h-[140px] rounded-lg',
-                dragOverIndex === photos.length ? 'border-[#FF7300] bg-orange-50/60' : 'border-gray-300'
+                compact && 'min-h-0 rounded-lg border border-dashed',
+                dragOverIndex === photos.length ? 'border-[#FF7300] bg-orange-50/60' : 'border-gray-300',
               )}
             >
               <input
@@ -271,29 +292,44 @@ export function AuctionListingPhotoUpload({
               <div
                 className={cn(
                   'flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center',
-                  compact && 'gap-2 p-3'
+                  compact && 'gap-1.5 p-2',
                 )}
               >
-                <Upload className={cn('h-10 w-10 text-gray-400', compact && 'h-8 w-8')} strokeWidth={1.5} aria-hidden />
-                <p className={cn('text-xs text-gray-600', compact && 'text-[11px] leading-snug')}>
+                <Upload
+                  className={cn('h-10 w-10 text-gray-400', compact && 'h-6 w-6')}
+                  strokeWidth={1.5}
+                  aria-hidden
+                />
+                <p className={cn('text-xs text-gray-600', compact && 'hidden')}>
                   {t('auctions.createPhotoDropHint')}
                 </p>
-                <div className="flex w-full max-w-[240px] flex-col gap-2 sm:flex-row sm:justify-center">
+                <div
+                  className={cn(
+                    'flex w-full max-w-[240px] flex-col gap-2 sm:flex-row sm:justify-center',
+                    compact && 'max-w-none flex-row gap-1',
+                  )}
+                >
                   <button
                     type="button"
                     onClick={() => galleryRefs.current[photos.length]?.click()}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#1D3160]/20 bg-white px-3 py-2 text-xs font-semibold text-[#1D3160] shadow-sm transition hover:bg-gray-50"
+                    className={cn(
+                      'inline-flex items-center justify-center gap-2 rounded-lg border border-[#1D3160]/20 bg-white px-3 py-2 text-xs font-semibold text-[#1D3160] shadow-sm transition hover:bg-gray-50',
+                      compact && 'flex-1 px-2 py-1 text-[10px]',
+                    )}
                   >
-                    <ImageIcon className="h-4 w-4 shrink-0" aria-hidden />
-                    {t('auctions.createPhotoChooseFile')}
+                    <ImageIcon className={cn('h-4 w-4 shrink-0', compact && 'h-3 w-3')} aria-hidden />
+                    {compact ? 'File' : t('auctions.createPhotoChooseFile')}
                   </button>
                   <button
                     type="button"
                     onClick={() => cameraRefs.current[photos.length]?.click()}
-                    className="btn-orange-outline-glow inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs"
+                    className={cn(
+                      'btn-orange-outline-glow inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs',
+                      compact && 'flex-1 px-2 py-1 text-[10px]',
+                    )}
                   >
-                    <Camera className="h-4 w-4 shrink-0" aria-hidden />
-                    {t('auctions.createPhotoTakePicture')}
+                    <Camera className={cn('h-4 w-4 shrink-0', compact && 'h-3 w-3')} aria-hidden />
+                    {compact ? 'Foto' : t('auctions.createPhotoTakePicture')}
                   </button>
                 </div>
               </div>
@@ -301,9 +337,9 @@ export function AuctionListingPhotoUpload({
           </div>
         )}
       </div>
-      <p className={cn('text-xs text-gray-500', compact && 'text-[11px] leading-snug')}>
-        {t('auctions.createStepPhotosFormats')}
-      </p>
+      {!compact ? (
+        <p className="text-xs text-gray-500">{t('auctions.createStepPhotosFormats')}</p>
+      ) : null}
     </div>
   );
 }

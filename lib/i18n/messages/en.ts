@@ -806,6 +806,7 @@ export const en = {
   'vendi.singles.select': 'Select',
   'vendi.singles.noResults': 'No cards found. Try another search term.',
   'vendi.sell.stepPhotos': 'Item photos',
+  'vendi.sell.stepConfirm': 'Photos and publish',
   'vendi.sell.stepPhotosHint':
     'Upload clear photos of the actual card (front and back if possible). They help buyers trust your EBARTEX marketplace listing.',
   'vendi.sell.photoFromPhone': 'Upload from phone (QR)',

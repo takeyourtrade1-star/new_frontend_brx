@@ -808,6 +808,7 @@ export const fr: Record<MessageKey, string> = {
   'vendi.singles.select': 'Sélectionner',
   'vendi.singles.noResults': 'Aucune carte trouvée.',
   'vendi.sell.stepPhotos': 'Photos de l\'objet',
+  'vendi.sell.stepConfirm': 'Photos et publication',
   'vendi.sell.stepPhotosHint':
     'Téléversez des photos nettes de la carte réelle (recto et verso si possible) pour rassurer les acheteurs.',
   'vendi.sell.photoFromPhone': 'Envoyer depuis le téléphone (QR)',
