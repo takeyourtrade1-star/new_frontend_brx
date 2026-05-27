@@ -614,7 +614,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             ? parseInt(String(rawBp).includes(':') ? String(rawBp).split(':')[0] : String(rawBp), 10)
             : undefined;
       addToCartStore(
-        buildSyncCartLine(qtyPopup.item, qtyValue, {
+        buildCartLineFromListingItem(qtyPopup.item, qtyValue, {
           title: card?.name ?? qtyPopup.item.seller_display_name,
           imageUrl: qtyPopup.imageSrc ?? imageSrc ?? '',
           blueprintId: Number.isFinite(bp) && (bp as number) >= 1 ? (bp as number) : undefined,

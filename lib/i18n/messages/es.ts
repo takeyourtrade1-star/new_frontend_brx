@@ -807,6 +807,20 @@ export const es: Record<MessageKey, string> = {
   'vendi.singles.searchHint': 'Selecciona una carta para cantidad, idioma, condición y precio.',
   'vendi.singles.select': 'Seleccionar',
   'vendi.singles.noResults': 'No se encontraron cartas.',
+  'vendi.sell.stepPhotos': 'Fotos del artículo',
+  'vendi.sell.stepPhotosHint':
+    'Sube fotos claras de la carta real (anverso y reverso si es posible) para generar confianza.',
+  'vendi.sell.photoFromPhone': 'Subir desde el móvil (QR)',
+  'vendi.sell.photoFromPhoneLoading': 'Iniciando sesión…',
+  'vendi.sell.photoFromPhonePollingHint':
+    'Mantén esta página abierta: las fotos del móvil aparecerán aquí automáticamente.',
+  'vendi.sell.photoFromPhoneModalTitle': 'Escanear con el móvil',
+  'vendi.sell.photoFromPhoneModalBody':
+    'Apunta la cámara al código QR para abrir la página de subida de fotos.',
+  'vendi.sell.photoFromPhoneModalCloseHint':
+    'Puedes cerrar esta ventana tras escanear: la subida continúa en el móvil.',
+  'vendi.sell.photoFromPhoneModalClose': 'Cerrar',
+  'vendi.sell.validationPhotosMin': 'Sube al menos {min} fotos del artículo real.',
   'vendi.products.pageTitle': 'Vender objetos',
   'vendi.products.pageSubtitle': 'Sobres, cajas, mazos, bundles, tins y otros productos.',
   'vendi.products.chooseType': 'Elige el tipo de objeto que quieres vender.',

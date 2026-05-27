@@ -805,6 +805,20 @@ export const en = {
   'vendi.singles.searchHint': 'Select a card to open its page and set quantity, language, condition and price.',
   'vendi.singles.select': 'Select',
   'vendi.singles.noResults': 'No cards found. Try another search term.',
+  'vendi.sell.stepPhotos': 'Item photos',
+  'vendi.sell.stepPhotosHint':
+    'Upload clear photos of the actual card (front and back if possible). They help buyers trust your EBARTEX marketplace listing.',
+  'vendi.sell.photoFromPhone': 'Upload from phone (QR)',
+  'vendi.sell.photoFromPhoneLoading': 'Starting session…',
+  'vendi.sell.photoFromPhonePollingHint':
+    'Keep this page open: photos sent from your phone will appear here automatically.',
+  'vendi.sell.photoFromPhoneModalTitle': 'Scan with your phone',
+  'vendi.sell.photoFromPhoneModalBody':
+    'Point your phone camera at the QR code to open the photo upload page for your listing.',
+  'vendi.sell.photoFromPhoneModalCloseHint':
+    'You can close this window after scanning: upload continues on your phone.',
+  'vendi.sell.photoFromPhoneModalClose': 'Close',
+  'vendi.sell.validationPhotosMin': 'Upload at least {min} photos of the actual item.',
   'vendi.products.pageTitle': 'Sell products',
   'vendi.products.pageSubtitle': 'Boosters, boxes, preconstructed decks, bundles, tins and other non-single items.',
   'vendi.products.chooseType': 'Choose the type of product you want to sell.',

@@ -807,6 +807,20 @@ export const pt: Record<MessageKey, string> = {
   'vendi.singles.searchHint': 'Seleciona uma carta para quantidade, idioma, condição e preço.',
   'vendi.singles.select': 'Selecionar',
   'vendi.singles.noResults': 'Nenhuma carta encontrada.',
+  'vendi.sell.stepPhotos': 'Fotos do artigo',
+  'vendi.sell.stepPhotosHint':
+    'Carrega fotos nítidas da carta real (frente e verso se possível) para inspirar confiança nos compradores.',
+  'vendi.sell.photoFromPhone': 'Carregar do telemóvel (QR)',
+  'vendi.sell.photoFromPhoneLoading': 'A iniciar sessão…',
+  'vendi.sell.photoFromPhonePollingHint':
+    'Mantém esta página aberta: as fotos enviadas do telemóvel aparecem aqui automaticamente.',
+  'vendi.sell.photoFromPhoneModalTitle': 'Digitalizar com o telemóvel',
+  'vendi.sell.photoFromPhoneModalBody':
+    'Aponta a câmara ao código QR para abrir a página de envio de fotos.',
+  'vendi.sell.photoFromPhoneModalCloseHint':
+    'Podes fechar esta janela após digitalizar: o envio continua no telemóvel.',
+  'vendi.sell.photoFromPhoneModalClose': 'Fechar',
+  'vendi.sell.validationPhotosMin': 'Carrega pelo menos {min} fotos do artigo real.',
   'vendi.products.pageTitle': 'Vender objetos',
   'vendi.products.pageSubtitle': 'Boosters, caixas, decks, bundles, tins e outros produtos.',
   'vendi.products.chooseType': 'Escolhe o tipo de objeto que queres vender.',

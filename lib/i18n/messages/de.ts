@@ -807,6 +807,20 @@ export const de: Record<MessageKey, string> = {
   'vendi.singles.searchHint': 'Karte wählen, um Menge, Sprache, Zustand und Preis festzulegen.',
   'vendi.singles.select': 'Auswählen',
   'vendi.singles.noResults': 'Keine Karten gefunden.',
+  'vendi.sell.stepPhotos': 'Artikel-Fotos',
+  'vendi.sell.stepPhotosHint':
+    'Lade klare Fotos der echten Karte hoch (Vorder- und Rückseite wenn möglich). Sie stärken das Vertrauen der Käufer.',
+  'vendi.sell.photoFromPhone': 'Vom Handy hochladen (QR)',
+  'vendi.sell.photoFromPhoneLoading': 'Session wird gestartet…',
+  'vendi.sell.photoFromPhonePollingHint':
+    'Lasse diese Seite geöffnet: Fotos vom Handy erscheinen hier automatisch.',
+  'vendi.sell.photoFromPhoneModalTitle': 'Mit dem Handy scannen',
+  'vendi.sell.photoFromPhoneModalBody':
+    'Richte die Handy-Kamera auf den QR-Code, um die Foto-Upload-Seite zu öffnen.',
+  'vendi.sell.photoFromPhoneModalCloseHint':
+    'Du kannst dieses Fenster nach dem Scan schließen: der Upload läuft auf dem Handy weiter.',
+  'vendi.sell.photoFromPhoneModalClose': 'Schließen',
+  'vendi.sell.validationPhotosMin': 'Lade mindestens {min} Fotos des echten Artikels hoch.',
   'vendi.products.pageTitle': 'Produkte verkaufen',
   'vendi.products.pageSubtitle': 'Booster, Boxen, vorgefertigte Decks, Bundles, Tins und mehr.',
   'vendi.products.chooseType': 'Wähle die Art des Produkts, das du verkaufen möchtest.',
