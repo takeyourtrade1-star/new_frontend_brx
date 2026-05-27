@@ -120,12 +120,14 @@ export const auctionApi = {
   listAuctions(params?: {
     q?: string;
     status?: string;
+    created_by_user_id?: string;
     limit?: number;
     offset?: number;
   }): Promise<AuctionListResponse> {
     const sp = new URLSearchParams();
     if (params?.q) sp.set('q', params.q);
     if (params?.status) sp.set('status', params.status);
+    if (params?.created_by_user_id) sp.set('created_by_user_id', params.created_by_user_id);
     if (params?.limit) sp.set('limit', String(params.limit));
     if (params?.offset) sp.set('offset', String(params.offset));
     const qs = sp.toString();

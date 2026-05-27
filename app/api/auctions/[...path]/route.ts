@@ -39,12 +39,16 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   const requestId =
     request.headers.get('x-request-id') ||
     request.headers.get('X-Request-ID');
+  const pairingUploadToken =
+    request.headers.get('x-pairing-upload-token') ||
+    request.headers.get('X-Pairing-Upload-Token');
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
     ...(auth ? { Authorization: auth } : {}),
     ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     ...(requestId ? { 'X-Request-ID': requestId } : {}),
+    ...(pairingUploadToken ? { 'X-Pairing-Upload-Token': pairingUploadToken } : {}),
   };
 
   let body: string | undefined;

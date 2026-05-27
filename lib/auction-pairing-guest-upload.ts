@@ -66,15 +66,25 @@ export interface PairingGuestUploadOptions {
 }
 
 export interface PairingSessionStatus {
-  status?: string;
-  auction_id?: number | null;
-  photos?: unknown[];
+  status?: 'active' | 'closed';
+  photos_count?: number;
+  max_photos?: number;
+  expires_at?: string;
+  context_type?: string;
+}
+
+/** Immediate guest status poll (e.g. after upload or on mount). */
+export async function pollPairingSessionAsGuestOnce(
+  sessionId: string,
+  uploadToken: string,
+): Promise<PairingSessionStatus> {
+  return pollPairingSessionAsGuest(sessionId, uploadToken);
 }
 
 /**
  * Polls the pairing session status as a guest (no login required).
  * Passes the upload token via a custom header.
- * Returns `{ status: 'COMPLETED' }` when the session is gone (404/410).
+ * Returns `{ status: 'closed' }` only when the server responds 410 Gone.
  */
 export async function pollPairingSessionAsGuest(
   sessionId: string,
@@ -89,11 +99,11 @@ export async function pollPairingSessionAsGuest(
         },
       },
     );
-    return data.data ?? {};
+    return data.data ?? { status: 'active' };
   } catch (err) {
     const e = err as { status?: number };
-    if (e.status === 404 || e.status === 410) {
-      return { status: 'COMPLETED' };
+    if (e.status === 410) {
+      return { status: 'closed' };
     }
     throw err;
   }

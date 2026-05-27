@@ -1,7 +1,8 @@
 import type { ListingItem } from '@/lib/api/sync-client';
-import type { PublicListingResponse } from '@/lib/api/marketplace-client';
+import type { ListingResponse, PublicListingResponse } from '@/lib/api/marketplace-client';
 import { marketplaceConditionToSync } from '@/lib/marketplace/condition-map';
 import { normalizeCardLanguageCode } from '@/lib/card-languages';
+import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 
 /** Stable row/cart key for sync inventory vs marketplace UUID listings. */
 export function listingRowKey(item: ListingItem): string {
@@ -39,4 +40,30 @@ export function mapPublicListingToListingItem(pub: PublicListingResponse): Listi
 
 export function isMarketplaceListingItem(item: ListingItem): boolean {
   return item.listing_source === 'marketplace' && Boolean(item.marketplace_listing_id);
+}
+
+/** Converte un listing marketplace (mio) in riga inventario per /account/oggetti. */
+export function mapListingResponseToInventoryItem(listing: ListingResponse): InventoryItemWithCatalog {
+  const priceNum = Number.parseFloat(listing.price);
+  const price_cents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : 0;
+  const blueprintId = listing.cardtrader_blueprint_id ?? 0;
+  return {
+    id: uuidToSyntheticItemId(listing.id),
+    blueprint_id: blueprintId,
+    quantity: listing.quantity,
+    price_cents,
+    description: listing.title,
+    graded: false,
+    properties: {
+      condition: marketplaceConditionToSync(listing.condition),
+      mtg_language: normalizeCardLanguageCode(listing.language) || listing.language,
+    },
+    external_stock_id: null,
+    updated_at: listing.updated_at,
+    created_at: listing.created_at,
+    listing_source: 'marketplace',
+    marketplace_listing_id: listing.id,
+    sync_mode_at_creation: listing.sync_mode_at_creation,
+    card_id: listing.card_id,
+  };
 }

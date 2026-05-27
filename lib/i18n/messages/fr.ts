@@ -19,6 +19,8 @@ export const fr: Record<MessageKey, string> = {
     'Scannez ce code QR avec l’appareil photo du téléphone pour ouvrir CameraMatch sur l’appareil.',
   'nav.cameraMatchQrHint':
     'CameraMatch utilise la caméra du téléphone — poursuivez sur mobile après le scan.',
+  'scanner.betaNotice':
+    'Fonction en phase bêta. Sortie officielle prochainement.',
   'nav.legalNorms': 'Règles légales',
   'nav.legalTerms': 'Conditions légales',
 
@@ -707,6 +709,13 @@ export const fr: Record<MessageKey, string> = {
   'accountPage.itemsDeleteConfirm': 'Supprimer cet article de l\'inventaire ? Si la synchronisation externe est active, la suppression sera également envoyée là-bas.',
   'accountPage.itemsBadgeHot': 'Hot',
   'accountPage.itemsBadgeTop': 'Top',
+  'accountPage.itemsBadgeDemo': 'DEMO',
+  'accountPage.itemsDemoPopoverTitle': 'EBARTEX uniquement',
+  'accountPage.itemsDemoExplain':
+    'En mode DEMO, la carte est visible sur EBARTEX uniquement, sans sync CardTrader ni autres plateformes.',
+  'accountPage.itemsDemoChangeMode': 'Changer le mode dans Synchronisation',
+  'accountPage.itemsDeleteDemoConfirm':
+    'Retirer cette annonce DEMO d’EBARTEX ? CardTrader ne sera pas modifié.',
   'accountPage.itemsBadgeFoil': 'Foil',
   'accountPage.itemsBadgeSigned': 'Signed',
   'accountPage.itemsBadgeGraded': 'Graded',
@@ -821,6 +830,10 @@ export const fr: Record<MessageKey, string> = {
   'vendi.sell.photoFromPhoneModalCloseHint':
     'Vous pouvez fermer cette fenêtre après le scan : l\'envoi continue sur le téléphone.',
   'vendi.sell.photoFromPhoneModalClose': 'Fermer',
+  'vendi.sell.photoReceivedFromPhone': 'Photo received from phone',
+  'vendi.sell.photoPairingSessionActive': '{count}/{max} photos · expires in {minutes} min',
+  'vendi.sell.photoPairingRegenerateQr': 'Generate new QR',
+  'vendi.sell.photoPairingCloseSession': 'Disconnect phone',
   'vendi.sell.validationPhotosMin': 'Téléversez au moins {min} photos de l\'objet réel.',
   'vendi.products.pageTitle': 'Vendre des objets',
   'vendi.products.pageSubtitle': 'Boosters, displays, decks, bundles, tins et autres produits.',
@@ -839,7 +852,8 @@ export const fr: Record<MessageKey, string> = {
 
   'cart.title': 'Panier',
   'cart.item': 'article',
-  'cart.empty': 'Votre panier est vide.',
+  'cart.empty': 'Votre panier est vide. Découvrez des cartes et ajoutez-les pour commencer.',
+  'cart.emptyTitle': 'Votre panier est vide',
   'cart.browse': 'Parcourir les produits',
   'cart.items': '{count} articles',
   'cart.itemsOne': '{count} article',
@@ -852,6 +866,19 @@ export const fr: Record<MessageKey, string> = {
   'cart.goToCart': 'Voir le panier',
   'cart.continueShopping': 'Continuer les achats',
   'cart.moreItems': 'articles de plus',
+  'cart.sellerGroup': 'Vendeur',
+  'cart.sellerBusiness': 'Business',
+  'cart.sellerPersonal': 'Particulier',
+  'cart.subtotal': 'Sous-total',
+  'cart.shippingNote': 'Frais de port calculés au paiement',
+  'cart.sellerItems': '{count} articles de ce vendeur',
+  'cart.sellerItemsOne': '{count} article de ce vendeur',
+  'cart.sourceSync': 'Sync',
+  'cart.sourceMarketplace': 'Marketplace',
+  'cart.sellers': '{count} vendeurs',
+  'cart.sellersOne': '1 vendeur',
+  'cart.orderSummary': 'Récapitulatif',
+  'cart.secureCheckout': 'Paiement sécurisé',
 
   'help.backHome': 'Retour à l’accueil',
   'help.title': 'Aide & FAQ',
@@ -890,6 +917,26 @@ export const fr: Record<MessageKey, string> = {
   'scambi.notify': 'PRÉVENIR',
   'scambi.notifyAria': 'Me prévenir quand la fonction est disponible',
   'scambi.toast': 'Vous serez prévenu quand la fonction sera active.',
+  'scambi.preview.badge': 'Bientôt disponible',
+  'scambi.preview.badgeHint': 'Aperçu interactif — les échanges seront activés prochainement.',
+  'scambi.preview.title': 'Échanges',
+  'scambi.preview.subtitle':
+    'Proposez, négociez et concluez des échanges de cartes en toute sécurité. Explorez l’aperçu avec de vraies cartes du catalogue.',
+  'scambi.preview.offer': 'Ce que vous offrez',
+  'scambi.preview.request': 'Ce que vous demandez',
+  'scambi.preview.partner': 'Partenaire d’échange',
+  'scambi.preview.simulate': 'Simuler la proposition',
+  'scambi.preview.simulateToast':
+    'Aperçu envoyé ! Les vraies propositions seront disponibles au lancement des Échanges.',
+  'scambi.preview.stepHint':
+    'Sélectionnez au moins une carte de chaque côté, puis simulez l’envoi.',
+  'scambi.preview.loading': 'Chargement des cartes…',
+  'scambi.preview.empty': 'Aucune carte avec image disponible pour le moment.',
+  'scambi.preview.loadError': 'Impossible de charger les cartes du catalogue.',
+  'scambi.preview.retry': 'Réessayer',
+  'scambi.preview.shuffle': 'Autres cartes aléatoires',
+  'scambi.preview.communityTitle': 'Échanges en vedette',
+  'scambi.preview.communitySubtitle': 'Exemples de propositions à parcourir au lancement.',
 
   'account.shellScrollLeft': 'Défiler à gauche',
   'account.shellScrollRight': 'Défiler à droite',
@@ -1014,6 +1061,10 @@ export const fr: Record<MessageKey, string> = {
   'auctions.createPhotoFromPhoneModalCloseHint':
     'You can close this window: photos from your phone will keep appearing automatically in the Photos step.',
   'auctions.createPhotoFromPhoneModalClose': 'Close',
+  'auctions.createPhotoReceivedFromPhone': 'Photo received from phone',
+  'auctions.createPhotoPairingSessionActive': 'Phone connected · {count}/{max} photos · {minutes} min',
+  'auctions.createPhotoPairingRegenerateQr': 'Generate new QR',
+  'auctions.createPhotoPairingCloseSession': 'Disconnect phone',
   'auctions.mobilePairingTitle': 'Add listing photos',
   'auctions.mobilePairingIntro':
     'Crop if needed, then send. Photos are added to the auction you are creating on your computer.',
@@ -1347,6 +1398,8 @@ export const fr: Record<MessageKey, string> = {
   'auctions.mobilePairingThanksHeadline': 'Grazie per aver usato la funzione!',
   'auctions.mobilePairingThanksSub': 'Your photos were uploaded successfully. You can close this page or go back to home.',
   'auctions.mobilePairingThanksSubCount': '{count} photo(s) uploaded successfully. You can close this page.',
+  'auctions.mobilePairingThanksSubSessionClosed':
+    'The session was closed on your computer. You can close this page.',
   'auctions.mobilePairingGoHome': 'Torna alla Home',
   'auctions.mobilePairingRetry': 'Riprova',
   'auctions.mobilePairingRetryAttempt': 'Tentativo {attempt} di {max}',
@@ -1359,9 +1412,16 @@ export const fr: Record<MessageKey, string> = {
   'auctions.mobilePairingRotateRight': 'Rotate right',
   'auctions.mobilePairingAnotherPhotoHeadline': 'Photo sent!',
   'auctions.mobilePairingAnotherPhotoCount': '{count} photo(s) sent to PC',
-  'auctions.mobilePairingAnotherPhotoQuestion': 'Do you want to upload another?',
+  'auctions.mobilePairingAnotherPhotoQuestion':
+    'Photo {count} sent to PC. Do you want to add another?',
   'auctions.mobilePairingAnotherPhotoYes': 'Yes, another photo',
   'auctions.mobilePairingAnotherPhotoNo': 'No, I\'m done',
+  'auctions.mobilePairingSessionStats': '{count}/{max} photos on PC · expires in {minutes} min',
+  'auctions.mobilePairingPhotoLimitReached': 'Photo limit reached on PC. Go back to your computer.',
+  'auctions.mobilePairingOfflineError': 'You are offline. Check your connection and retry.',
+  'auctions.mobilePairingUploadTimeout': 'Upload timed out. Retry on a stable network.',
+  'auctions.mobilePairingCropModeCard': 'Card',
+  'auctions.mobilePairingCropModeFree': 'Free',
 
   'legal.lastUpdated': 'Dernière mise à jour :',
   'legal.cookie.title': 'Politique des cookies',

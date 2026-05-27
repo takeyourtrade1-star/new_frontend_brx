@@ -1,17 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback, type CSSProperties } from 'react';
+import { useState, useCallback, useEffect, type CSSProperties } from 'react';
 import Link from 'next/link';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  SlidersHorizontal,
-  X,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, SlidersHorizontal, X } from 'lucide-react';
 import { ConditionBadge } from '@/components/ui/ConditionBadge';
 import type { ConditionCode } from '@/components/ui/ConditionBadge';
 import { CardLanguageFlag } from '@/components/ui/CardLanguageFlag';
+import { InventorySearchBar } from '@/components/feature/account/InventorySearchBar';
 import { useHeaderStickyOffset } from '@/lib/hooks/useHeaderStickyOffset';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { InventoryFacets } from '@/lib/inventory/inventory-filter-utils';
@@ -57,6 +52,11 @@ export interface InventoryFiltersPanelProps {
   syncStatus: 'active' | 'inactive' | 'syncing';
   facets: InventoryFacets;
   disabled?: boolean;
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  onClearSearch: () => void;
+  mobileFiltersOpen?: boolean;
+  onMobileFiltersOpenChange?: (open: boolean) => void;
 }
 
 function countActiveFilters(f: InventoryFilters): number {
@@ -103,12 +103,18 @@ export function InventoryFiltersPanel({
   syncStatus,
   facets,
   disabled = false,
+  searchValue,
+  onSearchChange,
+  onClearSearch,
+  mobileFiltersOpen,
+  onMobileFiltersOpenChange,
 }: InventoryFiltersPanelProps) {
   const { t } = useTranslation();
   const { stickyTopWithGap } = useHeaderStickyOffset();
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState(filters.search);
+  const [mobileOpenInternal, setMobileOpenInternal] = useState(false);
+  const mobileOpen = mobileFiltersOpen ?? mobileOpenInternal;
+  const setMobileOpen = onMobileFiltersOpenChange ?? setMobileOpenInternal;
   const [sections, setSections] = useState({
     tipo: true,
     conditions: true,
@@ -120,17 +126,13 @@ export function InventoryFiltersPanel({
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchValue !== filters.search) {
-        onFiltersChange({ ...filters, search: searchValue });
-      }
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [searchValue, filters, onFiltersChange]);
-
-  useEffect(() => {
-    setSearchValue(filters.search);
-  }, [filters.search]);
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
 
   const toggleSection = useCallback((key: keyof typeof sections) => {
     setSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -158,42 +160,29 @@ export function InventoryFiltersPanel({
   );
 
   const clearAll = useCallback(() => {
-    setSearchValue('');
+    onClearSearch();
     onFiltersChange(DEFAULT_FILTERS);
-  }, [onFiltersChange]);
+  }, [onClearSearch, onFiltersChange]);
 
   const activeCount = countActiveFilters(filters);
 
-  const panelContent = (
+  const panelContent = (options?: { showSearch?: boolean }) => {
+    const showSearch = options?.showSearch !== false;
+    return (
     <div
-      className={`flex h-full flex-col overflow-y-auto ${disabled ? 'pointer-events-none opacity-60' : ''}`}
+      className={`flex min-h-0 flex-1 flex-col overflow-hidden ${disabled ? 'pointer-events-none opacity-60' : ''}`}
     >
-      <div className="p-4 pb-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input
-            type="search"
+      {showSearch && (
+        <div className="p-4 pb-2">
+          <InventorySearchBar
             value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            placeholder={t('accountPage.itemsSearchPlaceholder')}
+            onChange={onSearchChange}
+            onClear={onClearSearch}
             disabled={disabled}
-            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-8 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            inputClassName="rounded-xl border-gray-200 bg-white py-2.5 pl-9 pr-8 text-sm shadow-none backdrop-blur-none"
           />
-          {searchValue.length > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchValue('');
-                onFiltersChange({ ...filters, search: '' });
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-              aria-label={t('accountPage.itemsClearSearchAria')}
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
         </div>
-      </div>
+      )}
 
       {activeCount > 0 && (
         <div className="px-4 pb-2">
@@ -203,10 +192,7 @@ export function InventoryFiltersPanel({
                 &ldquo;{filters.search.trim()}&rdquo;
                 <button
                   type="button"
-                  onClick={() => {
-                    setSearchValue('');
-                    onFiltersChange({ ...filters, search: '' });
-                  }}
+                  onClick={onClearSearch}
                   className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors"
                 >
                   <X className="h-3 w-3" />
@@ -606,30 +592,28 @@ export function InventoryFiltersPanel({
         </p>
       </div>
     </div>
-  );
+    );
+  };
 
   const panelWidth = collapsed ? 48 : 280;
 
-  const fixedPanelStyle: CSSProperties = {
+  const stickyPanelStyle: CSSProperties = {
     top: stickyTopWithGap,
-    left: 'max(1.5rem, env(safe-area-inset-left, 0px))',
     width: panelWidth,
-    height: `calc(100vh - ${stickyTopWithGap}px)`,
   };
+
+  const panelMaxHeight = `calc(100vh - ${stickyTopWithGap}px)`;
 
   return (
     <>
-      {/* Spacer: riserva spazio nel flex mentre il pannello è position:fixed */}
-      <div
-        className="hidden shrink-0 transition-all duration-300 lg:block"
-        style={{ width: panelWidth }}
-        aria-hidden
-      />
       <aside
-        className="fixed z-30 hidden flex-col transition-all duration-300 lg:flex"
-        style={fixedPanelStyle}
+        className="sticky z-30 hidden shrink-0 self-start flex-col transition-all duration-300 md:flex"
+        style={stickyPanelStyle}
       >
-        <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white/70 shadow-sm backdrop-blur-md">
+        <div
+          className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white/70 shadow-sm backdrop-blur-md"
+          style={{ maxHeight: panelMaxHeight }}
+        >
           <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3">
             {!collapsed && (
               <div className="flex items-center gap-2">
@@ -663,7 +647,7 @@ export function InventoryFiltersPanel({
           </div>
 
           {!collapsed ? (
-            panelContent
+            panelContent()
           ) : (
             <div className="flex flex-1 flex-col items-center gap-3 pt-4">
               {activeCount > 0 && (
@@ -676,33 +660,29 @@ export function InventoryFiltersPanel({
         </div>
       </aside>
 
-      <button
-        type="button"
-        onClick={() => setMobileOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex lg:hidden h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 active:scale-95"
-        aria-label={t('accountPage.itemsFiltersOpen')}
-      >
-        <SlidersHorizontal className="h-5 w-5" />
-        {activeCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-            {activeCount}
-          </span>
-        )}
-      </button>
-
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        <div
+          className="fixed inset-0 z-50 flex md:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="inventory-filters-sheet-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/45 backdrop-blur-sm transition-opacity"
+            aria-label={t('accountPage.itemsClose')}
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute bottom-0 left-0 right-0 flex max-h-[85vh] flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl">
-            <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4">
+          <div className="absolute bottom-0 left-0 right-0 flex max-h-[min(88vh,720px)] flex-col overflow-hidden rounded-t-[1.75rem] border border-white/30 bg-white/90 shadow-[0_-12px_48px_rgba(0,0,0,0.18)] backdrop-blur-2xl animate-in slide-in-from-bottom duration-300">
+            <div className="flex shrink-0 justify-center pt-2 pb-1" aria-hidden>
+              <span className="h-1 w-10 rounded-full bg-gray-300/80" />
+            </div>
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-200/60 px-5 py-3">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-gray-500" />
-                <span className="font-semibold text-gray-900">
+                <SlidersHorizontal className="h-4 w-4 text-gray-500" aria-hidden />
+                <h2 id="inventory-filters-sheet-title" className="font-semibold text-gray-900">
                   {t('accountPage.itemsFiltersPanelTitle')}
-                </span>
+                </h2>
                 {activeCount > 0 && (
                   <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
                     {activeCount}
@@ -712,17 +692,20 @@ export function InventoryFiltersPanel({
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                className="flex h-11 w-11 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100/80 active:scale-95"
+                aria-label={t('accountPage.itemsClose')}
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto">{panelContent}</div>
-            <div className="shrink-0 border-t border-gray-100 p-4">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              {panelContent({ showSearch: false })}
+            </div>
+            <div className="shrink-0 border-t border-gray-200/60 bg-white/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary/90"
+                className="min-h-[48px] w-full rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98]"
               >
                 {t('accountPage.itemsFiltersShowResults', { count: itemCount })}
               </button>

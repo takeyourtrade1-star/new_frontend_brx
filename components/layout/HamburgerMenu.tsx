@@ -24,6 +24,7 @@ import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
 import { AnimatePresence, motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { TournamentsPortalLink } from './TournamentsPortalButton';
+import { BetaBadge } from '@/components/ui/BetaBadge';
 
 const GAME_HOME_PATH: Record<GameSlug, string> = {
   mtg: '/home/magic',
@@ -69,7 +70,7 @@ export function HamburgerMenu() {
 
   const navItems = useMemo(
     () => [
-      { label: t('nav.cameraMatch') ?? 'CameraMatch', href: '/scanner', icon: ScanLine, badge: 'NEW' },
+      { label: t('nav.cameraMatch') ?? 'CameraMatch', href: '/scanner', icon: ScanLine, badge: 'beta' as const },
       { label: t('nav.advancedSinglesSearch') ?? 'Ricerca avanzata singole', href: '/search/advanced', icon: Search, badge: undefined },
       { label: t('nav.userSearch'), href: '/search/user', icon: Users, badge: undefined },
       { label: 'Tornei Live', href: '/tornei-live', icon: Trophy, badge: undefined },
@@ -522,11 +523,7 @@ export function HamburgerMenu() {
                   />
                   <span className="flex flex-1 items-center gap-2">
                     {item.label}
-                    {item.badge && (
-                      <span className="rounded-full bg-[#1D3160] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                        {item.badge}
-                      </span>
-                    )}
+                    {item.badge === 'beta' && <BetaBadge variant="nav" />}
                   </span>
                 </Link>
               );
@@ -545,11 +542,7 @@ export function HamburgerMenu() {
                 />
                 <span className="flex flex-1 items-center gap-2">
                   {item.label}
-                  {item.badge && (
-                    <span className="rounded-full bg-[#1D3160] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                      {item.badge}
-                    </span>
-                  )}
+                  {item.badge === 'beta' && <BetaBadge variant="nav" />}
                 </span>
               </Link>
             );
@@ -707,10 +700,14 @@ export function HamburgerMenu() {
                     <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
                       <QrCode className="h-6 w-6 text-[#FF7300]" aria-hidden />
                     </div>
-                    <h3 id="scanner-qr-title" className="text-lg font-bold text-gray-900">
-                      {t('nav.cameraMatchQrTitle')}
-                    </h3>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <h3 id="scanner-qr-title" className="text-lg font-bold text-gray-900">
+                        {t('nav.cameraMatchQrTitle')}
+                      </h3>
+                      <BetaBadge variant="nav" />
+                    </div>
                     <p className="mt-1 text-sm text-gray-500">{t('nav.cameraMatchQrSubtitle')}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-gray-400">{t('scanner.betaNotice')}</p>
                   </div>
 
                   <div className="mt-5 flex flex-col items-center gap-4">

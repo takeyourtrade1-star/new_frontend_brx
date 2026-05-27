@@ -322,6 +322,8 @@ export async function deletePhoto(photoId: number): Promise<void> {
 export interface PhotoPairingSessionCreated {
   session_id: string;
   expires_at: string;
+  upload_token: string;
+  context_type?: PhotoPairingContextType;
 }
 
 export type PhotoPairingContextType = 'auction' | 'listing';
@@ -356,4 +358,11 @@ export async function listPairingSessionPhotos(
     bytes: p.bytes,
     mime: p.mime,
   }));
+}
+
+/** Close an active pairing session from the desktop wizard (idempotent). */
+export async function revokePhotoPairingSession(sessionId: string): Promise<void> {
+  await jsonRequest(`/api/auctions/photos/pairing-sessions/${encodeURIComponent(sessionId)}`, {
+    method: 'DELETE',
+  });
 }

@@ -1,6 +1,13 @@
 import type { ListingItem } from '@/lib/api/sync-client';
-import type { MarketplaceCartLine } from '@/types';
+import type { CartSellerAccountType, MarketplaceCartLine } from '@/types';
 import { isMarketplaceListingItem } from '@/lib/marketplace/listing-map';
+
+function resolveSellerAccountType(
+  raw: string | null | undefined,
+): CartSellerAccountType | null {
+  if (raw === 'business' || raw === 'personal') return raw;
+  return null;
+}
 
 export function buildMarketplaceCartLine(
   item: ListingItem,
@@ -17,6 +24,8 @@ export function buildMarketplaceCartLine(
     source: 'marketplace',
     listingId,
     sellerId: item.seller_id,
+    sellerDisplayName: item.seller_display_name,
+    sellerAccountType: resolveSellerAccountType(item.seller_account_type),
     blueprintId: ctx.blueprintId,
     title: ctx.title,
     imageUrl: ctx.imageUrl,
@@ -50,6 +59,8 @@ export function buildSyncCartLine(
     source: 'sync',
     listingId: item.item_id,
     sellerId: item.seller_id,
+    sellerDisplayName: item.seller_display_name,
+    sellerAccountType: resolveSellerAccountType(item.seller_account_type),
     blueprintId: ctx.blueprintId,
     title: ctx.title,
     imageUrl: ctx.imageUrl,

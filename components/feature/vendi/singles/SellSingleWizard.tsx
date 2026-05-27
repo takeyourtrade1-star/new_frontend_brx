@@ -12,12 +12,11 @@ import {
 import { createListing, MarketplaceApiError } from '@/lib/api/marketplace-client';
 import {
   attachListingPhotos,
-  createListingPhotoPairingSession,
   deletePhoto as deleteUploadedPhoto,
-  listPairingSessionPhotos,
   uploadPhoto,
   type UploadedPhoto,
 } from '@/lib/api/listing-photo-client';
+import { usePhotoPairingSession } from '@/lib/hooks/use-photo-pairing-session';
 import {
   syncConditionToMarketplace,
   syncLanguageToMarketplace,
@@ -93,13 +92,7 @@ export function SellSingleWizard({
     abort: AbortController;
   };
   const [photoUploads, setPhotoUploads] = useState<Map<File, PhotoUploadEntry>>(() => new Map());
-  const [phoneUploadModalOpen, setPhoneUploadModalOpen] = useState(false);
   const [qrCodeSize, setQrCodeSize] = useState(168);
-  const [pairingSessionId, setPairingSessionId] = useState<string | null>(null);
-  const [pairingUploadToken, setPairingUploadToken] = useState<string | null>(null);
-  const [pairingActionLoading, setPairingActionLoading] = useState(false);
-  const [pairingActionError, setPairingActionError] = useState<string | null>(null);
-  const pairingPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
   const [modalCondition, setModalCondition] = useState(draft.condition);
@@ -172,31 +165,6 @@ export function SellSingleWizard({
       });
   }, []);
 
-  const mergeRemotePhotosFromSession = useCallback(async (sessionId: string) => {
-    try {
-      const remote = await listPairingSessionPhotos(sessionId);
-      remote.sort((a, b) => a.id - b.id);
-      setDraft((d) => {
-        const existingIds = new Set(
-          d.listingPhotos
-            .filter((x): x is Extract<ListingPhotoSlot, { kind: 'remote' }> => x.kind === 'remote')
-            .map((x) => x.photo.id),
-        );
-        let next = [...d.listingPhotos];
-        for (const p of remote) {
-          if (existingIds.has(p.id)) continue;
-          if (next.length >= AUCTION_LISTING_PHOTO_MAX) break;
-          next.push({ kind: 'remote', photo: p });
-          existingIds.add(p.id);
-        }
-        if (next.length === d.listingPhotos.length) return d;
-        return { ...d, listingPhotos: next };
-      });
-    } catch {
-      // polling: ignore transient errors
-    }
-  }, []);
-
   const setListingPhotos = useCallback(
     (next: ListingPhotoSlot[]) => {
       setDraft((d) => {
@@ -233,6 +201,17 @@ export function SellSingleWizard({
     },
     [photoUploads, startUploadFor],
   );
+
+  const pairing = usePhotoPairingSession({
+    stepId,
+    photoStepId: 'confirm',
+    contextType: 'listing',
+    qrBasePath: '/c/vendi-foto',
+    maxPhotos: AUCTION_LISTING_PHOTO_MAX,
+    listingPhotos: draft.listingPhotos,
+    setListingPhotos,
+    toastMessageKey: 'vendi.sell.photoReceivedFromPhone',
+  });
 
   const retryFailedUpload = useCallback(
     (file: File) => {
@@ -276,75 +255,15 @@ export function SellSingleWizard({
     [draft.listingPhotos, photoUploads],
   );
 
-  const phonePairingQrUrl = useMemo(() => {
-    if (!pairingSessionId || !pairingUploadToken || typeof window === 'undefined') return '';
-    const u = new URL('/c/vendi-foto', window.location.origin);
-    u.searchParams.set('sid', pairingSessionId);
-    u.searchParams.set('t', pairingUploadToken);
-    return u.toString();
-  }, [pairingSessionId, pairingUploadToken]);
-
   useEffect(() => {
-    if (!phoneUploadModalOpen) return;
+    if (!pairing.phoneUploadModalOpen) return;
     const updateSize = () => {
       setQrCodeSize(Math.min(176, Math.max(140, Math.floor(window.innerWidth * 0.42))));
     };
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
-  }, [phoneUploadModalOpen]);
-
-  useEffect(() => {
-    if (stepId !== 'confirm') {
-      setPairingSessionId(null);
-      setPairingUploadToken(null);
-      setPhoneUploadModalOpen(false);
-      setPairingActionError(null);
-    }
-  }, [stepId]);
-
-  useEffect(() => {
-    if (stepId !== 'confirm' || !pairingSessionId) {
-      if (pairingPollRef.current) {
-        clearInterval(pairingPollRef.current);
-        pairingPollRef.current = null;
-      }
-      return;
-    }
-    void mergeRemotePhotosFromSession(pairingSessionId);
-    pairingPollRef.current = setInterval(() => {
-      void mergeRemotePhotosFromSession(pairingSessionId);
-    }, 2000);
-    return () => {
-      if (pairingPollRef.current) {
-        clearInterval(pairingPollRef.current);
-        pairingPollRef.current = null;
-      }
-    };
-  }, [stepId, pairingSessionId, mergeRemotePhotosFromSession]);
-
-  const openPhoneUploadModal = useCallback(async () => {
-    setPairingActionError(null);
-    setPairingActionLoading(true);
-    try {
-      const created = await createListingPhotoPairingSession();
-      const rawTok = (created as unknown as Record<string, unknown>).upload_token;
-      const token = typeof rawTok === 'string' ? rawTok : '';
-      if (!token) {
-        setPairingActionError(
-          'Il server non ha restituito il codice di collegamento. Aggiorna il servizio auction e riprova.',
-        );
-        return;
-      }
-      setPairingSessionId(created.session_id);
-      setPairingUploadToken(token);
-      setPhoneUploadModalOpen(true);
-    } catch (err: unknown) {
-      setPairingActionError(err instanceof Error ? err.message : 'Impossibile avviare la sessione. Riprova.');
-    } finally {
-      setPairingActionLoading(false);
-    }
-  }, []);
+  }, [pairing.phoneUploadModalOpen]);
 
   const validateDetails = useCallback((): boolean => {
     if (!user?.id || !accessToken) {
@@ -477,6 +396,7 @@ export function SellSingleWizard({
         setError(photosWarning);
       }
       setDone(true);
+      pairing.revokeOnPublish();
       try {
         await onPublished?.();
       } catch (refreshErr) {
@@ -636,30 +556,63 @@ export function SellSingleWizard({
                 <div className={cn('space-y-2', isEmbedded && 'space-y-1.5')}>
                   <button
                     type="button"
-                    onClick={() => void openPhoneUploadModal()}
-                    disabled={pairingActionLoading}
+                    onClick={() => void pairing.openPhoneUploadModal()}
+                    disabled={pairing.pairingActionLoading}
                     className={cn(
                       'inline-flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#1D3160]/25 bg-[#f8f9fb] px-3 py-2 text-xs font-semibold text-[#1D3160] transition hover:border-[#FF7300]/50 hover:bg-orange-50/40 disabled:opacity-60',
                       isEmbedded && 'py-1.5 text-[11px]',
                     )}
                   >
-                    {pairingActionLoading
+                    {pairing.pairingActionLoading
                       ? t('vendi.sell.photoFromPhoneLoading')
                       : t('vendi.sell.photoFromPhone')}
                   </button>
-                  {pairingSessionId && !phoneUploadModalOpen ? (
+                  {pairing.hasActiveSession ? (
+                    <p className="text-[10px] leading-snug text-zinc-600">
+                      {t('vendi.sell.photoPairingSessionActive', {
+                        count: String(pairing.remotePhotoCount),
+                        max: String(pairing.maxPhotos),
+                        minutes: String(pairing.expiresInMinutes ?? '—'),
+                      })}
+                    </p>
+                  ) : null}
+                  {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
                     <p className="text-[10px] leading-snug text-zinc-600">
                       {t('vendi.sell.photoFromPhonePollingHint')}
                     </p>
                   ) : null}
-                  {pairingActionError ? (
-                    <p className="text-[11px] text-red-700">{pairingActionError}</p>
+                  {pairing.phonePhotoToast ? (
+                    <p className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-medium text-emerald-900">
+                      {pairing.phonePhotoToast}
+                    </p>
+                  ) : null}
+                  {pairing.pairingActionError ? (
+                    <p className="text-[11px] text-red-700">{pairing.pairingActionError}</p>
+                  ) : null}
+                  {pairing.hasActiveSession ? (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void pairing.regenerateQr()}
+                        className="text-[10px] font-semibold text-[#1D3160] underline"
+                      >
+                        {t('vendi.sell.photoPairingRegenerateQr')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void pairing.revokePairing()}
+                        className="text-[10px] font-semibold text-zinc-500 underline"
+                      >
+                        {t('vendi.sell.photoPairingCloseSession')}
+                      </button>
+                    </div>
                   ) : null}
                   <ListingPhotoUpload
                     photos={draft.listingPhotos}
                     onPhotosChange={setListingPhotos}
                     compact
                     uploadStatuses={photoUploadStatuses}
+                    highlightPhotoId={pairing.flashPhotoId}
                   />
                   {failedUploadFiles.length > 0 && (
                     <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-900">
@@ -733,14 +686,14 @@ export function SellSingleWizard({
       </div>
 
       <SellWizardModal
-        open={Boolean(phoneUploadModalOpen && pairingSessionId && phonePairingQrUrl)}
-        onClose={() => setPhoneUploadModalOpen(false)}
+        open={Boolean(pairing.phoneUploadModalOpen && pairing.pairingSessionId && pairing.phonePairingQrUrl)}
+        onClose={pairing.closePhoneUploadModal}
         title={t('vendi.sell.photoFromPhoneModalTitle')}
         titleId="sell-phone-upload-qr-title"
         footer={
           <button
             type="button"
-            onClick={() => setPhoneUploadModalOpen(false)}
+            onClick={() => pairing.closePhoneUploadModal()}
             className="w-full rounded-xl bg-[#1D3160] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1D3160]/90"
           >
             {t('vendi.sell.photoFromPhoneModalClose')}
@@ -754,12 +707,12 @@ export function SellSingleWizard({
           {t('vendi.sell.photoFromPhoneModalCloseHint')}
         </p>
         <div className="mt-3 flex justify-center rounded-xl border border-gray-100 bg-white p-3">
-          {phonePairingQrUrl ? (
-            <QRCodeSVG value={phonePairingQrUrl} size={qrCodeSize} level="M" className="h-auto w-auto max-w-full" />
+          {pairing.phonePairingQrUrl ? (
+            <QRCodeSVG value={pairing.phonePairingQrUrl} size={qrCodeSize} level="M" className="h-auto w-auto max-w-full" />
           ) : null}
         </div>
-        <p className="mt-2 line-clamp-2 text-center text-[10px] text-gray-500" title={phonePairingQrUrl}>
-          {phonePairingQrUrl}
+        <p className="mt-2 line-clamp-2 text-center text-[10px] text-gray-500" title={pairing.phonePairingQrUrl}>
+          {pairing.phonePairingQrUrl}
         </p>
       </SellWizardModal>
 

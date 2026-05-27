@@ -4,7 +4,8 @@ import { Header } from '@/components/layout/Header';
 
 export const metadata = {
   title: 'Scambi | Ebartex',
-  description: 'Scopri e partecipa agli scambi di carte collezionabili',
+  description:
+    'Anteprima degli scambi di carte collezionabili — proponi, negozia e scambia in sicurezza. Presto in arrivo.',
 };
 
 export default function ScambiPage() {

@@ -4,6 +4,7 @@ import { useEffect, useCallback, useState, type RefObject } from 'react';
 import { Camera, X, Lightbulb } from 'lucide-react';
 import { useBrxScanner } from '@/hooks/useBrxScanner';
 import { ScannerModelGate } from '@/components/feature/scanner/ScannerModelGate';
+import { ScannerBetaNotice } from '@/components/feature/scanner/ScannerBetaNotice';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -577,6 +578,8 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
           </button>
         </div>
       </header>
+
+      <ScannerBetaNotice className="top-[max(calc(env(safe-area-inset-top)+3.75rem),4.25rem)]" />
 
       {/* Video feed */}
       {state !== 'error' && (

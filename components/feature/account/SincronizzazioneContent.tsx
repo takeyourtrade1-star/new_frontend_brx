@@ -2,106 +2,54 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import {
-  RefreshCw,
-  Copy,
-  Check,
-  Loader2,
-  PauseCircle,
-  Unlink,
-} from 'lucide-react';
+import { RefreshCw, Loader2, Play, Package } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { syncClient } from '@/lib/api/sync-client';
 import type { SyncStatusResponse, WebhookUrlResponse, SyncProgressResponse } from '@/lib/api/sync-client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { SyncModeSelector } from '@/components/feature/sync/SyncModeSelector';
+import { SyncStatusOverview } from '@/components/feature/sync/SyncStatusOverview';
+import { SyncWebhookCard } from '@/components/feature/sync/SyncWebhookCard';
+import { SyncHistorySection } from '@/components/feature/sync/SyncHistorySection';
+import { SyncManagementPanel } from '@/components/feature/sync/SyncManagementPanel';
 import {
   getSyncEvents,
+  getMarketplaceSyncStatus,
   triggerMarketplaceSync,
   MarketplaceApiError,
   type SyncEvent,
+  type MarketplaceSyncStatus,
 } from '@/lib/api/marketplace-client';
-
-type LogEntry = { ts: string; label: string; data: string; isError?: boolean };
-
-function Card({
-  title,
-  children,
-  className,
-}: {
-  title?: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        'rounded-none border border-gray-200 bg-white p-5 shadow-sm',
-        className
-      )}
-    >
-      {title && (
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-700">
-          {title}
-        </h2>
-      )}
-      {children}
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const { t } = useTranslation();
-  const config: Record<string, { bg: string; key: 'accountPage.syncStatusActive' | 'accountPage.syncStatusSyncing' | 'accountPage.syncStatusIdle' | 'accountPage.syncStatusError' }> = {
-    active: { bg: 'bg-emerald-500/20 text-emerald-600', key: 'accountPage.syncStatusActive' },
-    initial_sync: { bg: 'bg-amber-500/20 text-amber-600', key: 'accountPage.syncStatusSyncing' },
-    idle: { bg: 'bg-gray-500/20 text-gray-600', key: 'accountPage.syncStatusIdle' },
-    error: { bg: 'bg-red-500/20 text-red-600', key: 'accountPage.syncStatusError' },
-  };
-  const c = config[status] || config.idle;
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-none px-3 py-1 text-xs font-medium',
-        c.bg
-      )}
-    >
-      {t(c.key)}
-    </span>
-  );
-}
 
 export function SincronizzazioneContent() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const accessToken = useAuthStore((s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null));
+  const accessToken = useAuthStore(
+    (s) =>
+      s.accessToken ??
+      (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
+  );
 
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
   const [webhookData, setWebhookData] = useState<WebhookUrlResponse | null>(null);
   const [progress, setProgress] = useState<SyncProgressResponse | null>(null);
-
-  const [cardtraderToken, setCardtraderToken] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [marketplaceStatus, setMarketplaceStatus] = useState<MarketplaceSyncStatus | null>(null);
 
   const [loadingStatus, setLoadingStatus] = useState(false);
-  const [loadingSetup, setLoadingSetup] = useState(false);
   const [loadingWebhook, setLoadingWebhook] = useState(false);
+  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
+  const [loadingSetup, setLoadingSetup] = useState(false);
   const [loadingStart, setLoadingStart] = useState(false);
-  const [loadingRefresh, setLoadingRefresh] = useState(false);
   const [loadingDisconnect, setLoadingDisconnect] = useState(false);
-  const [disconnectConfirm, setDisconnectConfirm] = useState<'suspend' | 'remove' | null>(null);
 
   const [marketplaceSyncLoading, setMarketplaceSyncLoading] = useState(false);
   const [marketplaceSyncMessage, setMarketplaceSyncMessage] = useState<string | null>(null);
   const [marketplaceSyncError, setMarketplaceSyncError] = useState<string | null>(null);
   const [syncEvents, setSyncEvents] = useState<SyncEvent[]>([]);
+  const [syncEventsTotal, setSyncEventsTotal] = useState<number | undefined>();
   const [syncEventsLoading, setSyncEventsLoading] = useState(false);
 
-  /** Risultato ultima sincronizzazione massiva (dopo che il task Celery è completato). */
   const [lastSyncResult, setLastSyncResult] = useState<{
     total_products: number;
     processed: number;
@@ -115,80 +63,77 @@ export function SincronizzazioneContent() {
   const pollingSessionRef = useRef(0);
   const progressSampleRef = useRef<{ ts: number; pct: number } | null>(null);
 
-  const addLog = useCallback((label: string, data: unknown, isError?: boolean) => {
-    const ts = new Date().toISOString();
-    const dataStr = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-    setLogs((prev) => [{ ts, label, data: dataStr, isError }, ...prev]);
-  }, []);
-
   const userId = user?.id;
 
-  // Fetch sync status on mount (when user + token available)
-  useEffect(() => {
+  const loadSyncEvents = useCallback(async () => {
+    setSyncEventsLoading(true);
+    try {
+      const res = await getSyncEvents({ page: 1, page_size: 30 });
+      setSyncEvents(res.events);
+      setSyncEventsTotal(res.total);
+    } catch {
+      /* keep previous */
+    } finally {
+      setSyncEventsLoading(false);
+    }
+  }, []);
+
+  const refreshAll = useCallback(async () => {
     if (!userId || !accessToken) return;
-    let cancelled = false;
     setLoadingStatus(true);
-    syncClient
-      .getSyncStatus(userId, accessToken)
-      .then((res) => {
-        if (!cancelled) setSyncStatus(res);
-        addLog('getSyncStatus', res);
-      })
-      .catch((err) => {
-        if (!cancelled) addLog('getSyncStatus ERROR', { message: err?.message, data: (err as any)?.data }, true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingStatus(false);
-      });
-    return () => { cancelled = true; };
-  }, [userId, accessToken, addLog]);
+    setLoadingWebhook(true);
+    setMarketplaceLoading(true);
+    try {
+      const [statusRes, webhookRes, mktRes] = await Promise.all([
+        syncClient.getSyncStatus(userId, accessToken),
+        syncClient.getWebhookUrl(userId, accessToken),
+        getMarketplaceSyncStatus().catch(() => null),
+      ]);
+      setSyncStatus(statusRes);
+      setWebhookData(webhookRes);
+      setMarketplaceStatus(mktRes);
+      if (statusRes.sync_status === 'initial_sync') {
+        const progressRes = await syncClient.getSyncProgress(userId, accessToken);
+        setProgress(progressRes);
+      }
+    } catch {
+      /* partial failure ok */
+    } finally {
+      setLoadingStatus(false);
+      setLoadingWebhook(false);
+      setMarketplaceLoading(false);
+    }
+    void loadSyncEvents();
+  }, [userId, accessToken, loadSyncEvents]);
 
-  // Fetch webhook URL on mount
   useEffect(() => {
     if (!userId || !accessToken) return;
-    let cancelled = false;
-    setLoadingWebhook(true);
-    syncClient
-      .getWebhookUrl(userId, accessToken)
-      .then((res) => {
-        if (!cancelled) setWebhookData(res);
-        addLog('getWebhookUrl', res);
-      })
-      .catch((err) => {
-        if (!cancelled) addLog('getWebhookUrl ERROR', { message: err?.message, data: (err as any)?.data }, true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingWebhook(false);
-      });
-    return () => { cancelled = true; };
-  }, [userId, accessToken, addLog]);
+    void refreshAll();
+  }, [userId, accessToken, refreshAll]);
 
-  const handleSetupTestUser = async () => {
-    if (!userId || !accessToken || !cardtraderToken.trim()) return;
+  const handleLinkToken = async (token: string) => {
+    if (!userId || !accessToken) return;
     setLoadingSetup(true);
     try {
-      const res = await syncClient.setupTestUser(
-        { user_id: userId, cardtrader_token: cardtraderToken.trim() },
+      const res = await syncClient.linkCardtrader(
+        { user_id: userId, cardtrader_token: token },
         accessToken
       );
-      addLog('setupTestUser', res);
-      setSyncStatus((prev) => (prev ? { ...prev, sync_status: res.sync_status as any } : null));
-    } catch (err: any) {
-      addLog('setupTestUser ERROR', { message: err?.message, data: err?.data }, true);
+      setSyncStatus((prev) =>
+        prev
+          ? { ...prev, sync_status: res.sync_status as SyncStatusResponse['sync_status'], disconnected: false }
+          : {
+              user_id: userId,
+              sync_status: res.sync_status as SyncStatusResponse['sync_status'],
+              last_sync_at: null,
+              last_error: null,
+              disconnected: false,
+            }
+      );
+      const webhookRes = await syncClient.getWebhookUrl(userId, accessToken);
+      setWebhookData(webhookRes);
     } finally {
       setLoadingSetup(false);
-    }
-  };
-
-  const handleCopyWebhook = async () => {
-    const url = webhookData?.webhook_url ?? '';
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      addLog('clipboard', { action: 'copy', url });
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      addLog('clipboard ERROR', 'Copy failed', true);
     }
   };
 
@@ -202,9 +147,7 @@ export function SincronizzazioneContent() {
     setEtaSeconds(null);
     try {
       const res = await syncClient.startSync(userId, accessToken);
-      addLog('startSync', res);
       setSyncStatus((prev) => (prev ? { ...prev, sync_status: 'initial_sync' } : null));
-
       const taskId = res?.task_id;
       if (!taskId) {
         setLoadingStart(false);
@@ -212,28 +155,29 @@ export function SincronizzazioneContent() {
       }
       setCurrentTaskId(taskId);
 
-      // Poll task status until completed (max ~10 min)
       const pollIntervalMs = 2500;
-      const maxPolls = 240; // 10 min
+      const maxPolls = 240;
       let polls = 0;
 
       const poll = async (): Promise<void> => {
         if (polls >= maxPolls) {
           setLastSyncError(t('accountPage.syncErrTimeout'));
           setLoadingStart(false);
-          if (sessionId === pollingSessionRef.current) {
-            setCurrentTaskId(null);
-          }
+          if (sessionId === pollingSessionRef.current) setCurrentTaskId(null);
           return;
         }
         polls += 1;
         try {
           const taskRes = await syncClient.getTaskStatus(taskId, accessToken);
-          addLog('getTaskStatus', taskRes);
-
           if (taskRes.ready) {
             if (taskRes.status === 'SUCCESS' && taskRes.result && typeof taskRes.result === 'object') {
-              const r = taskRes.result as { created?: number; updated?: number; skipped?: number; total_products?: number; processed?: number };
+              const r = taskRes.result as {
+                created?: number;
+                updated?: number;
+                skipped?: number;
+                total_products?: number;
+                processed?: number;
+              };
               setLastSyncResult({
                 total_products: r.total_products ?? 0,
                 processed: r.processed ?? 0,
@@ -244,54 +188,24 @@ export function SincronizzazioneContent() {
               setSyncStatus((prev) => (prev ? { ...prev, sync_status: 'active' } : null));
             } else if (taskRes.status === 'FAILURE' || taskRes.error) {
               setLastSyncError(taskRes.error || t('accountPage.syncErrFailed'));
-            } else {
-              setLastSyncError('Sincronizzazione completata ma risultato dettagliato non disponibile.');
             }
             setLoadingStart(false);
-            if (sessionId === pollingSessionRef.current) {
-              setCurrentTaskId(null);
-            }
+            if (sessionId === pollingSessionRef.current) setCurrentTaskId(null);
+            void refreshAll();
             return;
           }
-
-          if (sessionId === pollingSessionRef.current) {
-            setTimeout(poll, pollIntervalMs);
-          }
-        } catch (err: any) {
-          addLog('getTaskStatus ERROR', { message: err?.message }, true);
-          if (sessionId === pollingSessionRef.current) {
-            setTimeout(poll, pollIntervalMs);
-          }
+          if (sessionId === pollingSessionRef.current) setTimeout(poll, pollIntervalMs);
+        } catch {
+          if (sessionId === pollingSessionRef.current) setTimeout(poll, pollIntervalMs);
         }
       };
-
       setTimeout(poll, pollIntervalMs);
-    } catch (err: any) {
-      addLog('startSync ERROR', { message: err?.message, data: err?.data }, true);
-      setLastSyncError(err?.message || t('accountPage.syncErrStart'));
+    } catch (err: unknown) {
+      setLastSyncError(err instanceof Error ? err.message : t('accountPage.syncErrStart'));
       setLoadingStart(false);
     }
   };
 
-  const handleRefreshStatus = async () => {
-    if (!userId || !accessToken) return;
-    setLoadingRefresh(true);
-    try {
-      const [statusRes, progressRes] = await Promise.all([
-        syncClient.getSyncStatus(userId, accessToken),
-        syncClient.getSyncProgress(userId, accessToken),
-      ]);
-      setSyncStatus(statusRes);
-      setProgress(progressRes);
-      addLog('getSyncStatus + getSyncProgress', { status: statusRes, progress: progressRes });
-    } catch (err: any) {
-      addLog('refresh ERROR', { message: err?.message, data: err?.data }, true);
-    } finally {
-      setLoadingRefresh(false);
-    }
-  };
-
-  // Poll live progress while initial sync is running.
   useEffect(() => {
     if (!userId || !accessToken) return;
     if (syncStatus?.sync_status !== 'initial_sync') {
@@ -299,7 +213,6 @@ export function SincronizzazioneContent() {
       setEtaSeconds(null);
       return;
     }
-
     let stopped = false;
     const tick = async () => {
       if (stopped) return;
@@ -311,7 +224,6 @@ export function SincronizzazioneContent() {
         if (stopped) return;
         setSyncStatus(statusRes);
         setProgress(progressRes);
-
         const pct = Number(progressRes.progress_percent ?? 0);
         const now = Date.now();
         const prev = progressSampleRef.current;
@@ -324,32 +236,17 @@ export function SincronizzazioneContent() {
           }
         }
         progressSampleRef.current = { ts: now, pct };
-      } catch (err: any) {
-        addLog('liveProgress ERROR', { message: err?.message }, true);
+      } catch {
+        /* ignore */
       }
     };
-
     void tick();
     const id = setInterval(() => void tick(), 3000);
     return () => {
       stopped = true;
       clearInterval(id);
     };
-  }, [userId, accessToken, syncStatus?.sync_status, addLog]);
-
-  const loadSyncEvents = useCallback(async () => {
-    setSyncEventsLoading(true);
-    try {
-      const res = await getSyncEvents({ page: 1, page_size: 20 });
-      setSyncEvents(res.events);
-      addLog('getSyncEvents', { total: res.total, count: res.events.length });
-    } catch (err: unknown) {
-      const message = err instanceof MarketplaceApiError ? err.detail : (err as Error)?.message;
-      addLog('getSyncEvents ERROR', { message }, true);
-    } finally {
-      setSyncEventsLoading(false);
-    }
-  }, [addLog]);
+  }, [userId, accessToken, syncStatus?.sync_status]);
 
   const handleMarketplaceSyncTrigger = async () => {
     setMarketplaceSyncLoading(true);
@@ -358,42 +255,40 @@ export function SincronizzazioneContent() {
     try {
       const res = await triggerMarketplaceSync();
       setMarketplaceSyncMessage(res.message || 'Sincronizzazione marketplace avviata.');
-      addLog('triggerMarketplaceSync', res);
+      const mkt = await getMarketplaceSyncStatus();
+      setMarketplaceStatus(mkt);
       await loadSyncEvents();
     } catch (err: unknown) {
-      const message =
+      setMarketplaceSyncError(
         err instanceof MarketplaceApiError
           ? err.detail
           : err instanceof Error
             ? err.message
-            : 'Sincronizzazione marketplace non riuscita.';
-      setMarketplaceSyncError(message);
-      addLog('triggerMarketplaceSync ERROR', { message }, true);
+            : 'Sincronizzazione marketplace non riuscita.'
+      );
     } finally {
       setMarketplaceSyncLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (!syncStatus || syncStatus.disconnected === true) return;
-    void loadSyncEvents();
-  }, [syncStatus, loadSyncEvents]);
-
   const handleDisconnect = async (action: 'suspend' | 'remove') => {
     if (!userId || !accessToken) return;
     setLoadingDisconnect(true);
-    setDisconnectConfirm(null);
     try {
-      const res = await syncClient.disconnectSync(userId, accessToken, action);
-      addLog('disconnectSync', res);
-      setSyncStatus((prev) =>
-        prev ? { ...prev, sync_status: 'idle', disconnected: action === 'remove' ? true : prev.disconnected } : null
-      );
+      await syncClient.disconnectSync(userId, accessToken, action);
       if (action === 'remove') {
-        setWebhookData((prev) => (prev ? { ...prev, webhook_secret_configured: false } : null));
+        setSyncStatus({
+          user_id: userId,
+          sync_status: 'idle',
+          last_sync_at: null,
+          last_error: null,
+          disconnected: true,
+        });
+        setWebhookData(null);
+      } else {
+        setSyncStatus((prev) => (prev ? { ...prev, sync_status: 'idle' } : null));
       }
-    } catch (err: any) {
-      addLog('disconnectSync ERROR', { message: err?.message, data: err?.data }, true);
+      void refreshAll();
     } finally {
       setLoadingDisconnect(false);
     }
@@ -401,100 +296,159 @@ export function SincronizzazioneContent() {
 
   if (!user || !accessToken) {
     return (
-      <div className="text-gray-900">
-        <div className="mt-8 flex items-center justify-center border border-gray-200 bg-white p-12">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-[#FF7300]" />
-            <p className="text-sm text-gray-500">{t('accountPage.syncLoadingAccount')}</p>
-          </div>
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#FF7300]" />
+          <p className="text-sm text-gray-500">{t('accountPage.syncLoadingAccount')}</p>
         </div>
       </div>
     );
   }
 
   const statusValue = syncStatus?.sync_status ?? 'idle';
-  const showProgress = statusValue === 'initial_sync' && progress;
   const isDisconnected = syncStatus?.disconnected === true;
-  const canSuspendOrRemove = Boolean(syncStatus && !isDisconnected);
-  const hasWebhookUrl = Boolean(webhookData?.webhook_url);
   const webhookSecretReady = webhookData?.webhook_secret_configured === true;
+  const hasWebhookUrl = Boolean(webhookData?.webhook_url);
   const integrationReady = Boolean(syncStatus && !isDisconnected);
-  const canStartSync = integrationReady && hasWebhookUrl && webhookSecretReady && statusValue !== 'initial_sync';
+  const canStartSync =
+    integrationReady && hasWebhookUrl && webhookSecretReady && statusValue !== 'initial_sync';
+  const showProgress = statusValue === 'initial_sync' && progress;
   const etaLabel =
     etaSeconds != null
       ? etaSeconds > 120
         ? `${Math.ceil(etaSeconds / 60)} min`
         : `${etaSeconds}s`
       : null;
-  const syncCompleted = statusValue === 'active' || Boolean(lastSyncResult);
-  const currentStep = !integrationReady ? 1 : !webhookSecretReady ? 2 : !syncCompleted ? 3 : 4;
 
   return (
-    <div className="text-gray-900">
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900">{t('accountPage.syncTitle')}</h1>
-          {loadingStatus ? <Loader2 className="h-5 w-5 animate-spin text-gray-400" /> : <StatusBadge status={statusValue} />}
+    <div className="space-y-6 text-gray-900">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            {t('accountPage.syncTitle')}
+          </h1>
+          <p className="mt-1 max-w-xl text-sm text-gray-600">
+            Collega CardTrader, configura il webhook e controlla come EBARTEX sincronizza il tuo
+            inventario e i listing.
+          </p>
         </div>
-        <div className="grid grid-cols-4 gap-2">
-          {[1, 2, 3, 4].map((s) => {
-            const done = s < currentStep || (s === 4 && syncCompleted);
-            const active = s === currentStep;
-            return (
-              <div
-                key={s}
-                className={cn(
-                  'rounded-lg border px-3 py-2 text-xs font-medium',
-                  done ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-gray-50 text-gray-600',
-                  active && 'border-[#FF7300] bg-orange-50 text-[#FF7300]'
-                )}
-              >
-                STEP {s}
-              </div>
-            );
-          })}
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void refreshAll()}
+          disabled={loadingStatus}
+          className="shrink-0 border-gray-300"
+        >
+          {loadingStatus ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-2 h-4 w-4" />
+          )}
+          Aggiorna tutto
+        </Button>
       </div>
 
       {isDisconnected && (
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {t('accountPage.syncDisconnectedBanner')}
         </div>
       )}
 
-      {integrationReady && (
-        <div className="mb-6 space-y-6">
-          <SyncModeSelector />
-          <Card title="Sincronizzazione marketplace EBARTEX">
-            <p className="mb-4 text-sm text-gray-600">
-              Avvia manualmente la sincronizzazione degli inserzioni con il marketplace collegato
-              (in base alla modalità DEMO / PARZIALE / REALE selezionata sopra).
+      <SyncStatusOverview
+        loading={loadingStatus}
+        brxStatus={syncStatus?.sync_status ?? null}
+        isDisconnected={isDisconnected}
+        webhookConfigured={webhookSecretReady}
+        marketplaceStatus={marketplaceStatus}
+        marketplaceLoading={marketplaceLoading}
+        lastSyncAt={syncStatus?.last_sync_at ?? null}
+        lastError={syncStatus?.last_error ?? null}
+      />
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Main column */}
+        <div className="space-y-6 lg:col-span-2">
+          {showProgress && progress && (
+            <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-amber-900">
+                  {t('accountPage.syncProgressTitle')}
+                </p>
+                <span className="text-lg font-bold text-[#FF7300]">
+                  {progress.progress_percent ?? 0}%
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-amber-100">
+                <div
+                  className="h-full rounded-full bg-[#FF7300] transition-all duration-500"
+                  style={{ width: `${Math.min(100, progress.progress_percent ?? 0)}%` }}
+                />
+              </div>
+              <p className="mt-3 text-sm text-amber-800">
+                {t('accountPage.syncProgressLine', {
+                  pct: progress.progress_percent ?? 0,
+                  processed: progress.processed ?? 0,
+                  totalPart:
+                    progress.total_products != null
+                      ? t('accountPage.syncTotalPart', { total: progress.total_products })
+                      : '',
+                })}
+                {etaLabel ? ` · ETA: ${etaLabel}` : ''}
+              </p>
+            </div>
+          )}
+
+          {integrationReady && <SyncModeSelector />}
+
+          <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <h2 className="mb-1 text-sm font-semibold text-gray-900">Operazioni</h2>
+            <p className="mb-4 text-xs text-gray-500">
+              Import inventario da CardTrader e sync listing verso EBARTEX
             </p>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Button
                 type="button"
-                onClick={() => void handleMarketplaceSyncTrigger()}
-                disabled={marketplaceSyncLoading}
+                onClick={() => void handleStartSync()}
+                disabled={loadingStart || !canStartSync}
                 className="bg-[#FF7300] font-semibold text-white hover:bg-[#e66a00] disabled:opacity-50"
               >
-                {marketplaceSyncLoading ? (
+                {loadingStart ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
+                  <Play className="mr-2 h-4 w-4" />
                 )}
-                Sincronizza marketplace ora
+                {t('accountPage.syncStartFull')}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => void loadSyncEvents()}
-                disabled={syncEventsLoading}
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                {syncEventsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Aggiorna eventi
-              </Button>
+              {integrationReady && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void handleMarketplaceSyncTrigger()}
+                  disabled={marketplaceSyncLoading}
+                  className="border-gray-300"
+                >
+                  {marketplaceSyncLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  Sincronizza listing EBARTEX
+                </Button>
+              )}
+              {integrationReady && (
+                <Link
+                  href="/account/oggetti"
+                  className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  Vedi inventario
+                </Link>
+              )}
             </div>
+            {!canStartSync && integrationReady && !webhookSecretReady && (
+              <p className="mt-3 text-sm text-amber-700">{t('account.syncVerifyFirst')}</p>
+            )}
             {marketplaceSyncMessage && (
               <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
                 {marketplaceSyncMessage}
@@ -505,201 +459,17 @@ export function SincronizzazioneContent() {
                 {marketplaceSyncError}
               </p>
             )}
-            {syncEvents.length > 0 && (
-              <div className="mt-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Ultimi eventi sync
-                </p>
-                <ul className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-2 text-xs text-gray-700">
-                  {syncEvents.map((ev) => (
-                    <li key={ev.id} className="flex flex-wrap gap-2 border-b border-gray-100 py-1 last:border-0">
-                      <span className="font-mono text-[10px] text-gray-400">
-                        {ev.created_at
-                          ? new Date(ev.created_at).toLocaleString('it-IT')
-                          : '—'}
-                      </span>
-                      <span className="font-medium">{ev.event_type}</span>
-                      <span className="text-gray-500">{ev.source}</span>
-                      {ev.error ? <span className="text-red-600">{ev.error}</span> : null}
-                      <span className={ev.processed ? 'text-emerald-600' : 'text-amber-600'}>
-                        {ev.processed ? 'elaborato' : 'in coda'}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            {lastSyncError && (
+              <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {lastSyncError}
+              </p>
             )}
-          </Card>
-        </div>
-      )}
-
-      {currentStep === 1 && (
-        <Card title={t('account.syncStep1Title')}>
-          <p className="mb-4 text-sm text-gray-600">
-            {t('account.syncStep1Text')}
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Input
-              type="password"
-              placeholder={t('accountPage.syncTokenPlaceholder')}
-              value={cardtraderToken}
-              onChange={(e) => setCardtraderToken(e.target.value)}
-              className="max-w-md rounded-none border-gray-300 bg-white text-gray-900 focus-visible:ring-1 focus-visible:ring-[#FF7300]"
-            />
-            <Button
-              type="button"
-              onClick={handleSetupTestUser}
-              disabled={loadingSetup || !cardtraderToken.trim()}
-              className="btn-orange-glow disabled:opacity-50"
-            >
-              {loadingSetup ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {t('accountPage.syncSaveConnect')}
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {currentStep === 2 && (
-        <Card title={t('account.syncStep2Title')}>
-          {loadingWebhook ? (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {t('accountPage.syncLoadingWebhook')}
-            </div>
-          ) : webhookData ? (
-            <>
-              <p className="mb-3 text-sm text-gray-600">
-                {t('account.syncStep2Text')}
-              </p>
-              <div className="mb-3 flex gap-2">
-                <Input
-                  readOnly
-                  value={webhookData.webhook_url}
-                  className="rounded-none border-gray-300 bg-white font-mono text-sm text-gray-700 focus-visible:ring-1 focus-visible:ring-[#FF7300]"
-                />
-                <Button
-                  type="button"
-                  onClick={handleCopyWebhook}
-                  className="h-10 w-10 shrink-0 rounded-none border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
-                >
-                  {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-              {copied && <p className="mb-3 text-xs font-medium text-emerald-600">{t('accountPage.syncCopied')}</p>}
-              <ol className="mb-4 list-inside list-decimal space-y-1 text-sm text-gray-600">
-                <li>{t('accountPage.syncWebhookStep1')}</li>
-                <li>{t('accountPage.syncWebhookStep2')}</li>
-                <li>{t('accountPage.syncWebhookStep3')}</li>
-              </ol>
-              <p className="flex items-center gap-2 text-sm">
-                <span className="text-gray-600">{t('accountPage.syncWebhookSecret')}</span>
-                <span
-                  className={cn(
-                    'font-medium',
-                    webhookData.webhook_secret_configured ? 'text-emerald-600' : 'text-amber-600'
-                  )}
-                >
-                  {webhookData.webhook_secret_configured ? t('accountPage.syncYes') : t('accountPage.syncNo')}
-                </span>
-              </p>
-              {!webhookSecretReady && (
-                <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                  {t('account.syncStep3Text')}
-                </p>
-              )}
-            </>
-          ) : (
-            <p className="text-sm text-gray-500">{t('accountPage.syncConfigureTokenFirst')}</p>
-          )}
-        </Card>
-      )}
-
-      {currentStep === 3 && (
-        <Card title={t('account.syncStep4Title')}>
-          <p className="mb-4 text-sm text-gray-600">
-            {t('account.syncStep4Text')}
-          </p>
-          <div className="flex flex-wrap items-center gap-4">
-            <Button
-              type="button"
-              onClick={handleStartSync}
-              disabled={loadingStart || !canStartSync}
-              className="bg-[#FF7300] font-semibold text-white hover:bg-[#e66a00] disabled:opacity-50"
-            >
-              {loadingStart ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {t('accountPage.syncStartFull')}
-            </Button>
-            {!canStartSync && (
-              <span className="text-sm text-gray-500">{t('account.syncVerifyFirst')}</span>
-            )}
-          </div>
-          {loadingStart && (
-            <p className="mt-4 text-sm text-amber-600">{t('accountPage.syncStartedWait')}</p>
-          )}
-        </Card>
-      )}
-
-      {currentStep === 4 && (
-        <Card title={t('account.syncStep4TitleAlt')}>
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              onClick={handleRefreshStatus}
-              disabled={loadingRefresh}
-              className="rounded-none border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-            >
-              {loadingRefresh ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              {t('accountPage.syncRefreshProgress')}
-            </Button>
-            {currentTaskId ? (
-              <span className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
-                Task: {currentTaskId}
-              </span>
-            ) : null}
-          </div>
-
-          {showProgress && progress && (
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <p className="mb-2 text-sm font-medium text-gray-700">{t('accountPage.syncProgressTitle')}</p>
-              <p className="text-sm text-gray-600">
-                {t('accountPage.syncProgressLine', {
-                  pct: progress.progress_percent ?? 0,
-                  processed: progress.processed ?? 0,
-                  totalPart:
-                    progress.total_products != null
-                      ? t('accountPage.syncTotalPart', { total: progress.total_products })
-                      : '',
-                })}
-                {progress.created != null
-                  ? ` ${t('accountPage.syncProgressTail', {
-                      c: progress.created,
-                      u: progress.updated ?? 0,
-                      s: progress.skipped ?? 0,
-                    })}`
-                  : ''}
-              </p>
-              <p className="mt-2 text-xs text-gray-500">
-                Chunk: {progress.processed_chunks ?? 0}/{progress.total_chunks ?? '—'}
-                {etaLabel ? ` · ETA stimata: ${etaLabel}` : ''}
-              </p>
-            </div>
-          )}
-
-          {lastSyncError && (
-            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
-              <p className="text-sm font-medium text-red-700">{t('accountPage.syncErrorTitle')}</p>
-              <p className="text-sm text-red-600">{lastSyncError}</p>
-            </div>
-          )}
-
-          {lastSyncResult && (
-            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-              <p className="mb-1 text-sm font-semibold text-emerald-800">{t('accountPage.syncCompleteTitle')}</p>
-              <p className="text-sm text-emerald-700">
+            {lastSyncResult && (
+              <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
                 {t('accountPage.syncProcessedLine', {
                   processed: lastSyncResult.processed,
                   totalPart:
-                    lastSyncResult.total_products != null && lastSyncResult.total_products > 0
+                    lastSyncResult.total_products > 0
                       ? t('accountPage.syncTotalPart', { total: lastSyncResult.total_products })
                       : '',
                   created: lastSyncResult.created,
@@ -707,56 +477,39 @@ export function SincronizzazioneContent() {
                   skipped: lastSyncResult.skipped,
                 })}
               </p>
-              <div className="mt-4">
-                <Link
-                  href="/account/oggetti"
-                  className="inline-flex items-center rounded-md bg-[#FF7300] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e66a00]"
-                >
-                  {t('account.syncViewInventory')}
-                </Link>
-              </div>
-            </div>
-          )}
+            )}
+            {currentTaskId && (
+              <p className="mt-2 font-mono text-xs text-gray-400">Task: {currentTaskId}</p>
+            )}
+          </section>
 
-          {canSuspendOrRemove && (
-            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
-              <Button
-                type="button"
-                onClick={() => handleDisconnect('suspend')}
-                disabled={loadingDisconnect}
-                className="border border-amber-500 text-amber-700 hover:bg-amber-50"
-                title={t('accountPage.syncSuspendTitle')}
-              >
-                {loadingDisconnect && disconnectConfirm === 'suspend' ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <PauseCircle className="mr-2 h-4 w-4" />
-                )}
-                {t('accountPage.syncSuspend')}
-              </Button>
-              <Button
-                type="button"
-                onClick={() =>
-                  disconnectConfirm === 'remove'
-                    ? handleDisconnect('remove')
-                    : setDisconnectConfirm('remove')
-                }
-                disabled={loadingDisconnect}
-                variant="outline"
-                className="border-red-300 text-red-700 hover:bg-red-50"
-                title={t('accountPage.syncRemoveTitle')}
-              >
-                {loadingDisconnect && disconnectConfirm === 'remove' ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Unlink className="mr-2 h-4 w-4" />
-                )}
-                {disconnectConfirm === 'remove' ? t('accountPage.syncConfirmRemove') : t('accountPage.syncRemoveLink')}
-              </Button>
-            </div>
+          {integrationReady && (
+            <SyncHistorySection
+              events={syncEvents}
+              loading={syncEventsLoading}
+              onRefresh={() => void loadSyncEvents()}
+              total={syncEventsTotal}
+            />
           )}
-        </Card>
-      )}
+        </div>
+
+        {/* Sidebar — webhook + management always visible */}
+        <div className="space-y-6 lg:col-span-1">
+          <SyncWebhookCard
+            loading={loadingWebhook}
+            webhookData={webhookData}
+            isDisconnected={isDisconnected}
+          />
+          <SyncManagementPanel
+            isDisconnected={isDisconnected}
+            loadingSetup={loadingSetup}
+            loadingDisconnect={loadingDisconnect}
+            onLinkToken={handleLinkToken}
+            onSuspend={() => handleDisconnect('suspend')}
+            onRemove={() => handleDisconnect('remove')}
+          />
+        </div>
+      </div>
     </div>
   );
 }

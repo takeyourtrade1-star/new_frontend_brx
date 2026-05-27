@@ -10,6 +10,7 @@ import {
   type ModelStatus,
 } from '@/hooks/useBrxScanner';
 import { ScannerModelGate } from '@/components/feature/scanner/ScannerModelGate';
+import { ScannerBetaNotice } from '@/components/feature/scanner/ScannerBetaNotice';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -845,6 +846,8 @@ function ScannerPageInner() {
         onClose={handleClose}
         modelStatus={modelStatus}
       />
+
+      <ScannerBetaNotice className="top-[max(calc(env(safe-area-inset-top)+3.75rem),4.25rem)]" />
 
       {/* ── Video feed ──────────────────────────────────────────────── */}
       {state !== 'error' && (

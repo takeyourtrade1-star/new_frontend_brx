@@ -1,40 +1,51 @@
 'use client';
 
-import { Archive, Gavel, ArrowLeftRight, MessageSquare, Heart } from 'lucide-react';
+import { Archive, ArrowLeftRight, Gavel, Heart, MessageSquare } from 'lucide-react';
+
+import { UserProfileAuctionsPanel } from '@/components/feature/users/UserProfileAuctionsPanel';
+import { UserProfileCollectionPanel } from '@/components/feature/users/UserProfileCollectionPanel';
 
 export type ProfileTab = 'collezione' | 'aste' | 'scambi' | 'recensioni' | 'wishlist';
 
-const TABS: { id: ProfileTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'collezione', label: 'Collezione', icon: Archive },
-  { id: 'aste', label: 'Aste', icon: Gavel },
-  { id: 'scambi', label: 'Scambi', icon: ArrowLeftRight },
-  { id: 'recensioni', label: 'Recensioni', icon: MessageSquare },
-  { id: 'wishlist', label: 'Wishlist', icon: Heart },
+const TABS: {
+  id: ProfileTab;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  implemented: boolean;
+}[] = [
+  { id: 'collezione', label: 'Collezione', icon: Archive, implemented: true },
+  { id: 'aste', label: 'Aste', icon: Gavel, implemented: true },
+  { id: 'scambi', label: 'Scambi', icon: ArrowLeftRight, implemented: false },
+  { id: 'recensioni', label: 'Recensioni', icon: MessageSquare, implemented: false },
+  { id: 'wishlist', label: 'Wishlist', icon: Heart, implemented: false },
 ];
 
 interface UserProfileTabsProps {
+  userId: string;
   username: string;
   activeTab: ProfileTab;
   onTabChange: (tab: ProfileTab) => void;
+  collectionCount?: number | null;
+  auctionsCount?: number | null;
 }
 
 function TabPlaceholder({ tab, username }: { tab: ProfileTab; username: string }) {
   const messages: Record<ProfileTab, { title: string; description: string }> = {
     collezione: {
-      title: 'Collezione non ancora disponibile',
-      description: `La collezione di ${username} sarà visibile presto.`,
+      title: 'Collezione non disponibile',
+      description: `La collezione di ${username} non è al momento accessibile.`,
     },
     aste: {
-      title: 'Nessuna asta attiva',
-      description: `${username} non ha aste attive al momento.`,
+      title: 'Aste non disponibili',
+      description: `Le aste di ${username} non sono al momento accessibili.`,
     },
     scambi: {
-      title: 'Scambi non ancora disponibili',
+      title: 'Scambi in arrivo',
       description: `Gli scambi proposti da ${username} saranno visibili presto.`,
     },
     recensioni: {
       title: 'Nessuna recensione',
-      description: `${username} non ha ancora ricevuto recensioni.`,
+      description: `${username} non ha ancora ricevuto recensioni pubbliche.`,
     },
     wishlist: {
       title: 'Wishlist privata',
@@ -46,44 +57,86 @@ function TabPlaceholder({ tab, username }: { tab: ProfileTab; username: string }
   const TabIcon = TABS.find((t) => t.id === tab)?.icon;
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-8 py-16 text-center">
+    <div className="flex min-h-[240px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200/70 bg-white/35 px-8 py-16 text-center backdrop-blur-xl">
       {TabIcon && (
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/80 shadow-inner ring-1 ring-slate-200/60">
           <TabIcon className="h-6 w-6 text-slate-400" />
         </div>
       )}
-      <p className="mb-1 text-base font-semibold text-slate-700">{title}</p>
-      <p className="text-sm text-slate-500">{description}</p>
+      <p className="mb-1 text-base font-semibold text-slate-800">{title}</p>
+      <p className="max-w-sm text-sm text-slate-500">{description}</p>
     </div>
   );
 }
 
-export function UserProfileTabs({ username, activeTab, onTabChange }: UserProfileTabsProps) {
+function tabCount(
+  tabId: ProfileTab,
+  collectionCount?: number | null,
+  auctionsCount?: number | null,
+): number | null {
+  if (tabId === 'collezione' && collectionCount != null && collectionCount > 0) return collectionCount;
+  if (tabId === 'aste' && auctionsCount != null && auctionsCount > 0) return auctionsCount;
+  return null;
+}
+
+export function UserProfileTabs({
+  userId,
+  username,
+  activeTab,
+  onTabChange,
+  collectionCount,
+  auctionsCount,
+}: UserProfileTabsProps) {
   return (
-    <div>
-      <div className="mb-6 flex gap-1 overflow-x-auto rounded-2xl bg-slate-100 p-1">
+    <section className="space-y-6">
+      <div
+        role="tablist"
+        aria-label="Sezioni profilo"
+        className="flex gap-1 overflow-x-auto rounded-2xl border border-white/60 bg-white/45 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xl [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
+          const count = tabCount(tab.id, collectionCount, auctionsCount);
+
           return (
             <button
               key={tab.id}
               type="button"
+              role="tab"
+              aria-selected={isActive}
               onClick={() => onTabChange(tab.id)}
-              className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
+              className={`relative flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
                 isActive
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white text-slate-900 shadow-[0_4px_14px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/60'
+                  : 'text-slate-500 hover:bg-white/50 hover:text-slate-800'
               }`}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#ff7300]' : ''}`} />
               <span>{tab.label}</span>
+              {count != null && (
+                <span
+                  className={`ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                    isActive ? 'bg-[#ff7300]/10 text-[#ff7300]' : 'bg-slate-200/80 text-slate-600'
+                  }`}
+                >
+                  {count > 99 ? '99+' : count}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      <TabPlaceholder tab={activeTab} username={username} />
-    </div>
+      <div role="tabpanel" className="min-h-[280px]">
+        {activeTab === 'collezione' && <UserProfileCollectionPanel username={username} />}
+        {activeTab === 'aste' && (
+          <UserProfileAuctionsPanel userId={userId} username={username} />
+        )}
+        {activeTab !== 'collezione' && activeTab !== 'aste' && (
+          <TabPlaceholder tab={activeTab} username={username} />
+        )}
+      </div>
+    </section>
   );
 }

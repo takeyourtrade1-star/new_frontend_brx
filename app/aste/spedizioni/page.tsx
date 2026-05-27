@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function AsteSpedizioniPage() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-[#F5F5F7]">
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
       </Suspense>

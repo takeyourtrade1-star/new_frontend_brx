@@ -22,6 +22,7 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  SlidersHorizontal,
   Square,
   Trash2,
   TrendingUp,
@@ -33,6 +34,15 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { syncClient } from '@/lib/api/sync-client';
 import type { InventoryItemResponse, SyncStatusResponse } from '@/lib/api/sync-client';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
+import { isDemoEbartexListing } from '@/lib/sync/inventory-types';
+import { mapListingResponseToInventoryItem } from '@/lib/marketplace/listing-map';
+import { getMyListings } from '@/lib/api/marketplace-client';
+import {
+  deleteInventoryOrListing,
+  updateInventoryOrListing,
+  updateInventoryOrListingQuantity,
+} from '@/lib/inventory/inventory-item-mutations';
+import { DemoListingBadge } from '@/components/feature/sync/DemoListingBadge';
 import {
   InventoryEditModal,
   INVENTORY_CONDITION_OPTIONS,
@@ -44,7 +54,11 @@ import { getCardDisplayNames } from '@/lib/card-display-name';
 import { ASSETS, getCdnImageUrl } from '@/lib/config';
 import { InventoryFiltersPanel, DEFAULT_FILTERS } from '@/components/feature/account/InventoryFiltersPanel';
 import type { InventoryFilters } from '@/components/feature/account/InventoryFiltersPanel';
+import { InventorySearchBar } from '@/components/feature/account/InventorySearchBar';
 import { InventorySortBar } from '@/components/feature/account/InventorySortBar';
+import { useInventorySearchInput } from '@/lib/hooks/useInventorySearchInput';
+import { useMobileViewport } from '@/lib/hooks/useMobileViewport';
+import { useHeaderStickyOffset } from '@/lib/hooks/useHeaderStickyOffset';
 import {
   applyInventoryFilters,
   buildInventoryFacets,
@@ -235,11 +249,14 @@ function OggettiTable({
   );
 
   const handleDelete = async (item: InventoryItemWithCatalog) => {
-    if (!confirm('Eliminare questo oggetto dall\'inventario? Se la sincronizzazione esterna è attiva, la rimozione verrà inviata anche lì.')) return;
+    const confirmMsg = isDemoEbartexListing(item)
+      ? t('accountPage.itemsDeleteDemoConfirm')
+      : 'Eliminare questo oggetto dall\'inventario? Se la sincronizzazione esterna è attiva, la rimozione verrà inviata anche lì.';
+    if (!confirm(confirmMsg)) return;
     setActionError(null);
     setDeletingId(item.id);
     try {
-      const res = await syncClient.deleteInventoryItem(userId, item.id, accessToken);
+      const res = await deleteInventoryOrListing(userId, item, accessToken);
       await onRefresh();
       if (res.sync_queue_error) {
         onSyncResult({ success: false, message: res.sync_queue_error });
@@ -264,14 +281,13 @@ function OggettiTable({
     setQtyUpdatingId(item.id);
     try {
       if (delta === -1 && item.quantity <= 1) {
-        if (
-          !confirm(
-            'Rimuovere questo oggetto dall\'inventario? Se la sincronizzazione esterna è attiva, verrà aggiornata anche lì.'
-          )
-        ) {
+        const confirmMsg = isDemoEbartexListing(item)
+          ? t('accountPage.itemsDeleteDemoConfirm')
+          : 'Rimuovere questo oggetto dall\'inventario? Se la sincronizzazione esterna è attiva, verrà aggiornata anche lì.';
+        if (!confirm(confirmMsg)) {
           return;
         }
-        const res = await syncClient.deleteInventoryItem(userId, item.id, accessToken);
+        const res = await deleteInventoryOrListing(userId, item, accessToken);
         await onRefresh();
         if (res.sync_queue_error) {
           onSyncResult({ success: false, message: res.sync_queue_error });
@@ -287,12 +303,7 @@ function OggettiTable({
       } else {
         const nextQty = Math.max(0, item.quantity + delta);
         if (nextQty < 1) return;
-        const res = await syncClient.updateInventoryItem(
-          userId,
-          item.id,
-          { quantity: nextQty },
-          accessToken
-        );
+        const res = await updateInventoryOrListingQuantity(userId, item, accessToken, nextQty);
         await onRefresh();
         if (res.sync_queue_error) {
           onSyncResult({ success: false, message: res.sync_queue_error });
@@ -338,18 +349,15 @@ function OggettiTable({
         altered: form.altered ?? (editItem.properties && (editItem.properties as Record<string, unknown>).altered),
         mtg_foil: form.mtg_foil ?? (editItem.properties && (editItem.properties as Record<string, unknown>).mtg_foil),
       };
-      const res = await syncClient.updateInventoryItem(
-        userId,
-        editItem.id,
-        {
-          quantity: form.quantity,
-          price_cents: form.price_cents,
-          description: form.description || null,
-          graded: form.graded,
-          properties,
-        },
-        accessToken
-      );
+      const res = await updateInventoryOrListing(userId, editItem, accessToken, {
+        quantity: form.quantity,
+        price_cents: form.price_cents,
+        condition: form.condition,
+        mtg_language: form.mtg_language,
+        description: form.description,
+        graded: form.graded,
+        properties,
+      });
       setEditItem(null);
       await onRefresh();
       if (res.sync_queue_error) {
@@ -372,7 +380,7 @@ function OggettiTable({
   if (viewMode === 'cards') {
     return (
       <RarityLegendProvider>
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5">
         {items.map((item) => {
           const imgUrl = item.card?.image
             ? buildImageUrl(item.card.image) || defaultImage
@@ -400,7 +408,7 @@ function OggettiTable({
           return (
             <div
               key={item.id}
-              className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-white/60 backdrop-blur-sm transition-all duration-200 ${
+              className={`group relative flex flex-col overflow-hidden rounded-xl border bg-white/60 backdrop-blur-sm transition-all duration-200 md:rounded-2xl ${
                 selectedIds?.has(item.id)
                   ? 'border-primary shadow-[0_0_0_2px_rgba(255,115,0,0.3)]'
                   : 'border-white/60 hover:border-primary/50'
@@ -414,8 +422,8 @@ function OggettiTable({
                     src={imgUrl}
                     alt={namePrimary}
                     fill
-                    className="object-contain p-3"
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    className="object-contain p-2 md:p-3"
+                    sizes="(max-width: 767px) 45vw, (max-width: 1024px) 33vw, 25vw"
                     unoptimized={imgUrl.startsWith('http') || imgUrl === defaultImage}
                   />
                   
@@ -429,7 +437,7 @@ function OggettiTable({
                     <button
                       type="button"
                       onClick={() => onToggleSelect?.(item.id)}
-                      className={`absolute left-3 top-3 z-20 rounded-lg p-2 shadow-md backdrop-blur-sm transition-all ${
+                      className={`absolute left-2 top-2 z-20 flex h-11 w-11 items-center justify-center rounded-xl shadow-md backdrop-blur-sm transition-all md:left-3 md:top-3 md:h-auto md:w-auto md:rounded-lg md:p-2 ${
                         selectedIds!.has(item.id) 
                           ? 'bg-primary text-white' 
                           : 'bg-white/90 text-gray-400 hover:text-primary'
@@ -476,15 +484,16 @@ function OggettiTable({
                         📋 {t('accountPage.itemsBadgeGraded')}
                       </span>
                     )}
+                    {isDemoEbartexListing(item) && <DemoListingBadge />}
                   </div>
 
-                  {/* Hover Actions Overlay */}
-                  <div className="absolute inset-x-0 bottom-0 flex gap-2 p-3 opacity-0 translate-y-full transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pt-8">
+                  {/* Azioni rapide: sempre visibili su mobile, hover su desktop */}
+                  <div className="absolute inset-x-0 bottom-0 flex gap-2 bg-gradient-to-t from-black/60 via-black/20 to-transparent p-2 pt-6 opacity-100 translate-y-0 transition-all duration-300 md:p-3 md:pt-8 md:opacity-0 md:translate-y-full md:group-hover:opacity-100 md:group-hover:translate-y-0">
                     <button
                       type="button"
                       onClick={() => setEditItem(item)}
                       disabled={mutationsDisabled}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/90 backdrop-blur-sm px-3 py-2 text-xs font-semibold text-gray-800 shadow-lg border border-white/50 transition-all hover:bg-primary hover:text-white hover:border-primary/30 active:scale-95 disabled:opacity-50"
+                      className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/50 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-800 shadow-lg backdrop-blur-sm transition-all hover:border-primary/30 hover:bg-primary hover:text-white active:scale-95 disabled:opacity-50"
                     >
                       <Edit3 className="h-3.5 w-3.5" />
                       {t('accountPage.itemsEdit')}
@@ -494,25 +503,25 @@ function OggettiTable({
               </div>
 
               {/* Card Content */}
-              <div className="flex flex-1 flex-col p-4">
+              <div className="flex flex-1 flex-col p-2.5 md:p-4">
                 {/* Card Name */}
-                <div className="mb-2">
-                  <h3 className="line-clamp-1 text-base font-bold text-gray-900 leading-tight">
+                <div className="mb-1.5 md:mb-2">
+                  <h3 className="line-clamp-2 text-sm font-bold leading-tight text-gray-900 md:line-clamp-1 md:text-base">
                     {namePrimary}
                   </h3>
                   {displayNames.secondary && (
-                    <p className="mt-0.5 text-xs text-gray-500 line-clamp-1">{displayNames.secondary}</p>
+                    <p className="mt-0.5 hidden text-xs text-gray-500 line-clamp-1 md:block">{displayNames.secondary}</p>
                   )}
                 </div>
 
                 {/* Set Name with Icon */}
-                <div className="mb-3 flex items-center gap-1.5 text-xs text-gray-500">
-                  <Library className="h-3 w-3 text-gray-400" />
+                <div className="mb-2 hidden items-center gap-1.5 text-xs text-gray-500 md:mb-3 md:flex">
+                  <Library className="h-3 w-3 shrink-0 text-gray-400" />
                   <span className="truncate font-medium">{item.card?.set_name || '—'}</span>
                 </div>
 
                 {/* Stats Row - Condition, Language, Rarity */}
-                <div className="mb-3 flex flex-wrap items-center gap-2">
+                <div className="mb-2 flex flex-wrap items-center gap-1 md:mb-3 md:gap-2">
                   {conditionCode ? (
                     <ConditionBadge condition={conditionCode} size="sm" />
                   ) : (
@@ -525,25 +534,32 @@ function OggettiTable({
                       title={getInventoryLanguageLabel(languageCode)}
                     />
                   )}
-                  {item.card?.rarity && <RarityIndicator rarity={item.card.rarity} size="sm" showLabel />}
+                  {item.card?.rarity && (
+                    <RarityIndicator
+                      rarity={item.card.rarity}
+                      size="sm"
+                      showLabel
+                      className="max-md:[&_span:last-child]:hidden"
+                    />
+                  )}
                 </div>
 
                 {/* Price & Quantity Footer */}
-                <div className="mt-auto flex items-center justify-between border-t border-gray-100 pt-3">
+                <div className="mt-auto flex items-end justify-between border-t border-gray-100 pt-2 md:items-center md:pt-3">
                   <div className="flex flex-col">
-                    <span className="text-xs text-gray-400">{t('accountPage.itemsTablePrice')}</span>
-                    <span className="text-lg font-bold text-primary tabular-nums">
+                    <span className="hidden text-xs text-gray-400 md:inline">{t('accountPage.itemsTablePrice')}</span>
+                    <span className="text-base font-bold tabular-nums text-primary md:text-lg">
                       {(item.price_cents / 100).toFixed(2)}€
                     </span>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className="text-xs text-gray-400">{t('accountPage.itemsTableQty')}</span>
+                    <span className="hidden text-xs text-gray-400 md:inline">{t('accountPage.itemsTableQty')}</span>
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
                         disabled={mutationsDisabled || qtyUpdatingId === item.id || deletingId === item.id}
                         onClick={() => handleQtyDelta(item, -1)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-red-500 text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-red-500 text-white shadow-sm transition hover:bg-red-600 active:scale-95 disabled:opacity-50 md:h-7 md:w-7 md:rounded-md"
                         aria-label="Diminuisci quantità"
                       >
                         {qtyUpdatingId === item.id ? (
@@ -552,7 +568,7 @@ function OggettiTable({
                           <Minus className="h-3.5 w-3.5" />
                         )}
                       </button>
-                      <span className="min-w-[1.5rem] text-center text-sm font-bold tabular-nums text-gray-800">
+                      <span className="min-w-[1.75rem] text-center text-sm font-bold tabular-nums text-gray-800">
                         {item.quantity}
                       </span>
                       <button
@@ -564,7 +580,7 @@ function OggettiTable({
                           item.quantity >= 999
                         }
                         onClick={() => handleQtyDelta(item, 1)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50 md:h-7 md:w-7 md:rounded-md"
                         aria-label="Aumenta quantità"
                       >
                         <Plus className="h-3.5 w-3.5" />
@@ -579,8 +595,9 @@ function OggettiTable({
                 type="button"
                 onClick={() => handleDelete(item)}
                 disabled={mutationsDisabled || deletingId === item.id}
-                className="absolute right-3 top-[50%] translate-y-[-50%] rounded-full bg-white/80 backdrop-blur-sm p-2 text-gray-400 shadow-md border border-gray-200/50 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 hover:border-red-200 group-hover:opacity-100"
+                className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full border border-gray-200/50 bg-white/80 text-gray-400 opacity-100 shadow-md backdrop-blur-sm transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-500 active:scale-95 md:right-3 md:top-[50%] md:translate-y-[-50%] md:p-2 md:opacity-0 md:group-hover:opacity-100"
                 title={t('accountPage.itemsDelete')}
+                aria-label={t('accountPage.itemsDelete')}
               >
                 {deletingId === item.id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -598,7 +615,7 @@ function OggettiTable({
 
   return (
     <RarityLegendProvider>
-    <div className="max-w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+    <div className="hidden max-w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm md:block">
       <div className="max-w-full overflow-x-auto">
         <table className="search-results-table w-full min-w-[980px] table-fixed border-collapse text-left text-sm">
           <colgroup>
@@ -760,6 +777,11 @@ function OggettiTable({
                           <p className="truncate text-[10px] leading-tight text-gray-400" title={setName}>
                             {setName}
                           </p>
+                        )}
+                        {isDemoEbartexListing(item) && (
+                          <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+                            <DemoListingBadge />
+                          </div>
                         )}
                       </div>
                     </div>
@@ -964,6 +986,8 @@ function IconCard({ className }: { className?: string }) {
 
 export function OggettiContent() {
   const { t } = useTranslation();
+  const isMobile = useMobileViewport();
+  const { stickyTopWithGap } = useHeaderStickyOffset();
   const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore(
     (s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
@@ -989,7 +1013,10 @@ export function OggettiContent() {
   );
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<OggettiViewMode>('table');
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const { searchValue, setSearchValue, clearSearch } = useInventorySearchInput(filters, setFilters);
+  const effectiveViewMode: OggettiViewMode = isMobile ? 'cards' : viewMode;
 
   /** Verifica lato frontend: chiamate al sync service solo se integrazione marketplace attiva. */
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
@@ -1161,19 +1188,31 @@ export function OggettiContent() {
         const res = await syncClient.getInventory(user.id, accessToken, INVENTORY_API_CHUNK, offset);
         const items = res.items ?? [];
         totalFromApi = res.total ?? allItems.length + items.length;
-        allItems.push(...items);
+        allItems.push(
+          ...items.map((item) => ({ ...item, listing_source: 'sync' as const }))
+        );
         offset += items.length;
         if (items.length < INVENTORY_API_CHUNK || offset >= totalFromApi) break;
       } while (true);
 
+      let marketplaceRows: InventoryItemWithCatalog[] = [];
+      try {
+        const mkt = await getMyListings({ page: 1, page_size: 200, status_filter: 'active' });
+        marketplaceRows = (mkt.items ?? []).map(mapListingResponseToInventoryItem);
+      } catch {
+        /* marketplace opzionale */
+      }
+
+      const merged = [...allItems, ...marketplaceRows];
+
       if (catalogLoadGenRef.current !== generation) return;
 
-      setInventoryRaw(allItems);
-      setTotal(totalFromApi);
+      setInventoryRaw(merged);
+      setTotal(merged.length);
       setError(null);
       setLoading(false);
 
-      void loadCatalogInBackground(allItems, generation);
+      void loadCatalogInBackground(merged, generation);
     } catch {
       if (catalogLoadGenRef.current !== generation) return;
       setInventoryRaw([]);
@@ -1338,8 +1377,15 @@ export function OggettiContent() {
       const failedIds: number[] = [];
       try {
         for (let i = 0; i < ids.length; i++) {
+          const item = inventoryRaw.find((row) => row.id === ids[i]);
+          if (!item) {
+            failCount++;
+            failedIds.push(ids[i]);
+            setBulkDeleteProgress({ current: i + 1, total: ids.length });
+            continue;
+          }
           try {
-            await syncClient.deleteInventoryItem(user.id, ids[i], accessToken);
+            await deleteInventoryOrListing(user.id, item, accessToken);
             successCount++;
           } catch {
             failCount++;
@@ -1369,26 +1415,40 @@ export function OggettiContent() {
         setBulkDeleteProgress(null);
       }
     },
-    [user?.id, accessToken, loadInventory, t]
+    [user?.id, accessToken, inventoryRaw, loadInventory, t]
   );
 
   const handleBulkPriceApply = useCallback(
-    (
+    async (
       ids: number[],
       operation: '+' | '-',
       percent: number,
       platform: 'ebartex' | 'all'
     ) => {
+      if (!user?.id || !accessToken) return;
       const idSet = new Set(ids);
-      setInventoryRaw((prev) =>
-        prev.map((item) => {
-          if (!idSet.has(item.id)) return item;
-          const currentCents = item.price_cents ?? 0;
-          const factor = operation === '+' ? 1 + percent / 100 : 1 - percent / 100;
-          const newPriceCents = Math.round(currentCents * factor);
-          return { ...item, price_cents: newPriceCents };
-        })
-      );
+      const factor = operation === '+' ? 1 + percent / 100 : 1 - percent / 100;
+
+      for (const item of inventoryRaw) {
+        if (!idSet.has(item.id)) continue;
+        const newPriceCents = Math.round((item.price_cents ?? 0) * factor);
+        try {
+          await updateInventoryOrListing(user.id, item, accessToken, {
+            quantity: item.quantity,
+            price_cents: newPriceCents,
+            condition: (item.properties?.condition as string) ?? 'near_mint',
+            mtg_language: (item.properties?.mtg_language as string) ?? 'en',
+            description: item.description ?? '',
+            graded: item.graded === true,
+            properties: item.properties as Record<string, unknown> | undefined,
+          });
+        } catch {
+          /* continue other rows */
+        }
+      }
+
+      await loadInventory();
+
       if (platform === 'all') {
         console.log('TODO: sync price updates to all platforms', ids);
       }
@@ -1401,7 +1461,7 @@ export function OggettiContent() {
         type: 'success',
       });
     },
-    [t]
+    [user?.id, accessToken, inventoryRaw, loadInventory, t]
   );
 
   const handleBulkDelete = useCallback(
@@ -1418,8 +1478,15 @@ export function OggettiContent() {
 
       try {
         for (let i = 0; i < ids.length; i++) {
+          const item = inventoryRaw.find((row) => row.id === ids[i]);
+          if (!item) {
+            failCount++;
+            failedIds.push(ids[i]);
+            setBulkDeleteProgress({ current: i + 1, total: ids.length });
+            continue;
+          }
           try {
-            await syncClient.deleteInventoryItem(user.id, ids[i], accessToken);
+            await deleteInventoryOrListing(user.id, item, accessToken);
             successCount++;
           } catch {
             failCount++;
@@ -1455,7 +1522,7 @@ export function OggettiContent() {
         setBulkDeleteProgress(null);
       }
     },
-    [user?.id, accessToken, selectedIds, loadInventory, t]
+    [user?.id, accessToken, selectedIds, inventoryRaw, loadInventory, t]
   );
 
   useEffect(() => {
@@ -1529,8 +1596,18 @@ export function OggettiContent() {
     );
   }
 
+  const activeFilterCount = [
+    filters.game !== 'all',
+    filters.kind !== 'all',
+    filters.conditions.length > 0,
+    filters.languages.length > 0,
+    filters.rarities.length > 0,
+    filters.priceMin !== null || filters.priceMax !== null,
+    filters.smartFilter !== 'all',
+  ].filter(Boolean).length;
+
   return (
-    <div className="flex min-h-screen items-start gap-4 bg-[#F5F4F0] p-4 lg:gap-6 lg:p-6">
+    <div className="flex min-h-screen flex-col items-start gap-0 bg-[#F5F4F0] p-3 md:flex-row md:gap-4 md:p-4 lg:gap-6 lg:p-6">
       <InventoryFiltersPanel
         filters={filters}
         onFiltersChange={setFilters}
@@ -1539,10 +1616,45 @@ export function OggettiContent() {
         syncStatus={syncAnyPending ? 'syncing' : syncEnabled ? 'active' : 'inactive'}
         facets={facets}
         disabled={loading}
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        onClearSearch={clearSearch}
+        mobileFiltersOpen={mobileFiltersOpen}
+        onMobileFiltersOpenChange={setMobileFiltersOpen}
       />
-      <main className="flex-1 min-w-0 overflow-x-hidden p-6">
+      <main className="min-w-0 flex-1 overflow-x-hidden p-0 md:p-6">
+        {/* Toolbar mobile: ricerca sticky + filtri */}
+        <div
+          className="sticky z-40 -mx-3 mb-3 border-b border-white/40 bg-[#F5F4F0]/85 px-3 py-2.5 shadow-[0_4px_24px_rgba(0,0,0,0.06)] backdrop-blur-xl md:hidden"
+          style={{ top: stickyTopWithGap }}
+        >
+          <div className="flex items-center gap-2">
+            <InventorySearchBar
+              value={searchValue}
+              onChange={setSearchValue}
+              onClear={clearSearch}
+              disabled={loading}
+              className="min-w-0 flex-1"
+            />
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen(true)}
+              disabled={loading}
+              className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/60 bg-white/80 text-gray-700 shadow-sm backdrop-blur-md transition-all hover:border-primary/30 hover:text-primary active:scale-95 disabled:opacity-50"
+              aria-label={t('accountPage.itemsFiltersOpen')}
+            >
+              <SlidersHorizontal className="h-5 w-5" aria-hidden />
+              {activeFilterCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
         <nav
-          className="mb-5 flex items-center gap-1.5 text-sm text-gray-500"
+          className="mb-3 flex items-center gap-1.5 px-0.5 text-sm text-gray-500 md:mb-5"
           aria-label="Breadcrumb"
         >
           <Link href="/account" className="transition-colors hover:text-gray-900">
@@ -1576,13 +1688,13 @@ export function OggettiContent() {
           </div>
         )}
 
-        <div className="mb-4 flex items-center justify-end gap-2">
+        <div className="mb-3 flex flex-wrap items-center justify-end gap-2 md:mb-4">
           {!syncStatusLoading && (
             <button
               type="button"
               onClick={() => void handleSyncNow()}
               disabled={!integrationConnected || !canSyncNow || syncAnyPending}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 md:min-h-0 md:rounded-lg"
             >
               {syncNowPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1596,7 +1708,7 @@ export function OggettiContent() {
             type="button"
             onClick={() => setExportModalOpen(true)}
             disabled={loading || filteredInventoryItems.length === 0}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50 md:min-h-0 md:rounded-lg"
           >
             <Download className="h-4 w-4" />
             {t('accountPage.itemsExport')}
@@ -1654,8 +1766,8 @@ export function OggettiContent() {
       ) : (
         <>
           {filteredInventoryItems.length > 0 && (
-            <div className="mb-5 overflow-hidden rounded-2xl border border-stroke-grey bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <div className="mb-4 overflow-hidden rounded-2xl border border-stroke-grey bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] md:mb-5">
+              <div className="flex flex-col gap-3 px-3 py-3 md:flex-row md:flex-wrap md:items-center md:justify-between md:px-4">
                 {/* Counter */}
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
@@ -1671,11 +1783,11 @@ export function OggettiContent() {
                     </div>
                   </div>
                   <div className="h-8 w-px bg-gray-200" />
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5 max-md:w-full">
                     <button
                       type="button"
                       onClick={onSelectAll}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-primary hover:text-primary"
+                      className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition-all hover:border-primary hover:text-primary active:scale-[0.98] md:min-h-0 md:flex-none md:rounded-lg md:py-1.5"
                     >
                       {t('accountPage.itemsSelectAll')} ({filteredInventoryItems.length})
                     </button>
@@ -1683,7 +1795,7 @@ export function OggettiContent() {
                       type="button"
                       onClick={onDeselectAll}
                       disabled={selectedIds.size === 0}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-red-400 hover:text-red-500 disabled:opacity-40"
+                      className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition-all hover:border-red-400 hover:text-red-500 active:scale-[0.98] disabled:opacity-40 md:min-h-0 md:flex-none md:rounded-lg md:py-1.5"
                     >
                       {t('accountPage.itemsSelectNone')}
                     </button>
@@ -1760,11 +1872,11 @@ export function OggettiContent() {
             allFilteredSelected={allFilteredSelected}
             onDeleteSelected={(ids) => onDeleteSelected(ids)}
             bulkDeleting={bulkDeleting}
-            viewMode={viewMode}
+            viewMode={effectiveViewMode}
             t={t}
           />
           {filteredInventoryItems.length > 0 && (
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white p-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+            <div className="mt-4 flex flex-col gap-3 rounded-xl bg-white p-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)] md:mt-6 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className="text-gray-500">
                   {t('accountPage.itemsPage')} <span className="font-semibold text-gray-900">{currentPage}</span> {t('accountPage.itemsOf')}{' '}
@@ -1795,12 +1907,12 @@ export function OggettiContent() {
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center justify-center gap-1 md:justify-end">
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1 || totalPages <= 1}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-40"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 active:scale-95 disabled:pointer-events-none disabled:opacity-40 md:h-9 md:w-9 md:rounded-lg"
                   aria-label={t('accountPage.itemsPrevPage')}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -1817,7 +1929,7 @@ export function OggettiContent() {
                         key={pageNum}
                         type="button"
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg text-sm font-medium transition-all ${
+                        className={`inline-flex h-11 min-w-[2.75rem] items-center justify-center rounded-xl text-sm font-medium transition-all md:h-9 md:min-w-[2.25rem] md:rounded-lg ${
                           currentPage === pageNum
                             ? 'bg-primary text-white shadow-sm shadow-primary/20'
                             : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -1834,7 +1946,7 @@ export function OggettiContent() {
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages || totalPages <= 1}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-40"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 active:scale-95 disabled:pointer-events-none disabled:opacity-40 md:h-9 md:w-9 md:rounded-lg"
                   aria-label={t('accountPage.itemsNextPage')}
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -1864,8 +1976,8 @@ export function OggettiContent() {
 
       {/* Sticky action bar */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/90 px-6 py-4 shadow-2xl backdrop-blur-lg">
-          <div className="mx-auto flex max-w-screen-xl items-center justify-between gap-4">
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200/80 bg-white/90 px-4 py-3 shadow-2xl backdrop-blur-xl pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6 md:py-4">
+          <div className="mx-auto flex max-w-screen-xl flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
             {/* Left */}
             <div className="flex items-center gap-3">
               <span className="text-sm font-bold text-gray-900">
@@ -1887,10 +1999,11 @@ export function OggettiContent() {
                 })}
               </span>
             )}
+            <div className="flex flex-col gap-2 sm:flex-row md:contents">
             <button
               type="button"
               onClick={() => setIsBulkPriceOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md active:scale-95"
+              className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.98] md:min-h-0 md:flex-none md:rounded-xl md:py-2.5"
             >
               <TrendingUp className="h-4 w-4" />
               {t('accountPage.itemsModifyPrices')}
@@ -1899,7 +2012,7 @@ export function OggettiContent() {
               type="button"
               onClick={() => setIsBulkDeleteOpen(true)}
               disabled={bulkDeleting}
-              className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-5 py-2.5 text-sm font-bold text-red-500 transition-all hover:border-red-400 hover:bg-red-50 active:scale-95 disabled:opacity-50"
+              className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-2xl border border-red-300 bg-white px-5 py-3 text-sm font-bold text-red-500 transition-all hover:border-red-400 hover:bg-red-50 active:scale-[0.98] disabled:opacity-50 md:min-h-0 md:flex-none md:rounded-xl md:py-2.5"
             >
               {bulkDeleting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1908,6 +2021,7 @@ export function OggettiContent() {
               )}
               {t('accountPage.itemsDeleteSelected')}
             </button>
+            </div>
           </div>
         </div>
       )}

@@ -24,11 +24,17 @@ export interface CartItem {
   product?: Product;
 }
 
+export type CartSellerAccountType = 'personal' | 'business';
+
 export interface MarketplaceCartLine {
   lineId: string;
   source: 'sync' | 'marketplace';
   listingId: string | number;
   sellerId: string;
+  /** Display name captured at add-to-cart time; enriched on cart page if missing. */
+  sellerDisplayName?: string;
+  /** Seller account type (personal / business). */
+  sellerAccountType?: CartSellerAccountType | null;
   blueprintId?: number;
   title: string;
   imageUrl: string;
@@ -78,6 +84,27 @@ export interface PublicUsersSearchResponse {
   success: boolean;
   data: {
     items: PublicUserProfile[];
+    total: number;
+    limit: number;
+    offset: number;
+  };
+}
+
+export interface PublicInventoryItem {
+  id: number;
+  blueprint_id: number;
+  quantity: number;
+  price_cents: number;
+  properties?: Record<string, unknown> | null;
+  description?: string | null;
+  graded?: boolean;
+  updated_at?: string | null;
+}
+
+export interface PublicUserCollectionResponse {
+  success: boolean;
+  data: {
+    items: PublicInventoryItem[];
     total: number;
     limit: number;
     offset: number;

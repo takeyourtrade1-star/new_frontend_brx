@@ -30,6 +30,7 @@ export function AuctionListingPhotoUpload({
   compact = false,
   uploadStatuses,
   photoMin = AUCTION_LISTING_PHOTO_MIN,
+  highlightPhotoId = null,
 }: {
   photos: ListingPhotoSlot[];
   onPhotosChange: (next: ListingPhotoSlot[]) => void;
@@ -39,6 +40,8 @@ export function AuctionListingPhotoUpload({
   uploadStatuses?: ListingPhotoUploadStatus[];
   /** Minimo foto richieste (asta: 2, marketplace VENDI: 1). */
   photoMin?: number;
+  /** Evidenzia thumbnail remota appena ricevuta via QR (id auction photo). */
+  highlightPhotoId?: number | null;
 }) {
   const { t } = useTranslation();
   const baseId = useId();
@@ -142,23 +145,25 @@ export function AuctionListingPhotoUpload({
           compact && 'grid-cols-2 gap-2 sm:grid-cols-2',
         )}
       >
-        {photos.map((_, slot) => {
-          const url = previewUrls[slot];
-          const galleryId = `${baseId}-gallery-${slot}`;
-          const cameraId = `${baseId}-camera-${slot}`;
+        {photos.map((slot, index) => {
+          const url = previewUrls[index];
+          const galleryId = `${baseId}-gallery-${index}`;
+          const cameraId = `${baseId}-camera-${index}`;
+          const remoteId = slot.kind === 'remote' ? slot.photo.id : null;
+          const isHighlighted = highlightPhotoId != null && remoteId === highlightPhotoId;
 
           return (
-            <div key={`filled-${slot}`} className={cn('flex flex-col gap-2', compact && 'gap-1')}>
+            <div key={`filled-${index}`} className={cn('flex flex-col gap-2', compact && 'gap-1')}>
               <p className={cn('text-xs font-bold uppercase tracking-wide text-gray-600', compact && 'text-[9px]')}>
-                {t('auctions.createPhotoSlotLabel', { n: slot + 1 })}
+                {t('auctions.createPhotoSlotLabel', { n: index + 1 })}
               </p>
               <div
                 role="group"
-                aria-label={t('auctions.createPhotoSlotLabel', { n: slot + 1 })}
+                aria-label={t('auctions.createPhotoSlotLabel', { n: index + 1 })}
                 onDragEnter={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setDragOverIndex(slot);
+                  setDragOverIndex(index);
                 }}
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -169,34 +174,35 @@ export function AuctionListingPhotoUpload({
                   e.preventDefault();
                   if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverIndex(null);
                 }}
-                onDrop={(e) => handleDrop(e, slot)}
+                onDrop={(e) => handleDrop(e, index)}
                 className={cn(
                   'relative flex min-h-[200px] flex-col overflow-hidden rounded-xl border-2 border-dashed bg-gray-50/80 transition-colors',
                   compact && 'min-h-0 rounded-lg border border-solid',
-                  dragOverIndex === slot ? 'border-[#FF7300] bg-orange-50/60' : 'border-gray-300',
-                  'border-solid border-gray-200 bg-white'
+                  dragOverIndex === index ? 'border-[#FF7300] bg-orange-50/60' : 'border-gray-300',
+                  'border-solid border-gray-200 bg-white',
+                  isHighlighted && 'ring-2 ring-emerald-400 ring-offset-2',
                 )}
               >
                 <input
-                  ref={(el) => setGalleryRef(slot, el)}
+                  ref={(el) => setGalleryRef(index, el)}
                   id={galleryId}
                   type="file"
                   accept="image/*"
                   className="sr-only"
                   onChange={(e) => {
-                    handleFileListAt(slot, e.target.files);
+                    handleFileListAt(index, e.target.files);
                     e.target.value = '';
                   }}
                 />
                 <input
-                  ref={(el) => setCameraRef(slot, el)}
+                  ref={(el) => setCameraRef(index, el)}
                   id={cameraId}
                   type="file"
                   accept="image/*"
                   capture="environment"
                   className="sr-only"
                   onChange={(e) => {
-                    handleFileListAt(slot, e.target.files);
+                    handleFileListAt(index, e.target.files);
                     e.target.value = '';
                   }}
                 />
@@ -209,7 +215,7 @@ export function AuctionListingPhotoUpload({
                       alt=""
                       className={cn('h-48 w-full object-contain sm:h-56', compact && 'h-20 w-full sm:h-20')}
                     />
-                    <UploadStatusOverlay status={uploadStatuses?.[slot]} compact={compact} />
+                    <UploadStatusOverlay status={uploadStatuses?.[index]} compact={compact} />
                     <div
                       className={cn(
                         'flex flex-wrap gap-2 border-t border-gray-100 bg-white/95 p-2',
@@ -218,7 +224,7 @@ export function AuctionListingPhotoUpload({
                     >
                       <button
                         type="button"
-                        onClick={() => replaceAt(slot, null)}
+                        onClick={() => replaceAt(index, null)}
                         className={cn(
                           'inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-800 transition hover:bg-red-100',
                           compact && 'px-1.5 py-0.5 text-[10px]',

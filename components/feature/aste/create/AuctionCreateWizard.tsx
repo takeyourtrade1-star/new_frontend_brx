@@ -39,12 +39,11 @@ import { useCreateAuction } from '@/lib/hooks/use-auctions';
 import { useUserCountry } from '@/lib/hooks/use-user-country';
 import type { AuctionCreatePayload } from '@/types/auction';
 import {
-  createPhotoPairingSession,
   deletePhoto as deleteUploadedPhoto,
-  listPairingSessionPhotos,
   uploadPhoto,
   type UploadedPhoto,
 } from '@/lib/api/auction-photo-client';
+import { usePhotoPairingSession } from '@/lib/hooks/use-photo-pairing-session';
 import { AuctionCreateCardPicker } from './AuctionCreateCardPicker';
 import {
   AuctionListingPhotoUpload,
@@ -170,12 +169,6 @@ export function AuctionCreateWizard({
   } | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
-  const [phoneUploadModalOpen, setPhoneUploadModalOpen] = useState(false);
-  const [pairingSessionId, setPairingSessionId] = useState<string | null>(null);
-  const [pairingUploadToken, setPairingUploadToken] = useState<string | null>(null);
-  const [pairingActionLoading, setPairingActionLoading] = useState(false);
-  const [pairingActionError, setPairingActionError] = useState<string | null>(null);
-  const pairingPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stepContentRef = useRef<HTMLDivElement>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
 
@@ -252,31 +245,6 @@ export function AuctionCreateWizard({
       });
   }, []);
 
-  const mergeRemotePhotosFromSession = useCallback(async (sessionId: string) => {
-    try {
-      const remote = await listPairingSessionPhotos(sessionId);
-      remote.sort((a, b) => a.id - b.id);
-      setDraft((d) => {
-        const existingIds = new Set(
-          d.listingPhotos
-            .filter((x): x is Extract<ListingPhotoSlot, { kind: 'remote' }> => x.kind === 'remote')
-            .map((x) => x.photo.id),
-        );
-        let next = [...d.listingPhotos];
-        for (const p of remote) {
-          if (existingIds.has(p.id)) continue;
-          if (next.length >= AUCTION_LISTING_PHOTO_MAX) break;
-          next.push({ kind: 'remote', photo: p });
-          existingIds.add(p.id);
-        }
-        if (next.length === d.listingPhotos.length) return d;
-        return { ...d, listingPhotos: next };
-      });
-    } catch {
-      // Polling: ignore transient errors
-    }
-  }, []);
-
   const setListingPhotos = useCallback(
     (next: ListingPhotoSlot[]) => {
       setDraft((d) => {
@@ -317,6 +285,17 @@ export function AuctionCreateWizard({
     },
     [photoUploads, startUploadFor],
   );
+
+  const pairing = usePhotoPairingSession({
+    stepId,
+    photoStepId: 'photos',
+    contextType: 'auction',
+    qrBasePath: '/c/asta-foto',
+    maxPhotos: AUCTION_LISTING_PHOTO_MAX,
+    listingPhotos: draft.listingPhotos,
+    setListingPhotos,
+    toastMessageKey: 'auctions.createPhotoReceivedFromPhone',
+  });
 
   // Allow user to retry a failed upload without removing the file first.
   const retryFailedUpload = useCallback(
@@ -368,72 +347,6 @@ export function AuctionCreateWizard({
         .map((s) => s.file),
     [draft.listingPhotos, photoUploads],
   );
-
-  const phonePairingQrUrl = useMemo(() => {
-    if (!pairingSessionId || !pairingUploadToken || typeof window === 'undefined') return '';
-    const u = new URL('/c/asta-foto', window.location.origin);
-    u.searchParams.set('sid', pairingSessionId);
-    u.searchParams.set('t', pairingUploadToken);
-    return u.toString();
-  }, [pairingSessionId, pairingUploadToken]);
-
-  useEffect(() => {
-    if (stepId !== 'photos') {
-      setPairingSessionId(null);
-      setPairingUploadToken(null);
-      setPhoneUploadModalOpen(false);
-      setPairingActionError(null);
-    }
-  }, [stepId]);
-
-  useEffect(() => {
-    if (stepId !== 'photos' || !pairingSessionId) {
-      if (pairingPollRef.current) {
-        clearInterval(pairingPollRef.current);
-        pairingPollRef.current = null;
-      }
-      return;
-    }
-    void mergeRemotePhotosFromSession(pairingSessionId);
-    pairingPollRef.current = setInterval(() => {
-      void mergeRemotePhotosFromSession(pairingSessionId);
-    }, 2000);
-    return () => {
-      if (pairingPollRef.current) {
-        clearInterval(pairingPollRef.current);
-        pairingPollRef.current = null;
-      }
-    };
-  }, [stepId, pairingSessionId, mergeRemotePhotosFromSession]);
-
-  const openPhoneUploadModal = useCallback(async () => {
-    setPairingActionError(null);
-    setPairingActionLoading(true);
-    try {
-      const created = await createPhotoPairingSession();
-      const rawTok = (created as unknown as Record<string, unknown>).upload_token;
-      const token = typeof rawTok === 'string' ? rawTok : '';
-      if (!token) {
-        setPairingActionError(
-          'Il server non ha restituito il codice di collegamento. Aggiorna il servizio auction e riprova.',
-        );
-        return;
-      }
-      setPairingSessionId(created.session_id);
-      setPairingUploadToken(token);
-      setPhoneUploadModalOpen(true);
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : 'Impossibile avviare la sessione. Riprova.';
-      setPairingActionError(msg);
-    } finally {
-      setPairingActionLoading(false);
-    }
-  }, []);
-
-  const closePhoneUploadModal = useCallback(() => {
-    setPhoneUploadModalOpen(false);
-  }, []);
 
   const stepperLabels = useMemo(() => {
     if (stepVariant === 'embedded') {
@@ -846,6 +759,7 @@ export function AuctionCreateWizard({
         endIso: created?.data?.end_time ?? payload.end_time,
       });
       setDone(true);
+      pairing.revokeOnPublish();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Errore nella creazione dell\'asta'
@@ -1645,27 +1559,52 @@ export function AuctionCreateWizard({
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
                 <button
                   type="button"
-                  onClick={() => void openPhoneUploadModal()}
-                  disabled={pairingActionLoading}
+                  onClick={() => void pairing.openPhoneUploadModal()}
+                  disabled={pairing.pairingActionLoading}
                   className={cn(
                     'inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#1D3160]/25 bg-[#f8f9fb] px-4 py-2.5 text-sm font-semibold text-[#1D3160] transition hover:border-[#FF7300]/50 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-60',
                     isEmbedded && 'py-2 text-xs',
                   )}
                 >
-                  {pairingActionLoading ? t('auctions.createPhotoFromPhoneLoading') : t('auctions.createPhotoFromPhone')}
+                  {pairing.pairingActionLoading ? t('auctions.createPhotoFromPhoneLoading') : t('auctions.createPhotoFromPhone')}
                 </button>
-                {pairingSessionId && !phoneUploadModalOpen ? (
+                {pairing.hasActiveSession ? (
+                  <p className="text-xs text-gray-600">
+                    {t('auctions.createPhotoPairingSessionActive', {
+                      count: String(pairing.remotePhotoCount),
+                      max: String(pairing.maxPhotos),
+                      minutes: String(pairing.expiresInMinutes ?? '—'),
+                    })}
+                  </p>
+                ) : null}
+                {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
                   <p className="text-xs text-gray-600">{t('auctions.createPhotoFromPhonePollingHint')}</p>
                 ) : null}
+                {pairing.phonePhotoToast ? (
+                  <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900">
+                    {pairing.phonePhotoToast}
+                  </p>
+                ) : null}
               </div>
-              {pairingActionError ? (
-                <p className="text-sm text-red-700">{pairingActionError}</p>
+              {pairing.pairingActionError ? (
+                <p className="text-sm text-red-700">{pairing.pairingActionError}</p>
+              ) : null}
+              {pairing.hasActiveSession ? (
+                <div className="flex flex-wrap gap-3 text-xs">
+                  <button type="button" onClick={() => void pairing.regenerateQr()} className="font-semibold text-[#1D3160] underline">
+                    {t('auctions.createPhotoPairingRegenerateQr')}
+                  </button>
+                  <button type="button" onClick={() => void pairing.revokePairing()} className="font-semibold text-gray-500 underline">
+                    {t('auctions.createPhotoPairingCloseSession')}
+                  </button>
+                </div>
               ) : null}
               <AuctionListingPhotoUpload
                 photos={draft.listingPhotos}
                 onPhotosChange={setListingPhotos}
                 compact={isEmbedded}
                 uploadStatuses={photoUploadStatuses}
+                highlightPhotoId={pairing.flashPhotoId}
               />
               {failedUploadFiles.length > 0 && (
                 <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
@@ -1924,7 +1863,7 @@ export function AuctionCreateWizard({
       )}
     </div>
 
-    {phoneUploadModalOpen && pairingSessionId && phonePairingQrUrl ? (
+    {pairing.phoneUploadModalOpen && pairing.pairingSessionId && pairing.phonePairingQrUrl ? (
       <div className="fixed inset-0 z-[85] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">
         <div
           role="dialog"
@@ -1942,12 +1881,12 @@ export function AuctionCreateWizard({
             {t('auctions.createPhotoFromPhoneModalCloseHint')}
           </p>
           <div className="mt-4 flex justify-center rounded-xl border border-gray-100 bg-white p-4">
-            <QRCodeSVG value={phonePairingQrUrl} size={200} level="M" />
+            <QRCodeSVG value={pairing.phonePairingQrUrl} size={200} level="M" />
           </div>
-          <p className="mt-2 break-all text-center text-[11px] text-gray-500">{phonePairingQrUrl}</p>
+          <p className="mt-2 break-all text-center text-[11px] text-gray-500">{pairing.phonePairingQrUrl}</p>
           <button
             type="button"
-            onClick={closePhoneUploadModal}
+            onClick={pairing.closePhoneUploadModal}
             className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
           >
             {t('auctions.createPhotoFromPhoneModalClose')}

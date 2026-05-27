@@ -8,6 +8,7 @@ export {
   uploadPhoto,
   deletePhoto,
   listPairingSessionPhotos,
+  revokePhotoPairingSession,
   type UploadedPhoto,
   type UploadOptions,
 } from '@/lib/api/auction-photo-client';

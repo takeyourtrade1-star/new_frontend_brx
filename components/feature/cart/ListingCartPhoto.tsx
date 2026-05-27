@@ -48,7 +48,7 @@ export function ListingCartPhoto({ listingId, fallbackImageUrl, alt }: ListingCa
   const src = listingPhotoUrl || resolveImageSrc(fallbackImageUrl);
 
   return (
-    <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-md bg-gray-100">
+    <div className="relative h-[4.5rem] w-[3.25rem] shrink-0 overflow-hidden rounded-xl bg-neutral-100 ring-1 ring-black/5">
       {src ? (
         <Image src={src} alt={alt} fill className="object-contain" sizes="48px" unoptimized />
       ) : (

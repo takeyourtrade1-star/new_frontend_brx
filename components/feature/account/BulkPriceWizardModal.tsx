@@ -146,8 +146,7 @@ export function BulkPriceWizardModal({
   const handleConfirm = () => {
     const ids = Array.from(effectiveIds);
     if (ids.length === 0) return;
-    onApply(ids, operation, percent, platform);
-    onClose();
+    void Promise.resolve(onApply(ids, operation, percent, platform)).then(() => onClose());
   };
 
   if (!isOpen) return null;

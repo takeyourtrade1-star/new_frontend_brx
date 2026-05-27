@@ -27,8 +27,13 @@ import type {
 
 const KEYS = {
   all: ['auctions'] as const,
-  list: (params?: { q?: string; status?: string; limit?: number; offset?: number }) =>
-    ['auctions', 'list', params ?? {}] as const,
+  list: (params?: {
+    q?: string;
+    status?: string;
+    created_by_user_id?: string;
+    limit?: number;
+    offset?: number;
+  }) => ['auctions', 'list', params ?? {}] as const,
   detail: (id: number) => ['auctions', 'detail', id] as const,
   bids: (auctionId: number) => ['auctions', 'bids', auctionId] as const,
   minBid: (auctionId: number) => ['auctions', 'minBid', auctionId] as const,
@@ -37,6 +42,7 @@ const KEYS = {
 export function useAuctionList(params?: {
   q?: string;
   status?: string;
+  created_by_user_id?: string;
   limit?: number;
   offset?: number;
 }, options?: Partial<UseQueryOptions<AuctionListResponse>>) {
