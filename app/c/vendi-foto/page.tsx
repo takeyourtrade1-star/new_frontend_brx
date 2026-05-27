@@ -40,7 +40,7 @@ export default async function VendiFotoGuestPage({
 
   return (
     <main className="min-h-dvh">
-      <AuctionMobilePairingUpload sessionId={sid} uploadToken={uploadToken} />
+      <AuctionMobilePairingUpload sessionId={sid} uploadToken={uploadToken} context="listing" />
     </main>
   );
 }

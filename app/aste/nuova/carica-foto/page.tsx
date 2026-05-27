@@ -36,7 +36,7 @@ export default async function AsteNuovaCaricaFotoPage({
 
   return (
     <main className="min-h-dvh bg-white">
-      <AuctionMobilePairingUpload sessionId={sid} />
+      <AuctionMobilePairingUpload sessionId={sid} context="auction" />
     </main>
   );
 }

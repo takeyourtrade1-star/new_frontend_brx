@@ -40,7 +40,7 @@ export default async function AstaFotoGuestPage({
 
   return (
     <main className="min-h-dvh">
-      <AuctionMobilePairingUpload sessionId={sid} uploadToken={uploadToken} />
+      <AuctionMobilePairingUpload sessionId={sid} uploadToken={uploadToken} context="auction" />
     </main>
   );
 }
