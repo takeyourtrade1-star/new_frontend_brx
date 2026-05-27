@@ -75,6 +75,7 @@ import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-u
 import { formatEuroNoSpace } from '@/lib/utils';
 import { BulkPriceWizardModal } from '@/components/feature/account/BulkPriceWizardModal';
 import { BulkDeleteModal } from '@/components/feature/account/BulkDeleteModal';
+import { OggettiMobileList } from '@/components/feature/account/OggettiMobileList';
 
 function buildImageUrl(raw: string | null | undefined): string | null {
   if (raw == null || raw === '') return null;
@@ -181,6 +182,7 @@ function OggettiTable({
   onDeleteSelected,
   bulkDeleting,
   viewMode = 'table',
+  isMobile = false,
   t,
 }: {
   items: InventoryItemWithCatalog[];
@@ -201,6 +203,7 @@ function OggettiTable({
   onDeleteSelected?: (ids: number[]) => void;
   bulkDeleting?: boolean;
   viewMode?: OggettiViewMode;
+  isMobile?: boolean;
   t: (key: import('@/lib/i18n/messages/en').MessageKey, vars?: Record<string, string | number>) => string;
 }) {
   const router = useRouter();
@@ -377,10 +380,53 @@ function OggettiTable({
     }
   };
 
+  if (isMobile) {
+    return (
+      <RarityLegendProvider>
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <OggettiMobileList
+            items={items}
+            buildImageUrl={buildImageUrl}
+            defaultImage={defaultImage}
+            selectedLang={selectedLang}
+            selectedIds={selectedIds}
+            onToggleSelect={onToggleSelect}
+            selectionMode={selectionMode}
+            mutationsDisabled={mutationsDisabled}
+            deletingId={deletingId}
+            qtyUpdatingId={qtyUpdatingId}
+            onEdit={setEditItem}
+            onDelete={handleDelete}
+            onQtyDelta={handleQtyDelta}
+            t={t}
+          />
+        </div>
+        {actionError && (
+          <div className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {actionError}
+          </div>
+        )}
+        {editItem && (
+          <InventoryEditModal
+            item={editItem}
+            onClose={() => {
+              setEditItem(null);
+              setActionError(null);
+            }}
+            onSubmit={handleEditSubmit}
+            saving={saving}
+            conditionOptions={INVENTORY_CONDITION_OPTIONS}
+            langOptions={INVENTORY_LANG_OPTIONS_EDIT}
+          />
+        )}
+      </RarityLegendProvider>
+    );
+  }
+
   if (viewMode === 'cards') {
     return (
       <RarityLegendProvider>
-      <div className="grid grid-cols-2 gap-3 md:gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5">
+      <div className="hidden grid-cols-2 gap-5 md:grid lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5">
         {items.map((item) => {
           const imgUrl = item.card?.image
             ? buildImageUrl(item.card.image) || defaultImage
@@ -1016,7 +1062,6 @@ export function OggettiContent() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const { searchValue, setSearchValue, clearSearch } = useInventorySearchInput(filters, setFilters);
-  const effectiveViewMode: OggettiViewMode = isMobile ? 'cards' : viewMode;
 
   /** Verifica lato frontend: chiamate al sync service solo se integrazione marketplace attiva. */
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
@@ -1623,11 +1668,42 @@ export function OggettiContent() {
         onMobileFiltersOpenChange={setMobileFiltersOpen}
       />
       <main className="min-w-0 flex-1 overflow-x-hidden p-0 md:p-6">
-        {/* Toolbar mobile: ricerca sticky + filtri */}
+        {/* Toolbar mobile unificata */}
         <div
-          className="sticky z-40 -mx-3 mb-3 border-b border-white/40 bg-[#F5F4F0]/85 px-3 py-2.5 shadow-[0_4px_24px_rgba(0,0,0,0.06)] backdrop-blur-xl md:hidden"
+          className="sticky z-40 -mx-3 mb-2 space-y-2.5 border-b border-gray-200/60 bg-[#F5F4F0]/95 px-3 pb-3 pt-2 backdrop-blur-xl md:hidden"
           style={{ top: stickyTopWithGap }}
         >
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="truncate text-lg font-bold text-gray-900">{t('accountPage.itemsTitle')}</h1>
+            <div className="flex shrink-0 items-center gap-1">
+              {!syncStatusLoading && (
+                <button
+                  type="button"
+                  onClick={() => void handleSyncNow()}
+                  disabled={!integrationConnected || !canSyncNow || syncAnyPending}
+                  className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-white shadow-sm disabled:opacity-50"
+                  aria-label="Sync"
+                  title="Sync"
+                >
+                  {syncNowPending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-5 w-5" />
+                  )}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setExportModalOpen(true)}
+                disabled={loading || filteredInventoryItems.length === 0}
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm disabled:opacity-50"
+                aria-label={t('accountPage.itemsExport')}
+                title={t('accountPage.itemsExport')}
+              >
+                <Download className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <InventorySearchBar
               value={searchValue}
@@ -1635,12 +1711,13 @@ export function OggettiContent() {
               onClear={clearSearch}
               disabled={loading}
               className="min-w-0 flex-1"
+              inputClassName="rounded-xl border-gray-200 bg-white py-2.5 pl-10 pr-10 text-sm shadow-sm backdrop-blur-none"
             />
             <button
               type="button"
               onClick={() => setMobileFiltersOpen(true)}
               disabled={loading}
-              className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/60 bg-white/80 text-gray-700 shadow-sm backdrop-blur-md transition-all hover:border-primary/30 hover:text-primary active:scale-95 disabled:opacity-50"
+              className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm active:scale-95 disabled:opacity-50"
               aria-label={t('accountPage.itemsFiltersOpen')}
             >
               <SlidersHorizontal className="h-5 w-5" aria-hidden />
@@ -1651,10 +1728,18 @@ export function OggettiContent() {
               )}
             </button>
           </div>
+          <InventorySortBar
+            compact
+            sortBy={filters.sortBy}
+            onSortChange={(sortBy) => setFilters((prev) => ({ ...prev, sortBy }))}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            itemCount={filteredInventoryItems.length}
+          />
         </div>
 
         <nav
-          className="mb-3 flex items-center gap-1.5 px-0.5 text-sm text-gray-500 md:mb-5"
+          className="mb-3 hidden items-center gap-1.5 px-0.5 text-sm text-gray-500 md:mb-5 md:flex"
           aria-label="Breadcrumb"
         >
           <Link href="/account" className="transition-colors hover:text-gray-900">
@@ -1688,7 +1773,7 @@ export function OggettiContent() {
           </div>
         )}
 
-        <div className="mb-3 flex flex-wrap items-center justify-end gap-2 md:mb-4">
+        <div className="mb-3 hidden flex-wrap items-center justify-end gap-2 md:mb-4 md:flex">
           {!syncStatusLoading && (
             <button
               type="button"
@@ -1722,7 +1807,6 @@ export function OggettiContent() {
           onViewModeChange={setViewMode}
           itemCount={filteredInventoryItems.length}
         />
-
 
       {error && (
         <div className="mb-6 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -1766,7 +1850,7 @@ export function OggettiContent() {
       ) : (
         <>
           {filteredInventoryItems.length > 0 && (
-            <div className="mb-4 overflow-hidden rounded-2xl border border-stroke-grey bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] md:mb-5">
+            <div className="mb-4 hidden overflow-hidden rounded-2xl border border-stroke-grey bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] md:mb-5 md:block">
               <div className="flex flex-col gap-3 px-3 py-3 md:flex-row md:flex-wrap md:items-center md:justify-between md:px-4">
                 {/* Counter */}
                 <div className="flex items-center gap-3">
@@ -1872,11 +1956,12 @@ export function OggettiContent() {
             allFilteredSelected={allFilteredSelected}
             onDeleteSelected={(ids) => onDeleteSelected(ids)}
             bulkDeleting={bulkDeleting}
-            viewMode={effectiveViewMode}
+            viewMode={viewMode}
+            isMobile={isMobile}
             t={t}
           />
           {filteredInventoryItems.length > 0 && (
-            <div className="mt-4 flex flex-col gap-3 rounded-xl bg-white p-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)] md:mt-6 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
+            <div className="mt-3 flex flex-col gap-2 rounded-xl bg-white p-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] max-md:mb-20 md:mt-6 md:gap-3 md:p-3 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className="text-gray-500">
                   {t('accountPage.itemsPage')} <span className="font-semibold text-gray-900">{currentPage}</span> {t('accountPage.itemsOf')}{' '}

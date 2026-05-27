@@ -25,6 +25,8 @@ interface InventorySortBarProps {
   viewMode: 'table' | 'cards';
   onViewModeChange: (mode: 'table' | 'cards') => void;
   itemCount: number;
+  /** Vista compatta mobile: select ordinamento invece dei pill. */
+  compact?: boolean;
 }
 
 export function InventorySortBar({
@@ -33,15 +35,41 @@ export function InventorySortBar({
   viewMode,
   onViewModeChange,
   itemCount,
+  compact = false,
 }: InventorySortBarProps) {
+  if (compact) {
+    return (
+      <div className="mb-3 flex items-center gap-2 md:hidden">
+        <label className="sr-only" htmlFor="inventory-sort-mobile">
+          Ordina per
+        </label>
+        <select
+          id="inventory-sort-mobile"
+          value={sortBy}
+          onChange={(e) => onSortChange(e.target.value as SortBy)}
+          className="min-h-[44px] flex-1 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+        >
+          {SORT_PILLS.map((pill) => (
+            <option key={pill.value} value={pill.value}>
+              {pill.label}
+            </option>
+          ))}
+        </select>
+        <span className="shrink-0 text-xs tabular-nums text-gray-500">
+          {itemCount.toLocaleString('it-IT')}
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div className="mb-4 flex flex-col gap-2.5 rounded-2xl border border-gray-200/70 bg-white/80 px-3 py-2.5 shadow-sm backdrop-blur-sm md:mb-4 md:flex-row md:flex-wrap md:items-center md:gap-3 md:rounded-xl md:px-4">
+    <div className="mb-4 hidden flex-col gap-2.5 rounded-2xl border border-gray-200/70 bg-white/80 px-3 py-2.5 shadow-sm backdrop-blur-sm md:mb-4 md:flex md:flex-row md:flex-wrap md:items-center md:gap-3 md:rounded-xl md:px-4">
       <div className="flex min-w-0 items-center justify-between gap-2 md:contents">
         <span className="shrink-0 text-sm text-gray-500">
           <span className="font-semibold tabular-nums text-gray-900">
             {itemCount.toLocaleString('it-IT')}
           </span>{' '}
-          <span className="max-md:text-xs">carte trovate</span>
+          <span>carte trovate</span>
         </span>
 
         <div className="hidden items-center rounded-lg bg-gray-100 p-1 md:flex">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, type CSSProperties } from 'react';
+import { useState, useCallback, useEffect, useRef, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, SlidersHorizontal, X } from 'lucide-react';
 import { ConditionBadge } from '@/components/ui/ConditionBadge';
@@ -8,6 +8,7 @@ import type { ConditionCode } from '@/components/ui/ConditionBadge';
 import { CardLanguageFlag } from '@/components/ui/CardLanguageFlag';
 import { InventorySearchBar } from '@/components/feature/account/InventorySearchBar';
 import { useHeaderStickyOffset } from '@/lib/hooks/useHeaderStickyOffset';
+import { useFixedSidebarFooterClamp } from '@/lib/hooks/useFixedSidebarFooterClamp';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { InventoryFacets } from '@/lib/inventory/inventory-filter-utils';
 
@@ -111,6 +112,13 @@ export function InventoryFiltersPanel({
 }: InventoryFiltersPanelProps) {
   const { t } = useTranslation();
   const { stickyTopWithGap } = useHeaderStickyOffset();
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const { top: clampedTop, maxHeight: clampedMaxHeight } = useFixedSidebarFooterClamp(
+    panelRef,
+    stickyTopWithGap
+  );
+  const [panelLeft, setPanelLeft] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpenInternal, setMobileOpenInternal] = useState(false);
   const mobileOpen = mobileFiltersOpen ?? mobileOpenInternal;
@@ -597,22 +605,49 @@ export function InventoryFiltersPanel({
 
   const panelWidth = collapsed ? 48 : 280;
 
-  const stickyPanelStyle: CSSProperties = {
-    top: stickyTopWithGap,
+  useEffect(() => {
+    const anchor = anchorRef.current;
+    if (!anchor) return;
+
+    const syncLeft = () => {
+      setPanelLeft(anchor.getBoundingClientRect().left);
+    };
+
+    syncLeft();
+    window.addEventListener('scroll', syncLeft, { passive: true });
+    window.addEventListener('resize', syncLeft);
+    const ro = new ResizeObserver(syncLeft);
+    ro.observe(anchor);
+
+    return () => {
+      window.removeEventListener('scroll', syncLeft);
+      window.removeEventListener('resize', syncLeft);
+      ro.disconnect();
+    };
+  }, [panelWidth, collapsed]);
+
+  const fixedPanelStyle: CSSProperties = {
+    top: clampedTop,
+    left: panelLeft,
     width: panelWidth,
   };
 
-  const panelMaxHeight = `calc(100vh - ${stickyTopWithGap}px)`;
-
   return (
     <>
+      <div
+        ref={anchorRef}
+        className="hidden shrink-0 transition-all duration-300 md:block"
+        style={{ width: panelWidth }}
+        aria-hidden
+      />
       <aside
-        className="sticky z-30 hidden shrink-0 self-start flex-col transition-all duration-300 md:flex"
-        style={stickyPanelStyle}
+        ref={panelRef}
+        className="fixed z-30 hidden flex-col transition-[top,width,left] duration-200 ease-out md:flex"
+        style={fixedPanelStyle}
       >
         <div
           className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white/70 shadow-sm backdrop-blur-md"
-          style={{ maxHeight: panelMaxHeight }}
+          style={{ maxHeight: clampedMaxHeight }}
         >
           <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3">
             {!collapsed && (
