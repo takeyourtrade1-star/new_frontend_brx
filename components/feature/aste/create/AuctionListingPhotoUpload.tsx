@@ -29,6 +29,7 @@ export function AuctionListingPhotoUpload({
   onPhotosChange,
   compact = false,
   uploadStatuses,
+  photoMin = AUCTION_LISTING_PHOTO_MIN,
 }: {
   photos: ListingPhotoSlot[];
   onPhotosChange: (next: ListingPhotoSlot[]) => void;
@@ -36,6 +37,8 @@ export function AuctionListingPhotoUpload({
   compact?: boolean;
   /** Stato di upload allineato con `photos` (stessa lunghezza, stesso ordine). */
   uploadStatuses?: ListingPhotoUploadStatus[];
+  /** Minimo foto richieste (asta: 2, marketplace VENDI: 1). */
+  photoMin?: number;
 }) {
   const { t } = useTranslation();
   const baseId = useId();
@@ -117,7 +120,7 @@ export function AuctionListingPhotoUpload({
       {!compact ? (
         <p className="text-sm text-gray-600">
           {t('auctions.createStepPhotosIntro', {
-            min: AUCTION_LISTING_PHOTO_MIN,
+            min: photoMin,
             max: AUCTION_LISTING_PHOTO_MAX,
           })}
         </p>
@@ -129,7 +132,7 @@ export function AuctionListingPhotoUpload({
       <p className={cn('text-xs font-semibold text-[#1D3160]/80', compact && 'text-[10px]')}>
         {t('auctions.createPhotoCountHint', {
           current: photos.length,
-          min: AUCTION_LISTING_PHOTO_MIN,
+          min: photoMin,
           max: AUCTION_LISTING_PHOTO_MAX,
         })}
       </p>
@@ -236,7 +239,7 @@ export function AuctionListingPhotoUpload({
           <div className={cn('flex flex-col gap-2', compact && 'gap-1')}>
             <p className={cn('text-xs font-bold uppercase tracking-wide text-gray-600', compact && 'text-[9px]')}>
               {t('auctions.createPhotoSlotLabel', { n: photos.length + 1 })}
-              {photos.length + 1 > AUCTION_LISTING_PHOTO_MIN ? (
+              {photos.length + 1 > photoMin ? (
                 <span className="ml-1 font-normal normal-case text-gray-400">
                   ({t('auctions.createPhotoOptionalSlot')})
                 </span>
@@ -388,16 +391,20 @@ function UploadStatusOverlay({
   );
 }
 
-export function listingPhotosComplete(photos: ListingPhotoSlot[]): boolean {
-  return photos.length >= AUCTION_LISTING_PHOTO_MIN && photos.length <= AUCTION_LISTING_PHOTO_MAX;
+export function listingPhotosComplete(
+  photos: ListingPhotoSlot[],
+  photoMin: number = AUCTION_LISTING_PHOTO_MIN,
+): boolean {
+  return photos.length >= photoMin && photos.length <= AUCTION_LISTING_PHOTO_MAX;
 }
 
 /** True quando il numero di foto è valido E ogni foto locale è stata finalizzata su CDN. */
 export function listingPhotosReady(
   photos: ListingPhotoSlot[],
   uploadStatuses: ListingPhotoUploadStatus[] | undefined,
+  photoMin: number = AUCTION_LISTING_PHOTO_MIN,
 ): boolean {
-  if (!listingPhotosComplete(photos)) return false;
+  if (!listingPhotosComplete(photos, photoMin)) return false;
   if (!uploadStatuses) return false;
   if (uploadStatuses.length !== photos.length) return false;
   return uploadStatuses.every((s) => s.kind === 'done');

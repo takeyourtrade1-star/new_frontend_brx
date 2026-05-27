@@ -48,8 +48,20 @@ import {
   listingRowKey,
   mapPublicListingToListingItem,
 } from '@/lib/marketplace/listing-map';
+
+const MARKETPLACE_LISTINGS_TIMEOUT_MS = 8000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => {
+      setTimeout(() => resolve(fallback), ms);
+    }),
+  ]);
+}
 import { MarketplaceListingEditModal } from '@/components/feature/vendite/MarketplaceListingEditModal';
 import { fetchPublicUserProfiles } from '@/lib/api/user-names-cache';
+import { prefetchListingCoverPhotos } from '@/lib/api/listing-photo-client';
 import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
 import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { buildPriceHistoryPoints } from '@/lib/product-detail/build-price-history-points';
@@ -765,13 +777,19 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setListingsLoading(true);
     setListingsError(null);
     try {
+      const emptyMarketplace = {
+        blueprint_id: blueprintId,
+        items: [] as const,
+        total: 0,
+      };
+
       const [syncResult, mktResult] = await Promise.allSettled([
         syncClient.getListingsByBlueprint(blueprintId),
-        getPublicListingsByBlueprint(blueprintId, card?.id).catch(() => ({
-          blueprint_id: blueprintId,
-          items: [],
-          total: 0,
-        })),
+        withTimeout(
+          getPublicListingsByBlueprint(blueprintId, card?.id).catch(() => emptyMarketplace),
+          MARKETPLACE_LISTINGS_TIMEOUT_MS,
+          emptyMarketplace,
+        ),
       ]);
 
       const syncListings: ListingItem[] =
@@ -790,22 +808,37 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         throw syncResult.reason;
       }
 
+      // Show rows immediately; enrich seller display names + photos in the background.
+      setListings(rawListings);
+      setListingsLoading(false);
+
+      const marketplaceIds = marketplaceListings
+        .map((l) => l.marketplace_listing_id)
+        .filter((id): id is string => Boolean(id));
+      if (marketplaceIds.length > 0) {
+        void prefetchListingCoverPhotos(marketplaceIds);
+      }
+
       const sellerIds = [...new Set(rawListings.map((l) => l.seller_id).filter(Boolean))];
-      const profiles = sellerIds.length > 0 ? await fetchPublicUserProfiles(sellerIds) : {};
-      const enriched: ListingItem[] = rawListings.map((l) => {
-        const profile = profiles[l.seller_id];
-        return {
-          ...l,
-          seller_display_name: profile?.username ?? l.seller_display_name,
-          country: profile?.country_code ?? l.country ?? null,
-          seller_account_type: profile?.account_type ?? null,
-        };
-      });
-      setListings(enriched);
+      if (sellerIds.length === 0) return;
+
+      const profiles = await fetchPublicUserProfiles(sellerIds);
+      setListings((prev) =>
+        prev.map((l) => {
+          const profile = profiles[l.seller_id];
+          if (!profile) return l;
+          return {
+            ...l,
+            seller_display_name: profile.username ?? l.seller_display_name,
+            country: profile.country_code ?? l.country ?? null,
+            seller_account_type: profile.account_type ?? null,
+          };
+        }),
+      );
+      return;
     } catch (err) {
       setListings([]);
       setListingsError(err instanceof Error ? err.message : 'Errore caricamento venditori');
-    } finally {
       setListingsLoading(false);
     }
   }, [card?.cardtrader_id, card?.id]);
@@ -1211,7 +1244,13 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const trendRangeLabel = effectiveTrendStats.rangeLabel;
   const handleSellSinglePublished = useCallback(async () => {
     setListingActionMessage('Inserzione pubblicata con successo.');
+    setSellerSubTab('VENDITORI');
     await refreshListings();
+    requestAnimationFrame(() => {
+      document
+        .getElementById('pd-market-panel-VENDITORI')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   }, [refreshListings]);
 
   // Mock multiple images for swipe demo (front/back of card)

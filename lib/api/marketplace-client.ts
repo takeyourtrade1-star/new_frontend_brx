@@ -77,9 +77,14 @@ export interface MarketplaceSyncConfig {
 
 function getMarketplaceBaseUrl(): string {
   if (typeof window !== 'undefined') return '/api/marketplace';
-  const base = process.env.NEXT_PUBLIC_MARKETPLACE_API_URL || 'https://api.ebartex.com/marketplace';
+  const base = process.env.NEXT_PUBLIC_MARKETPLACE_API_URL || 'https://marketplace-api.ebartex.com';
   return `${base.replace(/\/+$/, '')}/api/v1`;
 }
+
+const MARKETPLACE_FETCH_TIMEOUT_MS = 10000;
+
+const MARKETPLACE_TIMEOUT_MESSAGE =
+  'Marketplace non raggiungibile (timeout). Riprova tra poco.';
 
 async function marketplaceFetch<T>(
   path: string,
@@ -93,10 +98,24 @@ async function marketplaceFetch<T>(
     ...(options.headers ?? {}),
   };
 
-  const res = await fetch(`${getMarketplaceBaseUrl()}${path}`, {
-    ...options,
-    headers,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), MARKETPLACE_FETCH_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(`${getMarketplaceBaseUrl()}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new MarketplaceApiError(504, MARKETPLACE_TIMEOUT_MESSAGE);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (res.status === 401 && !retried && typeof window !== 'undefined') {
     const newToken = await tokenManager.ensureFreshToken();
@@ -107,6 +126,9 @@ async function marketplaceFetch<T>(
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
+    if (res.status === 504) {
+      throw new MarketplaceApiError(504, MARKETPLACE_TIMEOUT_MESSAGE);
+    }
     throw new MarketplaceApiError(res.status, parseMarketplaceErrorBody(body, res.status));
   }
 

@@ -70,8 +70,10 @@ export type AuctionCreateDraft = {
   listingPhotos: ListingPhotoSlot[];
 };
 
-/** Minimo foto richieste per pubblicare l'inserzione. */
+/** Minimo foto richieste per pubblicare un'asta. */
 export const AUCTION_LISTING_PHOTO_MIN = 2;
+/** Minimo foto per inserzione marketplace (flusso VENDI). 0 = opzionale. */
+export const MARKETPLACE_LISTING_PHOTO_MIN = 0;
 /** Massimo foto consentite. */
 export const AUCTION_LISTING_PHOTO_MAX = 4;
 

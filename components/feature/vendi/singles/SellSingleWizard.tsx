@@ -6,7 +6,7 @@ import { Check, ChevronLeft, ChevronRight, Loader2, Tag } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   AUCTION_LISTING_PHOTO_MAX,
-  AUCTION_LISTING_PHOTO_MIN,
+  MARKETPLACE_LISTING_PHOTO_MIN,
   type ListingPhotoSlot,
 } from '@/lib/auction/auction-create-draft';
 import { createListing, MarketplaceApiError } from '@/lib/api/marketplace-client';
@@ -43,6 +43,7 @@ import {
 } from './ListingPhotoUpload';
 import { SellSingleDetailsStep } from './SellSingleDetailsStep';
 import { SellSingleConfirmStep } from './SellSingleConfirmStep';
+import { SellWizardLightbox, SellWizardModal } from './SellWizardModal';
 
 type WizardStepId = 'details' | 'confirm';
 
@@ -78,6 +79,7 @@ export function SellSingleWizard({
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [publishSubmitting, setPublishSubmitting] = useState(false);
+  const [publishStage, setPublishStage] = useState<'creating' | 'photos' | null>(null);
   const [done, setDone] = useState(false);
   const [publishToast, setPublishToast] = useState<{ message: string; type: 'success' | 'error' } | null>(
     null,
@@ -92,6 +94,7 @@ export function SellSingleWizard({
   };
   const [photoUploads, setPhotoUploads] = useState<Map<File, PhotoUploadEntry>>(() => new Map());
   const [phoneUploadModalOpen, setPhoneUploadModalOpen] = useState(false);
+  const [qrCodeSize, setQrCodeSize] = useState(168);
   const [pairingSessionId, setPairingSessionId] = useState<string | null>(null);
   const [pairingUploadToken, setPairingUploadToken] = useState<string | null>(null);
   const [pairingActionLoading, setPairingActionLoading] = useState(false);
@@ -282,6 +285,16 @@ export function SellSingleWizard({
   }, [pairingSessionId, pairingUploadToken]);
 
   useEffect(() => {
+    if (!phoneUploadModalOpen) return;
+    const updateSize = () => {
+      setQrCodeSize(Math.min(176, Math.max(140, Math.floor(window.innerWidth * 0.42))));
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, [phoneUploadModalOpen]);
+
+  useEffect(() => {
     if (stepId !== 'confirm') {
       setPairingSessionId(null);
       setPairingUploadToken(null);
@@ -355,10 +368,15 @@ export function SellSingleWizard({
   }, [user?.id, accessToken, embeddedCard.id, unitPrice, quantity]);
 
   const validatePhotos = useCallback((): boolean => {
+    // Foto opzionali: blocca solo se l'utente ne ha aggiunte ma non sono pronte.
+    if (draft.listingPhotos.length === 0) {
+      setError(null);
+      return true;
+    }
     if (!allPhotosUploaded) {
       setError(
         t('auctions.createContinueDisabledFooter', {
-          min: AUCTION_LISTING_PHOTO_MIN,
+          min: MARKETPLACE_LISTING_PHOTO_MIN,
           max: AUCTION_LISTING_PHOTO_MAX,
         }),
       );
@@ -366,7 +384,7 @@ export function SellSingleWizard({
     }
     setError(null);
     return true;
-  }, [allPhotosUploaded, t]);
+  }, [allPhotosUploaded, draft.listingPhotos.length, t]);
 
   const goNext = () => {
     if (stepId === 'details') {
@@ -406,15 +424,11 @@ export function SellSingleWizard({
     }
 
     const photoIds = collectPhotoIds();
-    if (photoIds.length < AUCTION_LISTING_PHOTO_MIN) {
-      setError(
-        t('vendi.sell.validationPhotosMin').replace('{min}', String(AUCTION_LISTING_PHOTO_MIN)),
-      );
-      setStepId('confirm');
-      return;
-    }
+
+    const ATTACH_PHOTOS_TIMEOUT_MS = 10_000;
 
     setPublishSubmitting(true);
+    setPublishStage('creating');
     setError(null);
     setActionMessage(null);
     try {
@@ -427,11 +441,47 @@ export function SellSingleWizard({
         condition: syncConditionToMarketplace(draft.condition),
         language: syncLanguageToMarketplace(draft.language),
       });
-      await attachListingPhotos(listing.id, photoIds);
-      setActionMessage('Inserzione pubblicata con successo.');
-      setPublishToast({ message: 'Inserzione pubblicata sul marketplace EBARTEX.', type: 'success' });
+
+      let photosWarning: string | null = null;
+      if (photoIds.length > 0) {
+        setPublishStage('photos');
+        try {
+          await Promise.race([
+            attachListingPhotos(listing.id, photoIds),
+            new Promise<never>((_, reject) => {
+              setTimeout(
+                () => reject(new Error('Collegamento foto in timeout')),
+                ATTACH_PHOTOS_TIMEOUT_MS,
+              );
+            }),
+          ]);
+        } catch (attachErr) {
+          photosWarning =
+            attachErr instanceof Error
+              ? attachErr.message
+              : 'Collegamento foto non completato';
+        }
+      }
+
+      const successMsg = photosWarning
+        ? 'Inserzione creata. Le foto potrebbero non essere ancora collegate — riprova dalla modifica inserzione.'
+        : 'Inserzione pubblicata con successo.';
+      setActionMessage(successMsg);
+      setPublishToast({
+        message: photosWarning
+          ? 'Inserzione pubblicata; collegamento foto in sospeso.'
+          : 'Inserzione pubblicata sul marketplace EBARTEX.',
+        type: photosWarning ? 'error' : 'success',
+      });
+      if (photosWarning) {
+        setError(photosWarning);
+      }
       setDone(true);
-      await onPublished?.();
+      try {
+        await onPublished?.();
+      } catch (refreshErr) {
+        console.warn('[SellSingleWizard] onPublished failed:', refreshErr);
+      }
     } catch (e) {
       const msg =
         e instanceof MarketplaceApiError
@@ -443,6 +493,7 @@ export function SellSingleWizard({
       setActionMessage(msg);
     } finally {
       setPublishSubmitting(false);
+      setPublishStage(null);
     }
   };
 
@@ -457,7 +508,8 @@ export function SellSingleWizard({
 
   const stepLabels = ['Dettagli', 'Foto e conferma'];
   const stepIndex = stepId === 'details' ? 0 : 1;
-  const continueDisabled = stepId === 'confirm' && !allPhotosUploaded;
+  const continueDisabled =
+    stepId === 'confirm' && draft.listingPhotos.length > 0 && !allPhotosUploaded;
 
   const stepHeading =
     stepId === 'details' ? 'Dettagli inserzione' : t('vendi.sell.stepConfirm');
@@ -668,7 +720,11 @@ export function SellSingleWizard({
                   ) : (
                     <Tag className="h-3.5 w-3.5" aria-hidden />
                   )}
-                  Pubblica
+                  {publishSubmitting
+                    ? publishStage === 'photos'
+                      ? 'Foto…'
+                      : 'Pubblicazione…'
+                    : 'Pubblica'}
                 </button>
               )}
             </div>
@@ -676,124 +732,111 @@ export function SellSingleWizard({
         </div>
       </div>
 
-      {phoneUploadModalOpen && pairingSessionId && phonePairingQrUrl ? (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="sell-phone-upload-qr-title"
-            className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl"
+      <SellWizardModal
+        open={Boolean(phoneUploadModalOpen && pairingSessionId && phonePairingQrUrl)}
+        onClose={() => setPhoneUploadModalOpen(false)}
+        title={t('vendi.sell.photoFromPhoneModalTitle')}
+        titleId="sell-phone-upload-qr-title"
+        footer={
+          <button
+            type="button"
+            onClick={() => setPhoneUploadModalOpen(false)}
+            className="w-full rounded-xl bg-[#1D3160] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1D3160]/90"
           >
-            <h2 id="sell-phone-upload-qr-title" className="text-lg font-bold uppercase tracking-wide text-[#1D3160]">
-              {t('vendi.sell.photoFromPhoneModalTitle')}
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-gray-700">
-              {t('vendi.sell.photoFromPhoneModalBody')}
-            </p>
-            <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
-              {t('vendi.sell.photoFromPhoneModalCloseHint')}
-            </p>
-            <div className="mt-4 flex justify-center rounded-xl border border-gray-100 bg-white p-4">
-              <QRCodeSVG value={phonePairingQrUrl} size={200} level="M" />
-            </div>
-            <p className="mt-2 break-all text-center text-[11px] text-gray-500">{phonePairingQrUrl}</p>
-            <button
-              type="button"
-              onClick={() => setPhoneUploadModalOpen(false)}
-              className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
-            >
-              {t('vendi.sell.photoFromPhoneModalClose')}
-            </button>
-          </div>
+            {t('vendi.sell.photoFromPhoneModalClose')}
+          </button>
+        }
+      >
+        <p className="text-sm leading-relaxed text-gray-700">
+          {t('vendi.sell.photoFromPhoneModalBody')}
+        </p>
+        <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
+          {t('vendi.sell.photoFromPhoneModalCloseHint')}
+        </p>
+        <div className="mt-3 flex justify-center rounded-xl border border-gray-100 bg-white p-3">
+          {phonePairingQrUrl ? (
+            <QRCodeSVG value={phonePairingQrUrl} size={qrCodeSize} level="M" className="h-auto w-auto max-w-full" />
+          ) : null}
         </div>
-      ) : null}
+        <p className="mt-2 line-clamp-2 text-center text-[10px] text-gray-500" title={phonePairingQrUrl}>
+          {phonePairingQrUrl}
+        </p>
+      </SellWizardModal>
 
-      {isConditionModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="sell-condition-modal-title"
+      <SellWizardModal
+        open={isConditionModalOpen}
+        onClose={() => setIsConditionModalOpen(false)}
+        title="Scegli la condizione"
+        titleId="sell-condition-modal-title"
+        size="lg"
+        footer={
+          <button
+            type="button"
+            onClick={() => {
+              update('condition', modalCondition);
+              setIsConditionModalOpen(false);
+            }}
+            className="w-full rounded-xl bg-[#FF8800] px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#FF8800]/90"
+          >
+            Conferma condizione
+          </button>
+        }
+      >
+        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+          Condizione
+        </label>
+        <select
+          value={modalCondition}
+          onChange={(e) => setModalCondition(e.target.value)}
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#FF8800] focus:outline-none focus:ring-2 focus:ring-[#FF8800]/25"
         >
-          <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-white/40 bg-white/85 shadow-2xl backdrop-blur-2xl">
-            <div className="p-6 sm:p-8">
-              <h2 id="sell-condition-modal-title" className="mb-2 text-lg font-semibold text-gray-900 sm:text-xl">
-                Scegli la condizione della carta
-              </h2>
-              <select
-                value={modalCondition}
-                onChange={(e) => setModalCondition(e.target.value)}
-                className="w-full rounded-lg border border-gray-300/80 bg-white/70 px-3 py-2.5 text-sm focus:border-[#FF8800] focus:outline-none focus:ring-2 focus:ring-[#FF8800]/25"
-              >
-                {SELL_SINGLE_CONDITION_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <div className="mt-6 grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200/60 bg-white shadow-inner"
-                  onClick={() =>
-                    setConditionLightbox(
-                      SELL_SINGLE_CONDITION_IMAGES[modalCondition]?.front ?? '/conditions/near-mint-front.jpeg',
-                    )
-                  }
-                >
-                  <img
-                    src={SELL_SINGLE_CONDITION_IMAGES[modalCondition]?.front ?? '/conditions/near-mint-front.jpeg'}
-                    alt="Fronte"
-                    className="h-full w-full object-contain"
-                  />
-                </button>
-                <button
-                  type="button"
-                  className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200/60 bg-white shadow-inner"
-                  onClick={() =>
-                    setConditionLightbox(
-                      SELL_SINGLE_CONDITION_IMAGES[modalCondition]?.back ?? '/conditions/near-mint-back.jpeg',
-                    )
-                  }
-                >
-                  <img
-                    src={SELL_SINGLE_CONDITION_IMAGES[modalCondition]?.back ?? '/conditions/near-mint-back.jpeg'}
-                    alt="Retro"
-                    className="h-full w-full object-contain"
-                  />
-                </button>
-              </div>
-              <div className="mt-6 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    update('condition', modalCondition);
-                    setIsConditionModalOpen(false);
-                  }}
-                  className="rounded-lg border border-white/30 bg-[#FF8800]/85 px-6 py-3 text-sm font-bold uppercase text-white shadow-lg hover:bg-[#FF8800]/90"
-                >
-                  Conferma condizione
-                </button>
-              </div>
-            </div>
-          </div>
+          {SELL_SINGLE_CONDITION_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">
+          <button
+            type="button"
+            className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white"
+            onClick={() =>
+              setConditionLightbox(
+                SELL_SINGLE_CONDITION_IMAGES[modalCondition]?.front ?? '/conditions/near-mint-front.jpeg',
+              )
+            }
+          >
+            <img
+              src={SELL_SINGLE_CONDITION_IMAGES[modalCondition]?.front ?? '/conditions/near-mint-front.jpeg'}
+              alt="Fronte"
+              className="h-full w-full object-contain p-1"
+            />
+          </button>
+          <button
+            type="button"
+            className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white"
+            onClick={() =>
+              setConditionLightbox(
+                SELL_SINGLE_CONDITION_IMAGES[modalCondition]?.back ?? '/conditions/near-mint-back.jpeg',
+              )
+            }
+          >
+            <img
+              src={SELL_SINGLE_CONDITION_IMAGES[modalCondition]?.back ?? '/conditions/near-mint-back.jpeg'}
+              alt="Retro"
+              className="h-full w-full object-contain p-1"
+            />
+          </button>
         </div>
-      )}
+        <p className="mt-2 text-center text-[10px] text-zinc-500">Tocca un&apos;immagine per ingrandire</p>
+      </SellWizardModal>
 
-      {conditionLightbox && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-          onClick={() => setConditionLightbox(null)}
-          role="presentation"
-        >
-          <img
-            src={conditionLightbox}
-            alt="Condizione"
-            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+      <SellWizardLightbox
+        open={Boolean(conditionLightbox)}
+        imageSrc={conditionLightbox ?? ''}
+        onClose={() => setConditionLightbox(null)}
+        alt="Condizione carta"
+      />
 
       {publishToast && (
         <div className="fixed right-5 top-5 z-[90] flex items-center gap-3 rounded-xl border border-emerald-200 bg-white px-4 py-3 shadow-lg">

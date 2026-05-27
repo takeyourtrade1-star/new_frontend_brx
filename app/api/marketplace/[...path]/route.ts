@@ -2,21 +2,27 @@
  * Proxy to brx-marketplace microservice.
  * Browser calls same-origin /api/marketplace/... ; this route forwards to the backend.
  *
- * Configure on Amplify (runtime, server-side):
- *   MARKETPLACE_API_URL=https://api.ebartex.com/marketplace
- * or direct:
- *   MARKETPLACE_API_URL=http://15.160.8.178:8004
+ * Production (recommended — dedicated subdomain, no path rewrite):
+ *   MARKETPLACE_API_URL=https://marketplace-api.ebartex.com
+ *
+ * Setup: stacks/brx-marketplace/NGINX_MARKETPLACE_PROXY.md
+ *        Main-app/frontend/MARKETPLACE_DOMAIN_SETUP.md
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+/** Fail fast before Amplify/API gateway returns opaque 504. */
+const PROXY_TIMEOUT_MS = 12000;
+
+const DEFAULT_MARKETPLACE_API_URL = 'http://marketplace-api.ebartex.com';
+
 function getMarketplaceApiUrl(): string {
   const url =
     process.env.MARKETPLACE_API_URL ||
     process.env.NEXT_PUBLIC_MARKETPLACE_API_URL ||
-    '';
+    DEFAULT_MARKETPLACE_API_URL;
   return url.replace(/\/+$/, '');
 }
 
@@ -25,25 +31,39 @@ function isPublicMarketplacePath(path: string): boolean {
   return path.startsWith('listings/public/');
 }
 
-async function proxy(request: NextRequest, pathSegments: string[]) {
-  const MARKETPLACE_API_URL = getMarketplaceApiUrl();
-  if (!MARKETPLACE_API_URL) {
-    return NextResponse.json(
-      {
-        detail:
-          'MARKETPLACE_API_URL or NEXT_PUBLIC_MARKETPLACE_API_URL is not configured',
-      },
-      { status: 503 },
-    );
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+  } finally {
+    clearTimeout(timeoutId);
   }
+}
 
-  const path = pathSegments.join('/');
-  const targetPath = `/api/v1/${path}`;
-  const url = new URL(targetPath, MARKETPLACE_API_URL);
-
+function buildTargetUrl(base: string, targetPath: string, request: NextRequest): URL {
+  const url = new URL(targetPath, base);
   request.nextUrl.searchParams.forEach((value, key) => {
     url.searchParams.set(key, value);
   });
+  return url;
+}
+
+async function proxy(request: NextRequest, pathSegments: string[]) {
+  const MARKETPLACE_API_URL = getMarketplaceApiUrl();
+
+  const path = pathSegments.join('/');
+  const targetPath = `/api/v1/${path}`;
+  const isPublicGet =
+    request.method === 'GET' && isPublicMarketplacePath(path);
 
   const auth =
     request.headers.get('authorization') ||
@@ -72,13 +92,24 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     headers['Content-Type'] = 'application/json';
   }
 
+  const fetchInit: RequestInit = {
+    method: request.method,
+    headers,
+    body,
+  };
+
+  const primaryUrl = buildTargetUrl(MARKETPLACE_API_URL, targetPath, request);
+
+  const responseCacheHeaders: Record<string, string> = isPublicGet
+    ? { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' }
+    : { 'Cache-Control': 'private, no-store, max-age=0, must-revalidate' };
+
   try {
-    const res = await fetch(url.toString(), {
-      method: request.method,
-      headers,
-      body,
-      cache: 'no-store',
-    });
+    const res = await fetchWithTimeout(
+      primaryUrl.toString(),
+      fetchInit,
+      PROXY_TIMEOUT_MS,
+    );
 
     if (res.status === 204) {
       return new NextResponse(null, { status: 204 });
@@ -87,18 +118,20 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, {
       status: res.status,
-      headers: {
-        'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
-      },
+      headers: responseCacheHeaders,
     });
   } catch (err) {
-    console.error('[marketplace proxy]', err);
+    const isTimeout = err instanceof Error && err.name === 'AbortError';
+    console.error('[marketplace proxy]', isTimeout ? 'timeout' : err, primaryUrl.toString());
     return NextResponse.json(
       {
-        detail:
-          err instanceof Error ? err.message : 'Marketplace proxy request failed',
+        detail: isTimeout
+          ? 'Timeout: marketplace-api non ha risposto in tempo. Verifica marketplace-api.ebartex.com in NPM.'
+          : err instanceof Error
+            ? err.message
+            : 'Marketplace proxy request failed',
       },
-      { status: 502 },
+      { status: isTimeout ? 504 : 502 },
     );
   }
 }

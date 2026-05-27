@@ -77,31 +77,33 @@ export async function fetchPublicUserProfiles(
 
   try {
     const groups = chunk(uncachedIds, 100);
-    for (const idsChunk of groups) {
-      const response = await authApi.get<PublicUsersBulkResponse>(
-        `/api/auth/users/public?ids=${idsChunk.join(',')}`
-      );
-      const users = Array.isArray(response?.data) ? response.data : [];
-      const found = new Set<string>();
+    await Promise.all(
+      groups.map(async (idsChunk) => {
+        const response = await authApi.get<PublicUsersBulkResponse>(
+          `/api/auth/users/public?ids=${idsChunk.join(',')}`,
+        );
+        const users = Array.isArray(response?.data) ? response.data : [];
+        const found = new Set<string>();
 
-      for (const user of users) {
-        if (!user?.id) continue;
-        found.add(user.id);
-        profileCache[user.id] = {
-          id: user.id,
-          username: user.username ?? UNKNOWN_PROFILE.username,
-          avatar_url: user.avatar_url ?? null,
-          country_code: user.country_code ?? null,
-          account_type: user.account_type ?? 'personal',
-        };
-      }
-
-      for (const id of idsChunk) {
-        if (!found.has(id) && profileCache[id] === undefined) {
-          profileCache[id] = null;
+        for (const user of users) {
+          if (!user?.id) continue;
+          found.add(user.id);
+          profileCache[user.id] = {
+            id: user.id,
+            username: user.username ?? UNKNOWN_PROFILE.username,
+            avatar_url: user.avatar_url ?? null,
+            country_code: user.country_code ?? null,
+            account_type: user.account_type ?? 'personal',
+          };
         }
-      }
-    }
+
+        for (const id of idsChunk) {
+          if (!found.has(id) && profileCache[id] === undefined) {
+            profileCache[id] = null;
+          }
+        }
+      }),
+    );
   } catch (err: any) {
     const status = err?.response?.status;
     if (status === 503 || status === 403 || status === 429) {

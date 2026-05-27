@@ -43,8 +43,21 @@ export interface ListingPhotoSummary {
   position: number;
 }
 
-/** Published photos for a marketplace listing (CDN URLs). */
-export async function getListingPhotos(listingId: string): Promise<ListingPhotoSummary[]> {
+const LISTING_PHOTOS_CACHE_MS = 5 * 60 * 1000;
+const listingPhotosCache = new Map<string, { at: number; photos: ListingPhotoSummary[] }>();
+const listingPhotosInflight = new Map<string, Promise<ListingPhotoSummary[]>>();
+
+function normalizeListingPhotos(
+  photos: ListingPhotoSummary[] | undefined,
+): ListingPhotoSummary[] {
+  return (photos ?? []).map((p) => ({
+    id: p.id,
+    cdn_url: p.cdn_url,
+    position: p.position ?? 0,
+  }));
+}
+
+async function fetchListingPhotosFromApi(listingId: string): Promise<ListingPhotoSummary[]> {
   const res = await fetch(`/api/auctions/photos/by-listing/${encodeURIComponent(listingId)}`, {
     headers: { Accept: 'application/json', ...authHeaders() },
   });
@@ -53,7 +66,7 @@ export async function getListingPhotos(listingId: string): Promise<ListingPhotoS
     if (res.status === 401 && typeof window !== 'undefined') {
       const newToken = await tokenManager.ensureFreshToken();
       if (newToken) {
-        return getListingPhotos(listingId);
+        return fetchListingPhotosFromApi(listingId);
       }
     }
     const message =
@@ -63,11 +76,59 @@ export async function getListingPhotos(listingId: string): Promise<ListingPhotoS
     throw new Error(message);
   }
   const photos = (data as { data?: { photos?: ListingPhotoSummary[] } })?.data?.photos ?? [];
-  return photos.map((p) => ({
-    id: p.id,
-    cdn_url: p.cdn_url,
-    position: p.position ?? 0,
-  }));
+  return normalizeListingPhotos(photos);
+}
+
+function seedListingPhotosCache(listingId: string, photos: ListingPhotoSummary[]): void {
+  listingPhotosCache.set(String(listingId), { at: Date.now(), photos: normalizeListingPhotos(photos) });
+}
+
+/** Warm cache for many listings in one request (product detail venditori tab). */
+export async function prefetchListingCoverPhotos(listingIds: string[]): Promise<void> {
+  const unique = [...new Set(listingIds.map(String).filter(Boolean))];
+  if (unique.length === 0) return;
+
+  const missing = unique.filter((id) => {
+    const cached = listingPhotosCache.get(id);
+    return !cached || Date.now() - cached.at >= LISTING_PHOTOS_CACHE_MS;
+  });
+  if (missing.length === 0) return;
+
+  const qs = encodeURIComponent(missing.slice(0, 40).join(','));
+  const res = await fetch(`/api/auctions/photos/by-listings?ids=${qs}`, {
+    headers: { Accept: 'application/json', ...authHeaders() },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return;
+
+  const covers = (data as { data?: { covers?: Record<string, ListingPhotoSummary> } })?.data?.covers ?? {};
+  for (const [listingId, photo] of Object.entries(covers)) {
+    seedListingPhotosCache(listingId, [photo]);
+  }
+}
+
+/** Published photos for a marketplace listing (CDN URLs). Cached + deduped in-flight. */
+export async function getListingPhotos(listingId: string): Promise<ListingPhotoSummary[]> {
+  const key = String(listingId);
+  const cached = listingPhotosCache.get(key);
+  if (cached && Date.now() - cached.at < LISTING_PHOTOS_CACHE_MS) {
+    return cached.photos;
+  }
+
+  const inflight = listingPhotosInflight.get(key);
+  if (inflight) return inflight;
+
+  const promise = fetchListingPhotosFromApi(key)
+    .then((photos) => {
+      listingPhotosCache.set(key, { at: Date.now(), photos });
+      return photos;
+    })
+    .finally(() => {
+      listingPhotosInflight.delete(key);
+    });
+
+  listingPhotosInflight.set(key, promise);
+  return promise;
 }
 
 /** Bind finalized PENDING photos to a marketplace listing after createListing. */
