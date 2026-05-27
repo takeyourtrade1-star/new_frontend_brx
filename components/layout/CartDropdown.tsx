@@ -32,7 +32,7 @@ export function CartDropdown() {
   const cartTotal = useMemo(
     () =>
       items.reduce(
-        (acc, item) => acc + (item.product?.price ?? 0) * item.quantity,
+        (acc, item) => acc + (item.priceCents / 100) * item.quantity,
         0
       ),
     [items]
@@ -147,15 +147,15 @@ export function CartDropdown() {
           <div className="max-h-[240px] overflow-y-auto py-2">
             {recentItems.map((item) => (
               <div
-                key={item.productId}
+                key={item.lineId}
                 className="group flex items-center gap-3 px-4 py-2 transition-colors hover:bg-white/10"
               >
                 {/* Product Image */}
                 <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white/10">
-                  {item.product?.imageUrl ? (
+                  {item.imageUrl ? (
                     <Image
-                      src={item.product.imageUrl.startsWith('http') ? item.product.imageUrl : getCdnImageUrl(item.product.imageUrl)}
-                      alt={item.product?.name || 'Product'}
+                      src={item.imageUrl.startsWith('http') ? item.imageUrl : getCdnImageUrl(item.imageUrl)}
+                      alt={item.title}
                       fill
                       className="object-cover"
                       sizes="48px"
@@ -170,18 +170,18 @@ export function CartDropdown() {
                 {/* Product Info */}
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-medium text-white">
-                    {item.product?.name || 'Product'}
+                    {item.title}
                   </span>
                   <div className="flex items-center gap-2 text-xs text-white/70">
                     <span>Qty: {item.quantity}</span>
                     <span>×</span>
-                    <span>{formatEuro(item.product?.price || 0)}</span>
+                    <span>{formatEuro(item.priceCents / 100)}</span>
                   </div>
                 </div>
 
                 {/* Remove Button */}
                 <button
-                  onClick={() => removeItem(item.productId)}
+                  onClick={() => removeItem(item.lineId)}
                   className="shrink-0 rounded p-1 text-white/40 opacity-0 transition-all hover:bg-white/10 hover:text-white group-hover:opacity-100"
                   aria-label={t('cart.remove')}
                 >

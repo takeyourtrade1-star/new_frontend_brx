@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronDown, Loader2, RefreshCw, Wifi, WifiOff, Zap } from 'lucide-react';
 import {
   getMarketplaceSyncStatus,
+  MarketplaceApiError,
   updateMarketplaceSyncMode,
   type MarketplaceSyncStatus,
   type SyncMode,
@@ -157,7 +158,11 @@ export function SyncModeSelector() {
         setSuccess(`Modalità aggiornata a ${label}.`);
         setTimeout(() => setSuccess(null), 4000);
       } catch (err) {
-        setError('Errore durante il cambio modalità. Riprova.');
+        if (err instanceof MarketplaceApiError) {
+          setError(err.detail);
+        } else {
+          setError('Errore durante il cambio modalità. Riprova.');
+        }
       } finally {
         setSaving(false);
         setPendingMode(null);

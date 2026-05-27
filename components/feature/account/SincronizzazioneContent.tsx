@@ -18,6 +18,12 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { SyncModeSelector } from '@/components/feature/sync/SyncModeSelector';
+import {
+  getSyncEvents,
+  triggerMarketplaceSync,
+  MarketplaceApiError,
+  type SyncEvent,
+} from '@/lib/api/marketplace-client';
 
 type LogEntry = { ts: string; label: string; data: string; isError?: boolean };
 
@@ -88,6 +94,12 @@ export function SincronizzazioneContent() {
   const [loadingRefresh, setLoadingRefresh] = useState(false);
   const [loadingDisconnect, setLoadingDisconnect] = useState(false);
   const [disconnectConfirm, setDisconnectConfirm] = useState<'suspend' | 'remove' | null>(null);
+
+  const [marketplaceSyncLoading, setMarketplaceSyncLoading] = useState(false);
+  const [marketplaceSyncMessage, setMarketplaceSyncMessage] = useState<string | null>(null);
+  const [marketplaceSyncError, setMarketplaceSyncError] = useState<string | null>(null);
+  const [syncEvents, setSyncEvents] = useState<SyncEvent[]>([]);
+  const [syncEventsLoading, setSyncEventsLoading] = useState(false);
 
   /** Risultato ultima sincronizzazione massiva (dopo che il task Celery è completato). */
   const [lastSyncResult, setLastSyncResult] = useState<{
@@ -325,6 +337,48 @@ export function SincronizzazioneContent() {
     };
   }, [userId, accessToken, syncStatus?.sync_status, addLog]);
 
+  const loadSyncEvents = useCallback(async () => {
+    setSyncEventsLoading(true);
+    try {
+      const res = await getSyncEvents({ page: 1, page_size: 20 });
+      setSyncEvents(res.events);
+      addLog('getSyncEvents', { total: res.total, count: res.events.length });
+    } catch (err: unknown) {
+      const message = err instanceof MarketplaceApiError ? err.detail : (err as Error)?.message;
+      addLog('getSyncEvents ERROR', { message }, true);
+    } finally {
+      setSyncEventsLoading(false);
+    }
+  }, [addLog]);
+
+  const handleMarketplaceSyncTrigger = async () => {
+    setMarketplaceSyncLoading(true);
+    setMarketplaceSyncMessage(null);
+    setMarketplaceSyncError(null);
+    try {
+      const res = await triggerMarketplaceSync();
+      setMarketplaceSyncMessage(res.message || 'Sincronizzazione marketplace avviata.');
+      addLog('triggerMarketplaceSync', res);
+      await loadSyncEvents();
+    } catch (err: unknown) {
+      const message =
+        err instanceof MarketplaceApiError
+          ? err.detail
+          : err instanceof Error
+            ? err.message
+            : 'Sincronizzazione marketplace non riuscita.';
+      setMarketplaceSyncError(message);
+      addLog('triggerMarketplaceSync ERROR', { message }, true);
+    } finally {
+      setMarketplaceSyncLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!syncStatus || syncStatus.disconnected === true) return;
+    void loadSyncEvents();
+  }, [syncStatus, loadSyncEvents]);
+
   const handleDisconnect = async (action: 'suspend' | 'remove') => {
     if (!userId || !accessToken) return;
     setLoadingDisconnect(true);
@@ -409,8 +463,73 @@ export function SincronizzazioneContent() {
       )}
 
       {integrationReady && (
-        <div className="mb-6">
+        <div className="mb-6 space-y-6">
           <SyncModeSelector />
+          <Card title="Sincronizzazione marketplace EBARTEX">
+            <p className="mb-4 text-sm text-gray-600">
+              Avvia manualmente la sincronizzazione degli inserzioni con il marketplace collegato
+              (in base alla modalità DEMO / PARZIALE / REALE selezionata sopra).
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                onClick={() => void handleMarketplaceSyncTrigger()}
+                disabled={marketplaceSyncLoading}
+                className="bg-[#FF7300] font-semibold text-white hover:bg-[#e66a00] disabled:opacity-50"
+              >
+                {marketplaceSyncLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Sincronizza marketplace ora
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void loadSyncEvents()}
+                disabled={syncEventsLoading}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                {syncEventsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Aggiorna eventi
+              </Button>
+            </div>
+            {marketplaceSyncMessage && (
+              <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                {marketplaceSyncMessage}
+              </p>
+            )}
+            {marketplaceSyncError && (
+              <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                {marketplaceSyncError}
+              </p>
+            )}
+            {syncEvents.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Ultimi eventi sync
+                </p>
+                <ul className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-2 text-xs text-gray-700">
+                  {syncEvents.map((ev) => (
+                    <li key={ev.id} className="flex flex-wrap gap-2 border-b border-gray-100 py-1 last:border-0">
+                      <span className="font-mono text-[10px] text-gray-400">
+                        {ev.created_at
+                          ? new Date(ev.created_at).toLocaleString('it-IT')
+                          : '—'}
+                      </span>
+                      <span className="font-medium">{ev.event_type}</span>
+                      <span className="text-gray-500">{ev.source}</span>
+                      {ev.error ? <span className="text-red-600">{ev.error}</span> : null}
+                      <span className={ev.processed ? 'text-emerald-600' : 'text-amber-600'}>
+                        {ev.processed ? 'elaborato' : 'in coda'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </Card>
         </div>
       )}
 

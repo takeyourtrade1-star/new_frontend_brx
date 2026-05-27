@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Home, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,13 @@ import {
   type OrderAPI,
   type OrderStatus,
 } from '@/types/order';
+import {
+  getMyOrders,
+  MarketplaceApiError,
+  type OrderResponse,
+} from '@/lib/api/marketplace-client';
 import { OrderCard } from './OrderCard';
+import { MarketplaceOrderCard } from './MarketplaceOrderCard';
 import { PaymentConfirmModal } from './PaymentConfirmModal';
 
 const TABS_LEFT = [
@@ -22,6 +28,7 @@ const TABS_LEFT = [
   { id: 'inviato', label: 'INVIATO' },
   { id: 'ricevuto', label: 'RICEVUTO' },
   { id: 'acquisti-asta', label: 'ACQUISTI ASTA' },
+  { id: 'marketplace', label: 'MARKETPLACE' },
 ] as const;
 
 const TABS_RIGHT = [
@@ -49,6 +56,7 @@ const STATUSES_BY_TAB: Record<TabId, OrderStatus[] | undefined> = {
   // "Acquisti asta" surfaces every successful (paid) order; for slice 1 the
   // marketplace is auction-only so this is just an alias for "pagato + dopo".
   'acquisti-asta': ORDER_STATUSES_PAID,
+  marketplace: undefined,
   cancellato: ORDER_STATUSES_CANCELLED,
 };
 
@@ -58,6 +66,7 @@ const EMPTY_MESSAGE_BY_TAB: Record<TabId, string> = {
   inviato: 'Nessun ordine in spedizione.',
   ricevuto: 'Nessun ordine ricevuto.',
   'acquisti-asta': 'Non hai ancora vinto nessuna asta.',
+  marketplace: 'Non hai ancora acquistato sul marketplace EBARTEX.',
   cancellato: 'Nessun ordine cancellato.',
 };
 
@@ -70,9 +79,43 @@ export function AcquistiContent() {
   const [orderToPay, setOrderToPay] = useState<OrderAPI | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
+  const isMarketplaceTab = activeTab === 'marketplace';
   const statuses = STATUSES_BY_TAB[activeTab];
-  const ordersQuery = useBuyerOrders({ statuses, limit: 50, offset: 0 });
+  const ordersQuery = useBuyerOrders(
+    { statuses, limit: 50, offset: 0 },
+    { enabled: !isMarketplaceTab },
+  );
   const payMutation = useMarkOrderPaid();
+
+  const [marketplaceOrders, setMarketplaceOrders] = useState<OrderResponse[]>([]);
+  const [marketplaceTotal, setMarketplaceTotal] = useState(0);
+  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
+  const [marketplaceError, setMarketplaceError] = useState<string | null>(null);
+
+  const loadMarketplaceOrders = useCallback(async () => {
+    setMarketplaceLoading(true);
+    setMarketplaceError(null);
+    try {
+      const res = await getMyOrders({ page: 1, page_size: 50 });
+      setMarketplaceOrders(res.items);
+      setMarketplaceTotal(res.total);
+    } catch (e) {
+      const msg =
+        e instanceof MarketplaceApiError
+          ? e.detail
+          : e instanceof Error
+            ? e.message
+            : 'Impossibile caricare gli ordini marketplace.';
+      setMarketplaceError(msg);
+    } finally {
+      setMarketplaceLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isMarketplaceTab) return;
+    void loadMarketplaceOrders();
+  }, [isMarketplaceTab, loadMarketplaceOrders]);
 
   const orders = ordersQuery.data?.data ?? [];
   const total = ordersQuery.data?.total ?? 0;
@@ -166,7 +209,47 @@ export function AcquistiContent() {
           </div>
         </div>
 
-        {ordersQuery.isLoading ? (
+        {isMarketplaceTab ? (
+          marketplaceLoading ? (
+            <div className="flex min-h-[280px] items-center justify-center border border-gray-200 bg-white">
+              <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
+              <span className="sr-only">Caricamento ordini marketplace…</span>
+            </div>
+          ) : marketplaceError ? (
+            <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 border border-red-200 bg-red-50 px-6 py-12 text-center">
+              <p className="text-sm font-semibold text-red-800">{marketplaceError}</p>
+              <button
+                type="button"
+                onClick={() => void loadMarketplaceOrders()}
+                className="text-sm font-semibold text-[#FF7300] hover:underline"
+              >
+                Riprova
+              </button>
+            </div>
+          ) : marketplaceOrders.length === 0 ? (
+            <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 border border-gray-200 bg-white px-6 py-12">
+              <p className="text-center text-base font-semibold uppercase tracking-wide text-gray-500">
+                {emptyMessage}
+              </p>
+              <Link
+                href="/home"
+                className="inline-flex items-center gap-1 text-sm font-medium text-[#FF7300] hover:underline"
+              >
+                Esplora il marketplace
+                <ChevronRight className="h-4 w-4" aria-hidden />
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {marketplaceOrders.map((order) => (
+                <MarketplaceOrderCard key={order.id} order={order} />
+              ))}
+              <p className="text-center text-xs text-gray-500">
+                {marketplaceTotal} ordin{marketplaceTotal === 1 ? 'e' : 'i'} marketplace totali
+              </p>
+            </div>
+          )
+        ) : ordersQuery.isLoading ? (
           <div className="flex min-h-[280px] items-center justify-center border border-gray-200 bg-white">
             <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
             <span className="sr-only">Caricamento ordini…</span>

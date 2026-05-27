@@ -87,6 +87,10 @@ export interface InventoryResponse {
 /** Single listing (item for sale) for marketplace by blueprint. */
 export interface ListingItem {
   item_id: number;
+  /** EBARTEX marketplace listing UUID when listing_source is marketplace. */
+  marketplace_listing_id?: string;
+  /** Distinguishes sync inventory rows from brx-marketplace listings. */
+  listing_source?: 'sync' | 'marketplace';
   seller_id: string;
   seller_display_name: string;
   country: string | null;
@@ -231,14 +235,25 @@ export const syncClient = {
   },
 
   /**
-   * POST /api/v1/sync/setup-test-user
-   * Body: { user_id, cardtrader_token }
+   * POST /api/v1/sync/setup-test-user (legacy alias)
+   * POST /api/v1/sync/link-cardtrader (preferred)
+   * Body: { user_id, cardtrader_token } — user_id must match JWT sub.
    */
   setupTestUser(
     body: { user_id: string; cardtrader_token: string },
     token: string
   ): Promise<{ status: string; user_id: string; sync_status: string; webhook_secret_configured: boolean }> {
     return request(`/api/v1/sync/setup-test-user`, token, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  linkCardtrader(
+    body: { user_id: string; cardtrader_token: string },
+    token: string
+  ): Promise<{ status: string; user_id: string; sync_status: string; webhook_secret_configured: boolean }> {
+    return request(`/api/v1/sync/link-cardtrader`, token, {
       method: 'POST',
       body: JSON.stringify(body),
     });

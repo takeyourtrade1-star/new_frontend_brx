@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   ChevronLeft,
@@ -21,7 +21,11 @@ import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { type ListingItem } from '@/lib/api/sync-client';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
+import type { AuctionUI } from '@/lib/auction/auction-adapter';
 import { listingConditionCode, type MarketplaceRow } from '@/lib/product-detail/marketplace-rows';
+import { listingRowKey } from '@/lib/marketplace/listing-map';
+import { getListingPhotos } from '@/lib/api/listing-photo-client';
+import { MarketplaceNowProvider, useMarketplaceNowMs } from '@/lib/hooks/use-marketplace-now-ms';
 
 const CONDITION_TEXT_TO_CODE: Record<string, ConditionCode> = {
   'Near Mint': 'NM',
@@ -179,6 +183,9 @@ function MarketplaceSellerCell({
   );
 }
 
+// PERF: row seller cell only re-renders when its reputation props change.
+const MemoMarketplaceSellerCell = memo(MarketplaceSellerCell);
+
 function dedupePhotoUrls(urls: (string | null | undefined)[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -200,6 +207,35 @@ function getAuctionPhotoUrls(
 
 function getListingPhotoUrls(fallback?: string | null): string[] {
   return dedupePhotoUrls([fallback]);
+}
+
+function useListingRowImageUrls(item: ListingItem, fallback?: string | null): string[] {
+  const [urls, setUrls] = useState<string[]>(() => getListingPhotoUrls(fallback));
+
+  useEffect(() => {
+    const base = getListingPhotoUrls(fallback);
+    if (item.listing_source !== 'marketplace' || !item.marketplace_listing_id) {
+      setUrls(base);
+      return;
+    }
+
+    let cancelled = false;
+    void getListingPhotos(item.marketplace_listing_id)
+      .then((photos) => {
+        if (cancelled) return;
+        const first = photos[0]?.cdn_url;
+        setUrls(dedupePhotoUrls([first, fallback]));
+      })
+      .catch(() => {
+        if (!cancelled) setUrls(base);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [item.listing_source, item.marketplace_listing_id, fallback]);
+
+  return urls;
 }
 
 function MarketplacePhotoCarousel({
@@ -373,6 +409,9 @@ function MobileProductAttributes({
   );
 }
 
+// PERF: mobile attribute strip memoized per row props.
+const MemoMobileProductAttributes = memo(MobileProductAttributes);
+
 function MarketplaceProductInfoCell({
   conditionCode,
   langFlag,
@@ -433,6 +472,31 @@ function MarketplaceProductInfoCell({
   );
 }
 
+// PERF: desktop product info cell memoized per row props.
+const MemoMarketplaceProductInfoCell = memo(MarketplaceProductInfoCell);
+
+// PERF: countdown ticks isolated — only these nodes subscribe to marketplaceNowMs.
+function AuctionCountdownText({ endsAt, className }: { endsAt: string; className?: string }) {
+  const nowMs = useMarketplaceNowMs();
+  const remaining = new Date(endsAt).getTime() - nowMs;
+  return <span className={className}>{formatCountdownDuration(remaining)}</span>;
+}
+
+function AuctionGavelLinkDesktop({ numericId, endsAt }: { numericId: number; endsAt: string }) {
+  const nowMs = useMarketplaceNowMs();
+  const remaining = new Date(endsAt).getTime() - nowMs;
+  return (
+    <Link
+      href={auctionDetailPath(String(numericId))}
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-violet-600 text-white shadow-sm transition hover:bg-violet-700"
+      aria-label="Apri asta"
+      title={`Asta · ${formatCountdownDuration(remaining)}`}
+    >
+      <Gavel className="h-3.5 w-3.5" strokeWidth={2.25} />
+    </Link>
+  );
+}
+
 /** Tre colonne allineate: prezzo | quantità | azioni */
 function MarketplaceOfferGrid({
   price,
@@ -459,38 +523,533 @@ function getAuctionDescription(a: { description?: string | null; numericId: numb
   return MOCK_SELLER_DESCRIPTIONS[h % MOCK_SELLER_DESCRIPTIONS.length] ?? MOCK_SELLER_DESCRIPTIONS[0];
 }
 
+const noopIsOwnListing = () => false;
+
+type DesktopAuctionRowProps = {
+  rowId: string;
+  index: number;
+  auction: AuctionUI;
+  cardLanguage?: string | null;
+  cardImageSrc?: string;
+  cardName?: string;
+  formatEuro: (n: number) => string;
+};
+
+// PERF: auction desktop row skips re-render unless row data changes; countdown isolated in child.
+const DesktopAuctionRow = memo(function DesktopAuctionRow({
+  rowId,
+  index,
+  auction: a,
+  cardLanguage,
+  cardImageSrc,
+  cardName,
+  formatEuro,
+}: DesktopAuctionRowProps) {
+  const sellerName = a.sellerDisplayName || a.seller;
+  const auctionCondition = getConditionCode(a.condition);
+  const auctionLang = languageFlagCode(cardLanguage);
+  const auctionPhotos = getAuctionPhotoUrls(a, cardImageSrc);
+  const auctionDesc = getAuctionDescription(a);
+
+  return (
+    <tr
+      key={rowId}
+      className={cn(
+        'border-b border-gray-200 align-middle',
+        index % 2 === 0 ? 'bg-violet-50/20' : 'bg-violet-50/35'
+      )}
+    >
+      <td className="border-r border-gray-200/80 px-2.5 py-2">
+        <MemoMarketplaceSellerCell
+          username={sellerName}
+          country={a.sellerCountry}
+          rating={normalizeRatingToFive(a.sellerRating)}
+          reviewCount={a.sellerReviewCount}
+          salesCount={0}
+        />
+      </td>
+      <td className="border-r border-gray-200/80 px-2.5 py-2">
+        <MemoMarketplaceProductInfoCell
+          conditionCode={auctionCondition}
+          langFlag={auctionLang}
+          langTitle={cardLanguage ?? undefined}
+          imageUrls={auctionPhotos}
+          imageName={a.title || cardName}
+          description={auctionDesc}
+          auctionTag
+        />
+      </td>
+      <td className="px-2.5 py-2">
+        <MarketplaceOfferGrid
+          price={formatEuro(a.currentBidEur || a.startingBidEur)}
+          quantity={<AuctionCountdownText endsAt={a.endsAt} className="text-violet-700" />}
+          actions={<AuctionGavelLinkDesktop numericId={a.numericId} endsAt={a.endsAt} />}
+        />
+      </td>
+    </tr>
+  );
+});
+
+type DesktopListingRowProps = {
+  rowId: string;
+  index: number;
+  item: ListingItem;
+  cardImageSrc?: string;
+  cardName?: string;
+  isOwn: boolean;
+  isBusy: boolean;
+  isCartOpen: boolean;
+  cartQty: number;
+  description: string;
+  formatEuro: (n: number) => string;
+  onOwnerQuantityChange?: (item: ListingItem, delta: -1 | 1) => Promise<void>;
+  onOwnerEdit?: (item: ListingItem) => void;
+  onAddToCart?: (item: ListingItem, quantity: number, sourceEl: HTMLElement) => void;
+  onBuyNow?: (item: ListingItem, quantity: number) => void;
+  onOpenInlineCart: (item: ListingItem) => void;
+  onCloseInlineCart: () => void;
+  onSetCartQty: (rowKey: string, qty: number, max: number) => void;
+};
+
+// PERF: listing desktop row re-renders only when its item/cart/busy props change.
+const DesktopListingRow = memo(function DesktopListingRow({
+  rowId,
+  index,
+  item,
+  cardImageSrc,
+  cardName,
+  isOwn,
+  isBusy,
+  isCartOpen,
+  cartQty,
+  description,
+  formatEuro,
+  onOwnerQuantityChange,
+  onOwnerEdit,
+  onAddToCart,
+  onBuyNow,
+  onOpenInlineCart,
+  onCloseInlineCart,
+  onSetCartQty,
+}: DesktopListingRowProps) {
+  const conditionCode = listingConditionCode(item.condition);
+  const langFlag = languageFlagCode(item.mtg_language);
+  const rep = getSellerReputation(item);
+  const rowKey = listingRowKey(item);
+  const imageUrls = useListingRowImageUrls(item, cardImageSrc);
+
+  return (
+    <tr
+      key={rowId}
+      className={cn(
+        'border-b border-gray-200 align-middle transition-colors',
+        index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60',
+        isOwn && 'bg-sky-50/40',
+        isCartOpen && 'bg-orange-50/40',
+        !isCartOpen && !isOwn && 'hover:bg-orange-50/20'
+      )}
+    >
+      <td className="border-r border-gray-200/80 px-2.5 py-2">
+        <MemoMarketplaceSellerCell
+          username={item.seller_display_name}
+          country={item.country}
+          rating={rep.rating}
+          reviewCount={rep.reviewCount}
+          salesCount={rep.salesCount}
+          isPro={item.seller_account_type === 'business'}
+        />
+      </td>
+
+      <td className="border-r border-gray-200/80 px-2.5 py-2">
+        <MemoMarketplaceProductInfoCell
+          conditionCode={conditionCode}
+          langFlag={langFlag}
+          langTitle={item.mtg_language ?? undefined}
+          imageUrls={imageUrls}
+          imageName={cardName ?? item.seller_display_name}
+          description={description}
+          foil={item.mtg_foil}
+          signed={item.signed}
+          altered={item.altered}
+        />
+      </td>
+
+      <td className="px-2.5 py-2">
+        <MarketplaceOfferGrid
+          price={formatEuro(item.price_cents / 100)}
+          quantity={item.quantity}
+          actions={
+            isOwn ? (
+              <div className="inline-flex items-center rounded-sm border border-slate-200 bg-white">
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => onOwnerQuantityChange?.(item, -1)}
+                  className="inline-flex h-7 w-6 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                  aria-label="Diminuisci quantità"
+                >
+                  {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
+                </button>
+                <span className="min-w-[1.25rem] border-x border-slate-200 text-center text-[11px] font-bold tabular-nums text-slate-800">
+                  {item.quantity}
+                </span>
+                <button
+                  type="button"
+                  disabled={isBusy || item.quantity >= 999}
+                  onClick={() => onOwnerQuantityChange?.(item, 1)}
+                  className="inline-flex h-7 w-6 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                  aria-label="Aumenta quantità"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOwnerEdit?.(item)}
+                  className="inline-flex h-7 w-6 items-center justify-center border-l border-slate-200 text-slate-500 hover:bg-amber-50"
+                  aria-label="Modifica inserzione"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              </div>
+            ) : isCartOpen ? (
+              <div className="inline-flex items-center rounded-sm border border-orange-200 bg-white">
+                <button
+                  type="button"
+                  onClick={() => onSetCartQty(rowKey, cartQty - 1, item.quantity)}
+                  disabled={cartQty <= 1}
+                  className="inline-flex h-7 w-6 items-center justify-center text-slate-500 disabled:opacity-40"
+                  aria-label="Meno"
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+                <span className="min-w-[1.25rem] border-x border-orange-100 text-center text-[11px] font-bold tabular-nums">
+                  {cartQty}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onSetCartQty(rowKey, cartQty + 1, item.quantity)}
+                  disabled={cartQty >= item.quantity}
+                  className="inline-flex h-7 w-6 items-center justify-center text-slate-500 disabled:opacity-40"
+                  aria-label="Più"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+                {onBuyNow ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onBuyNow(item, cartQty);
+                      onCloseInlineCart();
+                    }}
+                    className="inline-flex h-7 min-w-[2.25rem] items-center justify-center border-l border-orange-200 bg-emerald-600 px-1 text-[9px] font-bold uppercase text-white hover:bg-emerald-700"
+                    aria-label="Acquista ora"
+                    title="Acquista ora"
+                  >
+                    Buy
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    onAddToCart?.(item, cartQty, e.currentTarget);
+                    onCloseInlineCart();
+                  }}
+                  className="inline-flex h-7 w-7 items-center justify-center border-l border-orange-200 bg-[#FF7300] text-white hover:bg-[#e86a00]"
+                  aria-label="Conferma carrello"
+                >
+                  <ShoppingCart className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onOpenInlineCart(item)}
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
+                aria-label="Aggiungi al carrello"
+                title="Acquista"
+              >
+                <ShoppingCart className="h-3.5 w-3.5" strokeWidth={2.25} />
+              </button>
+            )
+          }
+        />
+      </td>
+    </tr>
+  );
+});
+
+type MobileAuctionRowProps = {
+  rowId: string;
+  index: number;
+  auction: AuctionUI;
+  cardLanguage?: string | null;
+  cardImageSrc?: string;
+  cardName?: string;
+  formatEuro: (n: number) => string;
+};
+
+// PERF: mobile auction row memoized; countdown isolated in child.
+const MobileAuctionRow = memo(function MobileAuctionRow({
+  rowId,
+  index,
+  auction: a,
+  cardLanguage,
+  cardImageSrc,
+  cardName,
+  formatEuro,
+}: MobileAuctionRowProps) {
+  const sellerName = a.sellerDisplayName || a.seller;
+  const auctionCondition = getConditionCode(a.condition);
+  const auctionLang = languageFlagCode(cardLanguage);
+  const auctionPhotos = getAuctionPhotoUrls(a, cardImageSrc);
+  const auctionDesc = getAuctionDescription(a);
+
+  return (
+    <article
+      key={rowId}
+      className={cn(
+        'flex gap-2 border-b border-slate-200/90 px-3 py-2.5',
+        index % 2 === 0 ? 'bg-violet-50/25' : 'bg-violet-50/40'
+      )}
+    >
+      <div className="min-w-0 flex-1">
+        <MemoMarketplaceSellerCell
+          username={sellerName}
+          country={a.sellerCountry}
+          rating={normalizeRatingToFive(a.sellerRating)}
+          reviewCount={a.sellerReviewCount}
+          salesCount={0}
+        />
+        <div className="mt-1.5 flex items-center justify-between gap-2">
+          <MemoMobileProductAttributes
+            conditionCode={auctionCondition}
+            langFlag={auctionLang}
+            langTitle={cardLanguage ?? undefined}
+            imageUrls={auctionPhotos}
+            imageName={a.title || cardName}
+            description={auctionDesc}
+            auctionTag
+          />
+          <div className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
+            <AuctionCountdownText endsAt={a.endsAt} className="text-xs font-medium text-violet-700" />
+            <span className="text-sm font-bold text-slate-900">
+              {formatEuro(a.currentBidEur || a.startingBidEur)}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center self-center">
+        <Link
+          href={auctionDetailPath(String(a.numericId))}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-violet-600 text-white shadow-sm"
+          aria-label="Apri asta"
+        >
+          <Gavel className="h-4 w-4" strokeWidth={2.25} />
+        </Link>
+      </div>
+    </article>
+  );
+});
+
+type MobileListingRowProps = DesktopListingRowProps;
+
+// PERF: mobile listing row re-renders only when its item/cart/busy props change.
+const MobileListingRow = memo(function MobileListingRow({
+  rowId,
+  index,
+  item,
+  cardImageSrc,
+  cardName,
+  isOwn,
+  isBusy,
+  isCartOpen,
+  cartQty,
+  description,
+  formatEuro,
+  onOwnerQuantityChange,
+  onOwnerEdit,
+  onAddToCart,
+  onBuyNow,
+  onOpenInlineCart,
+  onCloseInlineCart,
+  onSetCartQty,
+}: MobileListingRowProps) {
+  const conditionCode = listingConditionCode(item.condition);
+  const langFlag = languageFlagCode(item.mtg_language);
+  const rep = getSellerReputation(item);
+  const rowKey = listingRowKey(item);
+  const imageUrls = useListingRowImageUrls(item, cardImageSrc);
+
+  return (
+    <article
+      key={rowId}
+      className={cn(
+        'flex gap-2 border-b border-slate-200/90 px-3 py-2.5',
+        index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60',
+        isOwn && 'bg-sky-50/35',
+        isCartOpen && 'bg-orange-50/35'
+      )}
+    >
+      <div className="min-w-0 flex-1">
+        <MemoMarketplaceSellerCell
+          username={item.seller_display_name}
+          country={item.country}
+          rating={rep.rating}
+          reviewCount={rep.reviewCount}
+          salesCount={rep.salesCount}
+          isPro={item.seller_account_type === 'business'}
+        />
+        <div className="mt-1.5 flex items-center justify-between gap-2">
+          <MemoMobileProductAttributes
+            conditionCode={conditionCode}
+            langFlag={langFlag}
+            langTitle={item.mtg_language ?? undefined}
+            imageUrls={imageUrls}
+            imageName={cardName ?? item.seller_display_name}
+            description={description}
+            foil={item.mtg_foil}
+            signed={item.signed}
+            altered={item.altered}
+          />
+          <div className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
+            <span className="text-xs font-medium text-slate-600">{item.quantity}</span>
+            <span className="text-sm font-bold text-slate-900">{formatEuro(item.price_cents / 100)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center self-center">
+        {isOwn ? (
+          <div className="inline-flex flex-col overflow-hidden rounded-sm border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center border-b border-slate-200">
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => onOwnerQuantityChange?.(item, -1)}
+                className="inline-flex h-8 w-8 items-center justify-center text-slate-600 disabled:opacity-40"
+                aria-label="Diminuisci"
+              >
+                {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
+              </button>
+              <span className="min-w-[1.5rem] border-x border-slate-200 text-center text-xs font-bold tabular-nums">
+                {item.quantity}
+              </span>
+              <button
+                type="button"
+                disabled={isBusy || item.quantity >= 999}
+                onClick={() => onOwnerQuantityChange?.(item, 1)}
+                className="inline-flex h-8 w-8 items-center justify-center text-slate-600 disabled:opacity-40"
+                aria-label="Aumenta"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => onOwnerEdit?.(item)}
+              className="inline-flex h-7 w-full items-center justify-center text-slate-500 hover:bg-amber-50"
+              aria-label="Modifica"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : isCartOpen ? (
+          <div className="inline-flex flex-col overflow-hidden rounded-sm border border-orange-200 bg-white shadow-sm">
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={() => onSetCartQty(rowKey, cartQty - 1, item.quantity)}
+                disabled={cartQty <= 1}
+                className="inline-flex h-8 w-8 items-center justify-center disabled:opacity-40"
+                aria-label="Meno"
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </button>
+              <span className="min-w-[1.5rem] border-x border-orange-100 text-center text-xs font-bold tabular-nums">
+                {cartQty}
+              </span>
+              <button
+                type="button"
+                onClick={() => onSetCartQty(rowKey, cartQty + 1, item.quantity)}
+                disabled={cartQty >= item.quantity}
+                className="inline-flex h-8 w-8 items-center justify-center disabled:opacity-40"
+                aria-label="Più"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {onBuyNow ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onBuyNow(item, cartQty);
+                  onCloseInlineCart();
+                }}
+                className="inline-flex h-8 w-full items-center justify-center border-t border-orange-100 bg-emerald-600 text-[10px] font-bold uppercase text-white"
+                aria-label="Acquista ora"
+              >
+                Buy
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={(e) => {
+                onAddToCart?.(item, cartQty, e.currentTarget);
+                onCloseInlineCart();
+              }}
+              className="inline-flex h-8 w-full items-center justify-center bg-[#2563eb] text-white"
+              aria-label="Aggiungi al carrello"
+            >
+              <ShoppingCart className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onOpenInlineCart(item)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-[#2563eb] text-white shadow-sm"
+            aria-label="Aggiungi al carrello"
+          >
+            <ShoppingCart className="h-4 w-4" strokeWidth={2.25} />
+          </button>
+        )}
+      </div>
+    </article>
+  );
+});
+
 interface ModernSellerTableProps {
   rows?: MarketplaceRow[];
   listings?: ListingItem[];
   loading?: boolean;
   auctionsLoading?: boolean;
   error?: string | null;
-  nowMs?: number;
   emptyMessage?: string;
   cardImageSrc?: string;
   cardName?: string;
   /** Lingua carta catalogo (per righe asta senza lingua esplicita). */
   cardLanguage?: string | null;
   onAddToCart?: (item: ListingItem, quantity: number, sourceEl: HTMLElement) => void;
+  onBuyNow?: (item: ListingItem, quantity: number) => void;
   isOwnListing?: (item: ListingItem) => boolean;
   onOwnerEdit?: (item: ListingItem) => void;
   onOwnerQuantityChange?: (item: ListingItem, delta: -1 | 1) => Promise<void>;
-  busyItemId?: number | null;
+  busyItemId?: string | null;
 }
 
-export function ModernSellerTable({
+function ModernSellerTableInner({
   rows,
   listings = [],
   loading = false,
   auctionsLoading = false,
   error = null,
-  nowMs = Date.now(),
   emptyMessage,
   cardImageSrc,
   cardName,
   cardLanguage,
   onAddToCart,
-  isOwnListing = () => false,
+  onBuyNow,
+  isOwnListing = noopIsOwnListing,
   onOwnerEdit,
   onOwnerQuantityChange,
   busyItemId = null,
@@ -499,35 +1058,42 @@ export function ModernSellerTable({
     rows ??
     listings.map((l) => ({
       kind: 'listing' as const,
-      id: `listing-${l.item_id}`,
+      id: `listing-${listingRowKey(l)}`,
       listing: l,
     }));
-  const formatEuro = (n: number) => formatEuroNoSpace(n, 'it-IT');
-  const [activeCartItemId, setActiveCartItemId] = useState<number | null>(null);
-  const [cartQtyByItem, setCartQtyByItem] = useState<Record<number, number>>({});
+  // PERF: stable formatter reference for memoized row children.
+  const formatEuro = useCallback((n: number) => formatEuroNoSpace(n, 'it-IT'), []);
+  const [activeCartRowKey, setActiveCartRowKey] = useState<string | null>(null);
+  const [cartQtyByRow, setCartQtyByRow] = useState<Record<string, number>>({});
 
   const getCartQty = useCallback(
     (item: ListingItem) => {
-      const stored = cartQtyByItem[item.item_id];
+      const key = listingRowKey(item);
+      const stored = cartQtyByRow[key];
       if (stored != null) return Math.min(item.quantity, Math.max(1, stored));
       return 1;
     },
-    [cartQtyByItem]
+    [cartQtyByRow],
   );
 
-  const setCartQty = useCallback((itemId: number, qty: number, max: number) => {
-    setCartQtyByItem((prev) => ({
+  const setCartQty = useCallback((rowKey: string, qty: number, max: number) => {
+    setCartQtyByRow((prev) => ({
       ...prev,
-      [itemId]: Math.min(max, Math.max(1, qty)),
+      [rowKey]: Math.min(max, Math.max(1, qty)),
     }));
   }, []);
 
-  const openInlineCart = (item: ListingItem) => {
-    setActiveCartItemId(item.item_id);
-    setCartQty(item.item_id, getCartQty(item), item.quantity);
-  };
+  // PERF: stable cart open/close handlers keep memoized rows from invalidating.
+  const openInlineCart = useCallback((item: ListingItem) => {
+    const key = listingRowKey(item);
+    setActiveCartRowKey(key);
+    setCartQtyByRow((prev) => ({
+      ...prev,
+      [key]: Math.min(item.quantity, Math.max(1, prev[key] ?? 1)),
+    }));
+  }, []);
 
-  const closeInlineCart = () => setActiveCartItemId(null);
+  const closeInlineCart = useCallback(() => setActiveCartRowKey(null), []);
 
   if (loading || auctionsLoading) {
     return (
@@ -577,197 +1143,50 @@ export function ModernSellerTable({
         <tbody>
           {displayRows.map((row, index) => {
             if (row.kind === 'auction') {
-              const a = row.auction;
-              const remaining = new Date(a.endsAt).getTime() - nowMs;
-              const sellerName = a.sellerDisplayName || a.seller;
-              const auctionCondition = getConditionCode(a.condition);
-              const auctionLang = languageFlagCode(cardLanguage);
-              const auctionPhotos = getAuctionPhotoUrls(a, cardImageSrc);
-              const auctionDesc = getAuctionDescription(a);
-
               return (
-                <tr
+                <DesktopAuctionRow
                   key={row.id}
-                  className={cn(
-                    'border-b border-gray-200 align-middle',
-                    index % 2 === 0 ? 'bg-violet-50/20' : 'bg-violet-50/35'
-                  )}
-                >
-                  <td className="border-r border-gray-200/80 px-2.5 py-2">
-                    <MarketplaceSellerCell
-                      username={sellerName}
-                      country={a.sellerCountry}
-                      rating={normalizeRatingToFive(a.sellerRating)}
-                      reviewCount={a.sellerReviewCount}
-                      salesCount={0}
-                    />
-                  </td>
-                  <td className="border-r border-gray-200/80 px-2.5 py-2">
-                    <MarketplaceProductInfoCell
-                      conditionCode={auctionCondition}
-                      langFlag={auctionLang}
-                      langTitle={cardLanguage ?? undefined}
-                      imageUrls={auctionPhotos}
-                      imageName={a.title || cardName}
-                      description={auctionDesc}
-                      auctionTag
-                    />
-                  </td>
-                  <td className="px-2.5 py-2">
-                    <MarketplaceOfferGrid
-                      price={formatEuro(a.currentBidEur || a.startingBidEur)}
-                      quantity={
-                        <span className="text-violet-700">{formatCountdownDuration(remaining)}</span>
-                      }
-                      actions={
-                        <Link
-                          href={auctionDetailPath(String(a.numericId))}
-                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-violet-600 text-white shadow-sm transition hover:bg-violet-700"
-                          aria-label="Apri asta"
-                          title={`Asta · ${formatCountdownDuration(remaining)}`}
-                        >
-                          <Gavel className="h-3.5 w-3.5" strokeWidth={2.25} />
-                        </Link>
-                      }
-                    />
-                  </td>
-                </tr>
+                  rowId={row.id}
+                  index={index}
+                  auction={row.auction}
+                  cardLanguage={cardLanguage}
+                  cardImageSrc={cardImageSrc}
+                  cardName={cardName}
+                  formatEuro={formatEuro}
+                />
               );
             }
 
             const item = row.listing;
             const isOwn = isOwnListing(item);
-            const isBusy = busyItemId === item.item_id;
-            const conditionCode = listingConditionCode(item.condition);
-            const langFlag = languageFlagCode(item.mtg_language);
-            const rep = getSellerReputation(item);
-            const isCartOpen = activeCartItemId === item.item_id;
+            const rowKey = listingRowKey(item);
+            const isBusy = busyItemId === rowKey;
+            const isCartOpen = activeCartRowKey === rowKey;
             const cartQty = getCartQty(item);
             const description = getListingDescription(item);
 
             return (
-              <tr
+              <DesktopListingRow
                 key={row.id}
-                className={cn(
-                  'border-b border-gray-200 align-middle transition-colors',
-                  index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60',
-                  isOwn && 'bg-sky-50/40',
-                  isCartOpen && 'bg-orange-50/40',
-                  !isCartOpen && !isOwn && 'hover:bg-orange-50/20'
-                )}
-              >
-                <td className="border-r border-gray-200/80 px-2.5 py-2">
-                  <MarketplaceSellerCell
-                    username={item.seller_display_name}
-                    country={item.country}
-                    rating={rep.rating}
-                    reviewCount={rep.reviewCount}
-                    salesCount={rep.salesCount}
-                    isPro={item.seller_account_type === 'business'}
-                  />
-                </td>
-
-                <td className="border-r border-gray-200/80 px-2.5 py-2">
-                  <MarketplaceProductInfoCell
-                    conditionCode={conditionCode}
-                    langFlag={langFlag}
-                    langTitle={item.mtg_language ?? undefined}
-                    imageUrls={getListingPhotoUrls(cardImageSrc)}
-                    imageName={cardName ?? item.seller_display_name}
-                    description={description}
-                    foil={item.mtg_foil}
-                    signed={item.signed}
-                    altered={item.altered}
-                  />
-                </td>
-
-                <td className="px-2.5 py-2">
-                  <MarketplaceOfferGrid
-                    price={formatEuro(item.price_cents / 100)}
-                    quantity={item.quantity}
-                    actions={
-                      isOwn ? (
-                        <div className="inline-flex items-center rounded-sm border border-slate-200 bg-white">
-                          <button
-                            type="button"
-                            disabled={isBusy}
-                            onClick={() => onOwnerQuantityChange?.(item, -1)}
-                            className="inline-flex h-7 w-6 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-                            aria-label="Diminuisci quantità"
-                          >
-                            {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
-                          </button>
-                          <span className="min-w-[1.25rem] border-x border-slate-200 text-center text-[11px] font-bold tabular-nums text-slate-800">
-                            {item.quantity}
-                          </span>
-                          <button
-                            type="button"
-                            disabled={isBusy || item.quantity >= 999}
-                            onClick={() => onOwnerQuantityChange?.(item, 1)}
-                            className="inline-flex h-7 w-6 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-                            aria-label="Aumenta quantità"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onOwnerEdit?.(item)}
-                            className="inline-flex h-7 w-6 items-center justify-center border-l border-slate-200 text-slate-500 hover:bg-amber-50"
-                            aria-label="Modifica inserzione"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ) : isCartOpen ? (
-                        <div className="inline-flex items-center rounded-sm border border-orange-200 bg-white">
-                          <button
-                            type="button"
-                            onClick={() => setCartQty(item.item_id, cartQty - 1, item.quantity)}
-                            disabled={cartQty <= 1}
-                            className="inline-flex h-7 w-6 items-center justify-center text-slate-500 disabled:opacity-40"
-                            aria-label="Meno"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </button>
-                          <span className="min-w-[1.25rem] border-x border-orange-100 text-center text-[11px] font-bold tabular-nums">
-                            {cartQty}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setCartQty(item.item_id, cartQty + 1, item.quantity)}
-                            disabled={cartQty >= item.quantity}
-                            className="inline-flex h-7 w-6 items-center justify-center text-slate-500 disabled:opacity-40"
-                            aria-label="Più"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              onAddToCart?.(item, cartQty, e.currentTarget);
-                              closeInlineCart();
-                            }}
-                            className="inline-flex h-7 w-7 items-center justify-center border-l border-orange-200 bg-[#FF7300] text-white hover:bg-[#e86a00]"
-                            aria-label="Conferma carrello"
-                          >
-                            <ShoppingCart className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => openInlineCart(item)}
-                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
-                          aria-label="Aggiungi al carrello"
-                          title="Acquista"
-                        >
-                          <ShoppingCart className="h-3.5 w-3.5" strokeWidth={2.25} />
-                        </button>
-                      )
-                    }
-                  />
-                </td>
-              </tr>
+                rowId={row.id}
+                index={index}
+                item={item}
+                cardImageSrc={cardImageSrc}
+                cardName={cardName}
+                isOwn={isOwn}
+                isBusy={isBusy}
+                isCartOpen={isCartOpen}
+                cartQty={cartQty}
+                description={description}
+                formatEuro={formatEuro}
+                onOwnerQuantityChange={onOwnerQuantityChange}
+                onOwnerEdit={onOwnerEdit}
+                onAddToCart={onAddToCart}
+                onBuyNow={onBuyNow}
+                onOpenInlineCart={openInlineCart}
+                onCloseInlineCart={closeInlineCart}
+                onSetCartQty={setCartQty}
+              />
             );
           })}
         </tbody>
@@ -777,196 +1196,62 @@ export function ModernSellerTable({
       <div className="sm:hidden">
         {displayRows.map((row, index) => {
           if (row.kind === 'auction') {
-            const a = row.auction;
-            const remaining = new Date(a.endsAt).getTime() - nowMs;
-            const sellerName = a.sellerDisplayName || a.seller;
-            const auctionCondition = getConditionCode(a.condition);
-            const auctionLang = languageFlagCode(cardLanguage);
-            const auctionPhotos = getAuctionPhotoUrls(a, cardImageSrc);
-            const auctionDesc = getAuctionDescription(a);
-
             return (
-              <article
+              <MobileAuctionRow
                 key={row.id}
-                className={cn(
-                  'flex gap-2 border-b border-slate-200/90 px-3 py-2.5',
-                  index % 2 === 0 ? 'bg-violet-50/25' : 'bg-violet-50/40'
-                )}
-              >
-                <div className="min-w-0 flex-1">
-                  <MarketplaceSellerCell
-                    username={sellerName}
-                    country={a.sellerCountry}
-                    rating={normalizeRatingToFive(a.sellerRating)}
-                    reviewCount={a.sellerReviewCount}
-                    salesCount={0}
-                  />
-                  <div className="mt-1.5 flex items-center justify-between gap-2">
-                    <MobileProductAttributes
-                      conditionCode={auctionCondition}
-                      langFlag={auctionLang}
-                      langTitle={cardLanguage ?? undefined}
-                      imageUrls={auctionPhotos}
-                      imageName={a.title || cardName}
-                      description={auctionDesc}
-                      auctionTag
-                    />
-                    <div className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
-                      <span className="text-xs font-medium text-violet-700">{formatCountdownDuration(remaining)}</span>
-                      <span className="text-sm font-bold text-slate-900">
-                        {formatEuro(a.currentBidEur || a.startingBidEur)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center self-center">
-                  <Link
-                    href={auctionDetailPath(String(a.numericId))}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-violet-600 text-white shadow-sm"
-                    aria-label="Apri asta"
-                  >
-                    <Gavel className="h-4 w-4" strokeWidth={2.25} />
-                  </Link>
-                </div>
-              </article>
+                rowId={row.id}
+                index={index}
+                auction={row.auction}
+                cardLanguage={cardLanguage}
+                cardImageSrc={cardImageSrc}
+                cardName={cardName}
+                formatEuro={formatEuro}
+              />
             );
           }
 
           const item = row.listing;
           const isOwn = isOwnListing(item);
-          const isBusy = busyItemId === item.item_id;
-          const conditionCode = listingConditionCode(item.condition);
-          const langFlag = languageFlagCode(item.mtg_language);
-          const rep = getSellerReputation(item);
-          const isCartOpen = activeCartItemId === item.item_id;
+          const rowKey = listingRowKey(item);
+          const isBusy = busyItemId === rowKey;
+          const isCartOpen = activeCartRowKey === rowKey;
           const cartQty = getCartQty(item);
           const description = getListingDescription(item);
 
           return (
-            <article
+            <MobileListingRow
               key={row.id}
-              className={cn(
-                'flex gap-2 border-b border-slate-200/90 px-3 py-2.5',
-                index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60',
-                isOwn && 'bg-sky-50/35',
-                isCartOpen && 'bg-orange-50/35'
-              )}
-            >
-              <div className="min-w-0 flex-1">
-                <MarketplaceSellerCell
-                  username={item.seller_display_name}
-                  country={item.country}
-                  rating={rep.rating}
-                  reviewCount={rep.reviewCount}
-                  salesCount={rep.salesCount}
-                  isPro={item.seller_account_type === 'business'}
-                />
-                <div className="mt-1.5 flex items-center justify-between gap-2">
-                  <MobileProductAttributes
-                    conditionCode={conditionCode}
-                    langFlag={langFlag}
-                    langTitle={item.mtg_language ?? undefined}
-                    imageUrls={getListingPhotoUrls(cardImageSrc)}
-                    imageName={cardName ?? item.seller_display_name}
-                    description={description}
-                    foil={item.mtg_foil}
-                    signed={item.signed}
-                    altered={item.altered}
-                  />
-                  <div className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
-                    <span className="text-xs font-medium text-slate-600">{item.quantity}</span>
-                    <span className="text-sm font-bold text-slate-900">{formatEuro(item.price_cents / 100)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex shrink-0 items-center self-center">
-                {isOwn ? (
-                  <div className="inline-flex flex-col overflow-hidden rounded-sm border border-slate-200 bg-white shadow-sm">
-                    <div className="flex items-center border-b border-slate-200">
-                      <button
-                        type="button"
-                        disabled={isBusy}
-                        onClick={() => onOwnerQuantityChange?.(item, -1)}
-                        className="inline-flex h-8 w-8 items-center justify-center text-slate-600 disabled:opacity-40"
-                        aria-label="Diminuisci"
-                      >
-                        {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
-                      </button>
-                      <span className="min-w-[1.5rem] border-x border-slate-200 text-center text-xs font-bold tabular-nums">
-                        {item.quantity}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={isBusy || item.quantity >= 999}
-                        onClick={() => onOwnerQuantityChange?.(item, 1)}
-                        className="inline-flex h-8 w-8 items-center justify-center text-slate-600 disabled:opacity-40"
-                        aria-label="Aumenta"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onOwnerEdit?.(item)}
-                      className="inline-flex h-7 w-full items-center justify-center text-slate-500 hover:bg-amber-50"
-                      aria-label="Modifica"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ) : isCartOpen ? (
-                  <div className="inline-flex flex-col overflow-hidden rounded-sm border border-orange-200 bg-white shadow-sm">
-                    <div className="flex items-center">
-                      <button
-                        type="button"
-                        onClick={() => setCartQty(item.item_id, cartQty - 1, item.quantity)}
-                        disabled={cartQty <= 1}
-                        className="inline-flex h-8 w-8 items-center justify-center disabled:opacity-40"
-                        aria-label="Meno"
-                      >
-                        <Minus className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="min-w-[1.5rem] border-x border-orange-100 text-center text-xs font-bold tabular-nums">
-                        {cartQty}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setCartQty(item.item_id, cartQty + 1, item.quantity)}
-                        disabled={cartQty >= item.quantity}
-                        className="inline-flex h-8 w-8 items-center justify-center disabled:opacity-40"
-                        aria-label="Più"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        onAddToCart?.(item, cartQty, e.currentTarget);
-                        closeInlineCart();
-                      }}
-                      className="inline-flex h-8 w-full items-center justify-center bg-[#2563eb] text-white"
-                      aria-label="Aggiungi al carrello"
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => openInlineCart(item)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-[#2563eb] text-white shadow-sm"
-                    aria-label="Aggiungi al carrello"
-                  >
-                    <ShoppingCart className="h-4 w-4" strokeWidth={2.25} />
-                  </button>
-                )}
-              </div>
-            </article>
+              rowId={row.id}
+              index={index}
+              item={item}
+              cardImageSrc={cardImageSrc}
+              cardName={cardName}
+              isOwn={isOwn}
+              isBusy={isBusy}
+              isCartOpen={isCartOpen}
+              cartQty={cartQty}
+              description={description}
+              formatEuro={formatEuro}
+              onOwnerQuantityChange={onOwnerQuantityChange}
+              onOwnerEdit={onOwnerEdit}
+              onAddToCart={onAddToCart}
+              onBuyNow={onBuyNow}
+              onOpenInlineCart={openInlineCart}
+              onCloseInlineCart={closeInlineCart}
+              onSetCartQty={setCartQty}
+            />
           );
         })}
       </div>
     </>
   );
 }
+
+// PERF: memoized table shell; timer provider keeps parent/detail view off 1s ticks.
+export const ModernSellerTable = memo(function ModernSellerTable(props: ModernSellerTableProps) {
+  return (
+    <MarketplaceNowProvider>
+      <ModernSellerTableInner {...props} />
+    </MarketplaceNowProvider>
+  );
+});

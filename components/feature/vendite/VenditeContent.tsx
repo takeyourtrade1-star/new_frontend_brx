@@ -15,12 +15,14 @@ import {
   type OrderStatus,
 } from '@/types/order';
 import { OrderCard } from '@/components/feature/acquisti/OrderCard';
+import { MarketplaceListingsPanel } from './MarketplaceListingsPanel';
 
 const TABS = [
   { id: 'in-attesa', label: 'IN ATTESA DI PAGAMENTO' },
   { id: 'pagati', label: 'PAGATI' },
   { id: 'spediti', label: 'SPEDITI' },
   { id: 'consegnati', label: 'CONSEGNATI' },
+  { id: 'inserzioni', label: 'INSERZIONI MARKETPLACE' },
   { id: 'cancellati', label: 'CANCELLATI' },
 ] as const;
 
@@ -31,6 +33,7 @@ const STATUSES_BY_TAB: Record<TabId, OrderStatus[] | undefined> = {
   pagati: ['PAID'],
   spediti: ['SHIPPED'],
   consegnati: ['DELIVERED'],
+  inserzioni: undefined,
   cancellati: ORDER_STATUSES_CANCELLED,
 };
 
@@ -39,6 +42,7 @@ const EMPTY_BY_TAB: Record<TabId, string> = {
   pagati: 'Nessuna vendita pagata.',
   spediti: 'Nessuna vendita ancora spedita.',
   consegnati: 'Nessuna vendita ancora consegnata.',
+  inserzioni: 'Nessuna inserzione marketplace attiva.',
   cancellati: 'Nessuna vendita cancellata.',
 };
 
@@ -50,8 +54,12 @@ export function VenditeContent() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>('in-attesa');
 
+  const isListingsTab = activeTab === 'inserzioni';
   const statuses = STATUSES_BY_TAB[activeTab];
-  const ordersQuery = useSellerOrders({ statuses, limit: 50, offset: 0 });
+  const ordersQuery = useSellerOrders(
+    { statuses, limit: 50, offset: 0 },
+    { enabled: !isListingsTab },
+  );
   const openDisputeMutation = useOpenDispute();
 
   // Track which specific order ID is currently opening a dispute.
@@ -120,7 +128,9 @@ export function VenditeContent() {
           ))}
         </div>
 
-        {ordersQuery.isLoading ? (
+        {isListingsTab ? (
+          <MarketplaceListingsPanel statusFilter="active" />
+        ) : ordersQuery.isLoading ? (
           <div className="flex min-h-[280px] items-center justify-center border border-gray-200 bg-white">
             <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
             <span className="sr-only">Caricamento vendite…</span>

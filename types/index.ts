@@ -17,10 +17,26 @@ export interface Product {
   updatedAt: string;
 }
 
+/** @deprecated Legacy mock cart line — migrated to MarketplaceCartLine on persist v1. */
 export interface CartItem {
   productId: string;
   quantity: number;
   product?: Product;
+}
+
+export interface MarketplaceCartLine {
+  lineId: string;
+  source: 'sync' | 'marketplace';
+  listingId: string | number;
+  sellerId: string;
+  blueprintId?: number;
+  title: string;
+  imageUrl: string;
+  priceCents: number;
+  quantity: number;
+  maxQuantity: number;
+  condition?: string | null;
+  language?: string | null;
 }
 
 export interface User {

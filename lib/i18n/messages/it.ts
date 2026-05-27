@@ -807,6 +807,20 @@ export const it: Record<MessageKey, string> = {
   'vendi.singles.searchHint': 'Seleziona una carta per aprire la scheda e compilare quantità, lingua, condizione e prezzo.',
   'vendi.singles.select': 'Seleziona',
   'vendi.singles.noResults': 'Nessuna carta trovata. Prova con un altro termine.',
+  'vendi.sell.stepPhotos': 'Foto dell\'oggetto',
+  'vendi.sell.stepPhotosHint':
+    'Carica foto nitide della carta reale (fronte e retro se possibile). Servono per la fiducia degli acquirenti sul marketplace EBARTEX.',
+  'vendi.sell.photoFromPhone': 'Carica da telefono (QR)',
+  'vendi.sell.photoFromPhoneLoading': 'Avvio sessione…',
+  'vendi.sell.photoFromPhonePollingHint':
+    'Tieni aperta questa pagina: le foto inviate dal telefono compariranno qui automaticamente.',
+  'vendi.sell.photoFromPhoneModalTitle': 'Scansiona con il telefono',
+  'vendi.sell.photoFromPhoneModalBody':
+    'Inquadra il codice QR con la fotocamera del telefono per aprire la pagina di invio foto della tua inserzione.',
+  'vendi.sell.photoFromPhoneModalCloseHint':
+    'Puoi chiudere questa finestra dopo la scansione: l\'upload continua sul telefono.',
+  'vendi.sell.photoFromPhoneModalClose': 'Chiudi',
+  'vendi.sell.validationPhotosMin': 'Carica almeno {min} foto dell\'oggetto reale.',
   'vendi.products.pageTitle': 'Vendi oggetti',
   'vendi.products.pageSubtitle': 'Booster, box, mazzi preconfezionati, bundle, tin box e altri prodotti non-singola.',
   'vendi.products.chooseType': 'Scegli il tipo di oggetto che vuoi vendere.',

@@ -323,13 +323,17 @@ export interface PhotoPairingSessionCreated {
   expires_at: string;
 }
 
+export type PhotoPairingContextType = 'auction' | 'listing';
+
 /** Creates a short-lived session for the QR “upload from phone” flow. */
-export async function createPhotoPairingSession(): Promise<PhotoPairingSessionCreated> {
+export async function createPhotoPairingSession(
+  contextType: PhotoPairingContextType = 'auction',
+): Promise<PhotoPairingSessionCreated> {
   const res = await jsonRequest<{ success: boolean; data: PhotoPairingSessionCreated }>(
     '/api/auctions/photos/pairing-sessions',
     {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify({ context_type: contextType }),
     },
   );
   return res.data;

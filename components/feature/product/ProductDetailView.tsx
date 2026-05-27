@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -34,11 +35,25 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { getGameLabel, buildBreadcrumbsFromCard } from '@/lib/product-detail';
 import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
 import { syncClient, type InventoryItemResponse, type ListingItem } from '@/lib/api/sync-client';
+import {
+  MarketplaceApiError,
+  cancelListing,
+  getPublicListingsByBlueprint,
+  purchaseListing as purchaseMarketplaceListing,
+  updateListing,
+} from '@/lib/api/marketplace-client';
+import { buildCartLineFromListingItem } from '@/lib/marketplace/cart-line';
+import {
+  isMarketplaceListingItem,
+  listingRowKey,
+  mapPublicListingToListingItem,
+} from '@/lib/marketplace/listing-map';
+import { MarketplaceListingEditModal } from '@/components/feature/vendite/MarketplaceListingEditModal';
 import { fetchPublicUserProfiles } from '@/lib/api/user-names-cache';
 import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
 import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
-import { AuctionCreateWizard } from '@/components/feature/aste/create/AuctionCreateWizard';
-import { InventoryEditModal } from '@/components/feature/sync/InventoryEditModal';
+import { buildPriceHistoryPoints } from '@/lib/product-detail/build-price-history-points';
+import type { ProductPriceStats } from '@/components/feature/product/ProductPriceChart';
 import { listingToInventoryEditItem } from '@/lib/product-detail/listing-to-inventory-item';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCdnImageUrl } from '@/lib/config';
@@ -46,7 +61,7 @@ import { shouldFetchReprints, type ReprintSearchHit } from '@/lib/reprints-searc
 import type { CardDocument } from '@/lib/product-detail';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { COUNTRIES } from '@/lib/registrati/schema';
-import { ProductPriceChart, type ProductPriceStats, buildPriceHistoryPoints } from '@/components/feature/product/ProductPriceChart';
+import { InventoryEditModal } from '@/components/feature/sync/InventoryEditModal';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { CountrySelect, type CountryOption } from '@/components/ui/CountrySelect';
@@ -60,9 +75,7 @@ import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { RarityIndicator } from '@/components/ui/RarityIndicator';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
 import { ModernSellerTable } from '@/components/feature/product/ModernSellerTable';
-import { buildCardLanguageOptions } from '@/lib/card-languages';
 import { CardLanguageFlags } from '@/components/ui/CardLanguageFlags';
-import { CardLanguageSelect } from '@/components/ui/CardLanguageSelect';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI } from '@/lib/auction/auction-adapter';
 import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
@@ -78,6 +91,43 @@ import {
   type SellerTypeFilter,
 } from '@/lib/product-detail/marketplace-rows';
 import { ConditionBadge, type ConditionCode } from '@/components/ui/ConditionBadge';
+
+// PERF: lazy-load heavy tab panels to keep product page initial bundle smaller.
+const AuctionCreateWizard = dynamic(
+  () => import('@/components/feature/aste/create/AuctionCreateWizard').then((mod) => mod.AuctionCreateWizard),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex min-h-[200px] flex-col items-center justify-center gap-2.5 text-xs text-zinc-500">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
+      </div>
+    ),
+  }
+);
+
+const SellSingleWizard = dynamic(
+  () => import('@/components/feature/vendi/singles/SellSingleWizard').then((mod) => mod.SellSingleWizard),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex min-h-[160px] flex-col items-center justify-center gap-2.5 text-xs text-zinc-500">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
+      </div>
+    ),
+  }
+);
+
+const ProductPriceChart = dynamic(
+  () => import('@/components/feature/product/ProductPriceChart').then((mod) => mod.ProductPriceChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full min-h-[200px] w-full items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
+      </div>
+    ),
+  }
+);
 
 const PRIMARY_BLUE = '#1D3160';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -555,9 +605,24 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const confirmQty = useCallback(() => {
     if (!qtyPopup.item || !qtyPopup.sourceEl) return;
     flyToCart(qtyPopup.sourceEl, { imageSrc: qtyPopup.imageSrc });
-    addToCartStore(`mock-${qtyPopup.item.item_id}-${Date.now()}`);
+    if (qtyPopup.item.item_id > 0 && qtyPopup.item.seller_id !== 'lightbox') {
+      const rawBp = card?.cardtrader_id;
+      const bp =
+        typeof rawBp === 'number'
+          ? rawBp
+          : rawBp != null
+            ? parseInt(String(rawBp).includes(':') ? String(rawBp).split(':')[0] : String(rawBp), 10)
+            : undefined;
+      addToCartStore(
+        buildSyncCartLine(qtyPopup.item, qtyValue, {
+          title: card?.name ?? qtyPopup.item.seller_display_name,
+          imageUrl: qtyPopup.imageSrc ?? imageSrc ?? '',
+          blueprintId: Number.isFinite(bp) && (bp as number) >= 1 ? (bp as number) : undefined,
+        }),
+      );
+    }
     setQtyPopup({ open: false });
-  }, [qtyPopup, flyToCart, addToCartStore]);
+  }, [qtyPopup, qtyValue, flyToCart, addToCartStore, card, imageSrc]);
 
   const blueprintIdForAuction = useMemo(() => {
     const raw = card?.cardtrader_id;
@@ -623,36 +688,18 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [condizioneMinima, setCondizioneMinima] = useState<ConditionCode | null>(null);
   const [linguaCarta, setLinguaCarta] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItemWithCatalog | null>(null);
+  const [editingMarketplace, setEditingMarketplace] = useState<{
+    id: string;
+    title: string;
+    price: string;
+    quantity: number;
+  } | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
-  const [rowBusyId, setRowBusyId] = useState<number | null>(null);
+  const [rowBusyId, setRowBusyId] = useState<string | null>(null);
   const [listingActionMessage, setListingActionMessage] = useState<string | null>(null);
   const [purchaseListing, setPurchaseListing] = useState<ListingItem | null>(null);
   const [purchaseQty, setPurchaseQty] = useState(1);
   const [purchaseSubmitting, setPurchaseSubmitting] = useState(false);
-
-  /* Form "Metti in vendita" (tab VENDI) */
-  const [quantitaVendi, setQuantitaVendi] = useState(1);
-  const [linguaVendi, setLinguaVendi] = useState('en');
-  const [condizioneVendi, setCondizioneVendi] = useState('near_mint');
-  const [commentiVendi, setCommentiVendi] = useState('');
-  const [prezzoVendi, setPrezzoVendi] = useState('0.00');
-  const [saveSettings, setSaveSettings] = useState(false);
-  const [extraFoil, setExtraFoil] = useState(false);
-  const [extraSigned, setExtraSigned] = useState(false);
-  const [extraAltered, setExtraAltered] = useState(false);
-
-  /* Modal Condizione */
-  const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
-  const [modalCondition, setModalCondition] = useState(condizioneVendi);
-  const [dontShowConditionModal, setDontShowConditionModal] = useState(false);
-  const [conditionLightbox, setConditionLightbox] = useState<string | null>(null);
-
-  /* Verifica se l'utente ha scelto di non mostrare più il modal */
-  const shouldSkipConditionModal = useCallback(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('hideConditionModal') === 'true';
-  }, []);
-
 
   /* Lightbox per immagine carta fullscreen */
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -669,23 +716,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [reprints, setReprints] = useState<ReprintCard[]>([]);
   const [reprintsLoading, setReprintsLoading] = useState(false);
   const [reprintsDegraded, setReprintsDegraded] = useState(false);
-
-    const CONDITION_OPTIONS_MAP: { value: string; label: string }[] = [
-    { value: 'near_mint', label: 'Near Mint' },
-    { value: 'lightly_played', label: 'Lightly Played' },
-    { value: 'moderately_played', label: 'Moderately Played' },
-    { value: 'heavily_played', label: 'Heavily Played' },
-    { value: 'damaged', label: 'Damaged' },
-  ];
-  const CONDITION_IMAGES: Record<string, { front: string; back: string }> = {
-    near_mint: { front: '/conditions/near-mint-front.jpeg', back: '/conditions/near-mint-back.jpeg' },
-    lightly_played: { front: '/conditions/light-played-front.jpeg', back: '/conditions/light-played-back.jpeg' },
-    moderately_played: { front: '/conditions/moderately-played-front.jpeg', back: '/conditions/moderately-played-back.jpeg' },
-    heavily_played: { front: '/conditions/heavily-played-front.jpeg', back: '/conditions/heavily-played-back.jpeg' },
-    damaged: { front: '/conditions/damaged-front.jpeg', back: '/conditions/damaged-back.jpeg' },
-  };
-
-
 
   const LINGUA_CARTA = [
     { code: 'IT', label: 'Italia' },
@@ -714,18 +744,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     [t]
   );
 
-  /** Tutte le lingue blueprint (tab INFO + VENDI), senza limite. */
-  const cardLanguageOptions = useMemo(
-    () => buildCardLanguageOptions(card?.available_languages),
-    [card?.available_languages]
-  );
-
-  useEffect(() => {
-    if (cardLanguageOptions.length && !cardLanguageOptions.some((o) => o.code === linguaVendi)) {
-      setLinguaVendi(cardLanguageOptions[0].code);
-    }
-  }, [cardLanguageOptions, linguaVendi]);
-
   const refreshListings = useCallback(async () => {
     const raw = card?.cardtrader_id;
     if (raw == null) {
@@ -747,11 +765,31 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setListingsLoading(true);
     setListingsError(null);
     try {
-      const res = await syncClient.getListingsByBlueprint(blueprintId);
-      const rawListings = res.listings ?? [];
+      const [syncResult, mktResult] = await Promise.allSettled([
+        syncClient.getListingsByBlueprint(blueprintId),
+        getPublicListingsByBlueprint(blueprintId, card?.id).catch(() => ({
+          blueprint_id: blueprintId,
+          items: [],
+          total: 0,
+        })),
+      ]);
 
-      // Enrich seller_display_name with real usernames from the auth public-profiles API.
-      // The sync service stores raw user IDs as seller_display_name; we resolve them here.
+      const syncListings: ListingItem[] =
+        syncResult.status === 'fulfilled'
+          ? (syncResult.value.listings ?? []).map((l) => ({ ...l, listing_source: 'sync' as const }))
+          : [];
+
+      const marketplaceListings: ListingItem[] =
+        mktResult.status === 'fulfilled'
+          ? (mktResult.value.items ?? []).map(mapPublicListingToListingItem)
+          : [];
+
+      const rawListings = [...syncListings, ...marketplaceListings];
+
+      if (syncResult.status === 'rejected' && marketplaceListings.length === 0) {
+        throw syncResult.reason;
+      }
+
       const sellerIds = [...new Set(rawListings.map((l) => l.seller_id).filter(Boolean))];
       const profiles = sellerIds.length > 0 ? await fetchPublicUserProfiles(sellerIds) : {};
       const enriched: ListingItem[] = rawListings.map((l) => {
@@ -770,7 +808,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     } finally {
       setListingsLoading(false);
     }
-  }, [card?.cardtrader_id]);
+  }, [card?.cardtrader_id, card?.id]);
 
   useEffect(() => {
     void refreshListings();
@@ -866,8 +904,27 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         return;
       }
       setListingActionMessage(null);
-      setRowBusyId(item.item_id);
+      setRowBusyId(listingRowKey(item));
       try {
+        if (isMarketplaceListingItem(item) && item.marketplace_listing_id) {
+          if (delta === -1 && item.quantity <= 1) {
+            if (
+              !confirm(
+                'Annullare questa inserzione marketplace? Non sarà più visibile agli acquirenti.',
+              )
+            ) {
+              return;
+            }
+            await cancelListing(item.marketplace_listing_id);
+          } else {
+            const nextQty = Math.max(0, item.quantity + delta);
+            if (nextQty < 1) return;
+            await updateListing(item.marketplace_listing_id, { quantity: nextQty });
+          }
+          await refreshListings();
+          return;
+        }
+
         if (delta === -1 && item.quantity <= 1) {
           if (
             !confirm(
@@ -900,6 +957,33 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       }
     },
     [user?.id, accessToken, refreshListings, pollSyncTaskThenRefresh]
+  );
+
+  const handleMarketplaceEditSubmit = useCallback(
+    async (form: { price: number; quantity: number }) => {
+      if (!editingMarketplace) return;
+      setSavingEdit(true);
+      setListingActionMessage(null);
+      try {
+        await updateListing(editingMarketplace.id, {
+          price: form.price,
+          quantity: form.quantity,
+        });
+        setEditingMarketplace(null);
+        await refreshListings();
+      } catch (e) {
+        const msg =
+          e instanceof MarketplaceApiError
+            ? e.detail
+            : e instanceof Error
+              ? e.message
+              : 'Salvataggio non riuscito';
+        setListingActionMessage(msg);
+      } finally {
+        setSavingEdit(false);
+      }
+    },
+    [editingMarketplace, refreshListings],
   );
 
   const handleEditSubmit = useCallback(
@@ -957,20 +1041,38 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setPurchaseSubmitting(true);
     setListingActionMessage(null);
     try {
-      const res = await syncClient.purchaseInventoryItem(
-        purchaseListing.seller_id,
-        purchaseListing.item_id,
-        { quantity: safeQty },
-        accessToken
-      );
-      if (res.status === 'success') {
+      if (isMarketplaceListingItem(purchaseListing) && purchaseListing.marketplace_listing_id) {
+        await purchaseMarketplaceListing({
+          listing_id: purchaseListing.marketplace_listing_id,
+          quantity: safeQty,
+          idempotency_key: crypto.randomUUID(),
+        });
         setPurchaseListing(null);
+        setListingActionMessage('Acquisto marketplace completato.');
         await refreshListings();
       } else {
-        setListingActionMessage(res.message || res.error || 'Acquisto non completato');
+        const res = await syncClient.purchaseInventoryItem(
+          purchaseListing.seller_id,
+          purchaseListing.item_id,
+          { quantity: safeQty },
+          accessToken,
+        );
+        if (res.status === 'success') {
+          setPurchaseListing(null);
+          setListingActionMessage('Acquisto completato.');
+          await refreshListings();
+        } else {
+          setListingActionMessage(res.message || res.error || 'Acquisto non completato');
+        }
       }
     } catch (e) {
-      setListingActionMessage(e instanceof Error ? e.message : 'Errore durante l’acquisto');
+      const msg =
+        e instanceof MarketplaceApiError
+          ? e.detail
+          : e instanceof Error
+            ? e.message
+            : 'Errore durante l’acquisto';
+      setListingActionMessage(msg);
     } finally {
       setPurchaseSubmitting(false);
     }
@@ -1033,12 +1135,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       cancelled = true;
     };
   }, [cardAuctionsQuery.data]);
-
-  const [marketplaceNowMs, setMarketplaceNowMs] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setMarketplaceNowMs(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   const marketplaceFilters: MarketplaceFilterState = useMemo(
     () => ({
@@ -1113,13 +1209,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const soldCopiesValue = effectiveTrendStats.soldCopies;
   const averageSalePriceValue = effectiveTrendStats.averageSalePrice;
   const trendRangeLabel = effectiveTrendStats.rangeLabel;
-  const prezzoVendiValue = useMemo(() => {
-    const normalized = prezzoVendi.replace(',', '.').replace(/[^\d.]/g, '');
-    const parsed = Number.parseFloat(normalized);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }, [prezzoVendi]);
-  const quantitaVendiValue = Number.isFinite(quantitaVendi) ? Math.max(1, quantitaVendi) : 1;
-  const vendiTotaleValue = prezzoVendiValue * quantitaVendiValue;
+  const handleSellSinglePublished = useCallback(async () => {
+    setListingActionMessage('Inserzione pubblicata con successo.');
+    await refreshListings();
+  }, [refreshListings]);
 
   // Mock multiple images for swipe demo (front/back of card)
   const cardImages = useMemo(() => {
@@ -1128,6 +1221,66 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     // For now, single image
     return images;
   }, [effectiveImageSrc]);
+
+  // PERF: stable marketplace callbacks prevent ModernSellerTable row memo busting.
+  const handleMarketplaceAddToCart = useCallback(
+    (item: ListingItem, quantity: number, sourceEl: HTMLElement) => {
+      if (!user || !accessToken) {
+        setListingActionMessage('Accedi per aggiungere al carrello.');
+        return;
+      }
+      const imageSrc = cardImages[currentImageIndex] || effectiveImageSrc;
+      flyToCart(sourceEl, { imageSrc });
+      addToCartStore(
+        buildCartLineFromListingItem(item, quantity, {
+          title: card?.name ?? item.seller_display_name,
+          imageUrl: imageSrc,
+          blueprintId: blueprintIdForAuction ?? undefined,
+        }),
+      );
+      setListingActionMessage(null);
+    },
+    [
+      user,
+      accessToken,
+      flyToCart,
+      cardImages,
+      currentImageIndex,
+      effectiveImageSrc,
+      addToCartStore,
+      card?.name,
+      blueprintIdForAuction,
+    ],
+  );
+
+  const handleMarketplaceBuyNow = useCallback(
+    (item: ListingItem, quantity: number) => {
+      if (!user || !accessToken) {
+        setListingActionMessage('Accedi per acquistare.');
+        return;
+      }
+      setPurchaseListing(item);
+      setPurchaseQty(Math.max(1, Math.min(quantity, item.quantity)));
+      setListingActionMessage(null);
+    },
+    [user, accessToken],
+  );
+
+  const handleMarketplaceOwnerEdit = useCallback(
+    (item: ListingItem) => {
+      if (isMarketplaceListingItem(item) && item.marketplace_listing_id) {
+        setEditingMarketplace({
+          id: item.marketplace_listing_id,
+          title: item.description?.trim() || card?.name || 'Inserzione marketplace',
+          price: (item.price_cents / 100).toFixed(2),
+          quantity: item.quantity,
+        });
+        return;
+      }
+      setEditingItem(listingToInventoryEditItem(item, card ?? null));
+    },
+    [card],
+  );
 
   const handleLightboxOpen = () => setIsLightboxOpen(true);
   const handleLightboxClose = () => setIsLightboxOpen(false);
@@ -1346,109 +1499,21 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
                 )}
 
-                {activeTab === 'VENDI' && (
-                  <div className="rounded-xl bg-white p-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                    <div className="mb-2 flex items-center justify-between">
-                      <h3 className="text-[13px] font-extrabold uppercase tracking-wider text-zinc-900">Vendi subito</h3>
-                      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">Rapido</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Quantità</label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={quantitaVendi}
-                          onChange={(e) => setQuantitaVendi(Number(e.target.value) || 1)}
-                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Prezzo (€)</label>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={prezzoVendi}
-                          onChange={(e) => setPrezzoVendi(e.target.value)}
-                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lingua</label>
-                        <CardLanguageSelect
-                          options={cardLanguageOptions}
-                          value={linguaVendi}
-                          onChange={setLinguaVendi}
-                          className="[&_button]:rounded-lg [&_button]:border-zinc-200 [&_button]:bg-zinc-50/50 [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Condizione</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setModalCondition(condizioneVendi);
-                            setIsConditionModalOpen(true);
-                          }}
-                          className="w-full truncate rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-left text-xs font-medium text-zinc-900 transition-colors hover:border-zinc-300"
-                        >
-                          {CONDITION_OPTIONS_MAP.find((opt) => opt.value === condizioneVendi)?.label ?? 'Near Mint'}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <label className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Note</label>
-                      <input
-                        type="text"
-                        value={commentiVendi}
-                        onChange={(e) => setCommentiVendi(e.target.value)}
-                        placeholder="Commenti per acquirente"
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-2.5 py-1.5 text-xs font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
-                      />
-                    </div>
-                    <div className="mt-2 grid grid-cols-3 gap-1.5">
-                      <div className="rounded-lg bg-zinc-50/80 p-1.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Unit.</p>
-                        <p className="mt-0.5 text-xs font-extrabold text-zinc-800">{formatEuro(prezzoVendiValue)}</p>
-                      </div>
-                      <div className="rounded-lg bg-sky-50/60 p-1.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-sky-600/80">Qtà</p>
-                        <p className="mt-0.5 text-xs font-extrabold text-sky-700">{new Intl.NumberFormat('it-IT').format(quantitaVendiValue)}</p>
-                      </div>
-                      <div className="rounded-lg bg-amber-50/70 p-1.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600/80">Tot.</p>
-                        <p className="mt-0.5 text-xs font-extrabold text-amber-700">{formatEuro(vendiTotaleValue)}</p>
-                      </div>
-                    </div>
-                    <div className="mt-2.5 flex items-center justify-between border-t border-zinc-100 pt-2">
-                      <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-600">
-                          <input
-                            type="checkbox"
-                            checked={extraFoil}
-                            onChange={(e) => setExtraFoil(e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-zinc-300 text-primary focus:ring-primary/25"
-                          />
-                          Foil
-                        </label>
-                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-600">
-                          <input
-                            type="checkbox"
-                            checked={extraSigned}
-                            onChange={(e) => setExtraSigned(e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-zinc-300 text-primary focus:ring-primary/25"
-                          />
-                          Firm.
-                        </label>
-                      </div>
-                      <button
-                        type="button"
-                        className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
-                      >
-                        Vendi
-                      </button>
-                    </div>
+                {activeTab === 'VENDI' && card && (
+                  <div className="rounded-xl bg-white p-2 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                    <SellSingleWizard
+                      key={`mobile-sell-${card.id}`}
+                      variant="embedded"
+                      embeddedCard={card}
+                      blueprintId={blueprintIdForAuction}
+                      onPublished={handleSellSinglePublished}
+                      className="!max-w-full"
+                    />
+                  </div>
+                )}
+                {activeTab === 'VENDI' && !card && (
+                  <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl bg-white p-4 text-center text-xs text-zinc-400">
+                    Seleziona un prodotto dal catalogo per vendere.
                   </div>
                 )}
 
@@ -1848,123 +1913,19 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               </>
             )}
 
-            {/* Tab VENDI: form ultra-compatto */}
-            {activeTab === 'VENDI' && (
+            {/* Tab VENDI: wizard vendita singola + contesto prezzi */}
+            {activeTab === 'VENDI' && card && (
               <>
                 <div className="hidden h-full min-h-0 w-full min-w-0 gap-3 overflow-y-auto p-3 sm:grid sm:grid-cols-1 lg:grid-cols-[1.3fr_1fr]">
-                  {/* LEFT: Selling form */}
-                  <div className="flex min-h-0 flex-col gap-0 rounded-2xl bg-white ring-1 ring-zinc-900/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    {/* Form header */}
-                    <div className="flex items-center justify-between px-3.5 pt-3 pb-2">
-                      <h3 className="text-xs font-extrabold uppercase tracking-wider text-zinc-800">Inserzione rapida</h3>
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">Vendita</span>
-                    </div>
-
-                    {/* Inputs — compact 4-col grid */}
-                    <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 px-3.5 md:grid-cols-4">
-                      <div>
-                        <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Quantità</label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={quantitaVendi}
-                          onChange={(e) => setQuantitaVendi(Number(e.target.value) || 1)}
-                          className="w-full rounded-md border border-zinc-200/80 bg-zinc-50/40 px-2 py-1 text-[13px] font-medium text-zinc-900 tabular-nums transition-colors focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/15"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Lingua</label>
-                        <CardLanguageSelect
-                          options={cardLanguageOptions}
-                          value={linguaVendi}
-                          onChange={setLinguaVendi}
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Condizione</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setModalCondition(condizioneVendi);
-                            setIsConditionModalOpen(true);
-                          }}
-                          className="w-full truncate rounded-md border border-zinc-200/80 bg-zinc-50/40 px-2 py-1 text-left text-[13px] font-medium text-zinc-900 transition-colors hover:border-zinc-300"
-                        >
-                          {CONDITION_OPTIONS_MAP.find((opt) => opt.value === condizioneVendi)?.label ?? 'Near Mint'}
-                        </button>
-                      </div>
-                      <div>
-                        <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Prezzo (€)</label>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={prezzoVendi}
-                          onChange={(e) => setPrezzoVendi(e.target.value)}
-                          className="w-full rounded-md border border-zinc-200/80 bg-zinc-50/40 px-2 py-1 text-[13px] font-semibold text-zinc-900 tabular-nums transition-colors focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/15"
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Notes — single row */}
-                    <div className="mt-1.5 px-3.5">
-                      <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Note venditore</label>
-                      <input
-                        type="text"
-                        value={commentiVendi}
-                        onChange={(e) => setCommentiVendi(e.target.value)}
-                        placeholder="Scrivi info utili per l'acquirente..."
-                        className="w-full rounded-md border border-zinc-200/80 bg-zinc-50/40 px-2 py-1 text-[13px] font-medium text-zinc-900 transition-colors placeholder:text-zinc-300 focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/15"
-                      />
-                    </div>
-
-                    {/* Extras row: Foil/Firmata */}
-                    <div className="mt-1.5 flex items-center gap-5 px-3.5">
-                      <label className="flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-zinc-500 transition-colors hover:text-zinc-700">
-                        <input
-                          type="checkbox"
-                          checked={extraFoil}
-                          onChange={(e) => setExtraFoil(e.target.checked)}
-                          className="h-3.5 w-3.5 rounded border-zinc-300 text-primary focus:ring-primary/20"
-                        />
-                        Foil
-                      </label>
-                      <label className="flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-zinc-500 transition-colors hover:text-zinc-700">
-                        <input
-                          type="checkbox"
-                          checked={extraSigned}
-                          onChange={(e) => setExtraSigned(e.target.checked)}
-                          className="h-3.5 w-3.5 rounded border-zinc-300 text-primary focus:ring-primary/20"
-                        />
-                        Firmata
-                      </label>
-                    </div>
-
-                    {/* Action strip — totals + CTA unified */}
-                    <div className="mt-auto flex items-center gap-2 rounded-b-2xl border-t border-zinc-100 bg-zinc-50/50 px-3.5 py-2">
-                      <div className="flex flex-1 items-center gap-1.5">
-                        <div className="flex-1 rounded-lg bg-white px-2 py-1 text-center ring-1 ring-zinc-100">
-                          <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-400">Unit.</p>
-                          <p className="text-xs font-extrabold tabular-nums text-zinc-800">{formatEuro(prezzoVendiValue)}</p>
-                        </div>
-                        <span className="text-[10px] font-medium text-zinc-300">&times;</span>
-                        <div className="w-10 rounded-lg bg-white px-2 py-1 text-center ring-1 ring-zinc-100">
-                          <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-400">Qtà</p>
-                          <p className="text-xs font-extrabold tabular-nums text-zinc-800">{quantitaVendiValue}</p>
-                        </div>
-                        <span className="text-[10px] font-medium text-zinc-300">=</span>
-                        <div className="flex-1 rounded-lg bg-primary/5 px-2 py-1 text-center ring-1 ring-primary/15">
-                          <p className="text-[8px] font-bold uppercase tracking-wider text-primary/70">Totale</p>
-                          <p className="text-xs font-extrabold tabular-nums text-primary">{formatEuro(vendiTotaleValue)}</p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="ml-1 whitespace-nowrap rounded-lg bg-primary px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.98]"
-                      >
-                        Pubblica
-                      </button>
-                    </div>
+                  <div className="min-h-0">
+                    <SellSingleWizard
+                      key={`desktop-sell-${card.id}`}
+                      variant="embedded"
+                      embeddedCard={card}
+                      blueprintId={blueprintIdForAuction}
+                      onPublished={handleSellSinglePublished}
+                      className="!max-w-full"
+                    />
                   </div>
 
                   {/* RIGHT: Market pricing context — uniformato a tab INFO */}
@@ -2024,6 +1985,13 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   </div>
                 </div>
               </>
+            )}
+            {activeTab === 'VENDI' && !card && (
+              <div className="hidden flex-1 flex-col items-center justify-center p-6 min-w-0 w-full sm:flex">
+                <p className="text-xs text-zinc-400 text-center max-w-[260px] leading-relaxed">
+                  Seleziona un prodotto dal catalogo per vendere.
+                </p>
+              </div>
             )}
 
             {/* Tab METTI ALL'ASTA: flusso creazione asta compatta */}
@@ -2423,21 +2391,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     loading={listingsLoading}
                     auctionsLoading={cardAuctionsQuery.isLoading}
                     error={listingsError}
-                    nowMs={marketplaceNowMs}
                     emptyMessage={marketplaceEmptyMessage}
                     cardImageSrc={cardImages[currentImageIndex]}
                     cardName={card?.name}
                     cardLanguage={card?.available_languages?.[0] ?? null}
-                    onAddToCart={(item, quantity, sourceEl) => {
-                      if (!user || !accessToken) {
-                        setListingActionMessage('Accedi per aggiungere al carrello.');
-                        return;
-                      }
-                      flyToCart(sourceEl, { imageSrc: cardImages[currentImageIndex] });
-                      addToCartStore(`mock-${item.item_id}-qty${quantity}-${Date.now()}`);
-                    }}
+                    onAddToCart={handleMarketplaceAddToCart}
+                    onBuyNow={handleMarketplaceBuyNow}
                     isOwnListing={isOwnListing}
-                    onOwnerEdit={(item) => setEditingItem(listingToInventoryEditItem(item, card ?? null))}
+                    onOwnerEdit={handleMarketplaceOwnerEdit}
                     onOwnerQuantityChange={handleOwnerQtyDelta}
                     busyItemId={rowBusyId}
                   />
@@ -2498,6 +2459,18 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         />
       )}
 
+      {editingMarketplace && (
+        <MarketplaceListingEditModal
+          listing={editingMarketplace}
+          onClose={() => {
+            setEditingMarketplace(null);
+            setListingActionMessage(null);
+          }}
+          onSubmit={handleMarketplaceEditSubmit}
+          saving={savingEdit}
+        />
+      )}
+
       {purchaseListing && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -2547,86 +2520,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         </div>
       )}
 
-      {/* Modal Condizione */}
-      {isConditionModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="condition-modal-title"
-        >
-          <div className="w-full max-w-2xl rounded-xl bg-white/85 backdrop-blur-2xl backdrop-saturate-150 border border-white/40 shadow-2xl shadow-black/20 overflow-hidden">
-            <div className="p-6 sm:p-8">
-              <h2 id="condition-modal-title" className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
-                Per garantire al meglio un servizio efficiente, scegli bene la condizione della carta:
-              </h2>
-
-              <div className="mt-6">
-                <select
-                  value={modalCondition}
-                  onChange={(e) => setModalCondition(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300/80 bg-white/70 backdrop-blur-sm px-3 py-2.5 text-sm focus:border-[#FF8800] focus:outline-none focus:ring-2 focus:ring-[#FF8800]/25"
-                >
-                  {CONDITION_OPTIONS_MAP.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Immagini condizione selezionata */}
-              <div className="mt-6 grid grid-cols-2 gap-4">
-                <div
-                  className="aspect-[4/3] rounded-lg border border-gray-200/60 bg-white overflow-hidden shadow-inner cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => setConditionLightbox(CONDITION_IMAGES[modalCondition]?.front ?? '/conditions/near-mint-front.jpeg')}
-                >
-                  <img
-                    src={CONDITION_IMAGES[modalCondition]?.front ?? '/conditions/near-mint-front.jpeg'}
-                    alt="Fronte"
-                    className="h-full w-full object-contain pointer-events-none"
-                  />
-                </div>
-                <div
-                  className="aspect-[4/3] rounded-lg border border-gray-200/60 bg-white overflow-hidden shadow-inner cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => setConditionLightbox(CONDITION_IMAGES[modalCondition]?.back ?? '/conditions/near-mint-back.jpeg')}
-                >
-                  <img
-                    src={CONDITION_IMAGES[modalCondition]?.back ?? '/conditions/near-mint-back.jpeg'}
-                    alt="Retro"
-                    className="h-full w-full object-contain pointer-events-none"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCondizioneVendi(modalCondition);
-                    if (dontShowConditionModal && typeof window !== 'undefined') {
-                      localStorage.setItem('hideConditionModal', 'true');
-                    }
-                    setIsConditionModalOpen(false);
-                  }}
-                  className="rounded-lg px-6 py-3 text-sm font-bold uppercase text-white transition-all hover:opacity-95 bg-[#FF8800]/85 backdrop-blur-sm border border-white/30 shadow-lg shadow-[#FF8800]/20 hover:shadow-[#FF8800]/40 hover:bg-[#FF8800]/90"
-                >
-                  Ho compreso, dichiaro che la condizione della carta è reale
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Condition image lightbox */}
-      {conditionLightbox && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setConditionLightbox(null)}>
-          <button type="button" onClick={(e) => { e.stopPropagation(); setConditionLightbox(null); }} className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition" aria-label="Chiudi">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-          </button>
-          <img src={conditionLightbox} alt="Condizione" className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
-        </div>
-      )}
       {/* Desktop hover preview: immagine ingrandita al centro, sfondo trasparente */}
       {hoverPreviewOpen && (
         <div

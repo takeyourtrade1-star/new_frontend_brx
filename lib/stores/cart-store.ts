@@ -2,13 +2,13 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CartItem } from '@/types';
+import type { MarketplaceCartLine } from '@/types';
 
 interface CartState {
-  items: CartItem[];
-  addItem: (productId: string, quantity?: number) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  items: MarketplaceCartLine[];
+  addItem: (line: MarketplaceCartLine) => void;
+  removeItem: (lineId: string) => void;
+  updateQuantity: (lineId: string, quantity: number) => void;
   clearCart: () => void;
   getItemCount: () => number;
   getTotal: () => number;
@@ -18,32 +18,38 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-      addItem: (productId, quantity = 1) => {
+      addItem: (line) => {
         set((state) => {
-          const existing = state.items.find((i) => i.productId === productId);
-          const items = existing
-            ? state.items.map((i) =>
-                i.productId === productId
-                  ? { ...i, quantity: i.quantity + quantity }
-                  : i
-              )
-            : [...state.items, { productId, quantity }];
-          return { items };
+          const existing = state.items.find((i) => i.lineId === line.lineId);
+          if (existing) {
+            const nextQty = Math.min(
+              existing.maxQuantity,
+              existing.quantity + line.quantity,
+            );
+            return {
+              items: state.items.map((i) =>
+                i.lineId === line.lineId ? { ...i, quantity: nextQty } : i,
+              ),
+            };
+          }
+          return { items: [...state.items, line] };
         });
       },
-      removeItem: (productId) => {
+      removeItem: (lineId) => {
         set((state) => ({
-          items: state.items.filter((i) => i.productId !== productId),
+          items: state.items.filter((i) => i.lineId !== lineId),
         }));
       },
-      updateQuantity: (productId, quantity) => {
+      updateQuantity: (lineId, quantity) => {
         if (quantity <= 0) {
-          get().removeItem(productId);
+          get().removeItem(lineId);
           return;
         }
         set((state) => ({
           items: state.items.map((i) =>
-            i.productId === productId ? { ...i, quantity } : i
+            i.lineId === lineId
+              ? { ...i, quantity: Math.min(i.maxQuantity, quantity) }
+              : i,
           ),
         }));
       },
@@ -52,10 +58,22 @@ export const useCartStore = create<CartState>()(
         get().items.reduce((acc, item) => acc + item.quantity, 0),
       getTotal: () =>
         get().items.reduce(
-          (acc, item) => acc + (item.product?.price ?? 0) * item.quantity,
-          0
+          (acc, item) => acc + (item.priceCents / 100) * item.quantity,
+          0,
         ),
     }),
-    { name: 'ebartex-cart' }
-  )
+    {
+      name: 'ebartex-cart',
+      version: 1,
+      migrate: (persisted) => {
+        const state = persisted as Partial<CartState> | undefined;
+        if (!state?.items?.length) return { items: [] };
+        const first = state.items[0] as MarketplaceCartLine & { productId?: string };
+        if ('lineId' in first && first.lineId) {
+          return { items: state.items as MarketplaceCartLine[] };
+        }
+        return { items: [] };
+      },
+    },
+  ),
 );

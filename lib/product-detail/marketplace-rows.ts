@@ -1,4 +1,5 @@
 import type { ListingItem } from '@/lib/api/sync-client';
+import { listingRowKey } from '@/lib/marketplace/listing-map';
 import type { AuctionUI } from '@/lib/auction/auction-adapter';
 import type { ConditionCode } from '@/components/ui/ConditionBadge';
 import { getCardLanguageFlagCode } from '@/lib/card-languages';
@@ -65,7 +66,7 @@ export function buildMarketplaceRows(
   }));
   const listingRows: MarketplaceRow[] = listings.map((l) => ({
     kind: 'listing' as const,
-    id: `listing-${l.item_id}`,
+    id: `listing-${listingRowKey(l)}`,
     listing: l,
   }));
   return [...auctionRows, ...listingRows];
