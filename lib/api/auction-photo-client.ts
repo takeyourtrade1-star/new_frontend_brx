@@ -62,7 +62,8 @@ const COMPRESSION_TARGET = {
   maxWidthOrHeight: 2048,
   initialQuality: 0.82,
   fileType: 'image/webp' as const,
-  useWebWorker: true,
+  // Web worker loads from CDN and breaks production CSP on www.ebartex.com
+  useWebWorker: false,
 };
 
 const MAX_INIT_FINALIZE_RETRIES = 3;
