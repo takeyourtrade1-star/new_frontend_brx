@@ -9,35 +9,43 @@ interface FlyToCartOptions {
   duration?: number;
 }
 
+function getVisibleCartIcon(): HTMLElement | null {
+  const icons = document.querySelectorAll('[data-cart-icon="true"]');
+  for (const el of icons) {
+    const node = el as HTMLElement;
+    const rect = node.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) return node;
+  }
+  return null;
+}
+
 /**
- * Crea un'animazione "fly to cart" quando si aggiunge un prodotto.
- * L'elemento volante parte dal punto cliccato e arriva all'icona del carrello in header.
+ * Animazione "fly to cart" quando si aggiunge un prodotto.
+ * Su mobile punta al FAB in basso a destra; su desktop all'icona in header.
  */
 export function useFlyToCart() {
   const fly = useCallback((startElement: HTMLElement, options: FlyToCartOptions = {}) => {
-    const { imageSrc, duration = 700 } = options;
+    const { imageSrc, duration = 750 } = options;
 
-    // Trova l'icona del carrello nel DOM
-    const cartIcon = document.querySelector('[data-cart-icon="true"]') as HTMLElement | null;
+    const cartIcon = getVisibleCartIcon();
     if (!cartIcon) return;
 
     const startRect = startElement.getBoundingClientRect();
     const endRect = cartIcon.getBoundingClientRect();
 
-    // Crea l'elemento volante
     const flyer = document.createElement('div');
     flyer.style.position = 'fixed';
     flyer.style.zIndex = '9999';
     flyer.style.pointerEvents = 'none';
     flyer.style.left = `${startRect.left + startRect.width / 2}px`;
     flyer.style.top = `${startRect.top + startRect.height / 2}px`;
-    flyer.style.width = '40px';
-    flyer.style.height = '40px';
-    flyer.style.marginLeft = '-20px';
-    flyer.style.marginTop = '-20px';
+    flyer.style.width = '44px';
+    flyer.style.height = '44px';
+    flyer.style.marginLeft = '-22px';
+    flyer.style.marginTop = '-22px';
     flyer.style.borderRadius = '50%';
     flyer.style.overflow = 'hidden';
-    flyer.style.boxShadow = '0 4px 12px rgba(255,115,0,0.4)';
+    flyer.style.boxShadow = '0 6px 16px rgba(255,115,0,0.5)';
     flyer.style.transition = 'none';
 
     if (imageSrc) {
@@ -52,15 +60,12 @@ export function useFlyToCart() {
     }
 
     document.body.appendChild(flyer);
-
-    // Forza reflow
     flyer.getBoundingClientRect();
 
-    // Calcola la traiettoria con una curva (arco)
     const deltaX = endRect.left + endRect.width / 2 - (startRect.left + startRect.width / 2);
     const deltaY = endRect.top + endRect.height / 2 - (startRect.top + startRect.height / 2);
+    const arcLift = Math.min(120, Math.abs(deltaY) * 0.35 + 40);
 
-    // Applica l'animazione via WAAPI (Web Animations API)
     const animation = flyer.animate(
       [
         {
@@ -68,35 +73,38 @@ export function useFlyToCart() {
           opacity: 1,
         },
         {
-          transform: `translate(${deltaX * 0.5}px, ${deltaY * 0.2 - 60}px) scale(0.8) rotate(10deg)`,
+          transform: `translate(${deltaX * 0.45}px, ${deltaY * 0.25 - arcLift}px) scale(0.85) rotate(8deg)`,
           opacity: 1,
-          offset: 0.5,
+          offset: 0.45,
         },
         {
-          transform: `translate(${deltaX}px, ${deltaY}px) scale(0.2) rotate(0deg)`,
-          opacity: 0.6,
+          transform: `translate(${deltaX}px, ${deltaY}px) scale(0.15) rotate(0deg)`,
+          opacity: 0.5,
         },
       ],
       {
         duration,
-        easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)',
+        easing: 'cubic-bezier(0.15, 0.85, 0.25, 1)',
         fill: 'forwards',
-      }
+      },
     );
 
     animation.onfinish = () => {
-      // Piccolo effetto "pop" sull'icona del carrello
+      cartIcon.classList.add('animate-cart-fab-land');
       const pop = cartIcon.animate(
         [
           { transform: 'scale(1)' },
-          { transform: 'scale(1.25)' },
+          { transform: 'scale(1.2)' },
           { transform: 'scale(1)' },
         ],
-        { duration: 250, easing: 'ease-out' }
+        { duration: 280, easing: 'ease-out' },
       );
 
       pop.onfinish = () => {
         flyer.remove();
+        window.setTimeout(() => {
+          cartIcon.classList.remove('animate-cart-fab-land');
+        }, 500);
       };
     };
   }, []);

@@ -109,6 +109,7 @@ export const it: Record<MessageKey, string> = {
   'nav.auctions': 'ASTE',
   'nav.tournamentsPortal': 'Tornei',
   'nav.tournamentsPortalAria': 'Apri la piattaforma tornei Ebartex (nuova scheda)',
+  'nav.cart': 'CARRELLO',
   'nav.cartAria': 'Carrello {total}',
 
   'games.header.mtg': 'MAGIC: THE GATHERING',
@@ -872,15 +873,6 @@ export const it: Record<MessageKey, string> = {
   'vendi.sets.customTitle': 'Set o lotto personalizzato',
   'vendi.sets.customDesc': 'Descrivi il contenuto del lotto (numero carte, edizione, condizione media) e pubblica con foto reali.',
   'vendi.sets.createListing': 'Crea inserzione',
-
-  'sellGuide.searchInHeader': 'Cerca la carta nella barra in alto: è l’unico campo di ricerca per metterla in vendita.',
-  'sellGuide.focusSearch': 'Vai alla ricerca',
-  'sellGuide.vendiTab': 'Qui compili quantità, lingua, condizione e prezzo della tua inserzione.',
-  'sellGuide.details': 'Imposta prezzo e condizione della carta che stai vendendo.',
-  'sellGuide.photos': 'Carica foto nitide dell’oggetto reale (anche dal telefono con il QR).',
-  'sellGuide.publish': 'Controlla i dati e pubblica l’inserzione sul marketplace.',
-  'sellGuide.next': 'Avanti',
-  'sellGuide.skip': 'Salta guida',
 
   'cart.title': 'Carrello',
   'cart.item': 'articolo',

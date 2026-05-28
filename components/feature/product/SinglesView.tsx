@@ -30,7 +30,6 @@ import {
 import { getCategoryIdsForProductSlug } from '@/lib/product-categories';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { isSellFlow, getProductDetailHref } from '@/lib/sell-flow/sell-flow';
-import { HeaderSearchHint } from '@/components/feature/sell-guide/HeaderSearchHint';
 
 const BACKEND_LANG_ORDER = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
 type SupportedLang = (typeof BACKEND_LANG_ORDER)[number];
@@ -356,9 +355,6 @@ export function ProductCategoryView({
 
             {/* Contenuto principale */}
             <div className="min-w-0 flex-1">
-              {sellFlow && !q ? (
-                <HeaderSearchHint className="mb-4" skipAnimation={Boolean(q)} />
-              ) : null}
               {!loading && !error && (
                 <SearchResultsToolbar
                   className="mb-4"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useCartBadgeBounce } from '@/lib/hooks/use-cart-badge-bounce';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart, Trash2, ArrowRight } from 'lucide-react';
@@ -17,10 +18,8 @@ const ORANGE_GLASS_CART_CLASS =
 export function CartDropdown() {
   const { t, locale } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const [badgeBounce, setBadgeBounce] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const prevCountRef = useRef(0);
 
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clearCart);
@@ -38,16 +37,7 @@ export function CartDropdown() {
     [items]
   );
 
-  // Animate badge when count increases
-  useEffect(() => {
-    if (cartCount > prevCountRef.current && cartCount > 0) {
-      setBadgeBounce(true);
-      const timer = setTimeout(() => setBadgeBounce(false), 400);
-      prevCountRef.current = cartCount;
-      return () => clearTimeout(timer);
-    }
-    prevCountRef.current = cartCount;
-  }, [cartCount]);
+  const badgeBounce = useCartBadgeBounce(cartCount);
 
   const intlLocale = LOCALE_TO_INTL[locale as UiLocale] ?? 'it-IT';
   const formatEuro = (n: number) => formatEuroNoSpace(n, intlLocale);

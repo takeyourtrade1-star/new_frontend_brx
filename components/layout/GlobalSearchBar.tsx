@@ -2394,8 +2394,6 @@ export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOp
 
   return (
     <div
-      id="global-search"
-      data-sell-guide="search"
       className="flex w-full justify-center py-0 z-[99] font-sans h-full min-h-0"
       style={{
         overflow: 'visible',

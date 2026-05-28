@@ -109,6 +109,7 @@ export const es: Record<MessageKey, string> = {
   'nav.auctions': 'SUBASTAS',
   'nav.tournamentsPortal': 'Torneos',
   'nav.tournamentsPortalAria': 'Abrir la plataforma de torneos Ebartex (nueva pestaña)',
+  'nav.cart': 'CARRITO',
   'nav.cartAria': 'Carrito {total}',
 
   'games.header.mtg': 'MAGIC: THE GATHERING',
@@ -872,15 +873,6 @@ export const es: Record<MessageKey, string> = {
   'vendi.sets.customTitle': 'Set o lote personalizado',
   'vendi.sets.customDesc': 'Describe el lote y publícalo con fotos reales.',
   'vendi.sets.createListing': 'Crear anuncio',
-
-  'sellGuide.searchInHeader': 'Busca tu carta en la barra superior: es el único campo de búsqueda para ponerla a la venta.',
-  'sellGuide.focusSearch': 'Ir a la búsqueda',
-  'sellGuide.vendiTab': 'Aquí indicas cantidad, idioma, condición y precio de tu anuncio.',
-  'sellGuide.details': 'Indica el precio y la condición de la carta que vendes.',
-  'sellGuide.photos': 'Sube fotos nítidas del objeto real (también desde el móvil con el QR).',
-  'sellGuide.publish': 'Revisa los datos y publica el anuncio en el marketplace.',
-  'sellGuide.next': 'Siguiente',
-  'sellGuide.skip': 'Saltar guía',
 
   'cart.title': 'Carrito',
   'cart.item': 'artículo',

@@ -17,7 +17,6 @@ import {
   type UploadedPhoto,
 } from '@/lib/api/listing-photo-client';
 import { usePhotoPairingSession } from '@/lib/hooks/use-photo-pairing-session';
-import { useSellGuide } from '@/components/feature/sell-guide/SellGuideProvider';
 import {
   syncConditionToMarketplace,
   syncLanguageToMarketplace,
@@ -70,7 +69,6 @@ export function SellSingleWizard({
   onPublished,
 }: SellSingleWizardProps) {
   const { t } = useTranslation();
-  const { notifyWizardStep } = useSellGuide();
   const isEmbedded = variant === 'embedded';
   const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -116,10 +114,6 @@ export function SellSingleWizard({
     const t = window.setTimeout(() => setPublishToast(null), 4500);
     return () => window.clearTimeout(t);
   }, [publishToast]);
-
-  useEffect(() => {
-    notifyWizardStep(stepId);
-  }, [stepId, notifyWizardStep]);
 
   const unitPrice = useMemo(() => parseSellSinglePriceInput(draft.price), [draft.price]);
   const quantity = Number.isFinite(draft.quantity) ? Math.max(1, draft.quantity) : 1;
@@ -535,7 +529,6 @@ export function SellSingleWizard({
             )}
 
             {stepId === 'details' && (
-              <div data-sell-guide="sell-price">
               <SellSingleDetailsStep
                 draft={draft}
                 update={update}
@@ -549,7 +542,6 @@ export function SellSingleWizard({
                   setIsConditionModalOpen(true);
                 }}
               />
-              </div>
             )}
 
             {stepId === 'confirm' && (
@@ -561,7 +553,7 @@ export function SellSingleWizard({
                 totalPrice={totalPrice}
                 compact={isEmbedded}
               >
-                <div className={cn('space-y-2', isEmbedded && 'space-y-1.5')} data-sell-guide="sell-photos">
+                <div className={cn('space-y-2', isEmbedded && 'space-y-1.5')}>
                   <button
                     type="button"
                     onClick={() => void pairing.openPhoneUploadModal()}
@@ -673,7 +665,6 @@ export function SellSingleWizard({
                   type="button"
                   disabled={publishSubmitting || continueDisabled}
                   onClick={() => void publish()}
-                  data-sell-guide="sell-publish"
                   className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                   title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
                 >

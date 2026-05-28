@@ -105,8 +105,6 @@ import {
 } from '@/lib/product-detail/marketplace-rows';
 import { ConditionBadge, type ConditionCode } from '@/components/ui/ConditionBadge';
 import { shouldOpenVendiTab } from '@/lib/sell-flow/sell-flow';
-import { HeaderSearchHint } from '@/components/feature/sell-guide/HeaderSearchHint';
-import { useSellGuide } from '@/components/feature/sell-guide/SellGuideProvider';
 
 // PERF: lazy-load heavy tab panels to keep product page initial bundle smaller.
 const AuctionCreateWizard = dynamic(
@@ -206,7 +204,6 @@ function ProductDetailIconTabBar({
             aria-selected={isActive}
             aria-label={tab.label}
             onClick={() => onTabChange(tab.id)}
-            {...(tab.id === 'VENDI' ? { 'data-sell-guide': 'vendi-tab' } : {})}
             className={cn(
               'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-colors',
               compact ? 'px-0.5 py-2' : 'px-1 py-2 sm:py-2.5',
@@ -538,7 +535,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabUserOverride = useRef(false);
-  const { complete: completeSellGuide } = useSellGuide();
   const { selectedLang } = useLanguage();
   const { t } = useTranslation();
   const createFromCartLines = useMockPurchaseStore((s) => s.createFromCartLines);
@@ -1256,7 +1252,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const averageSalePriceValue = effectiveTrendStats.averageSalePrice;
   const trendRangeLabel = effectiveTrendStats.rangeLabel;
   const handleSellSinglePublished = useCallback(async () => {
-    completeSellGuide();
     setListingActionMessage('Inserzione pubblicata con successo.');
     setSellerSubTab('VENDITORI');
     await refreshListings();
@@ -1265,7 +1260,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         .getElementById('pd-market-panel-VENDITORI')
         ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
-  }, [refreshListings, completeSellGuide]);
+  }, [refreshListings]);
 
   // Mock multiple images for swipe demo (front/back of card)
   const cardImages = useMemo(() => {
@@ -1567,8 +1562,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   />
                 )}
                 {activeTab === 'VENDI' && !card && (
-                  <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl bg-white p-4">
-                    <HeaderSearchHint variant="compact" />
+                  <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl bg-white p-4 text-center text-xs text-zinc-400">
+                    Seleziona un prodotto dal catalogo per vendere.
                   </div>
                 )}
 
@@ -2043,7 +2038,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             )}
             {activeTab === 'VENDI' && !card && (
               <div className="hidden flex-1 flex-col items-center justify-center p-6 min-w-0 w-full sm:flex">
-                <HeaderSearchHint variant="compact" />
+                <p className="text-xs text-zinc-400 text-center max-w-[260px] leading-relaxed">
+                  Seleziona un prodotto dal catalogo per vendere.
+                </p>
               </div>
             )}
 

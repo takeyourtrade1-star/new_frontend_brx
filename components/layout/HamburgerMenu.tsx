@@ -7,7 +7,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, ArrowLeftRight, QrCode } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, ShoppingCart, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, ArrowLeftRight, QrCode } from 'lucide-react';
+import { useCartStore } from '@/lib/stores/cart-store';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme-context';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -62,6 +63,11 @@ export function HamburgerMenu() {
   const gameMenuRef = useRef<HTMLDivElement>(null);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const cartItems = useCartStore((s) => s.items);
+  const cartCount = useMemo(
+    () => cartItems.reduce((acc, item) => acc + item.quantity, 0),
+    [cartItems],
+  );
   const setFlashMessage = useAuthStore((s) => s.setFlashMessage);
   const logoutMutation = useLogout();
   const loginMutation = useLogin();
@@ -436,6 +442,22 @@ export function HamburgerMenu() {
           )}
 
           <TournamentsPortalLink variant="drawer" onNavigate={() => setOpen(false)} />
+
+          {isAuthenticated ? (
+            <Link
+              href="/cart"
+              onClick={() => setOpen(false)}
+              className={cn(navLinkClass, 'md:hidden font-medium text-[#1D3160]')}
+            >
+              <ShoppingCart className="h-6 w-6 shrink-0 text-[#1D3160]" strokeWidth={1.5} aria-hidden />
+              <span className="flex-1">{t('nav.cart')}</span>
+              {cartCount > 0 ? (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              ) : null}
+            </Link>
+          ) : null}
 
           {isAuthenticated && (
             <div className="relative md:hidden" ref={accountDropdownRef}>

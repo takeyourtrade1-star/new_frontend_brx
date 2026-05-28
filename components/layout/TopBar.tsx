@@ -6,11 +6,11 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeftRight, ChevronDown, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
+import { ArrowLeftRight, ChevronDown, Eye, EyeOff, Gavel, LogIn, LogOut, ShoppingBag, Tag } from 'lucide-react';
 import { HamburgerMenu } from './HamburgerMenu';
 import { TournamentsPortalLink } from './TournamentsPortalButton';
-import { TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 import { CartDropdown } from './CartDropdown';
+import { MobileHeaderNavIcon, MOBILE_HEADER_ICON_CLASS } from './MobileHeaderNavIcon';
 import { NotificationBell } from '@/components/feature/notifiche/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -395,8 +395,8 @@ export function TopBar() {
             </>
           ) : isAuthenticated ? (
             <>
-              {/* Menu centrale: desktop = Account + Acquisti + Vendi + Scambi + Aste + Carrello. Mobile = solo 5 icone (senza profilo), ordine: Acquisti → Vendi → Aste → Scambi → Carrello */}
-              <div className="flex flex-1 items-center justify-center gap-1 md:gap-2">
+              {/* Menu centrale: desktop = Account + Acquisti + Vendi + Scambi + Aste + Carrello. Mobile = Acquisti + Vendite + Scambi + Aste (carrello in FAB) */}
+              <div className="flex flex-1 items-center justify-center gap-0.5 md:gap-2">
               {/* 1. Nome utente + icona — solo da tablet in su; su mobile è nel menu hamburger */}
               <div className="relative hidden items-center gap-2 md:flex" ref={accountMenuRef}>
                 <button
@@ -510,41 +510,27 @@ export function TopBar() {
                 )}
               </div>
 
-              {/* 2. ACQUISTI - Su mobile diventa link diretto a "I miei oggetti", su desktop dropdown */}
+              {/* 2. ACQUISTI — mobile e desktop: dropdown I miei acquisti + Lista desideri */}
               <div
-                className="relative order-1 flex items-center gap-2 md:order-2"
+                className="relative order-1 flex items-center md:order-2"
                 ref={acquistiMenuRef}
               >
-                {/* Mobile: Link diretto a I miei oggetti (sostituisce il dropdown) */}
-                <Link
-                  href="/account/oggetti"
-                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:hidden"
-                  aria-label={t('account.items')}
+                {/* Mobile: dropdown Acquisti */}
+                <MobileHeaderNavIcon
+                  as="button"
+                  onClick={() => {
+                    setAcquistiMenuOpen((o) => !o);
+                    setAccountMenuOpen(false);
+                    setVendiMenuOpen(false);
+                  }}
+                  aria-label={t('purchases.menuAria')}
+                  aria-expanded={acquistiMenuOpen}
+                  menuOpen={acquistiMenuOpen}
+                  showChevron
+                  className="md:hidden"
                 >
-                  <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
-                    aria-hidden
-                  >
-                    {/* Icona OGGETTI: package/box */}
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#FF7300"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-5 w-5"
-                    >
-                      <path d="m7.5 4.27 9 5.15"></path>
-                      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
-                      <path d="m3.3 7 8.7 5 8.7-5"></path>
-                      <path d="M12 22V12"></path>
-                    </svg>
-                  </span>
-                </Link>
+                  <ShoppingBag className={MOBILE_HEADER_ICON_CLASS} strokeWidth={2} aria-hidden />
+                </MobileHeaderNavIcon>
 
                 {/* Desktop: Dropdown Acquisti con I miei acquisti e Lista desideri */}
                 <button
@@ -629,60 +615,26 @@ export function TopBar() {
                 )}
               </div>
 
-              {/* 3. VENDI - Su mobile è un dropdown con Vendi/Aste; su desktop Link diretto */}
+              {/* 3. VENDITE — mobile e desktop: dropdown vendita */}
               <div
-                className="relative order-2 flex items-center gap-2 md:order-3"
+                className="relative order-2 flex items-center md:order-3"
                 ref={vendiMenuRef}
               >
-                <button
-                  type="button"
+                <MobileHeaderNavIcon
+                  as="button"
                   onClick={() => {
                     setVendiMenuOpen((o) => !o);
                     setAccountMenuOpen(false);
                     setAcquistiMenuOpen(false);
                   }}
-                  className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:hidden"
-                  aria-expanded={vendiMenuOpen}
-                  aria-haspopup="true"
                   aria-label={t('nav.sell')}
+                  aria-expanded={vendiMenuOpen}
+                  menuOpen={vendiMenuOpen}
+                  showChevron
+                  className="md:hidden"
                 >
-                  <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
-                    aria-hidden
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#FF7300"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-5 w-5"
-                    >
-                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                      <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                    </svg>
-                  </span>
-                  <span className="ml-0.5 flex h-4 w-4 shrink-0 items-center justify-center text-[#FF7300] md:hidden">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className={cn('h-4 w-4 transition-transform', vendiMenuOpen && 'rotate-180')}
-                    >
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </span>
-                </button>
+                  <Tag className={MOBILE_HEADER_ICON_CLASS} strokeWidth={2} aria-hidden />
+                </MobileHeaderNavIcon>
 
                 {/* Dropdown Vendi - Visibile sia mobile che desktop */}
                 {vendiMenuOpen && (
@@ -699,17 +651,14 @@ export function TopBar() {
                         Metti in vendita
                       </Link>
 
-                      {/* Solo su desktop: "I miei oggetti" (su mobile ha il pulsante dedicato) */}
-                      <div className="hidden md:block">
-                        <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                        <Link
-                          href="/account/oggetti"
-                          className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                          onClick={() => setVendiMenuOpen(false)}
-                        >
-                          I miei oggetti
-                        </Link>
-                      </div>
+                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
+                      <Link
+                        href="/account/oggetti"
+                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                        onClick={() => setVendiMenuOpen(false)}
+                      >
+                        {t('account.items')}
+                      </Link>
 
                       <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                       <Link
@@ -719,42 +668,6 @@ export function TopBar() {
                       >
                         Le mie vendite
                       </Link>
-
-                      {/* Solo su mobile, includiamo anche Scambi, Tornei live, Aste e BRX Express che su desktop hanno link diretti */}
-                      <div className="md:hidden">
-                        <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                        <Link
-                          href="/scambi"
-                          className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                          onClick={() => setVendiMenuOpen(false)}
-                        >
-                          {t('nav.trades')}
-                        </Link>
-                        <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                        <Link
-                          href="/aste"
-                          className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                          onClick={() => setVendiMenuOpen(false)}
-                        >
-                          {t('nav.auctions')}
-                        </Link>
-                        <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                        <a
-                          {...TOURNAMENTS_PORTAL_LINK_PROPS}
-                          className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                          onClick={() => setVendiMenuOpen(false)}
-                        >
-                          Tornei live
-                        </a>
-                        <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                        <Link
-                          href="/brx-express"
-                          className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                          onClick={() => setVendiMenuOpen(false)}
-                        >
-                          BRX Express
-                        </Link>
-                      </div>
                     </nav>
                   </div>
                 )}
@@ -818,7 +731,15 @@ export function TopBar() {
 
               {/* TORNEI LIVE spostato nell'hamburger menu — rimosso dall'header desktop */}
 
-              {/* 4. SCAMBI — tra Vendite e Aste */}
+              {/* 4. SCAMBI — mobile icona diretta; desktop con label */}
+              <MobileHeaderNavIcon
+                as="link"
+                href="/scambi"
+                aria-label={t('nav.trades')}
+                className="order-3 md:hidden"
+              >
+                <ArrowLeftRight className={MOBILE_HEADER_ICON_CLASS} strokeWidth={2} aria-hidden />
+              </MobileHeaderNavIcon>
               <Link
                 href="/scambi"
                 className="order-3 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex"
@@ -835,7 +756,15 @@ export function TopBar() {
                 </span>
               </Link>
 
-              {/* 5. ASTE - solo desktop */}
+              {/* 5. ASTE — mobile icona diretta; desktop con label */}
+              <MobileHeaderNavIcon
+                as="link"
+                href="/aste"
+                aria-label={t('nav.auctions')}
+                className="order-4 md:hidden"
+              >
+                <Gavel className={MOBILE_HEADER_ICON_CLASS} strokeWidth={2} aria-hidden />
+              </MobileHeaderNavIcon>
               <Link
                 href="/aste"
                 className="order-4 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-5 md:flex"
@@ -869,8 +798,8 @@ export function TopBar() {
                 </span>
               </Link>
 
-              {/* 6. Carrello con dropdown preview */}
-              <div className="order-5 md:order-6">
+              {/* 6. Carrello — solo desktop; su mobile FAB in basso a destra */}
+              <div className="order-5 hidden md:order-6 md:block">
                 <CartDropdown />
               </div>
               </div>

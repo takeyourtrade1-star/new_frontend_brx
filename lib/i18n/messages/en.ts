@@ -108,6 +108,7 @@ export const en = {
   'nav.auctions': 'Auctions',
   'nav.tournamentsPortal': 'Tournaments',
   'nav.tournamentsPortalAria': 'Open Ebartex tournaments platform (new tab)',
+  'nav.cart': 'CART',
   'nav.cartAria': 'Cart {total}',
 
   'games.header.mtg': 'MAGIC: THE GATHERING',
@@ -869,15 +870,6 @@ export const en = {
   'vendi.sets.customTitle': 'Custom set or lot',
   'vendi.sets.customDesc': 'Describe the lot contents (card count, edition, average condition) and publish with real photos.',
   'vendi.sets.createListing': 'Create listing',
-
-  'sellGuide.searchInHeader': 'Search for your card in the bar at the top — it’s the only search field for listing it for sale.',
-  'sellGuide.focusSearch': 'Go to search',
-  'sellGuide.vendiTab': 'Here you set quantity, language, condition, and price for your listing.',
-  'sellGuide.details': 'Set the price and condition of the card you are selling.',
-  'sellGuide.photos': 'Upload clear photos of the actual item (from your phone via QR too).',
-  'sellGuide.publish': 'Review the details and publish your listing on the marketplace.',
-  'sellGuide.next': 'Next',
-  'sellGuide.skip': 'Skip guide',
 
   'cart.title': 'Cart',
   'cart.item': 'item',

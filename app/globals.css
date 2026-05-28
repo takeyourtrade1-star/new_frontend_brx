@@ -524,6 +524,24 @@
   animation: cart-badge-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+/* FAB / cart icon pulse when fly-to-cart lands */
+@keyframes cart-fab-land {
+  0% {
+    box-shadow: 0 4px 20px rgba(255, 115, 0, 0.45);
+  }
+  40% {
+    box-shadow:
+      0 0 0 6px rgba(255, 115, 0, 0.35),
+      0 8px 28px rgba(255, 115, 0, 0.55);
+  }
+  100% {
+    box-shadow: 0 4px 20px rgba(255, 115, 0, 0.45);
+  }
+}
+.animate-cart-fab-land {
+  animation: cart-fab-land 0.55s ease-out both;
+}
+
 /* Toast flash (login/error): entra da destra, esce a destra – sotto la barra di ricerca */
 @keyframes toast-slide-in-right {
   from {

@@ -109,6 +109,7 @@ export const de: Record<MessageKey, string> = {
   'nav.auctions': 'AUKTIONEN',
   'nav.tournamentsPortal': 'Turniere',
   'nav.tournamentsPortalAria': 'Ebartex-Turnierplattform öffnen (neuer Tab)',
+  'nav.cart': 'WARENKORB',
   'nav.cartAria': 'Warenkorb {total}',
 
   'games.header.mtg': 'MAGIC: THE GATHERING',
@@ -872,15 +873,6 @@ export const de: Record<MessageKey, string> = {
   'vendi.sets.customTitle': 'Eigenes Set oder Los',
   'vendi.sets.customDesc': 'Los beschreiben und mit echten Fotos veröffentlichen.',
   'vendi.sets.createListing': 'Inserat erstellen',
-
-  'sellGuide.searchInHeader': 'Suche deine Karte in der oberen Leiste — das ist das einzige Suchfeld zum Verkauf.',
-  'sellGuide.focusSearch': 'Zur Suche',
-  'sellGuide.vendiTab': 'Hier legst du Menge, Sprache, Zustand und Preis deines Inserats fest.',
-  'sellGuide.details': 'Lege Preis und Zustand der Karte fest, die du verkaufst.',
-  'sellGuide.photos': 'Lade klare Fotos des echten Artikels hoch (auch per QR vom Handy).',
-  'sellGuide.publish': 'Prüfe die Angaben und veröffentliche dein Inserat.',
-  'sellGuide.next': 'Weiter',
-  'sellGuide.skip': 'Anleitung überspringen',
 
   'cart.title': 'Warenkorb',
   'cart.item': 'Artikel',

@@ -6,6 +6,8 @@ import { TopBar } from './TopBar';
 import { ProdottiMenu } from './ProdottiMenu';
 import { DemoBanner } from './DemoBanner';
 import { AuthToast } from './AuthToast';
+import { FloatingCartFab } from './FloatingCartFab';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { HEADER_BRX_MENU_COLUMN_CLASS } from '@/components/layout/headerBrxColumn';
 
 // Import dinamico (ssr:false) per togliere react-instantsearch / instant-meilisearch
@@ -34,6 +36,7 @@ export function Header({
   const headerRef = useRef<HTMLElement | null>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   // Per `position: fixed` serve uno spacer per non coprire il contenuto sotto.
   useLayoutEffect(() => {
@@ -83,6 +86,7 @@ export function Header({
       </header>
       {/* Auth toast: appare subito sotto l'header, non sovrapposto al contenuto */}
       <AuthToast headerHeight={headerHeight} />
+      {isAuthenticated ? <FloatingCartFab /> : null}
       {/* Spacer per compensare l'header fixed */}
       {reserveSpace && headerHeight > 0 ? <div style={{ height: headerHeight }} aria-hidden /> : null}
     </>

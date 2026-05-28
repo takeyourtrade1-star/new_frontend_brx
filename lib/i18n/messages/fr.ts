@@ -109,6 +109,7 @@ export const fr: Record<MessageKey, string> = {
   'nav.auctions': 'ENCHÈRES',
   'nav.tournamentsPortal': 'Tournois',
   'nav.tournamentsPortalAria': 'Ouvrir la plateforme tournois Ebartex (nouvel onglet)',
+  'nav.cart': 'PANIER',
   'nav.cartAria': 'Panier {total}',
 
   'games.header.mtg': 'MAGIC: THE GATHERING',
@@ -874,15 +875,6 @@ export const fr: Record<MessageKey, string> = {
   'vendi.sets.customTitle': 'Set ou lot personnalisé',
   'vendi.sets.customDesc': 'Décrivez le lot et publiez avec de vraies photos.',
   'vendi.sets.createListing': 'Créer une annonce',
-
-  'sellGuide.searchInHeader': 'Cherchez votre carte dans la barre en haut : c’est le seul champ de recherche pour la mettre en vente.',
-  'sellGuide.focusSearch': 'Aller à la recherche',
-  'sellGuide.vendiTab': 'Ici vous indiquez quantité, langue, état et prix de votre annonce.',
-  'sellGuide.details': 'Indiquez le prix et l’état de la carte que vous vendez.',
-  'sellGuide.photos': 'Ajoutez des photos nettes de l’objet réel (depuis le téléphone via QR aussi).',
-  'sellGuide.publish': 'Vérifiez les informations et publiez l’annonce sur la marketplace.',
-  'sellGuide.next': 'Suivant',
-  'sellGuide.skip': 'Passer le guide',
 
   'cart.title': 'Panier',
   'cart.item': 'article',

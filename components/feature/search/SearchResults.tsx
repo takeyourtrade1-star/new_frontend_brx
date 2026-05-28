@@ -40,7 +40,6 @@ import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadc
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
 import { SearchResultsTable } from '@/components/feature/search/SearchResultsTable';
 import { isSellFlow, getProductDetailHref } from '@/lib/sell-flow/sell-flow';
-import { HeaderSearchHint } from '@/components/feature/sell-guide/HeaderSearchHint';
 import {
   SearchResultsToolbar,
   type ViewMode,
@@ -769,8 +768,6 @@ export function SearchResults({
             </div>
           </div>
         )}
-
-        {sellFlow && !q ? <HeaderSearchHint className="mb-4" /> : null}
 
         {!loading && !error && hits.length > 0 && (
           <SearchResultsToolbar
