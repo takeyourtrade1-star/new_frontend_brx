@@ -22,7 +22,6 @@ import {
   Pencil,
   Plus,
   RefreshCw,
-  SlidersHorizontal,
   Square,
   Trash2,
   TrendingUp,
@@ -76,6 +75,7 @@ import { formatEuroNoSpace } from '@/lib/utils';
 import { BulkPriceWizardModal } from '@/components/feature/account/BulkPriceWizardModal';
 import { BulkDeleteModal } from '@/components/feature/account/BulkDeleteModal';
 import { OggettiMobileList } from '@/components/feature/account/OggettiMobileList';
+import { InventoryMobileQuickBar } from '@/components/feature/account/InventoryMobileQuickBar';
 
 function buildImageUrl(raw: string | null | undefined): string | null {
   if (raw == null || raw === '') return null;
@@ -383,7 +383,7 @@ function OggettiTable({
   if (isMobile) {
     return (
       <RarityLegendProvider>
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="w-full max-w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <OggettiMobileList
             items={items}
             buildImageUrl={buildImageUrl}
@@ -1652,7 +1652,7 @@ export function OggettiContent() {
   ].filter(Boolean).length;
 
   return (
-    <div className="flex min-h-screen flex-col items-start gap-0 bg-[#F5F4F0] p-3 md:flex-row md:gap-4 md:p-4 lg:gap-6 lg:p-6">
+    <div className="flex min-h-screen w-full max-w-[100vw] flex-col items-start gap-0 overflow-x-hidden bg-[#F5F4F0] p-2 md:flex-row md:gap-4 md:p-4 lg:gap-6 lg:p-6">
       <InventoryFiltersPanel
         filters={filters}
         onFiltersChange={setFilters}
@@ -1666,29 +1666,28 @@ export function OggettiContent() {
         onClearSearch={clearSearch}
         mobileFiltersOpen={mobileFiltersOpen}
         onMobileFiltersOpenChange={setMobileFiltersOpen}
+        inventoryItems={inventoryItems}
       />
-      <main className="min-w-0 flex-1 overflow-x-hidden p-0 md:p-6">
-        {/* Toolbar mobile unificata */}
+      <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden p-0 md:p-6">
         <div
-          className="sticky z-40 -mx-3 mb-2 space-y-2.5 border-b border-gray-200/60 bg-[#F5F4F0]/95 px-3 pb-3 pt-2 backdrop-blur-xl md:hidden"
+          className="sticky z-40 mb-2 w-full space-y-2 border-b border-gray-200/70 bg-[#F5F4F0]/95 px-2 pb-2 pt-1.5 backdrop-blur-xl md:hidden"
           style={{ top: stickyTopWithGap }}
         >
           <div className="flex items-center justify-between gap-2">
-            <h1 className="truncate text-lg font-bold text-gray-900">{t('accountPage.itemsTitle')}</h1>
+            <h1 className="truncate text-base font-bold text-gray-900">{t('accountPage.itemsTitle')}</h1>
             <div className="flex shrink-0 items-center gap-1">
               {!syncStatusLoading && (
                 <button
                   type="button"
                   onClick={() => void handleSyncNow()}
                   disabled={!integrationConnected || !canSyncNow || syncAnyPending}
-                  className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-white shadow-sm disabled:opacity-50"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-white disabled:opacity-50"
                   aria-label="Sync"
-                  title="Sync"
                 >
                   {syncNowPending ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <RefreshCw className="h-5 w-5" />
+                    <RefreshCw className="h-4 w-4" />
                   )}
                 </button>
               )}
@@ -1696,45 +1695,28 @@ export function OggettiContent() {
                 type="button"
                 onClick={() => setExportModalOpen(true)}
                 disabled={loading || filteredInventoryItems.length === 0}
-                className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm disabled:opacity-50"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 disabled:opacity-50"
                 aria-label={t('accountPage.itemsExport')}
-                title={t('accountPage.itemsExport')}
               >
-                <Download className="h-5 w-5" />
+                <Download className="h-4 w-4" />
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <InventorySearchBar
-              value={searchValue}
-              onChange={setSearchValue}
-              onClear={clearSearch}
-              disabled={loading}
-              className="min-w-0 flex-1"
-              inputClassName="rounded-xl border-gray-200 bg-white py-2.5 pl-10 pr-10 text-sm shadow-sm backdrop-blur-none"
-            />
-            <button
-              type="button"
-              onClick={() => setMobileFiltersOpen(true)}
-              disabled={loading}
-              className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm active:scale-95 disabled:opacity-50"
-              aria-label={t('accountPage.itemsFiltersOpen')}
-            >
-              <SlidersHorizontal className="h-5 w-5" aria-hidden />
-              {activeFilterCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-          </div>
-          <InventorySortBar
-            compact
-            sortBy={filters.sortBy}
-            onSortChange={(sortBy) => setFilters((prev) => ({ ...prev, sortBy }))}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
+          <InventorySearchBar
+            value={searchValue}
+            onChange={setSearchValue}
+            onClear={clearSearch}
+            disabled={loading}
+            inputClassName="rounded-lg border-gray-200 bg-white py-2 pl-9 pr-9 text-sm shadow-none backdrop-blur-none"
+          />
+          <InventoryMobileQuickBar
+            filters={filters}
+            onFiltersChange={setFilters}
+            facets={facets}
             itemCount={filteredInventoryItems.length}
+            activeFilterCount={activeFilterCount}
+            onOpenFilters={() => setMobileFiltersOpen(true)}
+            disabled={loading}
           />
         </div>
 

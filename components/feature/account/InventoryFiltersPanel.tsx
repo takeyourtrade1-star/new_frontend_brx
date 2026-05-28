@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef, type CSSProperties } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, SlidersHorizontal, X } from 'lucide-react';
 import { ConditionBadge } from '@/components/ui/ConditionBadge';
@@ -11,6 +11,8 @@ import { useHeaderStickyOffset } from '@/lib/hooks/useHeaderStickyOffset';
 import { useFixedSidebarFooterClamp } from '@/lib/hooks/useFixedSidebarFooterClamp';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { InventoryFacets } from '@/lib/inventory/inventory-filter-utils';
+import { applyInventoryFilters } from '@/lib/inventory/inventory-filter-utils';
+import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 
 export interface InventoryFilters {
   search: string;
@@ -58,6 +60,8 @@ export interface InventoryFiltersPanelProps {
   onClearSearch: () => void;
   mobileFiltersOpen?: boolean;
   onMobileFiltersOpenChange?: (open: boolean) => void;
+  /** Per anteprima conteggio nel modale filtri mobile. */
+  inventoryItems?: InventoryItemWithCatalog[];
 }
 
 function countActiveFilters(f: InventoryFilters): number {
@@ -109,6 +113,7 @@ export function InventoryFiltersPanel({
   onClearSearch,
   mobileFiltersOpen,
   onMobileFiltersOpenChange,
+  inventoryItems = [],
 }: InventoryFiltersPanelProps) {
   const { t } = useTranslation();
   const { stickyTopWithGap } = useHeaderStickyOffset();
@@ -123,6 +128,16 @@ export function InventoryFiltersPanel({
   const [mobileOpenInternal, setMobileOpenInternal] = useState(false);
   const mobileOpen = mobileFiltersOpen ?? mobileOpenInternal;
   const setMobileOpen = onMobileFiltersOpenChange ?? setMobileOpenInternal;
+  const [mobileDraft, setMobileDraft] = useState<InventoryFilters>(filters);
+
+  useEffect(() => {
+    if (mobileOpen) setMobileDraft(filters);
+  }, [mobileOpen, filters]);
+
+  const mobilePreviewCount = useMemo(() => {
+    if (inventoryItems.length === 0) return itemCount;
+    return applyInventoryFilters(inventoryItems, mobileDraft, inventoryItems).length;
+  }, [inventoryItems, mobileDraft, itemCount]);
   const [sections, setSections] = useState({
     tipo: true,
     conditions: true,
@@ -174,8 +189,38 @@ export function InventoryFiltersPanel({
 
   const activeCount = countActiveFilters(filters);
 
-  const panelContent = (options?: { showSearch?: boolean }) => {
+  const panelContent = (options?: {
+    showSearch?: boolean;
+    filterState?: InventoryFilters;
+    onFilterStateChange?: (f: InventoryFilters) => void;
+    resultCount?: number;
+  }) => {
     const showSearch = options?.showSearch !== false;
+    const f = options?.filterState ?? filters;
+    const patch = options?.onFilterStateChange ?? onFiltersChange;
+    const resultCount = options?.resultCount ?? itemCount;
+    const chipsCount = countActiveFilters(f);
+    const updateF = <K extends keyof InventoryFilters>(key: K, value: InventoryFilters[K]) => {
+      patch({ ...f, [key]: value });
+    };
+    const toggleMultiF = <K extends 'conditions' | 'languages' | 'rarities'>(
+      key: K,
+      value: string
+    ) => {
+      const current = f[key] as string[];
+      const next = current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value];
+      patch({ ...f, [key]: next as InventoryFilters[K] });
+    };
+    const clearAllF = () => {
+      if (options?.filterState) {
+        patch(DEFAULT_FILTERS);
+      } else {
+        onClearSearch();
+        onFiltersChange(DEFAULT_FILTERS);
+      }
+    };
     return (
     <div
       className={`flex min-h-0 flex-1 flex-col overflow-hidden ${disabled ? 'pointer-events-none opacity-60' : ''}`}
@@ -192,12 +237,12 @@ export function InventoryFiltersPanel({
         </div>
       )}
 
-      {activeCount > 0 && (
+      {chipsCount > 0 && (
         <div className="px-4 pb-2">
           <div className="flex flex-wrap items-center gap-1.5 rounded-xl bg-gray-50 p-2.5">
-            {filters.search.trim() && (
+            {f.search.trim() && showSearch && (
               <span className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm">
-                &ldquo;{filters.search.trim()}&rdquo;
+                &ldquo;{f.search.trim()}&rdquo;
                 <button
                   type="button"
                   onClick={onClearSearch}
@@ -207,31 +252,31 @@ export function InventoryFiltersPanel({
                 </button>
               </span>
             )}
-            {filters.kind !== 'all' && (
+            {f.kind !== 'all' && (
               <span className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm">
-                {filters.kind}
+                {f.kind}
                 <button
                   type="button"
-                  onClick={() => update('kind', 'all')}
+                  onClick={() => updateF('kind', 'all')}
                   className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </span>
             )}
-            {filters.game !== 'all' && (
+            {f.game !== 'all' && (
               <span className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm">
-                {facets.games.find((g) => g.key === filters.game)?.label ?? filters.game}
+                {facets.games.find((g) => g.key === f.game)?.label ?? f.game}
                 <button
                   type="button"
-                  onClick={() => update('game', 'all')}
+                  onClick={() => updateF('game', 'all')}
                   className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </span>
             )}
-            {filters.conditions.map((c) => (
+            {f.conditions.map((c) => (
               <span
                 key={c}
                 className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm"
@@ -239,14 +284,14 @@ export function InventoryFiltersPanel({
                 {c}
                 <button
                   type="button"
-                  onClick={() => toggleMulti('conditions', c)}
+                  onClick={() => toggleMultiF('conditions', c)}
                   className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </span>
             ))}
-            {filters.languages.map((l) => (
+            {f.languages.map((l) => (
               <span
                 key={l}
                 className="inline-flex items-center gap-1.5 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm"
@@ -254,14 +299,14 @@ export function InventoryFiltersPanel({
                 <CardLanguageFlag code={l} size="xs" title={l} />
                 <button
                   type="button"
-                  onClick={() => toggleMulti('languages', l)}
+                  onClick={() => toggleMultiF('languages', l)}
                   className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </span>
             ))}
-            {filters.rarities.map((r) => (
+            {f.rarities.map((r) => (
               <span
                 key={r}
                 className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm"
@@ -269,19 +314,19 @@ export function InventoryFiltersPanel({
                 {r}
                 <button
                   type="button"
-                  onClick={() => toggleMulti('rarities', r)}
+                  onClick={() => toggleMultiF('rarities', r)}
                   className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </span>
             ))}
-            {filters.smartFilter === 'duplicates' && (
+            {f.smartFilter === 'duplicates' && (
               <span className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm">
                 {t('accountPage.itemsFiltersDuplicates')}
                 <button
                   type="button"
-                  onClick={() => update('smartFilter', 'all')}
+                  onClick={() => updateF('smartFilter', 'all')}
                   className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors"
                 >
                   <X className="h-3 w-3" />
@@ -290,7 +335,7 @@ export function InventoryFiltersPanel({
             )}
             <button
               type="button"
-              onClick={clearAll}
+              onClick={clearAllF}
               className="ml-auto text-xs font-medium text-primary hover:underline"
             >
               {t('accountPage.itemsFiltersClearAll')}
@@ -331,9 +376,9 @@ export function InventoryFiltersPanel({
                     <button
                       key={k}
                       type="button"
-                      onClick={() => update('kind', k)}
+                      onClick={() => updateF('kind', k)}
                       className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                        filters.kind === k
+                        f.kind === k
                           ? 'bg-primary text-white shadow-sm'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
                       }`}
@@ -362,8 +407,8 @@ export function InventoryFiltersPanel({
                   >
                     <input
                       type="checkbox"
-                      checked={filters.conditions.includes(code)}
-                      onChange={() => toggleMulti('conditions', code)}
+                      checked={f.conditions.includes(code)}
+                      onChange={() => toggleMultiF('conditions', code)}
                       className="h-4 w-4 shrink-0 rounded border-gray-300 accent-primary"
                     />
                     <ConditionBadge condition={code} size="sm" />
@@ -391,8 +436,8 @@ export function InventoryFiltersPanel({
                   >
                     <input
                       type="checkbox"
-                      checked={filters.languages.includes(code)}
-                      onChange={() => toggleMulti('languages', code)}
+                      checked={f.languages.includes(code)}
+                      onChange={() => toggleMultiF('languages', code)}
                       className="h-4 w-4 shrink-0 rounded border-gray-300 accent-primary"
                     />
                     <CardLanguageFlag code={code} size="xs" title={label} />
@@ -421,8 +466,8 @@ export function InventoryFiltersPanel({
                   >
                     <input
                       type="checkbox"
-                      checked={filters.rarities.includes(value)}
-                      onChange={() => toggleMulti('rarities', value)}
+                      checked={f.rarities.includes(value)}
+                      onChange={() => toggleMultiF('rarities', value)}
                       className="h-4 w-4 shrink-0 rounded border-gray-300 accent-primary"
                     />
                     <span className="flex-1 text-sm text-gray-700">{value}</span>
@@ -442,10 +487,10 @@ export function InventoryFiltersPanel({
           />
           {sections.price && (
             <div className="pb-2">
-              {(filters.priceMin !== null || filters.priceMax !== null) && (
+              {(f.priceMin !== null || f.priceMax !== null) && (
                 <p className="mb-2 text-xs text-gray-500">
-                  €{filters.priceMin ?? 0} —{' '}
-                  {filters.priceMax !== null ? `€${filters.priceMax}` : '∞'}
+                  €{f.priceMin ?? 0} —{' '}
+                  {f.priceMax !== null ? `€${f.priceMax}` : '∞'}
                 </p>
               )}
               <div className="flex items-center gap-2">
@@ -453,9 +498,9 @@ export function InventoryFiltersPanel({
                   type="number"
                   min={0}
                   placeholder={t('accountPage.itemsFiltersPriceMin')}
-                  value={filters.priceMin ?? ''}
+                  value={f.priceMin ?? ''}
                   onChange={(e) =>
-                    update('priceMin', e.target.value ? Number(e.target.value) : null)
+                    updateF('priceMin', e.target.value ? Number(e.target.value) : null)
                   }
                   className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 />
@@ -464,9 +509,9 @@ export function InventoryFiltersPanel({
                   type="number"
                   min={0}
                   placeholder={t('accountPage.itemsFiltersPriceMax')}
-                  value={filters.priceMax ?? ''}
+                  value={f.priceMax ?? ''}
                   onChange={(e) =>
-                    update('priceMax', e.target.value ? Number(e.target.value) : null)
+                    updateF('priceMax', e.target.value ? Number(e.target.value) : null)
                   }
                   className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 />
@@ -488,8 +533,8 @@ export function InventoryFiltersPanel({
                   <input
                     type="radio"
                     name="game-filter"
-                    checked={filters.game === 'all'}
-                    onChange={() => update('game', 'all')}
+                    checked={f.game === 'all'}
+                    onChange={() => updateF('game', 'all')}
                     className="h-4 w-4 shrink-0 border-gray-300 accent-primary"
                   />
                   <span className="flex-1 text-sm text-gray-700">
@@ -505,8 +550,8 @@ export function InventoryFiltersPanel({
                     <input
                       type="radio"
                       name="game-filter"
-                      checked={filters.game === key}
-                      onChange={() => update('game', key)}
+                      checked={f.game === key}
+                      onChange={() => updateF('game', key)}
                       className="h-4 w-4 shrink-0 border-gray-300 accent-primary"
                     />
                     <span className="flex-1 text-sm text-gray-700">{label}</span>
@@ -530,13 +575,13 @@ export function InventoryFiltersPanel({
                 <button
                   type="button"
                   onClick={() =>
-                    update(
+                    updateF(
                       'smartFilter',
-                      filters.smartFilter === 'duplicates' ? 'all' : 'duplicates'
+                      f.smartFilter === 'duplicates' ? 'all' : 'duplicates'
                     )
                   }
                   className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                    filters.smartFilter === 'duplicates'
+                    f.smartFilter === 'duplicates'
                       ? 'bg-primary text-white shadow-sm'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
                   }`}
@@ -594,7 +639,7 @@ export function InventoryFiltersPanel({
         </Link>
         <p className="mt-2 text-center text-[11px] text-gray-400">
           {t('accountPage.itemsFiltersCardsCount', {
-            filtered: itemCount,
+            filtered: resultCount,
             total: totalCount,
           })}
         </p>
@@ -697,52 +742,58 @@ export function InventoryFiltersPanel({
 
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-50 flex md:hidden"
+          className="fixed inset-0 z-[60] flex flex-col bg-white md:hidden"
           role="dialog"
           aria-modal="true"
           aria-labelledby="inventory-filters-sheet-title"
         >
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/45 backdrop-blur-sm transition-opacity"
-            aria-label={t('accountPage.itemsClose')}
-            onClick={() => setMobileOpen(false)}
-          />
-          <div className="absolute bottom-0 left-0 right-0 flex max-h-[min(88vh,720px)] flex-col overflow-hidden rounded-t-[1.75rem] border border-white/30 bg-white/90 shadow-[0_-12px_48px_rgba(0,0,0,0.18)] backdrop-blur-2xl animate-in slide-in-from-bottom duration-300">
-            <div className="flex shrink-0 justify-center pt-2 pb-1" aria-hidden>
-              <span className="h-1 w-10 rounded-full bg-gray-300/80" />
+          <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-gray-500" aria-hidden />
+              <h2 id="inventory-filters-sheet-title" className="text-base font-bold text-gray-900">
+                {t('accountPage.itemsFiltersPanelTitle')}
+              </h2>
+              {countActiveFilters(mobileDraft) > 0 && (
+                <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
+                  {countActiveFilters(mobileDraft)}
+                </span>
+              )}
             </div>
-            <div className="flex shrink-0 items-center justify-between border-b border-gray-200/60 px-5 py-3">
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-gray-500" aria-hidden />
-                <h2 id="inventory-filters-sheet-title" className="font-semibold text-gray-900">
-                  {t('accountPage.itemsFiltersPanelTitle')}
-                </h2>
-                {activeCount > 0 && (
-                  <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
-                    {activeCount}
-                  </span>
-                )}
-              </div>
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+              aria-label={t('accountPage.itemsClose')}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            {panelContent({
+              showSearch: false,
+              filterState: mobileDraft,
+              onFilterStateChange: setMobileDraft,
+              resultCount: mobilePreviewCount,
+            })}
+          </div>
+          <div className="shrink-0 border-t border-gray-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setMobileOpen(false)}
-                className="flex h-11 w-11 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100/80 active:scale-95"
-                aria-label={t('accountPage.itemsClose')}
+                onClick={() => setMobileDraft(DEFAULT_FILTERS)}
+                className="min-h-[48px] flex-1 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700"
               >
-                <X className="h-5 w-5" />
+                {t('accountPage.itemsFiltersClearAll')}
               </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              {panelContent({ showSearch: false })}
-            </div>
-            <div className="shrink-0 border-t border-gray-200/60 bg-white/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
               <button
                 type="button"
-                onClick={() => setMobileOpen(false)}
-                className="min-h-[48px] w-full rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98]"
+                onClick={() => {
+                  onFiltersChange(mobileDraft);
+                  setMobileOpen(false);
+                }}
+                className="min-h-[48px] flex-[1.4] rounded-xl bg-primary text-sm font-bold text-white shadow-md shadow-primary/20 active:scale-[0.98]"
               >
-                {t('accountPage.itemsFiltersShowResults', { count: itemCount })}
+                {t('accountPage.itemsFiltersApply', { count: mobilePreviewCount })}
               </button>
             </div>
           </div>

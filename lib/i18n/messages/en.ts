@@ -512,6 +512,11 @@ export const en = {
 
   'accountPage.wantlistPurchases': 'Purchases',
   'accountPage.wantlistTitle': 'Wishlist',
+  'accountPage.wantlistComingSoonBadge': 'Coming soon',
+  'accountPage.wantlistComingSoonHint': 'Interface preview — full wishlist management goes live shortly.',
+  'accountPage.wantlistWizardTitle': 'Shopping Wizard',
+  'accountPage.wantlistWizardDesc': 'Smart tool to find and buy cards from your list quickly and efficiently.',
+  'accountPage.wantlistBackToLists': 'Back to lists',
   'accountPage.wantlistDesc':
     'Create a wishlist (e.g. “unbeatable deck”) to track what you want to buy. You can also use the Shopping Wizard — a powerful tool for fast, efficient buying.',
   'accountPage.wantlistNew': 'New list',
@@ -621,6 +626,7 @@ export const en = {
   'accountPage.itemsFiltersSyncManage': 'Manage',
   'accountPage.itemsFiltersCardsCount': '{filtered} / {total} cards',
   'accountPage.itemsFiltersShowResults': 'Show {count} results',
+  'accountPage.itemsFiltersApply': 'Apply ({count})',
   'accountPage.itemsFiltersExpand': 'Expand filters',
   'accountPage.itemsFiltersCollapse': 'Collapse filters',
   'accountPage.itemsFiltersOpen': 'Open filters',
