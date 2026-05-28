@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -32,6 +33,10 @@ function gameLabel(g: ScambioGame): string {
 }
 
 export function ScambiGridCard({ scambio }: { scambio: ScambioUI }) {
+  const [imageOk, setImageOk] = useState(Boolean(scambio.image));
+
+  if (!scambio.image || !imageOk) return null;
+
   return (
     <Link
       href={`/scambi/${scambio.id}`}
@@ -43,11 +48,12 @@ export function ScambiGridCard({ scambio }: { scambio: ScambioUI }) {
       <div className="relative aspect-[63/88] overflow-hidden bg-gray-100">
         <Image
           src={scambio.image}
-          alt=""
+          alt={scambio.title}
           fill
           className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           sizes="(max-width:640px) 50vw, 20vw"
           unoptimized
+          onError={() => setImageOk(false)}
         />
         {/* Dark gradient overlay for badge readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
@@ -96,59 +102,164 @@ export function ScambiGridCard({ scambio }: { scambio: ScambioUI }) {
   );
 }
 
+function ScambiListThumb({
+  scambio,
+  className,
+  onInvalid,
+}: {
+  scambio: ScambioUI;
+  className?: string;
+  onInvalid?: () => void;
+}) {
+  const [imageOk, setImageOk] = useState(Boolean(scambio.image));
+
+  if (!scambio.image || !imageOk) return null;
+
+  return (
+    <span className={className}>
+      <Image
+        src={scambio.image}
+        alt={scambio.title}
+        fill
+        className="object-cover"
+        sizes="56px"
+        unoptimized
+        onError={() => {
+          setImageOk(false);
+          onInvalid?.();
+        }}
+      />
+    </span>
+  );
+}
+
+function ScambiListMobileRow({ scambio }: { scambio: ScambioUI }) {
+  const [visible, setVisible] = useState(Boolean(scambio.image));
+  if (!visible) return null;
+
+  return (
+    <li className="p-3">
+      <div className="flex items-start gap-3">
+        <Link
+          href={`/scambi/${scambio.id}`}
+          scroll
+          prefetch
+          className="relative h-20 w-14 shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-100"
+        >
+          <ScambiListThumb scambio={scambio} className="relative block h-full w-full" onInvalid={() => setVisible(false)} />
+        </Link>
+        <div className="min-w-0 flex-1">
+          <Link
+            href={`/scambi/${scambio.id}`}
+            scroll
+            prefetch
+            className="line-clamp-2 text-sm font-semibold text-gray-900 hover:text-[#FF7300]"
+          >
+            {scambio.title}
+          </Link>
+          <p className="mt-0.5 text-[10px] font-semibold uppercase text-gray-400">
+            {gameLabel(scambio.game)}
+          </p>
+          <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-700">
+            <FlagIcon country={scambio.sellerCountry} size="sm" />
+            <span className="truncate">{scambio.seller}</span>
+            <span className="text-amber-600">★ {scambio.sellerRating}%</span>
+          </div>
+          <div className="mt-2">
+            <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${conditionBadgeClasses(scambio.condition)}`}>
+              {scambio.condition}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-end">
+        <Link
+          href={`/scambi/${scambio.id}`}
+          scroll
+          prefetch
+          className="inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-xs font-bold uppercase text-header-bg hover:underline"
+        >
+          Vedi dettaglio
+        </Link>
+      </div>
+    </li>
+  );
+}
+
+function ScambiListDesktopRow({
+  scambio,
+  onNavigate,
+}: {
+  scambio: ScambioUI;
+  onNavigate: (id: string) => void;
+}) {
+  const [visible, setVisible] = useState(Boolean(scambio.image));
+  if (!visible) return null;
+
+  return (
+    <tr
+      className="cursor-pointer border-b border-gray-100 transition-colors hover:bg-orange-50/60"
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('a')) return;
+        onNavigate(scambio.id);
+      }}
+    >
+      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+        <Link
+          href={`/scambi/${scambio.id}`}
+          className="flex items-center gap-3 font-medium text-gray-900 hover:text-[#FF7300]"
+        >
+          <span className="relative h-14 w-10 shrink-0 overflow-hidden bg-gray-100">
+            <ScambiListThumb scambio={scambio} className="relative block h-full w-full" onInvalid={() => setVisible(false)} />
+          </span>
+          <span>
+            <span className="line-clamp-2 block">{scambio.title}</span>
+            <span className="mt-0.5 block text-[10px] font-semibold uppercase text-gray-400">
+              {gameLabel(scambio.game)}
+            </span>
+          </span>
+        </Link>
+      </td>
+      <td className="p-3">
+        <div className="flex flex-col gap-0.5">
+          <span className="flex items-center gap-1 text-gray-800">
+            <FlagIcon country={scambio.sellerCountry} size="sm" />
+            {scambio.seller}
+          </span>
+          <span className="text-xs text-amber-600">
+            ★ {scambio.sellerRating}% ({scambio.sellerReviewCount})
+          </span>
+        </div>
+      </td>
+      <td className="p-3">
+        <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${conditionBadgeClasses(scambio.condition)}`}>
+          {scambio.condition}
+        </span>
+      </td>
+      <td className="p-3">
+        <Link
+          href={`/scambi/${scambio.id}`}
+          scroll
+          prefetch
+          className="inline-flex rounded-lg px-3 py-2 text-xs font-bold uppercase text-header-bg hover:underline"
+        >
+          Vedi dettaglio
+        </Link>
+      </td>
+    </tr>
+  );
+}
+
 export function ScambiListTable({ scambi }: { scambi: ScambioUI[] }) {
   const router = useRouter();
+  const visibleScambi = scambi.filter((s) => Boolean(s.image));
 
   return (
     <>
       {/* Mobile list */}
       <ul className="divide-y divide-gray-100 bg-white md:hidden">
-        {scambi.map((s) => (
-          <li key={s.id} className="p-3">
-            <div className="flex items-start gap-3">
-              <Link
-                href={`/scambi/${s.id}`}
-                scroll
-                prefetch
-                className="relative h-20 w-14 shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-100"
-              >
-                <Image src={s.image} alt="" fill className="object-cover" sizes="56px" unoptimized />
-              </Link>
-              <div className="min-w-0 flex-1">
-                <Link
-                  href={`/scambi/${s.id}`}
-                  scroll
-                  prefetch
-                  className="line-clamp-2 text-sm font-semibold text-gray-900 hover:text-[#FF7300]"
-                >
-                  {s.title}
-                </Link>
-                <p className="mt-0.5 text-[10px] font-semibold uppercase text-gray-400">
-                  {gameLabel(s.game)}
-                </p>
-                <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-700">
-                  <FlagIcon country={s.sellerCountry} size="sm" />
-                  <span className="truncate">{s.seller}</span>
-                  <span className="text-amber-600">★ {s.sellerRating}%</span>
-                </div>
-                <div className="mt-2">
-                  <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${conditionBadgeClasses(s.condition)}`}>
-                    {s.condition}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-end">
-              <Link
-                href={`/scambi/${s.id}`}
-                scroll
-                prefetch
-                className="inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-xs font-bold uppercase text-header-bg hover:underline"
-              >
-                Vedi dettaglio
-              </Link>
-            </div>
-          </li>
+        {visibleScambi.map((s) => (
+          <ScambiListMobileRow key={s.id} scambio={s} />
         ))}
       </ul>
 
@@ -164,58 +275,8 @@ export function ScambiListTable({ scambi }: { scambi: ScambioUI[] }) {
             </tr>
           </thead>
           <tbody>
-            {scambi.map((s) => (
-              <tr
-                key={s.id}
-                className="cursor-pointer border-b border-gray-100 transition-colors hover:bg-orange-50/60"
-                onClick={(e) => {
-                  if ((e.target as HTMLElement).closest('a')) return;
-                  router.push(`/scambi/${s.id}`);
-                }}
-              >
-                <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                  <Link
-                    href={`/scambi/${s.id}`}
-                    className="flex items-center gap-3 font-medium text-gray-900 hover:text-[#FF7300]"
-                  >
-                    <span className="relative h-14 w-10 shrink-0 overflow-hidden bg-gray-100">
-                      <Image src={s.image} alt="" fill className="object-cover" sizes="40px" unoptimized />
-                    </span>
-                    <span>
-                      <span className="line-clamp-2 block">{s.title}</span>
-                      <span className="mt-0.5 block text-[10px] font-semibold uppercase text-gray-400">
-                        {gameLabel(s.game)}
-                      </span>
-                    </span>
-                  </Link>
-                </td>
-                <td className="p-3">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="flex items-center gap-1 text-gray-800">
-                      <FlagIcon country={s.sellerCountry} size="sm" />
-                      {s.seller}
-                    </span>
-                    <span className="text-xs text-amber-600">
-                      ★ {s.sellerRating}% ({s.sellerReviewCount})
-                    </span>
-                  </div>
-                </td>
-                <td className="p-3">
-                  <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${conditionBadgeClasses(s.condition)}`}>
-                    {s.condition}
-                  </span>
-                </td>
-                <td className="p-3">
-                  <Link
-                    href={`/scambi/${s.id}`}
-                    scroll
-                    prefetch
-                    className="inline-flex rounded-lg px-3 py-2 text-xs font-bold uppercase text-header-bg hover:underline"
-                  >
-                    Vedi dettaglio
-                  </Link>
-                </td>
-              </tr>
+            {visibleScambi.map((s) => (
+              <ScambiListDesktopRow key={s.id} scambio={s} onNavigate={(id) => router.push(`/scambi/${id}`)} />
             ))}
           </tbody>
         </table>
@@ -225,9 +286,11 @@ export function ScambiListTable({ scambi }: { scambi: ScambioUI[] }) {
 }
 
 export function ScambiResultsGrid({ scambi }: { scambi: ScambioUI[] }) {
+  const withImages = scambi.filter((s) => Boolean(s.image));
+
   return (
     <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-      {scambi.map((s) => (
+      {withImages.map((s) => (
         <ScambiGridCard key={s.id} scambio={s} />
       ))}
     </div>

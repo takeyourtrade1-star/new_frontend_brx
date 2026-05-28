@@ -4,19 +4,24 @@
  * Dettaglio scambio — adattato dalla struttura visiva di AsteDetailView.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, ArrowLeftRight, Bookmark, Shield } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
-import { MOCK_SCAMBI } from '@/components/feature/scambi/mock-scambi';
 import { ScambiProponiModal } from '@/components/feature/scambi/ScambiProponiModal';
+import type { ScambioUI } from '@/components/feature/scambi/scambi-types';
+import {
+  fetchScambioById,
+  getScambiCatalog,
+  getScambioById,
+} from '@/lib/scambi/scambi-catalog';
 
 const ORANGE = '#FF7300';
 
-function getRandomScambi(excludeNumericId: number, count: number) {
-  const others = MOCK_SCAMBI.filter((s) => s.numericId !== excludeNumericId);
+function getRandomScambi(catalog: ScambioUI[], excludeNumericId: number, count: number) {
+  const others = catalog.filter((s) => s.numericId !== excludeNumericId);
   const shuffled = [...others].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 }
@@ -25,13 +30,27 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
   const { t } = useTranslation();
   const numericId = parseInt(scambioId, 10);
 
-  const scambio = useMemo(() => {
-    // Cerca prima per id stringa, poi per numericId (supporta entrambi gli URL)
-    return (
-      MOCK_SCAMBI.find((s) => s.id === scambioId) ??
-      (Number.isNaN(numericId) ? null : MOCK_SCAMBI.find((s) => s.numericId === numericId)) ??
-      null
-    );
+  const [scambio, setScambio] = useState<ScambioUI | null>(() => getScambioById(scambioId));
+  const [loading, setLoading] = useState(!getScambioById(scambioId));
+
+  useEffect(() => {
+    const cached = getScambioById(scambioId);
+    if (cached) {
+      setScambio(cached);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    void fetchScambioById(scambioId).then((row) => {
+      if (!cancelled) {
+        setScambio(row);
+        setLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [scambioId, numericId]);
 
   const detailImages = useMemo(
@@ -44,8 +63,18 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
 
   const similarCards = useMemo(() => {
     const excludeId = scambio?.numericId ?? -1;
-    return getRandomScambi(excludeId, 3);
+    return getRandomScambi(getScambiCatalog(), excludeId, 3);
   }, [scambio]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="container-content py-20 text-center text-sm text-gray-500">
+          Caricamento…
+        </div>
+      </div>
+    );
+  }
 
   if (!scambio) {
     return (

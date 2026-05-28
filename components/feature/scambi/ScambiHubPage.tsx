@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Search, ChevronDown, ChevronUp, X, ArrowLeftRight } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, X, ArrowLeftRight, Sparkles } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 import {
@@ -15,10 +15,10 @@ import {
   ScambiListTable,
 } from '@/components/feature/scambi/scambi-browse-shared';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
-import { MOCK_SCAMBI } from '@/components/feature/scambi/mock-scambi';
-import type { ScambioGame } from '@/components/feature/scambi/scambi-types';
+import type { ScambioGame, ScambioUI } from '@/components/feature/scambi/scambi-types';
 import { ScambiNav } from '@/components/feature/scambi/ScambiNav';
 import { getStoredAsteViewMode, setStoredAsteViewMode, type AsteViewMode } from '@/lib/auction/aste-view-storage';
+import { fetchScambiCatalog } from '@/lib/scambi/scambi-catalog';
 
 type SortMode = 'new' | 'alpha';
 
@@ -40,6 +40,9 @@ export function ScambiHubPage() {
   const [filterCondition, setFilterCondition] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
+  const [scambi, setScambi] = useState<ScambioUI[]>([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(true);
+
   // Sticky bottom bar states
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [bottomBarExpanded, setBottomBarExpanded] = useState(false);
@@ -51,6 +54,20 @@ export function ScambiHubPage() {
   useEffect(() => {
     setStoredAsteViewMode(VIEW_STORAGE_KEY, viewMode);
   }, [viewMode]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingCatalog(true);
+    void fetchScambiCatalog(12).then((rows) => {
+      if (!cancelled) {
+        setScambi(rows);
+        setLoadingCatalog(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Detect scroll to show sticky bar
   useEffect(() => {
@@ -74,7 +91,7 @@ export function ScambiHubPage() {
     const needle = q.trim().toLowerCase();
     const condNeedle = filterCondition.trim().toLowerCase();
 
-    let rows = MOCK_SCAMBI.filter((s) => {
+    let rows = scambi.filter((s) => {
       if (needle && !s.title.toLowerCase().includes(needle) && !s.seller.toLowerCase().includes(needle)) {
         return false;
       }
@@ -90,7 +107,7 @@ export function ScambiHubPage() {
       copy.sort((a, b) => a.title.localeCompare(b.title));
     }
     return copy;
-  }, [q, sort, filterGame, filterCondition]);
+  }, [q, sort, filterGame, filterCondition, scambi]);
 
   return (
     <div className="overflow-x-clip bg-white">
@@ -101,6 +118,13 @@ export function ScambiHubPage() {
             {/* Header interno pagina */}
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/55 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm ring-1 ring-black/[0.04] backdrop-blur-md">
+                    <Sparkles className="h-3 w-3 text-[#FF7300]" aria-hidden />
+                    {t('scambi.comingSoonBadge')}
+                  </span>
+                  <span className="text-xs text-gray-500">{t('scambi.comingSoonHint')}</span>
+                </div>
                 <h1 className="text-3xl font-black uppercase tracking-tight text-[#1D3160] sm:text-4xl">
                   Scambi
                 </h1>
@@ -241,7 +265,9 @@ export function ScambiHubPage() {
               </p>
             </div>
             <div className="overflow-hidden border border-gray-300 bg-gray-50">
-              {filtered.length === 0 ? (
+              {loadingCatalog ? (
+                <div className="p-8 text-center text-gray-500 sm:p-16">Caricamento scambi…</div>
+              ) : filtered.length === 0 ? (
                 <div className="p-8 text-center text-gray-500 sm:p-16">Nessuno scambio trovato</div>
               ) : viewMode === 'grid' ? (
                 <ScambiResultsGrid scambi={filtered} />

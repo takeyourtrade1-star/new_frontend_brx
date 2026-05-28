@@ -914,29 +914,11 @@ export const it: Record<MessageKey, string> = {
 
   'scambi.backHome': 'Torna alla homepage',
   'scambi.backAria': 'Torna alla homepage',
+  'scambi.comingSoonBadge': 'Presto in arrivo',
+  'scambi.comingSoonHint': 'Anteprima con carte reali dal catalogo — la funzione di scambio sarà attiva a breve.',
   'scambi.notify': 'AVVISAMI',
   'scambi.notifyAria': 'Avvisami quando la funzione è attiva',
   'scambi.toast': 'Sarai avvisato quando la funzione sarà attiva.',
-  'scambi.preview.badge': 'Presto in arrivo',
-  'scambi.preview.badgeHint': 'Anteprima interattiva — gli scambi verranno abilitati a breve.',
-  'scambi.preview.title': 'Scambi',
-  'scambi.preview.subtitle':
-    'Proponi, negozia e chiudi scambi di carte in modo sicuro. Esplora l’anteprima del flusso con carte reali dal catalogo.',
-  'scambi.preview.offer': 'Cosa offri',
-  'scambi.preview.request': 'Cosa richiedi',
-  'scambi.preview.partner': 'Partner di scambio',
-  'scambi.preview.simulate': 'Simula proposta',
-  'scambi.preview.simulateToast':
-    'Anteprima inviata! La proposta reale sarà disponibile al lancio degli Scambi.',
-  'scambi.preview.stepHint':
-    'Seleziona almeno una carta per lato, poi simula l’invio della proposta.',
-  'scambi.preview.loading': 'Caricamento carte…',
-  'scambi.preview.empty': 'Nessuna carta con immagine disponibile al momento.',
-  'scambi.preview.loadError': 'Impossibile caricare le carte dal catalogo.',
-  'scambi.preview.retry': 'Riprova',
-  'scambi.preview.shuffle': 'Altre carte casuali',
-  'scambi.preview.communityTitle': 'Scambi in evidenza',
-  'scambi.preview.communitySubtitle': 'Esempi di proposte che potrai sfogliare al lancio.',
 
   'account.shellScrollLeft': 'Scorri a sinistra',
   'account.shellScrollRight': 'Scorri a destra',

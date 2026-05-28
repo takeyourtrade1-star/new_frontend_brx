@@ -1,5 +1,6 @@
 'use client';
 
+import type { RefObject } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ type CartOrderSummaryProps = {
   checkoutSubmitting: boolean;
   onCheckout: () => void;
   onClearCart: () => void;
+  checkoutAnchorRef?: RefObject<HTMLDivElement | null>;
 };
 
 export function CartOrderSummary({
@@ -31,6 +33,7 @@ export function CartOrderSummary({
   checkoutSubmitting,
   onCheckout,
   onClearCart,
+  checkoutAnchorRef,
 }: CartOrderSummaryProps) {
   const { t } = useTranslation();
   const sellerCount = groups.length;
@@ -100,12 +103,13 @@ export function CartOrderSummary({
             </div>
           )}
 
-          <Button
-            type="button"
-            disabled={checkoutSubmitting}
-            onClick={onCheckout}
-            className="h-12 w-full rounded-2xl border-0 bg-primary text-base font-semibold text-white shadow-[0_4px_14px_rgba(255,115,0,0.35)] transition hover:opacity-95 disabled:opacity-60"
-          >
+          <div ref={checkoutAnchorRef}>
+            <Button
+              type="button"
+              disabled={checkoutSubmitting}
+              onClick={onCheckout}
+              className="h-12 w-full rounded-2xl border-0 bg-primary text-base font-semibold text-white shadow-[0_4px_14px_rgba(255,115,0,0.35)] transition hover:opacity-95 disabled:opacity-60"
+            >
             {checkoutSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -114,7 +118,8 @@ export function CartOrderSummary({
             ) : (
               t('cart.checkout')
             )}
-          </Button>
+            </Button>
+          </div>
 
           <Button
             type="button"

@@ -1557,15 +1557,18 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             </div>
           </div>
 
-          {/* Tabella / scambi */}
+          {/* Aste in evidenza — lista compatta */}
           <div className="mt-10 sm:mt-12">
             <h2 className="mb-5 text-lg font-bold uppercase tracking-wide text-gray-900 sm:text-xl">
               {t('auctions.tableExchangeTitle')}
             </h2>
             <div className="space-y-2 lg:space-y-3">
               {similarCards.slice(0, 5).map((row, i) => (
-                <div
+                <Link
                   key={row.id}
+                  href={auctionDetailPath(row.id)}
+                  prefetch
+                  scroll
                   className={`group relative isolate flex h-[80px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 lg:h-[110px] hover:border-primary/40 hover:shadow-sm lg:hover:-translate-y-0.5 lg:hover:${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].border} lg:hover:${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].shadow} lg:hover:shadow-md`}
                 >
                   {/* Gradient background on hover — desktop only */}
@@ -1601,14 +1604,13 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                       </p>
                     </div>
                     {/* Mobile: Pill CTA | Desktop: underline CTA */}
-                    <button
-                      type="button"
-                      className="shrink-0 rounded-full bg-gray-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-primary transition-colors hover:bg-primary hover:text-white lg:self-start lg:rounded-none lg:bg-transparent lg:px-0 lg:py-0 lg:text-[11px] lg:text-gray-800 lg:underline lg:decoration-gray-300 lg:underline-offset-2 lg:hover:bg-transparent lg:hover:text-primary"
+                    <span
+                      className="shrink-0 rounded-full bg-gray-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-primary transition-colors group-hover:bg-primary group-hover:text-white lg:self-start lg:rounded-none lg:bg-transparent lg:px-0 lg:py-0 lg:text-[11px] lg:text-gray-800 lg:underline lg:decoration-gray-300 lg:underline-offset-2 lg:group-hover:bg-transparent lg:group-hover:text-primary"
                     >
-                      {t('auctions.exchangeRequestCta')}
-                    </button>
+                      {t('auctions.shippingViewAuction')}
+                    </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

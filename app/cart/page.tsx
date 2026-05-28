@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useMemo, useState, useCallback } from 'react';
+import { Suspense, useMemo, useState, useCallback, useRef } from 'react';
 import { useCartStore } from '@/lib/stores/cart-store';
 import { Header } from '@/components/layout/Header';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -16,6 +16,7 @@ import { useCartSellerProfiles } from '@/components/feature/cart/use-cart-seller
 import { CartSellerGroupCard } from '@/components/feature/cart/CartSellerGroup';
 import { CartOrderSummary } from '@/components/feature/cart/CartOrderSummary';
 import { CartEmptyState } from '@/components/feature/cart/CartEmptyState';
+import { CartStickyCheckout } from '@/components/feature/cart/CartStickyCheckout';
 
 type CheckoutLineError = { lineId: string; title: string; message: string };
 
@@ -30,6 +31,7 @@ export default function CartPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const [checkoutErrors, setCheckoutErrors] = useState<CheckoutLineError[]>([]);
   const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
+  const checkoutAnchorRef = useRef<HTMLDivElement>(null);
 
   const { resolveDisplayName, resolveAccountType } = useCartSellerProfiles(items);
 
@@ -145,7 +147,8 @@ export default function CartPage() {
         {itemCount === 0 ? (
           <CartEmptyState continueShoppingHref={continueHref} />
         ) : (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:gap-10 xl:gap-12">
+          <>
+          <div className="grid grid-cols-1 gap-8 pb-24 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:gap-10 lg:pb-0 xl:gap-12">
             <div className="min-w-0 space-y-5">
               {sellerGroups.map((group) => (
                 <CartSellerGroupCard
@@ -168,8 +171,18 @@ export default function CartPage() {
               checkoutSubmitting={checkoutSubmitting}
               onCheckout={() => void handleCheckout()}
               onClearCart={clearCart}
+              checkoutAnchorRef={checkoutAnchorRef}
             />
           </div>
+
+          <CartStickyCheckout
+            checkoutAnchorRef={checkoutAnchorRef}
+            cartTotal={cartTotal}
+            intlLocale={intlLocale}
+            checkoutSubmitting={checkoutSubmitting}
+            onCheckout={() => void handleCheckout()}
+          />
+          </>
         )}
       </main>
     </div>

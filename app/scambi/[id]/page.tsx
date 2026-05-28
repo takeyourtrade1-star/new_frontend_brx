@@ -3,18 +3,14 @@ import { Header } from '@/components/layout/Header';
 import { ScambiNav } from '@/components/feature/scambi/ScambiNav';
 import { ScambiDetailView } from '@/components/feature/scambi/ScambiDetailView';
 import { ScambiGuard } from '../ScambiGuard';
-import { MOCK_SCAMBI } from '@/components/feature/scambi/mock-scambi';
-
 export const metadata = {
   title: 'Dettaglio scambio | Ebartex',
   description: 'Dettaglio scambio su Ebartex',
 };
 
-type Props = { params: Promise<{ id: string }> };
+export const dynamic = 'force-dynamic';
 
-export function generateStaticParams() {
-  return MOCK_SCAMBI.map((s) => ({ id: s.id }));
-}
+type Props = { params: Promise<{ id: string }> };
 
 export default async function ScambiDetailPage({ params }: Props) {
   const { id } = await params;

@@ -1,12 +1,12 @@
 'use client';
 
 import { ScambiGuard } from './ScambiGuard';
-import { ScambiPreviewPage } from '@/components/feature/scambi/ScambiPreviewPage';
+import { ScambiHubPage } from '@/components/feature/scambi/ScambiHubPage';
 
 export function ScambiPageClient() {
   return (
     <ScambiGuard>
-      <ScambiPreviewPage />
+      <ScambiHubPage />
     </ScambiGuard>
   );
 }

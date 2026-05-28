@@ -130,7 +130,9 @@ export function CartDropdown() {
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4 text-white/80" />
               <span className="text-sm font-medium">
-                {cartCount} {cartCount === 1 ? t('cart.item') : t('cart.items')}
+                {cartCount === 1
+                  ? t('cart.itemsOne', { count: cartCount })
+                  : t('cart.items', { count: cartCount })}
               </span>
             </div>
             <button

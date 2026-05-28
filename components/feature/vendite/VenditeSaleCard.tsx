@@ -3,129 +3,184 @@
 import {
   CheckCircle2,
   Clock,
-  Copy,
   Package,
+  Sparkles,
   Truck,
   User,
 } from 'lucide-react';
-import { cn, formatEuroNoSpace } from '@/lib/utils';
-import type { MockVendita, VenditaStato } from './venditeMockData';
+import { cn } from '@/lib/utils';
+import {
+  getStatoMeta,
+  type VenditaMock,
+  type VenditaStato,
+} from './venditeMockData';
 
-const STATO_META: Record<
+function formatPrice(price: number): string {
+  return new Intl.NumberFormat('it-IT', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: price % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(price);
+}
+
+function formatDateTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('it-IT', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+const STATO_VISUAL: Record<
   VenditaStato,
-  { label: string; pill: string; icon: typeof Clock }
+  { icon: typeof Clock; pill: string; accent: string }
 > = {
   'in-attesa-pagamento': {
-    label: 'In attesa di pagamento',
-    pill: 'bg-amber-50/90 text-amber-800 ring-amber-200/80',
     icon: Clock,
+    pill: 'bg-amber-50/90 text-amber-800 ring-amber-200/80',
+    accent: 'from-amber-400/20 to-orange-300/10',
   },
   'da-spedire': {
-    label: 'Da spedire',
-    pill: 'bg-[#FF7300]/10 text-[#c45a00] ring-[#FF7300]/25',
     icon: Package,
+    pill: 'bg-[#FF7300]/10 text-[#c45a00] ring-[#FF7300]/25',
+    accent: 'from-[#FF7300]/15 to-amber-200/10',
   },
   spedito: {
-    label: 'Spedito',
-    pill: 'bg-blue-50/90 text-blue-800 ring-blue-200/80',
     icon: Truck,
+    pill: 'bg-blue-50/90 text-blue-800 ring-blue-200/80',
+    accent: 'from-blue-400/15 to-sky-300/10',
   },
   completato: {
-    label: 'Completato',
-    pill: 'bg-emerald-50/90 text-emerald-800 ring-emerald-200/80',
     icon: CheckCircle2,
+    pill: 'bg-emerald-50/90 text-emerald-800 ring-emerald-200/80',
+    accent: 'from-emerald-400/15 to-teal-300/10',
   },
 };
 
+const CHANNEL_LABEL = {
+  marketplace: 'Marketplace',
+  asta: 'Asta',
+} as const;
+
 type VenditeSaleCardProps = {
-  vendita: MockVendita;
+  vendita: VenditaMock;
   showStatoBadge?: boolean;
 };
 
 export function VenditeSaleCard({ vendita, showStatoBadge = false }: VenditeSaleCardProps) {
-  const meta = STATO_META[vendita.stato];
-  const StatoIcon = meta.icon;
+  const statoMeta = getStatoMeta(vendita.stato);
+  const visual = STATO_VISUAL[vendita.stato];
+  const StatoIcon = visual.icon;
 
   return (
     <article
-      className="group relative overflow-hidden rounded-[1.25rem] border border-white/70 bg-white/60 shadow-[0_4px_24px_rgba(15,23,42,0.06)] backdrop-blur-2xl backdrop-saturate-150 transition duration-300 hover:border-white/90 hover:bg-white/75 hover:shadow-[0_12px_40px_rgba(15,23,42,0.08)]"
-      aria-label={`Vendita ${vendita.orderId}`}
+      className={cn(
+        'group relative overflow-hidden rounded-[1.25rem] border border-white/70',
+        'bg-white/60 p-4 shadow-[0_4px_24px_rgba(15,23,42,0.06)] backdrop-blur-xl',
+        'transition duration-200 hover:border-white hover:bg-white/75 hover:shadow-[0_8px_32px_rgba(15,23,42,0.08)]',
+        'sm:p-5',
+      )}
     >
-      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-stretch sm:gap-5 sm:p-5">
-        <div
-          className="flex h-20 w-full shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200/80 text-lg font-semibold text-slate-500 ring-1 ring-black/[0.04] sm:h-auto sm:w-24"
-          aria-hidden
-        >
-          {vendita.buyerInitials}
-        </div>
+      <div
+        className={cn(
+          'pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-gradient-to-br opacity-80 blur-2xl',
+          visual.accent,
+        )}
+        aria-hidden
+      />
 
-        <div className="min-w-0 flex-1 space-y-3">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0 space-y-1">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-wider text-[#86868B]">
-                {vendita.orderId}
-              </p>
-              <h3 className="text-[15px] font-semibold leading-snug tracking-tight text-[#1D1D1F] sm:text-base">
-                {vendita.itemName}
-              </h3>
-              <p className="text-[13px] text-[#6E6E73]">{vendita.category}</p>
-            </div>
-            <p className="shrink-0 text-lg font-semibold tabular-nums tracking-tight text-[#1D1D1F]">
-              {formatEuroNoSpace(vendita.price)}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-[#6E6E73]">
-            <span className="inline-flex items-center gap-1.5">
-              <User className="h-3.5 w-3.5 shrink-0 text-[#86868B]" aria-hidden />
-              <span>
-                Acquirente{' '}
-                <span className="font-medium text-[#1D1D1F]">@{vendita.buyerUsername}</span>
-              </span>
+      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-1 gap-3.5 sm:gap-4">
+          <div
+            className={cn(
+              'relative flex h-[4.5rem] w-[3.25rem] shrink-0 flex-col items-center justify-end overflow-hidden rounded-xl',
+              'border border-white/80 bg-gradient-to-br shadow-inner ring-1 ring-black/[0.04]',
+              visual.accent,
+            )}
+          >
+            <div className="absolute inset-0 bg-[#1D3160]/[0.04]" aria-hidden />
+            <Sparkles className="absolute left-1.5 top-1.5 h-3 w-3 text-[#FF7300]/70" aria-hidden />
+            <span className="relative z-[1] mb-1.5 px-1 text-center text-[8px] font-bold uppercase leading-tight tracking-wide text-[#1D3160]/80">
+              {vendita.language}
             </span>
-            <span className="hidden h-3 w-px bg-slate-200 sm:inline" aria-hidden />
-            <time dateTime={vendita.sortDate}>{vendita.date}</time>
           </div>
 
-          {(showStatoBadge || vendita.paymentDue || vendita.trackingCode || vendita.deliveredAt) && (
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          <div className="min-w-0 flex-1">
+            <div className="mb-1.5 flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-[#86868B]">
+                {CHANNEL_LABEL[vendita.channel]} · {vendita.orderId}
+              </span>
               {showStatoBadge && (
                 <span
                   className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1',
-                    meta.pill,
+                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1',
+                    visual.pill,
                   )}
                 >
                   <StatoIcon className="h-3 w-3" aria-hidden />
-                  {meta.label}
-                </span>
-              )}
-              {vendita.paymentDue && (
-                <span className="rounded-full bg-amber-50/80 px-2.5 py-1 text-[11px] font-medium text-amber-900 ring-1 ring-amber-200/60">
-                  Scadenza pagamento: {vendita.paymentDue}
-                </span>
-              )}
-              {vendita.trackingCode && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50/80 px-2.5 py-1 font-mono text-[11px] font-medium text-blue-900 ring-1 ring-blue-200/60">
-                  <Truck className="h-3 w-3" aria-hidden />
-                  {vendita.trackingCode}
-                  <button
-                    type="button"
-                    className="ml-0.5 rounded p-0.5 text-blue-700/70 transition hover:bg-blue-100 hover:text-blue-900"
-                    aria-label={`Copia tracking ${vendita.trackingCode}`}
-                    onClick={() => void navigator.clipboard?.writeText(vendita.trackingCode ?? '')}
-                  >
-                    <Copy className="h-3 w-3" />
-                  </button>
-                </span>
-              )}
-              {vendita.deliveredAt && (
-                <span className="rounded-full bg-emerald-50/80 px-2.5 py-1 text-[11px] font-medium text-emerald-900 ring-1 ring-emerald-200/60">
-                  Consegnato il {vendita.deliveredAt}
+                  {statoMeta.shortLabel}
                 </span>
               )}
             </div>
+
+            <h3 className="truncate text-[1.05rem] font-semibold leading-snug text-[#1D1D1F] sm:text-lg">
+              {vendita.itemName}
+            </h3>
+            <p className="mt-0.5 truncate text-[13px] text-[#6E6E73]">
+              {vendita.setName} · {vendita.condition}
+            </p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-[#6E6E73]">
+              <span className="inline-flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5 shrink-0 text-[#86868B]" aria-hidden />
+                <span className="text-[#86868B]">Acquirente</span>
+                <span className="font-semibold text-[#1D1D1F]">@{vendita.buyerUsername}</span>
+              </span>
+              <span className="text-[#AEAEB2]">·</span>
+              <time dateTime={vendita.soldAt} className="tabular-nums">
+                {formatDateTime(vendita.soldAt)}
+              </time>
+            </div>
+
+            {vendita.trackingCode && (
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-white/50 px-2.5 py-1 text-[12px] text-[#6E6E73] ring-1 ring-slate-200/60">
+                <Truck className="h-3.5 w-3.5 text-blue-600" aria-hidden />
+                Tracking{' '}
+                <span className="font-mono text-[11px] font-medium text-[#1D1D1F]">
+                  {vendita.trackingCode}
+                </span>
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex shrink-0 flex-row items-center justify-between gap-3 border-t border-white/50 pt-3 sm:flex-col sm:items-end sm:border-t-0 sm:pt-0">
+          {!showStatoBadge && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ring-1 sm:order-2',
+                visual.pill,
+              )}
+            >
+              <StatoIcon className="h-3 w-3" aria-hidden />
+              {statoMeta.label}
+            </span>
           )}
+          <div className="text-left sm:text-right sm:order-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#86868B]">
+              Importo vendita
+            </p>
+            <p className="text-2xl font-semibold tabular-nums tracking-tight text-[#1D1D1F]">
+              {formatPrice(vendita.price)}
+            </p>
+          </div>
         </div>
       </div>
     </article>

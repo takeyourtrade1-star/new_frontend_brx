@@ -53,10 +53,20 @@ function winnerFromBase(base: AuctionMock, outcome: SellerOutcome): string | nul
   return 'HighBidder';
 }
 
+const SHIPPING_ORDER_BY_AUCTION_ID: Record<string, string> = {
+  c1: 'ship-c1',
+  c3: 'ship-001',
+  c4: 'ship-002',
+  c5: 'ship-003',
+  c6: 'ship-004',
+  c7: 'ship-005',
+  c8: 'ship-006',
+  c9: 'ship-007',
+};
+
 function shippingOrderIdFromBase(base: AuctionMock, outcome: SellerOutcome): string | null {
   if (outcome !== 'sold') return null;
-  if (base.id === 'c1') return 'ship-c1';
-  return null;
+  return SHIPPING_ORDER_BY_AUCTION_ID[base.id] ?? null;
 }
 
 function buildBids(base: AuctionMock, ended: boolean): BidRow[] {

@@ -294,7 +294,7 @@ export function AsteShippingPage() {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const searchParams = useSearchParams();
-  const highlightOrderId = searchParams.get('order');
+  const orderQuery = searchParams.get('order');
 
   const breadcrumbItems: AppBreadcrumbItem[] = [
     { href: '/', label: t('auctions.breadcrumbHome'), isCurrent: false },
@@ -318,10 +318,15 @@ export function AsteShippingPage() {
     return base;
   }, [rows]);
 
-  const highlightStatus = useMemo(
-    () => rows.find((r) => r.id === highlightOrderId)?.status ?? null,
-    [rows, highlightOrderId]
+  const highlightOrder = useMemo(
+    () =>
+      orderQuery
+        ? rows.find((r) => r.id === orderQuery || r.auctionId === orderQuery) ?? null
+        : null,
+    [rows, orderQuery]
   );
+
+  const highlightStatus = highlightOrder?.status ?? null;
 
   const [activeTab, setActiveTab] = useState<StatusFilter>('all');
 
@@ -330,10 +335,10 @@ export function AsteShippingPage() {
   }, [highlightStatus]);
 
   useEffect(() => {
-    if (!highlightOrderId || typeof document === 'undefined') return;
-    const el = document.getElementById(`order-${highlightOrderId}`);
+    if (!highlightOrder || typeof document === 'undefined') return;
+    const el = document.getElementById(`order-${highlightOrder.id}`);
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [highlightOrderId, activeTab]);
+  }, [highlightOrder, activeTab]);
 
   const filteredRows = useMemo(
     () => (activeTab === 'all' ? rows : rows.filter((r) => r.status === activeTab)),
@@ -463,7 +468,7 @@ export function AsteShippingPage() {
           <ul className="space-y-4 sm:space-y-5">
             {filteredRows.map((order) => (
               <li key={order.id}>
-                <ShippingCard order={order} highlight={highlightOrderId === order.id} t={t} />
+                <ShippingCard order={order} highlight={highlightOrder?.id === order.id} t={t} />
               </li>
             ))}
           </ul>
