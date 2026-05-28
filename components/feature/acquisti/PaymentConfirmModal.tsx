@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { OrderAPI } from '@/types/order';
 
 interface PaymentConfirmModalProps {
@@ -22,10 +23,15 @@ export function PaymentConfirmModal({
   onClose,
   onConfirm,
 }: PaymentConfirmModalProps) {
+  const { t } = useTranslation();
   const closeBtn = useRef<HTMLButtonElement | null>(null);
+  const [acceptedDemo, setAcceptedDemo] = useState(false);
 
   useEffect(() => {
-    if (!order) return;
+    if (!order) {
+      setAcceptedDemo(false);
+      return;
+    }
     closeBtn.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !isPaying) onClose();
@@ -61,6 +67,13 @@ export function PaymentConfirmModal({
         </div>
 
         <div className="space-y-4 px-5 py-5 text-sm text-gray-700">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-blue-900">
+            <span className="mr-2 inline-flex rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+              DEMO
+            </span>
+            {t('mockCheckout.demoDisclaimer')}
+          </div>
+
           <p>
             Stai per pagare l&apos;ordine{' '}
             <strong>#{order.id}</strong>
@@ -70,13 +83,17 @@ export function PaymentConfirmModal({
             <span className="text-gray-500">Totale da pagare</span>
             <span className="text-xl font-bold text-gray-900">{eurFmt.format(order.total_amount)}</span>
           </div>
-          <p className="text-xs text-gray-500">
-            <em>
-              Modalità simulata: per ora il pagamento non passa da un gateway reale.
-              Premendo Approva l&apos;ordine viene marcato come pagato e il venditore
-              viene avvisato.
-            </em>
-          </p>
+
+          <label className="flex cursor-pointer items-start gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={acceptedDemo}
+              onChange={(e) => setAcceptedDemo(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#FF7300] focus:ring-[#FF7300]"
+            />
+            <span>{t('mockCheckout.checkboxLabel')}</span>
+          </label>
+
           {errorMessage && (
             <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
               <span className="mt-0.5">⚠</span>
@@ -97,13 +114,13 @@ export function PaymentConfirmModal({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={isPaying}
+            disabled={isPaying || !acceptedDemo}
             className={cn(
               'inline-flex items-center justify-center gap-2 rounded-md bg-[#FF7300] px-4 py-2 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#e56500] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40 disabled:opacity-60',
             )}
           >
             <CheckCircle2 className="h-4 w-4" aria-hidden />
-            {isPaying ? 'Approvazione…' : 'Approva pagamento'}
+            {isPaying ? 'Approvazione…' : 'Simula pagamento'}
           </button>
         </div>
       </div>

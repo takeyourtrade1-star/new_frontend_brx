@@ -6,6 +6,7 @@ import { Home } from 'lucide-react';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
+import { withSellFlow } from '@/lib/sell-flow/sell-flow';
 
 type VendiPageShellProps = {
   title: string;
@@ -38,7 +39,12 @@ export function VendiPageShell({ title, subtitle, breadcrumbItems, children }: V
   );
 }
 
-export function vendiBaseBreadcrumbItems(t: (key: MessageKey) => string, currentLabel: string): AppBreadcrumbItem[] {
+export function vendiBaseBreadcrumbItems(
+  t: (key: MessageKey) => string,
+  currentLabel: string,
+  options?: { sellFlow?: boolean },
+): AppBreadcrumbItem[] {
+  const vendiHref = options?.sellFlow ? withSellFlow('/vendi') : '/vendi';
   return [
     {
       href: '/',
@@ -49,7 +55,7 @@ export function vendiBaseBreadcrumbItems(t: (key: MessageKey) => string, current
       isCurrent: false,
     },
     { href: '/account/oggetti', label: t('vendi.breadcrumb.stock'), isCurrent: false },
-    { href: '/vendi', label: t('vendi.breadcrumb.methods'), isCurrent: false },
+    { href: vendiHref, label: t('vendi.breadcrumb.methods'), isCurrent: false },
     { label: currentLabel, isCurrent: true },
   ];
 }

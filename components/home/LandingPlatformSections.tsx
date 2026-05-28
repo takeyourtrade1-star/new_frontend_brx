@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { TOURNAMENTS_PORTAL_URL, TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 import {
   Gavel,
   Search,
@@ -56,6 +57,7 @@ type PlatformSectionConfig = {
   steps: Step[];
   cta: string;
   href: string;
+  external?: boolean;
   accent: Accent;
 };
 
@@ -211,7 +213,8 @@ const SECTIONS: PlatformSectionConfig[] = [
       },
     ],
     cta: 'Vai ai tornei live',
-    href: '/tornei-live',
+    href: TOURNAMENTS_PORTAL_URL,
+    external: true,
     accent: 'violet',
   },
 ];
@@ -310,21 +313,39 @@ function PlatformSectionBlock({ config, reverse, sectionIndex }: PlatformSection
           </motion.p>
 
           <motion.div variants={textVariants} custom={0.2}>
-            <Link
-              href={config.href}
-              className={`group mt-6 inline-flex items-center gap-2 rounded-xl border px-5 py-3 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${styles.ctaBorder} ${styles.ctaBg} ${styles.ctaText}`}
-            >
-              <motion.span
-                className="inline-flex"
-                whileHover={reduced ? undefined : { scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+            {config.external ? (
+              <a
+                {...TOURNAMENTS_PORTAL_LINK_PROPS}
+                className={`group mt-6 inline-flex items-center gap-2 rounded-xl border px-5 py-3 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${styles.ctaBorder} ${styles.ctaBg} ${styles.ctaText}`}
               >
-                {config.cta}
-              </motion.span>
-              <motion.span className="inline-flex" whileHover={reduced ? undefined : { x: 5 }} transition={{ type: 'spring', stiffness: 400, damping: 18 }}>
-                <ArrowRight className="h-4 w-4" />
-              </motion.span>
-            </Link>
+                <motion.span
+                  className="inline-flex"
+                  whileHover={reduced ? undefined : { scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {config.cta}
+                </motion.span>
+                <motion.span className="inline-flex" whileHover={reduced ? undefined : { x: 5 }} transition={{ type: 'spring', stiffness: 400, damping: 18 }}>
+                  <ArrowRight className="h-4 w-4" />
+                </motion.span>
+              </a>
+            ) : (
+              <Link
+                href={config.href}
+                className={`group mt-6 inline-flex items-center gap-2 rounded-xl border px-5 py-3 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${styles.ctaBorder} ${styles.ctaBg} ${styles.ctaText}`}
+              >
+                <motion.span
+                  className="inline-flex"
+                  whileHover={reduced ? undefined : { scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {config.cta}
+                </motion.span>
+                <motion.span className="inline-flex" whileHover={reduced ? undefined : { x: 5 }} transition={{ type: 'spring', stiffness: 400, damping: 18 }}>
+                  <ArrowRight className="h-4 w-4" />
+                </motion.span>
+              </Link>
+            )}
           </motion.div>
         </motion.div>
 

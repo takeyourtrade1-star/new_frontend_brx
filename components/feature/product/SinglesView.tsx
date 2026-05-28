@@ -29,6 +29,8 @@ import {
 } from '@/lib/search/category-mapping';
 import { getCategoryIdsForProductSlug } from '@/lib/product-categories';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
+import { isSellFlow, getProductDetailHref } from '@/lib/sell-flow/sell-flow';
+import { HeaderSearchHint } from '@/components/feature/sell-guide/HeaderSearchHint';
 
 const BACKEND_LANG_ORDER = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
 type SupportedLang = (typeof BACKEND_LANG_ORDER)[number];
@@ -120,6 +122,11 @@ export function ProductCategoryView({
   );
 
   const q = (searchParams.get('q') ?? '').trim();
+  const sellFlow = isSellFlow(searchParams);
+  const productHrefBuilder = useCallback(
+    (id: string) => (sellFlow ? getProductDetailHref(id, { sellFlow: true }) : `/products/${id}`),
+    [sellFlow],
+  );
   const setFilter = searchParams.get('set') ?? '';
   const pageParam = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);
   const sortParam = searchParams.get('sort') ?? 'name_asc';
@@ -307,6 +314,7 @@ export function ProductCategoryView({
                     </label>
                   )}
 
+                  {!sellFlow && (
                   <label className="flex flex-col gap-1">
                     <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
                       {t('search.thName')}
@@ -332,6 +340,7 @@ export function ProductCategoryView({
                       )}
                     </div>
                   </label>
+                  )}
 
                   <button
                     type="button"
@@ -347,6 +356,9 @@ export function ProductCategoryView({
 
             {/* Contenuto principale */}
             <div className="min-w-0 flex-1">
+              {sellFlow && !q ? (
+                <HeaderSearchHint className="mb-4" skipAnimation={Boolean(q)} />
+              ) : null}
               {!loading && !error && (
                 <SearchResultsToolbar
                   className="mb-4"
@@ -389,6 +401,7 @@ export function ProductCategoryView({
                     editionVariant="icon"
                     showCardDetails={showCardDetails}
                     formatPrice={(hit) => formatEuro((hit as SinglesHit).market_price)}
+                    buildProductHref={sellFlow ? productHrefBuilder : undefined}
                   />
                 )}
 
@@ -400,7 +413,7 @@ export function ProductCategoryView({
                       return (
                         <Link
                           key={hit.id}
-                          href={`/products/${hit.id}`}
+                          href={productHrefBuilder(hit.id)}
                           className="group border border-gray-200 rounded-lg bg-white p-3 hover:border-[#FF8800] hover:shadow-md transition-all"
                         >
                           <div className="relative aspect-[63/88] overflow-hidden rounded bg-gray-100 mb-2">

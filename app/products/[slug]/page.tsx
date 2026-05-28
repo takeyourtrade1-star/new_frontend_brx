@@ -1,6 +1,7 @@
 import { ProductDetailView } from '@/components/feature/product/ProductDetailView';
 import { ProductCategoryPageClient } from '@/components/feature/product/ProductCategoryPageClient';
 import { EbartexBoutiquePage } from '@/components/feature/product/EbartexBoutiquePage';
+import { Suspense, type ComponentProps } from 'react';
 import { getCdnImageUrl } from '@/lib/config';
 import { getCardBySlug } from '@/lib/mock-cards';
 import { getCardDocumentById, isIndexProductId } from '@/lib/product-detail';
@@ -9,6 +10,22 @@ import { CATEGORY_SLUGS, type ProductCategorySlug } from '@/lib/product-categori
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
 };
+
+function ProductDetailWithSuspense(
+  props: ComponentProps<typeof ProductDetailView>,
+) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center text-white">
+          <p>Caricamento…</p>
+        </div>
+      }
+    >
+      <ProductDetailView {...props} />
+    </Suspense>
+  );
+}
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const resolvedParams = await params;
@@ -38,7 +55,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       );
     }
 
-    return <ProductDetailView card={cardData} />;
+    return <ProductDetailWithSuspense card={cardData} />;
   }
 
   // Fallback: carta mock (slug tipo mowgli-cucciolo-duomo)
@@ -46,7 +63,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   if (!card) {
     return (
-      <ProductDetailView
+      <ProductDetailWithSuspense
         slug={cardId}
         title="MOWGLI - CUCCIOLO D'UOMO"
         subtitle="SUSSURRI NEL POZZO - MOWGLI - MAN CUB - SINGLES"
@@ -65,7 +82,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const subtitle = `${card.set} - ${card.name} - ${card.type}`;
 
   return (
-    <ProductDetailView
+    <ProductDetailWithSuspense
       slug={card.slug}
       title={title}
       subtitle={subtitle}

@@ -20,7 +20,7 @@ type CartOrderSummaryProps = {
   checkoutSubmitting: boolean;
   onCheckout: () => void;
   onClearCart: () => void;
-  checkoutAnchorRef?: RefObject<HTMLDivElement | null>;
+  checkoutAnchorRef?: RefObject<HTMLDivElement>;
 };
 
 export function CartOrderSummary({

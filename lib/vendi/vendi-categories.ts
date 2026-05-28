@@ -1,4 +1,5 @@
 import type { MessageKey } from '@/lib/i18n/messages/en';
+import { getVendiCatalogHref } from '@/lib/sell-flow/sell-flow';
 
 export type VendiCategoryId = 'singole' | 'oggetti' | 'set-edizioni';
 
@@ -13,21 +14,21 @@ export type VendiCategoryConfig = {
 export const VENDI_CATEGORIES: VendiCategoryConfig[] = [
   {
     id: 'singole',
-    href: '/products/singles',
+    href: getVendiCatalogHref('/products/singles'),
     imageSrc: '/vendi/singole.svg',
     titleKey: 'vendi.category.singles',
     descriptionKey: 'vendi.category.singlesDesc',
   },
   {
     id: 'oggetti',
-    href: '/vendi/oggetti',
+    href: getVendiCatalogHref('/vendi/oggetti'),
     imageSrc: '/vendi/oggetti.svg',
     titleKey: 'vendi.category.products',
     descriptionKey: 'vendi.category.productsDesc',
   },
   {
     id: 'set-edizioni',
-    href: '/products/set-lotti-collezioni',
+    href: getVendiCatalogHref('/products/set-lotti-collezioni'),
     imageSrc: '/vendi/set-edizioni.svg',
     titleKey: 'vendi.category.sets',
     descriptionKey: 'vendi.category.setsDesc',

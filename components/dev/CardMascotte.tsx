@@ -35,6 +35,7 @@ import {
   getAssoBubbleBottom,
   getInitialAssoCollapsed,
 } from '@/lib/asso-layout';
+import { TOURNAMENTS_PORTAL_URL } from '@/lib/config/tournaments';
 
 // Storage keys for bug report data
 const BUG_REPORT_STORAGE = {
@@ -1940,7 +1941,7 @@ export function CardMascotte() {
     {
       id: 'tornei-live',
       text: 'Lo sai cosa ci rende unici? Tornei live e logistica decentralizzata con BRX Express!',
-      route: '/tornei-live',
+      route: TOURNAMENTS_PORTAL_URL,
       // Glass tint color (accent only, not solid)
       accent: '#10B981',
       icon: 'swap',
@@ -1966,7 +1967,10 @@ export function CardMascotte() {
   // Filter promos to exclude current page (smart rotation)
   const activePromoHints = useMemo(() => {
     if (!pathname) return promoHints;
-    return promoHints.filter(promo => !pathname.startsWith(promo.route));
+    return promoHints.filter((promo) => {
+      if (promo.route.startsWith('http')) return true;
+      return !pathname.startsWith(promo.route);
+    });
   }, [pathname, promoHints]);
 
   const styleReactionMessages = useMemo(() => ({
@@ -2053,6 +2057,8 @@ export function CardMascotte() {
     if (!msg) return;
     if (msg.promoId === 'bug' || msg.route === '#bug-report') {
       setIsModalOpen(true);
+    } else if (msg.route?.startsWith('http')) {
+      window.open(msg.route, '_blank', 'noopener,noreferrer');
     } else if (msg.route) {
       router.push(msg.route);
     }

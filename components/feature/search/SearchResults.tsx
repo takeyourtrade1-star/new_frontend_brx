@@ -39,6 +39,8 @@ import type { SearchHit } from '@/app/api/search/route';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
 import { SearchResultsTable } from '@/components/feature/search/SearchResultsTable';
+import { isSellFlow, getProductDetailHref } from '@/lib/sell-flow/sell-flow';
+import { HeaderSearchHint } from '@/components/feature/sell-guide/HeaderSearchHint';
 import {
   SearchResultsToolbar,
   type ViewMode,
@@ -128,6 +130,7 @@ type SearchFiltersFieldsProps = {
   onSubmitSearch: () => void;
   onNavigate: (url: string) => void;
   onLiveChange?: (nextNomeInput: string, nextEdizioneInput: string) => void;
+  hideNameFilter?: boolean;
 };
 
 function SearchFiltersFields({
@@ -143,6 +146,7 @@ function SearchFiltersFields({
   onSubmitSearch,
   onNavigate,
   onLiveChange,
+  hideNameFilter = false,
 }: SearchFiltersFieldsProps) {
   const isSheet = variant === 'sheet';
   const fc = isSheet ? fieldClassSheet : fieldClassDesktop;
@@ -247,7 +251,7 @@ function SearchFiltersFields({
         {categorySelect}
         {editionInput}
         {raritySelect}
-        {nameInput}
+        {!hideNameFilter ? nameInput : null}
       </div>
     );
   }
@@ -257,7 +261,7 @@ function SearchFiltersFields({
       {categorySelect}
       {editionInput}
       {raritySelect}
-      {nameInput}
+      {!hideNameFilter ? nameInput : null}
       {desktopSearchButton}
     </div>
   );
@@ -285,6 +289,11 @@ export function SearchResults({
   const categoryKeyParam = searchParams.get('category_key') ?? '';
   const pageParam = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);
   const sortParam = searchParams.get('sort') ?? 'name_asc';
+  const sellFlow = isSellFlow(searchParams);
+  const productHrefBuilder = useCallback(
+    (id: string) => (sellFlow ? getProductDetailHref(id, { sellFlow: true }) : `/products/${id}`),
+    [sellFlow],
+  );
 
   // Normalizza game slug
   const gameSlug = useMemo(() => normalizeGameSlug(game), [game]);
@@ -590,6 +599,7 @@ export function SearchResults({
               onSubmitSearch={handleCerca}
               onNavigate={(url) => router.replace(url)}
               onLiveChange={triggerLiveSearch}
+              hideNameFilter={sellFlow}
             />
 
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -681,6 +691,7 @@ export function SearchResults({
                     setFiltersOpen(false);
                   }}
                   onNavigate={(url) => router.replace(url)}
+                  hideNameFilter={sellFlow}
                 />
                 <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4">
                   <span className="text-xs font-semibold text-gray-600">{t('search.sortBy')}</span>
@@ -759,6 +770,8 @@ export function SearchResults({
           </div>
         )}
 
+        {sellFlow && !q ? <HeaderSearchHint className="mb-4" /> : null}
+
         {!loading && !error && hits.length > 0 && (
           <SearchResultsToolbar
             className="mb-3"
@@ -800,6 +813,7 @@ export function SearchResults({
               t={t}
               editionVariant="icon"
               onImagePreviewOpenChange={setImagePreviewModalOpen}
+              buildProductHref={sellFlow ? productHrefBuilder : undefined}
             />
           )}
           {!loading && !error && hits.length > 0 && viewMode === 'grid' && (
@@ -815,7 +829,7 @@ export function SearchResults({
                     key={hit.id}
                     className="group relative border border-gray-200 bg-white p-3 hover:border-[#FF7300] hover:shadow-sm transition-all"
                   >
-                    <Link href={`/products/${hit.id}`} className="block">
+                    <Link href={productHrefBuilder(hit.id)} className="block">
                       <div className="relative aspect-[63/88] overflow-hidden bg-gray-100 mb-2">
                         {imgUrl ? (
                           <Image

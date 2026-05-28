@@ -373,17 +373,34 @@ export const de: Record<MessageKey, string> = {
   'accountPage.statsPaymentDate': 'ZAHLUNGSDATUM',
 
   'accountPage.sec2faTitle': 'ZWEI-FAKTOR-AUTHENTIFIZIERUNG',
+  'accountPage.sec2faBadge': 'Kontoschutz',
   'accountPage.sec2faIntro':
-    '2FA erhöht die Sicherheit. Neben dem Passwort geben Sie bei jedem Login einen Code aus einer App ein. Empfohlen: Authy oder Google Authenticator.',
-  'accountPage.sec2faHowTitle': 'SO RICHTEN SIE 2FA EIN',
+    '2FA erhöht die Sicherheit. Neben dem Passwort geben Sie einen temporären Code aus Google Authenticator auf Ihrem Smartphone ein.',
+  'accountPage.sec2faStatusOn': 'Aktiv',
+  'accountPage.sec2faStatusOff': 'Inaktiv',
+  'accountPage.sec2faStatusTitleOn': 'Zwei-Faktor-Authentifizierung aktiv',
+  'accountPage.sec2faStatusTitleOff': 'Zwei-Faktor-Authentifizierung inaktiv',
+  'accountPage.sec2faStatusDescOn':
+    'Ihr Konto ist geschützt. Jede Anmeldung erfordert einen Code aus Google Authenticator.',
+  'accountPage.sec2faStatusDescOff':
+    'Aktivieren Sie 2FA mit Google Authenticator, um Ihr Konto zu schützen.',
+  'accountPage.secActivateMfa': 'MFA aktivieren',
+  'accountPage.secDisableMfa': 'MFA deaktivieren',
+  'accountPage.sec2faLoading': 'Laden…',
+  'accountPage.sec2faVerifying': 'Prüfen…',
+  'accountPage.sec2faDisabling': 'Deaktivieren…',
+  'accountPage.sec2faEnableError': 'Fehler beim Aktivieren von MFA',
+  'accountPage.sec2faVerifyError': 'Ungültiger MFA-Code',
+  'accountPage.sec2faDisableError': 'Fehler beim Deaktivieren von MFA',
+  'accountPage.sec2faHowTitle': 'So richten Sie 2FA ein',
   'accountPage.sec2faStep1': 'Öffnen Sie die Authenticator-App auf Ihrem Gerät.',
   'accountPage.sec2faStep2': 'Fügen Sie ein Konto hinzu und wählen Sie „QR-Code scannen“.',
   'accountPage.sec2faStep3': 'Scannen Sie den QR-Code auf dieser Seite.',
   'accountPage.sec2faStep4': 'Geben Sie den 6-stelligen Code unter dem QR-Code ein.',
   'accountPage.sec2faStep5': 'Klicken Sie auf „Bestätigen“, um 2FA zu aktivieren.',
-  'accountPage.secDownloadAuthTitle': 'AUTHENTICATOR-APP HERUNTERLADEN',
+  'accountPage.secDownloadAuthTitle': 'Google Authenticator herunterladen',
   'accountPage.secDownloadAuthText':
-    'Laden Sie eine Authenticator-App herunter. Empfohlen: Authy oder Google Authenticator.',
+    'Installieren Sie Google Authenticator auf Ihrem Smartphone, bevor Sie 2FA aktivieren.',
   'accountPage.secDownloadGoogle': 'GOOGLE AUTHENTICATOR LADEN',
   'accountPage.secDownloadAuthy': 'AUTHY LADEN',
   'accountPage.secStoreGoogle': 'GOOGLE',
@@ -856,6 +873,15 @@ export const de: Record<MessageKey, string> = {
   'vendi.sets.customDesc': 'Los beschreiben und mit echten Fotos veröffentlichen.',
   'vendi.sets.createListing': 'Inserat erstellen',
 
+  'sellGuide.searchInHeader': 'Suche deine Karte in der oberen Leiste — das ist das einzige Suchfeld zum Verkauf.',
+  'sellGuide.focusSearch': 'Zur Suche',
+  'sellGuide.vendiTab': 'Hier legst du Menge, Sprache, Zustand und Preis deines Inserats fest.',
+  'sellGuide.details': 'Lege Preis und Zustand der Karte fest, die du verkaufst.',
+  'sellGuide.photos': 'Lade klare Fotos des echten Artikels hoch (auch per QR vom Handy).',
+  'sellGuide.publish': 'Prüfe die Angaben und veröffentliche dein Inserat.',
+  'sellGuide.next': 'Weiter',
+  'sellGuide.skip': 'Anleitung überspringen',
+
   'cart.title': 'Warenkorb',
   'cart.item': 'Artikel',
   'cart.empty': 'Ihr Warenkorb ist leer. Entdecken Sie Karten und fügen Sie sie hinzu.',
@@ -885,6 +911,37 @@ export const de: Record<MessageKey, string> = {
   'cart.sellersOne': '1 Verkäufer',
   'cart.orderSummary': 'Bestellübersicht',
   'cart.secureCheckout': 'Sicherer Checkout',
+  'cart.demoBanner':
+    'Demo-Simulation — kein echter Kauf, keine Karte wird vom Verkäufer entfernt.',
+
+  'mockCheckout.banner':
+    'Demo-Bereich — alle Marketplace-Käufe sind simuliert. Keine Belastung und keine Auswirkung auf das Verkäuferinventar.',
+  'mockCheckout.cartPreviewTitle': 'In Ihrem Warenkorb',
+  'mockCheckout.cartPreviewHint':
+    'Bestätigen Sie die Demo-Bestellung, um Artikel in die simulierte ausstehende Zahlung zu verschieben.',
+  'mockCheckout.confirmOrder': 'Demo-Bestellung bestätigen',
+  'mockCheckout.confirming': 'Bestätigung…',
+  'mockCheckout.editCart': 'Warenkorb bearbeiten',
+  'mockCheckout.paymentFormTitle': 'Zahlungssimulation',
+  'mockCheckout.demoDisclaimer':
+    'Dies ist eine Demo-Simulation: Es erfolgt keine echte Zahlung und keine Karte wird vom Verkäufer entfernt.',
+  'mockCheckout.demoOrderLabel': 'Demo-Bestellung',
+  'mockCheckout.statusPending': 'ZU BEZAHLEN',
+  'mockCheckout.statusPaid': 'BEZAHLT DEMO',
+  'mockCheckout.paidAt': 'Simulierte Zahlung am {date}',
+  'mockCheckout.checkboxLabel':
+    'Ich verstehe, dass dies eine Demo-Simulation ist und keine echte Zahlung erfolgt.',
+  'mockCheckout.successMessage': 'Zahlung erfolgreich simuliert!',
+  'mockCheckout.simulatePayment': 'Zahlung simulieren',
+  'mockCheckout.paying': 'Simulation…',
+  'mockCheckout.cancel': 'Abbrechen',
+  'mockCheckout.cardholder': 'Karteninhaber',
+  'mockCheckout.cardholderPlaceholder': 'Vor- Nachname',
+  'mockCheckout.cardNumber': 'Kartennummer',
+  'mockCheckout.expiry': 'Ablaufdatum',
+  'mockCheckout.ordersToPayTitle': 'Zu bezahlende Bestellungen',
+  'mockCheckout.checkoutRedirectHint':
+    'Demo-Bestellung erstellt. Fahren Sie unten mit der simulierten Zahlung fort.',
 
   'help.backHome': 'Zur Startseite',
   'help.title': 'Hilfe & FAQ',
@@ -900,6 +957,15 @@ export const de: Record<MessageKey, string> = {
   'help.shippingTitle': 'Versandmethoden',
   'help.shippingText':
     'Zeiten und Kosten hängen vom Verkäufer ab. In Italien meist 2–5 Werktage.',
+
+  'help.contactTitle': 'Ebartex kontaktieren',
+  'help.contactDesc': 'Schreiben Sie uns direkt per E-Mail für Support, Bestellungen oder allgemeine Fragen.',
+  'help.contactResponseTime': 'Unser Team antwortet innerhalb von 24–48 Werktagen (Mo–Fr, 9:00–18:00 CET).',
+  'help.contactEmailBtn': 'Per E-Mail schreiben',
+  'help.contactBeforeTitle': 'Bevor Sie schreiben',
+  'help.contactBefore1': 'Prüfen Sie die FAQ für schnelle Antworten',
+  'help.contactBefore2': 'Geben Sie immer Ihren Ebartex-Benutzernamen an',
+  'help.contactBefore3': 'Bei Bestellungen nennen Sie die Bestellnummer in der Nachricht',
 
   'contact.backHome': 'Zur Startseite',
   'contact.title': 'Kontakt',
@@ -1553,6 +1619,8 @@ export const de: Record<MessageKey, string> = {
   'searchUser.cardSafeDesc': 'Verifizierte Nutzer und verlässliche Bewertungen',
 
   'searchAdvanced.titlePrefix': 'Erweiterte Suche',
+  'searchAdvanced.comingSoonBadge': 'Demnächst',
+  'searchAdvanced.comingSoonHint': 'Filter-Vorschau — die erweiterte Suche startet in Kürze.',
   'searchAdvanced.titleAccent': 'Einzelkarten',
   'searchAdvanced.subtitle':
     'Finde präzise Einzelkarten mit detaillierten Filtern für Set, Seltenheit, Zustand und mehr.',

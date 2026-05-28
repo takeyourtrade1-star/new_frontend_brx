@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Gavel, ArrowLeftRight, Trophy, Zap } from 'lucide-react';
+import { TOURNAMENTS_PORTAL_URL, TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import {
   arrowNudge,
@@ -32,6 +33,7 @@ type SlideConfig = {
   cta: string;
   href: string;
   ariaLabel: string;
+  external?: boolean;
   accent: string;
   accentMuted: string;
   border: string;
@@ -83,7 +85,8 @@ const SLIDES: SlideConfig[] = [
     description:
       'Iscriviti ai tornei live, verifica la webcam e gioca round Swiss con tabellone live. Montepremi, classifiche e community attiva ogni settimana.',
     cta: 'Scopri i tornei',
-    href: '/tornei-live',
+    href: TOURNAMENTS_PORTAL_URL,
+    external: true,
     ariaLabel: 'Vai ai tornei live',
     accent: '#A78BFA',
     accentMuted: 'text-[#A78BFA]',
@@ -140,7 +143,15 @@ function FeatureSlide({ slide, direction, reduced }: FeatureSlideProps) {
       exit="exit"
       className="absolute inset-0 flex flex-col p-3.5 pb-4 sm:p-5 group/card"
     >
-      <Link href={slide.href} className="absolute inset-0 z-10 rounded-2xl" aria-label={slide.ariaLabel} />
+      {slide.external ? (
+        <a
+          {...TOURNAMENTS_PORTAL_LINK_PROPS}
+          className="absolute inset-0 z-10 rounded-2xl"
+          aria-label={slide.ariaLabel}
+        />
+      ) : (
+        <Link href={slide.href} className="absolute inset-0 z-10 rounded-2xl" aria-label={slide.ariaLabel} />
+      )}
 
       <motion.div
         className="pointer-events-none absolute -right-6 -top-6 opacity-[0.12]"

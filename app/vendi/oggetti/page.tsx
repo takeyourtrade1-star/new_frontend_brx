@@ -13,7 +13,9 @@ export default function VendiOggettiPage() {
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
       </Suspense>
-      <SellObjectsContent />
+      <Suspense fallback={<div className="min-h-screen bg-[#f5f5f5]" />}>
+        <SellObjectsContent />
+      </Suspense>
     </>
   );
 }

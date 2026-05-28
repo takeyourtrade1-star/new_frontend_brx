@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import { ListaDesideriContent } from '@/components/feature/account/ListaDesideriContent';
+import { MascotteLoader } from '@/components/dev/MascotteLoader';
 
 export const metadata = {
   title: 'Lista desideri | Account | Ebartex',
@@ -7,8 +9,8 @@ export const metadata = {
 
 export default function ListaDesideriPage() {
   return (
-    <div className="pointer-events-none opacity-60">
+    <Suspense fallback={<div className="flex justify-center p-8"><MascotteLoader size="sm" /></div>}>
       <ListaDesideriContent />
-    </div>
+    </Suspense>
   );
 }

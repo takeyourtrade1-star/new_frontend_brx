@@ -4,7 +4,9 @@ import { LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
-export const TOURNAMENTS_PORTAL_URL = 'https://tournaments.ebartex.com';
+import { TOURNAMENTS_PORTAL_URL } from '@/lib/config/tournaments';
+
+export { TOURNAMENTS_PORTAL_URL };
 
 const PORTAL_BTN_SHARED = cn(
   'btn-tournaments-portal flex items-center justify-center gap-2 font-bold uppercase tracking-wide',

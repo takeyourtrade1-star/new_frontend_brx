@@ -373,17 +373,34 @@ export const it: Record<MessageKey, string> = {
   'accountPage.statsPaymentDate': 'DATA PAGAMENTO',
 
   'accountPage.sec2faTitle': 'AUTENTICAZIONE A DUE FATTORI',
+  'accountPage.sec2faBadge': 'Protezione account',
   'accountPage.sec2faIntro':
-    'L’autenticazione a due fattori (2FA) aggiunge un ulteriore livello di sicurezza al tuo account. Oltre alla password, dovrai inserire un codice temporaneo generato da un’app sul tuo smartphone ogni volta che effettui l’accesso. Consigliamo l’uso di Authy o Google Authenticator.',
-  'accountPage.sec2faHowTitle': "COME SETTARE L'AUTENTICAZIONE A DUE FATTORI",
+    'L’autenticazione a due fattori (2FA) aggiunge un ulteriore livello di sicurezza al tuo account. Oltre alla password, dovrai inserire un codice temporaneo generato da Google Authenticator sul tuo smartphone.',
+  'accountPage.sec2faStatusOn': 'Attiva',
+  'accountPage.sec2faStatusOff': 'Non attiva',
+  'accountPage.sec2faStatusTitleOn': 'Autenticazione a due fattori attiva',
+  'accountPage.sec2faStatusTitleOff': 'Autenticazione a due fattori non attiva',
+  'accountPage.sec2faStatusDescOn':
+    'Il tuo account è protetto. Ogni accesso richiederà un codice da Google Authenticator.',
+  'accountPage.sec2faStatusDescOff':
+    'Attiva 2FA con Google Authenticator per proteggere il tuo account.',
+  'accountPage.secActivateMfa': 'Attiva MFA',
+  'accountPage.secDisableMfa': 'Disattiva MFA',
+  'accountPage.sec2faLoading': 'Caricamento…',
+  'accountPage.sec2faVerifying': 'Verifica…',
+  'accountPage.sec2faDisabling': 'Disattivazione…',
+  'accountPage.sec2faEnableError': 'Errore durante l’attivazione MFA',
+  'accountPage.sec2faVerifyError': 'Codice MFA non valido',
+  'accountPage.sec2faDisableError': 'Errore durante la disattivazione MFA',
+  'accountPage.sec2faHowTitle': "Come configurare l'autenticazione a due fattori",
   'accountPage.sec2faStep1': 'Apri l’app Authenticator sul tuo dispositivo.',
   'accountPage.sec2faStep2': 'Aggiungi un account e seleziona "Scansiona codice QR".',
   'accountPage.sec2faStep3': 'Inquadra il codice QR mostrato su questa pagina.',
   'accountPage.sec2faStep4': 'Inserisci il codice a 6 cifre generato dall’app nel campo sotto il QR.',
   'accountPage.sec2faStep5': 'Clicca "Conferma" per attivare l’autenticazione a due fattori.',
-  'accountPage.secDownloadAuthTitle': "SCARICA L'APP AUTHENTICATOR",
+  'accountPage.secDownloadAuthTitle': 'Scarica Google Authenticator',
   'accountPage.secDownloadAuthText':
-    'Scarica un’app Authenticator sul tuo smartphone. Consigliamo Authy (disponibile per più dispositivi) oppure Google Authenticator.',
+    'Installa Google Authenticator sul tuo smartphone prima di attivare la 2FA.',
   'accountPage.secDownloadGoogle': 'SCARICA GOOGLE AUTHENTICATOR',
   'accountPage.secDownloadAuthy': 'SCARICA AUTHY',
   'accountPage.secStoreGoogle': 'GOOGLE',
@@ -856,6 +873,15 @@ export const it: Record<MessageKey, string> = {
   'vendi.sets.customDesc': 'Descrivi il contenuto del lotto (numero carte, edizione, condizione media) e pubblica con foto reali.',
   'vendi.sets.createListing': 'Crea inserzione',
 
+  'sellGuide.searchInHeader': 'Cerca la carta nella barra in alto: è l’unico campo di ricerca per metterla in vendita.',
+  'sellGuide.focusSearch': 'Vai alla ricerca',
+  'sellGuide.vendiTab': 'Qui compili quantità, lingua, condizione e prezzo della tua inserzione.',
+  'sellGuide.details': 'Imposta prezzo e condizione della carta che stai vendendo.',
+  'sellGuide.photos': 'Carica foto nitide dell’oggetto reale (anche dal telefono con il QR).',
+  'sellGuide.publish': 'Controlla i dati e pubblica l’inserzione sul marketplace.',
+  'sellGuide.next': 'Avanti',
+  'sellGuide.skip': 'Salta guida',
+
   'cart.title': 'Carrello',
   'cart.item': 'articolo',
   'cart.empty': 'Il tuo carrello è vuoto. Scopri le carte e aggiungile per iniziare.',
@@ -885,6 +911,37 @@ export const it: Record<MessageKey, string> = {
   'cart.sellersOne': '1 venditore',
   'cart.orderSummary': 'Riepilogo ordine',
   'cart.secureCheckout': 'Checkout sicuro',
+  'cart.demoBanner':
+    'Simulazione demo — nessun acquisto reale, nessuna carta verrà tolta al venditore.',
+
+  'mockCheckout.banner':
+    'Area demo — tutti gli acquisti marketplace sono simulati. Nessun addebito e nessun impatto sull\'inventario dei venditori.',
+  'mockCheckout.cartPreviewTitle': 'Nel tuo carrello',
+  'mockCheckout.cartPreviewHint':
+    'Conferma l\'ordine demo per spostare gli articoli in attesa di pagamento simulato.',
+  'mockCheckout.confirmOrder': 'Conferma ordine demo',
+  'mockCheckout.confirming': 'Conferma in corso…',
+  'mockCheckout.editCart': 'Modifica carrello',
+  'mockCheckout.paymentFormTitle': 'Simulazione pagamento',
+  'mockCheckout.demoDisclaimer':
+    'Questa è una simulazione demo: nessun pagamento reale verrà effettuato e nessuna carta verrà tolta al venditore.',
+  'mockCheckout.demoOrderLabel': 'Ordine demo',
+  'mockCheckout.statusPending': 'DA PAGARE',
+  'mockCheckout.statusPaid': 'PAGATO DEMO',
+  'mockCheckout.paidAt': 'Pagamento simulato il {date}',
+  'mockCheckout.checkboxLabel':
+    'Ho capito che si tratta di una simulazione demo e che non verrà effettuato alcun pagamento reale.',
+  'mockCheckout.successMessage': 'Pagamento simulato con successo!',
+  'mockCheckout.simulatePayment': 'Simula pagamento',
+  'mockCheckout.paying': 'Simulazione…',
+  'mockCheckout.cancel': 'Annulla',
+  'mockCheckout.cardholder': 'Titolare carta',
+  'mockCheckout.cardholderPlaceholder': 'Nome Cognome',
+  'mockCheckout.cardNumber': 'Numero carta',
+  'mockCheckout.expiry': 'Scadenza',
+  'mockCheckout.ordersToPayTitle': 'Ordini da pagare',
+  'mockCheckout.checkoutRedirectHint':
+    'Ordine demo creato. Procedi al pagamento simulato qui sotto.',
 
   'help.backHome': 'Torna alla home',
   'help.title': 'Aiuto e FAQ',
@@ -900,6 +957,15 @@ export const it: Record<MessageKey, string> = {
   'help.shippingTitle': 'Metodi di spedizione',
   'help.shippingText':
     "I tempi e i costi dipendono dal venditore. In genere la spedizione avviene in 2–5 giorni lavorativi per l'Italia.",
+
+  'help.contactTitle': 'Contatta Ebartex',
+  'help.contactDesc': 'Scrivici direttamente via email per assistenza, ordini o informazioni generali.',
+  'help.contactResponseTime': 'Il nostro team risponde entro 24–48 ore lavorative (Lun–Ven, 9:00–18:00 CET).',
+  'help.contactEmailBtn': 'Scrivici via email',
+  'help.contactBeforeTitle': 'Prima di scrivere',
+  'help.contactBefore1': 'Controlla le FAQ per risposte immediate',
+  'help.contactBefore2': 'Includi sempre il tuo username Ebartex',
+  'help.contactBefore3': "Per ordini, indica il numero d'ordine nel messaggio",
 
   'contact.backHome': 'Torna alla home',
   'contact.title': 'Contattaci',
@@ -1560,6 +1626,8 @@ export const it: Record<MessageKey, string> = {
   'searchUser.cardSafeDesc': 'Utenti verificati e recensioni affidabili',
 
   'searchAdvanced.titlePrefix': 'Ricerca Avanzata',
+  'searchAdvanced.comingSoonBadge': 'Presto in arrivo',
+  'searchAdvanced.comingSoonHint': 'Anteprima dei filtri — la ricerca avanzata sarà attiva a breve.',
   'searchAdvanced.titleAccent': 'Singole',
   'searchAdvanced.subtitle':
     'Trova carte singole precise con filtri dettagliati per espansione, rarità, condizione e altro.',

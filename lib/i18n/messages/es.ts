@@ -373,17 +373,34 @@ export const es: Record<MessageKey, string> = {
   'accountPage.statsPaymentDate': 'FECHA DE PAGO',
 
   'accountPage.sec2faTitle': 'AUTENTICACIÓN EN DOS PASOS',
+  'accountPage.sec2faBadge': 'Protección de cuenta',
   'accountPage.sec2faIntro':
-    'La autenticación en dos pasos (2FA) añade una capa extra de seguridad. Además de la contraseña, introducirás un código temporal de una app en tu móvil cada vez que inicies sesión. Recomendamos Authy o Google Authenticator.',
-  'accountPage.sec2faHowTitle': 'CÓMO CONFIGURAR LA AUTENTICACIÓN EN DOS PASOS',
+    'La autenticación en dos pasos (2FA) añade una capa extra de seguridad. Además de la contraseña, introducirás un código temporal de Google Authenticator en tu móvil.',
+  'accountPage.sec2faStatusOn': 'Activa',
+  'accountPage.sec2faStatusOff': 'Inactiva',
+  'accountPage.sec2faStatusTitleOn': 'Autenticación en dos pasos activa',
+  'accountPage.sec2faStatusTitleOff': 'Autenticación en dos pasos inactiva',
+  'accountPage.sec2faStatusDescOn':
+    'Tu cuenta está protegida. Cada inicio de sesión requerirá un código de Google Authenticator.',
+  'accountPage.sec2faStatusDescOff':
+    'Activa la 2FA con Google Authenticator para proteger tu cuenta.',
+  'accountPage.secActivateMfa': 'Activar MFA',
+  'accountPage.secDisableMfa': 'Desactivar MFA',
+  'accountPage.sec2faLoading': 'Cargando…',
+  'accountPage.sec2faVerifying': 'Verificando…',
+  'accountPage.sec2faDisabling': 'Desactivando…',
+  'accountPage.sec2faEnableError': 'Error al activar MFA',
+  'accountPage.sec2faVerifyError': 'Código MFA no válido',
+  'accountPage.sec2faDisableError': 'Error al desactivar MFA',
+  'accountPage.sec2faHowTitle': 'Cómo configurar la autenticación en dos pasos',
   'accountPage.sec2faStep1': 'Abre la app Authenticator en tu dispositivo.',
   'accountPage.sec2faStep2': 'Añade una cuenta y selecciona “Escanear código QR”.',
   'accountPage.sec2faStep3': 'Escanea el código QR mostrado en esta página.',
   'accountPage.sec2faStep4': 'Introduce el código de 6 dígitos en el campo bajo el QR.',
   'accountPage.sec2faStep5': 'Pulsa “Confirmar” para activar la autenticación en dos pasos.',
-  'accountPage.secDownloadAuthTitle': 'DESCARGA LA APP AUTHENTICATOR',
+  'accountPage.secDownloadAuthTitle': 'Descargar Google Authenticator',
   'accountPage.secDownloadAuthText':
-    'Descarga una app Authenticator en tu móvil. Recomendamos Authy (varios dispositivos) o Google Authenticator.',
+    'Instala Google Authenticator en tu móvil antes de activar la 2FA.',
   'accountPage.secDownloadGoogle': 'DESCARGAR GOOGLE AUTHENTICATOR',
   'accountPage.secDownloadAuthy': 'DESCARGAR AUTHY',
   'accountPage.secStoreGoogle': 'GOOGLE',
@@ -856,6 +873,15 @@ export const es: Record<MessageKey, string> = {
   'vendi.sets.customDesc': 'Describe el lote y publícalo con fotos reales.',
   'vendi.sets.createListing': 'Crear anuncio',
 
+  'sellGuide.searchInHeader': 'Busca tu carta en la barra superior: es el único campo de búsqueda para ponerla a la venta.',
+  'sellGuide.focusSearch': 'Ir a la búsqueda',
+  'sellGuide.vendiTab': 'Aquí indicas cantidad, idioma, condición y precio de tu anuncio.',
+  'sellGuide.details': 'Indica el precio y la condición de la carta que vendes.',
+  'sellGuide.photos': 'Sube fotos nítidas del objeto real (también desde el móvil con el QR).',
+  'sellGuide.publish': 'Revisa los datos y publica el anuncio en el marketplace.',
+  'sellGuide.next': 'Siguiente',
+  'sellGuide.skip': 'Saltar guía',
+
   'cart.title': 'Carrito',
   'cart.item': 'artículo',
   'cart.empty': 'Tu carrito está vacío. Descubre cartas y añádelas para empezar.',
@@ -885,6 +911,37 @@ export const es: Record<MessageKey, string> = {
   'cart.sellersOne': '1 vendedor',
   'cart.orderSummary': 'Resumen del pedido',
   'cart.secureCheckout': 'Checkout seguro',
+  'cart.demoBanner':
+    'Simulación demo — ninguna compra real, ninguna carta se retirará al vendedor.',
+
+  'mockCheckout.banner':
+    'Área demo — todas las compras del marketplace son simuladas. Sin cargos ni impacto en el inventario del vendedor.',
+  'mockCheckout.cartPreviewTitle': 'En tu carrito',
+  'mockCheckout.cartPreviewHint':
+    'Confirma el pedido demo para mover los artículos a pago pendiente simulado.',
+  'mockCheckout.confirmOrder': 'Confirmar pedido demo',
+  'mockCheckout.confirming': 'Confirmando…',
+  'mockCheckout.editCart': 'Editar carrito',
+  'mockCheckout.paymentFormTitle': 'Simulación de pago',
+  'mockCheckout.demoDisclaimer':
+    'Esta es una simulación demo: no se realizará ningún pago real y ninguna carta se retirará al vendedor.',
+  'mockCheckout.demoOrderLabel': 'Pedido demo',
+  'mockCheckout.statusPending': 'POR PAGAR',
+  'mockCheckout.statusPaid': 'PAGADO DEMO',
+  'mockCheckout.paidAt': 'Pago simulado el {date}',
+  'mockCheckout.checkboxLabel':
+    'Entiendo que se trata de una simulación demo y que no se realizará ningún pago real.',
+  'mockCheckout.successMessage': '¡Pago simulado con éxito!',
+  'mockCheckout.simulatePayment': 'Simular pago',
+  'mockCheckout.paying': 'Simulando…',
+  'mockCheckout.cancel': 'Cancelar',
+  'mockCheckout.cardholder': 'Titular de la tarjeta',
+  'mockCheckout.cardholderPlaceholder': 'Nombre Apellido',
+  'mockCheckout.cardNumber': 'Número de tarjeta',
+  'mockCheckout.expiry': 'Caducidad',
+  'mockCheckout.ordersToPayTitle': 'Pedidos por pagar',
+  'mockCheckout.checkoutRedirectHint':
+    'Pedido demo creado. Procede con el pago simulado a continuación.',
 
   'help.backHome': 'Volver al inicio',
   'help.title': 'Ayuda y FAQ',
@@ -900,6 +957,15 @@ export const es: Record<MessageKey, string> = {
   'help.shippingTitle': 'Métodos de envío',
   'help.shippingText':
     'Plazos y costes dependen del vendedor. En Italia suele ser 2–5 días laborables.',
+
+  'help.contactTitle': 'Contactar con Ebartex',
+  'help.contactDesc': 'Escríbenos directamente por email para asistencia, pedidos o información general.',
+  'help.contactResponseTime': 'Nuestro equipo responde en 24–48 horas laborables (lun.–vie., 9:00–18:00 CET).',
+  'help.contactEmailBtn': 'Escríbenos por email',
+  'help.contactBeforeTitle': 'Antes de escribir',
+  'help.contactBefore1': 'Consulta las FAQ para respuestas inmediatas',
+  'help.contactBefore2': 'Incluye siempre tu nombre de usuario Ebartex',
+  'help.contactBefore3': 'Para pedidos, indica el número de pedido en el mensaje',
 
   'contact.backHome': 'Volver al inicio',
   'contact.title': 'Contáctanos',
@@ -1553,6 +1619,8 @@ export const es: Record<MessageKey, string> = {
   'searchUser.cardSafeDesc': 'Usuarios verificados y reseñas fiables',
 
   'searchAdvanced.titlePrefix': 'Búsqueda Avanzada',
+  'searchAdvanced.comingSoonBadge': 'Próximamente',
+  'searchAdvanced.comingSoonHint': 'Vista previa de filtros — la búsqueda avanzada estará activa pronto.',
   'searchAdvanced.titleAccent': 'Cartas sueltas',
   'searchAdvanced.subtitle':
     'Encuentra cartas sueltas con filtros detallados de expansión, rareza, condición y más.',

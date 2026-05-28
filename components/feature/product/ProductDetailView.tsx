@@ -3,6 +3,7 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import {
   Loader2,
@@ -39,10 +40,10 @@ import {
   MarketplaceApiError,
   cancelListing,
   getPublicListingsByBlueprint,
-  purchaseListing as purchaseMarketplaceListing,
   updateListing,
 } from '@/lib/api/marketplace-client';
 import { buildCartLineFromListingItem } from '@/lib/marketplace/cart-line';
+import { useMockPurchaseStore } from '@/lib/stores/mock-purchase-store';
 import {
   isMarketplaceListingItem,
   listingRowKey,
@@ -103,6 +104,9 @@ import {
   type SellerTypeFilter,
 } from '@/lib/product-detail/marketplace-rows';
 import { ConditionBadge, type ConditionCode } from '@/components/ui/ConditionBadge';
+import { shouldOpenVendiTab } from '@/lib/sell-flow/sell-flow';
+import { HeaderSearchHint } from '@/components/feature/sell-guide/HeaderSearchHint';
+import { useSellGuide } from '@/components/feature/sell-guide/SellGuideProvider';
 
 // PERF: lazy-load heavy tab panels to keep product page initial bundle smaller.
 const AuctionCreateWizard = dynamic(
@@ -202,6 +206,7 @@ function ProductDetailIconTabBar({
             aria-selected={isActive}
             aria-label={tab.label}
             onClick={() => onTabChange(tab.id)}
+            {...(tab.id === 'VENDI' ? { 'data-sell-guide': 'vendi-tab' } : {})}
             className={cn(
               'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-colors',
               compact ? 'px-0.5 py-2' : 'px-1 py-2 sm:py-2.5',
@@ -530,8 +535,13 @@ function ReprintListRow({
 
 export function ProductDetailView(props: ProductDetailViewProps) {
   const { card } = props;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabUserOverride = useRef(false);
+  const { complete: completeSellGuide } = useSellGuide();
   const { selectedLang } = useLanguage();
   const { t } = useTranslation();
+  const createFromCartLines = useMockPurchaseStore((s) => s.createFromCartLines);
   const displayNames = card ? getCardDisplayNames(card, selectedLang) : null;
 
   const slug = props.slug ?? card?.id ?? '';
@@ -562,6 +572,18 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   }));
   const imageSrc = props.imageSrc ?? (card?.image != null ? getCardImageUrl(card.image) : null) ?? getCdnImageUrl('kyurem.png');
   const [activeTab, setActiveTab] = useState<ProductDetailTabId>('INFO');
+
+  const handleTabChange = useCallback((id: ProductDetailTabId) => {
+    tabUserOverride.current = true;
+    setActiveTab(id);
+  }, []);
+
+  useEffect(() => {
+    if (tabUserOverride.current) return;
+    if (shouldOpenVendiTab(searchParams)) {
+      setActiveTab('VENDI');
+    }
+  }, [searchParams]);
   const [mobileReprintsOpen, setMobileReprintsOpen] = useState(false);
   const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'SCAMBI' | 'ASTE' | 'TCG_EXPRESS'>('VENDITORI');
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -1074,42 +1096,33 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setPurchaseSubmitting(true);
     setListingActionMessage(null);
     try {
-      if (isMarketplaceListingItem(purchaseListing) && purchaseListing.marketplace_listing_id) {
-        await purchaseMarketplaceListing({
-          listing_id: purchaseListing.marketplace_listing_id,
-          quantity: safeQty,
-          idempotency_key: crypto.randomUUID(),
-        });
-        setPurchaseListing(null);
-        setListingActionMessage('Acquisto marketplace completato.');
-        await refreshListings();
-      } else {
-        const res = await syncClient.purchaseInventoryItem(
-          purchaseListing.seller_id,
-          purchaseListing.item_id,
-          { quantity: safeQty },
-          accessToken,
-        );
-        if (res.status === 'success') {
-          setPurchaseListing(null);
-          setListingActionMessage('Acquisto completato.');
-          await refreshListings();
-        } else {
-          setListingActionMessage(res.message || res.error || 'Acquisto non completato');
-        }
-      }
+      const cartLine = buildCartLineFromListingItem(purchaseListing, safeQty, {
+        title: card?.name ?? purchaseListing.seller_display_name ?? title,
+        imageUrl: imageSrc ?? '',
+        blueprintId: card?.cardtrader_id,
+      });
+      createFromCartLines([cartLine], 'buy_now', { cardId: card?.id });
+      setPurchaseListing(null);
+      router.push('/ordini/acquisti?tab=da-pagare');
     } catch (e) {
-      const msg =
-        e instanceof MarketplaceApiError
-          ? e.detail
-          : e instanceof Error
-            ? e.message
-            : 'Errore durante l’acquisto';
+      const msg = e instanceof Error ? e.message : 'Errore durante l\'acquisto demo';
       setListingActionMessage(msg);
     } finally {
       setPurchaseSubmitting(false);
     }
-  }, [purchaseListing, purchaseQty, user?.id, accessToken, refreshListings]);
+  }, [
+    purchaseListing,
+    purchaseQty,
+    user?.id,
+    accessToken,
+    card?.name,
+    card?.id,
+    card?.cardtrader_id,
+    title,
+    imageSrc,
+    createFromCartLines,
+    router,
+  ]);
 
   /* Quando l'utente loggato ha un paese, usa quello; altrimenti usa la geolocalizzazione. */
   useEffect(() => {
@@ -1243,6 +1256,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const averageSalePriceValue = effectiveTrendStats.averageSalePrice;
   const trendRangeLabel = effectiveTrendStats.rangeLabel;
   const handleSellSinglePublished = useCallback(async () => {
+    completeSellGuide();
     setListingActionMessage('Inserzione pubblicata con successo.');
     setSellerSubTab('VENDITORI');
     await refreshListings();
@@ -1251,7 +1265,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         .getElementById('pd-market-panel-VENDITORI')
         ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
-  }, [refreshListings]);
+  }, [refreshListings, completeSellGuide]);
 
   // Mock multiple images for swipe demo (front/back of card)
   const cardImages = useMemo(() => {
@@ -1495,7 +1509,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           >
             {/* MOBILE: tab, slot hero (immagine o azione), info compatte, ristampe collassabili */}
             <div className="flex w-full flex-col sm:hidden">
-              <ProductDetailIconTabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} compact />
+              <ProductDetailIconTabBar tabs={tabs} activeTab={activeTab} onTabChange={handleTabChange} compact />
               <div
                 className={cn(
                   'bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60',
@@ -1553,8 +1567,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   />
                 )}
                 {activeTab === 'VENDI' && !card && (
-                  <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl bg-white p-4 text-center text-xs text-zinc-400">
-                    Seleziona un prodotto dal catalogo per vendere.
+                  <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl bg-white p-4">
+                    <HeaderSearchHint variant="compact" />
                   </div>
                 )}
 
@@ -1741,7 +1755,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               <ProductDetailIconTabBar
                 tabs={tabs}
                 activeTab={activeTab}
-                onTabChange={setActiveTab}
+                onTabChange={handleTabChange}
                 className="hidden sm:flex"
               />
 
@@ -2029,9 +2043,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             )}
             {activeTab === 'VENDI' && !card && (
               <div className="hidden flex-1 flex-col items-center justify-center p-6 min-w-0 w-full sm:flex">
-                <p className="text-xs text-zinc-400 text-center max-w-[260px] leading-relaxed">
-                  Seleziona un prodotto dal catalogo per vendere.
-                </p>
+                <HeaderSearchHint variant="compact" />
               </div>
             )}
 
@@ -2521,8 +2533,14 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         >
           <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-5 shadow-xl">
             <h2 id="pd-purchase-modal-title" className="mb-1 text-lg font-semibold text-gray-900">
-              Acquisto
+              {t('mockCheckout.confirmOrder')}
             </h2>
+            <div className="mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+              <span className="mr-1 inline-flex rounded-full bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">
+                DEMO
+              </span>
+              {t('mockCheckout.demoDisclaimer')}
+            </div>
             <p className="mb-4 text-sm text-gray-600">
               {card?.name ?? purchaseListing.seller_display_name}
             </p>
@@ -2551,10 +2569,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 type="button"
                 onClick={() => void handleConfirmPurchase()}
                 disabled={purchaseSubmitting}
-                className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="rounded bg-[#FF7300] px-4 py-2 text-sm font-medium text-white hover:bg-[#e56500] disabled:opacity-50"
               >
                 {purchaseSubmitting ? <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> : null}
-                Conferma
+                {t('mockCheckout.confirmOrder')}
               </button>
             </div>
           </div>

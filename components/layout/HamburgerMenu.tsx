@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, Trophy, ArrowLeftRight, QrCode } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, ArrowLeftRight, QrCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme-context';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -73,7 +73,6 @@ export function HamburgerMenu() {
       { label: t('nav.cameraMatch') ?? 'CameraMatch', href: '/scanner', icon: ScanLine, badge: 'beta' as const },
       { label: t('nav.advancedSinglesSearch') ?? 'Ricerca avanzata singole', href: '/search/advanced', icon: Search, badge: undefined },
       { label: t('nav.userSearch'), href: '/search/user', icon: Users, badge: undefined },
-      { label: 'Tornei Live', href: '/tornei-live', icon: Trophy, badge: undefined },
     ],
     [t]
   );

@@ -1,13 +1,17 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { isSellFlow } from '@/lib/sell-flow/sell-flow';
 import { VENDI_OBJECT_CATEGORIES } from '@/lib/vendi/vendi-object-categories';
 import { ListingMethodCard } from './ListingMethodCard';
 import { VendiPageShell, vendiBaseBreadcrumbItems } from './VendiPageShell';
 
 export function SellObjectsContent() {
   const { t } = useTranslation();
-  const breadcrumbItems = vendiBaseBreadcrumbItems(t, t('vendi.category.products'));
+  const searchParams = useSearchParams();
+  const sellFlow = isSellFlow(searchParams);
+  const breadcrumbItems = vendiBaseBreadcrumbItems(t, t('vendi.category.products'), { sellFlow });
 
   return (
     <VendiPageShell

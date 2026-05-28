@@ -8,6 +8,8 @@ import { startProactiveRefresh } from '@/lib/api/refresh-token';
 import { GameProvider, GameFromRouteSync } from '@/lib/contexts/GameContext';
 import { LanguageProvider } from '@/lib/contexts/LanguageContext';
 import { HtmlLangSync } from '@/components/HtmlLangSync';
+import { Suspense } from 'react';
+import { SellGuideProvider } from '@/components/feature/sell-guide/SellGuideProvider';
 
 // Error Boundary for Auth-related errors
 class AuthErrorBoundary extends React.Component<
@@ -89,7 +91,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <HtmlLangSync />
             <GameProvider>
               <GameFromRouteSync />
-              {children}
+              <Suspense fallback={children}>
+                <SellGuideProvider>{children}</SellGuideProvider>
+              </Suspense>
             </GameProvider>
           </LanguageProvider>
         </AuthInitializer>

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { AcquistiContent } from '@/components/feature/acquisti/AcquistiContent';
 
 export const metadata = {
@@ -6,5 +7,15 @@ export const metadata = {
 };
 
 export default function AcquistiPage() {
-  return <AcquistiContent />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#F5F4F0]">
+          <span className="sr-only">Caricamento…</span>
+        </div>
+      }
+    >
+      <AcquistiContent />
+    </Suspense>
+  );
 }

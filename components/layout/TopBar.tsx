@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeftRight, ChevronDown, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
 import { HamburgerMenu } from './HamburgerMenu';
 import { TournamentsPortalLink } from './TournamentsPortalButton';
+import { TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 import { CartDropdown } from './CartDropdown';
 import { NotificationBell } from '@/components/feature/notifiche/NotificationBell';
 import { Button } from '@/components/ui/button';
@@ -738,13 +739,13 @@ export function TopBar() {
                           {t('nav.auctions')}
                         </Link>
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                        <Link
-                          href="/tornei-live"
+                        <a
+                          {...TOURNAMENTS_PORTAL_LINK_PROPS}
                           className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
                           onClick={() => setVendiMenuOpen(false)}
                         >
                           Tornei live
-                        </Link>
+                        </a>
                         <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
                         <Link
                           href="/brx-express"

@@ -4,12 +4,12 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
-import { ChevronLeft, ChevronDown, Mail, MessageSquare, HelpCircle, Package, CreditCard, ShieldCheck, Truck, Camera, ImageIcon, X, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Mail, HelpCircle, Package, CreditCard, ShieldCheck, Truck } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import html2canvas from 'html2canvas';
+
+const SUPPORT_EMAIL = 'supporto@ebartex.com';
 
 interface FAQItemProps {
   question: string;
@@ -43,157 +43,19 @@ function FAQItem({ question, answer, isOpen, onToggle }: FAQItemProps) {
   );
 }
 
-interface ConsoleLog {
-  type: 'log' | 'error' | 'warn';
-  message: string;
-  timestamp: number;
-}
-
-// Storage keys (must match BugReportButton.tsx)
-const BUG_REPORT_STORAGE = {
-  SCREENSHOT: 'brx_bug_screenshot',
-  CONSOLE_LOGS: 'brx_bug_console_logs',
-  CATEGORY: 'brx_bug_category',
-  TIMESTAMP: 'brx_bug_timestamp',
-};
-
-// Category mapping
-const CATEGORY_MAP: Record<string, string> = {
-  account: 'account',
-  search: 'functional',
-  payment: 'payment',
-  auction: 'functional',
-  orders: 'functional',
-  selling: 'functional',
-  messaging: 'functional',
-  games: 'functional',
-  functional: 'functional',
-};
-
-interface FormData {
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  bugType?: string;
-  priority?: string;
-  url?: string;
-}
-
-// Componente interno che usa useSearchParams
 function AiutoContentInner() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   const [openFAQ, setOpenFAQ] = useState<number | null>(0);
-  const [activeTab, setActiveTab] = useState<'faq' | 'bug' | 'contact'>('faq');
-  const [screenshot, setScreenshot] = useState<string | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [consoleLogs, setConsoleLogs] = useState<ConsoleLog[]>([]);
-  const [showLogs, setShowLogs] = useState(false);
-  
-  const urlFromParams = searchParams.get('url') || '';
-  const categoryFromParams = searchParams.get('category') || '';
-  
-  // Load stored data from localStorage on mount
-  useEffect(() => {
-    const isBugTab = searchParams.get('tab') === 'bug';
-    if (!isBugTab) return;
-    
-    try {
-      // Check timestamp - only load if recent (within 2 minutes)
-      const timestamp = localStorage.getItem(BUG_REPORT_STORAGE.TIMESTAMP);
-      if (timestamp) {
-        const age = Date.now() - parseInt(timestamp, 10);
-        if (age > 2 * 60 * 1000) { // 2 minutes
-          // Clear old data
-          localStorage.removeItem(BUG_REPORT_STORAGE.SCREENSHOT);
-          localStorage.removeItem(BUG_REPORT_STORAGE.CONSOLE_LOGS);
-          localStorage.removeItem(BUG_REPORT_STORAGE.CATEGORY);
-          localStorage.removeItem(BUG_REPORT_STORAGE.TIMESTAMP);
-          return;
-        }
-      }
-      
-      // Load screenshot
-      const storedScreenshot = localStorage.getItem(BUG_REPORT_STORAGE.SCREENSHOT);
-      if (storedScreenshot) {
-        setScreenshot(storedScreenshot);
-      }
-      
-      // Load console logs
-      const storedLogs = localStorage.getItem(BUG_REPORT_STORAGE.CONSOLE_LOGS);
-      if (storedLogs) {
-        const logs = JSON.parse(storedLogs) as ConsoleLog[];
-        setConsoleLogs(logs);
-      }
-    } catch (e) {
-      console.error('Failed to load bug report data:', e);
-    }
-  }, [searchParams]);
-  
-  const [bugForm, setBugForm] = useState<FormData>({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
-    bugType: categoryFromParams ? (CATEGORY_MAP[categoryFromParams] || 'functional') : 'functional',
-    priority: 'medium',
-    url: urlFromParams,
-  });
-  const [contactForm, setContactForm] = useState<FormData>({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
-  });
-  const [submitStatus, setSubmitStatus] = useState<{
-    type: 'success' | 'error' | null;
-    message: string;
-  }>({ type: null, message: '' });
+  const [activeTab, setActiveTab] = useState<'faq' | 'contact'>('faq');
 
-  // Apri automaticamente la tab bug se il query param è presente
+  // Apri automaticamente la tab contatti se il query param è presente
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'bug') {
-      setActiveTab('bug');
+    if (tab === 'contact') {
+      setActiveTab('contact');
     }
   }, [searchParams]);
-
-  // Clear localStorage after successful submit
-  const clearStoredBugData = () => {
-    localStorage.removeItem(BUG_REPORT_STORAGE.SCREENSHOT);
-    localStorage.removeItem(BUG_REPORT_STORAGE.CONSOLE_LOGS);
-    localStorage.removeItem(BUG_REPORT_STORAGE.CATEGORY);
-    localStorage.removeItem(BUG_REPORT_STORAGE.TIMESTAMP);
-  };
-
-  const captureScreenshot = async () => {
-    if (isCapturing) return;
-    setIsCapturing(true);
-    
-    try {
-      const canvas = await html2canvas(document.body, {
-        useCORS: true,
-        allowTaint: true,
-        scrollY: -window.scrollY,
-        windowHeight: document.documentElement.scrollHeight,
-        height: document.documentElement.scrollHeight,
-        backgroundColor: null,
-        scale: window.devicePixelRatio > 1 ? 1 : 1,
-      });
-      
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-      setScreenshot(dataUrl);
-    } catch (err) {
-      console.error('Screenshot failed:', err);
-    } finally {
-      setIsCapturing(false);
-    }
-  };
-
-  const removeScreenshot = () => {
-    setScreenshot(null);
-  };
 
   const faqs = [
     {
@@ -222,48 +84,6 @@ function AiutoContentInner() {
       answer: 'Certo! Registra un account business, sincronizza il tuo inventario con i maggiori marketplace o carica manualmente le tue carte. Puoi gestire prezzi, disponibilità e spedizioni dal pannello venditore.',
     },
   ];
-
-  const handleBugSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Include console logs in submission
-    const submissionData = {
-      ...bugForm,
-      screenshot,
-      consoleLogs: consoleLogs.length > 0 ? consoleLogs : undefined,
-    };
-    
-    console.log('Bug report submitted:', submissionData);
-    
-    setSubmitStatus({
-      type: 'success',
-      message: 'Grazie! La segnalazione è stata inviata. Il nostro team la esaminerà al più presto.',
-    });
-    
-    clearStoredBugData();
-    setScreenshot(null);
-    setConsoleLogs([]);
-    
-    setBugForm({
-      name: '',
-      email: '',
-      subject: '',
-      message: '',
-      bugType: 'functional',
-      priority: 'medium',
-    });
-    setTimeout(() => setSubmitStatus({ type: null, message: '' }), 5000);
-  };
-
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitStatus({
-      type: 'success',
-      message: 'Messaggio inviato con successo! Ti risponderemo entro 24-48 ore lavorative.',
-    });
-    setContactForm({ name: '', email: '', subject: '', message: '' });
-    setTimeout(() => setSubmitStatus({ type: null, message: '' }), 5000);
-  };
 
   return (
     <div className="min-h-screen font-sans text-white" style={{ backgroundColor: '#3D65C6' }}>
@@ -313,18 +133,6 @@ function AiutoContentInner() {
             Contattaci
           </button>
         </div>
-
-        {submitStatus.type && (
-          <div
-            className={`mb-6 rounded-lg p-4 text-center text-sm ${
-              submitStatus.type === 'success'
-                ? 'bg-green-500/20 text-green-100 border border-green-500/30'
-                : 'bg-red-500/20 text-red-100 border border-red-500/30'
-            }`}
-          >
-            {submitStatus.message}
-          </div>
-        )}
 
         {activeTab === 'faq' && (
           <div className="space-y-6">
@@ -396,137 +204,59 @@ function AiutoContentInner() {
         )}
 
         {activeTab === 'contact' && (
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <Card className="border-white/20 bg-white/10 backdrop-blur-sm">
-                <CardHeader className="border-b border-white/20">
-                  <CardTitle className="flex items-center gap-2 text-xl text-white">
-                    <Mail className="h-5 w-5 text-primary" />
-                    Contatta Ebartex
-                  </CardTitle>
-                  <CardDescription className="text-white/70">
-                    Scrivici per domande commerciali, partnership o assistenza generale
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <form onSubmit={handleContactSubmit} className="space-y-5">
-                    <div className="grid gap-5 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-white">Nome completo</label>
-                        <Input
-                          type="text"
-                          required
-                          value={contactForm.name}
-                          onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                          placeholder="Mario Rossi"
-                          className="border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:border-primary focus:ring-primary"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-white">Email</label>
-                        <Input
-                          type="email"
-                          required
-                          value={contactForm.email}
-                          onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                          placeholder="tua@email.com"
-                          className="border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:border-primary focus:ring-primary"
-                        />
-                      </div>
-                    </div>
+          <div className="mx-auto max-w-xl space-y-6">
+            <Card className="border-white/20 bg-white/10 backdrop-blur-sm">
+              <CardHeader className="border-b border-white/20 text-center">
+                <CardTitle className="flex items-center justify-center gap-2 text-xl text-white">
+                  <Mail className="h-5 w-5 text-primary" />
+                  {t('help.contactTitle')}
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  {t('help.contactDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center gap-6 py-10 text-center">
+                <p className="max-w-md text-sm text-white/80">{t('help.contactResponseTime')}</p>
+                <Button
+                  asChild
+                  size="lg"
+                  className="bg-primary px-8 font-medium text-white hover:bg-primary/90"
+                >
+                  <a href={`mailto:${SUPPORT_EMAIL}`}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    {t('help.contactEmailBtn')}
+                  </a>
+                </Button>
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                  className="text-sm text-white/70 transition-colors hover:text-primary"
+                >
+                  {SUPPORT_EMAIL}
+                </a>
+              </CardContent>
+            </Card>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-white">Motivo del contatto</label>
-                      <select
-                        value={contactForm.subject}
-                        onChange={(e) => setContactForm({ ...contactForm, subject: e.target.value })}
-                        className="flex h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                      >
-                        <option value="" className="bg-[#3D65C6]">Seleziona un motivo...</option>
-                        <option value="general" className="bg-[#3D65C6]">Informazioni generali</option>
-                        <option value="business" className="bg-[#3D65C6]">Proposta commerciale / Partnership</option>
-                        <option value="vendor" className="bg-[#3D65C6]">Diventa venditore</option>
-                        <option value="account" className="bg-[#3D65C6]">Problemi account</option>
-                        <option value="order" className="bg-[#3D65C6]">Domanda su un ordine</option>
-                        <option value="other" className="bg-[#3D65C6]">Altro</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-white">Messaggio</label>
-                      <textarea
-                        required
-                        rows={5}
-                        value={contactForm.message}
-                        onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                        placeholder="Scrivi il tuo messaggio qui..."
-                        className="flex w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none"
-                      />
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
-                    >
-                      <Mail className="mr-2 h-4 w-4" />
-                      Invia messaggio
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-4">
-              <Card className="border-white/20 bg-white/10 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-lg text-white">Informazioni</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm text-white/80">
-                  <div>
-                    <p className="font-medium text-white">Email supporto</p>
-                    <a href="mailto:supporto@ebartex.com" className="hover:text-primary transition-colors">
-                      supporto@ebartex.com
-                    </a>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">Email commerciale</p>
-                    <a href="mailto:business@ebartex.com" className="hover:text-primary transition-colors">
-                      business@ebartex.com
-                    </a>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">Orari supporto</p>
-                    <p>Lun-Ven: 9:00 - 18:00 CET</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-white/20 bg-white/10 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-lg text-white">Prima di scrivere</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm text-white/80">
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      Controlla le FAQ per risposte immediate
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      Per bug tecnici, usa il form &quot;Segnala Bug&quot;
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      Includi sempre il tuo username
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      Per ordini, allega il numero d&apos;ordine
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="border-white/20 bg-white/10 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-lg text-white">{t('help.contactBeforeTitle')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-white/80">
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">•</span>
+                    {t('help.contactBefore1')}
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">•</span>
+                    {t('help.contactBefore2')}
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">•</span>
+                    {t('help.contactBefore3')}
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
           </div>
         )}
       </main>

@@ -88,6 +88,15 @@ const nextConfig = {
     ];
   },
   // Rewrites: proxy verso servizi esterni (stesso origin per il browser, niente CORS)
+  async redirects() {
+    return [
+      {
+        source: '/tornei-live',
+        destination: 'https://tournaments.ebartex.com',
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     const searchApiUrl = process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL || 'http://localhost:8000';
     const syncApiUrl = (process.env.SYNC_API_URL || process.env.NEXT_PUBLIC_SYNC_API_URL || process.env.VITE_SYNC_API_URL || 'https://sync.ebartex.com').replace(/\/+$/, '');

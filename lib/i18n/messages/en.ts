@@ -370,17 +370,34 @@ export const en = {
   'accountPage.statsPaymentDate': 'Payment date',
 
   'accountPage.sec2faTitle': 'Two-factor authentication',
+  'accountPage.sec2faBadge': 'Account protection',
   'accountPage.sec2faIntro':
-    'Two-factor authentication (2FA) adds an extra layer of security. Besides your password, you will enter a temporary code from an app on your phone each time you sign in. We recommend Authy or Google Authenticator.',
+    'Two-factor authentication (2FA) adds an extra layer of security. Besides your password, you will enter a temporary code from Google Authenticator on your phone.',
+  'accountPage.sec2faStatusOn': 'Active',
+  'accountPage.sec2faStatusOff': 'Inactive',
+  'accountPage.sec2faStatusTitleOn': 'Two-factor authentication enabled',
+  'accountPage.sec2faStatusTitleOff': 'Two-factor authentication disabled',
+  'accountPage.sec2faStatusDescOn':
+    'Your account is protected. Each sign-in will require a code from Google Authenticator.',
+  'accountPage.sec2faStatusDescOff':
+    'Enable 2FA with Google Authenticator to protect your account.',
+  'accountPage.secActivateMfa': 'Enable MFA',
+  'accountPage.secDisableMfa': 'Disable MFA',
+  'accountPage.sec2faLoading': 'Loading…',
+  'accountPage.sec2faVerifying': 'Verifying…',
+  'accountPage.sec2faDisabling': 'Disabling…',
+  'accountPage.sec2faEnableError': 'Error enabling MFA',
+  'accountPage.sec2faVerifyError': 'Invalid MFA code',
+  'accountPage.sec2faDisableError': 'Error disabling MFA',
   'accountPage.sec2faHowTitle': 'How to set up two-factor authentication',
   'accountPage.sec2faStep1': 'Open the Authenticator app on your device.',
   'accountPage.sec2faStep2': 'Add an account and select “Scan QR code”.',
   'accountPage.sec2faStep3': 'Scan the QR code shown on this page.',
   'accountPage.sec2faStep4': 'Enter the 6-digit code from the app in the field below the QR.',
   'accountPage.sec2faStep5': 'Click “Confirm” to enable two-factor authentication.',
-  'accountPage.secDownloadAuthTitle': 'Download the Authenticator app',
+  'accountPage.secDownloadAuthTitle': 'Download Google Authenticator',
   'accountPage.secDownloadAuthText':
-    'Download an Authenticator app on your phone. We recommend Authy (multi-device) or Google Authenticator.',
+    'Install Google Authenticator on your phone before enabling 2FA.',
   'accountPage.secDownloadGoogle': 'Download Google Authenticator',
   'accountPage.secDownloadAuthy': 'Download Authy',
   'accountPage.secStoreGoogle': 'Google',
@@ -853,6 +870,15 @@ export const en = {
   'vendi.sets.customDesc': 'Describe the lot contents (card count, edition, average condition) and publish with real photos.',
   'vendi.sets.createListing': 'Create listing',
 
+  'sellGuide.searchInHeader': 'Search for your card in the bar at the top — it’s the only search field for listing it for sale.',
+  'sellGuide.focusSearch': 'Go to search',
+  'sellGuide.vendiTab': 'Here you set quantity, language, condition, and price for your listing.',
+  'sellGuide.details': 'Set the price and condition of the card you are selling.',
+  'sellGuide.photos': 'Upload clear photos of the actual item (from your phone via QR too).',
+  'sellGuide.publish': 'Review the details and publish your listing on the marketplace.',
+  'sellGuide.next': 'Next',
+  'sellGuide.skip': 'Skip guide',
+
   'cart.title': 'Cart',
   'cart.item': 'item',
   'cart.empty': 'Your cart is empty. Discover cards and add them to start shopping.',
@@ -882,6 +908,37 @@ export const en = {
   'cart.sellersOne': '1 seller',
   'cart.orderSummary': 'Order summary',
   'cart.secureCheckout': 'Secure checkout',
+  'cart.demoBanner':
+    'Demo simulation — no real purchase, no cards will be removed from the seller.',
+
+  'mockCheckout.banner':
+    'Demo area — all marketplace purchases are simulated. No charges and no impact on seller inventory.',
+  'mockCheckout.cartPreviewTitle': 'In your cart',
+  'mockCheckout.cartPreviewHint':
+    'Confirm the demo order to move items to simulated pending payment.',
+  'mockCheckout.confirmOrder': 'Confirm demo order',
+  'mockCheckout.confirming': 'Confirming…',
+  'mockCheckout.editCart': 'Edit cart',
+  'mockCheckout.paymentFormTitle': 'Payment simulation',
+  'mockCheckout.demoDisclaimer':
+    'This is a demo simulation: no real payment will be made and no cards will be removed from the seller.',
+  'mockCheckout.demoOrderLabel': 'Demo order',
+  'mockCheckout.statusPending': 'TO PAY',
+  'mockCheckout.statusPaid': 'PAID DEMO',
+  'mockCheckout.paidAt': 'Simulated payment on {date}',
+  'mockCheckout.checkboxLabel':
+    'I understand this is a demo simulation and no real payment will be made.',
+  'mockCheckout.successMessage': 'Payment simulated successfully!',
+  'mockCheckout.simulatePayment': 'Simulate payment',
+  'mockCheckout.paying': 'Simulating…',
+  'mockCheckout.cancel': 'Cancel',
+  'mockCheckout.cardholder': 'Cardholder name',
+  'mockCheckout.cardholderPlaceholder': 'First Last',
+  'mockCheckout.cardNumber': 'Card number',
+  'mockCheckout.expiry': 'Expiry',
+  'mockCheckout.ordersToPayTitle': 'Orders to pay',
+  'mockCheckout.checkoutRedirectHint':
+    'Demo order created. Proceed with simulated payment below.',
 
   'help.backHome': 'Back to home',
   'help.title': 'Help & FAQ',
@@ -897,6 +954,15 @@ export const en = {
   'help.shippingTitle': 'Shipping methods',
   'help.shippingText':
     'Times and costs depend on the seller. Shipping is usually 2–5 business days within Italy.',
+
+  'help.contactTitle': 'Contact Ebartex',
+  'help.contactDesc': 'Email us directly for support, orders, or general enquiries.',
+  'help.contactResponseTime': 'Our team replies within 24–48 business hours (Mon–Fri, 9:00 AM–6:00 PM CET).',
+  'help.contactEmailBtn': 'Email us',
+  'help.contactBeforeTitle': 'Before you write',
+  'help.contactBefore1': 'Check the FAQ for instant answers',
+  'help.contactBefore2': 'Always include your Ebartex username',
+  'help.contactBefore3': 'For orders, include your order number in the message',
 
   'contact.backHome': 'Back to home',
   'contact.title': 'Contact us',
@@ -1554,6 +1620,8 @@ export const en = {
   'searchUser.cardSafeDesc': 'Verified users and reliable reviews',
 
   'searchAdvanced.titlePrefix': 'Advanced Search',
+  'searchAdvanced.comingSoonBadge': 'Coming soon',
+  'searchAdvanced.comingSoonHint': 'Filter preview — advanced search goes live shortly.',
   'searchAdvanced.titleAccent': 'Singles',
   'searchAdvanced.subtitle':
     'Find precise single cards with detailed filters for set, rarity, condition, and more.',

@@ -8,6 +8,6 @@ export const FEATURES = {
    *  Se false, la tab diventa TORNEI LIVE e il link diventa BRX Express. */
   scambiEnabled: true,
 
-  /** Se true, mostra la route /scambi. Se false, reindirizza a /tornei-live. */
+  /** Se true, mostra la route /scambi. Se false, reindirizza al portale tornei esterno. */
   scambiRouteEnabled: false,
 } as const;

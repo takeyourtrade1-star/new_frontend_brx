@@ -1,16 +1,15 @@
 'use client';
 
 import { Suspense, useMemo, useState, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/lib/stores/cart-store';
+import { useMockPurchaseStore } from '@/lib/stores/mock-purchase-store';
 import { Header } from '@/components/layout/Header';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useGame } from '@/lib/contexts/GameContext';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { syncClient } from '@/lib/api/sync-client';
-import { purchaseListing, MarketplaceApiError } from '@/lib/api/marketplace-client';
 import { LOCALE_TO_INTL } from '@/lib/i18n/locales';
 import type { UiLocale } from '@/lib/i18n/locales';
-import type { MarketplaceCartLine } from '@/types';
 import { groupCartItemsBySeller } from '@/lib/marketplace/cart-groups';
 import { useCartSellerProfiles } from '@/components/feature/cart/use-cart-seller-profiles';
 import { CartSellerGroupCard } from '@/components/feature/cart/CartSellerGroup';
@@ -21,12 +20,14 @@ import { CartStickyCheckout } from '@/components/feature/cart/CartStickyCheckout
 type CheckoutLineError = { lineId: string; title: string; message: string };
 
 export default function CartPage() {
+  const router = useRouter();
   const { t, locale } = useTranslation();
   const items = useCartStore((s) => s.items);
   const removeItem = useCartStore((s) => s.removeItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const clearCart = useCartStore((s) => s.clearCart);
   const getTotal = useCartStore((s) => s.getTotal);
+  const createFromCartLines = useMockPurchaseStore((s) => s.createFromCartLines);
   const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore((s) => s.accessToken);
   const [checkoutErrors, setCheckoutErrors] = useState<CheckoutLineError[]>([]);
@@ -59,30 +60,6 @@ export default function CartPage() {
     }
   };
 
-  const purchaseLine = useCallback(
-    async (line: MarketplaceCartLine, token: string): Promise<void> => {
-      if (line.source === 'sync') {
-        const res = await syncClient.purchaseInventoryItem(
-          line.sellerId,
-          Number(line.listingId),
-          { quantity: line.quantity },
-          token,
-        );
-        if (res.status !== 'success') {
-          throw new Error(res.message || res.error || 'Acquisto non completato');
-        }
-        return;
-      }
-
-      await purchaseListing({
-        listing_id: String(line.listingId),
-        quantity: line.quantity,
-        idempotency_key: crypto.randomUUID(),
-      });
-    },
-    [],
-  );
-
   const handleCheckout = useCallback(async () => {
     if (!user?.id || !accessToken) {
       setCheckoutErrors([
@@ -91,32 +68,18 @@ export default function CartPage() {
       return;
     }
 
+    if (items.length === 0) return;
+
     setCheckoutSubmitting(true);
     setCheckoutErrors([]);
-    const errors: CheckoutLineError[] = [];
-    const succeeded: string[] = [];
 
-    for (const line of items) {
-      try {
-        await purchaseLine(line, accessToken);
-        succeeded.push(line.lineId);
-      } catch (e) {
-        const message =
-          e instanceof MarketplaceApiError
-            ? e.detail
-            : e instanceof Error
-              ? e.message
-              : 'Errore durante l\'acquisto';
-        errors.push({ lineId: line.lineId, title: line.title, message });
-      }
-    }
+    const lineIds = items.map((line) => line.lineId);
+    createFromCartLines(items, 'cart');
+    lineIds.forEach((lineId) => removeItem(lineId));
 
-    if (succeeded.length > 0) {
-      succeeded.forEach((lineId) => removeItem(lineId));
-    }
-    setCheckoutErrors(errors);
     setCheckoutSubmitting(false);
-  }, [user?.id, accessToken, items, purchaseLine, removeItem, t]);
+    router.push('/ordini/acquisti?tab=da-pagare');
+  }, [user?.id, accessToken, items, createFromCartLines, removeItem, router, t]);
 
   const continueHref = getGameHomeLink();
 
@@ -143,6 +106,18 @@ export default function CartPage() {
             </p>
           )}
         </header>
+
+        {itemCount > 0 && (
+          <div
+            className="mb-6 rounded-2xl border border-blue-200 bg-blue-50/90 px-4 py-3 text-sm text-blue-900 sm:px-5"
+            role="note"
+          >
+            <span className="mr-2 inline-flex rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+              DEMO
+            </span>
+            {t('cart.demoBanner')}
+          </div>
+        )}
 
         {itemCount === 0 ? (
           <CartEmptyState continueShoppingHref={continueHref} />

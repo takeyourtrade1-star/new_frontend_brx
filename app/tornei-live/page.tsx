@@ -1,33 +1,7 @@
-import { Suspense } from 'react';
-import { Header } from '@/components/layout/Header';
-import { TorneiLiveLandingPage } from '@/components/feature/tornei-live/TorneiLiveLandingPage';
-import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
+import { TOURNAMENTS_PORTAL_URL } from '@/lib/config/tournaments';
 
-export const metadata: Metadata = {
-  title: 'BRX Express | Il Futuro del Trading Card Game',
-  description:
-    'L\'ecosistema phygital definitivo per il trading card game: tornei live, logistica decentralizzata e soluzioni innovative per la community.',
-  openGraph: {
-    title: 'BRX Express | Il Futuro del Trading Card Game',
-    description:
-      'L\'ecosistema phygital definitivo per il trading card game: tornei live, logistica decentralizzata e soluzioni innovative per la community.',
-  },
-};
-
+/** /tornei-live → piattaforma tornei esterna (fallback se il redirect in next.config non applica). */
 export default function TorneiLivePage() {
-  return (
-    <>
-      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
-        <Header />
-      </Suspense>
-      <main className="relative min-h-screen overflow-x-hidden bg-[#f6f8fb]">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_6%_8%,rgba(16,185,129,0.08),transparent_32%),radial-gradient(circle_at_88%_12%,rgba(59,130,246,0.12),transparent_34%)]" />
-        <div className="relative z-10">
-          <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f6f8fb]">Caricamento...</div>}>
-            <TorneiLiveLandingPage />
-          </Suspense>
-        </div>
-      </main>
-    </>
-  );
+  redirect(TOURNAMENTS_PORTAL_URL);
 }

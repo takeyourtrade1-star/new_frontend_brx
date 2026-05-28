@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Filter, X, ChevronDown, Package } from 'lucide-react';
+import { Search, Filter, X, ChevronDown, Package, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
@@ -145,6 +145,13 @@ export default function AdvancedSearchPage() {
       <div className="container-content py-6 lg:py-10">
         {/* Header pagina */}
         <div className="mb-8 text-center lg:mb-10">
+          <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/55 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm ring-1 ring-black/[0.04] backdrop-blur-md">
+              <Sparkles className="h-3 w-3 text-[#FF7300]" aria-hidden />
+              {t('searchAdvanced.comingSoonBadge')}
+            </span>
+            <span className="text-xs text-gray-500">{t('searchAdvanced.comingSoonHint')}</span>
+          </div>
           <h1 className="text-2xl font-bold text-[#1D3160] lg:text-4xl">
             {t('searchAdvanced.titlePrefix')} <span className="text-[#FF7300]">{t('searchAdvanced.titleAccent')}</span>
           </h1>

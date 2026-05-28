@@ -33,6 +33,7 @@ import {
   getCategoryLabel,
   CATEGORY_KEY_ORDER,
 } from '@/lib/search/category-mapping';
+import { getProductDetailHref, isSellFlow, withSellFlow } from '@/lib/sell-flow/sell-flow';
 
 type HighlightValue = { value: string; matchLevel: string };
 type HighlightResult = Record<string, HighlightValue | HighlightValue[]>;
@@ -908,6 +909,20 @@ function getCardSlugForUrl(hit: CardSearchHit): string {
   return generateSlug(hit.name ?? '');
 }
 
+function productDetailPath(slug: string, sellFlowActive: boolean): string {
+  return sellFlowActive ? getProductDetailHref(slug, { sellFlow: true }) : `/products/${slug}`;
+}
+
+function searchResultsPath(
+  q: string,
+  game?: GameSlug | null,
+  categoryKey?: CategoryKey | null,
+  sellFlowActive = false,
+): string {
+  const url = buildSearchUrl(q, game, categoryKey);
+  return sellFlowActive ? withSellFlow(url) : url;
+}
+
 function SearchResultsDropdown({
   gameSlug,
   onSelect,
@@ -924,6 +939,7 @@ function SearchResultsDropdown({
   energyLevel = 0,
   typingVelocity = 0,
   streak = 0,
+  sellFlowActive = false,
 }: {
   gameSlug: GameSlug;
   onSelect: () => void;
@@ -940,6 +956,7 @@ function SearchResultsDropdown({
   energyLevel?: number;
   typingVelocity?: number;
   streak?: number;
+  sellFlowActive?: boolean;
 }) {
   const router = useRouter();
   const { query, isSearchStalled } = useSearchBox();
@@ -1054,7 +1071,7 @@ function SearchResultsDropdown({
                 streak={streak}
                 onNavigate={() => {
                   const slug = getCardSlugForUrl(hit as unknown as CardSearchHit);
-                  router.push(`/products/${slug}`);
+                  router.push(productDetailPath(slug, sellFlowActive));
                   onSelect();
                 }}
                 onShowInlinePreview={showInlinePreview}
@@ -1069,7 +1086,7 @@ function SearchResultsDropdown({
               if (!q) return;
               const active = document.activeElement;
               if (active instanceof HTMLElement) active.blur();
-              router.push(buildSearchUrl(q, gameSlug, productCategory));
+              router.push(searchResultsPath(q, gameSlug, productCategory, sellFlowActive));
               onSelect();
             }}
             className="w-full py-4 text-center text-base font-medium text-[#0f172a] bg-[#F8F8F8] hover:bg-[#EEEEEE] transition-colors"
@@ -1902,6 +1919,7 @@ function SearchWithInstantSearch({
   const refineRef = useRef(refine);
   const searchParams = useSearchParams();
   const urlQueryParam = (searchParams.get('q') ?? '').trim();
+  const sellFlowActive = isSellFlow(searchParams);
   const [localValue, setLocalValue] = useState(query ?? '');
   const hasText = (localValue ?? '').trim().length > 0;
   const mappedGame = useMemo(() => normalizeGameSlug(selectedGame), [selectedGame]);
@@ -1996,7 +2014,7 @@ function SearchWithInstantSearch({
     refine(searchQuery);
     inputRef.current?.blur();
     closePanel();
-    router.push(buildSearchUrl(searchQuery, selectedGame, productCategory));
+    router.push(searchResultsPath(searchQuery, selectedGame, productCategory, sellFlowActive));
   };
 
   const handleClear = () => {
@@ -2099,6 +2117,7 @@ function SearchWithInstantSearch({
           energyLevel={energyLevel}
           typingVelocity={typingVelocity}
           streak={streak}
+          sellFlowActive={sellFlowActive}
         />
       ) : null}
     </SearchCompositePanel>
@@ -2127,6 +2146,7 @@ function SearchWithInstantSearch({
         energyLevel={energyLevel}
         typingVelocity={typingVelocity}
         streak={streak}
+        sellFlowActive={sellFlowActive}
       />
     ) : null
   ) : null;
@@ -2374,6 +2394,8 @@ export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOp
 
   return (
     <div
+      id="global-search"
+      data-sell-guide="search"
       className="flex w-full justify-center py-0 z-[99] font-sans h-full min-h-0"
       style={{
         overflow: 'visible',

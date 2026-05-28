@@ -78,12 +78,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
-      url: url('/tornei-live'),
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    },
-    {
       url: url('/vendi'),
       lastModified: new Date(),
       changeFrequency: 'weekly',

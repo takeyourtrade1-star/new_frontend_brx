@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Home, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
@@ -18,9 +19,18 @@ import {
   MarketplaceApiError,
   type OrderResponse,
 } from '@/lib/api/marketplace-client';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import {
+  useMockPurchaseStore,
+  type MockPurchaseOrder,
+} from '@/lib/stores/mock-purchase-store';
+import { useCartStore } from '@/lib/stores/cart-store';
 import { OrderCard } from './OrderCard';
 import { MarketplaceOrderCard } from './MarketplaceOrderCard';
 import { PaymentConfirmModal } from './PaymentConfirmModal';
+import { MockPurchaseOrderCard } from './MockPurchaseOrderCard';
+import { MockPaymentFormModal } from './MockPaymentFormModal';
+import { CartPreviewSection } from './CartPreviewSection';
 
 const TABS_LEFT = [
   { id: 'da-pagare', label: 'DA PAGARE' },
@@ -41,20 +51,11 @@ type TabId =
 
 const ALL_TABS = [...TABS_LEFT, ...TABS_RIGHT];
 
-/**
- * Mapping tab -> backend statuses.
- *
- * Each tab is a different "view" of the same orders endpoint with a status
- * filter; the UI never invents statuses, it just shows the slice the user
- * cares about.
- */
 const STATUSES_BY_TAB: Record<TabId, OrderStatus[] | undefined> = {
   'da-pagare': ORDER_STATUSES_TO_PAY,
   pagato: ['PAID'],
   inviato: ['SHIPPED'],
   ricevuto: ['DELIVERED'],
-  // "Acquisti asta" surfaces every successful (paid) order; for slice 1 the
-  // marketplace is auction-only so this is just an alias for "pagato + dopo".
   'acquisti-asta': ORDER_STATUSES_PAID,
   marketplace: undefined,
   cancellato: ORDER_STATUSES_CANCELLED,
@@ -74,12 +75,48 @@ function getTabLabel(tabId: TabId): string {
   return ALL_TABS.find((t) => t.id === tabId)?.label ?? tabId;
 }
 
+function isValidTabId(value: string | null): value is TabId {
+  return ALL_TABS.some((t) => t.id === value);
+}
+
 export function AcquistiContent() {
+  const { t } = useTranslation();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+
   const [activeTab, setActiveTab] = useState<TabId>('da-pagare');
   const [orderToPay, setOrderToPay] = useState<OrderAPI | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [mockOrderToPay, setMockOrderToPay] = useState<MockPurchaseOrder | null>(null);
+  const [mockPaying, setMockPaying] = useState(false);
+  const [showCheckoutHint, setShowCheckoutHint] = useState(false);
+  const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
+
+  const mockOrders = useMockPurchaseStore((s) => s.orders);
+  const markPaid = useMockPurchaseStore((s) => s.markPaid);
+  const cartItems = useCartStore((s) => s.items);
+
+  const mockPendingOrders = useMemo(
+    () => mockOrders.filter((o) => o.status === 'payment_pending'),
+    [mockOrders],
+  );
+  const mockPaidOrders = useMemo(
+    () => mockOrders.filter((o) => o.status === 'paid'),
+    [mockOrders],
+  );
+
+  useEffect(() => {
+    if (isValidTabId(tabParam)) {
+      setActiveTab(tabParam);
+    }
+    if (tabParam === 'da-pagare') {
+      setShowCheckoutHint(true);
+    }
+  }, [tabParam]);
 
   const isMarketplaceTab = activeTab === 'marketplace';
+  const isDaPagareTab = activeTab === 'da-pagare';
+  const isPagatoTab = activeTab === 'pagato';
   const statuses = STATUSES_BY_TAB[activeTab];
   const ordersQuery = useBuyerOrders(
     { statuses, limit: 50, offset: 0 },
@@ -122,6 +159,13 @@ export function AcquistiContent() {
   const activeLabel = getTabLabel(activeTab);
   const emptyMessage = EMPTY_MESSAGE_BY_TAB[activeTab];
 
+  const hasDaPagareContent =
+    isDaPagareTab &&
+    (cartItems.length > 0 || mockPendingOrders.length > 0 || orders.length > 0);
+
+  const hasPagatoContent =
+    isPagatoTab && (mockPaidOrders.length > 0 || orders.length > 0);
+
   const breadcrumbItems: AppBreadcrumbItem[] = useMemo(
     () => [
       {
@@ -150,6 +194,19 @@ export function AcquistiContent() {
     }
   };
 
+  const handleConfirmMockPayment = () => {
+    if (!mockOrderToPay) return;
+    setMockPaying(true);
+    markPaid(mockOrderToPay.id);
+    setMockOrderToPay(null);
+    setMockPaying(false);
+  };
+
+  const handlePreviewOrdersCreated = () => {
+    setPreviewRefreshKey((k) => k + 1);
+    setShowCheckoutHint(true);
+  };
+
   return (
     <div className="min-h-screen w-full font-sans" style={{ backgroundColor: '#F5F4F0' }}>
       <div className="container-content mx-auto py-8 md:py-10">
@@ -168,9 +225,25 @@ export function AcquistiContent() {
           </Link>
         </div>
 
-        <h1 className="mb-6 text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">
+        <h1 className="mb-4 text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">
           I MIEI ACQUISTI
         </h1>
+
+        <div
+          className="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900"
+          role="note"
+        >
+          <span className="mr-2 inline-flex rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+            DEMO
+          </span>
+          {t('mockCheckout.banner')}
+        </div>
+
+        {showCheckoutHint && isDaPagareTab && mockPendingOrders.length > 0 && (
+          <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+            {t('mockCheckout.checkoutRedirectHint')}
+          </div>
+        )}
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-b border-gray-200 pb-3">
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
@@ -249,12 +322,12 @@ export function AcquistiContent() {
               </p>
             </div>
           )
-        ) : ordersQuery.isLoading ? (
+        ) : ordersQuery.isLoading && !isDaPagareTab && !isPagatoTab ? (
           <div className="flex min-h-[280px] items-center justify-center border border-gray-200 bg-white">
             <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
             <span className="sr-only">Caricamento ordini…</span>
           </div>
-        ) : ordersQuery.isError ? (
+        ) : ordersQuery.isError && !isDaPagareTab && !isPagatoTab ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 border border-red-200 bg-red-50 px-6 py-12 text-center">
             <p className="text-sm font-semibold text-red-800">
               {ordersQuery.error instanceof Error
@@ -269,20 +342,111 @@ export function AcquistiContent() {
               Riprova
             </button>
           </div>
+        ) : isDaPagareTab ? (
+          !hasDaPagareContent && !ordersQuery.isLoading ? (
+            <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 border border-gray-200 bg-white px-6 py-12">
+              <p className="text-center text-base font-semibold uppercase tracking-wide text-gray-500">
+                {emptyMessage}
+              </p>
+              <Link
+                href="/home"
+                className="inline-flex items-center gap-1 text-sm font-medium text-[#FF7300] hover:underline"
+              >
+                Esplora il marketplace
+                <ChevronRight className="h-4 w-4" aria-hidden />
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <CartPreviewSection
+                key={previewRefreshKey}
+                onOrdersCreated={handlePreviewOrdersCreated}
+              />
+
+              {mockPendingOrders.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-gray-700">
+                    {t('mockCheckout.ordersToPayTitle')}
+                  </h2>
+                  {mockPendingOrders.map((order) => (
+                    <MockPurchaseOrderCard
+                      key={order.id}
+                      order={order}
+                      onPay={(o) => setMockOrderToPay(o)}
+                      paying={mockPaying && mockOrderToPay?.id === order.id}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {ordersQuery.isLoading ? (
+                <div className="flex min-h-[120px] items-center justify-center border border-gray-200 bg-white">
+                  <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
+                </div>
+              ) : orders.length > 0 ? (
+                <div className="space-y-4">
+                  {orders.map((order) => (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      perspective="buyer"
+                      onPay={(o) => {
+                        setPaymentError(null);
+                        setOrderToPay(o);
+                      }}
+                      paying={payMutation.isPending && orderToPay?.id === order.id}
+                    />
+                  ))}
+                </div>
+              ) : null}
+
+              {(mockPendingOrders.length > 0 || orders.length > 0) && (
+                <p className="text-center text-xs text-gray-500">
+                  {mockPendingOrders.length + orders.length} ordin
+                  {mockPendingOrders.length + orders.length === 1 ? 'e' : 'i'} da pagare
+                </p>
+              )}
+            </div>
+          )
+        ) : isPagatoTab ? (
+          !hasPagatoContent && ordersQuery.isLoading ? (
+            <div className="flex min-h-[280px] items-center justify-center border border-gray-200 bg-white">
+              <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
+            </div>
+          ) : !hasPagatoContent ? (
+            <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 border border-gray-200 bg-white px-6 py-12">
+              <p className="text-center text-base font-semibold uppercase tracking-wide text-gray-500">
+                {emptyMessage}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {mockPaidOrders.map((order) => (
+                <MockPurchaseOrderCard key={order.id} order={order} />
+              ))}
+              {ordersQuery.isLoading ? (
+                <div className="flex min-h-[120px] items-center justify-center border border-gray-200 bg-white">
+                  <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
+                </div>
+              ) : (
+                orders.map((order) => (
+                  <OrderCard key={order.id} order={order} perspective="buyer" />
+                ))
+              )}
+              <p className="text-center text-xs text-gray-500">
+                {mockPaidOrders.length + (ordersQuery.data?.total ?? orders.length)} ordin
+                {(mockPaidOrders.length + (ordersQuery.data?.total ?? orders.length)) === 1
+                  ? 'e'
+                  : 'i'}{' '}
+                pagati
+              </p>
+            </div>
+          )
         ) : orders.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 border border-gray-200 bg-white px-6 py-12">
             <p className="text-center text-base font-semibold uppercase tracking-wide text-gray-500">
               {emptyMessage}
             </p>
-            {activeTab === 'da-pagare' && (
-              <Link
-                href="/aste"
-                className="inline-flex items-center gap-1 text-sm font-medium text-[#FF7300] hover:underline"
-              >
-                Scopri le aste in corso
-                <ChevronRight className="h-4 w-4" aria-hidden />
-              </Link>
-            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -291,11 +455,6 @@ export function AcquistiContent() {
                 key={order.id}
                 order={order}
                 perspective="buyer"
-                onPay={(o) => {
-                  setPaymentError(null);
-                  setOrderToPay(o);
-                }}
-                paying={payMutation.isPending && orderToPay?.id === order.id}
               />
             ))}
             <p className="text-center text-xs text-gray-500">
@@ -316,6 +475,15 @@ export function AcquistiContent() {
           }
         }}
         onConfirm={handleConfirmPayment}
+      />
+
+      <MockPaymentFormModal
+        order={mockOrderToPay}
+        isPaying={mockPaying}
+        onClose={() => {
+          if (!mockPaying) setMockOrderToPay(null);
+        }}
+        onConfirm={handleConfirmMockPayment}
       />
     </div>
   );

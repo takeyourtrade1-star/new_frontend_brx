@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 export function DemoBanner() {
@@ -54,12 +55,12 @@ export function DemoBanner() {
               {isIT ? 'Aste' : 'Auctions'}
             </Link>
             <span className="text-[9px] sm:text-[10px] text-white/40">|</span>
-            <Link
-              href="/tornei-live"
+            <a
+              {...TOURNAMENTS_PORTAL_LINK_PROPS}
               className="rounded px-1.5 py-0.5 text-[9px] font-semibold text-white transition-colors hover:bg-white/20 sm:px-2 sm:text-xs whitespace-nowrap"
             >
               {isIT ? 'Tornei' : 'Tournaments'}
-            </Link>
+            </a>
             <span className="text-[9px] sm:text-[10px] text-white/40">|</span>
             <Link
               href="/scambi"

@@ -1,18 +1,17 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
+import { TOURNAMENTS_PORTAL_URL } from '@/lib/config/tournaments';
 
 export function ScambiGuard({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const scambiVisible = useScambiVisibility();
 
   useEffect(() => {
     if (!scambiVisible) {
-      router.replace('/tornei-live');
+      window.location.replace(TOURNAMENTS_PORTAL_URL);
     }
-  }, [scambiVisible, router]);
+  }, [scambiVisible]);
 
   if (!scambiVisible) {
     return null;

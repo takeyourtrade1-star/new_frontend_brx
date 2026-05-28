@@ -5,10 +5,25 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useCurrentUser, useEnableMFA, useVerifyMFASetup, useDisableMFA } from '@/lib/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Shield, ShieldCheck, ShieldOff, Copy, Check, ArrowLeft, Smartphone } from 'lucide-react';
+import {
+  Shield,
+  ShieldCheck,
+  ShieldOff,
+  Copy,
+  Check,
+  ArrowLeft,
+  Smartphone,
+  ExternalLink,
+  Sparkles,
+} from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { cn } from '@/lib/utils';
+
+const GOOGLE_AUTH_ANDROID =
+  'https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2';
+const GOOGLE_AUTH_IOS = 'https://apps.apple.com/app/google-authenticator/id388497605';
 
 const STEP_KEYS = [
   'accountPage.sec2faStep1',
@@ -18,7 +33,6 @@ const STEP_KEYS = [
   'accountPage.sec2faStep5',
 ] as const;
 
-// Schema validazione MFA code (6 cifre)
 const mfaCodeSchema = z.object({
   mfa_code: z
     .string()
@@ -29,39 +43,59 @@ const mfaCodeSchema = z.object({
 
 type MFACodeFormValues = z.infer<typeof mfaCodeSchema>;
 
-// Schema validazione password per disabilitare MFA
 const disableMFASchema = z.object({
   password: z.string().min(1, 'La password è obbligatoria'),
 });
 
 type DisableMFAFormValues = z.infer<typeof disableMFASchema>;
 
+function ErrorMessage({ message }: { message: string }) {
+  return (
+    <div className="rounded-xl border border-red-200/80 bg-red-50/90 px-4 py-3">
+      <p className="text-sm text-red-700">{message}</p>
+    </div>
+  );
+}
+
 function StatusCard({ isEnabled }: { isEnabled: boolean }) {
+  const { t } = useTranslation();
+
   return (
     <div
-      className={`border p-5 rounded-[20px] ${
-        isEnabled ? 'border-[#FF7300] bg-[#FF7300]/5' : 'border-gray-200 bg-white'
-      }`}
+      className={cn(
+        'overflow-hidden rounded-2xl border p-5 shadow-sm backdrop-blur-sm sm:p-6',
+        isEnabled
+          ? 'border-[#FF7300]/30 bg-gradient-to-br from-[#FF7300]/10 via-white to-white'
+          : 'border-gray-200/80 bg-white'
+      )}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-start gap-4">
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px]"
-          style={{ backgroundColor: isEnabled ? '#FF7300' : '#D1D5DB' }}
+          className={cn(
+            'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-sm',
+            isEnabled ? 'bg-gradient-to-br from-[#FF7300] to-[#FF8800]' : 'bg-gray-200'
+          )}
         >
           {isEnabled ? (
-            <ShieldCheck className="h-6 w-6 text-white" strokeWidth={2} />
+            <ShieldCheck className="h-7 w-7 text-white" strokeWidth={2} />
           ) : (
-            <ShieldOff className="h-6 w-6 text-white" strokeWidth={2} />
+            <ShieldOff className="h-7 w-7 text-gray-500" strokeWidth={2} />
           )}
         </div>
-        <div>
-          <h2 className="text-lg font-semibold text-[#1D1D1F]">
-            {isEnabled ? 'Autenticazione a due fattori attiva' : 'Autenticazione a due fattori non attiva'}
+        <div className="min-w-0 flex-1">
+          <p
+            className={cn(
+              'mb-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider',
+              isEnabled ? 'bg-[#FF7300]/15 text-[#FF7300]' : 'bg-gray-100 text-gray-500'
+            )}
+          >
+            {isEnabled ? t('accountPage.sec2faStatusOn') : t('accountPage.sec2faStatusOff')}
+          </p>
+          <h2 className="text-lg font-bold text-[#1D3160] sm:text-xl">
+            {isEnabled ? t('accountPage.sec2faStatusTitleOn') : t('accountPage.sec2faStatusTitleOff')}
           </h2>
-          <p className="mt-1 text-sm text-[#86868B]">
-            {isEnabled
-              ? 'Il tuo account è protetto con 2FA. Ogni accesso richiederà un codice dalla tua app di autenticazione.'
-              : 'Attiva 2FA per aggiungere un livello di sicurezza aggiuntivo al tuo account.'}
+          <p className="mt-1.5 text-sm leading-relaxed text-gray-600">
+            {isEnabled ? t('accountPage.sec2faStatusDescOn') : t('accountPage.sec2faStatusDescOff')}
           </p>
         </div>
       </div>
@@ -69,11 +103,56 @@ function StatusCard({ isEnabled }: { isEnabled: boolean }) {
   );
 }
 
-function ErrorMessage({ message }: { message: string }) {
+function GoogleAuthenticatorCard() {
+  const { t } = useTranslation();
+
   return (
-    <div className="border border-red-100 bg-red-50 p-4 rounded-[16px]">
-      <p className="text-sm text-red-700">{message}</p>
-    </div>
+    <section className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm sm:p-6">
+      <div className="mb-4 flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4285F4]/15 to-[#34A853]/10 ring-1 ring-[#4285F4]/20">
+          <Smartphone className="h-5 w-5 text-[#4285F4]" aria-hidden />
+        </div>
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-[#1D3160]">
+            {t('accountPage.secDownloadAuthTitle')}
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-gray-600">{t('accountPage.secDownloadAuthText')}</p>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-4">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <Shield className="h-6 w-6 text-[#FF7300]" aria-hidden />
+          </div>
+          <div>
+            <p className="font-semibold text-[#1D3160]">{t('account.securityGoogleAuth')}</p>
+            <p className="text-xs text-gray-500">{t('account.securityGoogleAuthDesc')}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <a
+            href={GOOGLE_AUTH_ANDROID}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-[#1D3160] transition-all hover:border-[#FF7300]/40 hover:shadow-md"
+          >
+            {t('accountPage.secStoreGoogle')}
+            <ExternalLink className="h-3.5 w-3.5 text-gray-400" aria-hidden />
+          </a>
+          <a
+            href={GOOGLE_AUTH_IOS}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-[#1D3160] transition-all hover:border-[#FF7300]/40 hover:shadow-md"
+          >
+            {t('accountPage.secStoreApple')}
+            <ExternalLink className="h-3.5 w-3.5 text-gray-400" aria-hidden />
+          </a>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -131,8 +210,11 @@ export function SicurezzaContent() {
     try {
       const data = await enableMFAMutation.mutateAsync();
       setSetupData(data);
-    } catch (err: any) {
-      const message = err?.response?.data?.detail || err?.message || "Errore durante l'attivazione MFA";
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { detail?: string } }; message?: string })?.response?.data?.detail ||
+        (err as Error)?.message ||
+        t('accountPage.sec2faEnableError');
       setSetupError(message);
     }
   };
@@ -143,8 +225,11 @@ export function SicurezzaContent() {
       await verifyMFAMutation.mutateAsync({ mfa_code: formData.mfa_code });
       setSetupData(null);
       resetVerify();
-    } catch (err: any) {
-      const message = err?.response?.data?.detail || err?.message || 'Codice MFA non valido';
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { detail?: string } }; message?: string })?.response?.data?.detail ||
+        (err as Error)?.message ||
+        t('accountPage.sec2faVerifyError');
       setVerifyError(message);
     }
   };
@@ -154,8 +239,11 @@ export function SicurezzaContent() {
     try {
       await disableMFAMutation.mutateAsync({ password: formData.password });
       resetDisable();
-    } catch (err: any) {
-      const message = err?.response?.data?.detail || err?.message || 'Errore durante la disattivazione MFA';
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { detail?: string } }; message?: string })?.response?.data?.detail ||
+        (err as Error)?.message ||
+        t('accountPage.sec2faDisableError');
       setDisableError(message);
     }
   };
@@ -177,285 +265,236 @@ export function SicurezzaContent() {
 
   if (isLoadingUser) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center py-16">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-gray-200 border-t-[#FF7300]" />
       </div>
     );
   }
 
   return (
-    <div className="w-full">
-      <div className="mx-auto w-full max-w-3xl">
-        <div className="mt-4 rounded-[24px] border border-black/5 bg-white px-4 py-6 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:px-8 sm:py-10">
-          <h1 className="mb-8 text-2xl font-bold text-[#1D1D1F]">
-            {t('sidebar.security')}
-          </h1>
+    <div className="mx-auto w-full max-w-2xl space-y-6">
+      {/* Header */}
+      <div>
+        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-[#FF7300]/20 bg-[#FF7300]/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#FF7300]">
+          <Sparkles className="h-3 w-3" aria-hidden />
+          {t('accountPage.sec2faBadge')}
+        </div>
+        <h1 className="text-2xl font-black uppercase tracking-tight text-[#1D3160] sm:text-3xl">
+          {t('sidebar.security')}
+        </h1>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-gray-600">{t('accountPage.sec2faIntro')}</p>
+      </div>
 
-          <StatusCard isEnabled={isMFAEnabled} />
+      <StatusCard isEnabled={isMFAEnabled} />
 
-          <hr className="my-8 border-t border-gray-200" />
+      {!isMFAEnabled ? (
+        <>
+          {!setupData && (
+            <div className="space-y-6">
+              <section className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm sm:p-6">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-[#1D3160]">
+                  {t('accountPage.sec2faHowTitle')}
+                </h2>
+                <ol className="space-y-3">
+                  {STEP_KEYS.map((key, index) => (
+                    <li key={key} className="flex gap-3 text-sm text-gray-700">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#1D3160]/8 text-xs font-bold text-[#1D3160]">
+                        {index + 1}
+                      </span>
+                      <span className="pt-0.5 leading-relaxed">{t(key)}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
 
-          {!isMFAEnabled ? (
-            <>
-              {!setupData && (
-                <>
-                  <section className="mb-8">
-                    <h2 className="mb-3 text-xl font-semibold text-[#1D1D1F]">
-                      {t('accountPage.sec2faTitle')}
-                    </h2>
-                    <p className="text-sm text-[#86868B]">{t('accountPage.sec2faIntro')}</p>
-                  </section>
+              <GoogleAuthenticatorCard />
 
-                  <section className="mb-8">
-                    <h2 className="mb-3 text-lg font-semibold text-[#1D1D1F]">
-                      {t('accountPage.sec2faHowTitle')}
-                    </h2>
-                    <ol className="list-decimal pl-5 space-y-2 text-sm text-[#86868B]">
-                      {STEP_KEYS.map((key) => (
-                        <li key={key}>{t(key)}</li>
-                      ))}
-                    </ol>
-                  </section>
+              {setupError && <ErrorMessage message={setupError} />}
 
-                  <section className="mb-8">
-                    <h2 className="mb-3 text-lg font-semibold text-[#1D1D1F]">
-                      {t('accountPage.secDownloadAuthTitle')}
-                    </h2>
-                    <p className="mb-4 text-sm text-[#86868B]">{t('accountPage.secDownloadAuthText')}</p>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <a
-                        href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-4 border border-gray-200 bg-white p-4 rounded-[16px] transition-all hover:border-[#FF7300] hover:shadow-sm"
+              <Button
+                onClick={handleEnableMFA}
+                disabled={enableMFAMutation.isPending}
+                className="h-12 w-full rounded-full bg-gradient-to-r from-[#FF7300] to-[#FF8800] text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-[#FF7300]/20 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {enableMFAMutation.isPending ? t('accountPage.sec2faLoading') : t('accountPage.secActivateMfa')}
+              </Button>
+            </div>
+          )}
+
+          {setupData && (
+            <section className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm sm:p-6">
+              <button
+                type="button"
+                onClick={cancelSetup}
+                className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-[#FF7300]"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {t('account.securityBack')}
+              </button>
+
+              <h2 className="mb-6 text-lg font-bold text-[#1D3160]">{t('account.securityConfigure')}</h2>
+
+              <div className="grid gap-8 md:grid-cols-[auto_1fr] md:items-start">
+                <div className="mx-auto rounded-2xl border border-gray-100 bg-gray-50/80 p-4 md:mx-0">
+                  <p className="mb-3 text-center text-xs font-bold uppercase tracking-wide text-gray-500">
+                    {t('accountPage.secScanQr')}
+                  </p>
+                  <div className="flex h-44 w-44 items-center justify-center rounded-xl border border-gray-200 bg-white p-2 shadow-inner">
+                    <img
+                      src={setupData.qr_code_url}
+                      alt="QR Code MFA"
+                      className="h-40 w-40 object-contain"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">
+                      {t('account.securityManualEntry')}
+                    </p>
+                    <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/80 p-3">
+                      <code className="flex-1 break-all font-mono text-sm text-[#1D3160]">{setupData.secret}</code>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={copySecret}
+                        className="h-9 w-9 shrink-0 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
                       >
-                        <div
-                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px]"
-                          style={{ backgroundColor: '#FF7300' }}
-                        >
-                          <Smartphone className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-[#1D1D1F]">{t('account.securityGoogleAuth')}</p>
-                          <p className="text-xs text-[#86868B]">{t('account.securityGoogleAuthDesc')}</p>
-                        </div>
-                      </a>
-                      <a
-                        href="https://apps.apple.com/app/google-authenticator/id388497605"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-4 border border-gray-200 bg-white p-4 rounded-[16px] transition-all hover:border-[#FF7300] hover:shadow-sm"
-                      >
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-gray-500">
-                          <Smartphone className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-[#1D1D1F]">{t('account.securityAuthy')}</p>
-                          <p className="text-xs text-[#86868B]">{t('account.securityAuthyDesc')}</p>
-                        </div>
-                      </a>
+                        {copiedSecret ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Copy className="h-4 w-4 text-gray-600" />
+                        )}
+                      </Button>
                     </div>
-                  </section>
-
-                  {setupError && <ErrorMessage message={setupError} />}
-
-                  <section className="mt-6">
-                    <Button
-                      onClick={handleEnableMFA}
-                      disabled={enableMFAMutation.isPending}
-                      className="btn-orange-glow h-12 w-full rounded-[16px] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {enableMFAMutation.isPending ? 'Caricamento...' : 'Attiva MFA'}
-                    </Button>
-                  </section>
-                </>
-              )}
-
-              {setupData && (
-                <section className="space-y-8">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={cancelSetup}
-                      className="inline-flex items-center gap-2 text-[#007AFF] hover:opacity-80"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                      Indietro
-                    </button>
+                    {copiedSecret && (
+                      <p className="mt-1.5 text-xs text-green-600">{t('account.securityCopied')}</p>
+                    )}
                   </div>
 
                   <div>
-                    <h2 className="mb-2 text-xl font-semibold text-[#1D1D1F]">
-                      Configura autenticatore
-                    </h2>
+                    <p className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500">
+                      {t('accountPage.secEnterCode')}
+                    </p>
+
+                    {verifyError && <div className="mb-3"><ErrorMessage message={verifyError} /></div>}
+
+                    <form onSubmit={handleSubmitVerify(onSubmitVerify)} className="space-y-4">
+                      <input type="hidden" {...registerVerify('mfa_code')} />
+
+                      <div className="flex items-center justify-between gap-2 sm:gap-3">
+                        {verifyDigits.map((digit, idx) => {
+                          const filled = digit.trim().length > 0;
+                          return (
+                            <input
+                              key={idx}
+                              ref={(el) => {
+                                otpRefs.current[idx] = el;
+                              }}
+                              value={filled ? digit : ''}
+                              inputMode="numeric"
+                              aria-label={`MFA digit ${idx + 1}`}
+                              disabled={verifyMFAMutation.isPending}
+                              className="h-11 w-11 rounded-xl border border-gray-200 bg-gray-50 text-center text-xl font-semibold text-[#1D3160] transition focus:border-[#FF7300]/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FF7300]/30 sm:h-12 sm:w-12"
+                              onChange={(e) => {
+                                const nextDigit = e.target.value.replace(/\D/g, '').slice(-1);
+                                if (!nextDigit) {
+                                  const arr = verifyDigits.map((d, i) => (i === idx ? ' ' : d));
+                                  const next = arr.map((d) => d.trim()).join('');
+                                  setVerifyValue('mfa_code', next.slice(0, 6));
+                                  return;
+                                }
+
+                                const arr = verifyDigits.map((d, i) => {
+                                  if (i === idx) return nextDigit;
+                                  return d.trim() ? d.trim() : ' ';
+                                });
+                                const next = arr.map((d) => d.trim()).join('');
+                                setVerifyValue('mfa_code', next.slice(0, 6), { shouldValidate: true });
+                                if (idx < 5) otpRefs.current[idx + 1]?.focus();
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Backspace') {
+                                  const current = verifyDigits[idx]?.trim();
+                                  if (!current && idx > 0) otpRefs.current[idx - 1]?.focus();
+                                }
+                              }}
+                              onPaste={(e) => {
+                                const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                                if (!pasted) return;
+                                setVerifyValue('mfa_code', pasted, { shouldValidate: true });
+                                const lastIdx = Math.min(5, pasted.length - 1);
+                                otpRefs.current[lastIdx]?.focus();
+                                e.preventDefault();
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+
+                      {verifyErrors.mfa_code && (
+                        <p className="text-xs text-red-500">{verifyErrors.mfa_code.message}</p>
+                      )}
+
+                      <Button
+                        type="submit"
+                        disabled={verifyMFAMutation.isPending}
+                        className="h-12 w-full rounded-full bg-gradient-to-r from-[#FF7300] to-[#FF8800] text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-[#FF7300]/20 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {verifyMFAMutation.isPending ? t('accountPage.sec2faVerifying') : t('accountPage.secConfirm')}
+                      </Button>
+                    </form>
                   </div>
-
-                  <div className="grid gap-6 md:grid-cols-[200px_1fr] items-start">
-                    <div className="bg-[#F2F2F7] rounded-[16px] p-4 flex flex-col items-center">
-                      <p className="mb-3 text-sm font-semibold text-[#86868B]">
-                        {t('accountPage.secScanQr')}
-                      </p>
-                      <div className="h-[160px] w-[160px] rounded-[14px] bg-white flex items-center justify-center border border-black/5">
-                        <img
-                          src={setupData.qr_code_url}
-                          alt="QR Code MFA"
-                          className="h-[140px] w-[140px] object-contain"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-5">
-                      <div>
-                        <p className="mb-2 text-sm font-semibold text-[#86868B]">
-                          Oppure inserisci manualmente
-                        </p>
-                        <div className="flex items-center gap-3 bg-[#F2F2F7] border border-black/5 rounded-[16px] p-3">
-                          <code className="flex-1 break-all text-sm font-mono text-[#1D1D1F]">
-                            {setupData.secret}
-                          </code>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={copySecret}
-                            className="h-9 w-9 rounded-[12px] bg-white border border-black/5 hover:bg-white/80"
-                          >
-                            {copiedSecret ? (
-                              <Check className="h-4 w-4 text-green-600" />
-                            ) : (
-                              <Copy className="h-4 w-4 text-[#1D1D1F]" />
-                            )}
-                          </Button>
-                        </div>
-                        {copiedSecret && <p className="mt-2 text-xs text-green-600">Copiato!</p>}
-                      </div>
-
-                      <div>
-                        <p className="mb-2 text-sm font-semibold text-[#86868B]">
-                          {t('accountPage.secEnterCode')}
-                        </p>
-
-                        {verifyError && <ErrorMessage message={verifyError} />}
-
-                        <form onSubmit={handleSubmitVerify(onSubmitVerify)} className="space-y-4">
-                          <input type="hidden" {...registerVerify('mfa_code')} />
-
-                          <div className="flex items-center justify-between gap-3">
-                            {verifyDigits.map((digit, idx) => {
-                              const filled = digit.trim().length > 0;
-                              return (
-                                <input
-                                  key={idx}
-                                  ref={(el) => {
-                                    otpRefs.current[idx] = el;
-                                  }}
-                                  value={filled ? digit : ''}
-                                  inputMode="numeric"
-                                  aria-label={`MFA digit ${idx + 1}`}
-                                  disabled={verifyMFAMutation.isPending}
-                                  className="w-12 h-12 rounded-[12px] bg-[#F2F2F7] border border-transparent text-center text-2xl font-semibold text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300] focus-visible:ring-offset-2 focus-visible:ring-offset-white transition"
-                                  onChange={(e) => {
-                                    const nextDigit = e.target.value.replace(/\D/g, '').slice(-1);
-                                    if (!nextDigit) {
-                                      const arr = verifyDigits.map((d, i) => (i === idx ? ' ' : d));
-                                      const next = arr.map((d) => d.trim()).join('');
-                                      setVerifyValue('mfa_code', next.slice(0, 6));
-                                      return;
-                                    }
-
-                                    const arr = verifyDigits.map((d, i) => {
-                                      if (i === idx) return nextDigit;
-                                      return d.trim() ? d.trim() : ' ';
-                                    });
-                                    const next = arr.map((d) => d.trim()).join('');
-                                    setVerifyValue('mfa_code', next.slice(0, 6), { shouldValidate: true });
-                                    if (idx < 5) otpRefs.current[idx + 1]?.focus();
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Backspace') {
-                                      const current = verifyDigits[idx]?.trim();
-                                      if (!current && idx > 0) otpRefs.current[idx - 1]?.focus();
-                                    }
-                                  }}
-                                  onPaste={(e) => {
-                                    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-                                    if (!pasted) return;
-                                    setVerifyValue('mfa_code', pasted, { shouldValidate: true });
-                                    const lastIdx = Math.min(5, pasted.length - 1);
-                                    otpRefs.current[lastIdx]?.focus();
-                                    e.preventDefault();
-                                  }}
-                                />
-                              );
-                            })}
-                          </div>
-
-                          {verifyErrors.mfa_code && (
-                            <p className="text-xs text-red-500">{verifyErrors.mfa_code.message}</p>
-                          )}
-
-                          <Button
-                            type="submit"
-                            disabled={verifyMFAMutation.isPending}
-                            className="btn-orange-glow h-12 w-full rounded-[16px] disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {verifyMFAMutation.isPending ? 'Verifica...' : t('accountPage.secConfirm')}
-                          </Button>
-                        </form>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              )}
-            </>
-          ) : (
-            <section className="max-w-md mx-auto space-y-6">
-              <h2 className="text-xl font-semibold text-[#1D1D1F]">
-                Disattiva autenticazione a due fattori
-              </h2>
-
-              <p className="text-sm text-[#86868B]">
-                {t('account.securityDisableDesc')}
-              </p>
-
-              {disableError && <ErrorMessage message={disableError} />}
-
-              <form onSubmit={handleSubmitDisable(onSubmitDisable)} className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="password"
-                    className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#86868B]"
-                  >
-                    {t('account.securityPassword')}
-                  </label>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder={t('account.securityPasswordPlaceholder')}
-                    className="h-12 rounded-[14px] bg-[#F2F2F7] border border-black/5 focus-visible:ring-2 focus-visible:ring-[#FF7300]"
-                    disabled={disableMFAMutation.isPending}
-                    {...registerDisable('password')}
-                  />
-                  {disableErrors.password && (
-                    <p className="mt-2 text-xs text-red-500">{disableErrors.password.message}</p>
-                  )}
                 </div>
-
-                <div className="pt-2">
-                  <Button
-                    type="submit"
-                    disabled={disableMFAMutation.isPending}
-                    className="h-12 w-full rounded-[16px] border border-red-200 bg-white text-[#FF3B30] font-semibold hover:bg-red-50 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {disableMFAMutation.isPending ? 'Disattivazione...' : 'Disattiva MFA'}
-                  </Button>
-                </div>
-              </form>
+              </div>
             </section>
           )}
-        </div>
-      </div>
+        </>
+      ) : (
+        <section className="overflow-hidden rounded-2xl border border-red-100/80 bg-white p-5 shadow-sm sm:p-6">
+          <h2 className="text-lg font-bold text-[#1D3160]">{t('account.securityDisableTitle')}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">{t('account.securityDisableDesc')}</p>
+
+          {disableError && (
+            <div className="mt-4">
+              <ErrorMessage message={disableError} />
+            </div>
+          )}
+
+          <form onSubmit={handleSubmitDisable(onSubmitDisable)} className="mt-6 space-y-4">
+            <div>
+              <label
+                htmlFor="password"
+                className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-500"
+              >
+                {t('account.securityPassword')}
+              </label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder={t('account.securityPasswordPlaceholder')}
+                className="h-12 rounded-xl border-gray-200 bg-gray-50/80 focus-visible:ring-[#FF7300]/30"
+                disabled={disableMFAMutation.isPending}
+                {...registerDisable('password')}
+              />
+              {disableErrors.password && (
+                <p className="mt-2 text-xs text-red-500">{disableErrors.password.message}</p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={disableMFAMutation.isPending}
+              className="h-12 w-full rounded-full border border-red-200 bg-white text-sm font-bold uppercase tracking-wide text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {disableMFAMutation.isPending ? t('accountPage.sec2faDisabling') : t('accountPage.secDisableMfa')}
+            </Button>
+          </form>
+        </section>
+      )}
     </div>
   );
 }

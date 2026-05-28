@@ -373,17 +373,34 @@ export const pt: Record<MessageKey, string> = {
   'accountPage.statsPaymentDate': 'DATA DE PAGAMENTO',
 
   'accountPage.sec2faTitle': 'AUTENTICAÇÃO DE DOIS FATORES',
+  'accountPage.sec2faBadge': 'Proteção da conta',
   'accountPage.sec2faIntro':
-    'A 2FA acrescenta segurança. Além da palavra-passe, introduz um código de uma app no telemóvel. Recomendamos Authy ou Google Authenticator.',
-  'accountPage.sec2faHowTitle': 'COMO CONFIGURAR A 2FA',
+    'A 2FA acrescenta segurança. Além da palavra-passe, introduz um código temporário do Google Authenticator no telemóvel.',
+  'accountPage.sec2faStatusOn': 'Ativa',
+  'accountPage.sec2faStatusOff': 'Inativa',
+  'accountPage.sec2faStatusTitleOn': 'Autenticação de dois fatores ativa',
+  'accountPage.sec2faStatusTitleOff': 'Autenticação de dois fatores inativa',
+  'accountPage.sec2faStatusDescOn':
+    'A sua conta está protegida. Cada início de sessão exigirá um código do Google Authenticator.',
+  'accountPage.sec2faStatusDescOff':
+    'Ative a 2FA com Google Authenticator para proteger a sua conta.',
+  'accountPage.secActivateMfa': 'Ativar MFA',
+  'accountPage.secDisableMfa': 'Desativar MFA',
+  'accountPage.sec2faLoading': 'A carregar…',
+  'accountPage.sec2faVerifying': 'A verificar…',
+  'accountPage.sec2faDisabling': 'A desativar…',
+  'accountPage.sec2faEnableError': 'Erro ao ativar MFA',
+  'accountPage.sec2faVerifyError': 'Código MFA inválido',
+  'accountPage.sec2faDisableError': 'Erro ao desativar MFA',
+  'accountPage.sec2faHowTitle': 'Como configurar a 2FA',
   'accountPage.sec2faStep1': 'Abra a app Authenticator no dispositivo.',
   'accountPage.sec2faStep2': 'Adicione uma conta e selecione “Digitalizar código QR”.',
   'accountPage.sec2faStep3': 'Digitalize o código QR mostrado nesta página.',
   'accountPage.sec2faStep4': 'Introduza o código de 6 dígitos abaixo do QR.',
   'accountPage.sec2faStep5': 'Clique em “Confirmar” para ativar a 2FA.',
-  'accountPage.secDownloadAuthTitle': 'TRANSFERIR A APP AUTHENTICATOR',
+  'accountPage.secDownloadAuthTitle': 'Descarregar Google Authenticator',
   'accountPage.secDownloadAuthText':
-    'Transfira uma app Authenticator. Recomendamos Authy ou Google Authenticator.',
+    'Instale o Google Authenticator no telemóvel antes de ativar a 2FA.',
   'accountPage.secDownloadGoogle': 'TRANSFERIR GOOGLE AUTHENTICATOR',
   'accountPage.secDownloadAuthy': 'TRANSFERIR AUTHY',
   'accountPage.secStoreGoogle': 'GOOGLE',
@@ -856,6 +873,15 @@ export const pt: Record<MessageKey, string> = {
   'vendi.sets.customDesc': 'Descreve o lote e publica com fotos reais.',
   'vendi.sets.createListing': 'Criar anúncio',
 
+  'sellGuide.searchInHeader': 'Procure a sua carta na barra superior — é o único campo de pesquisa para a colocar à venda.',
+  'sellGuide.focusSearch': 'Ir à pesquisa',
+  'sellGuide.vendiTab': 'Aqui define quantidade, idioma, condição e preço do seu anúncio.',
+  'sellGuide.details': 'Defina o preço e a condição da carta que está a vender.',
+  'sellGuide.photos': 'Carregue fotos nítidas do objeto real (também pelo telemóvel via QR).',
+  'sellGuide.publish': 'Revise os dados e publique o anúncio no marketplace.',
+  'sellGuide.next': 'Seguinte',
+  'sellGuide.skip': 'Saltar guia',
+
   'cart.title': 'Carrinho',
   'cart.item': 'artigo',
   'cart.empty': 'O seu carrinho está vazio. Descubra cartas e adicione-as para começar.',
@@ -885,6 +911,37 @@ export const pt: Record<MessageKey, string> = {
   'cart.sellersOne': '1 vendedor',
   'cart.orderSummary': 'Resumo do pedido',
   'cart.secureCheckout': 'Checkout seguro',
+  'cart.demoBanner':
+    'Simulação demo — nenhuma compra real, nenhuma carta será retirada do vendedor.',
+
+  'mockCheckout.banner':
+    'Área demo — todas as compras do marketplace são simuladas. Sem cobranças e sem impacto no inventário do vendedor.',
+  'mockCheckout.cartPreviewTitle': 'No seu carrinho',
+  'mockCheckout.cartPreviewHint':
+    'Confirme o pedido demo para mover os itens para pagamento pendente simulado.',
+  'mockCheckout.confirmOrder': 'Confirmar pedido demo',
+  'mockCheckout.confirming': 'A confirmar…',
+  'mockCheckout.editCart': 'Editar carrinho',
+  'mockCheckout.paymentFormTitle': 'Simulação de pagamento',
+  'mockCheckout.demoDisclaimer':
+    'Isto é uma simulação demo: nenhum pagamento real será feito e nenhuma carta será retirada do vendedor.',
+  'mockCheckout.demoOrderLabel': 'Pedido demo',
+  'mockCheckout.statusPending': 'A PAGAR',
+  'mockCheckout.statusPaid': 'PAGO DEMO',
+  'mockCheckout.paidAt': 'Pagamento simulado em {date}',
+  'mockCheckout.checkboxLabel':
+    'Compreendo que se trata de uma simulação demo e que nenhum pagamento real será efetuado.',
+  'mockCheckout.successMessage': 'Pagamento simulado com sucesso!',
+  'mockCheckout.simulatePayment': 'Simular pagamento',
+  'mockCheckout.paying': 'A simular…',
+  'mockCheckout.cancel': 'Cancelar',
+  'mockCheckout.cardholder': 'Titular do cartão',
+  'mockCheckout.cardholderPlaceholder': 'Nome Apelido',
+  'mockCheckout.cardNumber': 'Número do cartão',
+  'mockCheckout.expiry': 'Validade',
+  'mockCheckout.ordersToPayTitle': 'Pedidos a pagar',
+  'mockCheckout.checkoutRedirectHint':
+    'Pedido demo criado. Prossiga com o pagamento simulado abaixo.',
 
   'help.backHome': 'Voltar ao início',
   'help.title': 'Ajuda e FAQ',
@@ -900,6 +957,15 @@ export const pt: Record<MessageKey, string> = {
   'help.shippingTitle': 'Métodos de envio',
   'help.shippingText':
     'Prazos e custos dependem do vendedor. Em Itália costuma ser 2–5 dias úteis.',
+
+  'help.contactTitle': 'Contactar Ebartex',
+  'help.contactDesc': 'Escreva-nos diretamente por email para assistência, encomendas ou informações gerais.',
+  'help.contactResponseTime': 'A nossa equipa responde em 24–48 horas úteis (seg.–sex., 9:00–18:00 CET).',
+  'help.contactEmailBtn': 'Escrever por email',
+  'help.contactBeforeTitle': 'Antes de escrever',
+  'help.contactBefore1': 'Consulte as FAQ para respostas imediatas',
+  'help.contactBefore2': 'Inclua sempre o seu username Ebartex',
+  'help.contactBefore3': 'Para encomendas, indique o número de encomenda na mensagem',
 
   'contact.backHome': 'Voltar ao início',
   'contact.title': 'Contacte-nos',
@@ -1553,6 +1619,8 @@ export const pt: Record<MessageKey, string> = {
   'searchUser.cardSafeDesc': 'Utilizadores verificados e avaliações fiáveis',
 
   'searchAdvanced.titlePrefix': 'Pesquisa Avançada',
+  'searchAdvanced.comingSoonBadge': 'Em breve',
+  'searchAdvanced.comingSoonHint': 'Pré-visualização dos filtros — a pesquisa avançada estará ativa em breve.',
   'searchAdvanced.titleAccent': 'Avulsas',
   'searchAdvanced.subtitle':
     'Encontre cartas avulsas com filtros detalhados por edição, raridade, condição e mais.',

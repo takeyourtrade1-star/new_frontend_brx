@@ -47,6 +47,7 @@ export type SearchResultsTableProps = {
   onImagePreviewOpenChange?: (open: boolean) => void;
   formatPrice?: (hit: SearchHit) => string;
   formatAvailable?: (hit: SearchHit) => string;
+  buildProductHref?: (id: string) => string;
 };
 
 export function SearchResultsTable({
@@ -59,6 +60,7 @@ export function SearchResultsTable({
   onImagePreviewOpenChange,
   formatPrice,
   formatAvailable,
+  buildProductHref,
 }: SearchResultsTableProps) {
   const router = useRouter();
 
@@ -93,7 +95,7 @@ export function SearchResultsTable({
         </thead>
         <tbody>
           {hits.map((hit) => {
-            const productHref = `/products/${hit.id}`;
+            const productHref = buildProductHref ? buildProductHref(hit.id) : `/products/${hit.id}`;
             const { primary, secondary } = getSearchHitDisplayNames(hit, selectedLang);
             const imgUrl = getCardImageUrl(hit.image ?? null);
             const setName = hit.set_name ?? '';

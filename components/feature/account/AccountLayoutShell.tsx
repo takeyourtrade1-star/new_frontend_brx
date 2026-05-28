@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { AccountShell } from '@/components/feature/account/AccountShell';
 
-const FULL_WIDTH_ROUTES = ['/account/oggetti'];
+const FULL_WIDTH_ROUTES = ['/account/oggetti', '/account/lista-desideri'];
 
 export function AccountLayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
