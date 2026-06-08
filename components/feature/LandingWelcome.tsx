@@ -4,19 +4,17 @@ import React, { useEffect, useCallback, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  Tag, RefreshCw, Gavel, CircleDollarSign, ShieldCheck,
+  CircleDollarSign, ShieldCheck,
   ArrowRightLeft, Scale, Package, TrendingUp, X, Mail,
-  CheckCircle2, ArrowLeft, BellRing, Users, ChevronUp, ArrowRight,
+  CheckCircle2, ArrowLeft, BellRing, Users,
 } from 'lucide-react';
 import { getCdnImageUrl } from '@/lib/config';
 import { useGame } from '@/lib/contexts/GameContext';
 import type { GameSlug } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { useAuth } from '@/lib/hooks/use-auth';
 import { SignedAlteredShowcase } from './SignedAlteredShowcase';
 import { motion } from 'framer-motion';
 import { LandingHeroCarousel } from '@/components/home/LandingHeroCarousel';
-import { LandingPlatformSections } from '@/components/home/LandingPlatformSections';
 import { LandingBackgroundVideo } from '@/components/feature/LandingBackgroundVideo';
 
 /* ═══════════════════════════════════════════════════════════
@@ -135,7 +133,6 @@ const BOUTIQUE_CATEGORIES = [
 export function LandingWelcome() {
   const { t } = useTranslation();
   const { setSelectedGame } = useGame();
-  const { isAuthenticated } = useAuth();
 
   /* ─── state ─── */
   const [notifyGame, setNotifyGame] = useState<{ src: string; alt: string; waitlistCount: number } | null>(null);
@@ -143,10 +140,10 @@ export function LandingWelcome() {
   const [isFullscreenClosing, setIsFullscreenClosing] = useState(false);
   const [email, setEmail] = useState('');
   const [isNotifySuccess, setIsNotifySuccess] = useState(false);
-  const [showScrollTop, setShowScrollTop] = useState(false);
   const [waitlistCounts, setWaitlistCounts] = useState<Record<string, number>>(() =>
     Object.fromEntries(getComingSoonGames().map((g) => [g.alt, g.waitlistCount]))
   );
+
   /* ─── handlers ─── */
   const handleCloseFullscreen = useCallback(() => {
     setIsFullscreenClosing(true);
@@ -193,19 +190,6 @@ export function LandingWelcome() {
       }, 2000);
     }, 800);
   }, [email, handleCloseFullscreen, fullscreenGame]);
-
-  const handleScrollToTop = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 400);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   /* ─── memoised data ─── */
   const FEATURES = useMemo(
@@ -262,92 +246,74 @@ export function LandingWelcome() {
 
             {/* ──── LEFT: MAGIC CARD ──── */}
             <div
-              className="bento-entry bento-card group relative flex flex-col min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px] rounded-2xl"
+              className="bento-entry group relative flex flex-col min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px] rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden"
               style={{ animationDelay: '180ms' }}
             >
-              {/* Rotating border glow — MTG Red/White/Blue */}
-              <div className="pointer-events-none absolute -inset-[3px] z-0 overflow-hidden rounded-[18px]">
-                <div
-                  className="absolute -inset-[50%] h-[200%] w-[200%]"
-                  style={{
-                    background: 'conic-gradient(from 0deg, transparent 0%, rgba(220,38,38,0.22) 10%, rgba(248,113,113,0.18) 22%, rgba(239,68,68,0.22) 35%, transparent 60%)',
-                    filter: 'blur(22px)',
-                    animation: 'magicRotateBorder 8s linear infinite',
-                  }}
-                />
-              </div>
-
-              {/* Inner glass mask */}
-              <div
-                className="pointer-events-none absolute inset-[1px] z-[1] rounded-[14px]"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(239,68,68,0.10) 0%, rgba(15,23,42,0.40) 45%, rgba(59,130,246,0.10) 100%)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(239,68,68,0.30)',
-                }}
-              />
-
-              {/* Pulsating glow overlay */}
-              <div
-                className="pointer-events-none absolute inset-0 rounded-2xl z-[1]"
-                style={{
-                  animation: 'magicPulse 3s ease-in-out infinite',
-                  animationDelay: '180ms',
-                }}
-              />
-
               <Link
                 href="/home/magic"
                 id="hero-magic-card"
-                className="relative z-[2] flex flex-1 items-center justify-between overflow-hidden rounded-2xl p-5 sm:p-6 md:p-7 lg:p-8 transition-all duration-500 hover:shadow-[0_0_40px_rgba(239,68,68,0.30)] hover:scale-[1.01]"
+                className="relative flex flex-col flex-1 rounded-2xl p-5 sm:p-6 md:p-7 lg:p-8 transition-all duration-500 hover:bg-white/[0.03]"
                 aria-label={t('landing.gameAria.goHome', { name: 'Magic The Gathering' })}
                 onClick={() => setSelectedGame('mtg')}
               >
                 {/* Badge "Disponibile subito" — centered pill */}
-                <span className="magic-pill absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white"
-                  style={{
-                    animation: 'magicPillGlow 4s ease-in-out infinite',
-                    animationDelay: '180ms',
-                  }}
-                >
+                <span className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white">
                   Disponibile subito!
                 </span>
 
-                {/* Decorative glows */}
-                <div className="pointer-events-none absolute -left-12 -top-12 h-48 w-48 rounded-full bg-red-500/8 blur-3xl" />
-                <div className="pointer-events-none absolute -right-8 bottom-0 h-32 w-32 rounded-full bg-blue-500/8 blur-3xl" />
+                {/* Top row: Text + Logo */}
+                <div className="flex flex-1 items-center justify-between gap-4">
+                  <div className="flex flex-col gap-1 sm:gap-1.5">
+                    <h2 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold uppercase tracking-tight text-white drop-shadow-lg">
+                      Magic: The Gathering
+                    </h2>
+                    <p className="max-w-md text-[11px] sm:text-xs md:text-sm text-white/50">
+                      Compra, vendi e metti all&apos;asta le tue carte. Inizia subito.
+                    </p>
+                  </div>
 
-                {/* Left side: Text */}
-                <div className="relative z-10 flex flex-col gap-1 sm:gap-1.5">
-                  <h2 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold uppercase tracking-tight text-white drop-shadow-lg">
-                    Magic: The Gathering
-                  </h2>
-                  <p className="max-w-md text-[11px] sm:text-xs md:text-sm text-white/50">
-                    Compra, vendi e metti all&apos;asta le tue carte. Inizia subito.
-                  </p>
-                </div>
-
-                {/* Right side: Game logo */}
-                <div className="relative z-10 flex shrink-0 items-center justify-center">
-                  <div className="relative h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 lg:h-36 lg:w-64 transition-transform duration-500 group-hover:scale-110">
-                    <img
-                      src={MAIN_GAMES[0].src}
-                      alt={MAIN_GAMES[0].alt}
-                      className="h-full w-full object-contain drop-shadow-[0_0_24px_rgba(239,68,68,0.35)]"
-                    />
+                  <div className="relative flex shrink-0 items-center justify-center">
+                    <div className="relative h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 lg:h-36 lg:w-64 transition-transform duration-500 group-hover:scale-105">
+                      <img
+                        src={MAIN_GAMES[0].src}
+                        alt={MAIN_GAMES[0].alt}
+                        className="h-full w-full object-contain drop-shadow-[0_0_16px_rgba(239,68,68,0.15)]"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* CTA hint */}
-                <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-red-300/70 transition-colors duration-300 group-hover:text-red-200">
-                  <span>Scopri il mondo di magic</span>
-                  <motion.div
-                    animate={{ x: [0, 4, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                  >
-                    <ArrowRight className="h-3 w-3" />
-                  </motion.div>
+                {/* Bottom: Coming soon games */}
+                <div className="mt-auto pt-3 border-t border-white/10">
+                  <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 text-center">
+                    Presto in arrivo
+                  </p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {COMING_SOON_GAMES.map((game) => (
+                      <button
+                        key={game.alt}
+                        type="button"
+                        className="group/game flex aspect-square w-full items-center justify-center rounded-lg overflow-hidden bg-white/5 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-105"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const bgImage = GAME_FULLSCREEN_IMAGES[game.alt];
+                          const count = waitlistCounts[game.alt] ?? game.waitlistCount;
+                          if (bgImage) {
+                            setFullscreenGame({ src: game.src, alt: game.alt, bgImage, waitlistCount: count });
+                          } else {
+                            setNotifyGame({ src: game.src, alt: game.alt, waitlistCount: count });
+                          }
+                        }}
+                      >
+                        <img
+                          src={game.src}
+                          alt={game.alt}
+                          className="max-w-[60%] max-h-[60%] object-contain"
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </Link>
             </div>
@@ -355,47 +321,6 @@ export function LandingWelcome() {
             {/* ──── RIGHT: FEATURE CAROUSEL (4 slide) ──── */}
             <LandingHeroCarousel />
 
-          </div>
-        </section>
-
-        {/* ═══════════════════════════════════════════════
-            COMING SOON GAMES — infinite horizontal scroll
-            ═══════════════════════════════════════════════ */}
-        <section className="bento-entry px-4 pb-8 sm:px-6 sm:pb-10" style={{ animationDelay: '480ms' }}>
-          <div className="mx-auto max-w-md">
-            <p className="mb-3 sm:mb-4 text-center text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-white/40">
-              Presto in arrivo
-            </p>
-            <div className="relative overflow-hidden mx-auto max-w-[416px] rounded-2xl backdrop-blur-sm bg-white/5 shadow-lg">
-              {/* Fade sx */}
-              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-black/10 to-transparent z-10" />
-              {/* Fade dx */}
-              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-black/10 to-transparent z-10" />
-              <div className="flex gap-4 sm:gap-5 md:gap-6 animate-marquee">
-                {[...COMING_SOON_GAMES, ...COMING_SOON_GAMES].map((game, index) => (
-                  <button
-                    key={`${game.alt}-${index}`}
-                    type="button"
-                    className="group flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 items-center justify-center rounded-full cursor-pointer overflow-hidden bg-white/10 border border-white/20 transition-transform duration-300 hover:scale-110 flex-shrink-0"
-                    onClick={() => {
-                      const bgImage = GAME_FULLSCREEN_IMAGES[game.alt];
-                      const count = waitlistCounts[game.alt] ?? game.waitlistCount;
-                      if (bgImage) {
-                        setFullscreenGame({ src: game.src, alt: game.alt, bgImage, waitlistCount: count });
-                      } else {
-                        setNotifyGame({ src: game.src, alt: game.alt, waitlistCount: count });
-                      }
-                    }}
-                  >
-                    <img
-                      src={game.src}
-                      alt={game.alt}
-                      className="max-w-[60%] sm:max-w-[65%] max-h-[60%] sm:max-h-[65%] object-contain"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </section>
 
@@ -484,11 +409,6 @@ export function LandingWelcome() {
               </div>
             </div>
 
-          </div>
-
-          {/* ─── Platform deep-dive (Aste, Scambi, Tornei) ─── */}
-          <div className="relative z-10 mx-auto mt-14 max-w-6xl sm:mt-16 md:mt-20">
-            <LandingPlatformSections />
           </div>
 
           <div className="relative z-10 mx-auto max-w-4xl">
@@ -692,47 +612,6 @@ export function LandingWelcome() {
           100% {
             opacity: 1;
             transform: translateY(0) scale(1);
-          }
-        }
-
-        @keyframes magicPulse {
-          0%, 100% {
-            box-shadow: 0 0 20px rgba(239,68,68,0.15), 0 0 60px rgba(59,130,246,0.08), inset 0 0 20px rgba(239,68,68,0.05);
-          }
-          50% {
-            box-shadow: 0 0 40px rgba(239,68,68,0.35), 0 0 100px rgba(59,130,246,0.18), inset 0 0 30px rgba(239,68,68,0.12);
-          }
-        }
-
-        @keyframes magicRotateBorder {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @keyframes magicPillGlow {
-          0%, 65% {
-            box-shadow: 0 0 12px rgba(239,68,68,0.15);
-            border-color: rgba(255,255,255,0.15);
-            text-shadow: none;
-          }
-          72% {
-            box-shadow: 0 0 32px rgba(239,68,68,0.9), 0 0 64px rgba(239,68,68,0.6), inset 0 0 16px rgba(239,68,68,0.3);
-            border-color: rgba(239,68,68,0.7);
-            text-shadow: 0 0 10px rgba(239,68,68,0.8);
-          }
-          80% {
-            box-shadow: 0 0 32px rgba(239,68,68,0.9), 0 0 64px rgba(239,68,68,0.6), inset 0 0 16px rgba(239,68,68,0.3);
-            border-color: rgba(239,68,68,0.7);
-            text-shadow: 0 0 10px rgba(239,68,68,0.8);
-          }
-          87%, 100% {
-            box-shadow: 0 0 12px rgba(239,68,68,0.15);
-            border-color: rgba(255,255,255,0.15);
-            text-shadow: none;
           }
         }
       `}</style>
