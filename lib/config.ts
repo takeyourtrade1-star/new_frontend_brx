@@ -35,12 +35,42 @@ const getAuthApiURL = (): string => {
 };
 
 /**
- * Nome dell'indice Meilisearch usato lato UI (solo per props come <InstantSearch indexName=...>).
- * NON è un segreto — è solo un identificatore di indice — ma host e API key NON sono più
- * esposti qui: la ricerca passa sempre da route handler server-side (/api/search*), che
- * leggono le credenziali da variabili server-only (vedi lib/meilisearch-server-env.ts).
+ * Meilisearch - URL e API Key per ricerca globale (react-instantsearch).
+ * Usa NEXT_PUBLIC_MEILISEARCH_URL / NEXT_PUBLIC_MEILISEARCH_API_KEY (Amplify).
  */
-export const MEILISEARCH_PUBLIC_INDEX_NAME = 'cards';
+const getMeilisearchHost = (): string => {
+  const url =
+    process.env.NEXT_PUBLIC_MEILISEARCH_URL ||
+    process.env.NEXT_PUBLIC_MEILISEARCH_HOST ||
+    process.env.MEILISEARCH_URL ||
+    process.env.MEILI_URL;
+  if (url) return normalizeURL(url);
+  if (isDevelopment) {
+    console.warn('[Config] NEXT_PUBLIC_MEILISEARCH_URL non configurato. Imposta la variabile nel .env.local.');
+  }
+  return '';
+};
+
+const getMeilisearchApiKey = (): string => {
+  return (
+    process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ||
+    process.env.MEILISEARCH_API_KEY ||
+    process.env.MEILI_API_KEY ||
+    ''
+  );
+};
+
+export const MEILISEARCH = {
+  host: getMeilisearchHost(),
+  apiKey: getMeilisearchApiKey(),
+  indexName:
+    process.env.NEXT_PUBLIC_MEILISEARCH_INDEX ||
+    process.env.MEILISEARCH_INDEX ||
+    'cards',
+} as const;
+
+/** Alias usato da InstantSearch (indexName non è un segreto). */
+export const MEILISEARCH_PUBLIC_INDEX_NAME = MEILISEARCH.indexName;
 
 // URL delle API
 const authApiURL = getAuthApiURL();
@@ -102,6 +132,7 @@ export const SEARCH_ADMIN_API_URL =
 // Log per debug (solo in sviluppo)
 if (isDevelopment && typeof window !== 'undefined') {
   console.log('[Config] Auth API URL:', authApiURL);
+  console.log('[Config] Meilisearch Host:', MEILISEARCH.host);
 }
 
 export const config = {
@@ -118,6 +149,11 @@ export const config = {
   app: {
     name: process.env.NEXT_PUBLIC_APP_NAME || 'Ebartex',
     version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
+  },
+  meilisearch: {
+    url: MEILISEARCH.host,
+    apiKey: MEILISEARCH.apiKey,
+    indexName: MEILISEARCH.indexName,
   },
   debug: {
     isDevelopment,
