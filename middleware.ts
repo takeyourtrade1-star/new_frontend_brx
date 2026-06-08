@@ -52,7 +52,7 @@ export function middleware(request: NextRequest) {
   // Leggiamo solo il cookie HttpOnly impostato dal BFF /api/auth.
   // Non leggiamo cookie Zustand (ebartex-auth) perché non sono HttpOnly
   // e possono essere scritti da qualsiasi script client.
-  const sessionCookie = request.cookies.get(appConfig.auth.sessionCookieName)?.value;
+  const sessionCookie = request.cookies.get(appConfig.auth.tokenKey)?.value;
   const hasSession = !!(sessionCookie?.trim());
 
   if (!hasSession) {

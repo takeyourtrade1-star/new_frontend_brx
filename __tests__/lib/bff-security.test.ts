@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * BFF Security Tests
  *

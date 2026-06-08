@@ -9,36 +9,54 @@
  * detiene le credenziali Meilisearch (variabili server-only, mai nel bundle) e
  * applica validazione/normalizzazione/limiti prima di interrogare l'istanza.
  *
- * L'oggetto esportato implementa solo la porzione dell'interfaccia SearchClient
- * (stile Algolia) usata da react-instantsearch in questo progetto: `search`.
- * `searchForFacetValues` non è utilizzato dalla UI (nessun widget a faccette),
- * quindi restituisce un array vuoto per restare un no-op sicuro.
+ * L'oggetto esportato implementa l'interfaccia SearchClient (stile Algolia)
+ * richiesta da react-instantsearch: solo `search` è necessario per questa UI.
  */
 
-interface ProxySearchRequest {
-  indexName?: string;
-  params?: {
-    query?: string;
-    filters?: string;
-    hitsPerPage?: number;
-    page?: number;
-    [key: string]: unknown;
+import type {
+  SearchClient,
+  SearchOptions,
+  SearchResponses,
+} from 'algoliasearch-helper/types/algoliasearch.js';
+import { MEILISEARCH_PUBLIC_INDEX_NAME } from '@/lib/config';
+
+function emptySearchResult<T>(
+  indexName: string,
+  params: SearchOptions
+): SearchResponses<T>['results'][number] {
+  const hitsPerPage = typeof params.hitsPerPage === 'number' ? params.hitsPerPage : 8;
+  const page = typeof params.page === 'number' ? params.page : 0;
+  const query = typeof params.query === 'string' ? params.query : '';
+
+  return {
+    hits: [],
+    nbHits: 0,
+    page,
+    hitsPerPage,
+    nbPages: 0,
+    exhaustiveNbHits: true,
+    query,
+    params: '',
+    processingTimeMS: 0,
+    index: indexName,
   };
 }
 
-async function proxySearch(requests: readonly ProxySearchRequest[]): Promise<{ results: unknown[] }> {
-  if (!requests || requests.length === 0) {
+async function proxySearch<T>(
+  requests: Array<{ indexName: string; params: SearchOptions }>
+): Promise<SearchResponses<T>> {
+  if (requests.length === 0) {
     return { results: [] };
   }
 
   const payload = {
-    requests: requests.map((req) => ({
-      indexName: req.indexName,
+    requests: requests.map(({ indexName, params }) => ({
+      indexName,
       params: {
-        query: req.params?.query ?? '',
-        filters: req.params?.filters,
-        hitsPerPage: req.params?.hitsPerPage,
-        page: req.params?.page,
+        query: params.query ?? '',
+        filters: params.filters,
+        hitsPerPage: params.hitsPerPage,
+        page: params.page,
       },
     })),
   };
@@ -50,30 +68,16 @@ async function proxySearch(requests: readonly ProxySearchRequest[]): Promise<{ r
   });
 
   if (!res.ok) {
-    // Restituisce risultati vuoti invece di far crollare la UI: la search bar
-    // mostrerà semplicemente "nessun risultato" finché il servizio non torna disponibile.
     return {
-      results: requests.map((req) => ({
-        hits: [],
-        nbHits: 0,
-        page: req.params?.page ?? 0,
-        hitsPerPage: req.params?.hitsPerPage ?? 8,
-        nbPages: 0,
-        exhaustiveNbHits: true,
-        query: req.params?.query ?? '',
-        params: '',
-        processingTimeMS: 0,
-        index: req.indexName ?? 'cards',
-      })),
+      results: requests.map(({ indexName, params }) =>
+        emptySearchResult<T>(indexName || MEILISEARCH_PUBLIC_INDEX_NAME, params)
+      ),
     };
   }
 
-  return (await res.json()) as { results: unknown[] };
+  return (await res.json()) as SearchResponses<T>;
 }
 
-export const searchClient = {
+export const searchClient: SearchClient = {
   search: proxySearch,
-  // No-op: nessun widget di faccette nella UI; evita che react-instantsearch
-  // tenti di colpire un endpoint che non esiste.
-  searchForFacetValues: async () => [],
 };
