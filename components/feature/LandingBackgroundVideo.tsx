@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { getCdnVideoUrl } from '@/lib/config';
 
-const LANDING_BG_VIDEO = 'videos/sfondo_carte.mp4';
+const LANDING_BG_VIDEO = 'videos/sfondo_carte.webm';
 
 /** Leggermente più rapido del sorgente se il file è lento; regolabile. */
 const PLAYBACK_RATE = 1.12;
@@ -38,7 +38,7 @@ export function LandingBackgroundVideo({ className }: LandingBackgroundVideoProp
     link.rel = 'preload';
     link.as = 'video';
     link.href = videoUrl;
-    link.type = 'video/mp4';
+    link.type = 'video/webm';
     document.head.appendChild(link);
     return () => {
       link.remove();
