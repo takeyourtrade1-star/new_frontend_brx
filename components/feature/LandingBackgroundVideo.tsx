@@ -4,7 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { getCdnVideoUrl } from '@/lib/config';
 
-const LANDING_BG_VIDEO = 'videos/sfondo_carte.webm';
+const LANDING_BG_VIDEO_DESKTOP_MP4 = 'videos/sfondo_carte-desktop.mp4';
+const LANDING_BG_VIDEO_DESKTOP_WEBM = 'videos/sfondo_carte-desktop.webm';
+const LANDING_BG_VIDEO_MOBILE_MP4 = 'videos/sfondo_carte-mobile.mp4';
+const LANDING_BG_VIDEO_MOBILE_WEBM = 'videos/sfondo_carte-mobile.webm';
 
 /** Leggermente più rapido del sorgente se il file è lento; regolabile. */
 const PLAYBACK_RATE = 1.12;
@@ -21,7 +24,10 @@ export function LandingBackgroundVideo({ className }: LandingBackgroundVideoProp
   const videoRef = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-  const videoUrl = getCdnVideoUrl(LANDING_BG_VIDEO);
+  const desktopMp4Url = getCdnVideoUrl(LANDING_BG_VIDEO_DESKTOP_MP4);
+  const desktopWebmUrl = getCdnVideoUrl(LANDING_BG_VIDEO_DESKTOP_WEBM);
+  const mobileMp4Url = getCdnVideoUrl(LANDING_BG_VIDEO_MOBILE_MP4);
+  const mobileWebmUrl = getCdnVideoUrl(LANDING_BG_VIDEO_MOBILE_WEBM);
 
   const tryPlay = useCallback(() => {
     const el = videoRef.current;
@@ -32,18 +38,6 @@ export function LandingBackgroundVideo({ className }: LandingBackgroundVideoProp
       p.catch(() => {});
     }
   }, [failed]);
-
-  useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'video';
-    link.href = videoUrl;
-    link.type = 'video/webm';
-    document.head.appendChild(link);
-    return () => {
-      link.remove();
-    };
-  }, [videoUrl]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -70,7 +64,7 @@ export function LandingBackgroundVideo({ className }: LandingBackgroundVideoProp
       el.removeEventListener('loadeddata', tryPlay);
       el.removeEventListener('error', onError);
     };
-  }, [tryPlay, videoUrl]);
+  }, [desktopMp4Url, desktopWebmUrl, mobileMp4Url, mobileWebmUrl, tryPlay]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -109,7 +103,6 @@ export function LandingBackgroundVideo({ className }: LandingBackgroundVideoProp
       {!failed && (
         <video
           ref={videoRef}
-          src={videoUrl}
           className={cn(
             'absolute inset-0 h-full w-full object-cover object-center',
             'transition-opacity duration-700 ease-out',
@@ -119,12 +112,17 @@ export function LandingBackgroundVideo({ className }: LandingBackgroundVideoProp
           loop
           muted
           playsInline
-          preload="auto"
+          preload="metadata"
           disablePictureInPicture
           disableRemotePlayback
           // GPU layer dedicato, senza scale/parallax sul nodo video
           style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' as const }}
-        />
+        >
+          <source src={mobileMp4Url} type="video/mp4" media="(max-width: 768px)" />
+          <source src={mobileWebmUrl} type="video/webm" media="(max-width: 768px)" />
+          <source src={desktopMp4Url} type="video/mp4" />
+          <source src={desktopWebmUrl} type="video/webm" />
+        </video>
       )}
 
       <div

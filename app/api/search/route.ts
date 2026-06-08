@@ -1,18 +1,33 @@
 /**
- * API Route: ricerca su Meilisearch (server-side, niente CORS).
+ * API Route: ricerca su Meilisearch (server-side, niente CORS, niente chiavi nel browser).
  * GET /api/search?q=...&game=mtg&set=...&category_id=...&category_ids=1,2,3&page=1&limit=20&sort=...
+ *
+ * Le credenziali Meilisearch arrivano da getMeilisearchServerConfig() (variabili
+ * server-only: MEILISEARCH_URL / MEILISEARCH_API_KEY / MEILISEARCH_INDEX — mai
+ * NEXT_PUBLIC_*, che finirebbero nel bundle browser).
+ *
+ * Tutti i parametri pubblici sono validati/normalizzati (lib/search/search-request-utils)
+ * prima di costruire la filter string: lunghezza query, game allowlist, category_ids
+ * limitati e numerici, sort allowlist, limit con hard cap. Risultati pubblici e non
+ * personali → cache breve concessa.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-
-const MEILI_URL =
-  (process.env.NEXT_PUBLIC_MEILISEARCH_URL || process.env.VITE_MEILISEARCH_URL || '').replace(
-    /\/+$/,
-    ''
-  );
-const MEILI_KEY =
-  process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY || process.env.VITE_MEILISEARCH_API_KEY || '';
-const INDEX = process.env.NEXT_PUBLIC_MEILISEARCH_INDEX || 'cards';
+import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
+import {
+  MeiliFetchError,
+  escapeMeiliFilterValue,
+  fetchMeiliWithTimeout,
+  normalizeCategoryId,
+  normalizeCategoryIds,
+  normalizeGameSlug,
+  normalizeLimit,
+  normalizePage,
+  normalizeQuery,
+  normalizeSetName,
+  normalizeSort,
+  publicStatusForMeiliStatus,
+} from '@/lib/search/search-request-utils';
 
 export interface SearchHit {
   id: string;
@@ -41,27 +56,42 @@ export interface SearchApiResponse {
   totalPages: number;
 }
 
-function buildFilter(game?: string, set?: string, categoryId?: string, categoryIds?: number[]): string[] {
+const SEARCH_ATTRIBUTES_TO_RETRIEVE = [
+  'id',
+  'name',
+  'set_name',
+  'set_code',
+  'set_icon_uri',
+  'game_slug',
+  'category_id',
+  'category_name',
+  'image',
+  'keywords_localized',
+  'rarity',
+  'collector_number',
+  'available_languages',
+] as const;
+
+function buildFilter(game: string, set: string, categoryId: number | null, categoryIds: number[]): string[] {
   const parts: string[] = [];
-  if (game?.trim()) parts.push(`game_slug = "${game.trim()}"`);
-  if (set?.trim()) parts.push(`set_name = "${set.trim().replace(/"/g, '\\"')}"`);
-  
-  // Supporta sia category_ids (multiplo) che category_id (singolo, legacy)
-  if (categoryIds && categoryIds.length > 0) {
+  if (game) parts.push(`game_slug = "${game}"`);
+  if (set) parts.push(`set_name = "${escapeMeiliFilterValue(set)}"`);
+
+  // Supporta sia category_ids (multiplo, già normalizzati) che category_id (singolo, legacy)
+  if (categoryIds.length > 0) {
     if (categoryIds.length === 1) {
       parts.push(`category_id = ${categoryIds[0]}`);
     } else {
-      // Meilisearch syntax: category_id IN [1, 2, 3]
       parts.push(`category_id IN [${categoryIds.join(', ')}]`);
     }
-  } else if (categoryId?.trim()) {
-    parts.push(`category_id = ${categoryId.trim()}`);
+  } else if (categoryId != null) {
+    parts.push(`category_id = ${categoryId}`);
   }
-  
+
   return parts;
 }
 
-function buildSort(sortBy?: string): string[] {
+function buildSort(sortBy: string): string[] {
   switch (sortBy) {
     case 'name_asc':
       return ['name:asc'];
@@ -81,27 +111,24 @@ function buildSort(sortBy?: string): string[] {
 }
 
 export async function GET(request: NextRequest) {
+  const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
+
   if (!MEILI_URL || !MEILI_KEY) {
     return NextResponse.json(
-      { error: 'Meilisearch non configurato (NEXT_PUBLIC_MEILISEARCH_URL / API_KEY)' },
+      { error: 'Meilisearch non configurato (MEILISEARCH_URL / MEILISEARCH_API_KEY)' },
       { status: 503 }
     );
   }
 
   const { searchParams } = new URL(request.url);
-  const q = (searchParams.get('q') ?? '').trim();
-  const game = searchParams.get('game') ?? '';
-  const set = searchParams.get('set') ?? '';
-  const categoryId = searchParams.get('category_id') ?? '';
-  const categoryIdsParam = searchParams.get('category_ids') ?? '';
-  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10) || 20));
-  const sortBy = searchParams.get('sort') ?? 'name_asc';
-
-  // Parse category_ids (comma-separated list of IDs)
-  const categoryIds: number[] = categoryIdsParam
-    ? categoryIdsParam.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id))
-    : [];
+  const q = normalizeQuery(searchParams.get('q'));
+  const game = normalizeGameSlug(searchParams.get('game'));
+  const set = normalizeSetName(searchParams.get('set'));
+  const categoryId = normalizeCategoryId(searchParams.get('category_id'));
+  const categoryIds = normalizeCategoryIds(searchParams.get('category_ids'));
+  const page = normalizePage(searchParams.get('page'));
+  const limit = normalizeLimit(searchParams.get('limit'));
+  const sortBy = normalizeSort(searchParams.get('sort'));
 
   const offset = (page - 1) * limit;
   const filterParts = buildFilter(game, set, categoryId, categoryIds);
@@ -119,10 +146,11 @@ export async function GET(request: NextRequest) {
       q: q || undefined,
       limit,
       offset,
+      attributesToRetrieve: [...SEARCH_ATTRIBUTES_TO_RETRIEVE],
     };
     if (filter) body.filter = filter;
     if (includeSort) body.sort = sort;
-    return fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    return fetchMeiliWithTimeout(url, { method: 'POST', headers, body: JSON.stringify(body) });
   };
 
   try {
@@ -132,10 +160,9 @@ export async function GET(request: NextRequest) {
       res = await doSearch(false);
     }
     if (!res.ok) {
-      const text = await res.text();
       return NextResponse.json(
-        { error: `Meilisearch error: ${res.status}`, detail: text },
-        { status: 502 }
+        { error: `Meilisearch error: ${res.status}` },
+        { status: publicStatusForMeiliStatus(res.status) }
       );
     }
 
@@ -159,8 +186,16 @@ export async function GET(request: NextRequest) {
       totalPages,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        // Catalogo pubblico, non personale: cache breve con revalidate.
+        'Cache-Control': 'public, max-age=30, stale-while-revalidate=120',
+      },
+    });
   } catch (err) {
+    if (err instanceof MeiliFetchError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
       { error: 'Ricerca non disponibile', detail: message },

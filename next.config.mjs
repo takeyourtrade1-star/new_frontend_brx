@@ -40,7 +40,6 @@ const nextConfig = {
       process.env.NEXT_PUBLIC_CDN_BASE_URL,
     NEXT_PUBLIC_MEILISEARCH_URL: process.env.NEXT_PUBLIC_MEILISEARCH_URL || process.env.VITE_MEILISEARCH_URL,
     NEXT_PUBLIC_MEILISEARCH_HOST: process.env.NEXT_PUBLIC_MEILISEARCH_HOST || process.env.VITE_MEILISEARCH_HOST,
-    NEXT_PUBLIC_MEILISEARCH_API_KEY: process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY || process.env.VITE_MEILISEARCH_API_KEY,
     NEXT_PUBLIC_MEILISEARCH_INDEX: process.env.NEXT_PUBLIC_MEILISEARCH_INDEX || process.env.VITE_MEILISEARCH_INDEX,
     NEXT_PUBLIC_SEARCH_API_URL: process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL,
     NEXT_PUBLIC_SYNC_API_URL:
@@ -99,10 +98,13 @@ const nextConfig = {
   },
   async rewrites() {
     const searchApiUrl = process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL || 'http://localhost:8000';
-    const syncApiUrl = (process.env.SYNC_API_URL || process.env.NEXT_PUBLIC_SYNC_API_URL || process.env.VITE_SYNC_API_URL || 'https://sync.ebartex.com').replace(/\/+$/, '');
     const brxMatchUrl = (process.env.BRX_MATCH_API_URL || 'http://15.160.8.178:8005').replace(/\/+$/, '');
-    const marketplaceApiUrl = (process.env.MARKETPLACE_API_URL || process.env.NEXT_PUBLIC_MARKETPLACE_API_URL || 'https://marketplace-api.ebartex.com').replace(/\/+$/, '');
 
+    // NOTA: /api/sync/* e /api/marketplace/* NON hanno rewrite qui.
+    // Esistono route handler dedicati (app/api/sync/[...path]/route.ts e
+    // app/api/marketplace/[...path]/route.ts) che applicano auth cookie-first,
+    // rate limiting e timeout. I rewrites Next.js vengono eseguiti prima dei
+    // route handler e li bypasserebbero, vanificando i controlli di sicurezza.
     return [
       // Favicon: evita 404 su /favicon.ico servendo logo-pwa.svg
       { source: '/favicon.ico', destination: '/logo-pwa.svg' },
@@ -111,20 +113,10 @@ const nextConfig = {
         source: '/search-api/:path*',
         destination: `${searchApiUrl}/:path*`,
       },
-      // Proxy per BRX Sync: /api/sync/* → sync.ebartex.com (imposta SYNC_API_URL su Amplify)
-      {
-        source: '/api/sync/:path*',
-        destination: `${syncApiUrl}/api/v1/sync/:path*`,
-      },
       // Proxy per BRX Match (scanner MTG): /brx-match/* → EC2 dedicata (imposta BRX_MATCH_API_URL su Amplify)
       {
         source: '/brx-match/:path*',
         destination: `${brxMatchUrl}/brx-match/:path*`,
-      },
-      // Proxy per BRX Marketplace: /api/marketplace/* → marketplace-api.ebartex.com/api/v1/*
-      {
-        source: '/api/marketplace/:path*',
-        destination: `${marketplaceApiUrl}/api/v1/:path*`,
       },
     ];
   },

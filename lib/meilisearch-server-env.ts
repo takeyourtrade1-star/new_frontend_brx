@@ -28,8 +28,6 @@ export function getMeilisearchServerConfig(): MeilisearchServerConfig {
     process.env.MEILISEARCH_API_KEY ||
     process.env.MEILI_API_KEY ||
     process.env.MEILISEARCH_SEARCH_KEY ||
-    process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ||
-    process.env.VITE_MEILISEARCH_API_KEY ||
     '';
 
   const index =

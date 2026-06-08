@@ -1,6 +1,16 @@
+/**
+ * Proxy root /api/disputes → AUCTION_API_URL/disputes
+ * Sicurezza: cookie-first, 401 fail-closed, no-store, rate limit, timeout.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
+import { getForwardedAuthorization, extractUserIdForRateLimit } from '@/app/api/_lib/forwarded-authorization';
+import { noStoreHeaders, unauthorizedResponse } from '@/app/api/_lib/proxy-response';
+import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+
+const PROXY_TIMEOUT_MS = 12_000;
 
 const AUCTION_API_URL = (
   process.env.AUCTION_API_URL ||
@@ -8,27 +18,44 @@ const AUCTION_API_URL = (
   ''
 ).replace(/\/+$/, '');
 
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal, cache: 'no-store' });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 export async function GET(request: NextRequest) {
   if (!AUCTION_API_URL) {
-    return NextResponse.json({ detail: 'AUCTION_API_URL is not configured' }, { status: 503 });
+    return NextResponse.json({ detail: 'AUCTION_API_URL is not configured' }, { status: 503, headers: noStoreHeaders() });
   }
+
+  const auth = getForwardedAuthorization(request);
+  if (!auth) return unauthorizedResponse();
+
+  const userId = extractUserIdForRateLimit(auth);
+  const rl = checkRateLimit(request, { scope: 'disputes', limit: 30, windowMs: 60_000, userId });
+  if (!rl.allowed) return rateLimitExceededResponse(rl);
+
   const url = new URL('/disputes', AUCTION_API_URL);
   request.nextUrl.searchParams.forEach((value, key) => url.searchParams.set(key, value));
-  const auth = request.headers.get('authorization') || request.headers.get('Authorization');
+
   try {
-    const res = await fetch(url.toString(), {
-      headers: {
-        Accept: 'application/json',
-        ...(auth ? { Authorization: auth } : {}),
-      },
-      cache: 'no-store',
-    });
+    const res = await fetchWithTimeout(url.toString(), {
+      method: 'GET',
+      headers: { Accept: 'application/json', Authorization: auth },
+    }, PROXY_TIMEOUT_MS);
     const data = await res.json().catch(() => ({}));
-    return NextResponse.json(data, { status: res.status });
+    return NextResponse.json(data, { status: res.status, headers: noStoreHeaders() });
   } catch (err) {
+    const isTimeout = err instanceof Error && err.name === 'AbortError';
+    if (!isTimeout) console.error('[disputes proxy root] fetch error');
     return NextResponse.json(
-      { detail: err instanceof Error ? err.message : 'Disputes proxy request failed' },
-      { status: 502 }
+      { detail: isTimeout ? 'Timeout: disputes service non ha risposto.' : 'Disputes proxy request failed' },
+      { status: isTimeout ? 504 : 502, headers: noStoreHeaders() }
     );
   }
 }

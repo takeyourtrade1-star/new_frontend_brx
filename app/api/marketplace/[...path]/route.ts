@@ -10,6 +10,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getForwardedAuthorization } from '@/app/api/_lib/forwarded-authorization';
+import { noStoreHeaders, publicCacheHeaders, unauthorizedResponse } from '@/app/api/_lib/proxy-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,15 +67,12 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   const isPublicGet =
     request.method === 'GET' && isPublicMarketplacePath(path);
 
-  const auth =
-    request.headers.get('authorization') ||
-    request.headers.get('Authorization');
+  // Cookie-first: legge il cookie HttpOnly per le route private.
+  // Le route pubbliche (listings/public/*) non richiedono autenticazione.
+  const auth = isPublicGet ? undefined : getForwardedAuthorization(request);
 
-  if (!isPublicMarketplacePath(path) && !auth?.startsWith('Bearer ')) {
-    return NextResponse.json(
-      { detail: 'Authorization header required (Bearer token)' },
-      { status: 401 },
-    );
+  if (!isPublicGet && !auth) {
+    return unauthorizedResponse();
   }
 
   const headers: Record<string, string> = {
@@ -100,9 +99,9 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
 
   const primaryUrl = buildTargetUrl(MARKETPLACE_API_URL, targetPath, request);
 
-  const responseCacheHeaders: Record<string, string> = isPublicGet
-    ? { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' }
-    : { 'Cache-Control': 'private, no-store, max-age=0, must-revalidate' };
+  const responseCacheHeaders = isPublicGet
+    ? publicCacheHeaders(30, 60)
+    : noStoreHeaders();
 
   try {
     const res = await fetchWithTimeout(
@@ -122,16 +121,14 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     });
   } catch (err) {
     const isTimeout = err instanceof Error && err.name === 'AbortError';
-    console.error('[marketplace proxy]', isTimeout ? 'timeout' : err, primaryUrl.toString());
+    if (!isTimeout) console.error('[marketplace proxy]', primaryUrl.toString());
     return NextResponse.json(
       {
         detail: isTimeout
-          ? 'Timeout: marketplace-api non ha risposto in tempo. Verifica marketplace-api.ebartex.com in NPM.'
-          : err instanceof Error
-            ? err.message
-            : 'Marketplace proxy request failed',
+          ? 'Timeout: marketplace-api non ha risposto in tempo.'
+          : 'Marketplace proxy request failed',
       },
-      { status: isTimeout ? 504 : 502 },
+      { status: isTimeout ? 504 : 502, headers: noStoreHeaders() },
     );
   }
 }

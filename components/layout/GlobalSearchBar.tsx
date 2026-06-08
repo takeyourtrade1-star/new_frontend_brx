@@ -15,7 +15,7 @@ import { InstantSearch, Configure, Highlight, useSearchBox, useHits } from 'reac
 import { searchClient } from '@/lib/meilisearchClient';
 import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
 import { useGame, GAME_OPTIONS, type GameSlug } from '@/lib/contexts/GameContext';
-import { MEILISEARCH } from '@/lib/config';
+import { MEILISEARCH_PUBLIC_INDEX_NAME } from '@/lib/config';
 import { getCardImageUrl } from '@/lib/assets';
 import { SetIconBadge } from '@/components/ui/SetIconBadge';
 import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
@@ -2406,7 +2406,7 @@ export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOp
         <div className="flex min-h-0 w-full min-w-0 flex-1">
           <InstantSearch
             searchClient={searchClient}
-            indexName={MEILISEARCH.indexName}
+            indexName={MEILISEARCH_PUBLIC_INDEX_NAME}
             future={{ preserveSharedStateOnUnmount: true }}
           >
             <Configure {...({ filter: allFilters?.join(' AND '), hitsPerPage: 8 } as any)} />

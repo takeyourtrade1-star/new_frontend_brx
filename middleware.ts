@@ -1,22 +1,40 @@
 /**
- * Next.js Middleware — protezione route autenticate.
- * Verifica la presenza del token di accesso nel cookie o in localStorage (via Zustand persist).
- * Se il token non è presente, redirige a /login.
+ * Next.js Middleware — redirect UX per route autenticate.
  *
- * Route protette:
- * - /account/*     → area personale utente
- * - /admin/*       → pannelli amministrativi
- * - /aste/nuova    → creazione nuova asta
- * - /bidding/*     → offerta massima
+ * IMPORTANTE: il middleware è solo una misura UX (redirect rapido a /login).
+ * NON è l'unica protezione: ogni route handler BFF e ogni page con dati
+ * sensibili deve avere la propria verifica server-side.
  *
- * Il middleware gira server-side (Edge Runtime) quindi non ha accesso a localStorage.
- * Controlla il cookie `ebartex-auth` (scritto da Zustand persist) come proxy per lo stato auth.
- * Se il cookie non contiene un accessToken valido, redirige a /login.
+ * Controlla esclusivamente il cookie HttpOnly `ebartex_access_token` (scritto
+ * dal BFF /api/auth al login). Non legge cookie Zustand/localStorage: quei
+ * cookie non sono HttpOnly e possono essere falsificati lato client.
+ *
+ * Route protette da redirect:
+ * - /account/*          → area personale utente
+ * - /admin/*            → pannelli amministrativi
+ * - /ordini/*           → ordini acquisti e vendite
+ * - /cart               → carrello
+ * - /vendi/*            → flusso inserimento annunci
+ * - /aste/nuova         → creazione nuova asta
+ * - /aste/mie           → aste personali
+ * - /aste/partecipazioni → partecipazioni aste
+ * - /bidding/*          → offerta massima
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { config as appConfig } from '@/lib/config';
 
-const PROTECTED_PREFIXES = ['/account', '/admin', '/aste/nuova', '/bidding'];
+const PROTECTED_PREFIXES = [
+  '/account',
+  '/admin',
+  '/ordini',
+  '/cart',
+  '/vendi',
+  '/aste/nuova',
+  '/aste/mie',
+  '/aste/partecipazioni',
+  '/bidding',
+];
 
 const LOGIN_PATH = '/login';
 
@@ -31,35 +49,20 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Zustand persist scrive lo stato auth in localStorage → non accessibile dal middleware.
-  // Come fallback server-side, controlliamo se esiste il cookie di sessione auth
-  // oppure l'header Authorization (per chiamate programmatiche).
-  // Il token può essere passato anche come cookie "ebartex_access_token" dal client.
-  const authCookie = request.cookies.get('ebartex_access_token')?.value;
-  const authHeader = request.headers.get('authorization');
+  // Leggiamo solo il cookie HttpOnly impostato dal BFF /api/auth.
+  // Non leggiamo cookie Zustand (ebartex-auth) perché non sono HttpOnly
+  // e possono essere scritti da qualsiasi script client.
+  const sessionCookie = request.cookies.get(appConfig.auth.sessionCookieName)?.value;
+  const hasSession = !!(sessionCookie?.trim());
 
-  // Zustand persist usa localStorage, non cookie. Per catturare gli utenti non loggati
-  // al primo caricamento server-side, controlliamo anche il cookie Zustand persist.
-  // Il cookie "ebartex-auth" viene scritto da un piccolo script se il persist è attivo.
-  // Fallback: accettiamo anche l'header per API calls.
-  const zustandCookie = request.cookies.get('ebartex-auth')?.value;
-  let hasZustandToken = false;
-  if (zustandCookie) {
-    try {
-      const parsed = JSON.parse(zustandCookie);
-      hasZustandToken = !!(parsed?.state?.accessToken);
-    } catch {
-      // Cookie malformato, ignora
-    }
-  }
-
-  const hasToken = !!(authCookie || authHeader || hasZustandToken);
-
-  if (!hasToken) {
+  if (!hasSession) {
     const loginUrl = new URL(LOGIN_PATH, request.url);
     loginUrl.searchParams.set('accesso', '1');
-    // Sanitize redirect: only allow relative paths starting with / (no protocol, no //)
-    const safeRedirect = pathname.startsWith('/') && !pathname.startsWith('//') && !pathname.includes('://') ? pathname : '/';
+    // Sanitize redirect: solo path relativi, niente protocol/double-slash injection
+    const safeRedirect =
+      pathname.startsWith('/') && !pathname.startsWith('//') && !pathname.includes('://')
+        ? pathname
+        : '/';
     loginUrl.searchParams.set('redirect', safeRedirect);
     return NextResponse.redirect(loginUrl);
   }
@@ -71,8 +74,15 @@ export const config = {
   matcher: [
     '/account/:path*',
     '/admin/:path*',
+    '/ordini/:path*',
+    '/cart',
+    '/vendi/:path*',
     '/aste/nuova',
     '/aste/nuova/:path*',
+    '/aste/mie',
+    '/aste/mie/:path*',
+    '/aste/partecipazioni',
+    '/aste/partecipazioni/:path*',
     '/bidding',
     '/bidding/:path*',
   ],

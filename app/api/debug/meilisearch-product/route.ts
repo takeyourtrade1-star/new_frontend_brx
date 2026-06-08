@@ -3,24 +3,15 @@
  * GET /api/debug/meilisearch-product?id=mtg_57312
  * Mostra esattamente cosa riceve il frontend e perché può mostrare "Carta non trovata".
  */
-
 import { NextRequest, NextResponse } from 'next/server';
-
-const MEILI_URL = (
-  process.env.NEXT_PUBLIC_MEILISEARCH_URL ||
-  process.env.VITE_MEILISEARCH_URL ||
-  ''
-).replace(/\/+$/, '');
-const MEILI_KEY =
-  process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ||
-  process.env.VITE_MEILISEARCH_API_KEY ||
-  '';
-const INDEX = process.env.NEXT_PUBLIC_MEILISEARCH_INDEX || 'cards';
+import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
 
 export async function GET(request: NextRequest) {
   if (process.env.NODE_ENV !== 'development') {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
+
+  const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
 
   const id = request.nextUrl.searchParams.get('id')?.trim();
   if (!id) {
@@ -32,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   if (!MEILI_URL) {
     return NextResponse.json(
-      { error: 'Meilisearch non configurato (NEXT_PUBLIC_MEILISEARCH_URL)' },
+      { error: 'Meilisearch non configurato (MEILISEARCH_URL)' },
       { status: 503 }
     );
   }

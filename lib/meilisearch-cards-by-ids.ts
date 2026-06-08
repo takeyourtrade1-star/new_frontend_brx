@@ -1,10 +1,17 @@
 /**
- * Fetch card/catalog data from Meilisearch by blueprint_id (or numeric id).
- * Used to enrich inventory items with name, set, image.
- * Filter: cardtrader_id IN(...) or id IN(...) depending on index schema.
+ * Fetch card/catalog data by blueprint_id (or numeric id), enriching inventory
+ * items with name, set, image.
+ *
+ * SICUREZZA: questa funzione non parla più direttamente con Meilisearch dal browser
+ * (niente più `Authorization: Bearer <NEXT_PUBLIC_MEILISEARCH_API_KEY>` nel bundle).
+ * Inoltra la richiesta a /api/search/cards-by-ids, una route handler server-side che
+ * detiene le credenziali Meilisearch (variabili server-only) e applica
+ * validazione/limiti prima di interrogare l'istanza.
+ *
+ * La firma esportata resta invariata: i call site esistenti (OggettiContent,
+ * UserProfileCollectionPanel, ScambiProponiModal, AuctionCreateCardPicker,
+ * ProductDetailView) non necessitano modifiche.
  */
-
-import { config } from '@/lib/config';
 
 export interface CardCatalogHit {
   id: string;
@@ -24,63 +31,30 @@ export interface CardCatalogHit {
   collector_number?: string;
 }
 
-const CATALOG_ATTRIBUTES_TO_RETRIEVE = [
-  'id',
-  'name',
-  'set_name',
-  'set_code',
-  'set_icon_uri',
-  'icon_svg_uri',
-  'game_slug',
-  'image',
-  'cardtrader_id',
-  'keywords_localized',
-  'rarity',
-  'collector_number',
-] as const;
-
 /** Map blueprint_id (number) -> card data for display (name, set_name, image_url). */
 export type BlueprintToCardMap = Record<number, CardCatalogHit>;
 
-const MEILI_URL = (config.meilisearch.url || '').replace(/\/+$/, '');
-const MEILI_KEY = config.meilisearch.apiKey || '';
-const INDEX = config.meilisearch.indexName || 'cards';
-
 /**
- * Fetch cards from Meilisearch by a list of blueprint_ids (or numeric ids).
- * Uses POST /indexes/cards/search with filter "cardtrader_id IN(id1, id2, ...)".
- * If your index uses a different filterable field (e.g. "id"), set filterField.
- * Returns a map blueprint_id -> hit for quick lookup.
+ * Fetch cards by a list of blueprint_ids (or numeric ids) via /api/search/cards-by-ids
+ * (server-side Meilisearch lookup, "filterField IN [...]"). Returns a map
+ * blueprint_id -> hit for quick lookup. Never throws — returns {} on any error,
+ * matching the previous client-side behaviour so call sites don't need changes.
  */
 export async function fetchCardsByBlueprintIds(
   blueprintIds: number[],
   filterField: string = 'cardtrader_id'
 ): Promise<BlueprintToCardMap> {
-  if (!MEILI_URL || blueprintIds.length === 0) return {};
-
   const uniq = [...new Set(blueprintIds)].filter((n) => Number.isInteger(n));
   if (uniq.length === 0) return {};
 
-  // Meilisearch IN richiede parentesi quadre: cardtrader_id IN [1, 2, 3]
-  const filter = `${filterField} IN [${uniq.join(', ')}]`;
-  const url = `${MEILI_URL}/indexes/${INDEX}/search`;
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  };
-  if (MEILI_KEY) headers.Authorization = `Bearer ${MEILI_KEY}`;
-
   try {
-    const res = await fetch(url, {
+    const res = await fetch('/api/search/cards-by-ids', {
       method: 'POST',
-      headers,
-      body: JSON.stringify({
-        filter,
-        limit: uniq.length,
-        attributesToRetrieve: [...CATALOG_ATTRIBUTES_TO_RETRIEVE],
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: uniq, filterField }),
     });
     if (!res.ok) return {};
+
     const data = (await res.json()) as { hits?: CardCatalogHit[] };
     const hits = Array.isArray(data.hits) ? data.hits : [];
     const map: BlueprintToCardMap = {};
