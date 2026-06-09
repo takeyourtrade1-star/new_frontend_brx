@@ -258,7 +258,7 @@ export function ProductCategoryView({
                     </div>
                   </label>
 
-                  {categorySlug === 'singles' && (
+                  {categorySlug === 'singles' && !sellFlow && (
                     <label className="flex flex-col gap-1 relative">
                       <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
                         {t('search.thRarity')}

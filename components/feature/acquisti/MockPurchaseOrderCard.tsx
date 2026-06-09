@@ -84,7 +84,7 @@ export function MockPurchaseOrderCard({
               <p className="mt-0.5 text-xs text-gray-500">{order.sellerDisplayName}</p>
             )}
             <p className="mt-1 text-sm text-gray-600">
-              Qtà {order.quantity} · {formatEuroNoSpace(total, 'it-IT')}
+              Qtà {order.quantity} · {formatEuroNoSpace(total, 'it-IT')} · {isPending ? t('mockCheckout.statusPending') : t('mockCheckout.statusPaid')}
             </p>
             <p className="mt-1 text-xs text-gray-500">{formatDateTime(order.createdAt)}</p>
             {!isPending && order.paidAt && (
@@ -96,6 +96,9 @@ export function MockPurchaseOrderCard({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex rounded-full bg-blue-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+            DEMO
+          </span>
+          <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-700">
             DEMO
           </span>
           <span

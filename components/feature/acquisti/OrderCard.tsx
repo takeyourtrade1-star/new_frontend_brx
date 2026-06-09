@@ -138,6 +138,9 @@ export function OrderCard({
             {badge.label}
           </span>
           <span className="text-xs text-gray-500">Ordine #{order.id}</span>
+          <span className="inline-flex rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-purple-700">
+            ASTA
+          </span>
         </div>
 
         <h3 className="text-lg font-semibold text-gray-900">

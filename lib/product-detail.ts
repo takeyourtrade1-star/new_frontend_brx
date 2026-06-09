@@ -3,19 +3,8 @@
  * Usato dalla pagina /products/[slug] quando slug è un id indice (mtg_123, op_456, sealed_10).
  */
 
-const MEILI_URL_RAW = (
-  process.env.NEXT_PUBLIC_MEILISEARCH_URL ||
-  process.env.NEXT_PUBLIC_MEILISEARCH_HOST ||
-  process.env.VITE_MEILISEARCH_URL ||
-  process.env.VITE_MEILISEARCH_HOST ||
-  ''
-).replace(/\/+$/, '');
-const MEILI_URL = MEILI_URL_RAW;
-const MEILI_KEY =
-  process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ||
-  process.env.VITE_MEILISEARCH_API_KEY ||
-  '';
-const INDEX = process.env.NEXT_PUBLIC_MEILISEARCH_INDEX || 'cards';
+import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
+
 const CDN_URL = (
   process.env.NEXT_PUBLIC_CDN_URL ||
   (process.env.NODE_ENV === 'development'
@@ -101,6 +90,7 @@ export function isIndexProductId(slug: string): boolean {
  */
 export async function getCardDocumentById(id: string): Promise<CardDocument | null> {
   const rawId = id?.trim();
+  const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
   if (!rawId || !MEILI_URL) return null;
 
   const headers: Record<string, string> = {};
@@ -144,6 +134,7 @@ export async function getCardDocumentById(id: string): Promise<CardDocument | nu
  * Se NEXT_PUBLIC_MEILISEARCH_API_KEY non è impostata, la richiesta viene fatta senza Authorization (come per la ricerca).
  */
 export async function getProductById(id: string): Promise<ProductDetailData | null> {
+  const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
   if (!id?.trim() || !MEILI_URL) return null;
 
   const url = `${MEILI_URL}/indexes/${INDEX}/documents/${encodeURIComponent(id.trim())}`;

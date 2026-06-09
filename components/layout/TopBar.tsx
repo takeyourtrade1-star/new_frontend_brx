@@ -645,19 +645,13 @@ export function TopBar() {
                     <nav className="flex flex-col">
                       <Link
                         href="/vendi"
-                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                        className="relative flex w-full items-center rounded-full bg-white/60 shadow-lg py-2 text-base font-semibold uppercase tracking-wide text-[#FF7300] hover:bg-white/70 hover:shadow-xl transition-all mx-0 my-2 backdrop-blur-md border border-white/30"
                         onClick={() => setVendiMenuOpen(false)}
                       >
-                        Metti in vendita
-                      </Link>
-
-                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                      <Link
-                        href="/account/oggetti"
-                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                        onClick={() => setVendiMenuOpen(false)}
-                      >
-                        {t('account.items')}
+                        <span className="absolute left-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#FF7300] text-white opacity-90 animate-pulse shadow-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </span>
+                        <span className="w-full text-center">Vendi</span>
                       </Link>
 
                       <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
@@ -667,6 +661,15 @@ export function TopBar() {
                         onClick={() => setVendiMenuOpen(false)}
                       >
                         Le mie vendite
+                      </Link>
+
+                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
+                      <Link
+                        href="/account/oggetti"
+                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
+                        onClick={() => setVendiMenuOpen(false)}
+                      >
+                        {t('account.items')}
                       </Link>
                     </nav>
                   </div>

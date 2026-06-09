@@ -2,7 +2,7 @@
 
 import { CardLanguageSelect } from '@/components/ui/CardLanguageSelect';
 import type { CardLanguageOption } from '@/lib/card-languages';
-import { sellSingleConditionLabel } from '@/lib/marketplace/sell-single-conditions';
+import { SELL_SINGLE_CONDITION_OPTIONS } from '@/lib/marketplace/sell-single-conditions';
 import type { SellSingleDraft } from '@/lib/marketplace/sell-single-draft';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 
@@ -14,7 +14,7 @@ type SellSingleDetailsStepProps = {
   unitPrice: number;
   totalPrice: number;
   compact?: boolean;
-  onOpenConditionPicker: () => void;
+  onConditionChange: (value: string) => void;
 };
 
 export function SellSingleDetailsStep({
@@ -25,7 +25,7 @@ export function SellSingleDetailsStep({
   unitPrice,
   totalPrice,
   compact = false,
-  onOpenConditionPicker,
+  onConditionChange,
 }: SellSingleDetailsStepProps) {
   const formatEuro = (n: number) => formatEuroNoSpace(n, 'it-IT');
   const qty = Number.isFinite(draft.quantity) ? Math.max(1, draft.quantity) : 1;
@@ -92,16 +92,20 @@ export function SellSingleDetailsStep({
           <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
             Condizione
           </label>
-          <button
-            type="button"
-            onClick={onOpenConditionPicker}
+          <select
+            value={draft.condition}
+            onChange={(e) => onConditionChange(e.target.value)}
             className={cn(
-              'w-full truncate rounded-md border border-zinc-200 bg-zinc-50/50 px-2 py-1 text-left text-[13px] font-medium text-zinc-900 transition-colors hover:border-zinc-300',
+              'w-full truncate rounded-md border border-zinc-200 bg-zinc-50/50 px-2 py-1 text-[13px] font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10',
               compact && 'py-0.5 text-xs',
             )}
           >
-            {sellSingleConditionLabel(draft.condition)}
-          </button>
+            {SELL_SINGLE_CONDITION_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

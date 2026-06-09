@@ -63,7 +63,7 @@ export function MarketplaceOrderCard({ order }: MarketplaceOrderCardProps) {
               <p className="mt-0.5 truncate text-base font-bold text-gray-900">{title}</p>
             )}
             <p className="mt-1 text-sm text-gray-600">
-              Qtà {order.quantity} · {formatEuroNoSpace(total, 'it-IT')}
+              Qtà {order.quantity} · {formatEuroNoSpace(total, 'it-IT')} · {statusMeta.label}
             </p>
             <p className="mt-1 text-xs text-gray-500">{formatDateTime(order.created_at)}</p>
           </div>
@@ -74,6 +74,9 @@ export function MarketplaceOrderCard({ order }: MarketplaceOrderCardProps) {
               DEMO
             </span>
           )}
+          <span className="inline-flex rounded-full bg-sky-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">
+            MARKETPLACE
+          </span>
           <span
             className={cn(
               'inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',

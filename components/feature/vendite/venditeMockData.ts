@@ -13,6 +13,8 @@ export type VenditaMock = {
   stato: VenditaStato;
   trackingCode?: string;
   channel: 'marketplace' | 'asta';
+  /** Categoria derivata da channel per i badge. */
+  category: 'marketplace' | 'asta' | 'demo';
 };
 
 export type VenditaTabId = VenditaStato | 'tutte';
@@ -68,6 +70,7 @@ export const MOCK_VENDITE: VenditaMock[] = [
     buyerUsername: 'luca_collezionista',
     stato: 'in-attesa-pagamento',
     channel: 'marketplace',
+    category: 'marketplace',
   },
   {
     id: 'vnd-002',
@@ -81,6 +84,7 @@ export const MOCK_VENDITE: VenditaMock[] = [
     buyerUsername: 'mtg_vault_roma',
     stato: 'in-attesa-pagamento',
     channel: 'asta',
+    category: 'asta',
   },
   {
     id: 'vnd-003',
@@ -94,6 +98,7 @@ export const MOCK_VENDITE: VenditaMock[] = [
     buyerUsername: 'yuki_tcg',
     stato: 'in-attesa-pagamento',
     channel: 'asta',
+    category: 'asta',
   },
   {
     id: 'vnd-004',
@@ -107,6 +112,7 @@ export const MOCK_VENDITE: VenditaMock[] = [
     buyerUsername: 'poke_milano_22',
     stato: 'da-spedire',
     channel: 'marketplace',
+    category: 'marketplace',
   },
   {
     id: 'vnd-005',
@@ -120,6 +126,7 @@ export const MOCK_VENDITE: VenditaMock[] = [
     buyerUsername: 'dual_land_hunter',
     stato: 'da-spedire',
     channel: 'marketplace',
+    category: 'marketplace',
   },
   {
     id: 'vnd-006',
@@ -133,6 +140,7 @@ export const MOCK_VENDITE: VenditaMock[] = [
     buyerUsername: 'sara_cards',
     stato: 'da-spedire',
     channel: 'marketplace',
+    category: 'marketplace',
   },
   {
     id: 'vnd-007',
@@ -147,6 +155,7 @@ export const MOCK_VENDITE: VenditaMock[] = [
     stato: 'spedito',
     trackingCode: 'IT9283746512345678',
     channel: 'marketplace',
+    category: 'marketplace',
   },
   {
     id: 'vnd-008',
@@ -161,6 +170,7 @@ export const MOCK_VENDITE: VenditaMock[] = [
     stato: 'spedito',
     trackingCode: 'IT9283746512345601',
     channel: 'asta',
+    category: 'asta',
   },
   {
     id: 'vnd-009',
@@ -175,6 +185,7 @@ export const MOCK_VENDITE: VenditaMock[] = [
     stato: 'spedito',
     trackingCode: 'IT9283746512345590',
     channel: 'marketplace',
+    category: 'marketplace',
   },
   {
     id: 'vnd-010',
@@ -188,6 +199,7 @@ export const MOCK_VENDITE: VenditaMock[] = [
     buyerUsername: 'dragon_collector',
     stato: 'completato',
     channel: 'marketplace',
+    category: 'marketplace',
   },
   {
     id: 'vnd-011',
@@ -201,6 +213,7 @@ export const MOCK_VENDITE: VenditaMock[] = [
     buyerUsername: 'jund_fan_04',
     stato: 'completato',
     channel: 'asta',
+    category: 'asta',
   },
   {
     id: 'vnd-012',
@@ -214,6 +227,7 @@ export const MOCK_VENDITE: VenditaMock[] = [
     buyerUsername: 'fairy_deck_it',
     stato: 'completato',
     channel: 'marketplace',
+    category: 'marketplace',
   },
 ];
 

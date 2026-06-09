@@ -23,7 +23,7 @@ import {
 } from '@/lib/marketplace/condition-map';
 import {
   SELL_SINGLE_CONDITION_IMAGES,
-  SELL_SINGLE_CONDITION_OPTIONS,
+  sellSingleConditionLabel,
 } from '@/lib/marketplace/sell-single-conditions';
 import {
   createSellSingleDraftFromCard,
@@ -95,7 +95,6 @@ export function SellSingleWizard({
   const [qrCodeSize, setQrCodeSize] = useState(168);
 
   const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
-  const [modalCondition, setModalCondition] = useState(draft.condition);
   const [conditionLightbox, setConditionLightbox] = useState<string | null>(null);
 
   const languageOptions: CardLanguageOption[] = useMemo(
@@ -537,8 +536,8 @@ export function SellSingleWizard({
                 unitPrice={unitPrice}
                 totalPrice={totalPrice}
                 compact={isEmbedded}
-                onOpenConditionPicker={() => {
-                  setModalCondition(draft.condition);
+                onConditionChange={(value) => {
+                  update('condition', value);
                   setIsConditionModalOpen(true);
                 }}
               />
@@ -719,48 +718,31 @@ export function SellSingleWizard({
       <SellWizardModal
         open={isConditionModalOpen}
         onClose={() => setIsConditionModalOpen(false)}
-        title="Scegli la condizione"
+        title={sellSingleConditionLabel(draft.condition)}
         titleId="sell-condition-modal-title"
         size="lg"
         footer={
           <button
             type="button"
-            onClick={() => {
-              update('condition', modalCondition);
-              setIsConditionModalOpen(false);
-            }}
+            onClick={() => setIsConditionModalOpen(false)}
             className="w-full rounded-xl bg-[#FF8800] px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#FF8800]/90"
           >
-            Conferma condizione
+            Chiudi
           </button>
         }
       >
-        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-          Condizione
-        </label>
-        <select
-          value={modalCondition}
-          onChange={(e) => setModalCondition(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#FF8800] focus:outline-none focus:ring-2 focus:ring-[#FF8800]/25"
-        >
-          {SELL_SINGLE_CONDITION_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           <button
             type="button"
             className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white"
             onClick={() =>
               setConditionLightbox(
-                SELL_SINGLE_CONDITION_IMAGES[modalCondition]?.front ?? '/conditions/near-mint-front.jpeg',
+                SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.front ?? '/conditions/near-mint-front.jpeg',
               )
             }
           >
             <img
-              src={SELL_SINGLE_CONDITION_IMAGES[modalCondition]?.front ?? '/conditions/near-mint-front.jpeg'}
+              src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.front ?? '/conditions/near-mint-front.jpeg'}
               alt="Fronte"
               className="h-full w-full object-contain p-1"
             />
@@ -770,12 +752,12 @@ export function SellSingleWizard({
             className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white"
             onClick={() =>
               setConditionLightbox(
-                SELL_SINGLE_CONDITION_IMAGES[modalCondition]?.back ?? '/conditions/near-mint-back.jpeg',
+                SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.back ?? '/conditions/near-mint-back.jpeg',
               )
             }
           >
             <img
-              src={SELL_SINGLE_CONDITION_IMAGES[modalCondition]?.back ?? '/conditions/near-mint-back.jpeg'}
+              src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.back ?? '/conditions/near-mint-back.jpeg'}
               alt="Retro"
               className="h-full w-full object-contain p-1"
             />

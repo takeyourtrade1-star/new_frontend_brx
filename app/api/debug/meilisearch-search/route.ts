@@ -5,17 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-
-const MEILI_URL = (
-  process.env.NEXT_PUBLIC_MEILISEARCH_URL ||
-  process.env.VITE_MEILISEARCH_URL ||
-  ''
-).replace(/\/+$/, '');
-const MEILI_KEY =
-  process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ||
-  process.env.VITE_MEILISEARCH_API_KEY ||
-  '';
-const INDEX = process.env.NEXT_PUBLIC_MEILISEARCH_INDEX || 'cards';
+import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
 
 export async function GET(request: NextRequest) {
   if (process.env.NODE_ENV !== 'development') {
@@ -25,9 +15,11 @@ export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q') ?? '';
   const limit = Math.min(20, Math.max(1, parseInt(request.nextUrl.searchParams.get('limit') ?? '5', 10) || 5));
 
+  const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
+
   if (!MEILI_URL) {
     return NextResponse.json(
-      { error: 'Meilisearch non configurato (NEXT_PUBLIC_MEILISEARCH_URL)' },
+      { error: 'Meilisearch non configurato (MEILISEARCH_URL)' },
       { status: 503 }
     );
   }

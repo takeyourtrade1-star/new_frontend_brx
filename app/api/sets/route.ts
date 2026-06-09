@@ -5,17 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-
-const MEILI_URL = (
-  process.env.NEXT_PUBLIC_MEILISEARCH_URL ||
-  process.env.VITE_MEILISEARCH_URL ||
-  ''
-).replace(/\/+$/, '');
-const MEILI_KEY =
-  process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ||
-  process.env.VITE_MEILISEARCH_API_KEY ||
-  '';
-const INDEX = process.env.NEXT_PUBLIC_MEILISEARCH_INDEX || 'cards';
+import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
 
 const ALLOWED_GAMES = new Set(['mtg', 'pokemon', 'one-piece', 'op', 'pk', 'yugioh', '']);
 
@@ -36,9 +26,11 @@ interface MeiliSetDocument {
 }
 
 export async function GET(request: NextRequest) {
+  const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
+
   if (!MEILI_URL || !MEILI_KEY) {
     return NextResponse.json(
-      { error: 'Meilisearch non configurato (NEXT_PUBLIC_MEILISEARCH_URL / API_KEY)' },
+      { error: 'Meilisearch non configurato (MEILISEARCH_URL / API_KEY)' },
       { status: 503 }
     );
   }
