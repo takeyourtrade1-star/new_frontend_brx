@@ -1854,6 +1854,19 @@ export const en = {
   'validation.passwordMinLength12': 'Password must be at least 12 characters long',
   'validation.confirmPasswordRequired': 'Confirm your password',
   'validation.passwordMismatch': 'Passwords do not match',
+
+  // Tournaments page
+  'tournaments.heroTitle': 'The Future of Card Tournaments',
+  'tournaments.heroSubtitle': 'Play live, online. Your passion, your collection, your skill.',
+  'tournaments.playLive.title': 'Play live, online',
+  'tournaments.playLive.desc': 'Use your real cards to challenge other players from anywhere in the world. Feel the thrill and pure emotion as if you were live, with the comfort of digital.',
+  'tournaments.transparency.title': 'Total transparency',
+  'tournaments.transparency.desc': 'Cameras frame your face and hands during every match. We guarantee regularity and fair play at every level.',
+  'tournaments.prizes.title': 'Incredible prizes',
+  'tournaments.prizes.desc': 'Rare cards, coupons and special prizes up for grabs. Every tournament is an opportunity to enrich your collection.',
+  'tournaments.organizers.title': 'Who organizes',
+  'tournaments.organizers.desc': 'Tournaments created by Ebartex or by sellers to sponsor themselves. The community grows together, tournament after tournament.',
+  'tournaments.ctaButton': 'Go to tournament portal',
 } as const;
 
 export type MessageKey = keyof typeof en;

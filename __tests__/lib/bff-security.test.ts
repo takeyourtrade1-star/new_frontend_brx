@@ -28,16 +28,17 @@ function makeRequest(
     body,
   }: { method?: string; cookie?: string; body?: string } = {}
 ): NextRequest {
-  const url = `http://localhost:3000${path}`;
-  const init: RequestInit & { headers?: Record<string, string> } = { method };
+  const url = new URL(`http://localhost:3000${path}`);
   const headers: Record<string, string> = {};
   if (cookie) headers['cookie'] = cookie;
   if (body) {
     headers['content-type'] = 'application/json';
-    init.body = body;
   }
-  init.headers = headers;
-  return new NextRequest(url, init);
+  const init: RequestInit = { method, headers };
+  if (body) {
+    (init as any).body = body;
+  }
+  return new NextRequest(url, init as any);
 }
 
 /** Cookie HttpOnly valido (access token fittizio, non verificato lato BFF).
@@ -52,7 +53,7 @@ beforeEach(() => {
   // Usiamo 'development' così:
   // 1. lib/config.ts non lancia per NEXT_PUBLIC_AUTH_API_URL mancante
   // 2. Il cookie name non usa il prefisso __Host- (richiede HTTPS)
-  process.env.NODE_ENV = 'development';
+  (process.env as any).NODE_ENV = 'development';
   process.env.NEXT_PUBLIC_AUTH_API_URL = 'http://auth-api.test';
   process.env.AUCTION_API_URL = 'http://auction-api.test';
   process.env.MARKETPLACE_API_URL = 'http://marketplace-api.test';
@@ -63,7 +64,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  delete process.env.NODE_ENV;
+  delete (process.env as any).NODE_ENV;
   delete process.env.NEXT_PUBLIC_AUTH_API_URL;
   delete process.env.AUCTION_API_URL;
   delete process.env.MARKETPLACE_API_URL;

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { AiutoContent } from './aiuto-content';
 
 export const metadata = {
@@ -6,5 +7,15 @@ export const metadata = {
 };
 
 export default function AiutoPage() {
-  return <AiutoContent />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#F5F4F0]">
+          <span className="sr-only">Caricamento…</span>
+        </div>
+      }
+    >
+      <AiutoContent />
+    </Suspense>
+  );
 }

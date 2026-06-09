@@ -113,6 +113,7 @@ export function LandingBackgroundVideo({ className }: LandingBackgroundVideoProp
           style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' as const }}
         >
           <source src={videoUrl} type="video/webm" />
+          <source src={videoUrl.replace('.webm', '.mp4')} type="video/mp4" />
         </video>
       )}
 

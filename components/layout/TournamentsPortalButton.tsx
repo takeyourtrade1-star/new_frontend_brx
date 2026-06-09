@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -29,10 +30,8 @@ export function TournamentsPortalLink({
   if (variant === 'drawer') {
     return (
       <div className={cn('border-b border-orange-100 px-5 py-4 md:hidden', className)}>
-        <a
-          href={TOURNAMENTS_PORTAL_URL}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href="/tornei"
           onClick={onNavigate}
           className={cn(
             PORTAL_BTN_SHARED,
@@ -47,16 +46,14 @@ export function TournamentsPortalLink({
             aria-hidden
           />
           <span>{t('nav.tournamentsPortal')}</span>
-        </a>
+        </Link>
       </div>
     );
   }
 
   return (
-    <a
-      href={TOURNAMENTS_PORTAL_URL}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href="/tornei"
       className={cn(
         PORTAL_BTN_SHARED,
         'hidden h-9 shrink-0 rounded-full px-4 text-xs text-white md:inline-flex',
@@ -69,7 +66,7 @@ export function TournamentsPortalLink({
       <span className="whitespace-nowrap drop-shadow-[0_0_8px_rgba(255,115,0,0.35)]">
         {t('nav.tournamentsPortal')}
       </span>
-    </a>
+    </Link>
   );
 }
 

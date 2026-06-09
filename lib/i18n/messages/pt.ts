@@ -1848,4 +1848,17 @@ export const pt: Record<MessageKey, string> = {
   'validation.passwordMinLength12': 'Password must be at least 12 characters long',
   'validation.confirmPasswordRequired': 'Confirm your password',
   'validation.passwordMismatch': 'Passwords do not match',
+
+  // Página de torneios
+  'tournaments.heroTitle': 'O Futuro dos Torneios de Cartas',
+  'tournaments.heroSubtitle': 'Jogue ao vivo, online. A sua paixão, a sua coleção, a sua habilidade.',
+  'tournaments.playLive.title': 'Jogue ao vivo, online',
+  'tournaments.playLive.desc': 'Use as suas cartas reais para desafiar outros jogadores de qualquer parte do mundo. Sinta a emoção e a adrenalina pura como se estivesse ao vivo, mas com a comodidade do digital.',
+  'tournaments.transparency.title': 'Transparência total',
+  'tournaments.transparency.desc': 'Câmaras para enquadrar rosto e mãos durante cada partida. Garantimos regularidade e fair play em todos os níveis.',
+  'tournaments.prizes.title': 'Prémios incríveis',
+  'tournaments.prizes.desc': 'Cartas raras, cupões e prémios especiais em jogo. Cada torneio é uma oportunidade para enriquecer a sua coleção.',
+  'tournaments.organizers.title': 'Quem organiza',
+  'tournaments.organizers.desc': 'Torneios criados pela Ebartex ou pelos vendedores para se promoverem. A comunidade cresce junta, torneio após torneio.',
+  'tournaments.ctaButton': 'Ir para o portal de torneios',
 };

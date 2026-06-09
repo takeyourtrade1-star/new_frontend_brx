@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { VenditeContent } from '@/components/feature/vendite/VenditeContent';
 
 export const metadata = {
@@ -6,5 +7,15 @@ export const metadata = {
 };
 
 export default function VenditePage() {
-  return <VenditeContent />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#F5F4F0]">
+          <span className="sr-only">Caricamento…</span>
+        </div>
+      }
+    >
+      <VenditeContent />
+    </Suspense>
+  );
 }

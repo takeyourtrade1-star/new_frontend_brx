@@ -9,7 +9,9 @@ const withSerwist = withSerwistInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  outputFileTracingRoot: new URL('.', import.meta.url).pathname,
+  // Usa cwd come root per il file tracing; evita che Next.js inferisca la root
+  // dalla parent directory quando c'è un package-lock.json superiore.
+  outputFileTracingRoot: process.cwd().replace(/\\/g, '/'),
   // Evita fallimento build su Amplify/CI per opzioni ESLint deprecate (useEslintrc, extensions)
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
