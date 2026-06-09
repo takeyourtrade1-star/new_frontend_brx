@@ -25,15 +25,13 @@ import {
   type WardrobeItem,
 } from './mascotte-wardrobe';
 import { AssoHintBubble } from '@/components/dev/AssoHintBubble';
-import { AssoCollapseTab } from '@/components/dev/AssoCollapseTab';
+import { AssoMobileHelpButton } from '@/components/dev/AssoMobileHelpButton';
 import { useAssoBubbleQueue } from '@/hooks/useAssoBubbleQueue';
 import { useAssoTypewriter } from '@/hooks/useAssoTypewriter';
 import { ASSO_MESSAGE_CHAT_MS } from '@/lib/asso-messages';
 import {
-  ASSO_COLLAPSED_STORAGE_KEY,
   ASSO_MOBILE_MAX_WIDTH,
   getAssoBubbleBottom,
-  getInitialAssoCollapsed,
 } from '@/lib/asso-layout';
 import { TOURNAMENTS_PORTAL_URL } from '@/lib/config/tournaments';
 
@@ -1303,31 +1301,16 @@ export function CardMascotte() {
   // Sticky bar offset state (when sticky bar appears, mascot moves up)
   const [isStickyBarVisible, setIsStickyBarVisible] = useState(false);
 
-  // Utente può nascondere Asso con la freccia (persistito)
-  const [isAssoCollapsed, setIsAssoCollapsed] = useState(false);
-  const hasLoadedCollapsePref = useRef(false);
+  // Mini mode: Asso shrinks to 30% when clicking the arrow
+  const [isAssoMini, setIsAssoMini] = useState(false);
+
+  const toggleAssoMini = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsAssoMini((prev) => !prev);
+  }, []);
 
   // Mobile detection state for flip behavior
   const [isMobileView, setIsMobileView] = useState(false);
-
-  useLayoutEffect(() => {
-    if (hasLoadedCollapsePref.current) return;
-    hasLoadedCollapsePref.current = true;
-    setIsAssoCollapsed(getInitialAssoCollapsed());
-  }, []);
-
-  const toggleAssoCollapsed = useCallback(() => {
-    setIsAssoCollapsed((prev) => {
-      const next = !prev;
-      if (next) closeMascottePanels();
-      try {
-        localStorage.setItem(ASSO_COLLAPSED_STORAGE_KEY, next ? '1' : '0');
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }, [closeMascottePanels]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobileView(window.innerWidth <= ASSO_MOBILE_MAX_WIDTH);
@@ -1359,8 +1342,6 @@ export function CardMascotte() {
     // Ignore clicks on buttons inside the card (share, album, flip)
     const target = e.target as HTMLElement;
     if (target.closest('button')) return;
-
-    if (isAssoCollapsed) return;
 
     // If card is flipped, flip it back instead of opening chat
     if (isFlipped) {
@@ -1929,7 +1910,7 @@ export function CardMascotte() {
   const router = useRouter();
   const pathname = usePathname();
   const assoMessagesEnabled =
-    !isAssoCollapsed && !isModalOpen && !showChatModal && !isExternalModalOpen;
+    !isModalOpen && !showChatModal && !isExternalModalOpen;
   const assoBubble = useAssoBubbleQueue(assoMessagesEnabled);
   const scheduleCycleRef = useRef(assoBubble.scheduleCycle);
   const stopCycleRef = useRef(assoBubble.stopCycle);
@@ -2014,7 +1995,7 @@ export function CardMascotte() {
   // Ciclo messaggi promo in coda (typewriter + hold + pausa)
   useEffect(() => {
     const hintsEnabled =
-      !isAssoCollapsed && !isModalOpen && !showChatModal && activePromoHints.length > 0;
+      !isModalOpen && !showChatModal && activePromoHints.length > 0;
     if (!hintsEnabled) {
       stopCycleRef.current();
       return;
@@ -2035,7 +2016,7 @@ export function CardMascotte() {
     });
 
     return () => stopCycleRef.current();
-  }, [activePromoHints, isAssoCollapsed, isModalOpen, showChatModal, isSleeping]);
+  }, [activePromoHints, isModalOpen, showChatModal, isSleeping]);
 
   // Listen for sticky bar visibility changes
   useEffect(() => {
@@ -2180,6 +2161,12 @@ export function CardMascotte() {
     vibrate(10);
   }, [isSleepMuted, vibrate]);
 
+  // Su mobile: bottone Aiuto apre la stessa chat di Asso
+  const handleMobileHelpClick = useCallback(() => {
+    playOpenSound();
+    setShowCardLoader(true);
+  }, [playOpenSound]);
+
   // Safe render - don't render if not mounted (hydration mismatch protection)
   if (!isMounted) {
     return null;
@@ -2189,6 +2176,281 @@ export function CardMascotte() {
   if (hasError) {
     console.error('ðŸŽ´ CardMascotte has error, not rendering');
     return null;
+  }
+
+  if (isMobileView) {
+    return (
+      <>
+        {!showChatModal && !isModalOpen && !showCardLoader && (
+          <AssoMobileHelpButton isStickyBarVisible={isStickyBarVisible} onClick={handleMobileHelpClick} />
+        )}
+        {showCardLoader && (
+          <CardLoader onComplete={handleCardLoaderComplete} duration={3900} />
+        )}
+        {/* Chat Modal - same as desktop */}
+        {showChatModal && (
+          <div className="fixed inset-0 flex items-end justify-end p-4 sm:items-center sm:justify-center" style={{ zIndex: Z_INDEX.modal }}>
+            <div
+              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+              onClick={handleChatModalClose}
+            />
+            <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-lg">
+              {/* Header - Clean, minimal, no animations */}
+              <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-1 rounded-full bg-primary" />
+                  <div>
+                    <h3 className="font-comodo text-base font-medium text-zinc-900">Asso</h3>
+                    <p className="text-xs text-zinc-500">Assistente Ebartex</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleChatModalClose}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:text-zinc-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              {/* Chat Messages */}
+              <div className="max-h-[360px] min-h-[320px] overflow-y-auto bg-zinc-50 p-4">
+                {chatMessages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`mb-3 flex chat-message-in ${msg.type === 'asso' ? 'justify-start' : 'justify-end'}`}
+                    style={{ animationDelay: `${idx * 80}ms` }}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${msg.type === 'asso'
+                          ? 'rounded-tl-none bg-white text-zinc-800 border border-zinc-200'
+                          : 'rounded-tr-none bg-primary text-white'
+                        }`}
+                    >
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+                {isTyping && (
+                  <div className="mb-3 flex justify-start chat-message-in">
+                    <div className="max-w-[85%] rounded-2xl rounded-tl-none bg-white border border-zinc-200 px-4 py-3">
+                      <div className="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {chatTypewriter.isTyping && chatTypewriter.displayedText && (
+                  <div
+                    className="mb-3 flex cursor-pointer justify-start chat-message-in"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => chatTypewriter.skip()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') chatTypewriter.skip();
+                    }}
+                    title="Mostra tutto il messaggio"
+                  >
+                    <div className="max-w-[85%] rounded-2xl rounded-tl-none border border-zinc-200 bg-white px-4 py-2.5 text-sm leading-relaxed text-zinc-800">
+                      {chatTypewriter.displayedText}
+                      <span className="asso-typewriter-cursor typing-cursor ml-0.5 inline-block h-4 w-0.5 bg-primary" />
+                    </div>
+                  </div>
+                )}
+                {chatStep === 'menu' && (
+                  <div className="mt-4 space-y-2">
+                    <button
+                      onClick={() => {
+                        setChatMessages(prev => [...prev, { type: 'user', text: 'Voglio leggere le FAQ' }]);
+                        setTimeout(() => {
+                          handleChatModalClose();
+                          window.location.href = '/aiuto';
+                        }, 300);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50 menu-option-in"
+                      style={{ animationDelay: '0ms' }}
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                        <HelpCircle className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-zinc-900">Leggi le FAQ</p>
+                        <p className="text-xs text-zinc-500">Trova risposte rapide</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setChatMessages(prev => [...prev, { type: 'user', text: 'Voglio segnalare un bug' }]);
+                        setChatStep('bug');
+                        setShowChatModal(false);
+                        setShowCodingCompanion(true);
+                        setCodingStatus('compiling');
+                        setIsCodingTransition(true);
+                        if (codingTransitionTimeoutRef.current !== null) {
+                          window.clearTimeout(codingTransitionTimeoutRef.current);
+                        }
+                        codingTransitionTimeoutRef.current = window.setTimeout(() => {
+                          setIsCodingTransition(false);
+                          setIsModalOpen(true);
+                          codingTransitionTimeoutRef.current = null;
+                        }, CODING_PREVIEW_MS);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50 menu-option-in"
+                      style={{ animationDelay: '80ms' }}
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                        <Bug className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-zinc-900">Segnala un bug</p>
+                        <p className="text-xs text-zinc-500">Descrivi un problema tecnico</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setChatMessages(prev => [...prev, { type: 'user', text: 'Voglio contattare il supporto' }]);
+                        setChatStep('contact');
+                        setTimeout(() => {
+                          setShowChatModal(false);
+                          window.location.href = '/aiuto?tab=contact';
+                        }, 300);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50 menu-option-in"
+                      style={{ animationDelay: '160ms' }}
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-600">
+                        <MessageSquare className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-zinc-900">Contatta il supporto</p>
+                        <p className="text-xs text-zinc-500">Parla con il nostro team</p>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Bug Report Modal on mobile */}
+        {isModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" style={{ zIndex: Z_INDEX.modal }}>
+            <div className="w-full max-w-md rounded-2xl border border-gray-200/60 bg-white/95 p-6 shadow-2xl backdrop-blur-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <Bug className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-comodo text-lg tracking-wide text-black">Segnala un bug</h3>
+                    <p className="text-xs text-gray-500">Aiutaci a migliorare BRX</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setScreenshot(null);
+                    setSubmitted(false);
+                    setShowConsoleLogs(false);
+                    setHasConsoleLogs(false);
+                    resetCodingCompanion();
+                  }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              {!submitted ? (
+                <form
+                  onSubmit={handleSubmit}
+                  className="max-h-[70vh] overflow-y-auto pr-2"
+                >
+                  <div className="mb-3 grid gap-3 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Il tuo nome</label>
+                      <input
+                        type="text"
+                        required
+                        value={bugForm.name}
+                        onChange={(e) => setBugForm({ ...bugForm, name: e.target.value })}
+                        placeholder="Mario Rossi"
+                        className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Email</label>
+                      <input
+                        type="email"
+                        required
+                        value={bugForm.email}
+                        onChange={(e) => setBugForm({ ...bugForm, email: e.target.value })}
+                        placeholder="tua@email.com"
+                        className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Oggetto</label>
+                    <input
+                      type="text"
+                      required
+                      value={bugForm.subject}
+                      onChange={(e) => setBugForm({ ...bugForm, subject: e.target.value })}
+                      placeholder="Descrivi brevemente il problema"
+                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Descrizione dettagliata</label>
+                    <textarea
+                      required
+                      value={bugForm.message}
+                      onChange={(e) => setBugForm({ ...bugForm, message: e.target.value })}
+                      placeholder="Descrivi il problema in dettaglio..."
+                      rows={4}
+                      className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsModalOpen(false);
+                        setSubmitted(false);
+                        setScreenshot(null);
+                        setHasConsoleLogs(false);
+                        setShowConsoleLogs(false);
+                        setBugForm({ name: '', email: '', subject: '', message: '', bugType: 'functional', priority: 'medium', url: '' });
+                        resetCodingCompanion();
+                      }}
+                      className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                    >
+                      Annulla
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!bugForm.message.trim() || !bugForm.name.trim() || !bugForm.email.trim() || !bugForm.subject.trim()}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Send className="h-4 w-4" />
+                      Invia
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="py-8 text-center">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                  </div>
+                  <p className="font-medium text-black">Grazie per il feedback!</p>
+                  <p className="text-sm text-gray-500">Esamineremo la segnalazione al più presto.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </>
+    );
   }
 
   return (
@@ -2235,17 +2497,8 @@ export function CardMascotte() {
         </div>
       )}
 
-      {/* Freccia nascondi / mostra Asso */}
-      {!isExternalModalOpen && (
-        <AssoCollapseTab
-          collapsed={isAssoCollapsed}
-          isStickyBarVisible={isStickyBarVisible}
-          onToggle={toggleAssoCollapsed}
-        />
-      )}
-
       {/* Bubble messaggi Asso (promo, reazioni stile, sogno) — angolo, non copre il centro */}
-      {!isAssoCollapsed && !isModalOpen && !showChatModal && (
+      {!isModalOpen && !showChatModal && !isAssoMini && (
         <AssoHintBubble
           visible={assoBubble.isVisible}
           message={assoBubble.current}
@@ -2486,7 +2739,7 @@ export function CardMascotte() {
       )}
 
       {/* Achievement Badge */}
-      {!isAssoCollapsed && showAchievement && (
+      {showAchievement && (
         <div
           className="fixed pointer-events-none"
           style={{
@@ -2507,7 +2760,7 @@ export function CardMascotte() {
       )}
 
       {/* Combo Badge */}
-      {!isAssoCollapsed && showCombo && comboCount >= 2 && (
+      {showCombo && comboCount >= 2 && (
         <div
           className="fixed pointer-events-none"
           style={{
@@ -2525,7 +2778,7 @@ export function CardMascotte() {
       )}
 
       {/* Sleep Bubbles - Floating when sleeping */}
-      {!isAssoCollapsed && isSleeping && !isOverlayVisible && !isFlipped && !isMobileView && (
+      {isSleeping && !isOverlayVisible && !isFlipped && !isMobileView && (
         <div
           className="fixed pointer-events-none sleep-bubbles-wrapper"
           style={{
@@ -2610,7 +2863,7 @@ export function CardMascotte() {
       )}
 
       {/* Golden Confetti â€” Easter Egg at 100 flips */}
-      {!isAssoCollapsed && goldenConfetti.length > 0 && (
+      {goldenConfetti.length > 0 && (
         <div
           className="fixed pointer-events-none"
           style={{
@@ -2643,10 +2896,16 @@ export function CardMascotte() {
       )}
 
       {/* Card Mascotte */}
-      {!isAssoCollapsed && (
       <div
         ref={cardRef}
-        onClick={handleClick}
+        onClick={(e) => {
+          if (isAssoMini) {
+            e.stopPropagation();
+            setIsAssoMini(false);
+            return;
+          }
+          handleClick(e);
+        }}
         onKeyDown={handleKeyDown}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -2661,14 +2920,19 @@ export function CardMascotte() {
           width: '96px',
           height: '128px',
           perspective: '600px',
-          filter: 'drop-shadow(0 12px 32px rgba(255, 115, 0, 0.35)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4))',
-          animation: justReappeared
-            ? 'mascotteReappear 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards, mascotteFloat 3s ease-in-out infinite 500ms'
-            : 'mascotteFloat 3s ease-in-out infinite',
-          transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-in-out, transform 300ms ease-in-out',
+          filter: isAssoMini
+            ? 'drop-shadow(0 2px 6px rgba(255, 115, 0, 0.15))'
+            : 'drop-shadow(0 12px 32px rgba(255, 115, 0, 0.35)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4))',
+          animation: isAssoMini
+            ? 'none'
+            : justReappeared
+              ? 'mascotteReappear 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards, mascotteFloat 3s ease-in-out infinite 500ms'
+              : 'mascotteFloat 3s ease-in-out infinite',
+          transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-in-out, transform 300ms ease-in-out, filter 300ms ease-in-out',
           opacity: isExternalModalOpen ? 0 : 1,
           pointerEvents: isExternalModalOpen ? 'none' : 'auto',
-          transform: 'translateX(0)',
+          transform: isAssoMini ? 'scale(0.3)' : 'translateX(0)',
+          transformOrigin: 'bottom right',
         }}
         role="button"
         tabIndex={0}
@@ -2870,6 +3134,42 @@ export function CardMascotte() {
                     strokeLinejoin="round"
                   >
                     <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Shrink / Expand button: bottom-right of the card */}
+              {(isMobileView || isCardHovered || isAssoMini) && (
+                <button
+                  onClick={toggleAssoMini}
+                  className={`mascotte-shrink-btn absolute z-[11] flex items-center justify-center rounded-full border text-white shadow-md backdrop-blur-sm transition-all hover:scale-110 hover:text-white ${isMobileView
+                      ? 'h-7 w-7 border-white/45 bg-black/55 text-white'
+                      : 'h-6 w-6 border-white/20 bg-zinc-900/60 text-white/70 hover:bg-zinc-800/80'
+                    }`}
+                  style={isMobileView ? { bottom: '6px', right: '6px' } : { bottom: '2px', right: '2px' }}
+                  title={isAssoMini ? 'Ingrandisci Asso' : 'Rimpicciolisci Asso'}
+                  aria-label={isAssoMini ? 'Ingrandisci Asso' : 'Rimpicciolisci Asso'}
+                >
+                  <svg
+                    width={isMobileView ? '16' : '14'}
+                    height={isMobileView ? '16' : '14'}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    shapeRendering="geometricPrecision"
+                  >
+                    {isAssoMini ? (
+                      <>
+                        <path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" />
+                      </>
+                    ) : (
+                      <>
+                        <path d="M4 14h6v6" /><path d="M20 10h-6V4" /><path d="M14 10l7-7" /><path d="M3 21l7-7" />
+                      </>
+                    )}
                   </svg>
                 </button>
               )}
@@ -3097,7 +3397,6 @@ export function CardMascotte() {
           </div>
         )}
       </div>
-      )}
 
       {/* Bug Report Modal */}
       {isModalOpen && (

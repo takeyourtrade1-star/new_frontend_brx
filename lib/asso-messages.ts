@@ -32,5 +32,5 @@ export const ASSO_MESSAGE_CHAT_MS = {
   menuAfterGreeting: 800,
 } as const;
 
-/** Larghezza massima bubble ancorata alla mascotte (angolo, non invade il centro) */
-export const ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX = 220;
+/** Larghezza massima bubble ancorata alla mascotte: pillola piccola e discreta */
+export const ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX = 150;
