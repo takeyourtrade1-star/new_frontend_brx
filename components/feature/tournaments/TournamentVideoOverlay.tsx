@@ -4,7 +4,7 @@ import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-const VIDEO_PATH = '/videos/tournament-video-trial.webm';
+const VIDEO_PATH = '/videos/tournament-video-trial.webm?v=3';
 
 export function TournamentVideoOverlay({ onEnded }: { onEnded: () => void }) {
   const [visible, setVisible] = useState(true);

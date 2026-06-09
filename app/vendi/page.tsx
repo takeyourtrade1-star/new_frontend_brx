@@ -3,7 +3,7 @@ import { VendiLandingPage } from '@/components/feature/vendi/VendiLandingPage';
 import { Header } from '@/components/layout/Header';
 
 export const metadata = {
-  title: 'Come vendere | Ebartex',
+  title: 'Cosa Vendi? | Ebartex',
   description: 'Scegli cosa vendere: singole, oggetti sigillati o set e edizioni. Struttura guidata come su Cardmarket.',
 };
 

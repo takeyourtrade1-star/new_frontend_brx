@@ -620,7 +620,7 @@ export function HamburgerMenu() {
                 />
               </button>
               {linguaDropdownOpen && (
-                <ul className="border-t border-gray-100 bg-gray-50 py-1" role="listbox">
+                <ul className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-100 bg-white py-1 shadow-lg" role="listbox">
                   {availableLangs.map((lang) => (
                     <li key={lang} role="option" aria-selected={selectedLang === lang}>
                       <button

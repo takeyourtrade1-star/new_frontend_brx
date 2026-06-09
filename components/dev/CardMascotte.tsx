@@ -1322,19 +1322,19 @@ export function CardMascotte() {
   // Welcome message variants based on interaction history
   const welcomeMessages = useMemo(() => {
     if (!hasInteractedBefore) {
-      // First time - warm introduction
+      // First time - short and direct
       return [
-        "Ciao! Sono Asso, l'assistente di Ebartex. Come posso aiutarti oggi?",
-        "Benvenuto su Ebartex! Sono Asso, il tuo assistente personale. Cosa posso fare per te?",
-        "Ciao! Asso al tuo servizio. Pronto per aiutarti a navigare su Ebartex!"
+        "Ciao! Sono Asso. Cosa cerchi?",
+        "Benvenuto! Sono Asso, pronto ad aiutarti.",
+        "Asso al tuo servizio. Di cosa hai bisogno?"
       ];
     }
-    // Returning user - familiar, shorter greetings
+    // Returning user - very short
     return [
-      "Bentornato! Asso è qui. Cosa ti serve oggi?",
-      "Ciao di nuovo! Pronto ad aiutarti.",
-      "Asso al tuo servizio! Come posso esserti utile?",
-      "Eccomi! Cosa posso fare per te questa volta?"
+      "Bentornato! Cosa ti serve?",
+      "Ciao di nuovo! Pronto.",
+      "Eccomi! Dimmi tutto.",
+      "Asso è qui. Parla."
     ];
   }, [hasInteractedBefore]);
 
@@ -1921,7 +1921,7 @@ export function CardMascotte() {
   const promoHints = useMemo(() => [
     {
       id: 'tornei-live',
-      text: 'Lo sai cosa ci rende unici? Tornei live e logistica decentralizzata con BRX Express!',
+      text: 'Tornei live e spedizioni BRX Express. Scopri di più.',
       route: TOURNAMENTS_PORTAL_URL,
       // Glass tint color (accent only, not solid)
       accent: '#10B981',
@@ -1929,7 +1929,7 @@ export function CardMascotte() {
     },
     {
       id: 'aste',
-      text: 'Vuoi guadagnare di più dalle vendite? Perché non provi le Aste?',
+      text: 'Hai già partecipato ad un\'Asta?',
       route: '/aste',
       // Glass tint color (accent only, not solid)
       accent: '#06B6D4',
@@ -1937,7 +1937,7 @@ export function CardMascotte() {
     },
     {
       id: 'bug',
-      text: 'Segnalami un bug! Clicca qui per aiutarci a migliorare.',
+      text: 'Trovato un bug? Segnalalo qui.',
       route: '#bug-report',
       // Minimal - no accent color, just glass
       accent: null,
@@ -1956,20 +1956,16 @@ export function CardMascotte() {
 
   const styleReactionMessages = useMemo(() => ({
     outfit: [
-      'Nuovo fit, nuova era.',
-      'Questo outfit spacca, no cap.',
-      'Drip attivato: livello massimo.',
-      'Mood: main character unlocked.',
-      'Flex silenzioso ma devastante.',
-      'Sto servendo look, e si vede.',
-      'Cambio vestito, cambio vibe.',
-      'Versione premium di me: online.',
+      'Nuovo look.',
+      'Stile on point.',
+      'Outfit spacca.',
+      'Flex assicurato.',
     ],
     color: [
-      'Questo colore mi sta illegalmente bene.',
-      'Glow-up cromatico appena droppato.',
-      'Palette nuova, energia nuova.',
-      'Color match perfetto: chef\'s kiss.',
+      'Colore top.',
+      'Palette perfetta.',
+      'Energia nuova.',
+      'Chef\'s kiss.',
     ],
   }), []);
 
@@ -2274,8 +2270,8 @@ export function CardMascotte() {
                         <HelpCircle className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="font-medium text-zinc-900">Leggi le FAQ</p>
-                        <p className="text-xs text-zinc-500">Trova risposte rapide</p>
+                        <p className="font-medium text-zinc-900">FAQ</p>
+                        <p className="text-xs text-zinc-500">Risposte rapide</p>
                       </div>
                     </button>
                     <button
@@ -2302,8 +2298,8 @@ export function CardMascotte() {
                         <Bug className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="font-medium text-zinc-900">Segnala un bug</p>
-                        <p className="text-xs text-zinc-500">Descrivi un problema tecnico</p>
+                        <p className="font-medium text-zinc-900">Bug</p>
+                        <p className="text-xs text-zinc-500">Segnala un problema</p>
                       </div>
                     </button>
                     <button
@@ -2322,8 +2318,8 @@ export function CardMascotte() {
                         <MessageSquare className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="font-medium text-zinc-900">Contatta il supporto</p>
-                        <p className="text-xs text-zinc-500">Parla con il nostro team</p>
+                        <p className="font-medium text-zinc-900">Supporto</p>
+                        <p className="text-xs text-zinc-500">Scrivici</p>
                       </div>
                     </button>
                   </div>
@@ -2343,7 +2339,7 @@ export function CardMascotte() {
                   </div>
                   <div>
                     <h3 className="font-comodo text-lg tracking-wide text-black">Segnala un bug</h3>
-                    <p className="text-xs text-gray-500">Aiutaci a migliorare BRX</p>
+                    <p className="text-xs text-gray-500">Aiutaci a migliorare</p>
                   </div>
                 </div>
                 <button
@@ -3746,8 +3742,8 @@ export function CardMascotte() {
                       <HelpCircle className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="font-medium text-zinc-900">Leggi le FAQ</p>
-                      <p className="text-xs text-zinc-500">Trova risposte rapide</p>
+                      <p className="font-medium text-zinc-900">FAQ</p>
+                      <p className="text-xs text-zinc-500">Risposte rapide</p>
                     </div>
                   </button>
 
@@ -3777,8 +3773,8 @@ export function CardMascotte() {
                       <Bug className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="font-medium text-zinc-900">Segnala un bug</p>
-                      <p className="text-xs text-zinc-500">Descrivi un problema tecnico</p>
+                      <p className="font-medium text-zinc-900">Bug</p>
+                      <p className="text-xs text-zinc-500">Segnala un problema</p>
                     </div>
                   </button>
 
@@ -3798,8 +3794,8 @@ export function CardMascotte() {
                       <MessageSquare className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="font-medium text-zinc-900">Contatta supporto</p>
-                      <p className="text-xs text-zinc-500">Scrivi al nostro team</p>
+                      <p className="font-medium text-zinc-900">Supporto</p>
+                      <p className="text-xs text-zinc-500">Scrivici</p>
                     </div>
                   </button>
                 </div>
@@ -3809,7 +3805,7 @@ export function CardMascotte() {
             {/* Footer - Clean */}
             <div className="border-t border-zinc-200 bg-white px-4 py-3">
               <p className="text-center text-xs text-zinc-400">
-                Asso è qui per aiutarti. Scegli un&apos;opzione sopra.
+                Scegli un&apos;opzione.
               </p>
             </div>
           </div>

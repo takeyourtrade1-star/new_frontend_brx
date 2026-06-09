@@ -10,6 +10,7 @@ import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { RarityIndicator } from '@/components/ui/RarityIndicator';
 import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
 import type { GameSlug } from '@/lib/search/category-mapping';
+import { cn } from '@/lib/utils';
 
 const BACKEND_LANG_ORDER = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
 type SupportedLang = (typeof BACKEND_LANG_ORDER)[number];
@@ -48,6 +49,7 @@ export type SearchResultsTableProps = {
   formatPrice?: (hit: SearchHit) => string;
   formatAvailable?: (hit: SearchHit) => string;
   buildProductHref?: (id: string) => string;
+  exactMatchIds?: Set<string>;
 };
 
 export function SearchResultsTable({
@@ -61,6 +63,7 @@ export function SearchResultsTable({
   formatPrice,
   formatAvailable,
   buildProductHref,
+  exactMatchIds,
 }: SearchResultsTableProps) {
   const router = useRouter();
 
@@ -106,6 +109,8 @@ export function SearchResultsTable({
             const priceLabel = formatPrice?.(hit) ?? '–';
             const availableLabel = formatAvailable?.(hit) ?? '–';
 
+            const isExact = exactMatchIds?.has(hit.id) ?? false;
+
             return (
               <tr
                 key={hit.id}
@@ -113,7 +118,10 @@ export function SearchResultsTable({
                 tabIndex={0}
                 onClick={() => router.push(productHref)}
                 onKeyDown={(e) => e.key === 'Enter' && router.push(productHref)}
-                className="search-result-row border-b border-gray-100/90 cursor-pointer outline-none"
+                className={cn(
+                  'search-result-row border-b border-gray-100/90 cursor-pointer outline-none',
+                  isExact && 'bg-[#FF8800]/5 border-l-4 border-l-[#FF8800]'
+                )}
               >
                 <td className="search-results-td pl-2 pr-0 align-middle min-w-0">
                   <div className="flex items-center justify-start gap-1 min-w-0">

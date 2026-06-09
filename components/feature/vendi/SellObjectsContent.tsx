@@ -19,7 +19,7 @@ export function SellObjectsContent() {
       subtitle={t('vendi.products.chooseType')}
       breadcrumbItems={breadcrumbItems}
     >
-      <div className="mx-auto flex max-w-[1400px] flex-wrap items-stretch justify-center gap-8 px-2 sm:gap-10 lg:gap-12">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 px-2 max-w-[1400px] mx-auto">
         {VENDI_OBJECT_CATEGORIES.map((category) => (
           <ListingMethodCard
             key={category.id}
@@ -28,6 +28,10 @@ export function SellObjectsContent() {
             imageAlt={t(category.titleKey)}
             title={t(category.titleKey)}
             size="large"
+            background={category.style?.background}
+            glowColor={category.style?.glowColor}
+              imagePosition={category.style?.imagePosition}
+              fullCard={category.fullCard}
           />
         ))}
       </div>

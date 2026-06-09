@@ -11,6 +11,10 @@ type ListingMethodCardProps = {
   title: string;
   className?: string;
   size?: 'default' | 'large';
+  background?: string;
+  glowColor?: string;
+  imagePosition?: string;
+  fullCard?: boolean;
 };
 
 const SIZE_STYLES = {
@@ -21,10 +25,10 @@ const SIZE_STYLES = {
     sizes: '(max-width: 640px) 50vw, 220px',
   },
   large: {
-    card: 'w-full max-w-[300px] sm:max-w-[340px] lg:max-w-[380px]',
-    image: 'aspect-[5/4] min-h-[220px] sm:min-h-[260px]',
+    card: 'w-full max-w-[240px] sm:max-w-[280px] lg:max-w-[320px]',
+    image: 'aspect-[3/4] min-h-[260px] sm:min-h-[320px]',
     label: 'min-h-[72px] px-4 py-5 text-lg sm:text-xl',
-    sizes: '(max-width: 640px) 90vw, 380px',
+    sizes: '(max-width: 640px) 90vw, 320px',
   },
 } as const;
 
@@ -35,6 +39,10 @@ export function ListingMethodCard({
   title,
   className,
   size = 'default',
+  background,
+  glowColor,
+  imagePosition = 'center',
+  fullCard,
 }: ListingMethodCardProps) {
   const styles = SIZE_STYLES[size];
 
@@ -42,29 +50,33 @@ export function ListingMethodCard({
     <Link
       href={href}
       className={cn(
-        'group flex flex-col overflow-hidden rounded border border-gray-200 bg-white shadow-sm transition-all duration-200',
-        'hover:border-[#1D3160]/25 hover:shadow-lg hover:-translate-y-0.5',
+        'group flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.05)] transition-all duration-300',
+        'hover:border-white/20 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300] focus-visible:ring-offset-2',
         styles.card,
         className
       )}
+      style={background ? { background } : undefined}
     >
-      <div className={cn('relative w-full overflow-hidden bg-[#f8f9fb]', styles.image)}>
+      <div className={cn('relative w-full overflow-hidden flex items-center justify-center', styles.image, fullCard ? 'p-0' : 'p-4')}>
         <Image
           src={imageSrc}
           alt={imageAlt}
           fill
-          className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          className={cn("transition-transform duration-300 group-hover:scale-[1.03]", fullCard ? "object-cover" : "object-contain")}
           sizes={styles.sizes}
+          objectPosition={imagePosition}
+          unoptimized
         />
-      </div>
-      <div
-        className={cn(
-          'flex items-center justify-center border-t border-gray-100',
-          styles.label
-        )}
-      >
-        <span className="text-center font-bold text-[#1D3160]">{title}</span>
+        <div className="absolute inset-0 bg-black/40 transition-all duration-300 group-hover:bg-black/10 group-hover:backdrop-blur-[2px]" />
+        <span 
+          className="absolute z-10 text-center font-bold text-white transition-all duration-300 group-hover:scale-110 font-display text-2xl sm:text-3xl"
+          style={glowColor ? { textShadow: '0 2px 12px rgba(0,0,0,0.45)', ['--glow-color' as string]: glowColor } : { textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}
+        >
+          <span className="block transition-all duration-300 group-hover:[text-shadow:0_0_20px_rgba(var(--glow-color),0.9),0_0_40px_rgba(var(--glow-color),0.6),0_2px_12px_rgba(0,0,0,0.45)]">
+            {title}
+          </span>
+        </span>
       </div>
     </Link>
   );
