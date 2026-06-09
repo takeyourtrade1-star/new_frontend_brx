@@ -4,7 +4,7 @@ import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-const VIDEO_PATH = '/videos/tournament-video-trial.mp4';
+const VIDEO_PATH = '/videos/tournament-video-trial.webm';
 
 export function TournamentVideoOverlay({ onEnded }: { onEnded: () => void }) {
   const [visible, setVisible] = useState(true);
@@ -45,7 +45,7 @@ export function TournamentVideoOverlay({ onEnded }: { onEnded: () => void }) {
             disableRemotePlayback
             style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
           >
-            <source src={VIDEO_PATH} type="video/mp4" />
+            <source src={VIDEO_PATH} type="video/webm" />
           </video>
         </motion.div>
       )}

@@ -5,7 +5,7 @@
  * filtri in sidebar, titolo minimale, risultati con logo set come /search.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -68,6 +68,9 @@ const SORT_DEFS: { value: string; labelKey: MessageKey }[] = [
 const fieldClass =
   'min-h-[40px] w-full rounded-[12px] border border-gray-200 bg-[#f2f2f7] px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#5AC8FA]/30';
 
+const fieldClassLarge =
+  'min-h-[48px] w-full rounded-[16px] border-2 border-gray-200 bg-[#f2f2f7] px-4 py-3 text-base text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#5AC8FA]/30 focus:border-[#5AC8FA]/50';
+
 interface SearchApiResponse {
   hits: SearchHit[];
   total: number;
@@ -84,6 +87,81 @@ type SinglesHit = SearchHit & {
 };
 
 const BRAND_ORANGE = '#FF8800';
+
+/* ── Animated typewriter placeholder (copia semplificata da GlobalSearchBar) ── */
+const SELL_ROTATING_WORDS = [
+  'cerca un prodotto...',
+  'Black Lotus...',
+  'booster box...',
+  'Mox Pearl...',
+  'espansione nuova...',
+  'carte rare...',
+];
+
+const TYPE_SPEED = 60;
+const DELETE_SPEED = 35;
+const PAUSE_AFTER_TYPE = 2200;
+const PAUSE_AFTER_DELETE = 400;
+
+function AnimatedSearchPlaceholder({ visible }: { visible: boolean }) {
+  const [wordIndex, setWordIndex] = useState(0);
+  const [displayText, setDisplayText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const tick = useCallback(() => {
+    const currentWord = SELL_ROTATING_WORDS[wordIndex];
+
+    if (!isDeleting) {
+      const nextText = currentWord.slice(0, displayText.length + 1);
+      setDisplayText(nextText);
+
+      if (nextText === currentWord) {
+        timeoutRef.current = setTimeout(() => setIsDeleting(true), PAUSE_AFTER_TYPE);
+        return;
+      }
+      timeoutRef.current = setTimeout(tick, TYPE_SPEED);
+    } else {
+      const nextText = currentWord.slice(0, displayText.length - 1);
+      setDisplayText(nextText);
+
+      if (nextText === '') {
+        setIsDeleting(false);
+        setWordIndex((prev) => (prev + 1) % SELL_ROTATING_WORDS.length);
+        timeoutRef.current = setTimeout(tick, PAUSE_AFTER_DELETE);
+        return;
+      }
+      timeoutRef.current = setTimeout(tick, DELETE_SPEED);
+    }
+  }, [wordIndex, displayText, isDeleting]);
+
+  useEffect(() => {
+    if (!visible) return;
+    timeoutRef.current = setTimeout(tick, TYPE_SPEED);
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [tick, visible]);
+
+  useEffect(() => {
+    if (!visible) {
+      setDisplayText('');
+      setIsDeleting(false);
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 flex items-center whitespace-nowrap overflow-hidden px-4 py-3 text-base select-none"
+      aria-hidden="true"
+    >
+      <span className="text-[#FF8800]">{displayText}</span>
+      <span className="inline-block w-[2px] h-[1.1em] ml-[1px] align-middle animate-blink-caret bg-[#FF8800]/80" />
+    </div>
+  );
+}
 
 export interface ProductCategoryViewProps {
   game: GameSlug | null;
@@ -141,7 +219,8 @@ export function ProductCategoryView({
   const [raritaInput, setRaritaInput] = useState('');
   const [isRarityOpen, setIsRarityOpen] = useState(false);
   const [data, setData] = useState<SearchApiResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [loading, setLoading] = useState(!sellFlow);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -197,8 +276,10 @@ export function ProductCategoryView({
   }, [apiGame, nomeInput, edizioneInput, categoryIds, categoryId, pageParam, sortParam]);
 
   useEffect(() => {
-    fetchResults();
-  }, [fetchResults]);
+    if (!sellFlow || hasSearched) {
+      fetchResults();
+    }
+  }, [fetchResults, sellFlow, hasSearched]);
 
   const total = data?.total ?? 0;
   const hits = (data?.hits ?? []) as SinglesHit[];
@@ -206,6 +287,9 @@ export function ProductCategoryView({
   const totalPages = data?.totalPages ?? 1;
 
   const handleCerca = () => {
+    if (sellFlow && !hasSearched) {
+      setHasSearched(true);
+    }
     router.push(buildUrl({ q: nomeInput.trim(), set: edizioneInput.trim(), page: '1' }));
   };
 
@@ -226,37 +310,104 @@ export function ProductCategoryView({
         <div className="container-content px-4 sm:px-6 py-4">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
             {/* Sidebar filtri */}
-            <aside className="w-full shrink-0 lg:w-56 xl:w-64">
-              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sticky top-4">
-                <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-gray-500">
-                  {t('search.filtersSheetTitle')}
-                </p>
-                <div className="flex flex-col gap-3">
-                  <label className="flex flex-col gap-1">
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
-                      {t('search.filterEdition')}
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={edizioneInput}
-                        onChange={(e) => setEdizioneInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
-                        placeholder={t('search.filterEdition')}
-                        className={fieldClass}
-                      />
-                      {edizioneInput && (
+            <aside className={cn(
+              'w-full shrink-0 transition-all duration-300',
+              sellFlow && !hasSearched
+                ? 'lg:w-full xl:w-full flex items-center justify-center lg:min-h-[60vh]'
+                : 'lg:w-56 xl:w-64'
+            )}>
+              <div className={cn(
+                'transition-all duration-300',
+                sellFlow && !hasSearched
+                  ? 'p-8 lg:p-12 flex flex-col justify-center items-center w-full max-w-2xl'
+                  : 'rounded-xl border border-gray-200 bg-white shadow-sm p-4 sticky top-4'
+              )}>
+                {(!sellFlow || hasSearched) && (
+                  <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-gray-500">
+                    {t('search.filtersSheetTitle')}
+                  </p>
+                )}
+                <div className={cn(
+                  'flex flex-col gap-3 w-full',
+                  sellFlow && !hasSearched ? 'max-w-xl' : ''
+                )}>
+                  {/* Ricerca rapida (solo in flusso vendi) */}
+                  {sellFlow && (
+                    <div className={cn(
+                      'flex flex-col gap-4',
+                      sellFlow && !hasSearched ? 'w-full' : ''
+                    )}>
+                      <div className="relative">
+                        <AnimatedSearchPlaceholder visible={sellFlow && !hasSearched && !nomeInput} />
+                        <input
+                          type="text"
+                          value={nomeInput}
+                          onChange={(e) => setNomeInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
+                          placeholder={sellFlow && !hasSearched ? '' : 'Cerca prodotto...'}
+                          className={sellFlow && !hasSearched 
+                            ? 'min-h-[56px] w-full rounded-full border-2 border-gray-300 bg-white px-6 py-3 text-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF8800]/30 focus:border-[#FF8800]/50 shadow-sm'
+                            : fieldClass
+                          }
+                        />
+                        {nomeInput && (
+                          <button
+                            type="button"
+                            onClick={() => setNomeInput('')}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
+                            aria-label="Cancella ricerca rapida"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                      
+                      {sellFlow && !hasSearched && (
                         <button
                           type="button"
-                          onClick={() => setEdizioneInput('')}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
-                          aria-label="Cancella edizione"
+                          onClick={handleCerca}
+                          className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-[#FF8800] px-6 text-sm font-semibold text-white transition-all hover:bg-orange-600 hover:shadow-md active:scale-95"
                         >
-                          <X className="h-3.5 w-3.5" />
+                          <Search className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                          Cerca
                         </button>
                       )}
+                      
+                      {sellFlow && !hasSearched && (
+                        <p className="text-center text-sm text-gray-500 mt-2">
+                          Per pubblicare un articolo, cerca il prodotto
+                        </p>
+                      )}
                     </div>
-                  </label>
+                  )}
+
+                  {(!sellFlow || hasSearched) && (
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                        {t('search.filterEdition')}
+                      </span>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={edizioneInput}
+                          onChange={(e) => setEdizioneInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
+                          placeholder={t('search.filterEdition')}
+                          className={sellFlow && !hasSearched ? fieldClassLarge : fieldClass}
+                        />
+                        {edizioneInput && (
+                          <button
+                            type="button"
+                            onClick={() => setEdizioneInput('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
+                            aria-label="Cancella edizione"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </label>
+                  )}
 
                   {categorySlug === 'singles' && !sellFlow && (
                     <label className="flex flex-col gap-1 relative">
@@ -344,7 +495,12 @@ export function ProductCategoryView({
                   <button
                     type="button"
                     onClick={handleCerca}
-                    className="mt-1 flex min-h-[40px] w-full items-center justify-center gap-2 rounded-[12px] bg-[#FF8800] px-4 text-sm font-bold text-white transition-colors hover:bg-orange-600"
+                    className={cn(
+                      'mt-1 flex w-full items-center justify-center gap-2 rounded-[12px] bg-[#FF8800] px-4 font-bold text-white transition-colors hover:bg-orange-600',
+                      sellFlow && !hasSearched
+                        ? 'min-h-[52px] text-base rounded-[16px]'
+                        : 'min-h-[40px] text-sm'
+                    )}
                   >
                     <Search className="h-4 w-4 shrink-0" strokeWidth={2.5} />
                     {t('search.searchBtn')}
@@ -354,8 +510,11 @@ export function ProductCategoryView({
             </aside>
 
             {/* Contenuto principale */}
-            <div className="min-w-0 flex-1">
-              {!loading && !error && (
+            <div className={cn(
+              'min-w-0 flex-1',
+              sellFlow && !hasSearched ? 'hidden' : ''
+            )}>
+              {(!sellFlow || hasSearched) && !loading && !error && (
                 <SearchResultsToolbar
                   className="mb-4"
                   total={total}
@@ -369,7 +528,7 @@ export function ProductCategoryView({
                 />
               )}
 
-              {(loading || error) && (
+              {(!sellFlow || hasSearched) && (loading || error) && (
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
                   <p className="text-sm text-gray-700">
                     <strong>{total}</strong> {t('search.results')}
@@ -377,103 +536,105 @@ export function ProductCategoryView({
                 </div>
               )}
 
-              <div className="overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm search-results-card">
-                {error && (
-                  <div className="p-6 text-center text-red-600 bg-red-50">{error}</div>
-                )}
-                {loading && (
-                  <div className="p-12 text-center text-gray-500">{t('search.loading')}</div>
-                )}
-                {!loading && !error && hits.length === 0 && (
-                  <div className="p-12 text-center text-gray-500">{t('search.noResults')}</div>
-                )}
+              {(!sellFlow || hasSearched) && (
+                <div className="overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm search-results-card">
+                  {error && (
+                    <div className="p-6 text-center text-red-600 bg-red-50">{error}</div>
+                  )}
+                  {loading && (
+                    <div className="p-12 text-center text-gray-500">{t('search.loading')}</div>
+                  )}
+                  {!loading && !error && hits.length === 0 && (
+                    <div className="p-12 text-center text-gray-500">{t('search.noResults')}</div>
+                  )}
 
-                {!loading && !error && hits.length > 0 && viewMode === 'list' && (
-                  <SearchResultsTable
-                    hits={hits}
-                    selectedLang={selectedLang}
-                    gameSlug={mappingGameSlug}
-                    t={t}
-                    editionVariant="icon"
-                    showCardDetails={showCardDetails}
-                    formatPrice={(hit) => formatEuro((hit as SinglesHit).market_price)}
-                    buildProductHref={sellFlow ? productHrefBuilder : undefined}
-                  />
-                )}
+                  {!loading && !error && hits.length > 0 && viewMode === 'list' && (
+                    <SearchResultsTable
+                      hits={hits}
+                      selectedLang={selectedLang}
+                      gameSlug={mappingGameSlug}
+                      t={t}
+                      editionVariant="icon"
+                      showCardDetails={showCardDetails}
+                      formatPrice={(hit) => formatEuro((hit as SinglesHit).market_price)}
+                      buildProductHref={sellFlow ? productHrefBuilder : undefined}
+                    />
+                  )}
 
-                {!loading && !error && hits.length > 0 && viewMode === 'grid' && (
-                  <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {hits.map((hit) => {
-                      const imgUrl = getCardImageUrl(hit.image ?? null);
-                      const { primary, secondary } = getDisplayNames(hit, selectedLang);
-                      return (
-                        <Link
-                          key={hit.id}
-                          href={productHrefBuilder(hit.id)}
-                          className="group border border-gray-200 rounded-lg bg-white p-3 hover:border-[#FF8800] hover:shadow-md transition-all"
-                        >
-                          <div className="relative aspect-[63/88] overflow-hidden rounded bg-gray-100 mb-2">
-                            {imgUrl ? (
-                              <Image
-                                src={imgUrl}
-                                alt={primary}
-                                fill
-                                className="object-contain group-hover:scale-105 transition-transform"
-                                sizes="(max-width:640px) 50vw, 25vw"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                                No img
-                              </div>
+                  {!loading && !error && hits.length > 0 && viewMode === 'grid' && (
+                    <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {hits.map((hit) => {
+                        const imgUrl = getCardImageUrl(hit.image ?? null);
+                        const { primary, secondary } = getDisplayNames(hit, selectedLang);
+                        return (
+                          <Link
+                            key={hit.id}
+                            href={productHrefBuilder(hit.id)}
+                            className="group border border-gray-200 rounded-lg bg-white p-3 hover:border-[#FF8800] hover:shadow-md transition-all"
+                          >
+                            <div className="relative aspect-[63/88] overflow-hidden rounded bg-gray-100 mb-2">
+                              {imgUrl ? (
+                                <Image
+                                  src={imgUrl}
+                                  alt={primary}
+                                  fill
+                                  className="object-contain group-hover:scale-105 transition-transform"
+                                  sizes="(max-width:640px) 50vw, 25vw"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                                  No img
+                                </div>
+                              )}
+                            </div>
+                            <p className="font-semibold text-gray-900 text-sm line-clamp-2">{primary}</p>
+                            {secondary && (
+                              <p className="text-xs text-gray-500 line-clamp-1">{secondary}</p>
                             )}
-                          </div>
-                          <p className="font-semibold text-gray-900 text-sm line-clamp-2">{primary}</p>
-                          {secondary && (
-                            <p className="text-xs text-gray-500 line-clamp-1">{secondary}</p>
-                          )}
-                          {hit.set_name && (
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{hit.set_name}</p>
-                          )}
-                          <p className="font-semibold text-sm mt-1" style={{ color: BRAND_ORANGE }}>
-                            Da {formatEuro((hit as SinglesHit).market_price)}
-                          </p>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
+                            {hit.set_name && (
+                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{hit.set_name}</p>
+                            )}
+                            <p className="font-semibold text-sm mt-1" style={{ color: BRAND_ORANGE }}>
+                              Da {formatEuro((hit as SinglesHit).market_price)}
+                            </p>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
 
-                {!loading && !error && totalPages > 1 && (
-                  <div
-                    className="flex items-center justify-center gap-2 py-4 px-4 text-white"
-                    style={{ backgroundColor: BRAND_ORANGE }}
-                  >
-                    <Link
-                      href={buildUrl({ page: String(Math.max(1, currentPage - 1)) })}
-                      className={cn(
-                        'p-2 rounded transition-opacity',
-                        currentPage <= 1 ? 'opacity-50 pointer-events-none' : 'hover:opacity-90'
-                      )}
-                      aria-label="Pagina precedente"
+                  {!loading && !error && totalPages > 1 && (
+                    <div
+                      className="flex items-center justify-center gap-2 py-4 px-4 text-white"
+                      style={{ backgroundColor: BRAND_ORANGE }}
                     >
-                      <ChevronLeft className="w-5 h-5" />
-                    </Link>
-                    <span className="px-4 font-bold uppercase text-sm">
-                      Pagina {currentPage} di {totalPages}
-                    </span>
-                    <Link
-                      href={buildUrl({ page: String(Math.min(totalPages, currentPage + 1)) })}
-                      className={cn(
-                        'p-2 rounded transition-opacity',
-                        currentPage >= totalPages ? 'opacity-50 pointer-events-none' : 'hover:opacity-90'
-                      )}
-                      aria-label="Pagina successiva"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </Link>
-                  </div>
-                )}
-              </div>
+                      <Link
+                        href={buildUrl({ page: String(Math.max(1, currentPage - 1)) })}
+                        className={cn(
+                          'p-2 rounded transition-opacity',
+                          currentPage <= 1 ? 'opacity-50 pointer-events-none' : 'hover:opacity-90'
+                        )}
+                        aria-label="Pagina precedente"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </Link>
+                      <span className="px-4 font-bold uppercase text-sm">
+                        Pagina {currentPage} di {totalPages}
+                      </span>
+                      <Link
+                        href={buildUrl({ page: String(Math.min(totalPages, currentPage + 1)) })}
+                        className={cn(
+                          'p-2 rounded transition-opacity',
+                          currentPage >= totalPages ? 'opacity-50 pointer-events-none' : 'hover:opacity-90'
+                        )}
+                        aria-label="Pagina successiva"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

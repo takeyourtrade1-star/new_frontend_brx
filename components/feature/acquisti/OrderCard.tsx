@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { Clock, Mail, ShieldAlert, Truck, CheckCircle2, XCircle, ArrowRightLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ExpandableCard } from '@/components/shared/ExpandableCard';
 import type { OrderAPI, OrderStatus } from '@/types/order';
 
 const STATUS_BADGES: Record<
@@ -92,11 +93,8 @@ function relativeTime(targetIso: string | null): { label: string; isOverdue: boo
 
 export interface OrderCardProps {
   order: OrderAPI;
-  /** When true the card surfaces the buyer's perspective (buy now button); when
-   * false the seller perspective (waiting for payment). */
   perspective: 'buyer' | 'seller';
   onPay?: (order: OrderAPI) => void;
-  /** Disable the "Paga ora" CTA while a request is in flight. */
   paying?: boolean;
   onOpenDispute?: (order: OrderAPI) => void;
   openingDispute?: boolean;
@@ -124,62 +122,63 @@ export function OrderCard({
     (order.status === 'PAYMENT_PENDING' || order.status === 'PAYMENT_OVERDUE');
   const StatusIcon = badge.Icon;
 
-  return (
-    <article className="flex flex-col gap-4 border border-gray-200 bg-white p-5 sm:flex-row sm:items-start sm:justify-between">
-      <div className="flex-1 space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide',
-              badge.cls,
-            )}
-          >
-            <StatusIcon className="h-3.5 w-3.5" aria-hidden />
+  const summary = (
+    <div className="flex items-start gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F5F4F0] text-[#FF7300]">
+        <StatusIcon className="h-5 w-5" aria-hidden />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-sm font-semibold text-gray-900 truncate">
+            <Link href={`/aste/${order.auction_id}`} className="hover:text-[#FF7300] hover:underline">
+              {order.auction_title || `Asta #${order.auction_id}`}
+            </Link>
+          </h3>
+          <span className="text-sm font-bold text-gray-900 shrink-0">{eurFmt.format(order.total_amount)}</span>
+        </div>
+        <div className="mt-0.5 flex items-center gap-1 text-xs text-gray-600">
+          <Mail className="h-3.5 w-3.5" aria-hidden />
+          {perspective === 'buyer' ? 'Venditore' : 'Acquirente'}:
+          <span className="font-medium text-gray-800">{counterparty}</span>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide', badge.cls)}>
+            <StatusIcon className="h-3 w-3" aria-hidden />
             {badge.label}
           </span>
-          <span className="text-xs text-gray-500">Ordine #{order.id}</span>
           <span className="inline-flex rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-purple-700">
             ASTA
           </span>
-        </div>
-
-        <h3 className="text-lg font-semibold text-gray-900">
-          <Link href={`/aste/${order.auction_id}`} className="hover:underline">
-            {order.auction_title || `Asta #${order.auction_id}`}
-          </Link>
-        </h3>
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
-          <span className="flex items-center gap-1">
-            <Mail className="h-4 w-4" aria-hidden />
-            {perspective === 'buyer' ? 'Venditore' : 'Acquirente'}: <strong className="text-gray-800">{counterparty}</strong>
-          </span>
-          {order.due_at && (
-            <span className={cn('flex items-center gap-1', dueRelative.isOverdue ? 'text-red-700' : 'text-gray-600')}>
-              <Clock className="h-4 w-4" aria-hidden />
-              {dueRelative.isOverdue ? 'Scaduto da ' : 'Scade tra '}
-              <strong>{dueRelative.label}</strong>
-              <span className="text-gray-400">({formatDateTime(order.due_at)})</span>
+          {order.due_at && dueRelative.isOverdue && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-700">
+              <Clock className="h-3 w-3" aria-hidden />
+              Scaduto
             </span>
           )}
         </div>
       </div>
+    </div>
+  );
 
-      <div className="flex flex-col items-stretch gap-2 sm:items-end">
-        <div className="text-right">
-          <div className="text-xs uppercase tracking-wide text-gray-500">Totale</div>
-          <div className="text-2xl font-bold text-gray-900">
-            {eurFmt.format(order.total_amount)}
-          </div>
+  const details = (
+    <div className="space-y-3">
+      {order.due_at && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+          <span className={cn('flex items-center gap-1', dueRelative.isOverdue ? 'text-red-700' : 'text-gray-600')}>
+            <Clock className="h-3.5 w-3.5" aria-hidden />
+            {dueRelative.isOverdue ? 'Scaduto da ' : 'Scade tra '}
+            <strong>{dueRelative.label}</strong>
+          </span>
+          <span className="text-gray-400">({formatDateTime(order.due_at)})</span>
         </div>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
         {canPay && onPay && (
           <button
             type="button"
             onClick={() => onPay(order)}
             disabled={paying}
-            className={cn(
-              'inline-flex items-center justify-center rounded-md bg-[#FF7300] px-4 py-2 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#e56500] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40 disabled:cursor-not-allowed disabled:opacity-60',
-            )}
+            className="inline-flex items-center justify-center rounded-md bg-[#FF7300] px-4 py-2 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#e56500] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {paying ? 'Pagamento…' : 'Paga ora'}
           </button>
@@ -189,17 +188,17 @@ export function OrderCard({
             type="button"
             onClick={() => onOpenDispute(order)}
             disabled={openingDispute}
-            className={cn(
-              'inline-flex items-center justify-center rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-bold uppercase tracking-wide text-red-700 transition-colors hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400/30 disabled:cursor-not-allowed disabled:opacity-60',
-            )}
+            className="inline-flex items-center justify-center rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-bold uppercase tracking-wide text-red-700 transition-colors hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400/30 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {openingDispute ? 'Apertura…' : 'Apri contestazione'}
           </button>
         )}
-        {order.status === 'PAID' && (
-          <span className="text-xs text-emerald-700">Pagato il {formatDateTime(order.paid_at)}</span>
-        )}
       </div>
-    </article>
+      {order.status === 'PAID' && (
+        <p className="text-xs text-emerald-700">Pagato il {formatDateTime(order.paid_at)}</p>
+      )}
+    </div>
   );
+
+  return <ExpandableCard summary={summary} details={details} />;
 }

@@ -2,6 +2,7 @@
 
 import { Clock, Package, Truck, CheckCircle2, User, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ExpandableCard } from '@/components/shared/ExpandableCard';
 import type { VenditaMock } from './venditeMockData';
 
 function formatPrice(price: number): string {
@@ -66,66 +67,61 @@ export function VenditeSaleCard({ vendita, showStatoBadge = false }: VenditeSale
   const catBadge = CATEGORY_BADGES[vendita.category];
   const StatusIcon = badge.Icon;
 
-  return (
-    <article className="flex flex-col gap-4 border border-gray-200 bg-white p-5 sm:flex-row sm:items-start sm:justify-between">
-      <div className="flex-1 space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
+  const summary = (
+    <div className="flex items-start gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F5F4F0] text-[#FF7300]">
+        <Package className="h-5 w-5" aria-hidden />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-sm font-semibold text-gray-900 truncate">{vendita.itemName}</h3>
+          <span className="text-sm font-bold text-gray-900 shrink-0">{formatPrice(vendita.price)}</span>
+        </div>
+        <div className="mt-0.5 flex items-center gap-1 text-xs text-gray-600">
+          <User className="h-3.5 w-3.5" aria-hidden />
+          <span className="font-medium text-gray-800">@{vendita.buyerUsername}</span>
+        </div>
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide',
+              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
               badge.cls,
             )}
           >
-            <StatusIcon className="h-3.5 w-3.5" aria-hidden />
+            <StatusIcon className="h-3 w-3" aria-hidden />
             {badge.label}
           </span>
-          <span className="text-xs text-gray-500">Ordine {vendita.orderId}</span>
           <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide', catBadge.cls)}>
             {catBadge.label}
           </span>
         </div>
-
-        <h3 className="text-lg font-semibold text-gray-900">
-          {vendita.itemName}
-        </h3>
-
-        <p className="text-sm text-gray-600">
-          {vendita.setName} · {vendita.condition}
-        </p>
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
-          <span className="flex items-center gap-1">
-            <User className="h-4 w-4" aria-hidden />
-            Acquirente: <strong className="text-gray-800">@{vendita.buyerUsername}</strong>
-          </span>
-          <span className="flex items-center gap-1">
-            <Mail className="h-4 w-4" aria-hidden />
-            {vendita.language}
-          </span>
-          <span className="text-xs text-gray-500">
-            {formatDateTime(vendita.soldAt)}
-          </span>
-        </div>
-
-        {vendita.trackingCode && (
-          <p className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-white/50 px-2.5 py-1 text-xs text-gray-600 ring-1 ring-gray-200">
-            <Truck className="h-3.5 w-3.5 text-blue-600" aria-hidden />
-            Tracking{' '}
-            <span className="font-mono text-[11px] font-medium text-gray-900">
-              {vendita.trackingCode}
-            </span>
-          </p>
-        )}
       </div>
-
-      <div className="flex flex-col items-stretch gap-2 sm:items-end">
-        <div className="text-right">
-          <div className="text-xs uppercase tracking-wide text-gray-500">Importo</div>
-          <div className="text-2xl font-bold text-gray-900">
-            {formatPrice(vendita.price)}
-          </div>
-        </div>
-      </div>
-    </article>
+    </div>
   );
+
+  const details = (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+        <span className="flex items-center gap-1">
+          <Mail className="h-3.5 w-3.5" aria-hidden />
+          {vendita.language}
+        </span>
+        <span className="text-gray-500">{formatDateTime(vendita.soldAt)}</span>
+      </div>
+      <p className="text-sm text-gray-600">
+        {vendita.setName} · {vendita.condition}
+      </p>
+      {vendita.trackingCode && (
+        <p className="inline-flex items-center gap-1.5 rounded-lg bg-white/50 px-2.5 py-1 text-xs text-gray-600 ring-1 ring-gray-200">
+          <Truck className="h-3.5 w-3.5 text-blue-600" aria-hidden />
+          Tracking{' '}
+          <span className="font-mono text-[11px] font-medium text-gray-900">
+            {vendita.trackingCode}
+          </span>
+        </p>
+      )}
+    </div>
+  );
+
+  return <ExpandableCard summary={summary} details={details} />;
 }

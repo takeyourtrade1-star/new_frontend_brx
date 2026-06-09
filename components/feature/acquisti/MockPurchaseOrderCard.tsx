@@ -6,6 +6,7 @@ import { Package, CreditCard } from 'lucide-react';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { getCdnImageUrl } from '@/lib/config';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { ExpandableCard } from '@/components/shared/ExpandableCard';
 import {
   getMockOrderTotalCents,
   type MockPurchaseOrder,
@@ -47,75 +48,64 @@ export function MockPurchaseOrderCard({
   const productHref = order.cardId ? `/products/${order.cardId}` : null;
   const imageSrc = resolveImageSrc(order.imageUrl);
 
-  return (
-    <article className="border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-[#F5F4F0] ring-1 ring-black/5">
-            {imageSrc ? (
-              <Image
-                src={imageSrc}
-                alt={order.title}
-                fill
-                className="object-contain p-0.5"
-                sizes="40px"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-[#FF7300]">
-                <Package className="h-5 w-5" aria-hidden />
-              </div>
-            )}
+  const summary = (
+    <div className="flex items-start gap-3">
+      <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-lg bg-[#F5F4F0] ring-1 ring-black/5">
+        {imageSrc ? (
+          <Image
+            src={imageSrc}
+            alt={order.title}
+            fill
+            className="object-contain p-0.5"
+            sizes="40px"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-[#FF7300]">
+            <Package className="h-5 w-5" aria-hidden />
           </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-              {t('mockCheckout.demoOrderLabel')} · #{order.id.slice(0, 8)}
-            </p>
-            {productHref ? (
-              <Link
-                href={productHref}
-                className="mt-0.5 block truncate text-base font-bold text-gray-900 hover:text-[#FF7300] hover:underline"
-              >
-                {order.title}
-              </Link>
-            ) : (
-              <p className="mt-0.5 truncate text-base font-bold text-gray-900">{order.title}</p>
-            )}
-            {order.sellerDisplayName && (
-              <p className="mt-0.5 text-xs text-gray-500">{order.sellerDisplayName}</p>
-            )}
-            <p className="mt-1 text-sm text-gray-600">
-              Qtà {order.quantity} · {formatEuroNoSpace(total, 'it-IT')} · {isPending ? t('mockCheckout.statusPending') : t('mockCheckout.statusPaid')}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">{formatDateTime(order.createdAt)}</p>
-            {!isPending && order.paidAt && (
-              <p className="mt-1 text-xs font-medium text-emerald-700">
-                {t('mockCheckout.paidAt', { date: formatDateTime(order.paidAt) })}
-              </p>
-            )}
-          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          {productHref ? (
+            <Link href={productHref} className="text-sm font-semibold text-gray-900 hover:text-[#FF7300] hover:underline truncate">
+              {order.title}
+            </Link>
+          ) : (
+            <h3 className="text-sm font-semibold text-gray-900 truncate">{order.title}</h3>
+          )}
+          <span className="text-sm font-bold text-gray-900 shrink-0">{formatEuroNoSpace(total, 'it-IT')}</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex rounded-full bg-blue-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-            DEMO
-          </span>
-          <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-700">
-            DEMO
-          </span>
+        {order.sellerDisplayName && (
+          <p className="mt-0.5 text-xs text-gray-500 truncate">{order.sellerDisplayName}</p>
+        )}
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              'inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
-              isPending
-                ? 'bg-amber-100 text-amber-800'
-                : 'bg-emerald-100 text-emerald-800',
+              'inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+              isPending ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800',
             )}
           >
             {isPending ? t('mockCheckout.statusPending') : t('mockCheckout.statusPaid')}
           </span>
+          <span className="inline-flex rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+            DEMO
+          </span>
         </div>
       </div>
+    </div>
+  );
 
+  const details = (
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500">{formatDateTime(order.createdAt)}</p>
+      {!isPending && order.paidAt && (
+        <p className="text-xs font-medium text-emerald-700">
+          {t('mockCheckout.paidAt', { date: formatDateTime(order.paidAt) })}
+        </p>
+      )}
       {isPending && onPay && (
-        <div className="mt-4 flex justify-end border-t border-gray-100 pt-4">
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={() => onPay(order)}
@@ -127,6 +117,8 @@ export function MockPurchaseOrderCard({
           </button>
         </div>
       )}
-    </article>
+    </div>
   );
+
+  return <ExpandableCard summary={summary} details={details} />;
 }

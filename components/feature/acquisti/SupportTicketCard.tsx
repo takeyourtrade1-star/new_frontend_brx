@@ -2,6 +2,7 @@
 
 import { MessageCircle, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ExpandableCard } from '@/components/shared/ExpandableCard';
 import type { MockSupportTicket } from '@/lib/stores/mock-support-store';
 import type { DisputeAPI, DisputeStatus } from '@/types/dispute';
 
@@ -47,73 +48,80 @@ export function SupportTicketCard({ ticket }: SupportTicketCardProps) {
     const d = ticket.data;
     const meta = getDisputeBadgeMeta(d.status);
     const StatusIcon = meta.Icon;
-    return (
-      <article className="flex flex-col gap-4 border border-gray-200 bg-white p-5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide', meta.cls)}>
-              <StatusIcon className="h-3.5 w-3.5" aria-hidden />
+
+    const summary = (
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F5F4F0] text-[#FF7300]">
+          <StatusIcon className="h-5 w-5" aria-hidden />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-sm font-semibold text-gray-900 truncate">Ordine #{d.order_id}</h3>
+            <span className="text-xs font-bold text-gray-900 shrink-0">
+              {d.status === 'OPEN' ? 'In corso' : 'Chiusa'}
+            </span>
+          </div>
+          <p className="mt-0.5 text-xs text-gray-500">Segnalazione #{d.id}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide', meta.cls)}>
+              <StatusIcon className="h-3 w-3" aria-hidden />
               {meta.label}
             </span>
-            <span className="text-xs text-gray-500">Segnalazione #{d.id}</span>
             <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-600">
               REALE
             </span>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            Ordine #{d.order_id}
-          </h3>
-          <p className="text-sm text-gray-600">
-            Aperta il {formatDateTime(d.created_at)}
-          </p>
         </div>
-        <div className="flex flex-col items-stretch gap-2 sm:items-end">
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wide text-gray-500">Stato</div>
-            <div className="text-xl font-bold text-gray-900">
-              {d.status === 'OPEN' ? 'In corso' : 'Chiusa'}
-            </div>
-          </div>
-        </div>
-      </article>
+      </div>
     );
+
+    const details = (
+      <p className="text-sm text-gray-600">Aperta il {formatDateTime(d.created_at)}</p>
+    );
+
+    return <ExpandableCard summary={summary} details={details} />;
   }
 
   const m = ticket.data;
   const meta = BADGE_META[m.status];
   const StatusIcon = meta.Icon;
 
-  return (
-    <article className="flex flex-col gap-4 border border-gray-200 bg-white p-5 sm:flex-row sm:items-start sm:justify-between">
-      <div className="flex-1 space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide', meta.cls)}>
-            <StatusIcon className="h-3.5 w-3.5" aria-hidden />
+  const summary = (
+    <div className="flex items-start gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F5F4F0] text-[#FF7300]">
+        <StatusIcon className="h-5 w-5" aria-hidden />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-sm font-semibold text-gray-900 truncate">{m.title}</h3>
+          <span className="text-xs font-bold text-gray-900 shrink-0">
+            {m.status === 'OPEN' ? 'In corso' : 'Chiusa'}
+          </span>
+        </div>
+        <p className="mt-0.5 text-xs text-gray-500">Ordine {m.orderId}</p>
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide', meta.cls)}>
+            <StatusIcon className="h-3 w-3" aria-hidden />
             {meta.label}
           </span>
-          <span className="text-xs text-gray-500">#{m.id.slice(0, 8)}</span>
           <span className="inline-flex rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
             DEMO
           </span>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900">{m.title}</h3>
-        <p className="text-sm text-gray-600">{m.description}</p>
-        <p className="text-xs text-gray-500">
-          Ordine {m.orderId} · Categoria: {m.category}
-        </p>
-        <p className="text-xs text-gray-500">Aperta il {formatDateTime(m.createdAt)}</p>
-        {m.resolvedAt && (
-          <p className="text-xs text-emerald-700">Risolto il {formatDateTime(m.resolvedAt)}</p>
-        )}
       </div>
-      <div className="flex flex-col items-stretch gap-2 sm:items-end">
-        <div className="text-right">
-          <div className="text-xs uppercase tracking-wide text-gray-500">Stato</div>
-          <div className="text-xl font-bold text-gray-900">
-            {m.status === 'OPEN' ? 'In corso' : 'Chiusa'}
-          </div>
-        </div>
-      </div>
-    </article>
+    </div>
   );
+
+  const details = (
+    <div className="space-y-2">
+      <p className="text-sm text-gray-600">{m.description}</p>
+      <p className="text-xs text-gray-500">Categoria: {m.category}</p>
+      <p className="text-xs text-gray-500">Aperta il {formatDateTime(m.createdAt)}</p>
+      {m.resolvedAt && (
+        <p className="text-xs text-emerald-700">Risolto il {formatDateTime(m.resolvedAt)}</p>
+      )}
+    </div>
+  );
+
+  return <ExpandableCard summary={summary} details={details} />;
 }

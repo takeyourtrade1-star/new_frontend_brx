@@ -36,12 +36,17 @@ import { MockPurchaseOrderCard } from './MockPurchaseOrderCard';
 import { MockPaymentFormModal } from './MockPaymentFormModal';
 import { CartPreviewSection } from './CartPreviewSection';
 import { SupportTicketCard } from './SupportTicketCard';
+import {
+  MockShippingOrder,
+  MockShippingOrderCard,
+} from './MockShippingOrderCard';
+import { SupportRequestModal } from './SupportRequestModal';
 
 const TABS_LEFT = [
   { id: 'da-pagare', label: 'DA PAGARE' },
-  { id: 'pagato', label: 'PAGATO' },
-  { id: 'inviato', label: 'INVIATO' },
-  { id: 'ricevuto', label: 'RICEVUTO' },
+  { id: 'pagato', label: 'PAGATI' },
+  { id: 'inviato', label: 'IN ARRIVO' },
+  { id: 'ricevuto', label: 'RICEVUTI' },
   { id: 'acquisti', label: 'ACQUISTI' },
 ] as const;
 
@@ -69,7 +74,7 @@ const STATUSES_BY_TAB: Record<TabId, OrderStatus[] | undefined> = {
 const EMPTY_MESSAGE_BY_TAB: Record<TabId, string> = {
   'da-pagare': 'Nessun ordine da pagare al momento.',
   pagato: 'Nessun ordine pagato.',
-  inviato: 'Nessun ordine in spedizione.',
+  inviato: 'Nessun ordine in arrivo.',
   ricevuto: 'Nessun ordine ricevuto.',
   acquisti: 'Non hai ancora effettuato acquisti.',
   supporto: 'Nessuna segnalazione aperta.',
@@ -121,6 +126,16 @@ function filterMockByTab(
   return [];
 }
 
+function filterShippingByTab(
+  orders: MockShippingOrder[],
+  tab: TabId,
+): MockShippingOrder[] {
+  if (tab === 'acquisti') return orders;
+  if (tab === 'inviato') return orders.filter((o) => o.status === 'in_transit');
+  if (tab === 'ricevuto') return orders.filter((o) => o.status === 'received');
+  return [];
+}
+
 export function AcquistiContent() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
@@ -137,6 +152,34 @@ export function AcquistiContent() {
   const mockOrders = useMockPurchaseStore((s) => s.orders);
   const markPaid = useMockPurchaseStore((s) => s.markPaid);
   const cartItems = useCartStore((s) => s.items);
+
+  const [mockShippingOrders, setMockShippingOrders] = useState<MockShippingOrder[]>([
+    {
+      id: 'mock-ship-1',
+      title: 'Black Lotus (Alpha)',
+      quantity: 1,
+      priceCents: 150000,
+      sellerDisplayName: 'Collezione MTG Vintage',
+      imageUrl: '',
+      shippedAt: new Date(Date.now() - 5 * 86400000).toISOString(),
+      shippingDays: 5,
+      status: 'in_transit',
+    },
+    {
+      id: 'mock-ship-2',
+      title: 'Mox Pearl (Beta)',
+      quantity: 1,
+      priceCents: 85000,
+      sellerDisplayName: 'Rarità Vintage Shop',
+      imageUrl: '',
+      shippedAt: new Date(Date.now() - 18 * 86400000).toISOString(),
+      shippingDays: 18,
+      status: 'in_transit',
+    },
+  ]);
+
+  const [supportModalOpen, setSupportModalOpen] = useState(false);
+  const [supportModalOrder, setSupportModalOrder] = useState<MockShippingOrder | null>(null);
 
   const mockPendingOrders = useMemo(
     () => mockOrders.filter((o) => o.status === 'payment_pending'),
@@ -160,6 +203,8 @@ export function AcquistiContent() {
   const isSupportoTab = activeTab === 'supporto';
   const isDaPagareTab = activeTab === 'da-pagare';
   const isPagatoTab = activeTab === 'pagato';
+  const isInArrivoTab = activeTab === 'inviato';
+  const isRicevutoTab = activeTab === 'ricevuto';
   const statuses = STATUSES_BY_TAB[activeTab];
   const ordersQuery = useBuyerOrders(
     { statuses, limit: 50, offset: 0 },
@@ -205,6 +250,11 @@ export function AcquistiContent() {
   const filteredMockOrders = useMemo(
     () => filterMockByTab(mockOrders, activeTab),
     [mockOrders, activeTab],
+  );
+
+  const filteredShippingOrders = useMemo(
+    () => filterShippingByTab(mockShippingOrders, activeTab),
+    [mockShippingOrders, activeTab],
   );
 
   const [disputes, setDisputes] = useState<DisputeAPI[]>([]);
@@ -285,8 +335,49 @@ export function AcquistiContent() {
     setShowCheckoutHint(true);
   };
 
+  const handleShippingReceived = (orderId: string) => {
+    setMockShippingOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: 'received' as const } : o)),
+    );
+  };
+
+  const handleShippingNotReceived = (order: MockShippingOrder) => {
+    setSupportModalOrder(order);
+    setSupportModalOpen(true);
+  };
+
+  const handleSupportModalSubmit = ({
+    title,
+    description,
+  }: {
+    title: string;
+    description: string;
+  }) => {
+    if (!supportModalOrder) return;
+    useMockSupportStore.getState().addTicket({
+      orderId: supportModalOrder.id,
+      status: 'OPEN',
+      title,
+      description,
+      category: 'contestazione',
+    });
+    setMockShippingOrders((prev) =>
+      prev.map((o) =>
+        o.id === supportModalOrder.id ? { ...o, status: 'delayed' as const } : o,
+      ),
+    );
+    setSupportModalOpen(false);
+    setSupportModalOrder(null);
+  };
+
   const totalItemsCount =
-    orders.length + filteredMarketplaceOrders.length + filteredMockOrders.length;
+    orders.length + filteredMarketplaceOrders.length + filteredMockOrders.length + filteredShippingOrders.length;
+
+  const hasInArrivoContent =
+    isInArrivoTab && (filteredShippingOrders.length > 0 || orders.length > 0 || filteredMarketplaceOrders.length > 0);
+
+  const hasRicevutoContent =
+    isRicevutoTab && (filteredShippingOrders.length > 0 || orders.length > 0 || filteredMarketplaceOrders.length > 0);
 
   const renderOrdersContent = () => {
     const isLoading = ordersQuery.isLoading || marketplaceLoading;
@@ -431,6 +522,83 @@ export function AcquistiContent() {
           <p className="text-center text-xs text-gray-500">
             {totalItemsCount} ordin{totalItemsCount === 1 ? 'e' : 'i'} pagati
           </p>
+        </div>
+      );
+    }
+
+    if (isInArrivoTab) {
+      if (!hasInArrivoContent && !ordersQuery.isLoading) {
+        return (
+          <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 border border-gray-200 bg-white px-6 py-12">
+            <p className="text-center text-base font-semibold uppercase tracking-wide text-gray-500">
+              {emptyMessage}
+            </p>
+          </div>
+        );
+      }
+      return (
+        <div className="space-y-4">
+          {filteredShippingOrders.map((order) => (
+            <MockShippingOrderCard
+              key={order.id}
+              order={order}
+              onReceived={handleShippingReceived}
+              onNotReceived={handleShippingNotReceived}
+            />
+          ))}
+          {filteredMarketplaceOrders.map((order) => (
+            <MarketplaceOrderCard key={order.id} order={order} />
+          ))}
+          {ordersQuery.isLoading ? (
+            <div className="flex min-h-[120px] items-center justify-center border border-gray-200 bg-white">
+              <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
+            </div>
+          ) : (
+            orders.map((order) => (
+              <OrderCard key={order.id} order={order} perspective="buyer" />
+            ))
+          )}
+          {totalItemsCount > 0 && (
+            <p className="text-center text-xs text-gray-500">
+              {totalItemsCount} ordin{totalItemsCount === 1 ? 'e' : 'i'} in arrivo
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (isRicevutoTab) {
+      if (!hasRicevutoContent && !ordersQuery.isLoading) {
+        return (
+          <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 border border-gray-200 bg-white px-6 py-12">
+            <p className="text-center text-base font-semibold uppercase tracking-wide text-gray-500">
+              {emptyMessage}
+            </p>
+          </div>
+        );
+      }
+      return (
+        <div className="space-y-4">
+          {filteredShippingOrders.map((order) => (
+            <MockShippingOrderCard key={order.id} order={order} />
+          ))}
+          {filteredMarketplaceOrders.map((order) => (
+            <MarketplaceOrderCard key={order.id} order={order} />
+          ))}
+          {ordersQuery.isLoading ? (
+            <div className="flex min-h-[120px] items-center justify-center border border-gray-200 bg-white">
+              <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
+            </div>
+          ) : (
+            orders.map((order) => (
+              <OrderCard key={order.id} order={order} perspective="buyer" />
+            ))
+          )}
+          {totalItemsCount > 0 && (
+            <p className="text-center text-xs text-gray-500">
+              {totalItemsCount} ordin{totalItemsCount === 1 ? 'e' : 'i'} ricevuti
+            </p>
+          )}
         </div>
       );
     }
@@ -608,6 +776,17 @@ export function AcquistiContent() {
           if (!mockPaying) setMockOrderToPay(null);
         }}
         onConfirm={handleConfirmMockPayment}
+      />
+
+      <SupportRequestModal
+        isOpen={supportModalOpen}
+        onClose={() => {
+          setSupportModalOpen(false);
+          setSupportModalOrder(null);
+        }}
+        orderTitle={supportModalOrder?.title ?? ''}
+        orderId={supportModalOrder?.id ?? ''}
+        onSubmit={handleSupportModalSubmit}
       />
     </div>
   );
