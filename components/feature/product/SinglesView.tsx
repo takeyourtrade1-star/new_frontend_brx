@@ -89,28 +89,79 @@ type SinglesHit = SearchHit & {
 const BRAND_ORANGE = '#FF8800';
 
 /* ── Animated typewriter placeholder (copia semplificata da GlobalSearchBar) ── */
-const SELL_ROTATING_WORDS = [
-  'cerca un prodotto...',
-  'Black Lotus...',
-  'booster box...',
-  'Mox Pearl...',
-  'espansione nuova...',
-  'carte rare...',
-];
-
 const TYPE_SPEED = 60;
 const DELETE_SPEED = 35;
 const PAUSE_AFTER_TYPE = 2200;
 const PAUSE_AFTER_DELETE = 400;
 
-function AnimatedSearchPlaceholder({ visible }: { visible: boolean }) {
+function getPlaceholderWords(categorySlug: string): string[] {
+  switch (categorySlug) {
+    case 'singles':
+      return [
+        'cerca una carta...',
+        'Black Lotus...',
+        'Mox Pearl...',
+        'Ancestral Recall...',
+        'Time Walk...',
+        'Tarmogoyf...',
+        'Snapcaster Mage...',
+      ];
+    case 'boosters':
+      return [
+        'cerca un booster...',
+        'Booster Box...',
+        'Draft Booster...',
+        'Set Booster...',
+        'Collector Booster...',
+        'Bundle...',
+      ];
+    case 'sealed':
+      return [
+        'cerca un prodotto sigillato...',
+        'Commander Deck...',
+        'Starter Deck...',
+        'Preconstructed...',
+        'Fat Pack...',
+        'Gift Bundle...',
+      ];
+    case 'lots':
+      return [
+        'cerca un lotto...',
+        'Lot of cards...',
+        'Collection...',
+        'Bulk...',
+        'Playset...',
+        'Bundle cards...',
+      ];
+    case 'accessories':
+      return [
+        'cerca un accessorio...',
+        'Sleeves...',
+        'Deck box...',
+        'Playmat...',
+        'Binder...',
+        'Toploader...',
+      ];
+    default:
+      return [
+        'cerca un prodotto...',
+        'Black Lotus...',
+        'Booster Box...',
+        'Mox Pearl...',
+      ];
+  }
+}
+
+function AnimatedSearchPlaceholder({ visible, categorySlug }: { visible: boolean; categorySlug: string }) {
   const [wordIndex, setWordIndex] = useState(0);
   const [displayText, setDisplayText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const words = useMemo(() => getPlaceholderWords(categorySlug), [categorySlug]);
+
   const tick = useCallback(() => {
-    const currentWord = SELL_ROTATING_WORDS[wordIndex];
+    const currentWord = words[wordIndex];
 
     if (!isDeleting) {
       const nextText = currentWord.slice(0, displayText.length + 1);
@@ -127,13 +178,13 @@ function AnimatedSearchPlaceholder({ visible }: { visible: boolean }) {
 
       if (nextText === '') {
         setIsDeleting(false);
-        setWordIndex((prev) => (prev + 1) % SELL_ROTATING_WORDS.length);
+        setWordIndex((prev) => (prev + 1) % words.length);
         timeoutRef.current = setTimeout(tick, PAUSE_AFTER_DELETE);
         return;
       }
       timeoutRef.current = setTimeout(tick, DELETE_SPEED);
     }
-  }, [wordIndex, displayText, isDeleting]);
+  }, [wordIndex, displayText, isDeleting, words]);
 
   useEffect(() => {
     if (!visible) return;
@@ -154,7 +205,7 @@ function AnimatedSearchPlaceholder({ visible }: { visible: boolean }) {
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 flex items-center whitespace-nowrap overflow-hidden px-4 py-3 text-base select-none"
+      className="pointer-events-none absolute inset-0 flex items-center whitespace-nowrap overflow-hidden px-6 py-3 text-lg select-none"
       aria-hidden="true"
     >
       <span className="text-[#FF8800]">{displayText}</span>
@@ -218,6 +269,7 @@ export function ProductCategoryView({
   const [edizioneInput, setEdizioneInput] = useState(setFilter);
   const [raritaInput, setRaritaInput] = useState('');
   const [isRarityOpen, setIsRarityOpen] = useState(false);
+  const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
   const [data, setData] = useState<SearchApiResponse | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(!sellFlow);
@@ -282,9 +334,60 @@ export function ProductCategoryView({
   }, [fetchResults, sellFlow, hasSearched]);
 
   const total = data?.total ?? 0;
-  const hits = (data?.hits ?? []) as SinglesHit[];
+  const rawHits = (data?.hits ?? []) as SinglesHit[];
   const currentPage = data?.page ?? 1;
   const totalPages = data?.totalPages ?? 1;
+
+  const availableSets = useMemo(() => {
+    const names = new Set<string>();
+    rawHits.forEach((hit) => {
+      if (hit.set_name) names.add(hit.set_name);
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [rawHits]);
+
+  // Ordina hits: match esatti prima, poi parziali
+  const { hits, exactMatchIds } = useMemo(() => {
+    const searchName = nomeInput.trim().toLowerCase();
+    const searchSet = edizioneInput.trim().toLowerCase();
+    const ids = new Set<string>();
+    
+    if (!searchName && !searchSet) {
+      return { hits: rawHits, exactMatchIds: ids };
+    }
+
+    const sorted = [...rawHits].sort((a, b) => {
+      const aName = (a.name ?? '').toLowerCase();
+      const bName = (b.name ?? '').toLowerCase();
+      const aSet = (a.set_name ?? '').toLowerCase();
+      const bSet = (b.set_name ?? '').toLowerCase();
+      
+      const aNameMatch = searchName ? aName.includes(searchName) : true;
+      const bNameMatch = searchName ? bName.includes(searchName) : true;
+      const aSetMatch = searchSet ? aSet.includes(searchSet) : true;
+      const bSetMatch = searchSet ? bSet.includes(searchSet) : true;
+      
+      const aExact = aNameMatch && aSetMatch;
+      const bExact = bNameMatch && bSetMatch;
+      
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      return 0;
+    });
+
+    sorted.forEach((hit) => {
+      const name = (hit.name ?? '').toLowerCase();
+      const set = (hit.set_name ?? '').toLowerCase();
+      const nameMatch = searchName ? name.includes(searchName) : true;
+      const setMatch = searchSet ? set.includes(searchSet) : true;
+      if (nameMatch && setMatch) {
+        ids.add(hit.id);
+      }
+    });
+
+    return { hits: sorted, exactMatchIds: ids };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.hits, nomeInput, edizioneInput]);
 
   const handleCerca = () => {
     if (sellFlow && !hasSearched) {
@@ -296,16 +399,22 @@ export function ProductCategoryView({
   const formatEuro = (n: number | undefined) =>
     n != null ? formatEuroNoSpace(n, 'it-IT') : '–';
 
-  const pageTitle = title.toUpperCase();
+  const pageTitle = useMemo(() => {
+    const key = `products.category.${categorySlug}` as MessageKey;
+    const translated = t(key);
+    return translated === key ? title.toUpperCase() : translated.toUpperCase();
+  }, [categorySlug, title, t]);
 
   return (
     <RarityLegendProvider>
       <section className="min-h-screen pb-12 bg-[#F0F0F0]">
-        <div className="container-content px-4 sm:px-6 pt-6 pb-2">
-          <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-wide text-gray-900">
-            {pageTitle}
-          </h1>
-        </div>
+        {(!sellFlow || hasSearched) && (
+          <div className="container-content px-4 sm:px-6 pt-6 pb-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-wide text-gray-900">
+              {pageTitle}
+            </h1>
+          </div>
+        )}
 
         <div className="container-content px-4 sm:px-6 py-4">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
@@ -329,33 +438,56 @@ export function ProductCategoryView({
                 )}
                 <div className={cn(
                   'flex flex-col gap-3 w-full',
-                  sellFlow && !hasSearched ? 'max-w-xl' : ''
+                  sellFlow && !hasSearched ? 'max-w-2xl' : ''
                 )}>
                   {/* Ricerca rapida (solo in flusso vendi) */}
                   {sellFlow && (
                     <div className={cn(
                       'flex flex-col gap-4',
-                      sellFlow && !hasSearched ? 'w-full' : ''
+                      sellFlow && !hasSearched ? 'w-full items-center' : ''
                     )}>
-                      <div className="relative">
-                        <AnimatedSearchPlaceholder visible={sellFlow && !hasSearched && !nomeInput} />
-                        <input
-                          type="text"
-                          value={nomeInput}
-                          onChange={(e) => setNomeInput(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
-                          placeholder={sellFlow && !hasSearched ? '' : 'Cerca prodotto...'}
-                          className={sellFlow && !hasSearched 
-                            ? 'min-h-[56px] w-full rounded-full border-2 border-gray-300 bg-white px-6 py-3 text-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF8800]/30 focus:border-[#FF8800]/50 shadow-sm'
-                            : fieldClass
-                          }
-                        />
-                        {nomeInput && (
+                      {sellFlow && !hasSearched && (
+                        <h2 className="text-4xl lg:text-5xl font-black text-[#FF8800] tracking-tight uppercase text-center mb-2">
+                          {pageTitle}
+                        </h2>
+                      )}
+                      
+                      <div className="relative w-full">
+                        <AnimatedSearchPlaceholder visible={sellFlow && !hasSearched && !nomeInput} categorySlug={categorySlug} />
+                        <div className={cn(
+                          'flex items-center gap-3',
+                          sellFlow && !hasSearched ? 'w-full max-w-2xl mx-auto' : ''
+                        )}>
+                          <input
+                            type="text"
+                            value={nomeInput}
+                            onChange={(e) => setNomeInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
+                            placeholder={sellFlow && !hasSearched ? '' : t('search.quickSearchPlaceholder')}
+                            className={sellFlow && !hasSearched 
+                              ? 'min-h-[56px] flex-1 rounded-full border-2 border-[#FF8800] bg-white px-6 py-3 text-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF8800]/30 shadow-sm'
+                              : fieldClass
+                            }
+                          />
+                          
+                          {sellFlow && !hasSearched && (
+                            <button
+                              type="button"
+                              onClick={handleCerca}
+                              className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full bg-[#FF8800] text-white transition-all hover:bg-orange-600 hover:shadow-md active:scale-95"
+                              aria-label={t('search.searchBtn')}
+                            >
+                              <Search className="h-5 w-5" strokeWidth={2.5} />
+                            </button>
+                          )}
+                        </div>
+                        
+                        {nomeInput && (!sellFlow || hasSearched) && (
                           <button
                             type="button"
                             onClick={() => setNomeInput('')}
                             className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
-                            aria-label="Cancella ricerca rapida"
+                            aria-label={t('search.clearQuickSearch')}
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -363,19 +495,8 @@ export function ProductCategoryView({
                       </div>
                       
                       {sellFlow && !hasSearched && (
-                        <button
-                          type="button"
-                          onClick={handleCerca}
-                          className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-[#FF8800] px-6 text-sm font-semibold text-white transition-all hover:bg-orange-600 hover:shadow-md active:scale-95"
-                        >
-                          <Search className="h-4 w-4 shrink-0" strokeWidth={2.5} />
-                          Cerca
-                        </button>
-                      )}
-                      
-                      {sellFlow && !hasSearched && (
                         <p className="text-center text-sm text-gray-500 mt-2">
-                          Per pubblicare un articolo, cerca il prodotto
+                          {t('search.sellSearchHint')}
                         </p>
                       )}
                     </div>
@@ -390,24 +511,63 @@ export function ProductCategoryView({
                         <input
                           type="text"
                           value={edizioneInput}
-                          onChange={(e) => setEdizioneInput(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
+                          onChange={(e) => {
+                            setEdizioneInput(e.target.value);
+                            setIsSetDropdownOpen(true);
+                          }}
+                          onFocus={() => { if (availableSets.length > 0) setIsSetDropdownOpen(true); }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') { setIsSetDropdownOpen(false); handleCerca(); }
+                            if (e.key === 'Escape') setIsSetDropdownOpen(false);
+                          }}
                           placeholder={t('search.filterEdition')}
-                          className={sellFlow && !hasSearched ? fieldClassLarge : fieldClass}
+                          className={cn(fieldClass, edizioneInput ? 'pr-7' : '')}
                         />
                         {edizioneInput && (
                           <button
                             type="button"
-                            onClick={() => setEdizioneInput('')}
+                            onClick={() => { setEdizioneInput(''); setIsSetDropdownOpen(false); }}
                             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
-                            aria-label="Cancella edizione"
+                            aria-label={t('search.clearEdition')}
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
                         )}
+                        {isSetDropdownOpen && availableSets.length > 0 && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setIsSetDropdownOpen(false)} />
+                            <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-50 max-h-52 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                              {availableSets
+                                .filter((s) => !edizioneInput.trim() || s.toLowerCase().includes(edizioneInput.toLowerCase()))
+                                .map((set) => (
+                                  <button
+                                    key={set}
+                                    type="button"
+                                    className={cn(
+                                      'w-full px-3 py-2 text-left text-sm text-gray-900 hover:bg-orange-50 transition-colors',
+                                      edizioneInput === set && 'bg-[#FF8800]/15 font-semibold'
+                                    )}
+                                    onClick={() => {
+                                      setEdizioneInput(set);
+                                      setIsSetDropdownOpen(false);
+                                      router.push(buildUrl({ q: nomeInput.trim(), set, page: '1' }));
+                                    }}
+                                  >
+                                    {set}
+                                  </button>
+                                ))}
+                              {availableSets.filter((s) => !edizioneInput.trim() || s.toLowerCase().includes(edizioneInput.toLowerCase())).length === 0 && (
+                                <div className="px-3 py-2 text-sm text-gray-500">
+                                  {t('search.noResults')}
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </label>
                   )}
+
 
                   {categorySlug === 'singles' && !sellFlow && (
                     <label className="flex flex-col gap-1 relative">
@@ -483,7 +643,7 @@ export function ProductCategoryView({
                           type="button"
                           onClick={() => setNomeInput('')}
                           className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
-                          aria-label="Cancella nome"
+                            aria-label={t('search.clearName')}
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -492,19 +652,16 @@ export function ProductCategoryView({
                   </label>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={handleCerca}
-                    className={cn(
-                      'mt-1 flex w-full items-center justify-center gap-2 rounded-[12px] bg-[#FF8800] px-4 font-bold text-white transition-colors hover:bg-orange-600',
-                      sellFlow && !hasSearched
-                        ? 'min-h-[52px] text-base rounded-[16px]'
-                        : 'min-h-[40px] text-sm'
-                    )}
-                  >
-                    <Search className="h-4 w-4 shrink-0" strokeWidth={2.5} />
-                    {t('search.searchBtn')}
-                  </button>
+                  {!(sellFlow && !hasSearched) && (
+                    <button
+                      type="button"
+                      onClick={handleCerca}
+                      className="mt-1 flex min-h-[40px] w-full items-center justify-center gap-2 rounded-[12px] bg-[#FF8800] px-4 text-sm font-bold text-white transition-colors hover:bg-orange-600"
+                    >
+                      <Search className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                      {t('search.searchBtn')}
+                    </button>
+                  )}
                 </div>
               </div>
             </aside>
@@ -558,6 +715,7 @@ export function ProductCategoryView({
                       showCardDetails={showCardDetails}
                       formatPrice={(hit) => formatEuro((hit as SinglesHit).market_price)}
                       buildProductHref={sellFlow ? productHrefBuilder : undefined}
+                      exactMatchIds={exactMatchIds}
                     />
                   )}
 
@@ -566,11 +724,17 @@ export function ProductCategoryView({
                       {hits.map((hit) => {
                         const imgUrl = getCardImageUrl(hit.image ?? null);
                         const { primary, secondary } = getDisplayNames(hit, selectedLang);
+                        const isExact = exactMatchIds?.has(hit.id) ?? false;
                         return (
                           <Link
                             key={hit.id}
                             href={productHrefBuilder(hit.id)}
-                            className="group border border-gray-200 rounded-lg bg-white p-3 hover:border-[#FF8800] hover:shadow-md transition-all"
+                            className={cn(
+                              'group border rounded-lg bg-white p-3 transition-all',
+                              isExact
+                                ? 'border-[#FF8800] border-2 shadow-md'
+                                : 'border-gray-200 hover:border-[#FF8800] hover:shadow-md'
+                            )}
                           >
                             <div className="relative aspect-[63/88] overflow-hidden rounded bg-gray-100 mb-2">
                               {imgUrl ? (
