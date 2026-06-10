@@ -28,6 +28,7 @@ export function AuctionListingPhotoUpload({
   photos,
   onPhotosChange,
   compact = false,
+  hideAddTile = false,
   uploadStatuses,
   photoMin = AUCTION_LISTING_PHOTO_MIN,
   highlightPhotoId = null,
@@ -36,6 +37,8 @@ export function AuctionListingPhotoUpload({
   onPhotosChange: (next: ListingPhotoSlot[]) => void;
   /** Layout più stretto (es. wizard embedded nella scheda prodotto). */
   compact?: boolean;
+  /** Nasconde tile e hint di aggiunta: le azioni di caricamento sono renderizzate esternamente. */
+  hideAddTile?: boolean;
   /** Stato di upload allineato con `photos` (stessa lunghezza, stesso ordine). */
   uploadStatuses?: ListingPhotoUploadStatus[];
   /** Minimo foto richieste (asta: 2, marketplace VENDI: 1). */
@@ -127,7 +130,7 @@ export function AuctionListingPhotoUpload({
             max: AUCTION_LISTING_PHOTO_MAX,
           })}
         </p>
-      ) : (
+      ) : hideAddTile ? null : (
         <p className="text-[10px] leading-snug text-zinc-600">
           {t('vendi.sell.stepPhotosHint')}
         </p>
@@ -241,7 +244,7 @@ export function AuctionListingPhotoUpload({
           );
         })}
 
-        {canAddMore && (
+        {canAddMore && !hideAddTile && (
           <div className={cn('flex flex-col gap-2', compact && 'gap-1')}>
             <p className={cn('text-xs font-bold uppercase tracking-wide text-gray-600', compact && 'text-[9px]')}>
               {t('auctions.createPhotoSlotLabel', { n: photos.length + 1 })}

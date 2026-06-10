@@ -37,9 +37,72 @@ const MAX_RETRIES = 3;
 const POLL_INTERVAL_MS = 2500;
 
 /** Bump when mobile QR UX changes — helps verify Amplify deploy / cache on phone. */
-const MOBILE_PHOTO_UX_BUILD = '20260528';
+const MOBILE_PHOTO_UX_BUILD = '20260610';
 
 const UPLOAD_TIMEOUT_MS = 30_000;
+
+/**
+ * Lato massimo del sorgente passato al cropper. Le foto della fotocamera
+ * (12–48MP) superano i limiti GPU/canvas di Safari iOS e WebView mobili:
+ * l'immagine viene compositata come layer trasformato e oltre ~4096px il
+ * rendering fallisce silenziosamente → anteprima tutta nera. Ridimensionare
+ * prima del crop risolve, senza perdita pratica (l'export è comunque ≤1600px).
+ */
+const MAX_CROP_SOURCE_EDGE = 2560;
+
+/**
+ * Decodifica e, se serve, ridimensiona la foto prima di passarla al cropper.
+ * Ritorna sempre un object URL utilizzabile: in caso di problemi fa fallback
+ * all'URL del file originale (comportamento precedente). La ri-codifica JPEG
+ * applica anche l'orientamento EXIF, evitando doppie rotazioni.
+ */
+async function prepareImageForCrop(file: File): Promise<string> {
+  const originalUrl = URL.createObjectURL(file);
+
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = originalUrl;
+  try {
+    if (typeof img.decode === 'function') {
+      await img.decode();
+    } else {
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Immagine non decodificabile'));
+      });
+    }
+  } catch {
+    // Decodifica fallita: lascia provare il cropper con l'URL originale.
+    return originalUrl;
+  }
+
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  const maxEdge = Math.max(w, h);
+  if (!w || !h || maxEdge <= MAX_CROP_SOURCE_EDGE) {
+    return originalUrl;
+  }
+
+  try {
+    const scale = MAX_CROP_SOURCE_EDGE / maxEdge;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(w * scale));
+    canvas.height = Math.max(1, Math.round(h * scale));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return originalUrl;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/jpeg', 0.92);
+    });
+    if (!blob) return originalUrl;
+    URL.revokeObjectURL(originalUrl);
+    return URL.createObjectURL(blob);
+  } catch {
+    return originalUrl;
+  }
+}
 
 function vibrateSuccess(): void {
   try {
@@ -179,17 +242,21 @@ export function AuctionMobilePairingUpload({
         setViewState('uploaded');
         return;
       }
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
-      const url = URL.createObjectURL(f);
-      objectUrlRef.current = url;
-      setImageSrc(url);
-      setUploadError(null);
-      setFailCount(0);
-      setCropMode('card');
-      setViewState('crop');
+      void (async () => {
+        // Ridimensiona prima del crop: foto fotocamera ad alta risoluzione
+        // causano anteprima nera su Safari iOS / WebView (limiti GPU/canvas).
+        const url = await prepareImageForCrop(f);
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current);
+          objectUrlRef.current = null;
+        }
+        objectUrlRef.current = url;
+        setImageSrc(url);
+        setUploadError(null);
+        setFailCount(0);
+        setCropMode('card');
+        setViewState('crop');
+      })();
     },
     [atPhotoLimit, t],
   );

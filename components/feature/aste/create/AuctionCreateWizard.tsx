@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
 import { useRouter } from 'next/navigation';
-import { Check, ChevronLeft, ChevronRight, Gavel, Package } from 'lucide-react';
+import { Camera, Check, ChevronLeft, ChevronRight, Gavel, ImageIcon, Package, QrCode } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   buildAuctionLanguageOptions,
@@ -31,6 +31,8 @@ import {
   mergeInventoryIntoAuctionDraft,
   inventoryConditionToWizardValue,
 } from '@/lib/auction/auction-embedded-draft';
+import { buildCardLanguageOptions } from '@/lib/card-languages';
+import { CardLanguageSelect } from '@/components/ui/CardLanguageSelect';
 import type { CardDocument } from '@/lib/product-detail';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCardImageUrl } from '@/lib/assets';
@@ -71,7 +73,8 @@ function getStepOrder(
   opts: { variant: 'standalone' | 'embedded'; hasEmbeddedInventory: boolean }
 ): WizardStepId[] {
   if (opts.variant === 'embedded') {
-    const tail: WizardStepId[] = ['details', 'price', 'shipping', 'photos', 'review'];
+    // Flusso compatto a 2 passi (come il tab Vendi): dettagli+prezzo → spedizione+foto+conferma.
+    const tail: WizardStepId[] = ['details', 'review'];
     if (opts.hasEmbeddedInventory) return ['inventory_pick', ...tail];
     return tail;
   }
@@ -89,10 +92,7 @@ function getPreviousStepId(
     if (stepId === 'inventory_pick') return 'cancel';
     if (stepId === 'details' && opts.hasEmbeddedInventory) return 'inventory_pick';
     if (stepId === 'details' && !opts.hasEmbeddedInventory) return 'cancel';
-    if (stepId === 'price') return 'details';
-    if (stepId === 'shipping') return 'price';
-    if (stepId === 'photos') return 'shipping';
-    if (stepId === 'review') return 'photos';
+    if (stepId === 'review') return 'details';
     return 'cancel';
   }
   if (stepId === 'q_card') return 'cancel';
@@ -171,6 +171,9 @@ export function AuctionCreateWizard({
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const stepContentRef = useRef<HTMLDivElement>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  /** Input nascosti per la riga azioni foto unificata (embedded). */
+  const embGalleryInputRef = useRef<HTMLInputElement>(null);
+  const embCameraInputRef = useRef<HTMLInputElement>(null);
 
   const stepVariant = isEmbedded ? 'embedded' : 'standalone';
 
@@ -288,7 +291,8 @@ export function AuctionCreateWizard({
 
   const pairing = usePhotoPairingSession({
     stepId,
-    photoStepId: 'photos',
+    // In embedded le foto vivono nel passo finale unificato ('review').
+    photoStepId: isEmbedded ? 'review' : 'photos',
     contextType: 'auction',
     qrBasePath: '/c/asta-foto',
     maxPhotos: AUCTION_LISTING_PHOTO_MAX,
@@ -296,6 +300,21 @@ export function AuctionCreateWizard({
     setListingPhotos,
     toastMessageKey: 'auctions.createPhotoReceivedFromPhone',
   });
+
+  /** Aggiunge foto dalla riga azioni unificata (embedded), rispettando il massimo. */
+  const appendEmbeddedPhotos = useCallback(
+    (fileList: FileList | null) => {
+      if (!fileList?.length) return;
+      const next = [...draft.listingPhotos];
+      for (const f of Array.from(fileList)) {
+        if (!f.type.startsWith('image/')) continue;
+        if (next.length >= AUCTION_LISTING_PHOTO_MAX) break;
+        next.push({ kind: 'local', file: f });
+      }
+      if (next.length > draft.listingPhotos.length) setListingPhotos(next);
+    },
+    [draft.listingPhotos, setListingPhotos],
+  );
 
   // Allow user to retry a failed upload without removing the file first.
   const retryFailedUpload = useCallback(
@@ -352,11 +371,8 @@ export function AuctionCreateWizard({
     if (stepVariant === 'embedded') {
       return [
         ...(hasEmbeddedInventory ? [t('auctions.createStepInventoryPick')] : []),
-        t('auctions.createStepDetails'),
-        t('auctions.createStepPrice'),
-        t('auctions.createStepShipping'),
-        t('auctions.createStepPhotos'),
-        t('auctions.createStepReview'),
+        'Dettagli e prezzo',
+        'Spedizione, foto e conferma',
       ];
     }
     const branchLabel =
@@ -377,6 +393,10 @@ export function AuctionCreateWizard({
   }, [draft.isCard, hasEmbeddedInventory, stepVariant, t]);
 
   const stepHeading = useMemo(() => {
+    if (isEmbedded) {
+      if (stepId === 'details') return 'Dettagli e prezzo';
+      if (stepId === 'review') return 'Spedizione, foto e conferma';
+    }
     switch (stepId) {
       case 'q_card':
         return t('auctions.createAskIsCard');
@@ -399,7 +419,7 @@ export function AuctionCreateWizard({
       default:
         return '';
     }
-  }, [stepId, t]);
+  }, [stepId, isEmbedded, t]);
 
   const stepHint = useMemo(() => {
     switch (stepId) {
@@ -463,14 +483,14 @@ export function AuctionCreateWizard({
           }
         }
       }
-      if (id === 'price') {
+      if (id === 'price' || (isEmbedded && id === 'details')) {
         const start = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.startingBidEur)));
         if (!Number.isFinite(start) || start <= 0) {
           setError(t('auctions.createValidationStart'));
           return false;
         }
       }
-      if (id === 'shipping') {
+      if (id === 'shipping' || (isEmbedded && id === 'review')) {
         if (draft.shippingPayer === 'buyer') {
           const national = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingNationalEur)));
           const euDefault = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingEuDefaultEur)));
@@ -485,7 +505,7 @@ export function AuctionCreateWizard({
           }
         }
       }
-      if (id === 'photos') {
+      if (id === 'photos' || (isEmbedded && id === 'review')) {
         if (!listingPhotosComplete(draft.listingPhotos)) {
           setError(
             t('auctions.createValidationPhotos', {
@@ -507,7 +527,7 @@ export function AuctionCreateWizard({
       setError(null);
       return true;
     },
-    [draft, embeddedInventoryPick, t, allPhotosUploaded, failedUploadFiles.length]
+    [draft, embeddedInventoryPick, isEmbedded, t, allPhotosUploaded, failedUploadFiles.length]
   );
 
   const handleCardSelect = useCallback((sel: AuctionCreateCardSelection) => {
@@ -685,7 +705,7 @@ export function AuctionCreateWizard({
       const entry = photoUploads.get(slot.file);
       if (!entry || entry.status !== 'done' || !entry.photo) {
         setError('Una o più foto non sono ancora state caricate. Riprova.');
-        setStepId('photos');
+        setStepId(isEmbedded ? 'review' : 'photos');
         return;
       }
       photoIds.push(entry.photo.id);
@@ -794,6 +814,13 @@ export function AuctionCreateWizard({
     allPhotosUploaded,
   ]);
 
+  /** Embedded: blocca "Pubblica" finché le foto richieste non sono complete e caricate. */
+  const publishDisabled = useMemo(() => {
+    if (!isEmbedded || stepId !== 'review') return false;
+    if (!listingPhotosComplete(draft.listingPhotos)) return true;
+    return !allPhotosUploaded;
+  }, [isEmbedded, stepId, draft.listingPhotos, allPhotosUploaded]);
+
   const previewImageSrc = draft.imageUrl ? getCardImageUrl(draft.imageUrl) ?? draft.imageUrl : null;
 
   /**
@@ -814,6 +841,19 @@ export function AuctionCreateWizard({
       update('cardLanguage', cardLanguageOptions[0]?.value ?? '');
     }
   }, [cardLanguageOptions, draft.cardLanguage, update]);
+
+  /** Opzioni con bandiera (stesso componente del tab Vendi); stessi codici di cardLanguageOptions. */
+  const cardLanguageFlagOptions = useMemo(
+    () => buildCardLanguageOptions(draft.cardSelection?.availableLanguages),
+    [draft.cardSelection?.availableLanguages]
+  );
+
+  // Embedded: il select con bandiera non ha l'opzione "Non specificata" → default alla prima lingua.
+  useEffect(() => {
+    if (!isEmbedded || draft.cardLanguage) return;
+    const first = cardLanguageFlagOptions[0]?.code;
+    if (first) update('cardLanguage', first);
+  }, [isEmbedded, draft.cardLanguage, cardLanguageFlagOptions, update]);
 
   const cardLanguageLabel = useMemo(
     () => cardLanguageOptions.find((opt) => opt.value === draft.cardLanguage)?.label ?? '—',
@@ -1209,7 +1249,124 @@ export function AuctionCreateWizard({
             </div>
           )}
 
-          {stepId === 'details' && draft.isCard && (
+          {/* EMBEDDED passo 1: dettagli + prezzo unificati in layout compatto a griglia. */}
+          {stepId === 'details' && isEmbedded && (
+            <div className="space-y-2.5">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="ac-condition-emb" className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
+                    {t('auctions.createConditionLabel')}
+                  </label>
+                  <select
+                    id="ac-condition-emb"
+                    value={conditionSelectValue(draft.condition)}
+                    onChange={(e) => update('condition', e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
+                  >
+                    {AUCTION_CARD_CONDITION_OPTIONS.map(({ value, labelKey }) => (
+                      <option key={value} value={value}>
+                        {t(labelKey)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
+                    Lingua carta
+                  </span>
+                  <CardLanguageSelect
+                    options={cardLanguageFlagOptions}
+                    value={draft.cardLanguage}
+                    onChange={(code) => update('cardLanguage', code)}
+                    className="mt-1 [&_button]:rounded-lg [&_button]:border-gray-300 [&_button]:bg-white [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="ac-desc-emb" className="flex items-baseline justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-gray-600">
+                    {t('auctions.createAuctionNoteLabel')}
+                  </span>
+                  <span className="text-[10px] tabular-nums text-gray-400">
+                    {draft.description.length}/{AUCTION_CUSTOM_DESCRIPTION_MAX}
+                  </span>
+                </label>
+                <textarea
+                  id="ac-desc-emb"
+                  value={draft.description}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v.length <= AUCTION_CUSTOM_DESCRIPTION_MAX) update('description', v);
+                  }}
+                  rows={2}
+                  maxLength={AUCTION_CUSTOM_DESCRIPTION_MAX}
+                  className="mt-1 w-full resize-y rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
+                  placeholder={t('auctions.createAuctionNotePlaceholder')}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="ac-start-emb" className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
+                    {t('auctions.createStartingBidLabel')}
+                  </label>
+                  <div className="relative mt-1">
+                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500">€</span>
+                    <input
+                      id="ac-start-emb"
+                      value={draft.startingBidEur}
+                      onChange={(e) => update('startingBidEur', e.target.value)}
+                      onBlur={(e) => update('startingBidEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                      className="w-full rounded-lg border border-gray-300 py-1.5 pl-7 pr-2.5 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
+                      inputMode="decimal"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="ac-res-emb" className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
+                    {t('auctions.createReserveLabel')}
+                  </label>
+                  <div className="relative mt-1">
+                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500">€</span>
+                    <input
+                      id="ac-res-emb"
+                      value={draft.reservePriceEur}
+                      onChange={(e) => update('reservePriceEur', e.target.value)}
+                      onBlur={(e) => update('reservePriceEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                      className="w-full rounded-lg border border-gray-300 py-1.5 pl-7 pr-2.5 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
+                      inputMode="decimal"
+                      placeholder="—"
+                    />
+                  </div>
+                </div>
+              </div>
+              <p className="text-[10px] leading-snug text-gray-500">{t('auctions.createReserveHint')}</p>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-gray-600">
+                  {t('auctions.createDurationLabel')}
+                </span>
+                {([3, 5, 7] as const).map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => update('durationDays', d)}
+                    className={cn(
+                      'rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors',
+                      draft.durationDays === d
+                        ? 'border-[#FF7300] bg-[#FF7300] text-white'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                    )}
+                  >
+                    {t('auctions.createDurationDays', { days: d })}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {stepId === 'details' && draft.isCard && !isEmbedded && (
             <div className={cn('space-y-5', isEmbedded && 'space-y-3')}>
               <div>
                 <label htmlFor="ac-desc" className="flex items-baseline justify-between gap-2">
@@ -1604,7 +1761,256 @@ export function AuctionCreateWizard({
             </div>
           )}
 
-          {stepId === 'review' && (
+          {/* EMBEDDED passo 2: spedizione + foto + riepilogo compatto. */}
+          {stepId === 'review' && isEmbedded && (
+            <div className="space-y-2.5">
+              <div>
+                <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
+                  {t('auctions.createShippingWhoLabel')}
+                </span>
+                <div className="mt-1 grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => update('shippingPayer', 'buyer')}
+                    className={cn(
+                      'rounded-lg border px-2 py-1.5 text-center text-[11px] font-semibold transition-colors',
+                      draft.shippingPayer === 'buyer'
+                        ? 'border-[#FF7300] bg-orange-50 text-gray-900'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    )}
+                  >
+                    {t('auctions.createShippingBuyer')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => update('shippingPayer', 'seller')}
+                    className={cn(
+                      'rounded-lg border px-2 py-1.5 text-center text-[11px] font-semibold transition-colors',
+                      draft.shippingPayer === 'seller'
+                        ? 'border-[#FF7300] bg-orange-50 text-gray-900'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    )}
+                  >
+                    {t('auctions.createShippingSeller')}
+                  </button>
+                </div>
+                {draft.shippingPayer === 'buyer' && (
+                  <div className="mt-1.5 grid grid-cols-4 gap-1">
+                    <div title="Paese di spedizione (codice ISO)">
+                      <label htmlFor="ac-ship-origin-emb" className="block truncate text-[9px] font-bold uppercase tracking-wide text-gray-500">
+                        Paese
+                      </label>
+                      <input
+                        id="ac-ship-origin-emb"
+                        value={draft.shippingOriginCountry}
+                        onChange={(e) => update('shippingOriginCountry', e.target.value.toUpperCase().slice(0, 2))}
+                        className="mt-0.5 w-full rounded-md border border-gray-300 px-1.5 py-1 text-center text-xs uppercase text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
+                        maxLength={2}
+                      />
+                    </div>
+                    <div title={`Spedizione nazionale (${draft.shippingOriginCountry || 'IT'})`}>
+                      <label htmlFor="ac-ship-national-emb" className="block truncate text-[9px] font-bold uppercase tracking-wide text-gray-500">
+                        Naz. ({draft.shippingOriginCountry || 'IT'})
+                      </label>
+                      <div className="relative mt-0.5">
+                        <span className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">€</span>
+                        <input
+                          id="ac-ship-national-emb"
+                          value={draft.shippingNationalEur}
+                          onChange={(e) => update('shippingNationalEur', e.target.value)}
+                          onBlur={(e) => update('shippingNationalEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                          className="w-full rounded-md border border-gray-300 py-1 pl-5 pr-1.5 text-xs tabular-nums text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
+                          inputMode="decimal"
+                        />
+                      </div>
+                    </div>
+                    <div title="Spedizione default resto Europa">
+                      <label htmlFor="ac-ship-eu-emb" className="block truncate text-[9px] font-bold uppercase tracking-wide text-gray-500">
+                        Resto UE
+                      </label>
+                      <div className="relative mt-0.5">
+                        <span className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">€</span>
+                        <input
+                          id="ac-ship-eu-emb"
+                          value={draft.shippingEuDefaultEur}
+                          onChange={(e) => update('shippingEuDefaultEur', e.target.value)}
+                          onBlur={(e) => update('shippingEuDefaultEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                          className="w-full rounded-md border border-gray-300 py-1 pl-5 pr-1.5 text-xs tabular-nums text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
+                          inputMode="decimal"
+                        />
+                      </div>
+                    </div>
+                    <div title="Spedizione resto del mondo (fuori UE)">
+                      <label htmlFor="ac-ship-rest-world-emb" className="block truncate text-[9px] font-bold uppercase tracking-wide text-gray-500">
+                        Extra UE
+                      </label>
+                      <div className="relative mt-0.5">
+                        <span className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">€</span>
+                        <input
+                          id="ac-ship-rest-world-emb"
+                          value={draft.shippingRestOfWorldEur}
+                          onChange={(e) => update('shippingRestOfWorldEur', e.target.value)}
+                          onBlur={(e) => update('shippingRestOfWorldEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                          className="w-full rounded-md border border-gray-300 py-1 pl-5 pr-1.5 text-xs tabular-nums text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
+                          inputMode="decimal"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
+                  {t('auctions.createStepPhotos')} ({AUCTION_LISTING_PHOTO_MIN}–{AUCTION_LISTING_PHOTO_MAX})
+                </span>
+                <div className="mt-1 space-y-1.5">
+                  <input
+                    ref={embGalleryInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="sr-only"
+                    onChange={(e) => {
+                      appendEmbeddedPhotos(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                  <input
+                    ref={embCameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="sr-only"
+                    onChange={(e) => {
+                      appendEmbeddedPhotos(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                  <div className="flex items-stretch gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => embGalleryInputRef.current?.click()}
+                      disabled={draft.listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX}
+                      className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg border border-zinc-300 bg-white py-2 text-[10px] font-bold uppercase tracking-wide text-[#1D3160] transition hover:border-[#FF7300]/60 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <ImageIcon className="h-4 w-4" aria-hidden />
+                      Carica
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => embCameraInputRef.current?.click()}
+                      disabled={draft.listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX}
+                      className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg border border-zinc-300 bg-white py-2 text-[10px] font-bold uppercase tracking-wide text-[#1D3160] transition hover:border-[#FF7300]/60 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Camera className="h-4 w-4" aria-hidden />
+                      Scatta
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void pairing.openPhoneUploadModal()}
+                      disabled={pairing.pairingActionLoading}
+                      aria-label="Carica da telefono con QR"
+                      title="Carica da telefono con QR"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center self-center rounded-full border border-dashed border-[#1D3160]/30 bg-[#f8f9fb] text-[#1D3160] transition hover:border-[#FF7300]/60 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <QrCode className="h-5 w-5" aria-hidden />
+                    </button>
+                  </div>
+                  {pairing.hasActiveSession ? (
+                    <p className="text-[10px] leading-snug text-zinc-600">
+                      {t('auctions.createPhotoPairingSessionActive', {
+                        count: String(pairing.remotePhotoCount),
+                        max: String(pairing.maxPhotos),
+                        minutes: String(pairing.expiresInMinutes ?? '—'),
+                      })}
+                    </p>
+                  ) : null}
+                  {pairing.phonePhotoToast ? (
+                    <p className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-medium text-emerald-900">
+                      {pairing.phonePhotoToast}
+                    </p>
+                  ) : null}
+                  {pairing.pairingActionError ? (
+                    <p className="text-[11px] text-red-700">{pairing.pairingActionError}</p>
+                  ) : null}
+                  {pairing.hasActiveSession ? (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void pairing.regenerateQr()}
+                        className="text-[10px] font-semibold text-[#1D3160] underline"
+                      >
+                        {t('auctions.createPhotoPairingRegenerateQr')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void pairing.revokePairing()}
+                        className="text-[10px] font-semibold text-zinc-500 underline"
+                      >
+                        {t('auctions.createPhotoPairingCloseSession')}
+                      </button>
+                    </div>
+                  ) : null}
+                  <AuctionListingPhotoUpload
+                    photos={draft.listingPhotos}
+                    onPhotosChange={setListingPhotos}
+                    compact
+                    hideAddTile
+                    uploadStatuses={photoUploadStatuses}
+                    highlightPhotoId={pairing.flashPhotoId}
+                  />
+                  {failedUploadFiles.length > 0 && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-900">
+                      <p className="font-semibold">Alcune foto non sono state caricate.</p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {failedUploadFiles.map((file, i) => (
+                          <button
+                            key={`${file.name}-${i}`}
+                            type="button"
+                            onClick={() => retryFailedUpload(file)}
+                            className="rounded border border-red-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-red-800 hover:bg-red-100"
+                          >
+                            Riprova
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/80 p-2">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="rounded-md bg-white px-2 py-1 ring-1 ring-zinc-100">
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">Base</p>
+                    <p className="text-[11px] font-extrabold text-zinc-900">€{draft.startingBidEur || '—'}</p>
+                  </div>
+                  <div className="rounded-md bg-white px-2 py-1 ring-1 ring-zinc-100">
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">Durata</p>
+                    <p className="text-[11px] font-extrabold text-zinc-900">
+                      {t('auctions.createDurationDays', { days: draft.durationDays })}
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-white px-2 py-1 ring-1 ring-zinc-100">
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">Spedizione</p>
+                    <p className="line-clamp-1 text-[11px] font-extrabold text-zinc-900">
+                      {draft.shippingPayer === 'buyer' ? t('auctions.createShippingBuyer') : t('auctions.createShippingSeller')}
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-white px-2 py-1 ring-1 ring-zinc-100">
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">Foto</p>
+                    <p className="text-[11px] font-extrabold text-zinc-900">{draft.listingPhotos.length}</p>
+                  </div>
+                </div>
+                <p className="mt-1.5 text-[10px] leading-snug text-zinc-500">
+                  L&apos;asta parte subito alla pubblicazione (non è possibile programmarla).
+                </p>
+              </div>
+            </div>
+          )}
+
+          {stepId === 'review' && !isEmbedded && (
             <div className={cn('space-y-4', isEmbedded && 'space-y-3')}>
               <div className={cn('rounded-xl border border-[#1D3160]/15 bg-[#f8f9fb] p-4', isEmbedded && 'rounded-lg border-zinc-200/60 bg-zinc-50/80 p-2.5')}>
                 <p className="text-xs font-bold uppercase tracking-wide text-[#1D3160]">Pubblicazione</p>
@@ -1613,39 +2019,7 @@ export function AuctionCreateWizard({
                 </p>
               </div>
 
-              {isEmbedded ? (
-                <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/80 p-2.5">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-md bg-white px-2.5 py-1.5 ring-1 ring-zinc-100">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Base</p>
-                      <p className="text-xs font-extrabold text-zinc-900">€{draft.startingBidEur || '—'}</p>
-                    </div>
-                    <div className="rounded-md bg-white px-2.5 py-1.5 ring-1 ring-zinc-100">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Durata</p>
-                      <p className="text-xs font-extrabold text-zinc-900">{t('auctions.createDurationDays', { days: draft.durationDays })}</p>
-                    </div>
-                    <div className="rounded-md bg-white px-2.5 py-1.5 ring-1 ring-zinc-100">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Spedizione</p>
-                      <p className="text-xs font-extrabold text-zinc-900">
-                        {draft.shippingPayer === 'buyer' ? t('auctions.createShippingBuyer') : t('auctions.createShippingSeller')}
-                      </p>
-                    </div>
-                    <div className="rounded-md bg-white px-2.5 py-1.5 ring-1 ring-zinc-100">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Foto</p>
-                      <p className="text-xs font-extrabold text-zinc-900">{draft.listingPhotos.length}</p>
-                    </div>
-                  </div>
-                  <div className="mt-2 rounded-md bg-white px-2.5 py-2 ring-1 ring-zinc-100">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Titolo</p>
-                    <p className="mt-0.5 line-clamp-1 text-xs font-semibold text-zinc-900">{draft.title || '—'}</p>
-                    <p className="mt-1 text-[11px] text-zinc-500">Pubblicazione immediata alla conferma.</p>
-                  </div>
-                  <div className="mt-2">
-                    <ListingPhotoThumbnailsRow photos={draft.listingPhotos} />
-                  </div>
-                </div>
-              ) : (
-                <dl className="divide-y divide-gray-100 rounded-xl border border-gray-100 bg-gray-50/80">
+              <dl className="divide-y divide-gray-100 rounded-xl border border-gray-100 bg-gray-50/80">
                   <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createAskIsCard')}</dt>
                     <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
@@ -1731,7 +2105,6 @@ export function AuctionCreateWizard({
                     </dd>
                   </div>
                 </dl>
-              )}
             </div>
           )}
         </div>
@@ -1767,8 +2140,22 @@ export function AuctionCreateWizard({
               ) : (
                 <button
                   type="button"
+                  disabled={publishDisabled}
+                  title={
+                    publishDisabled
+                      ? t('auctions.createValidationPhotos', {
+                          min: AUCTION_LISTING_PHOTO_MIN,
+                          max: AUCTION_LISTING_PHOTO_MAX,
+                        })
+                      : undefined
+                  }
                   onClick={openPublishConfirm}
-                  className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-[#FF7300] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
+                  className={cn(
+                    'inline-flex min-h-[36px] items-center gap-1 rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
+                    publishDisabled
+                      ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
+                      : 'bg-[#FF7300] hover:bg-[#e86800]'
+                  )}
                 >
                   <Gavel className="h-3 w-3" aria-hidden />
                   {t('auctions.createSubmit')}

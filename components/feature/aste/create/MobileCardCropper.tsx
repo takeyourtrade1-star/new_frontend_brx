@@ -199,7 +199,12 @@ export function MobileCardCropper({
 
 /** Export cropped image from the advanced cropper ref. */
 export async function exportMobileCropFile(cropperRef: RefObject<CropperRef | null>): Promise<File> {
-  const canvas = cropperRef.current?.getCanvas();
+  // maxWidth/maxHeight: evita canvas oltre i limiti di area di Safari iOS
+  // (canvas troppo grandi vengono restituiti neri/vuoti senza errore).
+  const canvas = cropperRef.current?.getCanvas({
+    maxWidth: MAX_CROP_EXPORT_EDGE,
+    maxHeight: MAX_CROP_EXPORT_EDGE,
+  });
   if (!canvas) throw new Error('Impossibile ritagliare l\u2019immagine');
   return canvasToWebpFile(canvas);
 }
