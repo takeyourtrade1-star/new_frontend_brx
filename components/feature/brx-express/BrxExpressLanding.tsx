@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useScroll, useSpring, useTransform, motion, type MotionValue } from 'framer-motion';
+import {
+  useScroll,
+  useSpring,
+  useTransform,
+  useMotionValueEvent,
+  motion,
+  type MotionValue
+} from 'framer-motion';
 import { Zap, ArrowRight, FileText } from 'lucide-react';
 
 type Pt = { x: number; y: number };
@@ -303,73 +310,110 @@ function glyphEuroCoin(cx: number, cy: number, s: number): { ring: Pt[]; euro: P
   return { ring, euro };
 }
 
-// Card 3 "Zero doppie vendite": smooth badge shield — sparse anchors let
-// the spline round it gracefully; only the check is densified so its
-// corner stays crisp.
-function glyphShieldCheck(cx: number, cy: number, s: number): { shape: Pt[]; stroke: Pt[] } {
-  const outline: Pt[] = [
-    { x: cx - s * 0.44, y: cy - s * 0.38 }, // top-left corner
-    { x: cx, y: cy - s * 0.44 }, // gentle top arc
-    { x: cx + s * 0.44, y: cy - s * 0.38 }, // top-right corner
-    { x: cx + s * 0.45, y: cy - s * 0.05 }, // right side
-    { x: cx + s * 0.32, y: cy + s * 0.24 }, // curving in
-    { x: cx + s * 0.12, y: cy + s * 0.42 },
-    { x: cx, y: cy + s * 0.5 }, // rounded bottom tip
-    { x: cx - s * 0.12, y: cy + s * 0.42 },
-    { x: cx - s * 0.32, y: cy + s * 0.24 },
-    { x: cx - s * 0.45, y: cy - s * 0.05 }, // left side
-    { x: cx - s * 0.44, y: cy - s * 0.38 } // close at top-left
-  ];
-  const check = densify(
-    [
-      { x: cx - s * 0.19, y: cy - s * 0.02 },
-      { x: cx - s * 0.05, y: cy + s * 0.16 }, // crisp valley
-      { x: cx + s * 0.25, y: cy - s * 0.2 }
-    ],
-    6
-  );
-  const shape = [...outline, ...check];
-  return { shape, stroke: [...shape, { x: cx + s * 0.55, y: cy - s * 0.55 }] };
+// Card 3 "Zero doppie vendite": classic heater-style badge shield, perfectly
+// symmetric. Closed ring (for a full wrap like the coin) sampled from real
+// curves: gently bowed top, near-vertical upper sides, graceful sweep into a
+// crisp bottom tip. The check is a separate stroke, drawn right-to-left so
+// the river exits already pointing at Card 3.
+function glyphShieldCheck(cx: number, cy: number, s: number): { outline: Pt[]; check: Pt[] } {
+  const P = (x: number, y: number): Pt => ({ x: cx + x * s, y: cy + y * s });
+
+  const outline: Pt[] = [P(-0.46, -0.4)]; // left shoulder
+  const quad = (c: Pt, p1: Pt, n: number) => {
+    const p0 = outline[outline.length - 1]!;
+    for (let i = 1; i <= n; i++) {
+      const t = i / n;
+      const u = 1 - t;
+      outline.push({
+        x: u * u * p0.x + 2 * u * t * c.x + t * t * p1.x,
+        y: u * u * p0.y + 2 * u * t * c.y + t * t * p1.y
+      });
+    }
+  };
+  const cubic = (c1: Pt, c2: Pt, p1: Pt, n: number) => {
+    const p0 = outline[outline.length - 1]!;
+    for (let i = 1; i <= n; i++) {
+      const t = i / n;
+      const u = 1 - t;
+      outline.push({
+        x: u * u * u * p0.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * p1.x,
+        y: u * u * u * p0.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * p1.y
+      });
+    }
+  };
+  quad(P(0, -0.5), P(0.46, -0.4), 10); // top edge, gently bowed up
+  cubic(P(0.47, -0.08), P(0.36, 0.28), P(0, 0.56), 14); // right side into the tip
+  cubic(P(-0.36, 0.28), P(-0.47, -0.08), P(-0.46, -0.4), 14); // left side back up
+  outline.pop(); // drop duplicated closing point: wrapShape expects an open ring
+
+  // Right-to-left: long arm down to the crisp valley, short arm up
+  const check = densify([P(0.27, -0.16), P(-0.04, 0.18), P(-0.17, 0.02)], 6);
+  return { outline, check };
 }
 
-// Card 4 "Fulfillment 24h": a one-stroke delivery truck (facing the card)
-function glyphTruck(cx: number, cy: number, s: number): Pt[] {
-  const hw = s * 0.62;
-  const hh = s * 0.3;
-  const x0 = cx - hw;
-  const x1 = cx + hw;
-  const y0 = cy - hh;
-  const by = cy + hh;
-  const xc = cx + s * 0.16; // cargo/cab split
-  const yc = cy - s * 0.06; // cab roof
-  const r = s * 0.105;
-  const wr = cx - s * 0.32; // rear wheel
-  const wf = cx + s * 0.36; // front wheel
+// Card 4 "Fulfillment 24h": delivery truck facing the card — cargo box, cab
+// with slanted windshield, wheel arches in the body, and two REAL wheels
+// drawn as separate full circles sitting inside the arches (the missing
+// wheels were the old version's problem: arches alone read as dents).
+function glyphTruck(
+  cx: number,
+  cy: number,
+  s: number
+): { body: Pt[]; rearWheel: Pt[]; frontWheel: Pt[] } {
+  const x0 = cx - s * 0.62; // rear
+  const x1 = cx + s * 0.62; // front
+  const y0 = cy - s * 0.34; // cargo roof
+  const by = cy + s * 0.26; // body bottom
+  const xc = cx + s * 0.14; // cargo/cab split
+  const yc = cy - s * 0.1; // cab roof
+  const wr = cx - s * 0.34; // rear wheel center
+  const wf = cx + s * 0.34; // front wheel center
+  const ra = s * 0.16; // wheel arch radius
+  const rw = s * 0.105; // wheel radius
+  const k = s * 0.06; // small bottom-corner rounding
 
-  // Smooth semicircular wheel arches (sampled densely so they stay round)
-  const bump = (wx: number): Pt[] => {
+  const pts: Pt[] = [];
+  const line = (a: Pt, b: Pt) => {
+    const d = Math.hypot(b.x - a.x, b.y - a.y);
+    const n = Math.max(1, Math.round(d / 7));
+    for (let i = 0; i < n; i++) {
+      pts.push({ x: a.x + ((b.x - a.x) * i) / n, y: a.y + ((b.y - a.y) * i) / n });
+    }
+  };
+  const arc = (acx: number, acy: number, r: number, a0: number, a1: number, n: number) => {
+    for (let i = 0; i < n; i++) {
+      const a = a0 + ((a1 - a0) * i) / n;
+      pts.push({ x: acx + r * Math.cos(a), y: acy + r * Math.sin(a) });
+    }
+  };
+
+  // CW ring from the rear top corner
+  line({ x: x0, y: y0 }, { x: xc, y: y0 }); // cargo roof
+  line({ x: xc, y: y0 }, { x: xc, y: yc }); // drop to cab roof
+  line({ x: xc, y: yc }, { x: xc + s * 0.26, y: yc }); // cab roof
+  line({ x: xc + s * 0.26, y: yc }, { x: x1 - s * 0.04, y: cy + s * 0.04 }); // windshield
+  line({ x: x1 - s * 0.04, y: cy + s * 0.04 }, { x: x1, y: cy + s * 0.08 }); // hood nose
+  line({ x: x1, y: cy + s * 0.08 }, { x: x1, y: by - k }); // front face
+  arc(x1 - k, by - k, k, 0, Math.PI / 2, 4); // front-bottom corner
+  line({ x: x1 - k, y: by }, { x: wf + ra, y: by }); // bottom to front arch
+  arc(wf, by, ra, 0, -Math.PI, 9); // front wheel arch
+  line({ x: wf - ra, y: by }, { x: wr + ra, y: by }); // bottom between arches
+  arc(wr, by, ra, 0, -Math.PI, 9); // rear wheel arch
+  line({ x: wr - ra, y: by }, { x: x0 + k, y: by }); // bottom to rear corner
+  arc(x0 + k, by - k, k, Math.PI / 2, Math.PI, 4); // rear-bottom corner
+  line({ x: x0, y: by - k }, { x: x0, y: y0 }); // rear face up (ring closes)
+
+  // Full round wheels, starting from the top (shortest hop from the arch apex)
+  const wheel = (wx: number): Pt[] => {
     const out: Pt[] = [];
-    for (let i = 0; i <= 8; i++) {
-      const a = (Math.PI * i) / 8;
-      out.push({ x: wx + r * Math.cos(a), y: by - r * 1.15 * Math.sin(a) });
+    for (let i = 0; i < 14; i++) {
+      const a = -Math.PI / 2 + (i / 14) * Math.PI * 2;
+      out.push({ x: wx + rw * Math.cos(a), y: by + rw * Math.sin(a) });
     }
     return out;
   };
 
-  // CW closed ring (drop the duplicated closing point after densify)
-  return densify([
-    { x: x0, y: y0 }, // cargo top-left
-    { x: xc, y: y0 }, // cargo top-right
-    { x: xc, y: yc }, // down to cab roof
-    { x: xc + s * 0.24, y: yc }, // cab roof
-    { x: x1 - s * 0.03, y: cy + s * 0.02 }, // windshield slant
-    { x: x1, y: cy + s * 0.1 }, // hood
-    { x: x1, y: by }, // front bottom
-    ...bump(wf), // front wheel
-    ...bump(wr), // rear wheel
-    { x: x0, y: by }, // back bottom
-    { x: x0, y: y0 } // left side up (ring closes at top-left)
-  ]).slice(0, -1);
+  return { body: pts, rearWheel: wheel(wr), frontWheel: wheel(wf) };
 }
 
 // Separate overlay path per glyph: once the river has finished drawing it,
@@ -391,7 +435,7 @@ function GlyphHighlight({
         d={d}
         fill="none"
         stroke="#22D3EE"
-        strokeWidth={11}
+        strokeWidth={14}
         strokeLinecap="round"
         strokeLinejoin="round"
         filter="url(#glow)"
@@ -401,7 +445,7 @@ function GlyphHighlight({
         d={d}
         fill="none"
         stroke="#22D3EE"
-        strokeWidth={5}
+        strokeWidth={6}
         strokeLinecap="round"
         strokeLinejoin="round"
         style={{ opacity }}
@@ -440,6 +484,13 @@ export default function BrxExpressLanding() {
   // Finale: once the river has wrapped the Terms block (last ~8% of the path),
   // the animated blue/orange gradient background fades in.
   const finaleOpacity = useTransform(pathLength, [0.9, 0.985], [0, 1]);
+
+  // Latch: when the wrap completes, the finale background (gradient + road)
+  // becomes permanent — it stays even scrolling back up, until page reload.
+  const [finaleOn, setFinaleOn] = useState(false);
+  useMotionValueEvent(pathLength, 'change', v => {
+    if (v >= 0.98) setFinaleOn(true);
+  });
 
   const updatePath = () => {
     const container = containerRef.current;
@@ -494,11 +545,6 @@ export default function BrxExpressLanding() {
       flowTo(last, startDir, segment[0]!, endDir, segIdx % 2 === 0 ? 1 : -1, points);
       points.push(...segment);
       cursor = segment[segment.length - 1]!;
-    };
-
-    const travelGlyph = (stroke: Pt[], shapes: Pt[][]) => {
-      travel(stroke);
-      marks.push({ shapes, endIdx: points.length - 1 });
     };
 
     // ==========================================
@@ -584,10 +630,16 @@ export default function BrxExpressLanding() {
     const e3 = { x: c3.x + c3.width * 0.85, y: c3.y - o };
 
     if (showGlyphs) {
-      // Glyph: shield + check, beside Card 3
+      // Glyph: badge shield + check, beside Card 3 — full outline loop first,
+      // then a short hop inside for the check (same clean pattern as the coin)
       const g = { x: mirrorX(c3), y: c3.y + c3.height * 0.25 };
-      const shield = glyphShieldCheck(g.x, g.y, 108);
-      travelGlyph(shield.stroke, [shield.shape]);
+      const shield = glyphShieldCheck(g.x, g.y, 112);
+      travel(wrapShape(shield.outline, cursor, false, shield.check[0]!, true));
+      travel(shield.check);
+      marks.push({
+        shapes: [[...shield.outline, shield.outline[0]!], shield.check],
+        endIdx: points.length - 1
+      });
     }
 
     // Enter top-right, hug CCW, exit bottom-right
@@ -601,10 +653,22 @@ export default function BrxExpressLanding() {
     const e4 = { x: c4.x + c4.width * 0.22, y: c4.y + c4.height * 0.22 };
 
     if (showGlyphs) {
-      // Glyph: delivery truck, beside Card 4 (facing it)
+      // Glyph: delivery truck, beside Card 4 (facing it) — body loop first,
+      // then each wheel as its own circle: arch apex -> wheel top is a tiny,
+      // near-invisible hop
       const g = { x: mirrorX(c4), y: c4.y + c4.height * 0.3 };
-      const ring = glyphTruck(g.x, g.y, 114);
-      travelGlyph(wrapShape(ring, cursor, false, e4, true), [[...ring, ring[0]!]]);
+      const truck = glyphTruck(g.x, g.y, 118);
+      travel(wrapShape(truck.body, cursor, false, truck.rearWheel[0]!, true));
+      travel(wrapShape(truck.rearWheel, cursor, false, truck.frontWheel[0]!, true));
+      travel(wrapShape(truck.frontWheel, cursor, false, e4, true));
+      marks.push({
+        shapes: [
+          [...truck.body, truck.body[0]!],
+          [...truck.rearWheel, truck.rearWheel[0]!],
+          [...truck.frontWheel, truck.frontWheel[0]!]
+        ],
+        endIdx: points.length - 1
+      });
     }
 
     // Enter top-left edge, hug CW (top -> right -> bottom), exit bottom-left edge
@@ -685,11 +749,12 @@ export default function BrxExpressLanding() {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-35" />
 
       {/* Finale background: blue/orange brand gradient (header + CTA colours),
-          slowly drifting, revealed when the line finishes wrapping the Terms */}
+          slowly drifting, revealed when the line finishes wrapping the Terms.
+          Once revealed it latches on (finaleOn) until the page is reloaded. */}
       <motion.div
         aria-hidden
         className="fixed inset-0 overflow-hidden pointer-events-none"
-        style={{ opacity: finaleOpacity }}
+        style={{ opacity: finaleOn ? 1 : finaleOpacity }}
       >
         <div className="brx-finale-gradient absolute -inset-[50%] w-[200%] h-[200%]" />
       </motion.div>
@@ -765,7 +830,7 @@ export default function BrxExpressLanding() {
                 d={pathD}
                 fill="none"
                 stroke="#fff"
-                strokeWidth={9}
+                strokeWidth={11}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 style={{ pathLength }}
@@ -778,7 +843,7 @@ export default function BrxExpressLanding() {
             d={pathD}
             fill="none"
             stroke="url(#line-gradient)"
-            strokeWidth={28}
+            strokeWidth={35}
             opacity={0.06}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -790,7 +855,7 @@ export default function BrxExpressLanding() {
             d={pathD}
             fill="none"
             stroke="url(#line-gradient)"
-            strokeWidth={12}
+            strokeWidth={15}
             opacity={0.16}
             filter="url(#glow)"
             strokeLinecap="round"
@@ -803,7 +868,7 @@ export default function BrxExpressLanding() {
             d={pathD}
             fill="none"
             stroke="url(#line-gradient)"
-            strokeWidth={4}
+            strokeWidth={5}
             strokeLinecap="round"
             strokeLinejoin="round"
             style={{ pathLength }}
@@ -816,7 +881,7 @@ export default function BrxExpressLanding() {
               d={pathD}
               fill="none"
               stroke="#FFEDD5"
-              strokeWidth={1.8}
+              strokeWidth={2.2}
               strokeLinecap="round"
               strokeDasharray="5 65"
               opacity={0.85}
