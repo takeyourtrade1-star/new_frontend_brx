@@ -24,6 +24,14 @@ export interface MobileCardCropperProps {
   rotateRightLabel: string;
   cropperRef: RefObject<CropperRef | null>;
   className?: string;
+  /**
+   * Lettura EXIF interna del cropper. Disattivarla (false) quando l'immagine
+   * è già pre-processata: il loader EXIF della libreria legge il blob via XHR
+   * senza handler di errore e, se fallisce, lascia il cropper vuoto (nero).
+   */
+  checkOrientation?: boolean;
+  /** Notifica quando il cropper non riesce a caricare l'immagine (altrimenti resta nero senza feedback). */
+  onImageLoadError?: () => void;
 }
 
 async function canvasToWebpFile(canvas: HTMLCanvasElement): Promise<File> {
@@ -75,6 +83,8 @@ export function MobileCardCropper({
   rotateRightLabel,
   cropperRef,
   className,
+  checkOrientation = true,
+  onImageLoadError,
 }: MobileCardCropperProps) {
   const [zoom, setZoom] = useState(0);
 
@@ -147,6 +157,8 @@ export function MobileCardCropper({
           ref={cropperRef as Ref<CropperRef>}
           src={imageSrc}
           className="h-full w-full"
+          checkOrientation={checkOrientation}
+          onError={() => onImageLoadError?.()}
           stencilComponent={RectangleStencil}
           stencilProps={
             mode === 'card'

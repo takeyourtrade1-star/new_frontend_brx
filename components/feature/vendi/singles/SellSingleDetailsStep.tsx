@@ -1,6 +1,7 @@
 'use client';
 
 import { CardLanguageSelect } from '@/components/ui/CardLanguageSelect';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 import type { CardLanguageOption } from '@/lib/card-languages';
 import { SELL_SINGLE_CONDITION_OPTIONS } from '@/lib/marketplace/sell-single-conditions';
 import type { SellSingleDraft } from '@/lib/marketplace/sell-single-draft';
@@ -92,20 +93,18 @@ export function SellSingleDetailsStep({
           <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
             Condizione
           </label>
-          <select
+          <CustomSelect
+            options={SELL_SINGLE_CONDITION_OPTIONS.map((opt) => ({
+              value: opt.value,
+              label: opt.label,
+            }))}
             value={draft.condition}
-            onChange={(e) => onConditionChange(e.target.value)}
+            onChange={(value) => onConditionChange(value)}
             className={cn(
-              'w-full truncate rounded-md border border-zinc-200 bg-zinc-50/50 px-2 py-1 text-[13px] font-medium text-zinc-900 transition-colors focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10',
-              compact && 'py-0.5 text-xs',
+              compact &&
+                '[&_button]:rounded-md [&_button]:border-zinc-200/80 [&_button]:bg-zinc-50/40 [&_button]:px-2 [&_button]:py-0.5 [&_button]:text-xs',
             )}
-          >
-            {SELL_SINGLE_CONDITION_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          />
         </div>
       </div>
 

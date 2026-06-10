@@ -1,8 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
 import { QRCodeSVG } from 'qrcode.react';
-import { Check, ChevronLeft, ChevronRight, Loader2, Tag } from 'lucide-react';
+import { Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Loader2, QrCode, Tag } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   AUCTION_LISTING_PHOTO_MAX,
@@ -93,6 +94,10 @@ export function SellSingleWizard({
   };
   const [photoUploads, setPhotoUploads] = useState<Map<File, PhotoUploadEntry>>(() => new Map());
   const [qrCodeSize, setQrCodeSize] = useState(168);
+
+  /** Input nascosti per la riga azioni foto unificata (come nel tab Asta). */
+  const sellGalleryInputRef = useRef<HTMLInputElement>(null);
+  const sellCameraInputRef = useRef<HTMLInputElement>(null);
 
   const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
   const [conditionLightbox, setConditionLightbox] = useState<string | null>(null);
@@ -224,6 +229,21 @@ export function SellSingleWizard({
       startUploadFor(file);
     },
     [startUploadFor],
+  );
+
+  /** Aggiunge foto dalla riga azioni unificata, rispettando il massimo. */
+  const appendListingPhotos = useCallback(
+    (fileList: FileList | null) => {
+      if (!fileList?.length) return;
+      const next = [...draft.listingPhotos];
+      for (const f of Array.from(fileList)) {
+        if (!f.type.startsWith('image/')) continue;
+        if (next.length >= AUCTION_LISTING_PHOTO_MAX) break;
+        next.push({ kind: 'local', file: f });
+      }
+      if (next.length > draft.listingPhotos.length) setListingPhotos(next);
+    },
+    [draft.listingPhotos, setListingPhotos],
   );
 
   const photoUploadStatuses = useMemo<ListingPhotoUploadStatus[]>(
@@ -557,19 +577,58 @@ export function SellSingleWizard({
                 compact={isEmbedded}
               >
                 <div className={cn('space-y-2', isEmbedded && 'space-y-1.5')}>
-                  <button
-                    type="button"
-                    onClick={() => void pairing.openPhoneUploadModal()}
-                    disabled={pairing.pairingActionLoading}
-                    className={cn(
-                      'inline-flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#1D3160]/25 bg-[#f8f9fb] px-3 py-2 text-xs font-semibold text-[#1D3160] transition hover:border-[#FF7300]/50 hover:bg-orange-50/40 disabled:opacity-60',
-                      isEmbedded && 'py-1.5 text-[11px]',
-                    )}
-                  >
-                    {pairing.pairingActionLoading
-                      ? t('vendi.sell.photoFromPhoneLoading')
-                      : t('vendi.sell.photoFromPhone')}
-                  </button>
+                  <input
+                    ref={sellGalleryInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="sr-only"
+                    onChange={(e) => {
+                      appendListingPhotos(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                  <input
+                    ref={sellCameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="sr-only"
+                    onChange={(e) => {
+                      appendListingPhotos(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                  <div className="flex items-stretch gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => sellGalleryInputRef.current?.click()}
+                      disabled={draft.listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX}
+                      className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg border border-zinc-300 bg-white py-2 text-[10px] font-bold uppercase tracking-wide text-[#1D3160] transition hover:border-[#FF7300]/60 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <ImageIcon className="h-4 w-4" aria-hidden />
+                      Carica
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => sellCameraInputRef.current?.click()}
+                      disabled={draft.listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX}
+                      className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg border border-zinc-300 bg-white py-2 text-[10px] font-bold uppercase tracking-wide text-[#1D3160] transition hover:border-[#FF7300]/60 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Camera className="h-4 w-4" aria-hidden />
+                      Scatta
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void pairing.openPhoneUploadModal()}
+                      disabled={pairing.pairingActionLoading}
+                      aria-label="Carica da telefono con QR"
+                      title="Carica da telefono con QR"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center self-center rounded-full border border-dashed border-[#1D3160]/30 bg-[#f8f9fb] text-[#1D3160] transition hover:border-[#FF7300]/60 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <QrCode className="h-5 w-5" aria-hidden />
+                    </button>
+                  </div>
                   {pairing.hasActiveSession ? (
                     <p className="text-[10px] leading-snug text-zinc-600">
                       {t('vendi.sell.photoPairingSessionActive', {
@@ -614,6 +673,7 @@ export function SellSingleWizard({
                     photos={draft.listingPhotos}
                     onPhotosChange={setListingPhotos}
                     compact
+                    hideAddTile
                     uploadStatuses={photoUploadStatuses}
                     highlightPhotoId={pairing.flashPhotoId}
                   />

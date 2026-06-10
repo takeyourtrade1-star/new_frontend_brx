@@ -37,7 +37,7 @@ const MAX_RETRIES = 3;
 const POLL_INTERVAL_MS = 2500;
 
 /** Bump when mobile QR UX changes — helps verify Amplify deploy / cache on phone. */
-const MOBILE_PHOTO_UX_BUILD = '20260610';
+const MOBILE_PHOTO_UX_BUILD = '20260610b';
 
 const UPLOAD_TIMEOUT_MS = 30_000;
 
@@ -50,57 +50,84 @@ const UPLOAD_TIMEOUT_MS = 30_000;
  */
 const MAX_CROP_SOURCE_EDGE = 2560;
 
+type PreparedCropImage = {
+  url: string;
+  /** True se la foto è stata ri-codificata (JPEG pulito, EXIF applicato, lato ≤ MAX_CROP_SOURCE_EDGE). */
+  processed: boolean;
+};
+
 /**
- * Decodifica e, se serve, ridimensiona la foto prima di passarla al cropper.
- * Ritorna sempre un object URL utilizzabile: in caso di problemi fa fallback
- * all'URL del file originale (comportamento precedente). La ri-codifica JPEG
- * applica anche l'orientamento EXIF, evitando doppie rotazioni.
+ * Decodifica e ri-codifica SEMPRE la foto prima di passarla al cropper.
+ *
+ * Perché: il loader interno di advanced-cropper legge il blob via XHR per
+ * l'EXIF e in caso di errore la promise resta appesa per sempre → cropper
+ * vuoto → riquadro nero. Inoltre Safari iOS non composita immagini enormi nei
+ * layer trasformati (di nuovo nero). Passando un JPEG pulito, tipizzato,
+ * senza EXIF e ridimensionato si eliminano entrambe le classi di problemi.
+ *
+ * Nota: niente img.decode() — su iOS rigetta spuriamente per foto grandi.
+ * Si usa l'evento 'load' con timeout, molto più affidabile.
  */
-async function prepareImageForCrop(file: File): Promise<string> {
+async function prepareImageForCrop(file: File): Promise<PreparedCropImage> {
   const originalUrl = URL.createObjectURL(file);
 
   const img = new Image();
   img.decoding = 'async';
   img.src = originalUrl;
-  try {
-    if (typeof img.decode === 'function') {
-      await img.decode();
-    } else {
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Immagine non decodificabile'));
-      });
+
+  const loadedOk = await new Promise<boolean>((resolve) => {
+    if (img.complete && img.naturalWidth > 0) {
+      resolve(true);
+      return;
     }
-  } catch {
-    // Decodifica fallita: lascia provare il cropper con l'URL originale.
-    return originalUrl;
-  }
+    let timer = 0;
+    const cleanup = () => {
+      img.removeEventListener('load', onLoad);
+      img.removeEventListener('error', onError);
+      window.clearTimeout(timer);
+    };
+    const onLoad = () => {
+      cleanup();
+      resolve(true);
+    };
+    const onError = () => {
+      cleanup();
+      resolve(false);
+    };
+    timer = window.setTimeout(() => {
+      cleanup();
+      resolve(img.naturalWidth > 0);
+    }, 15_000);
+    img.addEventListener('load', onLoad);
+    img.addEventListener('error', onError);
+  });
 
-  const w = img.naturalWidth;
-  const h = img.naturalHeight;
-  const maxEdge = Math.max(w, h);
-  if (!w || !h || maxEdge <= MAX_CROP_SOURCE_EDGE) {
-    return originalUrl;
+  if (!loadedOk || !img.naturalWidth || !img.naturalHeight) {
+    // Non decodificabile da questo browser: lascia provare il cropper
+    // con l'URL originale (gestirà lui l'eventuale errore).
+    return { url: originalUrl, processed: false };
   }
 
   try {
-    const scale = MAX_CROP_SOURCE_EDGE / maxEdge;
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    const scale = Math.min(1, MAX_CROP_SOURCE_EDGE / Math.max(w, h));
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(w * scale));
     canvas.height = Math.max(1, Math.round(h * scale));
     const ctx = canvas.getContext('2d');
-    if (!ctx) return originalUrl;
+    if (!ctx) return { url: originalUrl, processed: false };
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise<Blob | null>((resolve) => {
       canvas.toBlob(resolve, 'image/jpeg', 0.92);
     });
-    if (!blob) return originalUrl;
+    if (!blob || blob.size === 0) return { url: originalUrl, processed: false };
     URL.revokeObjectURL(originalUrl);
-    return URL.createObjectURL(blob);
+    return { url: URL.createObjectURL(blob), processed: true };
   } catch {
-    return originalUrl;
+    return { url: originalUrl, processed: false };
   }
 }
 
@@ -144,6 +171,7 @@ export function AuctionMobilePairingUpload({
 
   const [viewState, setViewState] = useState<ViewState>('pick');
   const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [cropSourceProcessed, setCropSourceProcessed] = useState(false);
   const [cropMode, setCropMode] = useState<CropMode>('card');
   const [uploading, setUploading] = useState(false);
   const [uploadPercent, setUploadPercent] = useState<number | null>(null);
@@ -243,15 +271,17 @@ export function AuctionMobilePairingUpload({
         return;
       }
       void (async () => {
-        // Ridimensiona prima del crop: foto fotocamera ad alta risoluzione
-        // causano anteprima nera su Safari iOS / WebView (limiti GPU/canvas).
-        const url = await prepareImageForCrop(f);
+        // Ri-codifica/ridimensiona prima del crop: foto fotocamera ad alta
+        // risoluzione causano anteprima nera (limiti GPU/canvas mobili e
+        // loader EXIF fragile del cropper).
+        const prepared = await prepareImageForCrop(f);
         if (objectUrlRef.current) {
           URL.revokeObjectURL(objectUrlRef.current);
           objectUrlRef.current = null;
         }
-        objectUrlRef.current = url;
-        setImageSrc(url);
+        objectUrlRef.current = prepared.url;
+        setCropSourceProcessed(prepared.processed);
+        setImageSrc(prepared.url);
         setUploadError(null);
         setFailCount(0);
         setCropMode('card');
@@ -614,6 +644,8 @@ export function AuctionMobilePairingUpload({
               mode={cropMode}
               onModeChange={setCropMode}
               cropperRef={cropperRef}
+              checkOrientation={!cropSourceProcessed}
+              onImageLoadError={() => setUploadError(t('auctions.mobilePairingPickImageError'))}
               modeCardLabel={t('auctions.mobilePairingCropModeCard')}
               modeFreeLabel={t('auctions.mobilePairingCropModeFree')}
               zoomLabel={t('auctions.mobilePairingZoom')}
