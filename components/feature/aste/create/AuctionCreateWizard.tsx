@@ -33,6 +33,7 @@ import {
 } from '@/lib/auction/auction-embedded-draft';
 import { buildCardLanguageOptions } from '@/lib/card-languages';
 import { CardLanguageSelect } from '@/components/ui/CardLanguageSelect';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 import type { CardDocument } from '@/lib/product-detail';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCardImageUrl } from '@/lib/assets';
@@ -1254,31 +1255,28 @@ export function AuctionCreateWizard({
             <div className="space-y-2.5">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label htmlFor="ac-condition-emb" className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
+                  <label className="mb-0.5 block text-[10px] font-bold uppercase tracking-wide text-gray-600">
                     {t('auctions.createConditionLabel')}
                   </label>
-                  <select
-                    id="ac-condition-emb"
+                  <CustomSelect
+                    options={AUCTION_CARD_CONDITION_OPTIONS.map(({ value, labelKey }) => ({
+                      value,
+                      label: t(labelKey),
+                    }))}
                     value={conditionSelectValue(draft.condition)}
-                    onChange={(e) => update('condition', e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-                  >
-                    {AUCTION_CARD_CONDITION_OPTIONS.map(({ value, labelKey }) => (
-                      <option key={value} value={value}>
-                        {t(labelKey)}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => update('condition', value)}
+                    className="[&_button]:rounded-lg [&_button]:border-gray-300 [&_button]:bg-white [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs"
+                  />
                 </div>
                 <div>
-                  <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
+                  <span className="mb-0.5 block text-[10px] font-bold uppercase tracking-wide text-gray-600">
                     Lingua carta
                   </span>
                   <CardLanguageSelect
                     options={cardLanguageFlagOptions}
                     value={draft.cardLanguage}
                     onChange={(code) => update('cardLanguage', code)}
-                    className="mt-1 [&_button]:rounded-lg [&_button]:border-gray-300 [&_button]:bg-white [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs"
+                    className="[&_button]:rounded-lg [&_button]:border-gray-300 [&_button]:bg-white [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs"
                   />
                 </div>
               </div>
@@ -1395,45 +1393,35 @@ export function AuctionCreateWizard({
                 </p>
               </div>
               <div>
-                <label htmlFor="ac-condition" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+                <label className="block text-xs font-bold uppercase tracking-wide text-gray-600">
                   {t('auctions.createConditionLabel')}
                 </label>
-                <select
-                  id="ac-condition"
+                <CustomSelect
+                  options={AUCTION_CARD_CONDITION_OPTIONS.map(({ value, labelKey }) => ({
+                    value,
+                    label: t(labelKey),
+                  }))}
                   value={conditionSelectValue(draft.condition)}
-                  onChange={(e) => update('condition', e.target.value)}
+                  onChange={(value) => update('condition', value)}
                   className={cn(
-                    'mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                    isEmbedded && 'py-2'
+                    'mt-1.5',
+                    isEmbedded && '[&_button]:py-2'
                   )}
-                >
-                  {AUCTION_CARD_CONDITION_OPTIONS.map(({ value, labelKey }) => (
-                    <option key={value} value={value}>
-                      {t(labelKey)}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
               <div>
-                <label htmlFor="ac-language" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+                <label className="block text-xs font-bold uppercase tracking-wide text-gray-600">
                   Lingua carta
                 </label>
-                <select
-                  id="ac-language"
+                <CardLanguageSelect
+                  options={cardLanguageFlagOptions}
                   value={draft.cardLanguage}
-                  onChange={(e) => update('cardLanguage', e.target.value)}
+                  onChange={(code) => update('cardLanguage', code)}
                   className={cn(
-                    'mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                    isEmbedded && 'py-2'
+                    'mt-1.5',
+                    isEmbedded && '[&_button]:py-2'
                   )}
-                >
-                  <option value="">Non specificata</option>
-                  {cardLanguageOptions.map(({ value, label }) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
           )}
@@ -1473,24 +1461,21 @@ export function AuctionCreateWizard({
                 />
               </div>
               <div>
-                <label htmlFor="ac-condition-nc" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+                <label className="block text-xs font-bold uppercase tracking-wide text-gray-600">
                   {t('auctions.createConditionLabel')}
                 </label>
-                <select
-                  id="ac-condition-nc"
+                <CustomSelect
+                  options={AUCTION_CARD_CONDITION_OPTIONS.map(({ value, labelKey }) => ({
+                    value,
+                    label: t(labelKey),
+                  }))}
                   value={conditionSelectValue(draft.condition)}
-                  onChange={(e) => update('condition', e.target.value)}
+                  onChange={(value) => update('condition', value)}
                   className={cn(
-                    'mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                    isEmbedded && 'py-2'
+                    'mt-1.5',
+                    isEmbedded && '[&_button]:py-2'
                   )}
-                >
-                  {AUCTION_CARD_CONDITION_OPTIONS.map(({ value, labelKey }) => (
-                    <option key={value} value={value}>
-                      {t(labelKey)}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
           )}
