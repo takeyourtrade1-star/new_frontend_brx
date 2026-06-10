@@ -22,16 +22,16 @@ function formatDateTime(iso: string | null): string {
 }
 
 const BADGE_META: Record<MockSupportTicket['status'] | 'OPEN' | 'RESOLVED', { label: string; cls: string; Icon: typeof AlertCircle }> = {
-  OPEN: { label: 'IN CORSO', cls: 'bg-amber-100 text-amber-800', Icon: AlertCircle },
-  RESOLVED: { label: 'CHIUSO', cls: 'bg-emerald-100 text-emerald-800', Icon: CheckCircle2 },
+  OPEN: { label: 'In corso', cls: 'bg-amber-50 text-amber-700', Icon: AlertCircle },
+  RESOLVED: { label: 'Chiuso', cls: 'bg-emerald-50 text-emerald-700', Icon: CheckCircle2 },
 };
 
 function getDisputeBadgeMeta(status: DisputeStatus) {
   switch (status) {
     case 'OPEN':
-      return { label: 'IN CORSO', cls: 'bg-amber-100 text-amber-800', Icon: AlertCircle };
+      return { label: 'In corso', cls: 'bg-amber-50 text-amber-700', Icon: AlertCircle };
     default:
-      return { label: 'CHIUSO', cls: 'bg-emerald-100 text-emerald-800', Icon: CheckCircle2 };
+      return { label: 'Chiuso', cls: 'bg-emerald-50 text-emerald-700', Icon: CheckCircle2 };
   }
 }
 
@@ -62,13 +62,13 @@ export function SupportTicketCard({ ticket }: SupportTicketCardProps) {
             </span>
           </div>
           <p className="mt-0.5 text-xs text-gray-500">Segnalazione #{d.id}</p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide', meta.cls)}>
+          <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+            <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', meta.cls)}>
               <StatusIcon className="h-3 w-3" aria-hidden />
               {meta.label}
             </span>
-            <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-600">
-              REALE
+            <span className="inline-flex rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-400">
+              Reale
             </span>
           </div>
         </div>
@@ -99,13 +99,13 @@ export function SupportTicketCard({ ticket }: SupportTicketCardProps) {
           </span>
         </div>
         <p className="mt-0.5 text-xs text-gray-500">Ordine {m.orderId}</p>
-        <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide', meta.cls)}>
+        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+          <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', meta.cls)}>
             <StatusIcon className="h-3 w-3" aria-hidden />
             {meta.label}
           </span>
-          <span className="inline-flex rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-            DEMO
+          <span className="inline-flex rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-400">
+            Demo
           </span>
         </div>
       </div>

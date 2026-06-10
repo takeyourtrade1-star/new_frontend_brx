@@ -968,11 +968,11 @@ export function AuctionCreateWizard({
         </div>
       )}
 
-      <div className={cn('relative rounded-2xl border border-gray-200 bg-white shadow-sm', isEmbedded && 'rounded-xl border-zinc-200/70 bg-white/95 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.08)]')}>
+      <div className={cn('relative rounded-2xl border border-gray-200 bg-white shadow-sm', isEmbedded && 'rounded-xl border border-zinc-200/70 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]')}>
         <div
           className={cn(
             'relative border-b border-gray-100 px-5 py-4 sm:px-8 sm:py-5',
-            isEmbedded && 'border-b-zinc-100/50 px-3 py-1.5 sm:px-4 sm:py-2'
+            isEmbedded && 'border-b border-zinc-100 px-3 py-2'
           )}
         >
           {/* Progress bar transition indicator */}
@@ -986,7 +986,7 @@ export function AuctionCreateWizard({
             tabIndex={-1}
             className={cn(
               'text-lg font-bold uppercase tracking-wide text-[#1D3160] sm:text-xl',
-              isEmbedded && 'text-[13px] font-extrabold tracking-[0.06em] sm:text-sm'
+              isEmbedded && 'text-xs font-extrabold uppercase tracking-wider text-zinc-800'
             )}
           >
             {stepHeading}
@@ -1211,30 +1211,6 @@ export function AuctionCreateWizard({
 
           {stepId === 'details' && draft.isCard && (
             <div className={cn('space-y-5', isEmbedded && 'space-y-3')}>
-              <div className={cn('flex flex-col gap-4 sm:flex-row sm:items-start', isEmbedded && 'gap-3')}>
-                {previewImageSrc && (
-                  <div
-                    className={cn(
-                      'relative mx-auto h-40 w-[7.25rem] shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 sm:mx-0',
-                      isEmbedded && 'h-24 w-[4.5rem] rounded-md border-zinc-200/80'
-                    )}
-                  >
-                    <Image src={previewImageSrc} alt="" fill className="object-cover" sizes="116px" unoptimized />
-                  </div>
-                )}
-                <div className={cn('min-w-0 flex-1 space-y-3', isEmbedded && 'space-y-1.5')}>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{t('auctions.createTitleLabel')}</p>
-                    <p className="mt-1 text-base font-semibold text-[#1D3160]">{draft.title || '—'}</p>
-                  </div>
-                  {draft.cardSelection?.setName?.trim() ? (
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{t('auctions.createCatalogSetLabel')}</p>
-                      <p className="mt-1 text-sm text-gray-800">{draft.cardSelection.setName}</p>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
               <div>
                 <label htmlFor="ac-desc" className="flex items-baseline justify-between gap-2">
                   <span className="text-xs font-bold uppercase tracking-wide text-gray-600">{t('auctions.createAuctionNoteLabel')}</span>
@@ -1761,7 +1737,7 @@ export function AuctionCreateWizard({
         </div>
 
         {isEmbedded && stepId !== 'q_card' && (
-          <div className="border-t border-zinc-200/70 bg-zinc-50/70 px-3 py-2">
+          <div className="border-t border-zinc-100 bg-zinc-50/70 px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <button
                 type="button"
@@ -1779,7 +1755,7 @@ export function AuctionCreateWizard({
                   title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
                   onClick={goNext}
                   className={cn(
-                    'inline-flex min-h-[36px] items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
+                    'inline-flex min-h-[36px] items-center gap-1 rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
                     continueDisabled
                       ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
                       : 'bg-[#FF7300] hover:bg-[#e86800]'
@@ -1792,7 +1768,7 @@ export function AuctionCreateWizard({
                 <button
                   type="button"
                   onClick={openPublishConfirm}
-                  className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-[#FF7300] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
+                  className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-[#FF7300] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
                 >
                   <Gavel className="h-3 w-3" aria-hidden />
                   {t('auctions.createSubmit')}

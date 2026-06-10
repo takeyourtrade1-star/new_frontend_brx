@@ -96,6 +96,7 @@ export function SellSingleWizard({
 
   const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
   const [conditionLightbox, setConditionLightbox] = useState<string | null>(null);
+  const [isConfirmPublishModalOpen, setIsConfirmPublishModalOpen] = useState(false);
 
   const languageOptions: CardLanguageOption[] = useMemo(
     () => buildCardLanguageOptions(embeddedCard.available_languages),
@@ -340,7 +341,10 @@ export function SellSingleWizard({
       setStepId('confirm');
       return;
     }
+    setIsConfirmPublishModalOpen(true);
+  };
 
+  const doPublish = async () => {
     const photoIds = collectPhotoIds();
 
     const ATTACH_PHOTOS_TIMEOUT_MS = 10_000;
@@ -720,18 +724,24 @@ export function SellSingleWizard({
         onClose={() => setIsConditionModalOpen(false)}
         title={sellSingleConditionLabel(draft.condition)}
         titleId="sell-condition-modal-title"
-        size="lg"
+        size="xl"
+        className="sm:max-w-[52rem] sm:max-h-[min(92dvh,864px)]"
+        contentClassName="px-6 py-5"
+        hideCloseButton
         footer={
-          <button
-            type="button"
-            onClick={() => setIsConditionModalOpen(false)}
-            className="w-full rounded-xl bg-[#FF8800] px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#FF8800]/90"
-          >
-            Chiudi
-          </button>
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => setIsConditionModalOpen(false)}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#FF8800] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-[#FF8800]/90 hover:shadow-md active:scale-[0.98]"
+            >
+              <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+              Ho compreso la condizione
+            </button>
+          </div>
         }
       >
-        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <button
             type="button"
             className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white"
@@ -763,7 +773,84 @@ export function SellSingleWizard({
             />
           </button>
         </div>
-        <p className="mt-2 text-center text-[10px] text-zinc-500">Tocca un&apos;immagine per ingrandire</p>
+        <p className="mt-3 text-center text-xs text-zinc-500">Tocca un&apos;immagine per ingrandire</p>
+      </SellWizardModal>
+
+      <SellWizardModal
+        open={isConfirmPublishModalOpen}
+        onClose={() => setIsConfirmPublishModalOpen(false)}
+        title="Conferma condizione"
+        titleId="sell-confirm-publish-title"
+        size="xl"
+        className="sm:max-w-[46rem] sm:max-h-[min(92dvh,780px)]"
+        contentClassName="px-6 py-5"
+        hideCloseButton
+        footer={
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setIsConfirmPublishModalOpen(false)}
+              className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#1D3160] transition hover:bg-zinc-50"
+            >
+              Annulla
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsConfirmPublishModalOpen(false);
+                void doPublish();
+              }}
+              className="inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#FF8800] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-[#FF8800]/90 hover:shadow-md active:scale-[0.98]"
+            >
+              <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+              Confermo che la condizione corrisponde
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[#1D3160]">
+              Esempio condizione: {sellSingleConditionLabel(draft.condition)}
+            </p>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white">
+                <img
+                  src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.front ?? '/conditions/near-mint-front.jpeg'}
+                  alt="Fronte esempio"
+                  className="h-full w-full object-contain p-1"
+                />
+              </div>
+              <div className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white">
+                <img
+                  src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.back ?? '/conditions/near-mint-back.jpeg'}
+                  alt="Retro esempio"
+                  className="h-full w-full object-contain p-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          {draft.listingPhotos.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[#1D3160]">
+                Le tue foto
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                {draft.listingPhotos.map((slot, i) => {
+                  const status = photoUploadStatuses[i];
+                  const url = status?.kind === 'done' ? status.cdnUrl : null;
+                  if (!url) return null;
+                  return (
+                    <div key={i} className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white">
+                      <img src={url} alt={`Foto ${i + 1}`} className="h-full w-full object-contain p-1" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </SellWizardModal>
 
       <SellWizardLightbox

@@ -30,31 +30,31 @@ function formatDateTime(iso: string): string {
 
 const STATUS_BADGES: Record<VenditaMock['stato'], { label: string; cls: string; Icon: typeof Clock }> = {
   'in-attesa-pagamento': {
-    label: 'IN ATTESA',
-    cls: 'bg-amber-100 text-amber-800',
+    label: 'In attesa',
+    cls: 'bg-amber-50 text-amber-700',
     Icon: Clock,
   },
   'da-spedire': {
-    label: 'DA SPEDIRE',
-    cls: 'bg-[#FF7300]/10 text-[#c45a00]',
+    label: 'Da spedire',
+    cls: 'bg-orange-50 text-orange-700',
     Icon: Package,
   },
   spedito: {
-    label: 'SPEDITO',
-    cls: 'bg-blue-100 text-blue-800',
+    label: 'Spedito',
+    cls: 'bg-blue-50 text-blue-700',
     Icon: Truck,
   },
   completato: {
-    label: 'COMPLETATO',
-    cls: 'bg-emerald-100 text-emerald-800',
+    label: 'Completato',
+    cls: 'bg-emerald-50 text-emerald-700',
     Icon: CheckCircle2,
   },
 };
 
 const CATEGORY_BADGES: Record<VenditaMock['category'], { label: string; cls: string }> = {
-  asta: { label: 'ASTA', cls: 'bg-purple-100 text-purple-700' },
-  marketplace: { label: 'MARKETPLACE', cls: 'bg-sky-100 text-sky-700' },
-  demo: { label: 'DEMO', cls: 'bg-gray-100 text-gray-700' },
+  asta: { label: 'Asta', cls: 'bg-gray-50 text-gray-500 border border-gray-200' },
+  marketplace: { label: 'Marketplace', cls: 'bg-gray-50 text-gray-500 border border-gray-200' },
+  demo: { label: 'Demo', cls: 'bg-white text-gray-400 border border-gray-200' },
 };
 
 type VenditeSaleCardProps = {
@@ -81,17 +81,17 @@ export function VenditeSaleCard({ vendita, showStatoBadge = false }: VenditeSale
           <User className="h-3.5 w-3.5" aria-hidden />
           <span className="font-medium text-gray-800">@{vendita.buyerUsername}</span>
         </div>
-        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
           <span
             className={cn(
-              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold',
               badge.cls,
             )}
           >
             <StatusIcon className="h-3 w-3" aria-hidden />
             {badge.label}
           </span>
-          <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide', catBadge.cls)}>
+          <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium', catBadge.cls)}>
             {catBadge.label}
           </span>
         </div>

@@ -12,7 +12,10 @@ type SellWizardModalProps = {
   titleId: string;
   children: ReactNode;
   footer?: ReactNode;
-  size?: 'md' | 'lg';
+  size?: 'md' | 'lg' | 'xl';
+  className?: string;
+  contentClassName?: string;
+  hideCloseButton?: boolean;
 };
 
 export function SellWizardModal({
@@ -23,6 +26,9 @@ export function SellWizardModal({
   children,
   footer,
   size = 'md',
+  className,
+  contentClassName,
+  hideCloseButton,
 }: SellWizardModalProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -64,6 +70,8 @@ export function SellWizardModal({
           'relative flex max-h-[min(92dvh,720px)] w-full flex-col overflow-hidden rounded-t-2xl border border-zinc-200 bg-white shadow-2xl sm:max-h-[90dvh] sm:rounded-2xl',
           size === 'md' && 'sm:max-w-md',
           size === 'lg' && 'sm:max-w-lg',
+          size === 'xl' && 'sm:max-w-2xl',
+          className,
         )}
         onClick={(e) => e.stopPropagation()}
       >
@@ -74,17 +82,19 @@ export function SellWizardModal({
           >
             {title}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Chiudi"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-100"
-          >
-            <X className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-          </button>
+          {!hideCloseButton && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Chiudi"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-100"
+            >
+              <X className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+            </button>
+          )}
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">{children}</div>
+        <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3', contentClassName)}>{children}</div>
 
         {footer ? (
           <footer className="shrink-0 border-t border-zinc-100 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

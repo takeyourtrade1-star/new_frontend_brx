@@ -12,43 +12,43 @@ const STATUS_BADGES: Record<
   { label: string; cls: string; Icon: typeof Clock }
 > = {
   PAYMENT_PENDING: {
-    label: 'DA PAGARE',
-    cls: 'bg-amber-100 text-amber-800',
+    label: 'Da pagare',
+    cls: 'bg-amber-50 text-amber-700',
     Icon: Clock,
   },
   PAYMENT_OVERDUE: {
-    label: 'PAGAMENTO IN RITARDO',
-    cls: 'bg-orange-100 text-orange-800',
+    label: 'In ritardo',
+    cls: 'bg-orange-50 text-orange-700',
     Icon: ShieldAlert,
   },
   DISPUTED: {
-    label: 'IN CONTESTAZIONE',
-    cls: 'bg-red-100 text-red-800',
+    label: 'Contesa',
+    cls: 'bg-red-50 text-red-700',
     Icon: ShieldAlert,
   },
   PAID: {
-    label: 'PAGATO',
-    cls: 'bg-emerald-100 text-emerald-800',
+    label: 'Pagato',
+    cls: 'bg-emerald-50 text-emerald-700',
     Icon: CheckCircle2,
   },
   SHIPPED: {
-    label: 'INVIATO',
-    cls: 'bg-blue-100 text-blue-800',
+    label: 'Inviato',
+    cls: 'bg-blue-50 text-blue-700',
     Icon: Truck,
   },
   DELIVERED: {
-    label: 'CONSEGNATO',
-    cls: 'bg-emerald-200 text-emerald-900',
+    label: 'Consegnato',
+    cls: 'bg-emerald-50 text-emerald-700',
     Icon: CheckCircle2,
   },
   CANCELLED: {
-    label: 'CANCELLATO',
-    cls: 'bg-gray-200 text-gray-700',
+    label: 'Cancellato',
+    cls: 'bg-gray-100 text-gray-600',
     Icon: XCircle,
   },
   REASSIGNED: {
-    label: 'RIASSEGNATO',
-    cls: 'bg-gray-200 text-gray-700',
+    label: 'Riassegnato',
+    cls: 'bg-gray-100 text-gray-600',
     Icon: ArrowRightLeft,
   },
 };
@@ -141,20 +141,37 @@ export function OrderCard({
           {perspective === 'buyer' ? 'Venditore' : 'Acquirente'}:
           <span className="font-medium text-gray-800">{counterparty}</span>
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide', badge.cls)}>
-            <StatusIcon className="h-3 w-3" aria-hidden />
-            {badge.label}
-          </span>
-          <span className="inline-flex rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-purple-700">
-            ASTA
-          </span>
-          {order.due_at && dueRelative.isOverdue && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-700">
-              <Clock className="h-3 w-3" aria-hidden />
-              Scaduto
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', badge.cls)}>
+              <StatusIcon className="h-3 w-3" aria-hidden />
+              {badge.label}
             </span>
-          )}
+            {order.due_at && dueRelative.isOverdue && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-red-100 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">
+                <Clock className="h-3 w-3" aria-hidden />
+                Scaduto
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+              Asta
+            </span>
+            {canPay && onPay && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPay(order);
+                }}
+                disabled={paying}
+                className="inline-flex items-center justify-center rounded-md bg-[#FF7300] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#e56500] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {paying ? 'Pagamento…' : 'Paga ora'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -173,16 +190,6 @@ export function OrderCard({
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        {canPay && onPay && (
-          <button
-            type="button"
-            onClick={() => onPay(order)}
-            disabled={paying}
-            className="inline-flex items-center justify-center rounded-md bg-[#FF7300] px-4 py-2 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#e56500] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {paying ? 'Pagamento…' : 'Paga ora'}
-          </button>
-        )}
         {canOpenDispute && onOpenDispute && (
           <button
             type="button"

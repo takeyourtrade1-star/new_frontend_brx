@@ -75,19 +75,21 @@ export function MockShippingOrderCard({
           <span className="text-sm font-bold text-gray-900 shrink-0">{formatEuroNoSpace(total, 'it-IT')}</span>
         </div>
         <p className="mt-0.5 text-xs text-gray-500 truncate">{order.sellerDisplayName}</p>
-        <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700">
-            <Truck className="h-3 w-3" aria-hidden />
-            In transito · {order.shippingDays} giorni
-          </span>
-          {isDelayed && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-800">
-              <AlertTriangle className="h-3 w-3" aria-hidden />
-              In ritardo
+        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+              <Truck className="h-3 w-3" aria-hidden />
+              In transito · {order.shippingDays} giorni
             </span>
-          )}
-          <span className="inline-flex rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-            DEMO
+            {isDelayed && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-red-100 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">
+                <AlertTriangle className="h-3 w-3" aria-hidden />
+                In ritardo
+              </span>
+            )}
+          </div>
+          <span className="inline-flex rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-400">
+            Demo
           </span>
         </div>
       </div>

@@ -79,17 +79,17 @@ export function MockPurchaseOrderCard({
         {order.sellerDisplayName && (
           <p className="mt-0.5 text-xs text-gray-500 truncate">{order.sellerDisplayName}</p>
         )}
-        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
           <span
             className={cn(
-              'inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
-              isPending ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800',
+              'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold',
+              isPending ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700',
             )}
           >
             {isPending ? t('mockCheckout.statusPending') : t('mockCheckout.statusPaid')}
           </span>
-          <span className="inline-flex rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-            DEMO
+          <span className="inline-flex rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-400">
+            Demo
           </span>
         </div>
       </div>

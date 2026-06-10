@@ -7,12 +7,12 @@ import { ExpandableCard } from '@/components/shared/ExpandableCard';
 import type { OrderResponse, OrderStatus } from '@/lib/api/marketplace-client';
 
 const STATUS_LABELS: Record<OrderStatus, { label: string; cls: string }> = {
-  pending: { label: 'IN ATTESA', cls: 'bg-amber-100 text-amber-800' },
-  confirmed: { label: 'CONFERMATO', cls: 'bg-emerald-100 text-emerald-800' },
-  shipped: { label: 'SPEDITO', cls: 'bg-blue-100 text-blue-800' },
-  completed: { label: 'COMPLETATO', cls: 'bg-emerald-200 text-emerald-900' },
-  cancelled: { label: 'ANNULLATO', cls: 'bg-gray-200 text-gray-700' },
-  mock: { label: 'DEMO', cls: 'bg-blue-100 text-blue-700' },
+  pending: { label: 'In attesa', cls: 'bg-amber-50 text-amber-700' },
+  confirmed: { label: 'Confermato', cls: 'bg-emerald-50 text-emerald-700' },
+  shipped: { label: 'Spedito', cls: 'bg-blue-50 text-blue-700' },
+  completed: { label: 'Completato', cls: 'bg-emerald-50 text-emerald-700' },
+  cancelled: { label: 'Annullato', cls: 'bg-gray-100 text-gray-600' },
+  mock: { label: 'Demo', cls: 'bg-gray-50 text-gray-500 border border-gray-200' },
 };
 
 function formatDateTime(iso: string): string {
@@ -36,7 +36,7 @@ type MarketplaceOrderCardProps = {
 export function MarketplaceOrderCard({ order }: MarketplaceOrderCardProps) {
   const statusMeta = STATUS_LABELS[order.status] ?? {
     label: order.status.toUpperCase(),
-    cls: 'bg-gray-100 text-gray-700',
+    cls: 'bg-gray-100 text-gray-600',
   };
   const title = order.listing_title?.trim() || `Inserzione ${order.listing_id.slice(0, 8)}…`;
   const total = Number.parseFloat(order.total_amount);
@@ -58,18 +58,20 @@ export function MarketplaceOrderCard({ order }: MarketplaceOrderCardProps) {
           )}
           <span className="text-sm font-bold text-gray-900 shrink-0">{formatEuroNoSpace(total, 'it-IT')}</span>
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide', statusMeta.cls)}>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold', statusMeta.cls)}>
             {statusMeta.label}
           </span>
-          <span className="inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">
-            MARKETPLACE
-          </span>
-          {order.is_mock && (
-            <span className="inline-flex rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-              DEMO
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+              Marketplace
             </span>
-          )}
+            {order.is_mock && (
+              <span className="inline-flex rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-400">
+                Demo
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
