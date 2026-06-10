@@ -47,7 +47,7 @@ describe('BrxExpressPage', () => {
     expect(screen.getByTestId('brx-express-header')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
-        name: /BRX Express: La Rivoluzione della\s+Spedizione Carte 24h/i,
+        name: /BRX Express: La Rivoluzione della\s*Spedizione Carte 24h/i,
       }),
     ).toBeInTheDocument();
     expect(screen.getByText('Logistica Decentralizzata')).toBeInTheDocument();
