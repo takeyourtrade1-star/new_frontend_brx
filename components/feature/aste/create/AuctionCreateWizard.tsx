@@ -55,6 +55,7 @@ import {
   listingPhotosReady,
   type ListingPhotoUploadStatus,
 } from './AuctionListingPhotoUpload';
+import { PhotoPairingInlinePanel } from './PhotoPairingInlinePanel';
 
 type WizardStepId =
   | 'q_card'
@@ -300,6 +301,7 @@ export function AuctionCreateWizard({
     listingPhotos: draft.listingPhotos,
     setListingPhotos,
     toastMessageKey: 'auctions.createPhotoReceivedFromPhone',
+    autoCloseOnFirstRemotePhoto: isEmbedded,
   });
 
   /** Aggiunge foto dalla riga azioni unificata (embedded), rispettando il massimo. */
@@ -1893,7 +1895,11 @@ export function AuctionCreateWizard({
                     </button>
                     <button
                       type="button"
-                      onClick={() => void pairing.openPhoneUploadModal()}
+                      onClick={() =>
+                        pairing.phoneUploadModalOpen
+                          ? pairing.closePhoneUploadModal()
+                          : void pairing.openPhoneUploadModal()
+                      }
                       disabled={pairing.pairingActionLoading}
                       aria-label="Carica da telefono con QR"
                       title="Carica da telefono con QR"
@@ -1911,6 +1917,21 @@ export function AuctionCreateWizard({
                       })}
                     </p>
                   ) : null}
+                  {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
+                    <p className="text-[10px] leading-snug text-zinc-600">
+                      {t('auctions.createPhotoFromPhonePollingHint')}
+                    </p>
+                  ) : null}
+                  {isEmbedded && pairing.phoneUploadModalOpen && pairing.phonePairingQrUrl ? (
+                    <PhotoPairingInlinePanel
+                      qrUrl={pairing.phonePairingQrUrl}
+                      body={t('auctions.createPhotoFromPhoneModalBody')}
+                      regenerateLabel={t('auctions.createPhotoPairingRegenerateQr')}
+                      closeSessionLabel={t('auctions.createPhotoPairingCloseSession')}
+                      onRegenerate={pairing.regenerateQr}
+                      onCloseSession={pairing.revokePairing}
+                    />
+                  ) : null}
                   {pairing.phonePhotoToast ? (
                     <p className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-medium text-emerald-900">
                       {pairing.phonePhotoToast}
@@ -1919,7 +1940,7 @@ export function AuctionCreateWizard({
                   {pairing.pairingActionError ? (
                     <p className="text-[11px] text-red-700">{pairing.pairingActionError}</p>
                   ) : null}
-                  {pairing.hasActiveSession ? (
+                  {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
@@ -2211,7 +2232,7 @@ export function AuctionCreateWizard({
       )}
     </div>
 
-    {pairing.phoneUploadModalOpen && pairing.pairingSessionId && pairing.phonePairingQrUrl ? (
+    {!isEmbedded && pairing.phoneUploadModalOpen && pairing.pairingSessionId && pairing.phonePairingQrUrl ? (
       <div className="fixed inset-0 z-[85] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">
         <div
           role="dialog"

@@ -8,7 +8,7 @@ import { buildPriceHistoryPoints } from '@/lib/product-detail/build-price-histor
 export { buildPriceHistoryPoints } from '@/lib/product-detail/build-price-history-points';
 
 const BRAND_ORANGE = '#FF7300';
-const SALES_BLUE = '#2563EB';
+const SALES_NAVY = '#2563EB';
 const GRID_COLOR = '#DDE3EA';
 const AXIS_TEXT = '#4B5563';
 
@@ -433,8 +433,8 @@ export function ProductPriceChart({
               <span className="text-[9px] font-medium text-zinc-500 whitespace-nowrap">Prezzo</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="inline-block h-1.5 w-2.5 rounded-sm border border-dashed" style={{ borderColor: SALES_BLUE }} aria-hidden />
-              <span className="text-[9px] font-medium whitespace-nowrap" style={{ color: SALES_BLUE }}>Vendite</span>
+              <span className="inline-block h-1.5 w-2.5 rounded-sm border border-dashed" style={{ borderColor: SALES_NAVY }} aria-hidden />
+              <span className="text-[9px] font-medium whitespace-nowrap" style={{ color: SALES_NAVY }}>Vendite</span>
             </div>
           </div>
           <div className="inline-flex items-center rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm">
@@ -532,7 +532,7 @@ export function ProductPriceChart({
                   y={y + 4}
                   textAnchor="end"
                   className="text-[10px] fill-current font-medium"
-                  style={{ fill: SALES_BLUE }}
+                  style={{ fill: SALES_NAVY }}
                 >
                   {sv}
                 </text>
@@ -584,7 +584,7 @@ export function ProductPriceChart({
             <path
               d={salesPath}
               fill="none"
-              stroke={SALES_BLUE}
+              stroke={SALES_NAVY}
               strokeWidth={2.2}
               strokeLinejoin="round"
               strokeLinecap="round"
@@ -615,7 +615,7 @@ export function ProductPriceChart({
                     cy={yScaleSales(pt.sales ?? 0)}
                     r={active ? 4 : 3}
                     fill="#fff"
-                    stroke={SALES_BLUE}
+                    stroke={SALES_NAVY}
                     strokeWidth={1.5}
                     className="pointer-events-none"
                   />
@@ -650,7 +650,7 @@ export function ProductPriceChart({
                   <text x={tw / 2} y={30} textAnchor="middle" fill={BRAND_ORANGE} className="text-[11px] font-bold">
                     {formatEuroShort(hover.price)}
                   </text>
-                  <text x={tw / 2} y={46} textAnchor="middle" fill={SALES_BLUE} className="text-[10px] font-semibold">
+                  <text x={tw / 2} y={46} textAnchor="middle" fill={SALES_NAVY} className="text-[10px] font-semibold">
                     {hover.sales} carte vendute
                   </text>
                 </g>
@@ -706,7 +706,7 @@ export function ProductPriceChart({
           )}
         >
           {showSalesLine ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-          <span className="inline-block h-2 w-3 rounded-sm shrink-0 border border-dashed" style={{ borderColor: SALES_BLUE }} aria-hidden />
+          <span className="inline-block h-2 w-3 rounded-sm shrink-0 border border-dashed" style={{ borderColor: SALES_NAVY }} aria-hidden />
           Vendite
         </button>
       </div>

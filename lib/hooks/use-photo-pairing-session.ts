@@ -28,6 +28,8 @@ export interface UsePhotoPairingSessionOptions {
   listingPhotos: ListingPhotoSlot[];
   setListingPhotos: (next: ListingPhotoSlot[]) => void;
   toastMessageKey: MessageKey;
+  /** Used by compact embedded flows: collapse the QR panel as soon as a phone photo lands. */
+  autoCloseOnFirstRemotePhoto?: boolean;
 }
 
 export function usePhotoPairingSession({
@@ -39,6 +41,7 @@ export function usePhotoPairingSession({
   listingPhotos,
   setListingPhotos,
   toastMessageKey,
+  autoCloseOnFirstRemotePhoto = false,
 }: UsePhotoPairingSessionOptions) {
   const { t } = useTranslation();
   const stepIdRef = useRef(stepId);
@@ -94,12 +97,13 @@ export function usePhotoPairingSession({
           setListingPhotos(next);
           setPhonePhotoToast(t(toastMessageKey));
           if (lastAddedId != null) setFlashPhotoId(lastAddedId);
+          if (autoCloseOnFirstRemotePhoto) setPhoneUploadModalOpen(false);
         }
       } catch {
         /* polling: ignore transient errors */
       }
     },
-    [maxPhotos, setListingPhotos, t, toastMessageKey],
+    [autoCloseOnFirstRemotePhoto, maxPhotos, setListingPhotos, t, toastMessageKey],
   );
 
   const clearPoll = useCallback(() => {

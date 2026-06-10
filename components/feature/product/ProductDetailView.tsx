@@ -833,6 +833,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       const marketplaceIds = marketplaceListings
         .map((l) => l.marketplace_listing_id)
         .filter((id): id is string => Boolean(id));
+      // eslint-disable-next-line no-console
+      console.log('[ProductDetailView] marketplaceIds for prefetch', marketplaceIds);
       if (marketplaceIds.length > 0) {
         void prefetchListingCoverPhotos(marketplaceIds);
       }
@@ -1918,40 +1920,45 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     </div>
 
                     {showChart ? (
-                      <div className="grid grid-cols-3 gap-1">
-                        <div className="flex items-center justify-between gap-1 rounded-md border border-amber-200/70 bg-amber-50/70 px-1.5 py-1">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-amber-700/80">Trend</span>
-                          <span className="text-[11px] font-extrabold tabular-nums text-amber-700">{formatEuro(trendPriceValue)}</span>
+                      <div key="stats-row" className="grid grid-cols-3 gap-1 animate-in fade-in duration-300">
+                        <div className="flex items-center justify-between gap-1 rounded-md border border-[#FF7300]/25 bg-orange-50/70 px-1.5 py-1">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-[#e86800]/80">Trend</span>
+                          <span className="text-[11px] font-extrabold tabular-nums text-[#e86800]">{formatEuro(trendPriceValue)}</span>
                         </div>
-                        <div className="flex items-center justify-between gap-1 rounded-md border border-sky-200/70 bg-sky-50/60 px-1.5 py-1">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-sky-700/80">Vendute</span>
-                          <span className="text-[11px] font-extrabold tabular-nums text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</span>
+                        <div className="flex items-center justify-between gap-1 rounded-md border border-[#1D3160]/15 bg-[#1D3160]/[0.06] px-1.5 py-1">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-[#1D3160]/70">Vendute</span>
+                          <span className="text-[11px] font-extrabold tabular-nums text-[#1D3160]">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</span>
                         </div>
-                        <div className="flex items-center justify-between gap-1 rounded-md border border-zinc-200/80 bg-zinc-100/60 px-1.5 py-1">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">Prezzo medio</span>
-                          <span className="text-[11px] font-extrabold tabular-nums text-zinc-800">{formatEuro(averageSalePriceValue)}</span>
+                        <div className="flex items-center justify-between gap-1 rounded-md border border-emerald-200/70 bg-emerald-50/60 px-1.5 py-1">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-700/80">Prezzo medio</span>
+                          <span className="text-[11px] font-extrabold tabular-nums text-emerald-700">{formatEuro(averageSalePriceValue)}</span>
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-1.5">
-                        <div className="rounded-lg border border-amber-200/70 bg-amber-50/70 px-3 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700/80">Trend</p>
-                          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-amber-700">{formatEuro(trendPriceValue)}</p>
+                      <div key="stats-stack" className="space-y-1.5 animate-in fade-in duration-300">
+                        <div className="flex items-center justify-between gap-2 rounded-lg border border-[#FF7300]/25 bg-orange-50/70 px-3 py-2">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-[#e86800]/80">Trend</p>
+                          <p className="text-base font-extrabold tabular-nums text-[#e86800]">{formatEuro(trendPriceValue)}</p>
                         </div>
-                        <div className="rounded-lg border border-sky-200/70 bg-sky-50/60 px-3 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-sky-700/80">Vendute</p>
-                          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                        <div className="flex items-center justify-between gap-2 rounded-lg border border-[#1D3160]/15 bg-[#1D3160]/[0.06] px-3 py-2">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-[#1D3160]/70">Vendute</p>
+                          <p className="text-base font-extrabold tabular-nums text-[#1D3160]">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
                         </div>
-                        <div className="rounded-lg border border-zinc-200/80 bg-zinc-100/60 px-3 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Prezzo medio</p>
-                          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-zinc-800">{formatEuro(averageSalePriceValue)}</p>
+                        <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-200/70 bg-emerald-50/60 px-3 py-2">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-700/80">Prezzo medio</p>
+                          <p className="text-base font-extrabold tabular-nums text-emerald-700">{formatEuro(averageSalePriceValue)}</p>
                         </div>
                       </div>
                     )}
 
-                    <div className={cn('transition-all duration-500 ease-out overflow-hidden', showChart ? 'opacity-100 max-h-[270px] mt-1.5' : 'opacity-0 max-h-0')}>
+                    <div
+                      className={cn(
+                        'overflow-hidden transition-[max-height,opacity,margin] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                        showChart ? 'mt-1.5 max-h-[270px] opacity-100' : 'mt-0 max-h-0 opacity-0'
+                      )}
+                    >
                       {showChart && (
-                        <div className="animate-in fade-in duration-300">
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-500">
                           <div className="h-[250px] w-full rounded-lg bg-white/60">
                             <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
                           </div>
@@ -1966,7 +1973,13 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             {/* Tab VENDI: wizard vendita singola + contesto prezzi */}
             {activeTab === 'VENDI' && card && (
               <>
-                <div className="hidden h-full min-h-0 w-full min-w-0 gap-3 p-3 sm:grid sm:grid-cols-1 lg:grid-cols-[1.3fr_1fr]">
+                <div
+                  className={cn(
+                    // fr↔fr: i browser interpolano le track frazionarie (px↔fr invece scattano).
+                    'hidden h-full min-h-0 w-full min-w-0 gap-3 p-3 sm:grid sm:grid-cols-1 transition-[grid-template-columns] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                    showChart ? 'lg:grid-cols-[1.3fr_1fr]' : 'lg:grid-cols-[2.8fr_1fr]'
+                  )}
+                >
                   <div className="min-h-0">
                     <SellSingleWizard
                       key={`desktop-sell-${card.id}`}
@@ -1978,54 +1991,59 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     />
                   </div>
 
-                  {/* RIGHT: Market pricing context — uniformato a tab INFO */}
-                  <div className={cn('flex min-h-0 flex-col rounded-xl bg-white/85 sm:col-span-2 md:col-span-2 lg:col-span-1', showChart ? 'p-2.5' : 'p-3')}>
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{trendRangeLabel}</span>
+                  {/* RIGHT: Market pricing context — rail compatto a grafico nascosto, espanso a grafico visibile */}
+                  <div className={cn('flex min-h-0 w-full flex-col rounded-xl bg-white/85 p-2.5 sm:col-span-2 md:col-span-2 lg:col-span-1', !showChart && 'lg:self-start')}>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{trendRangeLabel}</span>
                       <button
                         type="button"
                         onClick={() => setShowChart((v) => !v)}
-                        className="flex items-center gap-1 rounded-full bg-zinc-100/80 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10"
+                        className="flex shrink-0 items-center gap-1 rounded-full bg-zinc-100/80 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10"
                       >
                         {showChart ? <><EyeOff className="h-3 w-3" /> Nascondi</> : <><Eye className="h-3 w-3" /> Grafico</>}
                       </button>
                     </div>
 
                     {showChart ? (
-                      <div className="grid grid-cols-3 gap-1">
-                        <div className="flex items-center justify-between gap-1 rounded-md border border-amber-200/70 bg-amber-50/70 px-1.5 py-1">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-amber-700/80">Trend</span>
-                          <span className="text-[11px] font-extrabold tabular-nums text-amber-700">{formatEuro(trendPriceValue)}</span>
+                      <div key="stats-row" className="grid grid-cols-3 gap-1 animate-in fade-in duration-300">
+                        <div className="flex items-center justify-between gap-1 rounded-md border border-[#FF7300]/25 bg-orange-50/70 px-1.5 py-1">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-[#e86800]/80">Trend</span>
+                          <span className="text-[11px] font-extrabold tabular-nums text-[#e86800]">{formatEuro(trendPriceValue)}</span>
                         </div>
-                        <div className="flex items-center justify-between gap-1 rounded-md border border-sky-200/70 bg-sky-50/60 px-1.5 py-1">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-sky-700/80">Vendute</span>
-                          <span className="text-[11px] font-extrabold tabular-nums text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</span>
+                        <div className="flex items-center justify-between gap-1 rounded-md border border-[#1D3160]/15 bg-[#1D3160]/[0.06] px-1.5 py-1">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-[#1D3160]/70">Vendute</span>
+                          <span className="text-[11px] font-extrabold tabular-nums text-[#1D3160]">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</span>
                         </div>
-                        <div className="flex items-center justify-between gap-1 rounded-md border border-zinc-200/80 bg-zinc-100/60 px-1.5 py-1">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">Prezzo medio</span>
-                          <span className="text-[11px] font-extrabold tabular-nums text-zinc-800">{formatEuro(averageSalePriceValue)}</span>
+                        <div className="flex items-center justify-between gap-1 rounded-md border border-emerald-200/70 bg-emerald-50/60 px-1.5 py-1">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-700/80">Prezzo medio</span>
+                          <span className="text-[11px] font-extrabold tabular-nums text-emerald-700">{formatEuro(averageSalePriceValue)}</span>
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-1.5">
-                        <div className="rounded-lg border border-amber-200/70 bg-amber-50/70 px-3 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700/80">Trend</p>
-                          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-amber-700">{formatEuro(trendPriceValue)}</p>
+                      <div key="stats-stack" className="space-y-1 animate-in fade-in duration-300">
+                        <div className="flex items-center justify-between gap-2 rounded-md border border-[#FF7300]/25 bg-orange-50/70 px-2.5 py-1.5">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-[#e86800]/80">Trend</span>
+                          <span className="text-[13px] font-extrabold tabular-nums text-[#e86800]">{formatEuro(trendPriceValue)}</span>
                         </div>
-                        <div className="rounded-lg border border-sky-200/70 bg-sky-50/60 px-3 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-sky-700/80">Vendute</p>
-                          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-sky-700">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
+                        <div className="flex items-center justify-between gap-2 rounded-md border border-[#1D3160]/15 bg-[#1D3160]/[0.06] px-2.5 py-1.5">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-[#1D3160]/70">Vendute</span>
+                          <span className="text-[13px] font-extrabold tabular-nums text-[#1D3160]">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</span>
                         </div>
-                        <div className="rounded-lg border border-zinc-200/80 bg-zinc-100/60 px-3 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Prezzo medio</p>
-                          <p className="mt-0.5 text-lg font-extrabold tabular-nums text-zinc-800">{formatEuro(averageSalePriceValue)}</p>
+                        <div className="flex items-center justify-between gap-2 rounded-md border border-emerald-200/70 bg-emerald-50/60 px-2.5 py-1.5">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700/80">Prezzo medio</span>
+                          <span className="text-[13px] font-extrabold tabular-nums text-emerald-700">{formatEuro(averageSalePriceValue)}</span>
                         </div>
                       </div>
                     )}
 
-                    <div className={cn('transition-all duration-500 ease-out overflow-hidden', showChart ? 'opacity-100 max-h-[270px] mt-1.5' : 'opacity-0 max-h-0')}>
+                    <div
+                      className={cn(
+                        'overflow-hidden transition-[max-height,opacity,margin] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                        showChart ? 'mt-1.5 max-h-[270px] opacity-100' : 'mt-0 max-h-0 opacity-0'
+                      )}
+                    >
                       {showChart && (
-                        <div className="animate-in fade-in duration-300">
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-500">
                           <div className="h-[250px] w-full rounded-lg bg-white/60">
                             <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
                           </div>

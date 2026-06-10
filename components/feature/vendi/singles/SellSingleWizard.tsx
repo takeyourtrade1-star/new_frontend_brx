@@ -41,6 +41,7 @@ import {
   listingPhotosReady,
   type ListingPhotoUploadStatus,
 } from './ListingPhotoUpload';
+import { PhotoPairingInlinePanel } from '@/components/feature/aste/create/PhotoPairingInlinePanel';
 import { SellSingleDetailsStep } from './SellSingleDetailsStep';
 import { SellSingleConfirmStep } from './SellSingleConfirmStep';
 import { SellWizardLightbox, SellWizardModal } from './SellWizardModal';
@@ -102,6 +103,15 @@ export function SellSingleWizard({
   const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
   const [conditionLightbox, setConditionLightbox] = useState<string | null>(null);
   const [isConfirmPublishModalOpen, setIsConfirmPublishModalOpen] = useState(false);
+
+  const [dontShowConditionModal, setDontShowConditionModal] = useState(false);
+  const [dontShowConfirmModal, setDontShowConfirmModal] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setDontShowConditionModal(localStorage.getItem('sell_condition_modal_dont_show') === 'true');
+    setDontShowConfirmModal(localStorage.getItem('sell_confirm_publish_modal_dont_show') === 'true');
+  }, []);
 
   const languageOptions: CardLanguageOption[] = useMemo(
     () => buildCardLanguageOptions(embeddedCard.available_languages),
@@ -216,6 +226,7 @@ export function SellSingleWizard({
     listingPhotos: draft.listingPhotos,
     setListingPhotos,
     toastMessageKey: 'vendi.sell.photoReceivedFromPhone',
+    autoCloseOnFirstRemotePhoto: isEmbedded,
   });
 
   const retryFailedUpload = useCallback(
@@ -361,7 +372,11 @@ export function SellSingleWizard({
       setStepId('confirm');
       return;
     }
-    setIsConfirmPublishModalOpen(true);
+    if (dontShowConfirmModal) {
+      void doPublish();
+    } else {
+      setIsConfirmPublishModalOpen(true);
+    }
   };
 
   const doPublish = async () => {
@@ -562,7 +577,9 @@ export function SellSingleWizard({
                 compact={isEmbedded}
                 onConditionChange={(value) => {
                   update('condition', value);
-                  setIsConditionModalOpen(true);
+                  if (!dontShowConditionModal) {
+                    setIsConditionModalOpen(true);
+                  }
                 }}
               />
             )}
@@ -620,7 +637,11 @@ export function SellSingleWizard({
                     </button>
                     <button
                       type="button"
-                      onClick={() => void pairing.openPhoneUploadModal()}
+                      onClick={() =>
+                        pairing.phoneUploadModalOpen
+                          ? pairing.closePhoneUploadModal()
+                          : void pairing.openPhoneUploadModal()
+                      }
                       disabled={pairing.pairingActionLoading}
                       aria-label="Carica da telefono con QR"
                       title="Carica da telefono con QR"
@@ -643,6 +664,16 @@ export function SellSingleWizard({
                       {t('vendi.sell.photoFromPhonePollingHint')}
                     </p>
                   ) : null}
+                  {isEmbedded && pairing.phoneUploadModalOpen && pairing.phonePairingQrUrl ? (
+                    <PhotoPairingInlinePanel
+                      qrUrl={pairing.phonePairingQrUrl}
+                      body={t('vendi.sell.photoFromPhoneModalBody')}
+                      regenerateLabel={t('vendi.sell.photoPairingRegenerateQr')}
+                      closeSessionLabel={t('vendi.sell.photoPairingCloseSession')}
+                      onRegenerate={pairing.regenerateQr}
+                      onCloseSession={pairing.revokePairing}
+                    />
+                  ) : null}
                   {pairing.phonePhotoToast ? (
                     <p className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-medium text-emerald-900">
                       {pairing.phonePhotoToast}
@@ -651,7 +682,7 @@ export function SellSingleWizard({
                   {pairing.pairingActionError ? (
                     <p className="text-[11px] text-red-700">{pairing.pairingActionError}</p>
                   ) : null}
-                  {pairing.hasActiveSession ? (
+                  {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
@@ -748,36 +779,38 @@ export function SellSingleWizard({
         </div>
       </div>
 
-      <SellWizardModal
-        open={Boolean(pairing.phoneUploadModalOpen && pairing.pairingSessionId && pairing.phonePairingQrUrl)}
-        onClose={pairing.closePhoneUploadModal}
-        title={t('vendi.sell.photoFromPhoneModalTitle')}
-        titleId="sell-phone-upload-qr-title"
-        footer={
-          <button
-            type="button"
-            onClick={() => pairing.closePhoneUploadModal()}
-            className="w-full rounded-xl bg-[#1D3160] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1D3160]/90"
-          >
-            {t('vendi.sell.photoFromPhoneModalClose')}
-          </button>
-        }
-      >
-        <p className="text-sm leading-relaxed text-gray-700">
-          {t('vendi.sell.photoFromPhoneModalBody')}
-        </p>
-        <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
-          {t('vendi.sell.photoFromPhoneModalCloseHint')}
-        </p>
-        <div className="mt-3 flex justify-center rounded-xl border border-gray-100 bg-white p-3">
-          {pairing.phonePairingQrUrl ? (
-            <QRCodeSVG value={pairing.phonePairingQrUrl} size={qrCodeSize} level="M" className="h-auto w-auto max-w-full" />
-          ) : null}
-        </div>
-        <p className="mt-2 line-clamp-2 text-center text-[10px] text-gray-500" title={pairing.phonePairingQrUrl}>
-          {pairing.phonePairingQrUrl}
-        </p>
-      </SellWizardModal>
+      {!isEmbedded ? (
+        <SellWizardModal
+          open={Boolean(pairing.phoneUploadModalOpen && pairing.pairingSessionId && pairing.phonePairingQrUrl)}
+          onClose={pairing.closePhoneUploadModal}
+          title={t('vendi.sell.photoFromPhoneModalTitle')}
+          titleId="sell-phone-upload-qr-title"
+          footer={
+            <button
+              type="button"
+              onClick={() => pairing.closePhoneUploadModal()}
+              className="w-full rounded-xl bg-[#1D3160] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1D3160]/90"
+            >
+              {t('vendi.sell.photoFromPhoneModalClose')}
+            </button>
+          }
+        >
+          <p className="text-sm leading-relaxed text-gray-700">
+            {t('vendi.sell.photoFromPhoneModalBody')}
+          </p>
+          <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
+            {t('vendi.sell.photoFromPhoneModalCloseHint')}
+          </p>
+          <div className="mt-3 flex justify-center rounded-xl border border-gray-100 bg-white p-3">
+            {pairing.phonePairingQrUrl ? (
+              <QRCodeSVG value={pairing.phonePairingQrUrl} size={qrCodeSize} level="M" className="h-auto w-auto max-w-full" />
+            ) : null}
+          </div>
+          <p className="mt-2 line-clamp-2 text-center text-[10px] text-gray-500" title={pairing.phonePairingQrUrl}>
+            {pairing.phonePairingQrUrl}
+          </p>
+        </SellWizardModal>
+      ) : null}
 
       <SellWizardModal
         open={isConditionModalOpen}
@@ -789,7 +822,7 @@ export function SellSingleWizard({
         contentClassName="px-6 py-5"
         hideCloseButton
         footer={
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-2">
             <button
               type="button"
               onClick={() => setIsConditionModalOpen(false)}
@@ -797,6 +830,17 @@ export function SellSingleWizard({
             >
               <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
               Ho compreso la condizione
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem('sell_condition_modal_dont_show', 'true');
+                setDontShowConditionModal(true);
+                setIsConditionModalOpen(false);
+              }}
+              className="text-[10px] font-semibold text-zinc-500 underline transition hover:text-zinc-700"
+            >
+              Non mostrare più
             </button>
           </div>
         }
@@ -846,25 +890,41 @@ export function SellSingleWizard({
         contentClassName="px-6 py-5"
         hideCloseButton
         footer={
-          <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => setIsConfirmPublishModalOpen(false)}
-              className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#1D3160] transition hover:bg-zinc-50"
-            >
-              Annulla
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsConfirmPublishModalOpen(false);
-                void doPublish();
-              }}
-              className="inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#FF8800] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-[#FF8800]/90 hover:shadow-md active:scale-[0.98]"
-            >
-              <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
-              Confermo che la condizione corrisponde
-            </button>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setIsConfirmPublishModalOpen(false)}
+                className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#1D3160] transition hover:bg-zinc-50"
+              >
+                Annulla
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsConfirmPublishModalOpen(false);
+                  void doPublish();
+                }}
+                className="inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#FF8800] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-[#FF8800]/90 hover:shadow-md active:scale-[0.98]"
+              >
+                <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                Confermo che la condizione corrisponde
+              </button>
+            </div>
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem('sell_confirm_publish_modal_dont_show', 'true');
+                  setDontShowConfirmModal(true);
+                  setIsConfirmPublishModalOpen(false);
+                  void doPublish();
+                }}
+                className="text-[10px] font-semibold text-zinc-500 underline transition hover:text-zinc-700"
+              >
+                Non mostrare più
+              </button>
+            </div>
           </div>
         }
       >

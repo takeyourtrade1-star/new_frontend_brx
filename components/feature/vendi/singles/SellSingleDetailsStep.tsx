@@ -6,6 +6,7 @@ import type { CardLanguageOption } from '@/lib/card-languages';
 import { SELL_SINGLE_CONDITION_OPTIONS } from '@/lib/marketplace/sell-single-conditions';
 import type { SellSingleDraft } from '@/lib/marketplace/sell-single-draft';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
+import { Minus, Plus } from 'lucide-react';
 
 type SellSingleDetailsStepProps = {
   draft: SellSingleDraft;
@@ -48,16 +49,42 @@ export function SellSingleDetailsStep({
           <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
             Quantità
           </label>
-          <input
-            type="number"
-            min={1}
-            value={qty}
-            onChange={(e) => update('quantity', Number(e.target.value) || 1)}
-            className={cn(
-              'w-full rounded-md border border-zinc-200 bg-zinc-50/50 px-2 py-1 text-[13px] font-medium text-zinc-900 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10',
-              compact && 'py-0.5 text-xs',
-            )}
-          />
+          <div className="inline-flex w-full items-center rounded-md border border-zinc-200 bg-white">
+            <button
+              type="button"
+              onClick={() => update('quantity', Math.max(1, qty - 1))}
+              disabled={qty <= 1}
+              className={cn(
+                'inline-flex h-8 w-8 shrink-0 items-center justify-center text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-40',
+                compact && 'h-7 w-7',
+              )}
+              aria-label="Diminuisci quantità"
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+            <input
+              type="number"
+              min={1}
+              value={qty}
+              onChange={(e) => update('quantity', Number(e.target.value) || 1)}
+              style={{ MozAppearance: 'textfield' }}
+              className={cn(
+                'h-8 w-full min-w-0 border-x border-zinc-200 bg-zinc-50/50 px-2 py-1 text-[13px] font-medium text-zinc-900 text-center focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10 [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden',
+                compact && 'h-7 py-0.5 text-xs',
+              )}
+            />
+            <button
+              type="button"
+              onClick={() => update('quantity', qty + 1)}
+              className={cn(
+                'inline-flex h-8 w-8 shrink-0 items-center justify-center text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-40',
+                compact && 'h-7 w-7',
+              )}
+              aria-label="Aumenta quantità"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
         <div>
           <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">

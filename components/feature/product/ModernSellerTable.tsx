@@ -214,7 +214,11 @@ function useListingRowImageUrls(item: ListingItem, fallback?: string | null): st
 
   useEffect(() => {
     const base = getListingPhotoUrls(fallback);
+    // eslint-disable-next-line no-console
+    console.log('[ModernSellerTable] useListingRowImageUrls', { itemId: item.item_id, listingId: item.marketplace_listing_id, source: item.listing_source });
     if (item.listing_source !== 'marketplace' || !item.marketplace_listing_id) {
+      // eslint-disable-next-line no-console
+      console.log('[ModernSellerTable] skipping photo fetch (not marketplace or no id)', { itemId: item.item_id });
       setUrls(base);
       return;
     }
@@ -224,10 +228,16 @@ function useListingRowImageUrls(item: ListingItem, fallback?: string | null): st
       .then((photos) => {
         if (cancelled) return;
         const first = photos[0]?.cdn_url;
+        // eslint-disable-next-line no-console
+        console.log('[ModernSellerTable] photo fetch result', { listingId: item.marketplace_listing_id, first, count: photos.length });
         setUrls(dedupePhotoUrls([first, fallback]));
       })
-      .catch(() => {
-        if (!cancelled) setUrls(base);
+      .catch((err) => {
+        if (!cancelled) {
+          // eslint-disable-next-line no-console
+          console.warn('[ModernSellerTable] photo fetch error', { listingId: item.marketplace_listing_id, err });
+          setUrls(base);
+        }
       });
 
     return () => {
