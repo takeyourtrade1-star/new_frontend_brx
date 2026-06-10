@@ -6,9 +6,20 @@ import { Zap, ArrowRight, FileText } from 'lucide-react';
 
 type Pt = { x: number; y: number };
 
-// Math Helper: Convert Catmull-Rom spline to Bezier curves for SVG path
-function catmullRom2Bezier(points: Pt[], tension = 0.75): string {
+// Math Helper: CENTRIPETAL Catmull-Rom -> cubic Bezier (Yuksel-Schaefer-Keyser).
+// Centripetal parameterization (alpha = 0.5) is the only one mathematically
+// guaranteed to produce no cusps, loops or self-intersections within segments —
+// it's what removes the random kinks the old uniform spline created.
+function smoothPath(raw: Pt[], alpha = 0.5): string {
+  // Drop near-duplicate consecutive points: zero-length chords destabilize
+  // the parameterization and show up as kinks.
+  const points: Pt[] = [];
+  for (const p of raw) {
+    const q = points[points.length - 1];
+    if (!q || Math.hypot(p.x - q.x, p.y - q.y) > 0.6) points.push(p);
+  }
   if (points.length < 2) return '';
+
   let d = `M ${points[0]!.x.toFixed(1)} ${points[0]!.y.toFixed(1)}`;
 
   // Duplicate endpoints to compute control points for the first/last segments
@@ -20,11 +31,19 @@ function catmullRom2Bezier(points: Pt[], tension = 0.75): string {
     const p2 = pts[i + 1]!;
     const p3 = pts[i + 2]!;
 
-    const cp1x = p1.x + ((p2.x - p0.x) / 6) * tension;
-    const cp1y = p1.y + ((p2.y - p0.y) / 6) * tension;
+    const d1 = Math.max(Math.hypot(p1.x - p0.x, p1.y - p0.y), 1e-4) ** alpha;
+    const d2 = Math.max(Math.hypot(p2.x - p1.x, p2.y - p1.y), 1e-4) ** alpha;
+    const d3 = Math.max(Math.hypot(p3.x - p2.x, p3.y - p2.y), 1e-4) ** alpha;
+    const d1sq = d1 * d1;
+    const d2sq = d2 * d2;
+    const d3sq = d3 * d3;
 
-    const cp2x = p2.x - ((p3.x - p1.x) / 6) * tension;
-    const cp2y = p2.y - ((p3.y - p1.y) / 6) * tension;
+    const n1 = 3 * d1 * (d1 + d2);
+    const n2 = 3 * d3 * (d3 + d2);
+    const cp1x = (d1sq * p2.x - d2sq * p0.x + (2 * d1sq + 3 * d1 * d2 + d2sq) * p1.x) / n1;
+    const cp1y = (d1sq * p2.y - d2sq * p0.y + (2 * d1sq + 3 * d1 * d2 + d2sq) * p1.y) / n1;
+    const cp2x = (d3sq * p1.x - d2sq * p3.x + (2 * d3sq + 3 * d3 * d2 + d2sq) * p2.x) / n2;
+    const cp2y = (d3sq * p1.y - d2sq * p3.y + (2 * d3sq + 3 * d3 * d2 + d2sq) * p2.y) / n2;
 
     d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
   }
@@ -155,35 +174,47 @@ function rotPts(pts: Pt[], cx: number, cy: number, ang: number): Pt[] {
   }));
 }
 
-// River connector: a single wide, graceful C/S curve (sparse control points —
-// the Catmull-Rom spline turns them into one smooth sweep, no scribbles).
-function flowTo(start: Pt, end: Pt, points: Pt[]) {
+function unit(ax: number, ay: number): Pt | null {
+  const d = Math.hypot(ax, ay);
+  return d < 1e-3 ? null : { x: ax / d, y: ay / d };
+}
+
+// River connector. Two ideas make it flow like water instead of scribbling:
+// 1. Tangent-aligned lead-in/lead-out points — the line LEAVES a shape in the
+//    direction it was already travelling and ARRIVES at the next one already
+//    aligned with its outline, so every junction is smooth (no corners).
+// 2. One gentle meander at mid-length whose side ALTERNATES deterministically
+//    per segment (left, right, left...) — calm, river-like S curves instead of
+//    the old pseudo-random bends.
+function flowTo(
+  start: Pt,
+  startDir: Pt | null,
+  end: Pt,
+  endDir: Pt | null,
+  bend: 1 | -1,
+  points: Pt[]
+) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const dist = Math.hypot(dx, dy) || 1;
-  const nx = -dy / dist;
-  const ny = dx / dist;
-  // Deterministic but varied bend direction per segment
-  const sign = Math.sin(start.x * 0.013 + start.y * 0.011) >= 0 ? 1 : -1;
+  const lead = Math.min(56, dist * 0.28);
 
-  if (dist < 170) {
-    // Short hop: one gentle C bend
-    const amp = dist * 0.14 * sign;
+  if (startDir) {
+    points.push({ x: start.x + startDir.x * lead, y: start.y + startDir.y * lead });
+  }
+
+  if (dist >= 160) {
+    const nx = -dy / dist;
+    const ny = dx / dist;
+    const amp = Math.min(70, dist * 0.14) * bend;
     points.push({
       x: start.x + dx * 0.5 + nx * amp,
       y: start.y + dy * 0.5 + ny * amp
     });
-  } else {
-    // Long stretch: one elegant S sweep
-    const amp = Math.min(72, dist * 0.16);
-    points.push({
-      x: start.x + dx * 0.3 + nx * amp * sign,
-      y: start.y + dy * 0.3 + ny * amp * sign
-    });
-    points.push({
-      x: start.x + dx * 0.72 - nx * amp * sign * 0.85,
-      y: start.y + dy * 0.72 - ny * amp * sign * 0.85
-    });
+  }
+
+  if (endDir) {
+    points.push({ x: end.x - endDir.x * lead, y: end.y - endDir.y * lead });
   }
 }
 
@@ -227,25 +258,49 @@ function glyphTradingCards(cx: number, cy: number, s: number): { back: Pt[]; fro
     return rotPts(ring, cx + ox, cy + oy, ang);
   };
   return {
-    back: mk(-s * 0.17, -s * 0.04, -0.3),
-    front: mk(s * 0.15, s * 0.06, -0.05)
+    back: mk(-s * 0.18, -s * 0.04, -0.34),
+    front: mk(s * 0.16, s * 0.06, 0.1)
   };
 }
 
-// Card 2 "Vendiamo per te": a five-point star (sponsored visibility) drawn
-// pentagram-style — one continuous stroke, crisp points, ends where it
-// starts. Returns the visible shape (`shape`) and the same points plus the
-// exit tail (`stroke`) that the river follows to leave the glyph.
-function glyphStar(cx: number, cy: number, s: number): { shape: Pt[]; stroke: Pt[] } {
-  const R = s * 0.55;
-  const vertex = (k: number): Pt => {
-    const a = ((-90 + 72 * k) * Math.PI) / 180;
-    return { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) };
-  };
-  // Pentagram order: every second vertex, back to the top
-  const raw = [0, 2, 4, 1, 3, 0].map(vertex);
-  const shape = densify(raw, 6);
-  return { shape, stroke: [...shape, { x: cx + s * 0.32, y: cy - s * 0.78 }] };
+// Card 2 "Vendiamo per te": a euro coin — outer ring plus a "€" drawn in one
+// continuous stroke (C-arc, then the two signature bars joined on the left).
+// Instantly reads as "incasso/vendita".
+function glyphEuroCoin(cx: number, cy: number, s: number): { ring: Pt[]; euro: Pt[] } {
+  // Outer coin ring
+  const R = s * 0.52;
+  const ring: Pt[] = [];
+  for (let i = 0; i < 28; i++) {
+    const a = (i / 28) * Math.PI * 2;
+    ring.push({ x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) });
+  }
+
+  // "€": C-arc from top-right tip, sweeping through the left, to bottom-right tip
+  const euro: Pt[] = [];
+  const acx = cx + s * 0.04;
+  const r = s * 0.26;
+  const a0 = (-65 * Math.PI) / 180;
+  const a1 = (-295 * Math.PI) / 180;
+  for (let i = 0; i <= 16; i++) {
+    const a = a0 + (a1 - a0) * (i / 16);
+    euro.push({ x: acx + r * Math.cos(a), y: cy + r * Math.sin(a) });
+  }
+  // The two horizontal bars, drawn bottom-first and joined on the left
+  const barR = cx + s * 0.1;
+  const barL = cx - s * 0.4;
+  const byOff = s * 0.09;
+  euro.push(
+    ...densify(
+      [
+        { x: barR, y: cy + byOff },
+        { x: barL, y: cy + byOff },
+        { x: barL, y: cy - byOff },
+        { x: barR, y: cy - byOff }
+      ],
+      6
+    )
+  );
+  return { ring, euro };
 }
 
 // Card 3 "Zero doppie vendite": smooth badge shield — sparse anchors let
@@ -291,13 +346,15 @@ function glyphTruck(cx: number, cy: number, s: number): Pt[] {
   const wr = cx - s * 0.32; // rear wheel
   const wf = cx + s * 0.36; // front wheel
 
-  const bump = (wx: number): Pt[] => [
-    { x: wx + r, y: by },
-    { x: wx + r * 0.55, y: by - r * 0.95 },
-    { x: wx, y: by - r * 1.25 },
-    { x: wx - r * 0.55, y: by - r * 0.95 },
-    { x: wx - r, y: by }
-  ];
+  // Smooth semicircular wheel arches (sampled densely so they stay round)
+  const bump = (wx: number): Pt[] => {
+    const out: Pt[] = [];
+    for (let i = 0; i <= 8; i++) {
+      const a = (Math.PI * i) / 8;
+      out.push({ x: wx + r * Math.cos(a), y: by - r * 1.15 * Math.sin(a) });
+    }
+    return out;
+  };
 
   // CW closed ring (drop the duplicated closing point after densify)
   return densify([
@@ -380,6 +437,10 @@ export default function BrxExpressLanding() {
     restDelta: 0.001
   });
 
+  // Finale: once the river has wrapped the Terms block (last ~8% of the path),
+  // the animated blue/orange gradient background fades in.
+  const finaleOpacity = useTransform(pathLength, [0.9, 0.985], [0, 1]);
+
   const updatePath = () => {
     const container = containerRef.current;
     const heroStart = heroStartRef.current;
@@ -417,8 +478,20 @@ export default function BrxExpressLanding() {
     let cursor: Pt = { x: start.x + start.width / 2, y: start.y + start.height };
     points.push(cursor);
 
+    let segIdx = 0;
     const travel = (segment: Pt[]) => {
-      flowTo(cursor, segment[0]!, points);
+      const last = points[points.length - 1]!;
+      const prev = points.length > 1 ? points[points.length - 2] : null;
+      // Leave along the direction we were already travelling (straight down
+      // out of the hero badge on the very first segment)...
+      const startDir = prev ? unit(last.x - prev.x, last.y - prev.y) : { x: 0, y: 1 };
+      // ...and arrive aligned with the next outline's own tangent.
+      const endDir =
+        segment.length > 1
+          ? unit(segment[1]!.x - segment[0]!.x, segment[1]!.y - segment[0]!.y)
+          : null;
+      segIdx += 1;
+      flowTo(last, startDir, segment[0]!, endDir, segIdx % 2 === 0 ? 1 : -1, points);
       points.push(...segment);
       cursor = segment[segment.length - 1]!;
     };
@@ -451,7 +524,7 @@ export default function BrxExpressLanding() {
     if (showGlyphs) {
       // Glyph: two fanned trading cards, in the free column beside Card 1
       const g = { x: mirrorX(c1), y: c1.y + c1.height * 0.25 };
-      const { back, front } = glyphTradingCards(g.x, g.y, 105);
+      const { back, front } = glyphTradingCards(g.x, g.y, 112);
       // Back card first, short hop, then the front card, then on to Card 1
       travel(wrapShape(back, cursor, true, front[0]!, true));
       travel(wrapShape(front, cursor, true, e1, true));
@@ -482,10 +555,15 @@ export default function BrxExpressLanding() {
     const e2 = { x: c2.x + c2.width * 0.15, y: c2.y - o };
 
     if (showGlyphs) {
-      // Glyph: five-point star, beside Card 2
+      // Glyph: euro coin, beside Card 2 — full ring first, then the "€" inside
       const g = { x: mirrorX(c2), y: c2.y + c2.height * 0.25 };
-      const star = glyphStar(g.x, g.y, 105);
-      travelGlyph(star.stroke, [star.shape]);
+      const coin = glyphEuroCoin(g.x, g.y, 112);
+      travel(wrapShape(coin.ring, cursor, false, coin.euro[0]!, true));
+      travel(coin.euro);
+      marks.push({
+        shapes: [[...coin.ring, coin.ring[0]!], coin.euro],
+        endIdx: points.length - 1
+      });
     }
 
     // Enter top-left, hug CW (top -> right -> bottom), exit bottom-left
@@ -508,7 +586,7 @@ export default function BrxExpressLanding() {
     if (showGlyphs) {
       // Glyph: shield + check, beside Card 3
       const g = { x: mirrorX(c3), y: c3.y + c3.height * 0.25 };
-      const shield = glyphShieldCheck(g.x, g.y, 100);
+      const shield = glyphShieldCheck(g.x, g.y, 108);
       travelGlyph(shield.stroke, [shield.shape]);
     }
 
@@ -525,7 +603,7 @@ export default function BrxExpressLanding() {
     if (showGlyphs) {
       // Glyph: delivery truck, beside Card 4 (facing it)
       const g = { x: mirrorX(c4), y: c4.y + c4.height * 0.3 };
-      const ring = glyphTruck(g.x, g.y, 110);
+      const ring = glyphTruck(g.x, g.y, 114);
       travelGlyph(wrapShape(ring, cursor, false, e4, true), [[...ring, ring[0]!]]);
     }
 
@@ -554,7 +632,7 @@ export default function BrxExpressLanding() {
       wrapShape(perT, { x: terms.x + terms.width * 0.82, y: terms.y - o }, false, undefined, true)
     );
 
-    setPathD(catmullRom2Bezier(points));
+    setPathD(smoothPath(points));
 
     // Cumulative polyline length -> fraction of total path where each glyph
     // finishes, used to trigger the colour change of its overlay.
@@ -568,7 +646,7 @@ export default function BrxExpressLanding() {
     const total = cum[cum.length - 1]! || 1;
     setGlyphMarks(
       marks.map(m => ({
-        d: m.shapes.map(s => catmullRom2Bezier(s)).join(' '),
+        d: m.shapes.map(s => smoothPath(s)).join(' '),
         at: Math.min(1, cum[Math.min(m.endIdx, cum.length - 1)]! / total)
       }))
     );
@@ -606,6 +684,40 @@ export default function BrxExpressLanding() {
       {/* Decorative Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-35" />
 
+      {/* Finale background: blue/orange brand gradient (header + CTA colours),
+          slowly drifting, revealed when the line finishes wrapping the Terms */}
+      <motion.div
+        aria-hidden
+        className="fixed inset-0 overflow-hidden pointer-events-none"
+        style={{ opacity: finaleOpacity }}
+      >
+        <div className="brx-finale-gradient absolute -inset-[50%] w-[200%] h-[200%]" />
+      </motion.div>
+      <style>{`
+        .brx-finale-gradient {
+          background: linear-gradient(
+            125deg,
+            #0F172A 0%,
+            #1D3160 22%,
+            #2E4A8C 40%,
+            #F97316 58%,
+            #FBBF24 68%,
+            #F97316 76%,
+            #1D3160 92%,
+            #0F172A 100%
+          );
+          animation: brx-finale-drift 16s ease-in-out infinite alternate;
+          will-change: transform;
+        }
+        @keyframes brx-finale-drift {
+          from { transform: translate3d(-12%, -10%, 0); }
+          to { transform: translate3d(12%, 10%, 0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .brx-finale-gradient { animation: none; }
+        }
+      `}</style>
+
       {/* SVG Canvas for Scroll Line (Rendered at z-10) */}
       {mounted && pathD && (
         <svg
@@ -623,17 +735,17 @@ export default function BrxExpressLanding() {
               gradientUnits="userSpaceOnUse"
               spreadMethod="repeat"
             >
-              <stop offset="0%" stopColor="#FF3B00" />
-              <stop offset="25%" stopColor="#FF7300" />
+              <stop offset="0%" stopColor="#F97316" />
+              <stop offset="25%" stopColor="#FB923C" />
               <stop offset="50%" stopColor="#FBBF24" />
-              <stop offset="75%" stopColor="#FF7300" />
-              <stop offset="100%" stopColor="#FF3B00" />
+              <stop offset="75%" stopColor="#FB923C" />
+              <stop offset="100%" stopColor="#F97316" />
               <animateTransform
                 attributeName="gradientTransform"
                 type="translate"
                 from="0,0"
                 to="0,200"
-                dur="2.5s"
+                dur="3s"
                 repeatCount="indefinite"
               />
             </linearGradient>
@@ -645,6 +757,20 @@ export default function BrxExpressLanding() {
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+
+            {/* Reveal mask: the flow layer only exists where the river has
+                already been drawn by the scroll progress */}
+            <mask id="line-reveal" maskUnits="userSpaceOnUse">
+              <motion.path
+                d={pathD}
+                fill="none"
+                stroke="#fff"
+                strokeWidth={9}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ pathLength }}
+              />
+            </mask>
           </defs>
 
           {/* Layer 1: Ambient thick glow trail */}
@@ -652,8 +778,8 @@ export default function BrxExpressLanding() {
             d={pathD}
             fill="none"
             stroke="url(#line-gradient)"
-            strokeWidth={32}
-            opacity={0.05}
+            strokeWidth={28}
+            opacity={0.06}
             strokeLinecap="round"
             strokeLinejoin="round"
             style={{ pathLength }}
@@ -664,24 +790,46 @@ export default function BrxExpressLanding() {
             d={pathD}
             fill="none"
             stroke="url(#line-gradient)"
-            strokeWidth={14}
-            opacity={0.18}
+            strokeWidth={12}
+            opacity={0.16}
             filter="url(#glow)"
             strokeLinecap="round"
             strokeLinejoin="round"
             style={{ pathLength }}
           />
 
-          {/* Layer 3: Core thick sharp line */}
+          {/* Layer 3: Core sharp line */}
           <motion.path
             d={pathD}
             fill="none"
             stroke="url(#line-gradient)"
-            strokeWidth={4.5}
+            strokeWidth={4}
             strokeLinecap="round"
             strokeLinejoin="round"
             style={{ pathLength }}
           />
+
+          {/* Layer 4: light streaks travelling ALONG the path direction —
+              the actual "flowing river" motion (dashoffset technique) */}
+          <g mask="url(#line-reveal)">
+            <path
+              d={pathD}
+              fill="none"
+              stroke="#FFEDD5"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeDasharray="5 65"
+              opacity={0.85}
+            >
+              <animate
+                attributeName="stroke-dashoffset"
+                from="0"
+                to="-70"
+                dur="1.6s"
+                repeatCount="indefinite"
+              />
+            </path>
+          </g>
 
           {/* Glyph highlights: each icon changes colour once fully drawn */}
           {glyphMarks.map((m, i) => (
