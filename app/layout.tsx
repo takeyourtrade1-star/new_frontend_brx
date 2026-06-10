@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from '@/components/providers';
 import { ConditionalFooter } from '@/components/layout/ConditionalFooter';
 import { CardMascotteGate } from '@/components/dev/CardMascotteGate';
+import { BuildInfoBadge } from '@/components/dev/BuildInfoBadge';
 import { IOSInstallPrompt } from '@/components/pwa/IOSInstallPrompt';
 
 const nunito = Nunito({
@@ -112,6 +113,7 @@ export default function RootLayout({
           </div>
           <CardMascotteGate />
         </Providers>
+        <BuildInfoBadge />
       </body>
     </html>
   );

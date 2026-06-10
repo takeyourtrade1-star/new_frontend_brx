@@ -42,6 +42,8 @@ import {
   type ListingPhotoUploadStatus,
 } from './ListingPhotoUpload';
 import { PhotoPairingInlinePanel } from '@/components/feature/aste/create/PhotoPairingInlinePanel';
+import { CompactPhotoGallery } from '@/components/feature/aste/create/CompactPhotoGallery';
+import { ImageLightbox } from '@/components/ui/ImageLightbox';
 import { SellSingleDetailsStep } from './SellSingleDetailsStep';
 import { SellSingleConfirmStep } from './SellSingleConfirmStep';
 import { SellWizardLightbox, SellWizardModal } from './SellWizardModal';
@@ -85,6 +87,8 @@ export function SellSingleWizard({
   const [publishToast, setPublishToast] = useState<{ message: string; type: 'success' | 'error' } | null>(
     null,
   );
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   type PhotoUploadEntry = {
     status: 'uploading' | 'done' | 'error';
@@ -285,6 +289,20 @@ export function SellSingleWizard({
         .map((s) => s.file),
     [draft.listingPhotos, photoUploads],
   );
+
+  const lightboxUrls = useMemo(
+    () => draft.listingPhotos.map((slot) => (slot.kind === 'local' ? URL.createObjectURL(slot.file) : slot.photo.cdn_url)),
+    [draft.listingPhotos],
+  );
+
+  useEffect(() => {
+    return () => {
+      draft.listingPhotos.forEach((slot, i) => {
+        if (slot.kind === 'local') URL.revokeObjectURL(lightboxUrls[i]!);
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lightboxUrls]);
 
   useEffect(() => {
     if (!pairing.phoneUploadModalOpen) return;
@@ -616,24 +634,24 @@ export function SellSingleWizard({
                       e.target.value = '';
                     }}
                   />
-                  <div className="flex items-stretch gap-1.5">
+                  <div className="flex items-stretch gap-1.5 sm:grid sm:grid-cols-2">
                     <button
                       type="button"
                       onClick={() => sellGalleryInputRef.current?.click()}
                       disabled={draft.listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX}
-                      className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg border border-zinc-300 bg-white py-2 text-[10px] font-bold uppercase tracking-wide text-[#1D3160] transition hover:border-[#FF7300]/60 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="group flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
                     >
-                      <ImageIcon className="h-4 w-4" aria-hidden />
+                      <ImageIcon className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
                       Carica
                     </button>
                     <button
                       type="button"
                       onClick={() => sellCameraInputRef.current?.click()}
                       disabled={draft.listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX}
-                      className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg border border-zinc-300 bg-white py-2 text-[10px] font-bold uppercase tracking-wide text-[#1D3160] transition hover:border-[#FF7300]/60 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="group flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:hidden"
                     >
-                      <Camera className="h-4 w-4" aria-hidden />
-                      Scatta
+                      <Camera className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
+                      Scatta da telefono
                     </button>
                     <button
                       type="button"
@@ -645,9 +663,10 @@ export function SellSingleWizard({
                       disabled={pairing.pairingActionLoading}
                       aria-label="Carica da telefono con QR"
                       title="Carica da telefono con QR"
-                      className="flex h-11 w-11 shrink-0 items-center justify-center self-center rounded-full border border-dashed border-[#1D3160]/30 bg-[#f8f9fb] text-[#1D3160] transition hover:border-[#FF7300]/60 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="group hidden flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:flex"
                     >
-                      <QrCode className="h-5 w-5" aria-hidden />
+                      <QrCode className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
+                      Scatta da telefono
                     </button>
                   </div>
                   {pairing.hasActiveSession ? (
@@ -665,14 +684,36 @@ export function SellSingleWizard({
                     </p>
                   ) : null}
                   {isEmbedded && pairing.phoneUploadModalOpen && pairing.phonePairingQrUrl ? (
-                    <PhotoPairingInlinePanel
-                      qrUrl={pairing.phonePairingQrUrl}
-                      body={t('vendi.sell.photoFromPhoneModalBody')}
-                      regenerateLabel={t('vendi.sell.photoPairingRegenerateQr')}
-                      closeSessionLabel={t('vendi.sell.photoPairingCloseSession')}
-                      onRegenerate={pairing.regenerateQr}
-                      onCloseSession={pairing.revokePairing}
-                    />
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <div className={cn(draft.listingPhotos.length > 0 ? 'sm:w-1/3' : 'w-full')}>                        
+                        <PhotoPairingInlinePanel
+                          compact
+                          qrUrl={pairing.phonePairingQrUrl}
+                          body={t('vendi.sell.photoFromPhoneModalBody')}
+                          regenerateLabel={t('vendi.sell.photoPairingRegenerateQr')}
+                          closeSessionLabel={t('vendi.sell.photoPairingCloseSession')}
+                          onRegenerate={pairing.regenerateQr}
+                          onCloseSession={pairing.revokePairing}
+                        />
+                      </div>
+                      {draft.listingPhotos.length > 0 ? (
+                        <div className="sm:w-2/3">                          
+                          <CompactPhotoGallery
+                            photos={draft.listingPhotos}
+                            uploadStatuses={photoUploadStatuses}
+                            onRemove={(index) => {
+                              const next = draft.listingPhotos.filter((_, i) => i !== index);
+                              setListingPhotos(next);
+                            }}
+                            highlightPhotoId={pairing.flashPhotoId}
+                            onPhotoClick={(index) => {
+                              setLightboxIndex(index);
+                              setLightboxOpen(true);
+                            }}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
                   ) : null}
                   {pairing.phonePhotoToast ? (
                     <p className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-medium text-emerald-900">
@@ -700,14 +741,16 @@ export function SellSingleWizard({
                       </button>
                     </div>
                   ) : null}
-                  <ListingPhotoUpload
-                    photos={draft.listingPhotos}
-                    onPhotosChange={setListingPhotos}
-                    compact
-                    hideAddTile
-                    uploadStatuses={photoUploadStatuses}
-                    highlightPhotoId={pairing.flashPhotoId}
-                  />
+                  {!pairing.phoneUploadModalOpen ? (
+                    <ListingPhotoUpload
+                      photos={draft.listingPhotos}
+                      onPhotosChange={setListingPhotos}
+                      compact
+                      hideAddTile
+                      uploadStatuses={photoUploadStatuses}
+                      highlightPhotoId={pairing.flashPhotoId}
+                    />
+                  ) : null}
                   {failedUploadFiles.length > 0 && (
                     <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-900">
                       <p className="font-semibold">Alcune foto non sono state caricate.</p>
@@ -991,6 +1034,14 @@ export function SellSingleWizard({
           <span className="text-sm font-medium text-gray-800">{publishToast.message}</span>
         </div>
       )}
+
+      <ImageLightbox
+        open={lightboxOpen}
+        urls={lightboxUrls}
+        startIndex={lightboxIndex}
+        onClose={() => setLightboxOpen(false)}
+        onIndexChange={setLightboxIndex}
+      />
     </>
   );
 }

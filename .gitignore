@@ -56,3 +56,6 @@ lib/i18n/messages/Untitled-*.txt
 public/opencv/opencv.js
 public/opencv/opencv_js.wasm
 public/sw.js
+
+# build info generated at build time
+public/build-info.json

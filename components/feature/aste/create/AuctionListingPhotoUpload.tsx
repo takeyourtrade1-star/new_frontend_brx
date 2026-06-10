@@ -20,7 +20,7 @@ function isImageFile(file: File) {
   return file.type.startsWith('image/');
 }
 
-function slotPreviewUrl(slot: ListingPhotoSlot): string {
+export function slotPreviewUrl(slot: ListingPhotoSlot): string {
   return slot.kind === 'local' ? URL.createObjectURL(slot.file) : slot.photo.cdn_url;
 }
 
