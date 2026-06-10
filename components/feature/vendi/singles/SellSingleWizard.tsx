@@ -694,19 +694,41 @@ export function SellSingleWizard({
                       !pairing.phoneUploadModalOpen && draft.listingPhotos.length > 0 && 'sm:mt-0',
                     )}
                   >
-                    {pairing.hasActiveSession ? (
-                      <p className="text-[10px] leading-snug text-zinc-600">
-                        {t('vendi.sell.photoPairingSessionActive', {
-                          count: String(pairing.remotePhotoCount),
-                          max: String(pairing.maxPhotos),
-                          minutes: String(pairing.expiresInMinutes ?? '—'),
-                        })}
-                      </p>
-                    ) : null}
                     {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
-                      <p className="text-[10px] leading-snug text-zinc-600">
-                        {t('vendi.sell.photoFromPhonePollingHint')}
-                      </p>
+                      <div className="rounded-xl border border-[#1D3160]/10 bg-[#1D3160]/5 p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#1D3160]">
+                            Collegamento telefono attivo
+                          </span>
+                        </div>
+                        <div className="text-xs text-zinc-700 font-medium">
+                          {t('vendi.sell.photoPairingSessionActive', {
+                            count: String(pairing.remotePhotoCount),
+                            max: String(pairing.maxPhotos),
+                            minutes: String(pairing.expiresInMinutes ?? '—'),
+                          })}
+                        </div>
+                        <p className="text-[10px] text-zinc-500 leading-snug">
+                          {t('vendi.sell.photoFromPhonePollingHint')}
+                        </p>
+                        <div className="flex gap-3 pt-1 text-[10px] font-semibold">
+                          <button
+                            type="button"
+                            onClick={() => void pairing.regenerateQr()}
+                            className="text-[#1D3160] hover:text-[#FF7300] transition-colors underline"
+                          >
+                            {t('vendi.sell.photoPairingRegenerateQr')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void pairing.revokePairing()}
+                            className="text-zinc-500 hover:text-red-600 transition-colors underline"
+                          >
+                            {t('vendi.sell.photoPairingCloseSession')}
+                          </button>
+                        </div>
+                      </div>
                     ) : null}
                     {isEmbedded && pairing.phoneUploadModalOpen && pairing.phonePairingQrUrl ? (
                       <div className="flex flex-col gap-2 sm:flex-row">
@@ -748,24 +770,7 @@ export function SellSingleWizard({
                     {pairing.pairingActionError ? (
                       <p className="text-[11px] text-red-700">{pairing.pairingActionError}</p>
                     ) : null}
-                    {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void pairing.regenerateQr()}
-                          className="text-[10px] font-semibold text-[#1D3160] underline"
-                        >
-                          {t('vendi.sell.photoPairingRegenerateQr')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void pairing.revokePairing()}
-                          className="text-[10px] font-semibold text-zinc-500 underline"
-                        >
-                          {t('vendi.sell.photoPairingCloseSession')}
-                        </button>
-                      </div>
-                    ) : null}
+
                     {!pairing.phoneUploadModalOpen ? (
                       <ListingPhotoUpload
                         photos={draft.listingPhotos}

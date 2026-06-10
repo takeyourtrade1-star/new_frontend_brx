@@ -123,7 +123,7 @@ export function AuctionListingPhotoUpload({
 
   return (
     <div className={cn('space-y-5', compact && 'space-y-2')}>
-      {!compact ? (
+      {!compact && !hideAddTile ? (
         <p className="text-sm text-gray-600">
           {t('auctions.createStepPhotosIntro', {
             min: photoMin,
@@ -211,7 +211,7 @@ export function AuctionListingPhotoUpload({
                 />
 
                 {url ? (
-                  <div className="relative flex flex-1 flex-col">
+                  <div className="relative flex flex-1 flex-col justify-center items-center bg-slate-50/50">
                     {/* eslint-disable-next-line @next/next/no-img-element -- blob + CDN URLs */}
                     <img
                       src={url}
@@ -219,24 +219,18 @@ export function AuctionListingPhotoUpload({
                       className={cn('h-48 w-full object-contain sm:h-56', compact && 'h-20 w-full sm:h-20')}
                     />
                     <UploadStatusOverlay status={uploadStatuses?.[index]} compact={compact} />
-                    <div
+                    <button
+                      type="button"
+                      onClick={() => replaceAt(index, null)}
                       className={cn(
-                        'flex flex-wrap gap-2 border-t border-gray-100 bg-white/95 p-2',
-                        compact && 'p-1',
+                        'absolute top-2 right-2 z-10 bg-white/90 backdrop-blur-sm p-1.5 rounded-full text-red-600 shadow-md hover:bg-red-50 hover:text-red-700 transition active:scale-95',
+                        compact && 'p-1 top-1 right-1',
                       )}
+                      title={t('auctions.createPhotoRemove')}
+                      aria-label={t('auctions.createPhotoRemove')}
                     >
-                      <button
-                        type="button"
-                        onClick={() => replaceAt(index, null)}
-                        className={cn(
-                          'inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-800 transition hover:bg-red-100',
-                          compact && 'px-1.5 py-0.5 text-[10px]',
-                        )}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                        {t('auctions.createPhotoRemove')}
-                      </button>
-                    </div>
+                      <Trash2 className={cn('h-4 w-4', compact && 'h-3.5 w-3.5')} aria-hidden />
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -382,7 +376,7 @@ function UploadStatusOverlay({
 
   if (status.kind === 'done') {
     return (
-      <div className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-600/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow">
+      <div className="pointer-events-none absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-600/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow">
         <CheckCircle2 className="h-3 w-3" aria-hidden />
         Su CDN
       </div>

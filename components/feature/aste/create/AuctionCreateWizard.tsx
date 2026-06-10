@@ -1951,20 +1951,42 @@ export function AuctionCreateWizard({
                       !pairing.phoneUploadModalOpen && draft.listingPhotos.length > 0 && 'sm:mt-0',
                     )}
                   >
-                  {pairing.hasActiveSession ? (
-                    <p className="text-[10px] leading-snug text-zinc-600">
-                      {t('auctions.createPhotoPairingSessionActive', {
-                        count: String(pairing.remotePhotoCount),
-                        max: String(pairing.maxPhotos),
-                        minutes: String(pairing.expiresInMinutes ?? '—'),
-                      })}
-                    </p>
-                  ) : null}
-                  {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
-                    <p className="text-[10px] leading-snug text-zinc-600">
-                      {t('auctions.createPhotoFromPhonePollingHint')}
-                    </p>
-                  ) : null}
+                    {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
+                      <div className="rounded-xl border border-[#1D3160]/10 bg-[#1D3160]/5 p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#1D3160]">
+                            Collegamento telefono attivo
+                          </span>
+                        </div>
+                        <div className="text-xs text-zinc-700 font-medium">
+                          {t('auctions.createPhotoPairingSessionActive', {
+                            count: String(pairing.remotePhotoCount),
+                            max: String(pairing.maxPhotos),
+                            minutes: String(pairing.expiresInMinutes ?? '—'),
+                          })}
+                        </div>
+                        <p className="text-[10px] text-zinc-500 leading-snug">
+                          {t('auctions.createPhotoFromPhonePollingHint')}
+                        </p>
+                        <div className="flex gap-3 pt-1 text-[10px] font-semibold">
+                          <button
+                            type="button"
+                            onClick={() => void pairing.regenerateQr()}
+                            className="text-[#1D3160] hover:text-[#FF7300] transition-colors underline"
+                          >
+                            {t('auctions.createPhotoPairingRegenerateQr')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void pairing.revokePairing()}
+                            className="text-zinc-500 hover:text-red-600 transition-colors underline"
+                          >
+                            {t('auctions.createPhotoPairingCloseSession')}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                   {isEmbedded && pairing.phoneUploadModalOpen && pairing.phonePairingQrUrl ? (
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <div className={cn(draft.listingPhotos.length > 0 ? 'sm:w-1/3' : 'w-full')}>                        
@@ -2004,24 +2026,6 @@ export function AuctionCreateWizard({
                   ) : null}
                   {pairing.pairingActionError ? (
                     <p className="text-[11px] text-red-700">{pairing.pairingActionError}</p>
-                  ) : null}
-                  {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void pairing.regenerateQr()}
-                        className="text-[10px] font-semibold text-[#1D3160] underline"
-                      >
-                        {t('auctions.createPhotoPairingRegenerateQr')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void pairing.revokePairing()}
-                        className="text-[10px] font-semibold text-zinc-500 underline"
-                      >
-                        {t('auctions.createPhotoPairingCloseSession')}
-                      </button>
-                    </div>
                   ) : null}
                   {!pairing.phoneUploadModalOpen ? (
                     <AuctionListingPhotoUpload
