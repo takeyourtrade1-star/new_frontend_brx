@@ -106,7 +106,7 @@ export function BrxExpressLandingPage() {
       {/* HERO SECTION */}
       <motion.section
         className="py-8 md:py-14"
-        initial="hidden"
+        initial={false}
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
       >
@@ -160,7 +160,7 @@ export function BrxExpressLandingPage() {
       {/* READY ONE DAY MOCKUP */}
       <motion.section
         className="py-10 md:py-16"
-        initial="hidden"
+        initial={false}
         whileInView="visible"
         viewport={{ once: true, amount: 0.1 }}
       >
@@ -192,7 +192,7 @@ export function BrxExpressLandingPage() {
       {/* PERCHÉ BRX EXPRESS */}
       <motion.section
         className="py-10 md:py-16"
-        initial="hidden"
+        initial={false}
         whileInView="visible"
         viewport={{ once: true, margin: "-50px" }}
       >
@@ -260,7 +260,7 @@ export function BrxExpressLandingPage() {
       {/* COME FUNZIONA */}
       <motion.section
         className="py-10 md:py-16"
-        initial="hidden"
+        initial={false}
         whileInView="visible"
         viewport={{ once: true, margin: "-50px" }}
       >
@@ -360,7 +360,7 @@ export function BrxExpressLandingPage() {
       {/* CONFRONTO COMPETITIVO */}
       <motion.section
         className="py-10 md:py-16"
-        initial="hidden"
+        initial={false}
         whileInView="visible"
         viewport={{ once: true, margin: "-50px" }}
       >
@@ -432,7 +432,7 @@ export function BrxExpressLandingPage() {
       {/* MODELLO DI BUSINESS */}
       <motion.section
         className="py-10 md:pb-20 md:pt-16"
-        initial="hidden"
+        initial={false}
         whileInView="visible"
         viewport={{ once: true, margin: "-50px" }}
       >
