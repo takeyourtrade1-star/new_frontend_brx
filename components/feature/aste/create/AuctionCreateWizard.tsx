@@ -1869,7 +1869,12 @@ export function AuctionCreateWizard({
                 <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
                   {t('auctions.createStepPhotos')} ({AUCTION_LISTING_PHOTO_MIN}–{AUCTION_LISTING_PHOTO_MAX})
                 </span>
-                <div className="mt-1 space-y-1.5">
+                <div
+                  className={cn(
+                    'mt-1 space-y-1.5',
+                    draft.listingPhotos.length > 0 && 'sm:flex sm:flex-row sm:items-start sm:gap-4 sm:space-y-0',
+                  )}
+                >
                   <input
                     ref={embGalleryInputRef}
                     type="file"
@@ -1892,12 +1897,22 @@ export function AuctionCreateWizard({
                       e.target.value = '';
                     }}
                   />
-                  <div className="flex items-stretch gap-1.5 sm:grid sm:grid-cols-2">
+                  <div
+                    className={cn(
+                      'flex items-stretch gap-1.5',
+                      draft.listingPhotos.length > 0
+                        ? 'sm:flex sm:flex-col sm:w-1/3 sm:gap-2'
+                        : 'sm:grid sm:grid-cols-2',
+                    )}
+                  >
                     <button
                       type="button"
                       onClick={() => embGalleryInputRef.current?.click()}
                       disabled={draft.listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX}
-                      className="group flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+                      className={cn(
+                        'group flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40',
+                        draft.listingPhotos.length > 0 ? 'sm:w-full' : 'sm:flex-none',
+                      )}
                     >
                       <ImageIcon className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
                       Carica
@@ -1921,12 +1936,21 @@ export function AuctionCreateWizard({
                       disabled={pairing.pairingActionLoading}
                       aria-label="Carica da telefono con QR"
                       title="Carica da telefono con QR"
-                      className="group hidden flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:flex"
+                      className={cn(
+                        'group hidden flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:flex',
+                        draft.listingPhotos.length > 0 && 'sm:w-full',
+                      )}
                     >
                       <QrCode className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
                       Scatta da telefono
                     </button>
                   </div>
+                  <div
+                    className={cn(
+                      draft.listingPhotos.length > 0 && 'flex-1 sm:w-2/3 space-y-2',
+                      !pairing.phoneUploadModalOpen && draft.listingPhotos.length > 0 && 'sm:mt-0',
+                    )}
+                  >
                   {pairing.hasActiveSession ? (
                     <p className="text-[10px] leading-snug text-zinc-600">
                       {t('auctions.createPhotoPairingSessionActive', {
@@ -2003,7 +2027,7 @@ export function AuctionCreateWizard({
                     <AuctionListingPhotoUpload
                       photos={draft.listingPhotos}
                       onPhotosChange={setListingPhotos}
-                      compact
+                      compact={draft.listingPhotos.length === 0}
                       hideAddTile
                       uploadStatuses={photoUploadStatuses}
                       highlightPhotoId={pairing.flashPhotoId}
@@ -2026,6 +2050,7 @@ export function AuctionCreateWizard({
                       </div>
                     </div>
                   )}
+                  </div>
                 </div>
               </div>
 

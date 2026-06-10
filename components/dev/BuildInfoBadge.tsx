@@ -4,7 +4,18 @@ import { useEffect, useState } from 'react';
 
 interface BuildInfo {
   hash: string;
-  date: string | null;
+  timestamp: number | null;
+}
+
+function formatTimestamp(ts: number): string {
+  return new Intl.DateTimeFormat('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(ts * 1000));
 }
 
 export function BuildInfoBadge() {
@@ -17,12 +28,12 @@ export function BuildInfoBadge() {
         return res.json();
       })
       .then((data: BuildInfo) => setInfo(data))
-      .catch(() => setInfo({ hash: 'dev', date: null }));
+      .catch(() => setInfo({ hash: 'dev', timestamp: null }));
   }, []);
 
   if (!info) return null;
 
-  const label = info.date ? `${info.hash} • ${info.date}` : info.hash;
+  const label = info.timestamp ? `${info.hash} • ${formatTimestamp(info.timestamp)}` : info.hash;
 
   return (
     <div className="fixed bottom-2 left-2 z-50 pointer-events-none">

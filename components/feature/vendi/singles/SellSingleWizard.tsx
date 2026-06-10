@@ -611,7 +611,13 @@ export function SellSingleWizard({
                 totalPrice={totalPrice}
                 compact={isEmbedded}
               >
-                <div className={cn('space-y-2', isEmbedded && 'space-y-1.5')}>
+                <div
+                  className={cn(
+                    'space-y-2',
+                    isEmbedded && 'space-y-1.5',
+                    draft.listingPhotos.length > 0 && 'sm:flex sm:flex-row sm:items-start sm:gap-4 sm:space-y-0',
+                  )}
+                >
                   <input
                     ref={sellGalleryInputRef}
                     type="file"
@@ -634,12 +640,22 @@ export function SellSingleWizard({
                       e.target.value = '';
                     }}
                   />
-                  <div className="flex items-stretch gap-1.5 sm:grid sm:grid-cols-2">
+                  <div
+                    className={cn(
+                      'flex items-stretch gap-1.5',
+                      draft.listingPhotos.length > 0
+                        ? 'sm:flex sm:flex-col sm:w-1/3 sm:gap-2'
+                        : 'sm:grid sm:grid-cols-2',
+                    )}
+                  >
                     <button
                       type="button"
                       onClick={() => sellGalleryInputRef.current?.click()}
                       disabled={draft.listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX}
-                      className="group flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+                      className={cn(
+                        'group flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40',
+                        draft.listingPhotos.length > 0 ? 'sm:w-full' : 'sm:flex-none',
+                      )}
                     >
                       <ImageIcon className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
                       Carica
@@ -663,111 +679,121 @@ export function SellSingleWizard({
                       disabled={pairing.pairingActionLoading}
                       aria-label="Carica da telefono con QR"
                       title="Carica da telefono con QR"
-                      className="group hidden flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:flex"
+                      className={cn(
+                        'group hidden flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:flex',
+                        draft.listingPhotos.length > 0 && 'sm:w-full',
+                      )}
                     >
                       <QrCode className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
                       Scatta da telefono
                     </button>
                   </div>
-                  {pairing.hasActiveSession ? (
-                    <p className="text-[10px] leading-snug text-zinc-600">
-                      {t('vendi.sell.photoPairingSessionActive', {
-                        count: String(pairing.remotePhotoCount),
-                        max: String(pairing.maxPhotos),
-                        minutes: String(pairing.expiresInMinutes ?? '—'),
-                      })}
-                    </p>
-                  ) : null}
-                  {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
-                    <p className="text-[10px] leading-snug text-zinc-600">
-                      {t('vendi.sell.photoFromPhonePollingHint')}
-                    </p>
-                  ) : null}
-                  {isEmbedded && pairing.phoneUploadModalOpen && pairing.phonePairingQrUrl ? (
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <div className={cn(draft.listingPhotos.length > 0 ? 'sm:w-1/3' : 'w-full')}>                        
-                        <PhotoPairingInlinePanel
-                          compact
-                          qrUrl={pairing.phonePairingQrUrl}
-                          body={t('vendi.sell.photoFromPhoneModalBody')}
-                          regenerateLabel={t('vendi.sell.photoPairingRegenerateQr')}
-                          closeSessionLabel={t('vendi.sell.photoPairingCloseSession')}
-                          onRegenerate={pairing.regenerateQr}
-                          onCloseSession={pairing.revokePairing}
-                        />
-                      </div>
-                      {draft.listingPhotos.length > 0 ? (
-                        <div className="sm:w-2/3">                          
-                          <CompactPhotoGallery
-                            photos={draft.listingPhotos}
-                            uploadStatuses={photoUploadStatuses}
-                            onRemove={(index) => {
-                              const next = draft.listingPhotos.filter((_, i) => i !== index);
-                              setListingPhotos(next);
-                            }}
-                            highlightPhotoId={pairing.flashPhotoId}
-                            onPhotoClick={(index) => {
-                              setLightboxIndex(index);
-                              setLightboxOpen(true);
-                            }}
+                  <div
+                    className={cn(
+                      draft.listingPhotos.length > 0 && 'flex-1 sm:w-2/3 space-y-2',
+                      !pairing.phoneUploadModalOpen && draft.listingPhotos.length > 0 && 'sm:mt-0',
+                    )}
+                  >
+                    {pairing.hasActiveSession ? (
+                      <p className="text-[10px] leading-snug text-zinc-600">
+                        {t('vendi.sell.photoPairingSessionActive', {
+                          count: String(pairing.remotePhotoCount),
+                          max: String(pairing.maxPhotos),
+                          minutes: String(pairing.expiresInMinutes ?? '—'),
+                        })}
+                      </p>
+                    ) : null}
+                    {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
+                      <p className="text-[10px] leading-snug text-zinc-600">
+                        {t('vendi.sell.photoFromPhonePollingHint')}
+                      </p>
+                    ) : null}
+                    {isEmbedded && pairing.phoneUploadModalOpen && pairing.phonePairingQrUrl ? (
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <div className={cn(draft.listingPhotos.length > 0 ? 'sm:w-1/3' : 'w-full')}>                        
+                          <PhotoPairingInlinePanel
+                            compact
+                            qrUrl={pairing.phonePairingQrUrl}
+                            body={t('vendi.sell.photoFromPhoneModalBody')}
+                            regenerateLabel={t('vendi.sell.photoPairingRegenerateQr')}
+                            closeSessionLabel={t('vendi.sell.photoPairingCloseSession')}
+                            onRegenerate={pairing.regenerateQr}
+                            onCloseSession={pairing.revokePairing}
                           />
                         </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {pairing.phonePhotoToast ? (
-                    <p className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-medium text-emerald-900">
-                      {pairing.phonePhotoToast}
-                    </p>
-                  ) : null}
-                  {pairing.pairingActionError ? (
-                    <p className="text-[11px] text-red-700">{pairing.pairingActionError}</p>
-                  ) : null}
-                  {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void pairing.regenerateQr()}
-                        className="text-[10px] font-semibold text-[#1D3160] underline"
-                      >
-                        {t('vendi.sell.photoPairingRegenerateQr')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void pairing.revokePairing()}
-                        className="text-[10px] font-semibold text-zinc-500 underline"
-                      >
-                        {t('vendi.sell.photoPairingCloseSession')}
-                      </button>
-                    </div>
-                  ) : null}
-                  {!pairing.phoneUploadModalOpen ? (
-                    <ListingPhotoUpload
-                      photos={draft.listingPhotos}
-                      onPhotosChange={setListingPhotos}
-                      compact
-                      hideAddTile
-                      uploadStatuses={photoUploadStatuses}
-                      highlightPhotoId={pairing.flashPhotoId}
-                    />
-                  ) : null}
-                  {failedUploadFiles.length > 0 && (
-                    <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-900">
-                      <p className="font-semibold">Alcune foto non sono state caricate.</p>
-                      <div className="mt-1.5 flex flex-wrap gap-1.5">
-                        {failedUploadFiles.map((file, i) => (
-                          <button
-                            key={`${file.name}-${i}`}
-                            type="button"
-                            onClick={() => retryFailedUpload(file)}
-                            className="rounded border border-red-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-red-800 hover:bg-red-100"
-                          >
-                            Riprova
-                          </button>
-                        ))}
+                        {draft.listingPhotos.length > 0 ? (
+                          <div className="sm:w-2/3">                          
+                            <CompactPhotoGallery
+                              photos={draft.listingPhotos}
+                              uploadStatuses={photoUploadStatuses}
+                              onRemove={(index) => {
+                                const next = draft.listingPhotos.filter((_, i) => i !== index);
+                                setListingPhotos(next);
+                              }}
+                              highlightPhotoId={pairing.flashPhotoId}
+                              onPhotoClick={(index) => {
+                                setLightboxIndex(index);
+                                setLightboxOpen(true);
+                              }}
+                            />
+                          </div>
+                        ) : null}
                       </div>
-                    </div>
-                  )}
+                    ) : null}
+                    {pairing.phonePhotoToast ? (
+                      <p className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-medium text-emerald-900">
+                        {pairing.phonePhotoToast}
+                      </p>
+                    ) : null}
+                    {pairing.pairingActionError ? (
+                      <p className="text-[11px] text-red-700">{pairing.pairingActionError}</p>
+                    ) : null}
+                    {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void pairing.regenerateQr()}
+                          className="text-[10px] font-semibold text-[#1D3160] underline"
+                        >
+                          {t('vendi.sell.photoPairingRegenerateQr')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void pairing.revokePairing()}
+                          className="text-[10px] font-semibold text-zinc-500 underline"
+                        >
+                          {t('vendi.sell.photoPairingCloseSession')}
+                        </button>
+                      </div>
+                    ) : null}
+                    {!pairing.phoneUploadModalOpen ? (
+                      <ListingPhotoUpload
+                        photos={draft.listingPhotos}
+                        onPhotosChange={setListingPhotos}
+                        compact={draft.listingPhotos.length === 0}
+                        hideAddTile
+                        uploadStatuses={photoUploadStatuses}
+                        highlightPhotoId={pairing.flashPhotoId}
+                      />
+                    ) : null}
+                    {failedUploadFiles.length > 0 && (
+                      <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-900">
+                        <p className="font-semibold">Alcune foto non sono state caricate.</p>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {failedUploadFiles.map((file, i) => (
+                            <button
+                              key={`${file.name}-${i}`}
+                              type="button"
+                              onClick={() => retryFailedUpload(file)}
+                              className="rounded border border-red-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-red-800 hover:bg-red-100"
+                            >
+                              Riprova
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </SellSingleConfirmStep>
             )}

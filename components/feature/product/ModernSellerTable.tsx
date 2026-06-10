@@ -700,7 +700,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
                 >
                   {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
                 </button>
-                <span className="min-w-[1.25rem] border-x border-slate-200 text-center text-[11px] font-bold tabular-nums text-slate-800">
+                <span className="inline-flex h-7 min-w-[1.25rem] items-center justify-center border-x border-slate-200 text-center text-[11px] font-bold tabular-nums text-slate-800">
                   {item.quantity}
                 </span>
                 <button
@@ -732,7 +732,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
                 >
                   <Minus className="h-3 w-3" />
                 </button>
-                <span className="min-w-[1.25rem] border-x border-orange-100 text-center text-[11px] font-bold tabular-nums">
+                <span className="inline-flex h-7 min-w-[1.25rem] items-center justify-center border-x border-orange-100 text-center text-[11px] font-bold tabular-nums">
                   {cartQty}
                 </span>
                 <button
@@ -931,7 +931,7 @@ const MobileListingRow = memo(function MobileListingRow({
       <div className="flex shrink-0 items-center self-center">
         {isOwn ? (
           <div className="inline-flex flex-col overflow-hidden rounded-sm border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center border-b border-slate-200">
+              <div className="flex items-center border-b border-slate-200">
               <button
                 type="button"
                 disabled={isBusy}
@@ -941,7 +941,7 @@ const MobileListingRow = memo(function MobileListingRow({
               >
                 {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
               </button>
-              <span className="min-w-[1.5rem] border-x border-slate-200 text-center text-xs font-bold tabular-nums">
+              <span className="inline-flex h-8 min-w-[1.5rem] items-center justify-center border-x border-slate-200 text-center text-xs font-bold tabular-nums">
                 {item.quantity}
               </span>
               <button
@@ -975,7 +975,7 @@ const MobileListingRow = memo(function MobileListingRow({
               >
                 <Minus className="h-3.5 w-3.5" />
               </button>
-              <span className="min-w-[1.5rem] border-x border-orange-100 text-center text-xs font-bold tabular-nums">
+              <span className="inline-flex h-8 min-w-[1.5rem] items-center justify-center border-x border-orange-100 text-center text-xs font-bold tabular-nums">
                 {cartQty}
               </span>
               <button
