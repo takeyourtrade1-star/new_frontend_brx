@@ -27,6 +27,7 @@ import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, isAuctionEndedUI, isEndingSoonUI, type AuctionGame, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
+import { Pagination } from '@/components/ui/Pagination';
 
 type SortMode = 'ending' | 'new' | 'bid';
 
@@ -380,7 +381,7 @@ export function AsteHubPage() {
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-medium text-gray-700">{t('auctions.resultsCount', { count: filtered.length })}</p>
             <p className="text-xs text-gray-500">
-              Pagina {page} di {totalPages} ({total} totali)
+              ({total} totali)
             </p>
           </div>
           <div className="overflow-hidden border border-gray-300 bg-gray-50">
@@ -394,24 +395,18 @@ export function AsteHubPage() {
               </div>
             )}
           </div>
-          <div className="mt-4 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={goToPrevPage}
-              disabled={!canPrev}
-              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Precedente
-            </button>
-            <button
-              type="button"
-              onClick={goToNextPage}
-              disabled={!canNext}
-              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Successiva
-            </button>
-          </div>
+          {totalPages > 1 && (
+            <div className="mt-4 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={(p) => {
+                  setPage(p);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
+            </div>
+          )}
         </div>
         </div>
       </section>

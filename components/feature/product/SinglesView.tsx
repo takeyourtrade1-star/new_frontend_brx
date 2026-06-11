@@ -30,6 +30,7 @@ import {
 import { getCategoryIdsForProductSlug } from '@/lib/product-categories';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { isSellFlow, getProductDetailHref } from '@/lib/sell-flow/sell-flow';
+import { Pagination } from '@/components/ui/Pagination';
 
 const BACKEND_LANG_ORDER = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
 type SupportedLang = (typeof BACKEND_LANG_ORDER)[number];
@@ -767,34 +768,11 @@ export function ProductCategoryView({
                   )}
 
                   {!loading && !error && totalPages > 1 && (
-                    <div
-                      className="flex items-center justify-center gap-2 py-4 px-4 text-white"
-                      style={{ backgroundColor: BRAND_ORANGE }}
-                    >
-                      <Link
-                        href={buildUrl({ page: String(Math.max(1, currentPage - 1)) })}
-                        className={cn(
-                          'p-2 rounded transition-opacity',
-                          currentPage <= 1 ? 'opacity-50 pointer-events-none' : 'hover:opacity-90'
-                        )}
-                        aria-label="Pagina precedente"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                      </Link>
-                      <span className="px-4 font-bold uppercase text-sm">
-                        Pagina {currentPage} di {totalPages}
-                      </span>
-                      <Link
-                        href={buildUrl({ page: String(Math.min(totalPages, currentPage + 1)) })}
-                        className={cn(
-                          'p-2 rounded transition-opacity',
-                          currentPage >= totalPages ? 'opacity-50 pointer-events-none' : 'hover:opacity-90'
-                        )}
-                        aria-label="Pagina successiva"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </Link>
-                    </div>
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      buildPageHref={(page) => buildUrl({ page: String(page) })}
+                    />
                   )}
                 </div>
               )}

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Archive, ChevronLeft, ChevronRight, Loader2, PackageOpen } from 'lucide-react';
+import { Pagination } from '@/components/ui/Pagination';
 
 import { ConditionBadge } from '@/components/ui/ConditionBadge';
 import { usePublicUserCollection } from '@/lib/hooks/use-public-user-collection';
@@ -128,29 +129,12 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
           {catalogLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />}
         </p>
         {totalPages > 1 && (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={page <= 0}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-slate-600 shadow-sm ring-1 ring-slate-200/80 transition hover:bg-white disabled:opacity-40"
-              aria-label="Pagina precedente"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="min-w-[4.5rem] text-center text-xs font-semibold tabular-nums text-slate-500">
-              {page + 1} / {totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-slate-600 shadow-sm ring-1 ring-slate-200/80 transition hover:bg-white disabled:opacity-40"
-              aria-label="Pagina successiva"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+          <Pagination
+            currentPage={page + 1}
+            totalPages={totalPages}
+            onPageChange={(p) => setPage(p - 1)}
+            variant="compact"
+          />
         )}
       </div>
 

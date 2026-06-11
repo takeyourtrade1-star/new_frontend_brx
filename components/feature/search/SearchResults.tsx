@@ -39,6 +39,8 @@ import type { SearchHit } from '@/app/api/search/route';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
 import { SearchResultsTable } from '@/components/feature/search/SearchResultsTable';
+import { cn } from '@/lib/utils';
+import { Pagination } from '@/components/ui/Pagination';
 import { isSellFlow, getProductDetailHref } from '@/lib/sell-flow/sell-flow';
 import {
   SearchResultsToolbar,
@@ -872,25 +874,11 @@ export function SearchResults({
 
           {/* Paginazione */}
           {!loading && !error && totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 py-4 px-4 bg-[#FF7300] text-white">
-              <Link
-                href={buildSearchUrl({ page: String(Math.max(1, currentPage - 1)) })}
-                className={`p-2 ${currentPage <= 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-orange-600'}`}
-                aria-label={t('search.prevPage')}
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </Link>
-              <span className="px-4 font-medium">
-                {t('search.pageOf', { current: currentPage, total: totalPages })}
-              </span>
-              <Link
-                href={buildSearchUrl({ page: String(Math.min(totalPages, currentPage + 1)) })}
-                className={`p-2 ${currentPage >= totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-orange-600'}`}
-                aria-label={t('search.nextPage')}
-              >
-                <ChevronRight className="w-5 h-5" />
-              </Link>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              buildPageHref={(page) => buildSearchUrl({ page: String(page) })}
+            />
           )}
         </div>
       </div>
