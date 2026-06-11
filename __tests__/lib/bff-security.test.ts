@@ -212,18 +212,35 @@ describe('/api/saved-auctions — sicurezza', () => {
 // ─── /api/auctions ───────────────────────────────────────────────────────────
 
 describe('/api/auctions — sicurezza', () => {
-  it('root: risponde 401 senza cookie', async () => {
+  it('root: inoltra GET pubblici senza cookie', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      json: () => Promise.resolve({ data: [] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
     const { GET } = await import('@/app/api/auctions/route');
     const req = makeRequest('/api/auctions');
     const res = await GET(req);
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toMatch(/no-store/);
+    const [, init] = fetchMock.mock.calls[0];
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    expect(headers.Authorization).toBeUndefined();
   });
 
   it('subpath: risponde 401 senza cookie', async () => {
     const { GET } = await import('@/app/api/auctions/[...path]/route');
     const req = makeRequest('/api/auctions/abc123');
     const ctx = { params: Promise.resolve({ path: ['abc123'] }) };
+    const res = await GET(req, ctx);
+    expect(res.status).toBe(401);
+  });
+
+  it('pairing status guest: risponde 401 senza upload token', async () => {
+    const { GET } = await import('@/app/api/auctions/[...path]/route');
+    const sessionId = '123e4567-e89b-12d3-a456-426614174000';
+    const req = makeRequest(`/api/auctions/photos/pairing-sessions/${sessionId}`);
+    const ctx = { params: Promise.resolve({ path: ['photos', 'pairing-sessions', sessionId] }) };
     const res = await GET(req, ctx);
     expect(res.status).toBe(401);
   });
