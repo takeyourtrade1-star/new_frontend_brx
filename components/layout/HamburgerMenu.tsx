@@ -218,13 +218,13 @@ export function HamburgerMenu() {
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          'relative z-[10001] flex h-14 w-14 shrink-0 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:h-12 md:w-12',
+          'relative z-[10001] flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:h-12 md:w-12',
           open && 'pointer-events-none invisible'
         )}
         aria-label={t('common.openMenu')}
         aria-expanded={open}
       >
-        <Menu className="h-10 w-10 shrink-0 md:h-8 md:w-8" strokeWidth={2.5} aria-hidden />
+        <Menu className="h-6 w-6 shrink-0 md:h-8 md:w-8" strokeWidth={2.25} aria-hidden />
       </button>
 
       {open && (

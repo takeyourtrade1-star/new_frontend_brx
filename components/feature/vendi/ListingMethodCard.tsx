@@ -25,10 +25,10 @@ const SIZE_STYLES = {
     sizes: '(max-width: 640px) 50vw, 220px',
   },
   large: {
-    card: 'w-full max-w-[240px] sm:max-w-[280px] lg:max-w-[320px]',
-    image: 'aspect-[3/4] min-h-[260px] sm:min-h-[320px]',
-    label: 'min-h-[72px] px-4 py-5 text-lg sm:text-xl',
-    sizes: '(max-width: 640px) 90vw, 320px',
+    card: 'w-full max-w-[340px] sm:max-w-[280px] lg:max-w-[320px] mx-auto',
+    image: 'aspect-[3/4] min-h-[160px] sm:min-h-[320px]',
+    label: 'min-h-[64px] sm:min-h-[72px] px-3 py-4 sm:px-4 sm:py-5 text-base sm:text-xl',
+    sizes: '(max-width: 640px) 45vw, 320px',
   },
 } as const;
 

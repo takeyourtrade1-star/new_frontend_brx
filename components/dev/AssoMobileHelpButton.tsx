@@ -24,7 +24,7 @@ export function AssoMobileHelpButton({ isStickyBarVisible, onClick }: AssoMobile
       className="fixed flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white/95 px-2.5 py-1 text-[12px] font-medium text-zinc-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 active:scale-95"
       style={{
         zIndex: 9999,
-        right: 12,
+        left: 12,
         bottom,
       }}
       aria-label={t('common.help')}

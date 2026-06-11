@@ -432,8 +432,8 @@
 /* Header: gutter minimo a sinistra per logo + ricerca compatti */
 .container-header {
   max-width: 100%;
-  padding-left: 0;
-  padding-right: 0.25rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 @media (min-width: 640px) {
   .container-header {

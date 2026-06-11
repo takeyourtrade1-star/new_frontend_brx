@@ -115,19 +115,19 @@ export function NotificationBell() {
   };
 
   return (
-    <div ref={containerRef} className="relative order-4">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
+        className="flex h-10 w-10 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
         aria-haspopup="true"
         aria-expanded={open}
         aria-label="Notifiche"
       >
-        <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5" aria-hidden>
-          <Bell className="h-4 w-4" stroke="#FF7300" strokeWidth={2} />
+        <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5" aria-hidden>
+          <Bell className="h-[1.1rem] w-[1.1rem]" stroke="#FF7300" strokeWidth={2} />
           {unread > 0 && (
-            <span className="absolute -right-1 -top-1 flex min-w-[1.1rem] items-center justify-center rounded-full bg-[#FF3B3B] px-1 text-[10px] font-bold text-white shadow">
+            <span className="absolute -right-1.5 -top-1 flex h-[1.1rem] min-w-[1.1rem] items-center justify-center rounded-full bg-[#FF3B3B] px-1 text-[9px] font-extrabold text-white shadow ring-1 ring-black/10">
               {unread > 99 ? '99+' : unread}
             </span>
           )}

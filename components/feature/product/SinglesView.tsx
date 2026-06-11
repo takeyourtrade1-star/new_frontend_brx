@@ -452,12 +452,12 @@ export function ProductCategoryView({
                         </h2>
                       )}
                       
-                      <div className="relative w-full">
-                        <AnimatedSearchPlaceholder visible={sellFlow && !hasSearched && !nomeInput} categorySlug={categorySlug} />
-                        <div className={cn(
-                          'flex items-center gap-3',
-                          sellFlow && !hasSearched ? 'w-full max-w-2xl mx-auto' : ''
-                        )}>
+                      <div className={cn(
+                        'flex items-center gap-3',
+                        sellFlow && !hasSearched ? 'w-full max-w-2xl mx-auto' : ''
+                      )}>
+                        <div className="relative flex-1">
+                          <AnimatedSearchPlaceholder visible={sellFlow && !hasSearched && !nomeInput} categorySlug={categorySlug} />
                           <input
                             type="text"
                             value={nomeInput}
@@ -465,31 +465,30 @@ export function ProductCategoryView({
                             onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
                             placeholder={sellFlow && !hasSearched ? '' : t('search.quickSearchPlaceholder')}
                             className={sellFlow && !hasSearched 
-                              ? 'min-h-[56px] flex-1 rounded-full border-2 border-[#FF8800] bg-white px-6 py-3 text-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF8800]/30 shadow-sm'
+                              ? 'min-h-[56px] w-full rounded-full border-2 border-[#FF8800] bg-white px-6 py-3 text-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF8800]/30 shadow-sm'
                               : fieldClass
                             }
                           />
-                          
-                          {sellFlow && !hasSearched && (
+                          {nomeInput && (
                             <button
                               type="button"
-                              onClick={handleCerca}
-                              className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full bg-[#FF8800] text-white transition-all hover:bg-orange-600 hover:shadow-md active:scale-95"
-                              aria-label={t('search.searchBtn')}
+                              onClick={() => setNomeInput('')}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
+                              aria-label={t('search.clearQuickSearch')}
                             >
-                              <Search className="h-5 w-5" strokeWidth={2.5} />
+                              <X className="h-4 w-4" />
                             </button>
                           )}
                         </div>
                         
-                        {nomeInput && (!sellFlow || hasSearched) && (
+                        {sellFlow && !hasSearched && (
                           <button
                             type="button"
-                            onClick={() => setNomeInput('')}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
-                            aria-label={t('search.clearQuickSearch')}
+                            onClick={handleCerca}
+                            className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-full bg-[#FF8800] text-white transition-all hover:bg-orange-600 hover:shadow-md active:scale-95"
+                            aria-label={t('search.searchBtn')}
                           >
-                            <X className="h-4 w-4" />
+                            <Search className="h-5 w-5" strokeWidth={2.5} />
                           </button>
                         )}
                       </div>
