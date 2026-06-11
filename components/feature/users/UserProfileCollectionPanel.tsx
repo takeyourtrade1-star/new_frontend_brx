@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Archive, ChevronLeft, ChevronRight, Loader2, PackageOpen } from 'lucide-react';
+import { Archive, Loader2, PackageOpen } from 'lucide-react';
 import { Pagination } from '@/components/ui/Pagination';
 
 import { ConditionBadge } from '@/components/ui/ConditionBadge';
@@ -49,7 +49,7 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
     offset,
   });
 
-  const items = data?.items ?? [];
+  const items = useMemo(() => data?.items ?? [], [data?.items]);
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -63,7 +63,6 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
 
   useEffect(() => {
     if (blueprintIds.length === 0) {
-      setCatalog({});
       return;
     }
     let cancelled = false;
