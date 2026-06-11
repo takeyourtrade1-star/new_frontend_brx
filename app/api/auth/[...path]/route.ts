@@ -44,6 +44,13 @@ const ALLOWED_AUTH_PATHS = [
 const AUTH_COOKIE_NAME = 'ebartex_access_token';
 const DEFAULT_ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24; // 24h
 
+// SSO cross-subdomain (tournaments.ebartex.com): refresh token come cookie HttpOnly
+// condiviso col parent domain. In produzione impostare AUTH_COOKIE_DOMAIN=.ebartex.com
+// (env Amplify). Vuoto in locale → cookie host-only, comportamento invariato.
+const REFRESH_COOKIE_NAME = 'ebartex_refresh_token';
+const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30; // 30 giorni
+const AUTH_COOKIE_DOMAIN = process.env.AUTH_COOKIE_DOMAIN || '';
+
 function isAllowedPath(segments: string[]): boolean {
   const joined = segments.join('/');
   return ALLOWED_AUTH_PATHS.some(
@@ -62,6 +69,26 @@ function extractAccessToken(payload: unknown): string | undefined {
   if (!nested || typeof nested !== 'object') return undefined;
   const nestedToken = (nested as Record<string, unknown>).access_token;
   return typeof nestedToken === 'string' && nestedToken.length > 0 ? nestedToken : undefined;
+}
+
+function extractRefreshToken(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== 'object') return undefined;
+  const data = payload as Record<string, unknown>;
+
+  const directToken = data.refresh_token;
+  if (typeof directToken === 'string' && directToken.length > 0) return directToken;
+
+  const nested = data.data;
+  if (!nested || typeof nested !== 'object') return undefined;
+  const nestedToken = (nested as Record<string, unknown>).refresh_token;
+  return typeof nestedToken === 'string' && nestedToken.length > 0 ? nestedToken : undefined;
+}
+
+/** Cookie auth con Domain parent opzionale (SSO) — stesso formato usato dal sito tornei. */
+function buildAuthCookie(name: string, value: string, maxAge: number, isSecure: boolean): string {
+  const domain = AUTH_COOKIE_DOMAIN ? `; Domain=${AUTH_COOKIE_DOMAIN}` : '';
+  const secureFlag = isSecure ? '; Secure' : '';
+  return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${domain}${secureFlag}`;
 }
 
 function extractExpiresIn(payload: unknown): number {
@@ -162,16 +189,29 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
 
     if (accessToken) {
       const maxAge = extractExpiresIn(data);
-      const secureFlag = isSecure ? '; Secure' : '';
       responseHeaders.append(
         'Set-Cookie',
-        `${AUTH_COOKIE_NAME}=${encodeURIComponent(accessToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secureFlag}`
+        buildAuthCookie(AUTH_COOKIE_NAME, accessToken, maxAge, isSecure)
       );
+      // SSO: il refresh token come cookie HttpOnly parent-domain permette a
+      // tournaments.ebartex.com il silent refresh (route /auth/bridge) senza
+      // passare token via URL. Impostato su login/refresh, ruotato se il backend ruota.
+      const refreshToken = extractRefreshToken(data);
+      if (refreshToken) {
+        responseHeaders.append(
+          'Set-Cookie',
+          buildAuthCookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_TOKEN_MAX_AGE, isSecure)
+        );
+      }
     } else if (pathSegments[0] === 'logout') {
-      const secureFlag = isSecure ? '; Secure' : '';
+      // Logout: cancella entrambi i cookie (stesso Domain con cui sono stati impostati).
       responseHeaders.append(
         'Set-Cookie',
-        `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secureFlag}`
+        buildAuthCookie(AUTH_COOKIE_NAME, '', 0, isSecure)
+      );
+      responseHeaders.append(
+        'Set-Cookie',
+        buildAuthCookie(REFRESH_COOKIE_NAME, '', 0, isSecure)
       );
     }
 

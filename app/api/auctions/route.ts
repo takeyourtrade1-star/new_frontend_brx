@@ -40,9 +40,10 @@ async function proxy(request: NextRequest) {
   }
 
   const auth = getForwardedAuthorization(request);
-  if (!auth) return unauthorizedResponse();
+  const isGet = request.method === 'GET';
+  if (!auth && !isGet) return unauthorizedResponse();
 
-  const userId = extractUserIdForRateLimit(auth);
+  const userId = auth ? extractUserIdForRateLimit(auth) : undefined;
   const rl = checkRateLimit(request, { scope: 'auctions', limit: 60, windowMs: 60_000, userId });
   if (!rl.allowed) return rateLimitExceededResponse(rl);
 
@@ -60,7 +61,7 @@ async function proxy(request: NextRequest) {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
-    Authorization: auth,
+    ...(auth ? { Authorization: auth } : {}),
     ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     ...(requestId ? { 'X-Request-ID': requestId } : {}),
   };

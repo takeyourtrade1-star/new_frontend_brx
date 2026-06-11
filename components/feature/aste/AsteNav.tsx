@@ -79,10 +79,10 @@ export function AsteNav() {
     // Non loggato: mostra solo pulsante "Crea asta" in glass bubble arancione chiaro
     return (
       <div className="sticky z-40" style={{ top: stickyTop }}>
-        <div className="container-content relative py-3 sm:py-4">
+        <div className="container-content relative py-2 sm:py-3">
           <nav
             ref={navRef}
-            className="scrollbar-hide flex justify-center gap-2 sm:gap-3 overflow-x-auto px-4"
+            className="scrollbar-hide flex justify-center gap-2 sm:gap-3 overflow-x-auto px-4 py-1.5"
             aria-label="Menu aste"
           >
             <Link
@@ -111,7 +111,7 @@ export function AsteNav() {
 
   return (
     <div className="sticky z-40" style={{ top: stickyTop }}>
-      <div className="container-content relative py-4">
+      <div className="container-content relative py-2.5 sm:py-3.5">
         {/* Blur gradient sinistra */}
         <div
           className={cn(
@@ -147,7 +147,7 @@ export function AsteNav() {
         {/* Glass bubbles nav */}
         <nav
           ref={navRef}
-          className="scrollbar-hide flex items-center justify-center gap-2 sm:gap-3 overflow-x-auto px-4"
+          className="scrollbar-hide flex items-center justify-center gap-2 sm:gap-3 overflow-x-auto px-4 py-1.5"
           aria-label="Menu aste"
         >
           {links.map(({ href, label, Icon, isPrimary }) => {

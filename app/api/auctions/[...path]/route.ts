@@ -97,8 +97,9 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   }
 
   const auth = getForwardedAuthorization(request);
+  const isGet = request.method === 'GET';
   const guestPairing = !auth && isGuestPairingRequest(request, path, body);
-  if (!auth && !guestPairing) return unauthorizedResponse();
+  if (!auth && !isGet && !guestPairing) return unauthorizedResponse();
 
   const userId = auth ? extractUserIdForRateLimit(auth) : undefined;
   const rl = checkRateLimit(request, {

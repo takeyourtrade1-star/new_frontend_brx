@@ -23,8 +23,7 @@ function normalizeBearerHeader(value: string | null): string | undefined {
  * La valutazione è lazy per evitare problemi con il caching dei moduli in test.
  */
 function getSessionCookieName(): string {
-  const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
-  return isDev ? 'ebartex_access_token' : '__Host-ebartex_access_token';
+  return 'ebartex_access_token';
 }
 
 /**
