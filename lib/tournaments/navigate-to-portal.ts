@@ -1,29 +1,33 @@
 import { config } from '@/lib/config';
 import { getTournamentsPortalUrl } from '@/lib/config/tournaments';
 
+function isEbartexProductionHost(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  return host === 'ebartex.com' || host.endsWith('.ebartex.com');
+}
+
 /**
- * Sincronizza i cookie SSO (Domain=.ebartex.com) e naviga al portale tornei.
- * Se l'utente è loggato sul marketplace, il bridge su tornei.ebartex.com
- * riusa il refresh token condiviso senza nuovo login.
+ * Naviga al portale tornei. Su ebartex.com prova a rinnovare i cookie SSO
+ * in background (non blocca) prima del redirect.
  */
-export async function navigateToTournamentsPortal(returnPath = '/'): Promise<void> {
+export function navigateToTournamentsPortal(returnPath = '/'): void {
   if (typeof window === 'undefined') return;
 
-  try {
+  const targetUrl = getTournamentsPortalUrl(returnPath);
+
+  if (isEbartexProductionHost()) {
     const refreshToken = localStorage.getItem(config.auth.refreshTokenKey);
     if (refreshToken) {
-      await fetch('/api/auth/refresh', {
+      void fetch('/api/auth/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ refresh_token: refreshToken }),
         credentials: 'same-origin',
-      });
-    } else {
-      await fetch('/api/auth/bridge', { credentials: 'same-origin' });
+        keepalive: true,
+      }).catch(() => undefined);
     }
-  } catch {
-    // Il bridge tornei gestisce anche utenti ospite o cookie già presenti.
   }
 
-  window.location.replace(getTournamentsPortalUrl(returnPath));
+  window.location.replace(targetUrl);
 }

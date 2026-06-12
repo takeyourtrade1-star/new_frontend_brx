@@ -6,7 +6,7 @@ import { navigateToTournamentsPortal } from '@/lib/tournaments/navigate-to-porta
 
 export default function TorneiPage() {
   const handleVideoEnded = useCallback(() => {
-    void navigateToTournamentsPortal('/');
+    navigateToTournamentsPortal('/');
   }, []);
 
   return <TournamentVideoOverlay redirectImmediately onEnded={handleVideoEnded} />;

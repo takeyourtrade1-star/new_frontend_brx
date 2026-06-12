@@ -9,7 +9,7 @@ export function ScambiGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!scambiVisible) {
-      void navigateToTournamentsPortal('/');
+      navigateToTournamentsPortal('/');
     }
   }, [scambiVisible]);
 
