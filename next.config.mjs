@@ -93,7 +93,7 @@ const nextConfig = {
     return [
       {
         source: '/tornei-live',
-        destination: 'https://tournaments.ebartex.com',
+        destination: 'https://tornei.ebartex.com',
         permanent: false,
       },
     ];

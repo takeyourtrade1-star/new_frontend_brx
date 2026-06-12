@@ -7,6 +7,7 @@ import { getCdnImageUrl } from '@/lib/config';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
 import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
+import { COMPANY_INFO } from '@/lib/legal/company-info';
 
 const FOOTER_BAND_BG = '#1D3160';
 
@@ -122,6 +123,9 @@ export function Footer() {
       <div className="flex flex-col items-center justify-center border-t border-gray-200 bg-white px-4 py-6 text-center md:px-6">
         <p className="mb-3 max-w-5xl text-xs leading-relaxed text-gray-500">
           Tutti i marchi, i nomi dei giochi e le immagini delle carte sono di proprietà dei rispettivi titolari. Ebartex è un servizio indipendente e non è affiliato, sponsorizzato o approvato da Wizards of the Coast, Nintendo o altri produttori.
+        </p>
+        <p className="mb-3 max-w-3xl text-xs leading-relaxed text-gray-500">
+          {COMPANY_INFO.legalName} — {COMPANY_INFO.legalForm} — Sede legale: {COMPANY_INFO.legalAddress} — P.IVA/C.F. {COMPANY_INFO.vatNumber} — REA {COMPANY_INFO.rea} — PEC {COMPANY_INFO.pec}
         </p>
         <span className="text-sm font-medium text-gray-700">
           {t('footer.copyright', { year: new Date().getFullYear() })}

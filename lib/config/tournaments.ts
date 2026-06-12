@@ -1,5 +1,5 @@
 /** Piattaforma tornei Ebartex (sottodominio esterno). */
-export const TOURNAMENTS_PORTAL_URL = 'https://tournaments.ebartex.com';
+export const TOURNAMENTS_PORTAL_URL = 'https://tornei.ebartex.com';
 
 export const TOURNAMENTS_PORTAL_LINK_PROPS = {
   href: TOURNAMENTS_PORTAL_URL,

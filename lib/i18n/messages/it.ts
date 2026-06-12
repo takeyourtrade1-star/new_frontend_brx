@@ -133,7 +133,7 @@ export const it: Record<MessageKey, string> = {
   'footer.link.tcgExpress': 'BRX Express',
   'footer.link.auctions': 'Aste',
   'footer.link.sync': 'Sincronizza',
-  'footer.link.terms': 'Termini di utilizzo',
+  'footer.link.terms': 'Termini e Condizioni di Servizio',
   'footer.link.privacy': 'Privacy Policy',
   'footer.link.cookies': 'Cookie Policy',
   'footer.link.faq': 'FAQ',
@@ -1502,7 +1502,7 @@ export const it: Record<MessageKey, string> = {
   'legal.cookie.title': 'Cookie Policy',
   'legal.privacy.title': 'Privacy Policy',
   'legal.terms.title': 'Termini e condizioni',
-  'legal.terms.pageTitle': 'Termini e condizioni di utilizzo',
+  'legal.terms.pageTitle': 'Termini e Condizioni di Servizio',
   'legal.rules.title': 'Norme legali',
 
   'gameHome.features.bestPrices': 'I prezzi migliori',

@@ -20,6 +20,7 @@ import {
 import type { RegisterPrivatoValues } from '@/lib/registrati/schema';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { RegistrationLegalCheckboxes } from '@/components/legal/RegistrationLegalCheckboxes';
 import { CountrySelect, type CountryOption } from '@/components/ui/CountrySelect';
 import { useUserCountry } from '@/lib/hooks/use-user-country';
 import { useMemo } from 'react';
@@ -35,6 +36,7 @@ const defaultValues: RegisterPrivatoValues = {
   phone_prefix: '+39',
   country: 'IT',
   termsAccepted: false,
+  specificClausesAccepted: false,
   privacyAccepted: false,
   cancellationAccepted: false,
   adultConfirmed: false,
@@ -326,34 +328,7 @@ export function RegistratiPrivatoForm() {
         )}
       </div>
 
-      <div className="space-y-3">
-        <label className="flex items-start gap-2">
-          <input type="checkbox" {...register('termsAccepted')} className="mt-1" />
-          <span className="text-sm text-white/90">{t('registerForm.termsAcceptedText')}</span>
-        </label>
-        <label className="flex items-start gap-2">
-          <input type="checkbox" {...register('privacyAccepted')} className="mt-1" />
-          <span className="text-sm text-white/90">{t('registerForm.privacyAcceptedText')}</span>
-        </label>
-        <label className="flex items-start gap-2">
-          <input type="checkbox" {...register('cancellationAccepted')} className="mt-1" />
-          <span className="text-sm text-white/90">{t('registerForm.cancellationAcceptedText')}</span>
-        </label>
-        <label className="flex items-start gap-2">
-          <input type="checkbox" {...register('adultConfirmed')} className="mt-1" />
-          <span className="text-sm text-white/90">{t('registerForm.adultConfirmedText')}</span>
-        </label>
-        {(errors.termsAccepted || errors.privacyAccepted || errors.cancellationAccepted || errors.adultConfirmed) && (
-          <p className="text-sm text-red-500">
-            {String(
-              (errors.termsAccepted?.message ||
-                errors.privacyAccepted?.message ||
-                errors.cancellationAccepted?.message ||
-                errors.adultConfirmed?.message) ?? ''
-            )}
-          </p>
-        )}
-      </div>
+      <RegistrationLegalCheckboxes register={register} errors={errors} />
 
       {/* Error Alert - Elegant UI with i18n support */}
       <AuthErrorAlert 
