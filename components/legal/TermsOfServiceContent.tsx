@@ -1,51 +1,46 @@
-import Link from 'next/link';
 import { COMPANY_INFO, TERMS_LAST_UPDATED } from '@/lib/legal/company-info';
-
-function P({ children }: { children: React.ReactNode }) {
-  return <p className="leading-relaxed">{children}</p>;
-}
-
-function H2({ children }: { children: React.ReactNode }) {
-  return <h2 className="mb-2 text-lg font-semibold text-white">{children}</h2>;
-}
-
-function Ul({ children }: { children: React.ReactNode }) {
-  return <ul className="list-disc space-y-1 pl-5">{children}</ul>;
-}
+import {
+  LegalP as P,
+  LegalH2 as H2,
+  LegalUl as Ul,
+  LegalSection,
+  LegalIntro,
+  LegalCompanyCard,
+  LegalInlineLink,
+} from '@/components/legal/LegalTypography';
 
 export function TermsOfServiceContent() {
   const { legalName, website, websiteUrl, legalAddress, pec, vatNumber, rea, legalForm } = COMPANY_INFO;
 
   return (
-    <div className="space-y-6">
-      <section>
-        <p className="text-base font-semibold uppercase tracking-wide text-white">Termini e Condizioni di Servizio – Ebartex</p>
-        <p className="mt-2 text-sm text-white/80">Ultimo aggiornamento: {TERMS_LAST_UPDATED}</p>
-      </section>
+    <>
+      <LegalIntro title="Termini e Condizioni di Servizio – Ebartex" updated={TERMS_LAST_UPDATED} />
 
-      <section className="space-y-3">
+      <LegalSection>
         <P>
           I presenti Termini e Condizioni di Servizio (di seguito &quot;Termini&quot; o &quot;Contratto&quot;) disciplinano
           l&apos;accesso e l&apos;utilizzo della piattaforma Ebartex (di seguito &quot;Ebartex&quot; o &quot;Piattaforma&quot;), accessibile
           tramite l&apos;indirizzo{' '}
-          <a href={websiteUrl} className="underline hover:text-white">
+          <LegalInlineLink href={websiteUrl} external>
             {website}
-          </a>{' '}
+          </LegalInlineLink>{' '}
           e i relativi sottodomini. La Piattaforma è di proprietà di e gestita da:
         </P>
-        <div className="rounded-lg border border-white/20 bg-white/5 p-4 text-sm leading-relaxed">
-          <p className="font-semibold text-white">{legalName}</p>
+        <LegalCompanyCard>
+          <p className="font-display font-bold text-[#1D3160]">{legalName}</p>
           <p>Sede legale: {legalAddress}</p>
           <p>Forma giuridica: {legalForm}</p>
           <p>P.IVA/C.F.: {vatNumber}</p>
           <p>Numero REA: {rea}</p>
-          <p>Domicilio digitale/PEC: {pec}</p>
-          <p>Email di contatto: {pec}</p>
-        </div>
+          <p>
+            Domicilio digitale/PEC:{' '}
+            <LegalInlineLink href={`mailto:${pec}`}>{pec}</LegalInlineLink>
+          </p>
+        </LegalCompanyCard>
         <P>(di seguito denominata il &quot;Fornitore&quot; o &quot;Società&quot;).</P>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>PREMESSA</H2>
         <P>
           L&apos;accesso, la registrazione e l&apos;utilizzo di Ebartex comportano l&apos;accettazione integrale e senza riserve
@@ -62,9 +57,9 @@ export function TermsOfServiceContent() {
           &quot;Demo&quot; (Beta Test), come meglio specificato all&apos;Articolo 2, e accetta i rischi tecnici connessi a tale
           fase di sviluppo.
         </P>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 1 – OGGETTO DEL CONTRATTO E DEFINIZIONI</H2>
         <P>
           <strong>1.1. Oggetto.</strong> Il presente Contratto definisce le condizioni alle quali il Fornitore mette a
@@ -87,9 +82,9 @@ export function TermsOfServiceContent() {
           <li><strong>Credenziali API / Token:</strong> Codici di autorizzazione forniti da terze parti che l&apos;Utente decide di inserire in Ebartex per attivare la sincronizzazione.</li>
           <li><strong>Overselling:</strong> Situazione di vendita eccedente la reale disponibilità, derivante da ritardi tecnici nella sincronizzazione tra piattaforme diverse.</li>
         </Ul>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 2 – NATURA DEL SERVIZIO - AMBIENTE &quot;DEMO&quot; (Beta Test)</H2>
         <P>
           <strong>2.1. Carattere Sperimentale.</strong> L&apos;Utente prende atto che Ebartex è attualmente distribuita in versione
@@ -118,9 +113,9 @@ export function TermsOfServiceContent() {
           malfunzionamento o dal reset della versione Demo di Ebartex. L&apos;Utente utilizza la Piattaforma a
           proprio rischio e pericolo.
         </P>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 3 – REGISTRAZIONE, SICUREZZA E CREDENZIALI</H2>
         <P>
           <strong>3.1. Creazione dell&apos;Account.</strong> Per accedere ai Servizi, l&apos;Utente deve registrarsi fornendo dati
@@ -144,9 +139,9 @@ export function TermsOfServiceContent() {
           dell&apos;Utente in caso di violazione dei presenti Termini o qualora l&apos;attività dell&apos;Utente possa
           compromettere la stabilità e la sicurezza dell&apos;architettura a microservizi di Ebartex.
         </P>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 4 – MODULO DI SINCRONIZZAZIONE (SYNC), API DI TERZE PARTI E LIMITAZIONI DI RESPONSABILITÀ TECNICA</H2>
         <P>
           <strong>4.1. Descrizione e Funzionamento.</strong> Ebartex mette a disposizione un modulo di sincronizzazione
@@ -193,9 +188,9 @@ export function TermsOfServiceContent() {
           quotidianamente la correttezza dei dati sincronizzati e intervenire manualmente in caso di anomalie,
           sospendendo la sincronizzazione qualora riscontri errori persistenti.
         </P>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 5 – FUNZIONAMENTO DEL MERCATO E DELLE ASTE (BIDDING SYSTEM)</H2>
         <P>
           <strong>5.1. Pubblicazione degli Annunci.</strong> L&apos;Utente può pubblicare annunci per lo scambio o la vendita di
@@ -219,9 +214,9 @@ export function TermsOfServiceContent() {
           pervenute o elaborate in ritardo a causa di problemi di connessione dell&apos;Utente o congestione della
           rete.
         </P>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 6 – RUOLO DI EBARTEX COME INTERMEDIARIO TECNOLOGICO</H2>
         <P>
           <strong>6.1. Natura dell&apos;Intermediazione.</strong> Ebartex agisce esclusivamente come fornitore di infrastruttura
@@ -248,9 +243,9 @@ export function TermsOfServiceContent() {
           in atto dagli Utenti a danno di altri partecipanti. L&apos;Utente è tenuto ad adottare la normale diligenza
           nel valutare le controparti.
         </P>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 7 – UTILIZZO CONSENTITO E CONDOTTA DELL&apos;UTENTE</H2>
         <P>
           <strong>7.1. Uso Lecito.</strong> L&apos;Utente si impegna a utilizzare Ebartex esclusivamente per scopi leciti e in
@@ -274,9 +269,9 @@ export function TermsOfServiceContent() {
           offensivi, fraudolenti, o che violino diritti di proprietà intellettuale di terzi. Il Fornitore si riserva il
           diritto di rimuovere tali contenuti senza preavviso.
         </P>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 8 – PROPRIETÀ INTELLETTUALE E CONTENUTI DELL&apos;UTENTE</H2>
         <P>
           <strong>8.1. Diritti sulla Piattaforma.</strong> Tutti i diritti di proprietà intellettuale relativi a Ebartex (software,
@@ -293,9 +288,9 @@ export function TermsOfServiceContent() {
           all&apos;interno dei database di Ebartex costituiscono un&apos;opera protetta. È vietata la riproduzione anche
           parziale del catalogo di Ebartex all&apos;esterno della Piattaforma senza consenso scritto.
         </P>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 9 – TRACCIAMENTO, RICERCA E PRIVACY</H2>
         <P>
           <strong>9.1. Funzionamento del Motore di Ricerca.</strong> L&apos;Utente prende atto che, per garantire un&apos;esperienza
@@ -313,15 +308,15 @@ export function TermsOfServiceContent() {
           <strong>9.3. Privacy e Sicurezza dei Dati:</strong> Il trattamento dei dati avviene nel rispetto della normativa
           vigente (GDPR, ove applicabile). Per i dettagli sulla conservazione dei dati, l&apos;esercizio dei diritti
           dell&apos;interessato e la gestione tecnica dei log, si rimanda alla{' '}
-          <Link href="/legal/privacy" className="underline hover:text-white">
+          <LegalInlineLink href="/legal/privacy">
             Privacy Policy
-          </Link>{' '}
+          </LegalInlineLink>{' '}
           integrale della Piattaforma. L&apos;Utente accetta che i dati raccolti nella fase
           Demo siano trattati per le finalità tecniche e di test sopra descritte.
         </P>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 10 – LIMITAZIONI GENERALI DI RESPONSABILITÀ E MANLEVA</H2>
         <P>
           <strong>10.1. Esclusione di Danni Indiretti.</strong> Nei limiti massimi consentiti dalla legge applicabile, il
@@ -343,9 +338,9 @@ export function TermsOfServiceContent() {
           <li>violazione di diritti di terzi (inclusi diritti di proprietà intellettuale o norme sulla protezione dei dati);</li>
           <li>dispute relative a transazioni, vendite o aste concluse con altri Utenti.</li>
         </Ul>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 11 – SOSPENSIONE, CHIUSURA ACCOUNT E RECESSO</H2>
         <P>
           <strong>11.1. Recesso dell&apos;Utente:</strong> L&apos;Utente ha il diritto di recedere dal presente Contratto in qualsiasi
@@ -375,9 +370,9 @@ export function TermsOfServiceContent() {
           presenti Termini destinate per loro natura a sopravvivere alla risoluzione del contratto (es. proprietà
           intellettuale, manleva e limitazioni di responsabilità).
         </P>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 12 – MODIFICHE AI TERMINI E VALIDITÀ</H2>
         <P>
           <strong>12.1. Diritto di Modifica.</strong> Il Fornitore si riserva il diritto di modificare, aggiornare o integrare i
@@ -395,9 +390,9 @@ export function TermsOfServiceContent() {
           dichiarate nulle, invalide o inapplicabili da un&apos;autorità giudiziaria, tale nullità non pregiudicherà la
           validità e l&apos;efficacia delle restanti disposizioni, che continueranno a produrre pieni effetti.
         </P>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <H2>ARTICOLO 13 – LEGGE APPLICABILE E FORO COMPETENTE</H2>
         <P>
           <strong>13.1. Legge Applicabile.</strong> I presenti Termini e ogni controversia relativa all&apos;interpretazione,
@@ -414,9 +409,9 @@ export function TermsOfServiceContent() {
           <li>Qualora l&apos;Utente agisca in qualità di Consumatore (persona fisica che agisce per scopi estranei all&apos;attività imprenditoriale o professionale), il foro competente sarà quello del luogo di residenza o domicilio dell&apos;Utente, come previsto dalla normativa vigente.</li>
           <li>Qualora l&apos;Utente agisca in qualità di Professionista o Imprenditore, le parti stabiliscono la competenza esclusiva del Foro di Ivrea.</li>
         </Ul>
-      </section>
+      </LegalSection>
 
-      <section className="space-y-3">
+      <LegalSection>
         <P>
           L&apos;Utente dichiara di aver letto e compreso integralmente i presenti Termini e Condizioni di Servizio.
           L&apos;utilizzo della Piattaforma, la registrazione di un account o l&apos;attivazione del Modulo Sync
@@ -435,7 +430,7 @@ export function TermsOfServiceContent() {
           <li><strong>Articolo 12 (Modifiche ai Termini):</strong> Diritto del Fornitore di modificare unilateralmente il Contratto.</li>
           <li><strong>Articolo 13 (Legge e Foro):</strong> Scelta della legge italiana e designazione del Foro di Ivrea come foro esclusivo per i professionisti.</li>
         </Ul>
-      </section>
-    </div>
+      </LegalSection>
+    </>
   );
 }

@@ -1,6 +1,11 @@
-import Link from 'next/link';
 import { LegalDocShell } from '@/components/legal/LegalDocShell';
 import { LegalCompanyNotice } from '@/components/legal/LegalCompanyNotice';
+import {
+  LegalSection,
+  LegalH2,
+  LegalP,
+  LegalInlineLink,
+} from '@/components/legal/LegalTypography';
 import { COMPANY_INFO, TERMS_LAST_UPDATED } from '@/lib/legal/company-info';
 
 export const metadata = {
@@ -11,59 +16,44 @@ export const metadata = {
 export default function NormeLegaliPage() {
   return (
     <LegalDocShell titleKey="legal.rules.title" lastUpdated={TERMS_LAST_UPDATED}>
-      <section>
-        <h2 className="mb-2 text-lg font-semibold text-white">1. Operatore del servizio</h2>
-        <p className="mb-4">
+      <LegalSection>
+        <LegalH2>1. Operatore del servizio</LegalH2>
+        <LegalP>
           Il servizio {COMPANY_INFO.tradeName} è gestito da {COMPANY_INFO.legalName}, accessibile tramite{' '}
-          <a href={COMPANY_INFO.websiteUrl} className="underline hover:text-white">
+          <LegalInlineLink href={COMPANY_INFO.websiteUrl} external>
             {COMPANY_INFO.website}
-          </a>
+          </LegalInlineLink>
           .
-        </p>
+        </LegalP>
         <LegalCompanyNotice />
-      </section>
+      </LegalSection>
 
-      <section>
-        <h2 className="mb-2 text-lg font-semibold text-white">2. Riferimenti normativi</h2>
-        <p>
+      <LegalSection>
+        <LegalH2>2. Riferimenti normativi</LegalH2>
+        <LegalP>
           Il marketplace Ebartex opera nel rispetto della normativa applicabile in materia di commercio elettronico,
           protezione dei dati personali e diritti dei consumatori.
-        </p>
-      </section>
+        </LegalP>
+      </LegalSection>
 
-      <section>
-        <h2 className="mb-2 text-lg font-semibold text-white">3. Regolamento di utilizzo</h2>
-        <p>
+      <LegalSection>
+        <LegalH2>3. Regolamento di utilizzo</LegalH2>
+        <LegalP>
           L&apos;utilizzo della piattaforma è soggetto ai{' '}
-          <Link href="/legal/condizioni" className="underline hover:text-white">
-            Termini e Condizioni di Servizio
-          </Link>
-          , alla{' '}
-          <Link href="/legal/privacy" className="underline hover:text-white">
-            Privacy Policy
-          </Link>{' '}
-          e alla{' '}
-          <Link href="/legal/cookie" className="underline hover:text-white">
-            Cookie Policy
-          </Link>
-          .
-        </p>
-      </section>
+          <LegalInlineLink href="/legal/condizioni">Termini e Condizioni di Servizio</LegalInlineLink>, alla{' '}
+          <LegalInlineLink href="/legal/privacy">Privacy Policy</LegalInlineLink> e alla{' '}
+          <LegalInlineLink href="/legal/cookie">Cookie Policy</LegalInlineLink>.
+        </LegalP>
+      </LegalSection>
 
-      <section>
-        <h2 className="mb-2 text-lg font-semibold text-white">4. Contatti</h2>
-        <p>
+      <LegalSection>
+        <LegalH2>4. Contatti</LegalH2>
+        <LegalP>
           Per richieste di carattere legale o conformità è possibile contattare il titolare tramite PEC{' '}
-          <a href={`mailto:${COMPANY_INFO.pec}`} className="underline hover:text-white">
-            {COMPANY_INFO.pec}
-          </a>{' '}
-          o la pagina{' '}
-          <Link href="/contatti" className="underline hover:text-white">
-            Contattaci
-          </Link>
-          .
-        </p>
-      </section>
+          <LegalInlineLink href={`mailto:${COMPANY_INFO.pec}`}>{COMPANY_INFO.pec}</LegalInlineLink> o la pagina{' '}
+          <LegalInlineLink href="/contatti">Contattaci</LegalInlineLink>.
+        </LegalP>
+      </LegalSection>
     </LegalDocShell>
   );
 }
