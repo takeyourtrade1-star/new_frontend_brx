@@ -2,14 +2,14 @@
 
 import { useEffect } from 'react';
 import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
-import { TOURNAMENTS_PORTAL_URL } from '@/lib/config/tournaments';
+import { navigateToTournamentsPortal } from '@/lib/tournaments/navigate-to-portal';
 
 export function ScambiGuard({ children }: { children: React.ReactNode }) {
   const scambiVisible = useScambiVisibility();
 
   useEffect(() => {
     if (!scambiVisible) {
-      window.location.replace(TOURNAMENTS_PORTAL_URL);
+      void navigateToTournamentsPortal('/');
     }
   }, [scambiVisible]);
 

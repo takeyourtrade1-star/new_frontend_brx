@@ -93,7 +93,7 @@ const nextConfig = {
     return [
       {
         source: '/tornei-live',
-        destination: 'https://tornei.ebartex.com',
+        destination: 'https://tornei.ebartex.com/auth/bridge?return=https%3A%2F%2Ftornei.ebartex.com%2F',
         permanent: false,
       },
     ];

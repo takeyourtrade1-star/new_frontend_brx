@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Gavel, ArrowLeftRight, Trophy, Zap } from 'lucide-react';
-import { TOURNAMENTS_PORTAL_URL, TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
+import { getTournamentsPortalUrl, TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   motionVariants,
@@ -70,7 +70,7 @@ const SLIDES: SlideConfig[] = [
     description:
       'Iscriviti ai tornei live, verifica la webcam e gioca round Swiss con tabellone live. Montepremi, classifiche e community attiva ogni settimana.',
     cta: 'Scopri i tornei',
-    href: TOURNAMENTS_PORTAL_URL,
+    href: getTournamentsPortalUrl('/'),
     external: true,
     ariaLabel: 'Vai ai tornei live',
     Icon: Trophy,

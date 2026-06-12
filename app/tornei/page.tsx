@@ -2,12 +2,12 @@
 
 import { useCallback } from 'react';
 import { TournamentVideoOverlay } from '@/components/feature/tournaments/TournamentVideoOverlay';
-import { TOURNAMENTS_PORTAL_URL } from '@/lib/config/tournaments';
+import { navigateToTournamentsPortal } from '@/lib/tournaments/navigate-to-portal';
 
 export default function TorneiPage() {
   const handleVideoEnded = useCallback(() => {
-    window.location.href = TOURNAMENTS_PORTAL_URL;
+    void navigateToTournamentsPortal('/');
   }, []);
 
-  return <TournamentVideoOverlay onEnded={handleVideoEnded} />;
+  return <TournamentVideoOverlay redirectImmediately onEnded={handleVideoEnded} />;
 }

@@ -33,7 +33,7 @@ import {
   ASSO_MOBILE_MAX_WIDTH,
   getAssoBubbleBottom,
 } from '@/lib/asso-layout';
-import { TOURNAMENTS_PORTAL_URL } from '@/lib/config/tournaments';
+import { getTournamentsPortalUrl } from '@/lib/config/tournaments';
 
 // Storage keys for bug report data
 const BUG_REPORT_STORAGE = {
@@ -1922,7 +1922,7 @@ export function CardMascotte() {
     {
       id: 'tornei-live',
       text: 'Tornei live e spedizioni BRX Express. Scopri di più.',
-      route: TOURNAMENTS_PORTAL_URL,
+      route: getTournamentsPortalUrl('/'),
       // Glass tint color (accent only, not solid)
       accent: '#10B981',
       icon: 'swap',
