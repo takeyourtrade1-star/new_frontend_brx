@@ -26,10 +26,11 @@ function makeRequest(
     method = 'GET',
     cookie,
     body,
-  }: { method?: string; cookie?: string; body?: string } = {}
+    headers: extraHeaders,
+  }: { method?: string; cookie?: string; body?: string; headers?: Record<string, string> } = {}
 ): NextRequest {
   const url = new URL(`http://localhost:3000${path}`);
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...(extraHeaders ?? {}) };
   if (cookie) headers['cookie'] = cookie;
   if (body) {
     headers['content-type'] = 'application/json';
@@ -212,12 +213,20 @@ describe('/api/saved-auctions — sicurezza', () => {
 // ─── /api/auctions ───────────────────────────────────────────────────────────
 
 describe('/api/auctions — sicurezza', () => {
-  it('root: risponde 401 senza cookie', async () => {
+  it('root: inoltra GET pubblici senza cookie', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      json: () => Promise.resolve({ data: [] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
     const { GET } = await import('@/app/api/auctions/route');
     const req = makeRequest('/api/auctions');
     const res = await GET(req);
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toMatch(/no-store/);
+    const [, init] = fetchMock.mock.calls[0];
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    expect(headers.Authorization).toBeUndefined();
   });
 
   it('subpath: risponde 401 senza cookie', async () => {
@@ -226,6 +235,51 @@ describe('/api/auctions — sicurezza', () => {
     const ctx = { params: Promise.resolve({ path: ['abc123'] }) };
     const res = await GET(req, ctx);
     expect(res.status).toBe(401);
+  });
+
+  it('dettaglio pubblico numerico: inoltra GET senza cookie', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      json: () => Promise.resolve({ id: 123 }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { GET } = await import('@/app/api/auctions/[...path]/route');
+    const req = makeRequest('/api/auctions/123');
+    const ctx = { params: Promise.resolve({ path: ['123'] }) };
+    const res = await GET(req, ctx);
+    expect(res.status).toBe(200);
+    const [, init] = fetchMock.mock.calls[0];
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    expect(headers.Authorization).toBeUndefined();
+  });
+
+  it('pairing status guest: risponde 401 senza upload token', async () => {
+    const { GET } = await import('@/app/api/auctions/[...path]/route');
+    const sessionId = '123e4567-e89b-12d3-a456-426614174000';
+    const req = makeRequest(`/api/auctions/photos/pairing-sessions/${sessionId}`);
+    const ctx = { params: Promise.resolve({ path: ['photos', 'pairing-sessions', sessionId] }) };
+    const res = await GET(req, ctx);
+    expect(res.status).toBe(401);
+  });
+
+  it('pairing status guest: inoltra GET con upload token valido', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      json: () => Promise.resolve({ data: { status: 'active' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { GET } = await import('@/app/api/auctions/[...path]/route');
+    const sessionId = '123e4567-e89b-12d3-a456-426614174000';
+    const req = makeRequest(`/api/auctions/photos/pairing-sessions/${sessionId}`, {
+      headers: { 'x-pairing-upload-token': 'upload-token-123456' },
+    });
+    const ctx = { params: Promise.resolve({ path: ['photos', 'pairing-sessions', sessionId] }) };
+    const res = await GET(req, ctx);
+    expect(res.status).toBe(200);
+    const [, init] = fetchMock.mock.calls[0];
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    expect(headers.Authorization).toBeUndefined();
+    expect(headers['X-Pairing-Upload-Token']).toBe('upload-token-123456');
   });
 
   it('subpath: risponde 200 con cookie valido', async () => {

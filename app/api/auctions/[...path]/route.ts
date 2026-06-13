@@ -36,6 +36,18 @@ const UUID_RE =
 const PAIRING_TOKEN_RE = /^[A-Za-z0-9_-]{16,256}$/;
 const GUEST_PAIRING_POST_PATHS = new Set(['photos/init', 'photos/finalize']);
 const GUEST_PAIRING_GET_RE = /^photos\/pairing-sessions\/[0-9a-f-]{36}$/i;
+const PUBLIC_AUCTION_DETAIL_GET_RE = /^\d+$/;
+const PUBLIC_AUCTION_CHILD_GET_RE = /^\d+\/(?:bids|minimum-bid)$/;
+const PUBLIC_LISTING_PHOTO_GET_RE = /^photos\/by-listing\/[^/]+$/;
+
+function isPublicAuctionGetPath(path: string): boolean {
+  return (
+    PUBLIC_AUCTION_DETAIL_GET_RE.test(path) ||
+    PUBLIC_AUCTION_CHILD_GET_RE.test(path) ||
+    PUBLIC_LISTING_PHOTO_GET_RE.test(path) ||
+    path === 'photos/by-listings'
+  );
+}
 
 function isGuestPairingRequest(
   request: NextRequest,
@@ -97,9 +109,9 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   }
 
   const auth = getForwardedAuthorization(request);
-  const isGet = request.method === 'GET';
+  const publicGet = request.method === 'GET' && isPublicAuctionGetPath(path);
   const guestPairing = !auth && isGuestPairingRequest(request, path, body);
-  if (!auth && !isGet && !guestPairing) return unauthorizedResponse();
+  if (!auth && !publicGet && !guestPairing) return unauthorizedResponse();
 
   const userId = auth ? extractUserIdForRateLimit(auth) : undefined;
   const rl = checkRateLimit(request, {
