@@ -10,7 +10,7 @@ const originalLocation = window.location;
 const replaceMock = vi.fn();
 
 function mockEbartexLocation() {
-  delete (window as Window & { location?: Location }).location;
+  delete (window as { location?: Location }).location;
   Object.defineProperty(window, 'location', {
     configurable: true,
     value: {
