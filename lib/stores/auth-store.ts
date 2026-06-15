@@ -16,6 +16,7 @@ import { authApi } from '@/lib/api/auth-client';
 import { parseAuthError } from '@/lib/api/auth-error';
 import { stopProactiveRefresh } from '@/lib/api/refresh-token';
 import { config } from '@/lib/config';
+import { isTournamentsTransitionPath } from '@/lib/config/tournaments';
 import {
   clearMfaPreAuthToken,
   saveMfaPreAuthToken,
@@ -129,11 +130,15 @@ export const useAuthStore = create<AuthState>()(
 
       // Initialize auth: refresh proattivo se c'è refresh_token, poi valida con /api/auth/me
       initializeAuth: async () => {
+        if (typeof window !== 'undefined' && isTournamentsTransitionPath()) {
+          return;
+        }
+
         let accessToken: string | null =
           typeof window !== 'undefined'
             ? localStorage.getItem(config.auth.tokenKey)
             : null;
-        const refreshToken =
+        let refreshToken =
           typeof window !== 'undefined'
             ? localStorage.getItem(config.auth.refreshTokenKey)
             : null;
@@ -141,6 +146,30 @@ export const useAuthStore = create<AuthState>()(
           typeof window !== 'undefined'
             ? localStorage.getItem(config.auth.userKey)
             : null;
+
+        // SSO: sessione da tornei.ebartex.com (cookie parent-domain) → sync localStorage
+        if (!refreshToken && typeof window !== 'undefined') {
+          try {
+            const bridgeRes = await fetch('/api/auth/bridge', { credentials: 'same-origin' });
+            if (bridgeRes.ok) {
+              const bridgeData = await bridgeRes.json().catch(() => ({}));
+              const bridgedAccess =
+                (bridgeData?.access_token ?? bridgeData?.data?.access_token) as string | undefined;
+              const bridgedRefresh =
+                (bridgeData?.refresh_token ?? bridgeData?.data?.refresh_token) as string | undefined;
+              if (bridgedAccess && bridgedRefresh) {
+                authApi.setToken(bridgedAccess, bridgedRefresh);
+                localStorage.setItem(config.auth.tokenKey, bridgedAccess);
+                localStorage.setItem(config.auth.refreshTokenKey, bridgedRefresh);
+                set({ accessToken: bridgedAccess, isAuthenticated: true, sessionExpired: false });
+                accessToken = bridgedAccess;
+                refreshToken = bridgedRefresh;
+              }
+            }
+          } catch {
+            // Nessuna sessione condivisa — utente ospite
+          }
+        }
 
         // Se c'è refresh_token, rinnoviamo subito l'access token (anche dopo F5 o token scaduto)
         if (refreshToken && typeof window !== 'undefined') {

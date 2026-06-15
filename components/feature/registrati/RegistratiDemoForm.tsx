@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon, CountrySelect, type CountryOption } from '@/lib/auction/country-flag';
 import { useUserCountry } from '@/lib/hooks/use-user-country';
+import { RegistrationLegalCheckboxes } from '@/components/legal/RegistrationLegalCheckboxes';
 
 const defaultValues: RegisterDemoValues = {
   website_url: '',
@@ -29,6 +30,7 @@ const defaultValues: RegisterDemoValues = {
   phone_prefix: '+39',
   country: 'IT',
   termsAccepted: false,
+  specificClausesAccepted: false,
   privacyAccepted: false,
   cancellationAccepted: false,
   adultConfirmed: false,
@@ -315,34 +317,11 @@ export function RegistratiDemoForm() {
         )}
       </div>
 
-      <div className="space-y-3">
-        <label className="grid grid-cols-[20px_1fr] items-start gap-x-3">
-          <input type="checkbox" {...register('termsAccepted')} className="mt-1.5" />
-          <span className="pt-0.5 text-sm text-gray-700">{t('registerForm.termsAcceptedText')}</span>
-        </label>
-        <label className="grid grid-cols-[20px_1fr] items-start gap-x-3">
-          <input type="checkbox" {...register('privacyAccepted')} className="mt-1.5" />
-          <span className="pt-0.5 text-sm text-gray-700">{t('registerForm.privacyAcceptedText')}</span>
-        </label>
-        <label className="grid grid-cols-[20px_1fr] items-start gap-x-3">
-          <input type="checkbox" {...register('cancellationAccepted')} className="mt-1.5" />
-          <span className="pt-0.5 text-sm text-gray-700">{t('registerForm.cancellationAcceptedText')}</span>
-        </label>
-        <label className="grid grid-cols-[20px_1fr] items-start gap-x-3">
-          <input type="checkbox" {...register('adultConfirmed')} className="mt-1.5" />
-          <span className="pt-0.5 text-sm text-gray-700">{t('registerForm.adultConfirmedText')}</span>
-        </label>
-        {(errors.termsAccepted || errors.privacyAccepted || errors.cancellationAccepted || errors.adultConfirmed) && (
-          <p className="text-sm text-red-500">
-            {String(
-              (errors.termsAccepted?.message ||
-                errors.privacyAccepted?.message ||
-                errors.cancellationAccepted?.message ||
-                errors.adultConfirmed?.message) ?? ''
-            )}
-          </p>
-        )}
-      </div>
+      <RegistrationLegalCheckboxes
+        register={register}
+        errors={errors}
+        textClassName="pt-0.5 text-sm text-gray-700"
+      />
 
       {error && (
         <p className="text-sm text-red-500">{error}</p>

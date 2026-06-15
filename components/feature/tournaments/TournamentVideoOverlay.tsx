@@ -6,18 +6,31 @@ import { cn } from '@/lib/utils';
 
 const VIDEO_PATH = '/videos/tournament-video-trial.webm?v=3';
 
-export function TournamentVideoOverlay({ onEnded }: { onEnded: () => void }) {
+type TournamentVideoOverlayProps = {
+  onEnded: () => void;
+  /** Evita il fade-out che mostra la pagina sotto prima del redirect. */
+  redirectImmediately?: boolean;
+};
+
+export function TournamentVideoOverlay({
+  onEnded,
+  redirectImmediately = false,
+}: TournamentVideoOverlayProps) {
   const [visible, setVisible] = useState(true);
   const [fadingOut, setFadingOut] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleEnded = useCallback(() => {
+    if (redirectImmediately) {
+      onEnded();
+      return;
+    }
     setFadingOut(true);
     setTimeout(() => {
       setVisible(false);
       onEnded();
     }, 800);
-  }, [onEnded]);
+  }, [onEnded, redirectImmediately]);
 
   return (
     <AnimatePresence>

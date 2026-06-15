@@ -23,13 +23,76 @@ const CAROUSEL_SLIDES = [
   { image: getCdnImageUrl('carousel/slide3.jpg'), title: 'Novità in arrivo', subtitle: 'Stampa 3D e molto altro' },
 ];
 
+const BOUTIQUE_GLOW_COLORS: Record<string, string> = {
+  dadi: '251, 191, 36',
+  buste: '167, 139, 250',
+  tappetini: '56, 189, 248',
+  memorabilia: '251, 146, 60',
+  albums: '251, 113, 133',
+  'game-kits': '255, 115, 0',
+};
+
 const BOUTIQUE_CATEGORIES = [
-  { id: 'dadi', label: 'Dadi', href: '/products?category=dadi', imageUrl: getCdnImageUrl('dadi-boutique.png') },
-  { id: 'buste', label: 'Buste', href: '/products?category=buste', imageUrl: getCdnImageUrl('buste-boutique.png') },
-  { id: 'tappetini', label: 'Tappetini', href: '/products?category=tappetini', imageUrl: getCdnImageUrl('tappetini-boutique.png') },
-  { id: 'memorabilia', label: 'Memorabilia', href: '/products?category=memorabilia', imageUrl: getCdnImageUrl('memorabilia-boutique.png') },
-  { id: 'albums', label: 'Albums', href: '/products?category=albums', imageUrl: getCdnImageUrl('albums-boutique.png') },
-  { id: 'game-kits', label: 'Game kits', href: '/products?category=game-kits', imageUrl: getCdnImageUrl('gamekits-boutique.png') },
+  {
+    id: 'dadi',
+    label: 'Dadi',
+    imageUrl: '/ebartex-boutique/dadi-boutique.webp',
+    imageSet: {
+      sm: '/ebartex-boutique/dadi-boutique-sm.webp',
+      md: '/ebartex-boutique/dadi-boutique-md.webp',
+      lg: '/ebartex-boutique/dadi-boutique-lg.webp',
+    },
+  },
+  {
+    id: 'buste',
+    label: 'Buste',
+    imageUrl: '/ebartex-boutique/buste-boutique.webp',
+    imageSet: {
+      sm: '/ebartex-boutique/buste-boutique-sm.webp',
+      md: '/ebartex-boutique/buste-boutique-md.webp',
+      lg: '/ebartex-boutique/buste-boutique-lg.webp',
+    },
+  },
+  {
+    id: 'tappetini',
+    label: 'Tappetini',
+    imageUrl: '/ebartex-boutique/tappetini-boutique.webp',
+    imageSet: {
+      sm: '/ebartex-boutique/tappetini-boutique-sm.webp',
+      md: '/ebartex-boutique/tappetini-boutique-md.webp',
+      lg: '/ebartex-boutique/tappetini-boutique-lg.webp',
+    },
+  },
+  {
+    id: 'memorabilia',
+    label: 'Memorabilia',
+    imageUrl: '/ebartex-boutique/memorabilia-boutique.webp',
+    imageSet: {
+      sm: '/ebartex-boutique/memorabilia-boutique-sm.webp',
+      md: '/ebartex-boutique/memorabilia-boutique-md.webp',
+      lg: '/ebartex-boutique/memorabilia-boutique-lg.webp',
+    },
+  },
+  {
+    id: 'albums',
+    label: 'Albums',
+    imageUrl: '/ebartex-boutique/albums-boutique.webp',
+    imageSet: {
+      sm: '/ebartex-boutique/albums-boutique-sm.webp',
+      md: '/ebartex-boutique/albums-boutique-md.webp',
+      lg: '/ebartex-boutique/albums-boutique-lg.webp',
+    },
+  },
+  {
+    id: 'game-kits',
+    label: 'Game kits',
+    imageUrl: '/ebartex-boutique/gamekits-boutique.webp',
+    imageSet: {
+      sm: '/ebartex-boutique/gamekits-boutique-sm.webp',
+      md: '/ebartex-boutique/gamekits-boutique-md.webp',
+      lg: '/ebartex-boutique/gamekits-boutique-lg.webp',
+    },
+  },
 ];
 
 export function EbartexBoutiquePage() {
@@ -134,31 +197,44 @@ export function EbartexBoutiquePage() {
           La nostra Boutique
         </h2>
 
-        {/* Griglia categorie */}
-        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-14">
-          {BOUTIQUE_CATEGORIES.map((cat) => (
-            <Link
-              key={cat.id}
-              href={cat.href}
-              className="group flex flex-col rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm hover:shadow-md hover:border-[#FF8800] transition-all"
-            >
-              <div 
-                className="relative aspect-square bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
-                style={{ backgroundImage: `url(${cat.imageUrl})` }}
-              >
-                <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+        {/* Griglia categorie — stesso stile homepage, non cliccabile */}
+        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 sm:gap-6 mb-14">
+          {BOUTIQUE_CATEGORIES.map((cat) => {
+            const glowColor = BOUTIQUE_GLOW_COLORS[cat.id] || '255,255,255';
+            return (
+              <div key={cat.id} className="flex flex-col items-center">
+                <div
+                  className="relative aspect-square w-full overflow-hidden rounded-full border border-gray-200 bg-gray-100 shadow-sm"
+                  aria-label={`${cat.label} — Presto in arrivo`}
+                >
+                  <div
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                    style={{
+                      backgroundImage: `image-set(
+                        url(${cat.imageSet?.sm || cat.imageUrl}) 1x,
+                        url(${cat.imageSet?.md || cat.imageUrl}) 2x,
+                        url(${cat.imageSet?.lg || cat.imageUrl}) 3x
+                      )`,
+                    }}
+                    aria-hidden
+                  />
+                  <div className="absolute inset-0 bg-black/40" aria-hidden />
+                  <span
+                    className="absolute inset-0 flex items-center justify-center px-2 text-center text-xs sm:text-sm font-bold uppercase tracking-wider text-white drop-shadow-lg"
+                    style={{
+                      ['--glow-color' as string]: glowColor,
+                      textShadow: '0 2px 12px rgba(0,0,0,0.45)',
+                    }}
+                  >
+                    {cat.label}
+                  </span>
+                </div>
+                <p className="mt-3 text-center text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Presto in arrivo
+                </p>
               </div>
-              <div className="p-3 text-center">
-                <span className="text-sm font-bold text-gray-900 uppercase">{cat.label}</span>
-              </div>
-              <div
-                className="mx-3 mb-3 rounded-md py-2 text-center text-xs font-bold uppercase text-white transition-colors group-hover:opacity-90"
-                style={{ backgroundColor: BRAND_ORANGE }}
-              >
-                Vedi tutto
-              </div>
-            </Link>
-          ))}
+            );
+          })}
         </section>
 
         {/* Stampa 3D in arrivo */}

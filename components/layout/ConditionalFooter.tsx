@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { Footer } from '@/components/layout/Footer';
 
-const HIDE_FOOTER_PREFIXES = ['/c/asta-foto'];
+const HIDE_FOOTER_PREFIXES = ['/c/asta-foto', '/tornei'];
 
 export function ConditionalFooter() {
   const pathname = usePathname();

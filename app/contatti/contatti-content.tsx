@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { ChevronLeft, Mail, MessageCircle } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { LegalCompanyNotice } from '@/components/legal/LegalCompanyNotice';
 
 export function ContattiContent() {
   const { t } = useTranslation();
@@ -51,6 +52,11 @@ export function ContattiContent() {
                 venditori@ebartex.com
               </a>
             </div>
+          </section>
+
+          <section className="rounded-xl border border-white/20 bg-white/10 p-6">
+            <h2 className="mb-3 font-semibold text-white">Dati societari</h2>
+            <LegalCompanyNotice />
           </section>
 
           <p className="text-sm text-white/80">

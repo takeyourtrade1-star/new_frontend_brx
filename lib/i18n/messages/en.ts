@@ -1493,6 +1493,11 @@ export const en = {
   'auctions.mobilePairingCropModeFree': 'Free',
 
   'legal.lastUpdated': 'Last updated:',
+  'legal.nav.title': 'Legal documents',
+  'legal.nav.terms': 'Terms of service',
+  'legal.nav.privacy': 'Privacy Policy',
+  'legal.nav.cookies': 'Cookie Policy',
+  'legal.nav.rules': 'Legal rules',
   'legal.cookie.title': 'Cookie policy',
   'legal.privacy.title': 'Privacy policy',
   'legal.terms.title': 'Terms and conditions',

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { TOURNAMENTS_PORTAL_URL, TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
+import { getTournamentsPortalUrl, TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 import {
   Gavel,
   Search,
@@ -213,7 +213,7 @@ const SECTIONS: PlatformSectionConfig[] = [
       },
     ],
     cta: 'Vai ai tornei live',
-    href: TOURNAMENTS_PORTAL_URL,
+    href: getTournamentsPortalUrl('/'),
     external: true,
     accent: 'violet',
   },

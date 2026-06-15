@@ -28,15 +28,17 @@ const baseRegisterObject = z.object({
   phone_prefix: z.string().max(5).default('+39'),
   country: z.string().length(2, 'Codice paese 2 caratteri (es. IT)'),
   termsAccepted: z.boolean(),
+  specificClausesAccepted: z.boolean(),
   privacyAccepted: z.boolean(),
   cancellationAccepted: z.boolean(),
   adultConfirmed: z.boolean(),
 });
 
-/** Refine per le 4 checkbox (da applicare agli schemi finali) */
+/** Refine per le checkbox legali (da applicare agli schemi finali) */
 const checkboxRefines = (s: z.ZodTypeAny) =>
   s
-    .refine((d: { termsAccepted: boolean }) => d.termsAccepted === true, { message: 'Devi accettare i termini e condizioni', path: ['termsAccepted'] })
+    .refine((d: { termsAccepted: boolean }) => d.termsAccepted === true, { message: 'Devi accettare i Termini e Condizioni di Servizio', path: ['termsAccepted'] })
+    .refine((d: { specificClausesAccepted: boolean }) => d.specificClausesAccepted === true, { message: 'Devi approvare specificamente le clausole contrattuali', path: ['specificClausesAccepted'] })
     .refine((d: { privacyAccepted: boolean }) => d.privacyAccepted === true, { message: 'Devi accettare la privacy policy', path: ['privacyAccepted'] })
     .refine((d: { cancellationAccepted: boolean }) => d.cancellationAccepted === true, { message: 'Devi accettare la policy di cancellazione', path: ['cancellationAccepted'] })
     .refine((d: { adultConfirmed: boolean }) => d.adultConfirmed === true, { message: 'Devi dichiarare di essere maggiorenne', path: ['adultConfirmed'] });
@@ -77,10 +79,10 @@ export function toRegisterPayloadDemo(values: RegisterDemoValues): import('@/typ
     country: values.country,
     first_name: 'Demo',
     last_name: 'User',
-    termsAccepted: true,
-    privacyAccepted: true,
-    cancellationAccepted: true,
-    adultConfirmed: true,
+    termsAccepted: values.termsAccepted && values.specificClausesAccepted,
+    privacyAccepted: values.privacyAccepted,
+    cancellationAccepted: values.cancellationAccepted,
+    adultConfirmed: values.adultConfirmed,
   };
 }
 
@@ -95,6 +97,7 @@ export function toRegisterPayloadPrivato(values: RegisterPrivatoValues): import(
       phone_prefix: values.phone_prefix,
       country: values.country,
       termsAccepted: values.termsAccepted,
+      specificClausesAccepted: values.specificClausesAccepted,
       privacyAccepted: values.privacyAccepted,
       cancellationAccepted: values.cancellationAccepted,
       adultConfirmed: values.adultConfirmed,

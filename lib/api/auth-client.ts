@@ -11,6 +11,7 @@ import axios, {
 } from 'axios';
 import type { PreAuthTokenResponse, TokenResponse } from '@/types';
 import { config } from '../config';
+import { isTournamentsTransitionPath } from '@/lib/config/tournaments';
 import { tokenManager } from './refresh-token';
 
 const DEVICE_TRUST_CRITICAL_PATHS = new Set([
@@ -186,10 +187,14 @@ class AuthApiClient {
   private forceLogout() {
     this.clearToken();
 
-    // Reindirizza al login; non disturbare il flusso MFA (/login/verify-mfa)
+    // Reindirizza al login; non disturbare MFA né il video → portale tornei
     if (typeof window !== 'undefined') {
       const p = window.location.pathname;
-      if (p !== '/login' && !p.startsWith('/login/verify-mfa')) {
+      if (
+        p !== '/login' &&
+        !p.startsWith('/login/verify-mfa') &&
+        !isTournamentsTransitionPath(p)
+      ) {
         window.location.href = '/login';
       }
     }

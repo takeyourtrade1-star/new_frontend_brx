@@ -1492,6 +1492,11 @@ export const pt: Record<MessageKey, string> = {
   'auctions.mobilePairingCropModeFree': 'Free',
 
   'legal.lastUpdated': 'Última atualização:',
+  'legal.nav.title': 'Documentos legais',
+  'legal.nav.terms': 'Termos e condições',
+  'legal.nav.privacy': 'Política de privacidade',
+  'legal.nav.cookies': 'Política de cookies',
+  'legal.nav.rules': 'Normas legais',
   'legal.cookie.title': 'Política de cookies',
   'legal.privacy.title': 'Política de privacidade',
   'legal.terms.title': 'Termos e condições',
