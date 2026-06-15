@@ -3,8 +3,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Home, ChevronRight, Loader2 } from 'lucide-react';
+import {
+  Home,
+  ChevronRight,
+  Loader2,
+  Wallet,
+  BadgeCheck,
+  Truck,
+  Inbox,
+  LayoutGrid,
+  LifeBuoy,
+  Ban,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { OrderTabs, type OrderTab } from '@/components/feature/ordini/OrderTabs';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { useBuyerOrders, useMarkOrderPaid } from '@/lib/hooks/use-orders';
 import {
@@ -42,22 +54,27 @@ import {
 } from './MockShippingOrderCard';
 import { SupportRequestModal } from './SupportRequestModal';
 
-const TABS_LEFT = [
-  { id: 'da-pagare', label: 'DA PAGARE' },
-  { id: 'pagato', label: 'PAGATI' },
-  { id: 'inviato', label: 'IN ARRIVO' },
-  { id: 'ricevuto', label: 'RICEVUTI' },
-  { id: 'acquisti', label: 'ACQUISTI' },
-] as const;
+const TABS_LEFT: OrderTab<TabId>[] = [
+  { id: 'da-pagare', label: 'DA PAGARE', icon: Wallet },
+  { id: 'pagato', label: 'PAGATI', icon: BadgeCheck },
+  { id: 'inviato', label: 'IN ARRIVO', icon: Truck },
+  { id: 'ricevuto', label: 'RICEVUTI', icon: Inbox },
+  { id: 'acquisti', label: 'ACQUISTI', icon: LayoutGrid },
+];
 
-const TABS_RIGHT = [
-  { id: 'supporto', label: 'SUPPORTO' },
-  { id: 'cancellato', label: 'CANCELLATO' },
-] as const;
+const TABS_RIGHT: OrderTab<TabId>[] = [
+  { id: 'supporto', label: 'SUPPORTO', icon: LifeBuoy },
+  { id: 'cancellato', label: 'CANCELLATO', icon: Ban },
+];
 
 type TabId =
-  | (typeof TABS_LEFT)[number]['id']
-  | (typeof TABS_RIGHT)[number]['id'];
+  | 'da-pagare'
+  | 'pagato'
+  | 'inviato'
+  | 'ricevuto'
+  | 'acquisti'
+  | 'supporto'
+  | 'cancellato';
 
 const ALL_TABS = [...TABS_LEFT, ...TABS_RIGHT];
 
@@ -100,6 +117,26 @@ function mapMarketplaceStatusToTab(status: MarketplaceStatus): TabId | null {
     case 'completed':
       return 'ricevuto';
     case 'cancelled':
+      return 'cancellato';
+    default:
+      return null;
+  }
+}
+
+function mapApiStatusToTab(status: OrderStatus): TabId | null {
+  switch (status) {
+    case 'PAYMENT_PENDING':
+    case 'PAYMENT_OVERDUE':
+    case 'DISPUTED':
+      return 'da-pagare';
+    case 'PAID':
+      return 'pagato';
+    case 'SHIPPED':
+      return 'inviato';
+    case 'DELIVERED':
+      return 'ricevuto';
+    case 'CANCELLED':
+    case 'REASSIGNED':
       return 'cancellato';
     default:
       return null;
@@ -210,6 +247,10 @@ export function AcquistiContent() {
     { statuses, limit: 50, offset: 0 },
     { enabled: !isSupportoTab },
   );
+  const allOrdersQuery = useBuyerOrders(
+    { limit: 100, offset: 0 },
+    { enabled: !isSupportoTab, staleTime: 30_000 },
+  );
   const payMutation = useMarkOrderPaid();
 
   const [marketplaceOrders, setMarketplaceOrders] = useState<OrderResponse[]>([]);
@@ -281,6 +322,56 @@ export function AcquistiContent() {
   }, [isSupportoTab, loadDisputes]);
 
   const mockSupportTickets = useMockSupportStore((s) => s.tickets);
+
+  const allOrders = allOrdersQuery.data?.data ?? [];
+
+  const countsByTab = useMemo<Record<TabId, number>>(() => {
+    const counts: Record<TabId, number> = {
+      'da-pagare': 0,
+      pagato: 0,
+      inviato: 0,
+      ricevuto: 0,
+      acquisti: 0,
+      supporto: 0,
+      cancellato: 0,
+    };
+
+    for (const o of allOrders) {
+      const tab = mapApiStatusToTab(o.status);
+      if (tab && tab !== 'supporto') counts[tab]++;
+    }
+
+    for (const o of marketplaceOrders) {
+      const tab = mapMarketplaceStatusToTab(o.status);
+      if (tab) counts[tab]++;
+    }
+
+    for (const o of mockOrders) {
+      if (o.status === 'payment_pending') counts['da-pagare']++;
+      else if (o.status === 'paid') counts['pagato']++;
+    }
+
+    for (const o of mockShippingOrders) {
+      if (o.status === 'in_transit') counts['inviato']++;
+      else if (o.status === 'received') counts['ricevuto']++;
+    }
+
+    counts['acquisti'] =
+      counts['da-pagare'] + counts['pagato'] + counts['inviato'] + counts['ricevuto'];
+    counts['supporto'] = disputes.length + mockSupportTickets.length;
+
+    return counts;
+  }, [allOrders, marketplaceOrders, mockOrders, mockShippingOrders, disputes, mockSupportTickets]);
+
+  const leftTabs = useMemo(
+    () => TABS_LEFT.map((tab) => ({ ...tab, count: countsByTab[tab.id] })),
+    [countsByTab],
+  );
+
+  const rightTabs = useMemo(
+    () => TABS_RIGHT.map((tab) => ({ ...tab, count: countsByTab[tab.id] })),
+    [countsByTab],
+  );
 
   const orders = ordersQuery.data?.data ?? [];
   const total = ordersQuery.data?.total ?? 0;
@@ -716,42 +807,12 @@ export function AcquistiContent() {
           </div>
         )}
 
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-b border-gray-200 pb-3">
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
-            {TABS_LEFT.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
-                  activeTab === tab.id
-                    ? 'bg-[#FF7300] text-white shadow-sm'
-                    : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-900',
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          <div className="ml-auto flex shrink-0 flex-wrap items-center gap-x-1.5 gap-y-1.5">
-            {TABS_RIGHT.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
-                  activeTab === tab.id
-                    ? 'bg-gray-700 text-white shadow-sm'
-                    : 'bg-white text-gray-500 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-700',
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <OrderTabs
+          leftTabs={leftTabs}
+          rightTabs={rightTabs}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
 
         {isSupportoTab ? renderSupportContent() : renderOrdersContent()}
       </div>

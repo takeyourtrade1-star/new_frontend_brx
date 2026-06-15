@@ -3,8 +3,8 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Home, ChevronRight, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Home, ChevronRight, Loader2, LayoutGrid, Hourglass, PackageOpen, Truck, BadgeCheck, LifeBuoy } from 'lucide-react';
+import { OrderTabs, type OrderTab } from '@/components/feature/ordini/OrderTabs';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useMockSupportStore } from '@/lib/stores/mock-support-store';
@@ -20,17 +20,17 @@ import { VenditeSaleCard } from './VenditeSaleCard';
 
 type TabId = VenditaStato | 'tutte' | 'supporto';
 
-const TABS_LEFT = [
-  { id: 'tutte' as TabId, label: 'TUTTE' },
-  { id: 'in-attesa-pagamento' as TabId, label: 'IN ATTESA' },
-  { id: 'da-spedire' as TabId, label: 'DA SPEDIRE' },
-  { id: 'spedito' as TabId, label: 'SPEDITO' },
-  { id: 'completato' as TabId, label: 'COMPLETATO' },
-] as const;
+const TABS_LEFT: OrderTab<TabId>[] = [
+  { id: 'tutte', label: 'TUTTE', icon: LayoutGrid },
+  { id: 'in-attesa-pagamento', label: 'IN ATTESA', icon: Hourglass },
+  { id: 'da-spedire', label: 'DA SPEDIRE', icon: PackageOpen },
+  { id: 'spedito', label: 'SPEDITO', icon: Truck },
+  { id: 'completato', label: 'COMPLETATO', icon: BadgeCheck },
+];
 
-const TABS_RIGHT = [
-  { id: 'supporto' as TabId, label: 'SUPPORTO' },
-] as const;
+const TABS_RIGHT: OrderTab<TabId>[] = [
+  { id: 'supporto', label: 'SUPPORTO', icon: LifeBuoy },
+];
 
 const ALL_TABS = [...TABS_LEFT, ...TABS_RIGHT];
 
@@ -72,6 +72,24 @@ export function VenditeContent() {
   const tabMeta = useMemo(() => VENDITA_TAB_META.find((t) => t.id === activeTab) ?? VENDITA_TAB_META[0], [activeTab]);
 
   const mockSupportTickets = useMockSupportStore((s) => s.tickets);
+
+  const leftTabs = useMemo(
+    () =>
+      TABS_LEFT.map((tab) => ({
+        ...tab,
+        count: tab.id === 'tutte' ? MOCK_VENDITE.length : countByStato(tab.id as VenditaStato),
+      })),
+    [],
+  );
+
+  const rightTabs = useMemo(
+    () =>
+      TABS_RIGHT.map((tab) => ({
+        ...tab,
+        count: mockSupportTickets.length,
+      })),
+    [mockSupportTickets],
+  );
 
   const breadcrumbItems: AppBreadcrumbItem[] = useMemo(
     () => [
@@ -172,51 +190,12 @@ export function VenditeContent() {
           {t('mockCheckout.banner')}
         </div>
 
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-b border-gray-200 pb-3">
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
-            {TABS_LEFT.map((tab) => {
-              const count = tab.id === 'tutte' ? MOCK_VENDITE.length : countByStato(tab.id as VenditaStato);
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
-                    activeTab === tab.id
-                      ? 'bg-[#FF7300] text-white shadow-sm'
-                      : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-900',
-                  )}
-                >
-                  {tab.label}
-                  <span className={cn(
-                    'ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
-                    activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600',
-                  )}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="ml-auto flex shrink-0 flex-wrap items-center gap-x-1.5 gap-y-1.5">
-            {TABS_RIGHT.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
-                  activeTab === tab.id
-                    ? 'bg-gray-700 text-white shadow-sm'
-                    : 'bg-white text-gray-500 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-700',
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <OrderTabs
+          leftTabs={leftTabs}
+          rightTabs={rightTabs}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
 
         {isSupportoTab ? renderSupportContent() : renderOrdersContent()}
       </div>
