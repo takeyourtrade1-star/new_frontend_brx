@@ -92,9 +92,9 @@ export const AUCTION_CUSTOM_DESCRIPTION_MAX = 200;
 /** Stessi valori del form «VENDI» in ProductDetailView (select condizione). */
 export const AUCTION_CARD_CONDITION_OPTIONS = [
   { value: 'near_mint', labelKey: 'auctions.cardConditionNearMint' },
-  { value: 'lightly_played', labelKey: 'auctions.cardConditionLightlyPlayed' },
-  { value: 'moderately_played', labelKey: 'auctions.cardConditionModeratelyPlayed' },
   { value: 'heavily_played', labelKey: 'auctions.cardConditionHeavilyPlayed' },
+  { value: 'moderately_played', labelKey: 'auctions.cardConditionModeratelyPlayed' },
+  { value: 'lightly_played', labelKey: 'auctions.cardConditionLightlyPlayed' },
   { value: 'damaged', labelKey: 'auctions.cardConditionDamaged' },
 ] as const satisfies ReadonlyArray<{ value: string; labelKey: MessageKey }>;
 
