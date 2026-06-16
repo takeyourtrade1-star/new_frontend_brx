@@ -19,12 +19,17 @@ export function TournamentVideoOverlay({
   const [visible, setVisible] = useState(true);
   const [fadingOut, setFadingOut] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hasCompletedRef = useRef(false);
 
-  const handleEnded = useCallback(() => {
+  const completeTransition = useCallback(() => {
+    if (hasCompletedRef.current) return;
+    hasCompletedRef.current = true;
+
     if (redirectImmediately) {
       onEnded();
       return;
     }
+
     setFadingOut(true);
     setTimeout(() => {
       setVisible(false);
@@ -53,12 +58,13 @@ export function TournamentVideoOverlay({
             muted
             playsInline
             preload="auto"
-            onEnded={handleEnded}
+            onEnded={completeTransition}
+            onError={completeTransition}
             disablePictureInPicture
             disableRemotePlayback
             style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
           >
-            <source src={VIDEO_PATH} type="video/webm" />
+            <source src={VIDEO_PATH} type="video/webm" onError={completeTransition} />
           </video>
         </motion.div>
       )}

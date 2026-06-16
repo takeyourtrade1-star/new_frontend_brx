@@ -1,5 +1,6 @@
 import { config } from '@/lib/config';
 import { getTournamentsPortalUrl } from '@/lib/config/tournaments';
+import { tokenManager } from '@/lib/api/refresh-token';
 
 function isEbartexProductionHost(): boolean {
   if (typeof window === 'undefined') return false;
@@ -8,10 +9,10 @@ function isEbartexProductionHost(): boolean {
 }
 
 /**
- * Naviga al portale tornei. Su ebartex.com prova a rinnovare i cookie SSO
- * in background (non blocca) prima del redirect.
+ * Naviga al portale tornei. Su ebartex.com rinnova prima la sessione same-origin
+ * in modo che i cookie SSO parent-domain siano presenti sul sottodominio tornei.
  */
-export function navigateToTournamentsPortal(returnPath = '/'): void {
+export async function navigateToTournamentsPortal(returnPath = '/'): Promise<void> {
   if (typeof window === 'undefined') return;
 
   const targetUrl = getTournamentsPortalUrl(returnPath);
@@ -19,13 +20,7 @@ export function navigateToTournamentsPortal(returnPath = '/'): void {
   if (isEbartexProductionHost()) {
     const refreshToken = localStorage.getItem(config.auth.refreshTokenKey);
     if (refreshToken) {
-      void fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-        credentials: 'same-origin',
-        keepalive: true,
-      }).catch(() => undefined);
+      await tokenManager.ensureFreshToken().catch(() => null);
     }
   }
 
