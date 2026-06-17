@@ -12,6 +12,7 @@ import {
   AuctionResultsGrid,
   AuctionViewToggle,
   MoneyWithSmallCents,
+  type AuctionTranslate,
 } from '@/components/feature/aste/auctions-browse-shared';
 import { useAuctionList, useDeleteAuction } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, type AuctionUI } from '@/lib/auction/auction-adapter';
@@ -38,7 +39,7 @@ function MyListingsStatusSwitch({
   onChange: (tab: MyListingsTab) => void;
   ongoingCount: number;
   endedCount: number;
-  t: (k: string) => string;
+  t: AuctionTranslate;
 }) {
   const tabs: { id: MyListingsTab; label: string; count: number }[] = [
     { id: 'ongoing', label: t('auctions.myListingsTabOngoing'), count: ongoingCount },
