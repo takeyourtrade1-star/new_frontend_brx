@@ -3,7 +3,16 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { PenLine, Paintbrush, Award, Sparkles, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  PenLine,
+  Paintbrush,
+  Award,
+  Sparkles,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const IMAGE_BASE = '/firmate-alterate-foil';
@@ -72,13 +81,7 @@ const TRAIT_LEGEND = [
   { key: 'altered' as const, icon: Paintbrush, label: 'Alterate' },
 ] as const;
 
-function TraitBadge({
-  icon: Icon,
-  label,
-}: {
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  label: string;
-}) {
+function TraitBadge({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
     <span className="inline-flex items-center text-[#FF7300]" title={label}>
       <Icon className="h-3 w-3" strokeWidth={1.75} aria-hidden />
