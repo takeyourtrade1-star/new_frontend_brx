@@ -155,6 +155,64 @@ export function ReceivedProposalDetail({
         </div>
       </div>
 
+      {/* Azioni in cima */}
+      {status === 'open' && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setStatus('accepted')}
+            className="rounded-full bg-emerald-600 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white transition hover:bg-emerald-700 active:scale-[0.98]"
+          >
+            Accetta
+          </button>
+          <button
+            type="button"
+            onClick={handleCounter}
+            className="rounded-full bg-[#FF7300] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800] active:scale-[0.98]"
+          >
+            Contro proposta
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatus('rejecting')}
+            className="rounded-full bg-white px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-600 ring-1 ring-inset ring-gray-300 transition hover:text-red-600 hover:ring-red-300 active:scale-[0.98]"
+          >
+            Rifiuta scambio
+          </button>
+        </div>
+      )}
+
+      {status === 'rejecting' && (
+        <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5">
+          <p className="text-xs font-bold text-red-700">Vuoi davvero rifiutare questa proposta?</p>
+          <label className="mt-1.5 flex items-center gap-2 text-[12px] text-gray-700">
+            <input
+              type="checkbox"
+              checked={blockFuture}
+              onChange={(e) => setBlockFuture(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-gray-300 text-[#FF7300] accent-[#FF7300]"
+            />
+            Rifiuta altre proposte di scambio da {proposal.fromUser.name} per 24h
+          </label>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setStatus('open')}
+              className="rounded-full bg-white px-3.5 py-1.5 text-[11px] font-bold text-gray-700 ring-1 ring-inset ring-gray-300 transition hover:bg-gray-50"
+            >
+              Annulla
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus('rejected')}
+              className="rounded-full bg-red-600 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white transition hover:bg-red-700 active:scale-[0.98]"
+            >
+              Conferma rifiuto
+            </button>
+          </div>
+        </div>
+      )}
+
       {proposal.message && (
         <p className="mb-3 rounded-lg border-l-2 border-[#FF7300] bg-orange-50/60 px-3 py-2 text-[13px] italic text-gray-600">
           “{proposal.message}”
@@ -213,64 +271,6 @@ export function ReceivedProposalDetail({
         </div>
       </section>
 
-      {/* Banner rifiuto */}
-      {status === 'rejecting' && (
-        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3.5">
-          <p className="text-sm font-bold text-red-700">Vuoi davvero rifiutare questa proposta?</p>
-          <label className="mt-2 flex items-center gap-2 text-[13px] text-gray-700">
-            <input
-              type="checkbox"
-              checked={blockFuture}
-              onChange={(e) => setBlockFuture(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-[#FF7300] accent-[#FF7300]"
-            />
-            Rifiuta altre proposte di scambio da {proposal.fromUser.name} per 24h
-          </label>
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setStatus('open')}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
-            >
-              Annulla
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatus('rejected')}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-red-700 active:scale-95"
-            >
-              Conferma rifiuto
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Azioni */}
-      {status === 'open' && (
-        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <button
-            type="button"
-            onClick={() => setStatus('accepted')}
-            className="rounded-lg bg-emerald-600 py-2.5 text-sm font-black uppercase tracking-wide text-white transition hover:bg-emerald-700 active:scale-95"
-          >
-            Accetta
-          </button>
-          <button
-            type="button"
-            onClick={handleCounter}
-            className="rounded-lg bg-[#FF7300] py-2.5 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#e86800] active:scale-95"
-          >
-            Contro proposta
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatus('rejecting')}
-            className="rounded-lg border border-gray-300 bg-white py-2.5 text-sm font-black uppercase tracking-wide text-gray-600 transition hover:border-red-300 hover:text-red-600 active:scale-95"
-          >
-            Rifiuta
-          </button>
-        </div>
-      )}
     </div>
   );
 }

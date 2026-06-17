@@ -380,18 +380,18 @@ export function AuctionBidPanel({
         />
       )}
 
-      <div className="rounded-2xl border border-black/5 bg-white/70 p-4 sm:p-5">
+      <div className="rounded-2xl border border-black/5 bg-white/70 p-3 sm:p-3.5">
         <div
-          className={`rounded-xl px-4 py-3 ${
+          className={`rounded-xl px-3 py-2 ${
             isWinning ? 'border border-emerald-400/80 bg-emerald-50/65' : 'border border-black/10 bg-white'
           }`}
         >
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-2">
             <div>
               <p className={`text-[10px] font-semibold uppercase tracking-wide ${isWinning ? 'text-emerald-700' : 'text-gray-500'}`}>
                 {t('auctions.currentBid')}
               </p>
-              <p className={`mt-1 text-3xl font-extrabold tracking-tight ${isWinning ? 'text-emerald-800' : 'text-gray-900'}`}>
+              <p className={`mt-0.5 text-2xl font-extrabold tracking-tight ${isWinning ? 'text-emerald-800' : 'text-gray-900'}`}>
                 {fmtEur(currentBidEur)}
               </p>
             </div>
@@ -403,7 +403,7 @@ export function AuctionBidPanel({
           </div>
         </div>
 
-        <p className={`mt-3 text-xs font-semibold ${reserveMet ? 'text-emerald-700' : 'text-amber-700'}`}>
+        <p className={`mt-2 text-xs font-semibold ${reserveMet ? 'text-emerald-700' : 'text-amber-700'}`}>
           {reserveMet ? t('auctions.detailReserveYes') : t('auctions.detailReserveNo')}
         </p>
 
@@ -411,7 +411,7 @@ export function AuctionBidPanel({
           <button
             type="button"
             onClick={onOpenMaxBid}
-            className={`mt-3 flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition ${
+            className={`mt-2 flex w-full items-center justify-between rounded-xl border px-3 py-1.5 text-left transition ${
               proxyBidOutbid
                 ? 'border-red-200 bg-red-50/80 text-red-800 hover:bg-red-50'
                 : 'border-[#FF7300]/20 bg-[#FF7300]/10 text-[#1D3160] hover:bg-[#FF7300]/15'
@@ -424,8 +424,8 @@ export function AuctionBidPanel({
           </button>
         )}
 
-        <div className="mt-4">
-          <p className="mb-2 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+        <div className="mt-3">
+          <p className="mb-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-600">
             {t('auctions.suggestedBids')}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -437,7 +437,7 @@ export function AuctionBidPanel({
                   setInput(String(amt).replace('.', ','));
                   setError(null);
                 }}
-                className="min-w-[84px] rounded-full border border-[#C8CED6] bg-white px-3 py-2 text-center text-xs font-bold text-gray-900 transition hover:border-[#AAB3BF] hover:bg-[#FAFBFC]"
+                className="min-w-[76px] rounded-full border border-[#C8CED6] bg-white px-2.5 py-1.5 text-center text-xs font-bold text-gray-900 transition hover:border-[#AAB3BF] hover:bg-[#FAFBFC]"
               >
                 {fmtEur(amt)}
               </button>
@@ -445,9 +445,9 @@ export function AuctionBidPanel({
           </div>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-3">
           <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-gray-600">
-            Importo personalizzato
+            {t('auctions.bidCustomAmountLabel')}
           </label>
           <input
             type="text"
@@ -455,7 +455,7 @@ export function AuctionBidPanel({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onBlur={normalizeInputOnBlur}
-            className="w-full rounded-md border border-[#DEE3EA] bg-[#F5F6F8] px-3 py-3 text-lg font-bold text-gray-900 placeholder:font-semibold placeholder:text-gray-500 focus:border-[#B7C0CB] focus:bg-[#F8F9FB] focus:outline-none focus:ring-0"
+            className="w-full rounded-md border border-[#DEE3EA] bg-[#F5F6F8] px-3 py-2 text-base font-bold text-gray-900 placeholder:font-semibold placeholder:text-gray-500 focus:border-[#B7C0CB] focus:bg-[#F8F9FB] focus:outline-none focus:ring-0"
             placeholder={minBidHint}
           />
         </div>
@@ -472,12 +472,12 @@ export function AuctionBidPanel({
           </p>
         )}
 
-        <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:items-stretch sm:gap-3">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-2.5">
           <button
             type="button"
             onClick={requestDirectBid}
             disabled={placeBidMutation.isPending}
-            className="inline-flex min-h-[44px] w-full flex-1 items-center justify-center rounded-lg border border-[#FF7300] bg-[#FF7300] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#e86800] hover:shadow disabled:pointer-events-none disabled:opacity-50 sm:min-h-0 sm:py-3"
+            className="inline-flex min-h-[40px] w-full flex-1 items-center justify-center rounded-lg border border-[#FF7300] bg-[#FF7300] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#e86800] hover:shadow disabled:pointer-events-none disabled:opacity-50 sm:min-h-0"
           >
             Fai offerta
           </button>
@@ -486,10 +486,29 @@ export function AuctionBidPanel({
             onClick={requestMaxBid}
             disabled={placeBidMutation.isPending}
             title="Imposta il tetto massimo: il sistema rilancia per te fino a quel importo"
-            className="inline-flex min-h-[44px] w-full flex-1 items-center justify-center rounded-lg border-2 border-[#FF7300] bg-white px-4 py-2.5 text-sm font-semibold text-[#FF7300] transition hover:bg-orange-50/90 disabled:pointer-events-none disabled:opacity-50 sm:min-h-0 sm:py-3"
+            className="inline-flex min-h-[40px] w-full flex-1 items-center justify-center rounded-lg border-2 border-[#FF7300] bg-white px-4 py-2 text-sm font-semibold text-[#FF7300] transition hover:bg-orange-50/90 disabled:pointer-events-none disabled:opacity-50 sm:min-h-0"
           >
             Offerta massima
           </button>
+          {buyNowEnabled && buyNowPrice != null && (
+            buyNowUrl ? (
+              <a
+                href={buyNowUrl}
+                className="inline-flex min-h-[40px] w-full flex-1 items-center justify-center rounded-lg border border-[#1D3160] bg-[#1D3160] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#15264b] sm:min-h-0"
+                title={`${t('auctions.buyNowButton')} · ${fmtEur(buyNowPrice)}`}
+              >
+                {t('auctions.buyNowButton')}
+              </a>
+            ) : (
+              <button
+                type="button"
+                title={`${t('auctions.buyNowButton')} · ${fmtEur(buyNowPrice)}`}
+                className="inline-flex min-h-[40px] w-full flex-1 items-center justify-center rounded-lg border border-[#1D3160] bg-[#1D3160] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#15264b] sm:min-h-0"
+              >
+                {t('auctions.buyNowButton')}
+              </button>
+            )
+          )}
         </div>
 
         <button
@@ -500,31 +519,6 @@ export function AuctionBidPanel({
           <HelpCircle className="h-3.5 w-3.5" />
           Come funziona un&apos;offerta max?
         </button>
-
-        {buyNowEnabled && buyNowPrice != null && (
-          <>
-            <div className="my-4 flex items-center gap-2">
-              <span className="h-px flex-1 bg-gray-200" />
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Oppure</span>
-              <span className="h-px flex-1 bg-gray-200" />
-            </div>
-            {buyNowUrl ? (
-              <a
-                href={buyNowUrl}
-                className="block w-full rounded-xl border border-[#1D3160] bg-[#1D3160] px-3 py-3 text-center text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#15264b]"
-              >
-                Acquista subito a {fmtEur(buyNowPrice)}
-              </a>
-            ) : (
-              <button
-                type="button"
-                className="w-full rounded-xl border border-[#1D3160] bg-[#1D3160] px-3 py-3 text-xs font-bold uppercase tracking-wide text-white"
-              >
-                Acquista subito a {fmtEur(buyNowPrice)}
-              </button>
-            )}
-          </>
-        )}
 
         {showMaxInfo && <MaxBidInfoOverlay onClose={() => setShowMaxInfo(false)} />}
       </div>

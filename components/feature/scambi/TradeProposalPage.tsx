@@ -18,7 +18,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Check, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, Check, Minus, Plus, Search } from 'lucide-react';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { formatEuroNoSpace } from '@/lib/utils';
 import { FlagIcon } from '@/components/ui/FlagIcon';
@@ -35,21 +35,57 @@ interface TradeCard {
   name: string;
   image: string;
   condition: string;
+  game: string;
   value: number;
 }
+
+interface InventoryFiltersState {
+  query: string;
+  game: string | null;
+  condition: string | null;
+}
+
+const GAME_LABELS: Record<string, string> = {
+  mtg: 'MTG',
+  pokemon: 'PKM',
+  op: 'OP',
+  ygo: 'YGO',
+  lorcana: 'LOR',
+};
 
 function formatEuro(n: number): string {
   return formatEuroNoSpace(n, 'it-IT');
 }
 
-function mockToTradeCard(item: { id: string; name: string; image: string; condition: string }): TradeCard {
+function mockToTradeCard(item: {
+  id: string;
+  name: string;
+  image: string;
+  condition: string;
+  game: string;
+}): TradeCard {
   return {
     id: item.id,
     name: item.name,
     image: item.image,
     condition: item.condition,
+    game: item.game,
     value: getMockCardValueEur(item.id),
   };
+}
+
+function filterTradeCards(cards: TradeCard[], filters: InventoryFiltersState): TradeCard[] {
+  const q = filters.query.trim().toLowerCase();
+  return cards.filter((card) => {
+    if (filters.game && card.game !== filters.game) return false;
+    if (filters.condition && card.condition !== filters.condition) return false;
+    if (q && !card.name.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function uniqueValues(cards: TradeCard[], key: 'game' | 'condition'): string[] {
+  return [...new Set(cards.map((c) => c[key]))].sort();
 }
 
 /* ------------------------------------------------------------------ */
@@ -87,6 +123,93 @@ function MoneyChip({ amount }: { amount: number }) {
     <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-lg border border-dashed border-[#FF7300]/50 bg-orange-50/60 py-2 sm:w-[4.5rem]">
       <span className="text-sm font-bold tabular-nums text-[#1D3160]">+{formatEuro(amount)}</span>
       <span className="text-[8px] font-semibold uppercase text-gray-500">crediti</span>
+    </div>
+  );
+}
+
+/** Ricerca e filtri compatti per una lista inventario. */
+function InventoryToolbar({
+  filters,
+  onChange,
+  cards,
+}: {
+  filters: InventoryFiltersState;
+  onChange: (next: InventoryFiltersState) => void;
+  cards: TradeCard[];
+}) {
+  const games = uniqueValues(cards, 'game');
+  const conditions = uniqueValues(cards, 'condition');
+  const showGameFilters = games.length > 1;
+  const showConditionFilters = conditions.length > 1;
+
+  const chipClass = (active: boolean) =>
+    `shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide transition ${
+      active
+        ? 'bg-[#1D3160] text-white'
+        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+    }`;
+
+  return (
+    <div className="mb-1.5 space-y-1">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400" />
+        <input
+          type="search"
+          value={filters.query}
+          onChange={(e) => onChange({ ...filters, query: e.target.value })}
+          placeholder="Cerca..."
+          className="h-7 w-full rounded-full border border-gray-200 bg-gray-50 pl-7 pr-2.5 text-[11px] text-gray-800 outline-none placeholder:text-gray-400 focus:border-[#FF7300]/50 focus:bg-white"
+        />
+      </div>
+      {(showGameFilters || showConditionFilters) && (
+        <div className="flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {showGameFilters && (
+            <>
+              <button
+                type="button"
+                onClick={() => onChange({ ...filters, game: null })}
+                className={chipClass(filters.game === null)}
+              >
+                Tutti
+              </button>
+              {games.map((game) => (
+                <button
+                  key={game}
+                  type="button"
+                  onClick={() => onChange({ ...filters, game })}
+                  className={chipClass(filters.game === game)}
+                >
+                  {GAME_LABELS[game] ?? game}
+                </button>
+              ))}
+            </>
+          )}
+          {showGameFilters && showConditionFilters && (
+            <span className="mx-0.5 shrink-0 self-center text-[9px] text-gray-300">|</span>
+          )}
+          {showConditionFilters && (
+            <>
+              <button
+                type="button"
+                onClick={() => onChange({ ...filters, condition: null })}
+                className={chipClass(filters.condition === null)}
+              >
+                Tutte
+              </button>
+              {conditions.map((condition) => (
+                <button
+                  key={condition}
+                  type="button"
+                  onClick={() => onChange({ ...filters, condition })}
+                  className={chipClass(filters.condition === condition)}
+                >
+                  {condition}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -190,6 +313,16 @@ export function TradeProposalPage() {
   const [reqMoney, setReqMoney] = useState(0); // Richiedi differenza → aumenta il richiesto
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [myFilters, setMyFilters] = useState<InventoryFiltersState>({
+    query: '',
+    game: null,
+    condition: null,
+  });
+  const [otherFilters, setOtherFilters] = useState<InventoryFiltersState>({
+    query: '',
+    game: null,
+    condition: null,
+  });
 
   useEffect(() => {
     setCtx(getTradeProposalContext());
@@ -198,6 +331,14 @@ export function TradeProposalPage() {
 
   const myInventory = useMemo(() => MOCK_INVENTORY_A.map(mockToTradeCard), []);
   const otherInventory = useMemo(() => MOCK_INVENTORY_B.map(mockToTradeCard), []);
+  const filteredMyInventory = useMemo(
+    () => filterTradeCards(myInventory, myFilters),
+    [myInventory, myFilters],
+  );
+  const filteredOtherInventory = useMemo(
+    () => filterTradeCards(otherInventory, otherFilters),
+    [otherInventory, otherFilters],
+  );
 
   const isCounter = ctx?.mode === 'counter';
 
@@ -410,38 +551,48 @@ export function TradeProposalPage() {
         {/* DUE LISTE */}
         <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
           <section className="rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm">
-            <div className="mb-2 flex items-center justify-between border-b border-gray-100 pb-1.5">
+            <div className="mb-1.5 flex items-center justify-between border-b border-gray-100 pb-1.5">
               <h2 className="text-[13px] font-bold uppercase tracking-tight text-[#1D3160]">Il tuo inventario</h2>
               <span className="text-[10px] font-medium text-gray-400">tocca per offrire</span>
             </div>
+            <InventoryToolbar filters={myFilters} onChange={setMyFilters} cards={myInventory} />
             <div className="flex max-h-[380px] flex-col gap-1.5 overflow-y-auto pr-1">
-              {myInventory.map((card) => (
-                <InventoryRow
-                  key={card.id}
-                  card={card}
-                  selected={selectedOfferedIds.includes(card.id)}
-                  onToggle={() => toggleOffered(card.id)}
-                />
-              ))}
+              {filteredMyInventory.length === 0 ? (
+                <p className="py-4 text-center text-[11px] text-gray-400">Nessuna carta trovata</p>
+              ) : (
+                filteredMyInventory.map((card) => (
+                  <InventoryRow
+                    key={card.id}
+                    card={card}
+                    selected={selectedOfferedIds.includes(card.id)}
+                    onToggle={() => toggleOffered(card.id)}
+                  />
+                ))
+              )}
             </div>
           </section>
 
           <section className="rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm">
-            <div className="mb-2 flex items-center justify-between border-b border-gray-100 pb-1.5">
+            <div className="mb-1.5 flex items-center justify-between border-b border-gray-100 pb-1.5">
               <h2 className="truncate text-[13px] font-bold uppercase tracking-tight text-[#1D3160]">
                 Inventario di {ctx.seller.name}
               </h2>
               <span className="shrink-0 text-[10px] font-medium text-gray-400">tocca per chiedere</span>
             </div>
+            <InventoryToolbar filters={otherFilters} onChange={setOtherFilters} cards={otherInventory} />
             <div className="flex max-h-[380px] flex-col gap-1.5 overflow-y-auto pr-1">
-              {otherInventory.map((card) => (
-                <InventoryRow
-                  key={card.id}
-                  card={card}
-                  selected={selectedRequestedIds.includes(card.id)}
-                  onToggle={() => toggleRequested(card.id)}
-                />
-              ))}
+              {filteredOtherInventory.length === 0 ? (
+                <p className="py-4 text-center text-[11px] text-gray-400">Nessuna carta trovata</p>
+              ) : (
+                filteredOtherInventory.map((card) => (
+                  <InventoryRow
+                    key={card.id}
+                    card={card}
+                    selected={selectedRequestedIds.includes(card.id)}
+                    onToggle={() => toggleRequested(card.id)}
+                  />
+                ))
+              )}
             </div>
           </section>
         </div>

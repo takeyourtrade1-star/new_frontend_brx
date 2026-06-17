@@ -132,10 +132,6 @@ function AsteHubToolbar({
         </button>
       </div>
 
-      {!compact && (
-        <p className="text-[11px] text-gray-500">{t('auctions.searchLangHint')}</p>
-      )}
-
       <div
         className={cn(
           'flex flex-wrap items-end gap-2 border-b border-gray-100 pb-2',
@@ -462,10 +458,6 @@ export function AsteHubPage() {
               className="mb-2 w-auto text-sm"
             />
 
-            <h2 className="mb-4 text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
-              {browseTab === 'ended' ? t('auctions.hubEndedTitle') : t('auctions.hubOngoingTitle')}
-            </h2>
-
             <AsteHubToolbar
               q={q}
               onQChange={setQ}
@@ -480,14 +472,19 @@ export function AsteHubPage() {
               t={t}
             />
 
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-medium text-gray-700">
-                {t('auctions.resultsCount', { count: displayed.length })}
-                {searchResolving && q.trim().length >= 2 && (
-                  <span className="ml-2 text-xs font-normal text-gray-400">…</span>
-                )}
-              </p>
-              <p className="text-xs text-gray-500">
+            <div className="mb-3 flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-2xl font-black tabular-nums leading-none text-[#1D3160] sm:text-3xl">
+                  {displayed.length}
+                  {searchResolving && q.trim().length >= 2 && (
+                    <span className="ml-1 text-base font-normal text-gray-400">…</span>
+                  )}
+                </p>
+                <h2 className="mt-1 text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
+                  {browseTab === 'ended' ? t('auctions.hubEndedTitle') : t('auctions.hubOngoingTitle')}
+                </h2>
+              </div>
+              <p className="shrink-0 pb-0.5 text-xs text-gray-500">
                 ({filtered.length}
                 {total > filtered.length ? ` / ${total}` : ''} totali)
               </p>

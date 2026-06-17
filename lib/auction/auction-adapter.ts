@@ -48,6 +48,7 @@ export interface AuctionUI {
   highestBidderId: string | null;
   startTime: string;
   condition: string;
+  cardLanguage: string | null;
   shippingPayer: 'buyer' | 'seller';
   shippingOriginCountry: string | null;
   shippingNationalEur: number | null;
@@ -118,6 +119,7 @@ export function apiToAuctionUI(
     highestBidderId: a.highest_bidder_id ?? null,
     startTime: a.start_time,
     condition: a.condition ?? '',
+    cardLanguage: a.card_language?.trim() || null,
     shippingPayer: a.shipping_payer === 'seller' ? 'seller' : 'buyer',
     shippingOriginCountry: a.shipping_origin_country ?? null,
     shippingNationalEur:

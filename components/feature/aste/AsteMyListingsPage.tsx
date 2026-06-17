@@ -21,8 +21,74 @@ import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { isAuctionEndedUI } from '@/lib/auction/auction-adapter';
 import { formatHMS } from '@/components/feature/aste/auctions-browse-shared';
 import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
+import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'mie';
+
+type MyListingsTab = 'ongoing' | 'ended';
+
+function MyListingsStatusSwitch({
+  value,
+  onChange,
+  ongoingCount,
+  endedCount,
+  t,
+}: {
+  value: MyListingsTab;
+  onChange: (tab: MyListingsTab) => void;
+  ongoingCount: number;
+  endedCount: number;
+  t: (k: string) => string;
+}) {
+  const tabs: { id: MyListingsTab; label: string; count: number }[] = [
+    { id: 'ongoing', label: t('auctions.myListingsTabOngoing'), count: ongoingCount },
+    { id: 'ended', label: t('auctions.myListingsTabEnded'), count: endedCount },
+  ];
+
+  return (
+    <div
+      role="tablist"
+      aria-label={t('auctions.myListingsStatusLabel')}
+      className="relative grid w-full max-w-[17rem] grid-cols-2 rounded-full border border-white/70 bg-white/55 p-1 shadow-[0_10px_28px_rgba(29,49,96,0.14)] backdrop-blur-xl backdrop-saturate-150 ring-1 ring-[#1D3160]/10 sm:max-w-xs"
+    >
+      <span
+        aria-hidden
+        className={cn(
+          'pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full transition-transform duration-300 ease-[cubic-bezier(0.34,1.2,0.64,1)]',
+          value === 'ongoing'
+            ? 'translate-x-0 bg-gradient-to-br from-[#FF7300] to-[#ff8f40] shadow-[0_4px_16px_rgba(255,115,0,0.38)]'
+            : 'translate-x-full bg-gradient-to-br from-[#1D3160] to-[#2a4480] shadow-[0_4px_16px_rgba(29,49,96,0.32)]',
+        )}
+      />
+      {tabs.map((tab) => {
+        const active = value === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(tab.id)}
+            className={cn(
+              'relative z-10 inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-2 text-[11px] font-bold uppercase tracking-wide transition-colors duration-300 sm:px-3',
+              active ? 'text-white' : 'text-[#1D3160]/70 hover:text-[#1D3160]',
+            )}
+          >
+            {tab.label}
+            <span
+              className={cn(
+                'rounded-full px-1.5 py-0.5 text-[9px] font-black tabular-nums',
+                active ? 'bg-white/25 text-white' : 'bg-[#1D3160]/8 text-[#1D3160]',
+              )}
+            >
+              {tab.count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function useNowTick(intervalMs = 1000): number {
   const [now, setNow] = useState(() => Date.now());
@@ -45,6 +111,7 @@ export function AsteMyListingsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteToast, setDeleteToast] = useState(false);
+  const [statusTab, setStatusTab] = useState<MyListingsTab>('ongoing');
 
   const mineBase: AuctionUI[] = useMemo(() => {
     if (!listData?.data || !userId) return [];
@@ -71,6 +138,23 @@ export function AsteMyListingsPage() {
       isCancelled = true;
     };
   }, [mineBase]);
+
+  const { ongoingAuctions, endedAuctions } = useMemo(() => {
+    const ongoing: AuctionUI[] = [];
+    const ended: AuctionUI[] = [];
+    for (const auction of mine) {
+      if (isAuctionEndedUI(auction)) {
+        ended.push(auction);
+      } else {
+        ongoing.push(auction);
+      }
+    }
+    return { ongoingAuctions: ongoing, endedAuctions: ended };
+  }, [mine]);
+
+  const visibleAuctions = statusTab === 'ongoing' ? ongoingAuctions : endedAuctions;
+  const emptyMessage =
+    statusTab === 'ongoing' ? t('auctions.emptyMyListingsOngoing') : t('auctions.emptyMyListingsEnded');
 
   const [viewMode, setViewMode] = useState<AsteViewMode>('grid');
 
@@ -159,23 +243,32 @@ export function AsteMyListingsPage() {
           </div>
         )}
 
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border border-gray-300 bg-white px-4 py-3">
-          <p className="text-sm text-gray-700">{t('auctions.resultsCount', { count: mine.length })}</p>
-          <AuctionViewToggle
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            listLabel={t('auctions.viewList')}
-            gridLabel={t('auctions.viewGrid')}
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <MyListingsStatusSwitch
+            value={statusTab}
+            onChange={setStatusTab}
+            ongoingCount={ongoingAuctions.length}
+            endedCount={endedAuctions.length}
+            t={t}
           />
+          <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+            <p className="text-sm text-gray-700">{t('auctions.resultsCount', { count: visibleAuctions.length })}</p>
+            <AuctionViewToggle
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              listLabel={t('auctions.viewList')}
+              gridLabel={t('auctions.viewGrid')}
+            />
+          </div>
         </div>
 
-        <div className="overflow-hidden border border-gray-300 bg-white">
-          {mine.length === 0 ? (
-            <div className="p-16 text-center text-gray-500">{t('auctions.emptyMyListings')}</div>
+        <div className="overflow-hidden rounded-2xl border border-white/60 bg-white/70 shadow-[0_8px_32px_rgba(29,49,96,0.08)] backdrop-blur-xl backdrop-saturate-150 ring-1 ring-[#1D3160]/5">
+          {visibleAuctions.length === 0 ? (
+            <div className="p-16 text-center text-gray-500">{emptyMessage}</div>
           ) : viewMode === 'grid' ? (
-            <MyAuctionGrid auctions={mine} now={now} t={t} confirmDeleteId={confirmDeleteId} onConfirmDelete={setConfirmDeleteId} onDelete={handleDelete} deletingId={deletingId} />
+            <MyAuctionGrid auctions={visibleAuctions} now={now} t={t} confirmDeleteId={confirmDeleteId} onConfirmDelete={setConfirmDeleteId} onDelete={handleDelete} deletingId={deletingId} />
           ) : (
-            <MyAuctionTable auctions={mine} now={now} t={t} confirmDeleteId={confirmDeleteId} onConfirmDelete={setConfirmDeleteId} onDelete={handleDelete} deletingId={deletingId} />
+            <MyAuctionTable auctions={visibleAuctions} now={now} t={t} confirmDeleteId={confirmDeleteId} onConfirmDelete={setConfirmDeleteId} onDelete={handleDelete} deletingId={deletingId} />
           )}
         </div>
       </div>

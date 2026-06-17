@@ -13,8 +13,16 @@ const HEADER_OFFSET = 80;
 const HOME_NAV_BUTTON_CLASS =
   'flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full border-2 border-gray-200 bg-white text-gray-600 transition-all duration-300 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)] active:scale-95';
 
+const HOME_NAV_BUTTON_COMPACT_CLASS =
+  'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/70 bg-white/75 text-gray-600 shadow-sm backdrop-blur-md transition-all duration-300 hover:border-[#FF7300]/50 hover:text-[#FF7300] active:scale-95';
+
+type AsteNavProps = {
+  variant?: 'default' | 'compact';
+};
+
 /** Glass bubble navigation - each item in its own floating bubble */
-export function AsteNav() {
+export function AsteNav({ variant = 'default' }: AsteNavProps) {
+  const compact = variant === 'compact';
   const { t } = useTranslation();
   const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
@@ -82,25 +90,40 @@ export function AsteNav() {
     // Non loggato: mostra solo pulsante "Crea asta" in glass bubble arancione chiaro
     return (
       <div className="sticky z-40" style={{ top: stickyTop }}>
-        <div className="container-content relative py-2 sm:py-3">
+        <div className={cn('container-content relative', compact ? 'py-0.5' : 'py-2 sm:py-3')}>
           <nav
             ref={navRef}
-            className="scrollbar-hide flex justify-center gap-2 sm:gap-3 overflow-x-auto px-4 py-1.5"
+            className={cn(
+              'scrollbar-hide flex justify-center overflow-x-auto px-3',
+              compact ? 'gap-1.5 py-0' : 'gap-2 sm:gap-3 py-1.5',
+            )}
             aria-label="Menu aste"
           >
             <Link
               href="/aste"
               aria-label={t('auctions.breadcrumbHome')}
-              className={HOME_NAV_BUTTON_CLASS}
+              className={compact ? HOME_NAV_BUTTON_COMPACT_CLASS : HOME_NAV_BUTTON_CLASS}
             >
-              <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" aria-hidden />
+              <Home className={cn('shrink-0', compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4')} aria-hidden />
             </Link>
             <Link
               href="/login?redirect=/aste/nuova"
-              className="group flex h-9 sm:h-12 shrink-0 items-center gap-1.5 sm:gap-2 rounded-full border-2 border-[#FF7300] bg-[#FFF4EC] px-3 sm:px-4 text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-[#FF7300] transition-all duration-300 hover:bg-[#FFF0E0] hover:shadow-[0_0_12px_rgba(255,115,0,0.3)] active:scale-95"
+              title={t('auctions.createAuction')}
+              className={cn(
+                'group flex shrink-0 items-center justify-center rounded-full font-semibold uppercase tracking-wide text-[#FF7300] transition-all duration-300 active:scale-95',
+                compact
+                  ? 'h-7 w-7 border border-[#FF7300]/35 bg-[#FFF4EC]/90 backdrop-blur-md hover:border-[#FF7300] hover:shadow-[0_0_8px_rgba(255,115,0,0.2)]'
+                  : 'h-9 sm:h-12 gap-1.5 sm:gap-2 border-2 border-[#FF7300] bg-[#FFF4EC] px-3 sm:px-4 text-[10px] sm:text-xs hover:bg-[#FFF0E0] hover:shadow-[0_0_12px_rgba(255,115,0,0.3)]',
+              )}
             >
-              <PlusCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform group-hover:rotate-90" aria-hidden />
-              <span className="whitespace-nowrap">{t('auctions.createAuction')}</span>
+              <PlusCircle
+                className={cn(
+                  'shrink-0 transition-transform group-hover:rotate-90',
+                  compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4',
+                )}
+                aria-hidden
+              />
+              {!compact && <span className="whitespace-nowrap">{t('auctions.createAuction')}</span>}
             </Link>
           </nav>
         </div>
@@ -124,20 +147,22 @@ export function AsteNav() {
 
   return (
     <div className="sticky z-40" style={{ top: stickyTop }}>
-      <div className="container-content relative py-2.5 sm:py-3.5">
+      <div className={cn('container-content relative', compact ? 'py-0.5' : 'py-2.5 sm:py-3.5')}>
         {/* Blur gradient sinistra */}
         <div
           className={cn(
-            'pointer-events-none absolute left-0 top-0 z-30 h-full w-16 bg-gradient-to-r from-white/70 via-white/40 to-transparent transition-opacity duration-300',
-            canScrollLeft ? 'opacity-100' : 'opacity-0'
+            'pointer-events-none absolute left-0 top-0 z-30 h-full bg-gradient-to-r from-white/70 via-white/40 to-transparent transition-opacity duration-300',
+            compact ? 'w-10' : 'w-16',
+            canScrollLeft ? 'opacity-100' : 'opacity-0',
           )}
           aria-hidden
         />
         {/* Blur gradient destra */}
         <div
           className={cn(
-            'pointer-events-none absolute right-0 top-0 z-30 h-full w-16 bg-gradient-to-l from-white/70 via-white/40 to-transparent transition-opacity duration-300',
-            canScrollRight ? 'opacity-100' : 'opacity-0'
+            'pointer-events-none absolute right-0 top-0 z-30 h-full bg-gradient-to-l from-white/70 via-white/40 to-transparent transition-opacity duration-300',
+            compact ? 'w-10' : 'w-16',
+            canScrollRight ? 'opacity-100' : 'opacity-0',
           )}
           aria-hidden
         />
@@ -146,47 +171,74 @@ export function AsteNav() {
         <button
           onClick={() => scroll('left')}
           className={cn(
-            'absolute left-2 sm:left-3 top-1/2 z-40 -translate-y-1/2 transition-all duration-300',
-            canScrollLeft ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none'
+            'absolute top-1/2 z-40 -translate-y-1/2 transition-all duration-300',
+            compact ? 'left-1' : 'left-2 sm:left-3',
+            canScrollLeft ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none',
           )}
           aria-label="Scorri a sinistra"
           type="button"
         >
-          <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 border-[#FF7300]/30 bg-white transition-all duration-300 hover:scale-110 hover:border-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.2)] active:scale-95">
-            <ChevronLeft className="h-3.5 w-3.5 sm:h-5 sm:w-5 text-gray-700" aria-hidden />
+          <div
+            className={cn(
+              'flex items-center justify-center rounded-full border-2 border-[#FF7300]/30 bg-white transition-all duration-300 hover:scale-110 hover:border-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.2)] active:scale-95',
+              compact ? 'h-6 w-6' : 'h-8 w-8 sm:h-10 sm:w-10',
+            )}
+          >
+            <ChevronLeft className={cn('text-gray-700', compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-5 sm:w-5')} aria-hidden />
           </div>
         </button>
 
         {/* Glass bubbles nav */}
         <nav
           ref={navRef}
-          className="scrollbar-hide flex items-center justify-center gap-2 sm:gap-3 overflow-x-auto px-4 py-1.5"
+          className={cn(
+            'scrollbar-hide flex items-center justify-center overflow-x-auto px-3',
+            compact ? 'gap-1.5 py-0' : 'gap-2 sm:gap-3 py-1.5',
+          )}
           aria-label="Menu aste"
         >
           {links.map(({ href, label, Icon, isPrimary, iconOnly }) => {
             const active = isActive(href);
+            const showIconOnly = iconOnly || compact;
             return (
               <Link
                 key={href}
                 href={href}
-                aria-label={iconOnly ? label : undefined}
-                aria-current={iconOnly && active ? 'page' : undefined}
+                aria-label={showIconOnly ? label : undefined}
+                title={showIconOnly ? label : undefined}
+                aria-current={showIconOnly && active ? 'page' : undefined}
                 className={cn(
-                  'group relative flex shrink-0 items-center rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-all duration-300',
-                  iconOnly
-                    ? HOME_NAV_BUTTON_CLASS
+                  'group relative flex shrink-0 items-center rounded-full font-semibold uppercase tracking-wide transition-all duration-300',
+                  showIconOnly
+                    ? compact
+                      ? cn(
+                          'h-7 w-7 justify-center border backdrop-blur-md',
+                          active
+                            ? 'border-[#FF7300]/60 bg-[#FFF4EC]/95 text-[#FF7300] shadow-[0_0_8px_rgba(255,115,0,0.18)]'
+                            : isPrimary
+                              ? 'border-[#FF7300]/30 bg-[#FFF4EC]/85 text-[#FF7300]/90 hover:border-[#FF7300]/50'
+                              : 'border-white/70 bg-white/75 text-gray-600 hover:border-[#FF7300]/40 hover:text-[#FF7300]',
+                        )
+                      : HOME_NAV_BUTTON_CLASS
                     : cn(
-                        'h-9 sm:h-12 justify-center sm:justify-start px-0 sm:px-4 w-9 sm:w-auto',
+                        'h-9 sm:h-12 justify-center sm:justify-start px-0 sm:px-4 w-9 sm:w-auto text-[10px] sm:text-xs',
                         active
                           ? 'border-2 border-[#FF7300] bg-[#FFF4EC] text-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.2)] scale-105'
                           : isPrimary
                             ? 'border-2 border-[#FF7300]/30 bg-[#FFF4EC] text-[#FF7300]/90 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_12px_rgba(255,115,0,0.2)] active:scale-95'
-                            : 'border-2 border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)] active:scale-95'
-                      )
+                            : 'border-2 border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)] active:scale-95',
+                      ),
                 )}
               >
-                <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-300', isPrimary && 'group-hover:rotate-90')} aria-hidden />
-                {!iconOnly && <span className="hidden sm:inline whitespace-nowrap sm:ml-1.5">{label}</span>}
+                <Icon
+                  className={cn(
+                    'shrink-0 transition-transform duration-300',
+                    compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4',
+                    isPrimary && 'group-hover:rotate-90',
+                  )}
+                  aria-hidden
+                />
+                {!showIconOnly && <span className="hidden sm:inline whitespace-nowrap sm:ml-1.5">{label}</span>}
               </Link>
             );
           })}
@@ -196,14 +248,20 @@ export function AsteNav() {
         <button
           onClick={() => scroll('right')}
           className={cn(
-            'absolute right-2 sm:right-3 top-1/2 z-40 -translate-y-1/2 transition-all duration-300',
-            canScrollRight ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2 pointer-events-none'
+            'absolute top-1/2 z-40 -translate-y-1/2 transition-all duration-300',
+            compact ? 'right-1' : 'right-2 sm:right-3',
+            canScrollRight ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2 pointer-events-none',
           )}
           aria-label="Scorri a destra"
           type="button"
         >
-          <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 border-[#FF7300]/30 bg-white transition-all duration-300 hover:scale-110 hover:border-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.2)] active:scale-95">
-            <ChevronRight className="h-3.5 w-3.5 sm:h-5 sm:w-5 text-gray-700" aria-hidden />
+          <div
+            className={cn(
+              'flex items-center justify-center rounded-full border-2 border-[#FF7300]/30 bg-white transition-all duration-300 hover:scale-110 hover:border-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.2)] active:scale-95',
+              compact ? 'h-6 w-6' : 'h-8 w-8 sm:h-10 sm:w-10',
+            )}
+          >
+            <ChevronRight className={cn('text-gray-700', compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-5 sm:w-5')} aria-hidden />
           </div>
         </button>
       </div>

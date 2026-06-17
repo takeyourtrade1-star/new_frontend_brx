@@ -32,6 +32,7 @@ export interface AuctionAPI {
   buy_now_price: number | null;
   buy_now_url: string | null;
   condition?: string | null;
+  card_language?: string | null;
   shipping_payer?: 'buyer' | 'seller';
   shipping_origin_country?: string | null;
   shipping_national_eur?: number | null;

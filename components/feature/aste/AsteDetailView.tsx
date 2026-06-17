@@ -4,10 +4,10 @@
  * Dettaglio asta — light mode (sfondo bianco) come Figma: card bianca, testi scuri, accenti arancioni.
  */
 
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Eye, Package, Shield, TrendingUp, Users, Bookmark, Crown, ArrowLeft, Trophy, Check, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, PlusCircle, CalendarPlus, Smartphone, Globe } from 'lucide-react';
+import { Eye, Package, Shield, TrendingUp, Users, Bookmark, Crown, ArrowLeft, Trophy, Check, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, PlusCircle, CalendarPlus, Smartphone, Globe, Info } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
@@ -19,6 +19,7 @@ import { AuctionQrButton } from '@/components/feature/aste/AuctionQrButton';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { LoginGateModal } from '@/components/feature/auth/LoginGateModal';
 import { auctionConditionLabelKey } from '@/lib/auction/auction-create-draft';
+import { getCardLanguageLabel } from '@/lib/card-languages';
 import { AUCTION_SHIPPING_REST_OF_WORLD_ISO, isEuShippingCountry } from '@/lib/auction/eu-shipping-regions';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import {
@@ -36,6 +37,7 @@ import { savedApi } from '@/lib/api/auction-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MascotteLoader } from '@/components/dev/MascotteLoader';
 import { enrichAuctionsWithPublicUsers, enrichBidRowsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
+import { cn } from '@/lib/utils';
 
 const PASTEL_GRADIENTS = [
   { gradient: 'from-rose-300/20 via-rose-200/10 to-transparent', border: 'border-rose-300/60', shadow: 'shadow-rose-200/30' },
@@ -142,6 +144,38 @@ function useNowTick(): number {
   return now;
 }
 
+function AntiSnipeInfoButton({
+  hint,
+  ariaLabel,
+  buttonClassName,
+}: {
+  hint: string;
+  ariaLabel: string;
+  buttonClassName?: string;
+}) {
+  return (
+    <span className="group/anti-snipe-info relative inline-flex shrink-0 align-middle">
+      <button
+        type="button"
+        className={cn(
+          'inline-flex h-4 w-4 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40',
+          buttonClassName ?? 'text-gray-400 hover:bg-gray-100 hover:text-[#1D3160]',
+        )}
+        aria-label={ariaLabel}
+        title={hint}
+      >
+        <Info className="h-3 w-3" aria-hidden />
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 hidden w-52 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-left text-[10px] font-medium leading-snug text-gray-700 shadow-lg group-hover/anti-snipe-info:block group-focus-within/anti-snipe-info:block"
+      >
+        {hint}
+      </span>
+    </span>
+  );
+}
+
 function SellerMetaRow({ country, rating, reviews }: { country: string; rating: number; reviews: number }) {
   const stars = Math.min(5, Math.max(0, Math.round((rating / 100) * 5)));
   return (
@@ -156,6 +190,79 @@ function SellerMetaRow({ country, rating, reviews }: { country: string; rating: 
         {rating}% · ({reviews})
       </span>
     </div>
+  );
+}
+
+function AuctionCollapsibleRow({
+  label,
+  expanded,
+  onToggle,
+  children,
+}: {
+  label: string;
+  expanded: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-200/80 bg-gray-50/80 px-3 py-2 text-left transition hover:border-gray-300 hover:bg-gray-50"
+        aria-expanded={expanded}
+      >
+        <span className="text-[11px] font-bold uppercase tracking-wide text-gray-600">{label}</span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+          aria-hidden
+        />
+      </button>
+      <div
+        className={`overflow-hidden transition-all duration-300 ${expanded ? 'max-h-[28rem] opacity-100' : 'max-h-0 opacity-0'}`}
+      >
+        <div className="px-1 pt-2">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function AuctionProductMeta({
+  conditionLabel,
+  languageLabel,
+  expansionName,
+  expansionHref,
+  t,
+}: {
+  conditionLabel: string;
+  languageLabel: string;
+  expansionName: string;
+  expansionHref: string | null;
+  t: (key: MessageKey) => string;
+}) {
+  const rows = [
+    { key: 'condition', label: t('auctions.detailCondition'), value: conditionLabel },
+    { key: 'language', label: t('auctions.detailLanguage'), value: languageLabel },
+    { key: 'expansion', label: t('auctions.detailExpansion'), value: expansionName, href: expansionHref },
+  ] as const;
+
+  return (
+    <dl className="mt-2 divide-y divide-gray-100/90 overflow-hidden rounded-xl border border-gray-100 bg-gray-50/60">
+      {rows.map((row) => (
+        <div key={row.key} className="flex items-center justify-between gap-3 px-3 py-1.5">
+          <dt className="text-[11px] font-medium text-gray-500">{row.label}</dt>
+          <dd className="min-w-0 text-right text-[13px] font-semibold text-gray-900">
+            {'href' in row && row.href && row.value !== '—' ? (
+              <Link href={row.href} className="truncate text-[#FF7300] transition hover:underline">
+                {row.value}
+              </Link>
+            ) : (
+              <span className="truncate">{row.value}</span>
+            )}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -248,13 +355,14 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   } | null>(null);
   const previousProxyBidOutbidRef = useRef(false);
   const [stickyTop, setStickyTop] = useState(HEADER_OFFSET);
-  const [asteNavHeight, setAsteNavHeight] = useState(56);
+  const [asteNavHeight, setAsteNavHeight] = useState(36);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const heroTitleRef = useRef<HTMLDivElement>(null);
   const asteNavRef = useRef<HTMLDivElement>(null);
   const [mobileSection, setMobileSection] = useState<string | null>('auction');
   const [bidsExpanded, setBidsExpanded] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [shippingExpanded, setShippingExpanded] = useState(false);
   const [calendarMenuOpen, setCalendarMenuOpen] = useState(false);
   const calendarMenuMobileRef = useRef<HTMLDivElement>(null);
   const calendarMenuDesktopRef = useRef<HTMLDivElement>(null);
@@ -288,7 +396,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       const headerHeight = header.getBoundingClientRect().height;
       const rawNavHeight = asteNavEl?.getBoundingClientRect().height ?? 56;
       // Keep a stable nav height for trigger math even when mobile nav is temporarily hidden.
-      const navHeight = rawNavHeight > 0 ? rawNavHeight : 56;
+      const navHeight = rawNavHeight > 0 ? rawNavHeight : 36;
       setStickyTop(headerHeight);
       setAsteNavHeight(navHeight);
     };
@@ -413,6 +521,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const hasThumbOverflow = detailImages.length > visibleThumbs;
   const maxThumbStart = Math.max(0, detailImages.length - visibleThumbs);
   const conditionLabel = detail?.condition ? t(auctionConditionLabelKey(detail.condition)) : '—';
+  const languageLabel = detail?.cardLanguage ? getCardLanguageLabel(detail.cardLanguage) : '—';
+  const expansionName = detail?.setName?.trim() || '—';
   const shippingInfo = detail
     ? resolveShippingCost(
         detail,
@@ -550,7 +660,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   if (isLoading || !detail) {
     return (
       <div className="min-h-screen bg-white">
-        <AsteNav />
+        <AsteNav variant="compact" />
         <div className="flex min-h-[40vh] items-center justify-center">
           <MascotteLoader size="md" />
         </div>
@@ -620,7 +730,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         ref={asteNavRef} 
         className={`transition-opacity duration-200 ${showStickyHeader ? 'max-lg:pointer-events-none max-lg:opacity-0' : ''}`}
       >
-        <AsteNav />
+        <AsteNav variant="compact" />
       </div>
 
       {floatingNotice && !isOwner && (
@@ -644,39 +754,25 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
       {/* Hero — Priorità al nome prodotto */}
       <section className="w-full border-b border-gray-200 bg-white">
-        <div className="container-content container-content-card-detail py-3 sm:py-4 lg:py-5">
+        <div className="container-content container-content-card-detail py-2 sm:py-2.5 lg:py-3">
           {/* Back link */}
           <Link
             href="/aste"
-            className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 transition hover:text-[#FF7300] sm:text-sm"
+            className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 transition hover:text-[#FF7300] sm:text-sm"
           >
             <ArrowLeft className="h-4 w-4" />
             {t('auctions.backToAuctions')}
           </Link>
 
           {/* Titolo prodotto + azioni */}
-          <div ref={heroTitleRef} className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
+          <div ref={heroTitleRef} className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex-1">
               {/* Riga Titolo + Azioni Compatte dentro una singola Pill */}
-              <div className="flex w-full items-center justify-between gap-3 rounded-[2rem] border border-gray-100/80 bg-gray-50/80 p-1.5 pl-4 shadow-sm backdrop-blur-sm sm:pl-5">
+              <div className="flex w-full items-center justify-between gap-2 rounded-[1.75rem] border border-gray-100/80 bg-gray-50/80 p-1 pl-3 shadow-sm backdrop-blur-sm sm:pl-4">
                 <div className="min-w-0 flex-1">
-                  <h1 className="break-words py-1 text-[20px] font-black uppercase leading-[1.1] tracking-tight text-gray-900 sm:text-[24px] md:text-[28px] lg:text-3xl">
+                  <h1 className="break-words py-0.5 text-[20px] font-black uppercase leading-[1.05] tracking-tight text-gray-900 sm:text-[22px] md:text-[26px] lg:text-[28px]">
                     {detail.title}
                   </h1>
-                  {detail.setName ? (
-                    <p className="mt-1 text-[11px] text-gray-600 sm:text-xs">
-                      <span className="font-semibold uppercase tracking-wide text-gray-500">
-                        {t('auctions.detailEdition')}:
-                      </span>{' '}
-                      {detail.setHref ? (
-                        <Link href={detail.setHref} className="font-bold text-[#FF7300] hover:underline">
-                          {detail.setName}
-                        </Link>
-                      ) : (
-                        <span className="font-bold text-gray-800">{detail.setName}</span>
-                      )}
-                    </p>
-                  ) : null}
                 </div>
 
                 {/* Salva per dopo + Condividi (Icon-only compatte a destra) */}
@@ -704,7 +800,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               </div>
 
               {/* Venditore / Meta & Stats */}
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
                 {isOwner ? (
                   <p className="inline-flex max-w-fit items-center rounded bg-[#FFF4EC] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#9a3412]">
                     {t('auctions.sellerBanner')}
@@ -791,16 +887,16 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         </div>
       </div>
 
-      <section className="w-full bg-white px-0 py-4 sm:px-6 sm:py-6 lg:px-8">
+      <section className="w-full bg-white px-0 py-2 sm:px-6 sm:py-3 lg:px-8 lg:py-4">
         <div className="container-content container-content-card-detail">
           {/* Blocco principale — glass effect container come Best Sellers */}
           <div className="overflow-hidden rounded-2xl border border-gray-200/60 bg-white/80 backdrop-blur-[1px] shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-            <div className="grid gap-6 p-4 sm:gap-8 sm:p-6 lg:grid-cols-12 lg:items-start lg:gap-7 lg:p-8">
+            <div className="grid gap-4 p-3 sm:gap-5 sm:p-4 lg:grid-cols-12 lg:items-start lg:gap-5 lg:p-5">
               {/* Galleria */}
-              <div className="order-1 flex h-full flex-col gap-5 lg:col-span-5 lg:self-start lg:pr-7 lg:border-r lg:border-black/10">
+              <div className="order-1 flex h-full flex-col gap-3 lg:col-span-5 lg:self-start lg:pr-5 lg:border-r lg:border-black/10">
                 {/* Mobile: Unified Price + Timer Card */}
                 <div className="lg:hidden">
-                  <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white via-white to-orange-50/40 p-4 shadow-sm">
+                  <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white via-white to-orange-50/40 p-3 shadow-sm">
                     {isEnded ? (
                       <div className="text-center">
                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
@@ -897,9 +993,13 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                               </p>
                             )}
                             {!isEnded && (
-                              <p className="mt-1.5 text-[10px] font-medium text-gray-500">
-                                <span className="font-semibold text-gray-600">{t('auctions.detailAntiSnipe')}:</span>{' '}
+                              <p className="mt-1.5 inline-flex flex-wrap items-center justify-end gap-1 text-[10px] font-medium text-gray-500">
+                                <span className="font-semibold text-gray-600">{t('auctions.detailAntiSnipe')}:</span>
                                 <span className="text-gray-700">{antiSnipeLabel}</span>
+                                <AntiSnipeInfoButton
+                                  hint={t('auctions.createAntiSniperHint')}
+                                  ariaLabel={t('auctions.detailAntiSnipeInfoAria')}
+                                />
                               </p>
                             )}
                           </div>
@@ -959,7 +1059,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                       </button>
                     ) : null}
                   </div>
-                  <div className="group relative min-h-[300px] flex-1 overflow-hidden rounded-2xl border border-transparent bg-white/0 shadow-none sm:min-h-[380px] lg:min-h-[420px]">
+                  <div className="group relative min-h-[240px] flex-1 overflow-hidden rounded-2xl border border-transparent bg-white/0 shadow-none sm:min-h-[300px] lg:min-h-[340px]">
                     <button
                       type="button"
                       onClick={() => setLightboxOpen(true)}
@@ -995,43 +1095,87 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     ) : null}
                   </div>
                 </div>
-                <div className="mt-1 flex flex-col items-center border-t border-gray-100 pt-3">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[#FF7300]/35 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-700 shadow-[0_10px_24px_rgba(255,115,0,0.12)] backdrop-blur-md backdrop-saturate-150 sm:gap-3">
-                    <span>{t('auctions.detailCondition')}: <span className="text-gray-900">{conditionLabel}</span></span>
-                    <span className="text-gray-300">|</span>
-                    <span>{t('auctions.detailFrom')}: <span className="text-[#1D3160]">{fmtEur(detail.startingBidEur)}</span></span>
-                  </div>
-                  <div className="mt-3 w-full max-w-xl px-1">
-                    <button
-                      type="button"
-                      onClick={() => setDescriptionExpanded((open) => !open)}
-                      className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-200/80 bg-gray-50/80 px-3 py-2 text-left transition hover:border-gray-300 hover:bg-gray-50"
-                      aria-expanded={descriptionExpanded}
-                    >
-                      <span className="text-[11px] font-bold uppercase tracking-wide text-gray-600">
-                        {t('auctions.detailDescription')}
-                      </span>
-                      <ChevronDown
-                        className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${descriptionExpanded ? 'rotate-180' : ''}`}
-                        aria-hidden
-                      />
-                    </button>
-                    <div
-                      className={`overflow-hidden transition-all duration-300 ${descriptionExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
-                    >
-                      <p className="px-1 pt-2 text-left text-sm leading-relaxed text-gray-600">
-                        {descriptionText}
-                      </p>
+                <AuctionProductMeta
+                  conditionLabel={conditionLabel}
+                  languageLabel={languageLabel}
+                  expansionName={expansionName}
+                  expansionHref={detail.setHref}
+                  t={t}
+                />
+                <div className="mt-2 w-full space-y-2 px-1">
+                  <AuctionCollapsibleRow
+                    label={t('auctions.detailDescription')}
+                    expanded={descriptionExpanded}
+                    onToggle={() => setDescriptionExpanded((open) => !open)}
+                  >
+                    <p className="text-left text-sm leading-relaxed text-gray-600">{descriptionText}</p>
+                  </AuctionCollapsibleRow>
+                  <AuctionCollapsibleRow
+                    label={t('auctions.detailShipping')}
+                    expanded={shippingExpanded}
+                    onToggle={() => setShippingExpanded((open) => !open)}
+                  >
+                    <p className="text-sm font-semibold text-gray-900">
+                      {shippingInfo.included ? 'Spedizione inclusa' : shippingInfo.label}
+                    </p>
+                    {!shippingInfo.included ? (
+                      <p className="mt-1 text-xs text-gray-500">Tariffe per area di consegna</p>
+                    ) : null}
+                    <div className="mt-2 space-y-1.5">
+                      {detail.shippingOriginCountry ? (
+                        <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            <FlagIcon country={detail.shippingOriginCountry} size="sm" />
+                            <span className="font-medium text-gray-600">Nazionale</span>
+                          </div>
+                          <span className="font-semibold text-gray-900">
+                            {detail.shippingNationalEur != null ? fmtEur(detail.shippingNationalEur) : '—'}
+                          </span>
+                        </div>
+                      ) : null}
+                      <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs">
+                        <span className="font-medium text-gray-600">Resto Europa (default)</span>
+                        <span className="font-semibold text-gray-900">
+                          {detail.shippingEuDefaultEur != null ? fmtEur(detail.shippingEuDefaultEur) : '—'}
+                        </span>
+                      </div>
+                      {restOfWorldPriceRow ? (
+                        <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-3.5 w-3.5 text-gray-500" aria-hidden />
+                            <span className="font-medium text-gray-600">Resto del mondo</span>
+                          </div>
+                          <span className="font-semibold text-gray-900">{fmtEur(restOfWorldPriceRow.price_eur)}</span>
+                        </div>
+                      ) : null}
+                      {shippingCountryRows.length > 0 ? (
+                        <div className="rounded-lg border border-gray-200 bg-white px-2.5 py-2">
+                          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                            Tariffe specifiche per paese
+                          </p>
+                          <div className="space-y-1.5">
+                            {shippingCountryRows.map((row) => (
+                              <div key={row.country_iso} className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2">
+                                  <FlagIcon country={row.country_iso} size="sm" />
+                                  <span className="font-medium text-gray-600">{row.country_iso}</span>
+                                </div>
+                                <span className="font-semibold text-gray-900">{fmtEur(row.price_eur)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
-                  </div>
+                  </AuctionCollapsibleRow>
                 </div>
               </div>
 
               {/* Info centrale */}
-              <div className="order-3 flex h-full flex-col gap-5 lg:col-span-4 lg:order-2 lg:self-start lg:pl-7">
+              <div className="order-3 flex h-full flex-col gap-3 lg:col-span-4 lg:order-2 lg:self-start lg:pl-5">
                 {/* Desktop details list — invariato */}
                 <div className="hidden divide-y divide-black/5 rounded-xl border border-transparent bg-white/0 lg:block">
-                  <div className="px-4 py-3 text-sm">
+                  <div className="px-3 py-2 text-sm">
                     <span className="text-gray-500">{t('auctions.detailEnds')}: </span>
                     <span className="font-semibold text-gray-900">
                       {new Date(endsAt).toLocaleString('it-IT', {
@@ -1044,7 +1188,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     </span>
                   </div>
                   {isOwner ? (
-                    <div className="space-y-2 px-4 py-3 text-sm">
+                    <div className="space-y-1.5 px-3 py-2 text-sm">
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
                         <span className="text-gray-500">{t('auctions.sellerReserveLabel')}</span>
                         <span className="text-lg font-bold text-gray-900">{fmtEur(detail.reservePriceEur)}</span>
@@ -1063,7 +1207,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     <button
                       type="button"
                       onClick={() => setMobileSection(mobileSection === 'auction' ? null : 'auction')}
-                      className="flex w-full items-center justify-between px-4 py-3 text-left"
+                      className="flex w-full items-center justify-between px-3 py-2 text-left"
                     >
                       <span className="text-xs font-bold uppercase tracking-wide text-gray-700">
                         {t('auctions.detailEnds').split(':')[0] || 'Dettagli Asta'}
@@ -1227,10 +1371,10 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               </div>
 
               {/* Timer + cronologia */}
-              <div className="order-2 flex h-full flex-col gap-5 lg:col-span-3 lg:order-3 lg:self-start">
+              <div className="order-2 flex h-full flex-col gap-3 lg:col-span-3 lg:order-3 lg:self-start">
                 {/* Note: Stats views/watching moved to hero section */}
                 {/* Timer Glass Arancio (No Shiny) */}
-                <div className="hidden relative flex-col items-center justify-center rounded-2xl border border-[#FF7300]/30 bg-[#FF7300]/10 p-4 px-6 xl:p-6 xl:px-8 backdrop-blur-md shadow-[0_8px_32px_rgba(255,115,0,0.12)] lg:flex overflow-visible min-w-0 w-full">
+                <div className="hidden relative flex-col items-center justify-center rounded-2xl border border-[#FF7300]/30 bg-[#FF7300]/10 p-3 px-4 xl:p-4 xl:px-5 backdrop-blur-md shadow-[0_8px_32px_rgba(255,115,0,0.12)] lg:flex overflow-visible min-w-0 w-full">
                   {/* Subtle inner highlight to enhance the glass effect */}
                   <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
 
@@ -1309,7 +1453,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         </div>
                       </div>
                       <p
-                        className="mt-3 flex items-baseline justify-center gap-1.5 font-mono text-3xl font-bold tabular-nums tracking-tight text-[#9A3412] leading-none xl:text-4xl 3xl:text-5xl"
+                        className="mt-2 flex items-baseline justify-center gap-1.5 font-mono text-2xl font-bold tabular-nums tracking-tight text-[#9A3412] leading-none xl:text-3xl"
                         suppressHydrationWarning
                       >
                         {formatAuctionCountdown(msLeft)}
@@ -1319,9 +1463,14 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                           </span>
                         )}
                       </p>
-                      <p className="mt-3 text-[11px] font-semibold text-orange-900/75">
-                        <span className="uppercase tracking-wide text-orange-800/60">{t('auctions.detailAntiSnipe')}:</span>{' '}
-                        {antiSnipeLabel}
+                      <p className="mt-2 inline-flex flex-wrap items-center justify-center gap-1 text-[11px] font-semibold text-orange-900/75">
+                        <span className="uppercase tracking-wide text-orange-800/60">{t('auctions.detailAntiSnipe')}:</span>
+                        <span>{antiSnipeLabel}</span>
+                        <AntiSnipeInfoButton
+                          hint={t('auctions.createAntiSniperHint')}
+                          ariaLabel={t('auctions.detailAntiSnipeInfoAria')}
+                          buttonClassName="text-orange-700/55 hover:bg-orange-100/80 hover:text-orange-900"
+                        />
                       </p>
                     </div>
                   )}
@@ -1329,7 +1478,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
                 {/* Ultime Offerte — Design Premium Slider */}
                 <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-gray-100 bg-gray-50/50 px-3 py-2.5 sm:px-4 xl:px-5">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-gray-100 bg-gray-50/50 px-3 py-2 sm:px-3.5">
                     <h3 className="min-w-0 flex-1 text-[10px] font-black uppercase leading-snug tracking-[0.08em] text-gray-900 sm:text-[11px] sm:tracking-[0.1em]">
                       {isOwner ? t('auctions.sellerBidHistoryTitle') : t('auctions.detailBidHistory')}
                     </h3>
@@ -1338,9 +1487,9 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     </span>
                   </div>
 
-                  <div className={`overflow-y-auto py-1 ${bidRows.length === 0 ? 'min-h-[4.5rem]' : 'max-h-72'}`}>
+                  <div className={`overflow-y-auto py-0.5 ${bidRows.length === 0 ? 'min-h-[3rem]' : 'max-h-60'}`}>
                     {bidRows.length === 0 && (
-                      <p className="px-4 py-3 text-center text-xs text-gray-400 xl:px-5">
+                      <p className="px-3 py-2 text-center text-xs text-gray-400">
                         Nessuna offerta ancora.
                       </p>
                     )}
@@ -1369,7 +1518,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                           <div
                             key={b.bidId}
                             style={{ animationDelay }}
-                            className={`group flex items-center justify-between px-4 py-2.5 transition-all duration-300 hover:bg-gray-50 animate-[fadeInUp_0.4s_ease-out_both] xl:px-6 xl:py-3.5 ${i !== visibleBids.length - 1 ? 'border-b border-gray-50' : ''} ${isMine ? 'border-l-4 border-l-[#FF7300] bg-orange-50/60' : 'border-l-4 border-l-transparent hover:border-l-gray-300'}`}
+                            className={`group flex items-center justify-between px-3 py-2 transition-all duration-300 hover:bg-gray-50 animate-[fadeInUp_0.4s_ease-out_both] xl:px-4 xl:py-2.5 ${i !== visibleBids.length - 1 ? 'border-b border-gray-50' : ''} ${isMine ? 'border-l-4 border-l-[#FF7300] bg-orange-50/60' : 'border-l-4 border-l-transparent hover:border-l-gray-300'}`}
                           >
                             <div className="flex items-center gap-3 min-w-0 transition-transform duration-300 group-hover:translate-x-1">
                               <div className="shrink-0 overflow-hidden rounded-sm ring-1 ring-black/5">
@@ -1412,65 +1561,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                 </div>
               </div>
             </div>
-
-            <section className="mt-8 rounded-3xl border border-black/10 bg-white px-5 py-6 shadow-[0_8px_28px_rgba(0,0,0,0.06)] sm:mt-10 sm:px-7 sm:py-7 lg:px-9 lg:py-8">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6E6E73]">Spedizione</p>
-                <h3 className="mt-1 text-[24px] font-semibold tracking-tight text-[#1D1D1F] sm:text-[28px]">
-                  {shippingInfo.included ? 'Spedizione inclusa' : 'Spedizione'}
-                </h3>
-                <p className="mt-2 text-[13px] text-[#6E6E73] sm:text-[14px]">{shippingInfo.label}</p>
-
-                <div className="mt-5 space-y-2.5">
-                    {detail.shippingOriginCountry ? (
-                      <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-[#F7F7F8] px-3.5 py-3 text-[13px]">
-                        <div className="flex items-center gap-2.5">
-                          <FlagIcon country={detail.shippingOriginCountry} size="sm" />
-                          <span className="font-medium text-[#424245]">Nazionale</span>
-                        </div>
-                        <span className="font-semibold text-[#1D1D1F]">
-                          {detail.shippingNationalEur != null ? fmtEur(detail.shippingNationalEur) : '—'}
-                        </span>
-                      </div>
-                    ) : null}
-                    <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-[#F7F7F8] px-3.5 py-3 text-[13px]">
-                      <span className="font-medium text-[#424245]">Resto Europa (default)</span>
-                      <span className="font-semibold text-[#1D1D1F]">
-                        {detail.shippingEuDefaultEur != null ? fmtEur(detail.shippingEuDefaultEur) : '—'}
-                      </span>
-                    </div>
-
-                    {restOfWorldPriceRow ? (
-                      <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-[#F7F7F8] px-3.5 py-3 text-[13px]">
-                        <div className="flex items-center gap-2.5">
-                          <Globe className="h-4 w-4 text-[#424245]" aria-hidden />
-                          <span className="font-medium text-[#424245]">Resto del mondo</span>
-                        </div>
-                        <span className="font-semibold text-[#1D1D1F]">{fmtEur(restOfWorldPriceRow.price_eur)}</span>
-                      </div>
-                    ) : null}
-
-                    {shippingCountryRows.length > 0 ? (
-                      <div className="rounded-2xl border border-black/10 bg-white px-3.5 py-3">
-                        <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#6E6E73]">
-                          Tariffe specifiche per paese
-                        </p>
-                        <div className="space-y-2">
-                          {shippingCountryRows.map((row) => (
-                            <div key={row.country_iso} className="flex items-center justify-between text-[13px]">
-                              <div className="flex items-center gap-2.5">
-                                <FlagIcon country={row.country_iso} size="sm" />
-                                <span className="font-medium text-[#424245]">{row.country_iso}</span>
-                              </div>
-                              <span className="font-semibold text-[#1D1D1F]">{fmtEur(row.price_eur)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-                </div>
-              </div>
-            </section>
           </div>
 
           {/* Oggetti simili — carousel mobile, grid desktop */}
