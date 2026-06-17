@@ -7,7 +7,6 @@ import {
   Search,
   HandCoins,
   PackageCheck,
-  ArrowLeftRight,
   MessageSquare,
   ShieldCheck,
   Repeat,
@@ -18,6 +17,7 @@ import {
   ArrowRight,
   type LucideIcon,
 } from 'lucide-react';
+import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { motion, type Variants } from 'framer-motion';
 import {
   cardHover,
@@ -154,7 +154,7 @@ const SECTIONS: PlatformSectionConfig[] = [
       'Completa il binder, muovi doppioni o ottieni la carta mancante senza passare dal contante: scambi peer-to-peer con regole chiare.',
     steps: [
       {
-        icon: ArrowLeftRight,
+        icon: ScambiIcon,
         title: 'Proponi uno scambio',
         description:
           'Seleziona le carte che offri e quelle che cerchi. Pubblica la proposta o rispondi a quelle degli altri.',

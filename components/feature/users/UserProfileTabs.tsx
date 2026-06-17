@@ -1,6 +1,7 @@
 'use client';
 
-import { Archive, ArrowLeftRight, Gavel, Heart, MessageSquare } from 'lucide-react';
+import { Archive, Gavel, Heart, MessageSquare } from 'lucide-react';
+import { ScambiIcon } from '@/components/ui/ScambiIcon';
 
 import { UserProfileAuctionsPanel } from '@/components/feature/users/UserProfileAuctionsPanel';
 import { UserProfileCollectionPanel } from '@/components/feature/users/UserProfileCollectionPanel';
@@ -15,7 +16,7 @@ const TABS: {
 }[] = [
   { id: 'collezione', label: 'Collezione', icon: Archive, implemented: true },
   { id: 'aste', label: 'Aste', icon: Gavel, implemented: true },
-  { id: 'scambi', label: 'Scambi', icon: ArrowLeftRight, implemented: false },
+  { id: 'scambi', label: 'Scambi', icon: ScambiIcon, implemented: false },
   { id: 'recensioni', label: 'Recensioni', icon: MessageSquare, implemented: false },
   { id: 'wishlist', label: 'Wishlist', icon: Heart, implemented: false },
 ];

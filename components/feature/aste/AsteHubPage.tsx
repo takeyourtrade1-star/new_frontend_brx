@@ -1,16 +1,15 @@
 'use client';
 
 /**
- * Homepage aste — hero, ricerca, filtri, lista/griglia come SearchResults (Meilisearch).
+ * Homepage aste — hero, ricerca, filtri, lista/griglia.
  */
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { PlusCircle, Search, List, Users, Truck, ChevronDown, ChevronUp, X, LucideIcon, Filter, SlidersHorizontal } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { getStoredAsteViewMode, setStoredAsteViewMode, type AsteViewMode } from '@/lib/auction/aste-view-storage';
@@ -19,19 +18,39 @@ import {
   AuctionResultsGrid,
   AuctionViewToggle,
   formatHMS,
-  type EnrichedAuction,
 } from '@/components/feature/aste/auctions-browse-shared';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { MascotteLoader } from '@/components/dev/MascotteLoader';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
-import { apiToAuctionUI, isAuctionEndedUI, isEndingSoonUI, type AuctionGame, type AuctionUI } from '@/lib/auction/auction-adapter';
+import {
+  apiToAuctionUI,
+  isAuctionEndedUI,
+  isEndingSoonUI,
+  isEndingWithin24h,
+  type AuctionUI,
+} from '@/lib/auction/auction-adapter';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
-import { Pagination } from '@/components/ui/Pagination';
+import { CustomSelect } from '@/components/ui/CustomSelect';
+import {
+  auctionMatchesSearchTerms,
+  resolveAuctionSearchQuery,
+} from '@/lib/auction/resolve-auction-search-query';
+import type { MessageKey } from '@/lib/i18n/messages/en';
 
-type SortMode = 'ending' | 'new' | 'bid';
+type BrowseTab = 'ending_soon' | 'recent' | 'ended';
 
 const VIEW_STORAGE_KEY = 'hub';
+const BATCH_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 300;
+
+const BROWSE_TABS: BrowseTab[] = ['ending_soon', 'recent', 'ended'];
+
+const BROWSE_TAB_KEYS: Record<BrowseTab, MessageKey> = {
+  ending_soon: 'auctions.browseEndingSoon',
+  recent: 'auctions.browseRecent',
+  ended: 'auctions.browseEnded',
+};
 
 function useNowTick(intervalMs = 1000): number {
   const [now, setNow] = useState(() => Date.now());
@@ -42,23 +61,227 @@ function useNowTick(intervalMs = 1000): number {
   return now;
 }
 
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(id);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+type AsteHubToolbarProps = {
+  q: string;
+  onQChange: (value: string) => void;
+  filterPriceMax: string;
+  onFilterPriceMaxChange: (value: string) => void;
+  filterMinBids: string;
+  onFilterMinBidsChange: (value: string) => void;
+  browseTab: BrowseTab;
+  onBrowseTabChange: (tab: BrowseTab) => void;
+  viewMode: AsteViewMode;
+  onViewModeChange: (mode: AsteViewMode) => void;
+  compact?: boolean;
+  t: (key: MessageKey) => string;
+};
+
+function AsteHubToolbar({
+  q,
+  onQChange,
+  filterPriceMax,
+  onFilterPriceMaxChange,
+  filterMinBids,
+  onFilterMinBidsChange,
+  browseTab,
+  onBrowseTabChange,
+  viewMode,
+  onViewModeChange,
+  compact = false,
+  t,
+}: AsteHubToolbarProps) {
+  return (
+    <div className={cn('space-y-2', compact ? 'space-y-1.5' : 'mb-6')}>
+      <div className="flex w-full min-w-0 items-center overflow-hidden rounded-full bg-gray-100 px-2 py-1.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2 px-3">
+          <Search className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
+          <input
+            id={compact ? 'aste-hub-search-sticky' : 'aste-hub-search'}
+            type="search"
+            value={q}
+            onChange={(e) => onQChange(e.target.value)}
+            placeholder={t('auctions.searchPlaceholder')}
+            className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none"
+            aria-label={t('auctions.searchPlaceholder')}
+          />
+          {q && (
+            <button
+              type="button"
+              onClick={() => onQChange('')}
+              className="text-gray-400 transition-colors hover:text-gray-600 focus:outline-none"
+              aria-label="Cancella ricerca"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          className="btn-orange-glow shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs sm:px-4 sm:text-sm"
+        >
+          {t('auctions.searchLabel')}
+        </button>
+      </div>
+
+      {!compact && (
+        <p className="text-[11px] text-gray-500">{t('auctions.searchLangHint')}</p>
+      )}
+
+      <div
+        className={cn(
+          'flex flex-wrap items-end gap-2 border-b border-gray-100 pb-2',
+          compact && 'border-0 pb-0 pt-1'
+        )}
+      >
+        {!compact && (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+              {t('auctions.filterGame')}
+            </span>
+            <CustomSelect
+              options={[{ value: 'mtg', label: t('auctions.gameMtg') }]}
+              value="mtg"
+              onChange={() => {}}
+              disabled
+              className="min-w-[7rem] [&_button]:rounded-lg [&_button]:border-gray-200 [&_button]:bg-gray-50 [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs [&_button]:text-gray-600"
+            />
+          </div>
+        )}
+
+        {!compact && (
+          <>
+            <label className="flex flex-col gap-0.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                {t('auctions.filterPriceMax')}
+              </span>
+              <input
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="€ max"
+                value={filterPriceMax}
+                onChange={(e) => onFilterPriceMaxChange(e.target.value)}
+                className="w-[5.5rem] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-[#FF7300]/40 focus:outline-none focus:ring-1 focus:ring-[#FF7300]/25"
+              />
+            </label>
+            <label className="flex flex-col gap-0.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                {t('auctions.filterMinBids')}
+              </span>
+              <input
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="Min"
+                value={filterMinBids}
+                onChange={(e) => onFilterMinBidsChange(e.target.value)}
+                className="w-[4.5rem] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-[#FF7300]/40 focus:outline-none focus:ring-1 focus:ring-[#FF7300]/25"
+              />
+            </label>
+          </>
+        )}
+
+        <div
+          className={cn('flex flex-wrap items-center gap-1', !compact && 'ml-auto')}
+          role="tablist"
+          aria-label={t('auctions.browseTabListLabel')}
+        >
+          {BROWSE_TABS.map((tab) => {
+            const active = browseTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => onBrowseTabChange(tab)}
+                className={cn(
+                  'inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors sm:px-3 sm:text-[11px]',
+                  active
+                    ? 'border-[#FF7300]/40 bg-[#FF7300]/85 text-white shadow-sm'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-[#FF7300]/30 hover:text-gray-900'
+                )}
+              >
+                {t(BROWSE_TAB_KEYS[tab])}
+              </button>
+            );
+          })}
+        </div>
+
+        {!compact && (
+          <AuctionViewToggle
+            viewMode={viewMode}
+            onViewModeChange={onViewModeChange}
+            listLabel={t('auctions.viewList')}
+            gridLabel={t('auctions.viewGrid')}
+            variant="compact"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function AsteHubPage() {
   const { t } = useTranslation();
+  const { selectedLang } = useLanguage();
   const now = useNowTick();
-  const PAGE_SIZE = 25;
-  const [page, setPage] = useState(1);
-  const [viewMode, setViewMode] = useState<AsteViewMode>('grid');
-  const [sort, setSort] = useState<SortMode>('ending');
-  const [q, setQ] = useState('');
-  const [filterGame, setFilterGame] = useState<'all' | AuctionGame>('all');
-  const [filterPriceMax, setFilterPriceMax] = useState('');
-  const [filterEndingOnly, setFilterEndingOnly] = useState(false);
-  const [filterMinBids, setFilterMinBids] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
 
-  const offset = (page - 1) * PAGE_SIZE;
-  const { data: listData, isLoading, error } = useAuctionList(
-    { limit: PAGE_SIZE, offset },
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const [apiBatchCount, setApiBatchCount] = useState(1);
+  const [viewMode, setViewMode] = useState<AsteViewMode>('list');
+  const [browseTab, setBrowseTab] = useState<BrowseTab>('ending_soon');
+  const [q, setQ] = useState('');
+  const debouncedQ = useDebouncedValue(q, SEARCH_DEBOUNCE_MS);
+  const [filterPriceMax, setFilterPriceMax] = useState('');
+  const [filterMinBids, setFilterMinBids] = useState('');
+  const [searchMatchTerms, setSearchMatchTerms] = useState<string[]>([]);
+  const [resolvedApiQ, setResolvedApiQ] = useState<string | undefined>(undefined);
+  const [searchResolving, setSearchResolving] = useState(false);
+
+  const apiStatus = browseTab === 'ended' ? 'CLOSED' : 'ACTIVE';
+  const apiLimit = apiBatchCount * BATCH_SIZE;
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      const trimmed = debouncedQ.trim();
+      if (trimmed.length < 2) {
+        setResolvedApiQ(undefined);
+        setSearchMatchTerms([]);
+        setSearchResolving(false);
+        return;
+      }
+      setSearchResolving(true);
+      const resolved = await resolveAuctionSearchQuery(trimmed, selectedLang);
+      if (!cancelled) {
+        setResolvedApiQ(resolved.apiQ);
+        setSearchMatchTerms(resolved.matchTerms);
+        setSearchResolving(false);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedQ, selectedLang]);
+
+  const { data: listData, isLoading, isFetching } = useAuctionList(
+    {
+      q: resolvedApiQ,
+      status: apiStatus,
+      limit: apiLimit,
+      offset: 0,
+    },
     {
       staleTime: 5_000,
       refetchInterval: 10_000,
@@ -67,19 +290,23 @@ export function AsteHubPage() {
       refetchOnMount: 'always',
     }
   );
+
   const baseAuctions: AuctionUI[] = useMemo(
     () => (listData?.data ?? []).map((a) => apiToAuctionUI(a)),
     [listData]
   );
   const [enriched, setEnriched] = useState<AuctionUI[]>([]);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const [showStickyBar, setShowStickyBar] = useState(false);
+
   const breadcrumbItems: AppBreadcrumbItem[] = [
     { href: '/', label: t('auctions.breadcrumbHome'), isCurrent: false },
     { label: t('pages.auctions.title'), isCurrent: true },
   ];
+
   useEffect(() => {
-    setPage(1);
-  }, [q, filterGame, filterPriceMax, filterEndingOnly, filterMinBids, sort]);
+    setVisibleCount(BATCH_SIZE);
+    setApiBatchCount(1);
+  }, [q, filterPriceMax, filterMinBids, browseTab, resolvedApiQ]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -99,33 +326,25 @@ export function AsteHubPage() {
     };
   }, [baseAuctions]);
 
-  // Sticky bottom bar states
-  const [showStickyBar, setShowStickyBar] = useState(false);
-  const [bottomBarExpanded, setBottomBarExpanded] = useState(false);
-
   useEffect(() => {
-    setViewMode(getStoredAsteViewMode(VIEW_STORAGE_KEY));
+    setViewMode(getStoredAsteViewMode(VIEW_STORAGE_KEY, 'list'));
   }, []);
 
   useEffect(() => {
     setStoredAsteViewMode(VIEW_STORAGE_KEY, viewMode);
   }, [viewMode]);
 
-  // Detect scroll to show sticky bar
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY || document.documentElement.scrollTop;
       const isVisible = scrollY > 300;
-      // Show sticky bar after scrolling past the filter section (approx 300px)
       setShowStickyBar(isVisible);
-      // Notify mascotte to move up
       window.dispatchEvent(new CustomEvent('stickyBarVisibilityChange', { detail: { visible: isVisible } }));
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // Check initial position
-    
-    // Cleanup: reset mascot position when leaving page
+    handleScroll();
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.dispatchEvent(new CustomEvent('stickyBarVisibilityChange', { detail: { visible: false } }));
@@ -139,52 +358,56 @@ export function AsteHubPage() {
   }, [enriched]);
 
   const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
     const maxP = filterPriceMax.trim() ? Number(filterPriceMax) : NaN;
     const minB = filterMinBids.trim() ? Number(filterMinBids) : NaN;
+    const rawQ = q.trim();
 
     let rows = enriched.filter((a) => {
-      if (needle && !a.title.toLowerCase().includes(needle) && !a.seller.toLowerCase().includes(needle)) {
-        return false;
-      }
-      if (filterGame !== 'all' && a.game !== filterGame) return false;
+      if (a.game !== 'mtg') return false;
+      if (rawQ && !auctionMatchesSearchTerms(a, searchMatchTerms, rawQ)) return false;
       if (!Number.isNaN(maxP) && a.currentBidEur > maxP) return false;
-      if (filterEndingOnly && !isEndingSoonUI(a.hoursFromNow)) return false;
       if (!Number.isNaN(minB) && a.bidCount < minB) return false;
+
+      if (browseTab === 'ended') {
+        if (!isAuctionEndedUI(a)) return false;
+      } else if (browseTab === 'ending_soon') {
+        if (isAuctionEndedUI(a) || !isEndingWithin24h(a.hoursFromNow)) return false;
+      } else {
+        if (isAuctionEndedUI(a)) return false;
+      }
       return true;
     });
 
     const copy = [...rows];
-    if (sort === 'ending') {
-      copy.sort((a, b) => {
-        const ae = isAuctionEndedUI(a);
-        const be = isAuctionEndedUI(b);
-        if (ae !== be) return ae ? 1 : -1;
-        return a.hoursFromNow - b.hoursFromNow;
-      });
-    } else if (sort === 'new') {
-      copy.reverse();
+    if (browseTab === 'ended') {
+      copy.sort((a, b) => new Date(b.endsAt).getTime() - new Date(a.endsAt).getTime());
+    } else if (browseTab === 'ending_soon') {
+      copy.sort((a, b) => a.hoursFromNow - b.hoursFromNow);
     } else {
-      copy.sort((a, b) => b.currentBidEur - a.currentBidEur);
+      copy.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
     }
     return copy;
-  }, [enriched, q, sort, filterGame, filterPriceMax, filterEndingOnly, filterMinBids]);
+  }, [enriched, q, searchMatchTerms, browseTab, filterPriceMax, filterMinBids]);
+
+  const displayed = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount]
+  );
+
   const total = listData?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const canPrev = page > 1;
-  const canNext = page < totalPages;
-  const goToPrevPage = () => {
-    if (!canPrev) return;
-    setPage((p) => p - 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  const goToNextPage = () => {
-    if (!canNext) return;
-    setPage((p) => p + 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const fetchedFromApi = listData?.data?.length ?? 0;
+  const hasMore =
+    filtered.length > visibleCount || fetchedFromApi < total;
+
+  const handleLoadMore = () => {
+    const nextVisible = visibleCount + BATCH_SIZE;
+    if (filtered.length < nextVisible && fetchedFromApi < total) {
+      setApiBatchCount((c) => c + 1);
+    }
+    setVisibleCount(nextVisible);
   };
 
-  if (isLoading) {
+  if (isLoading && enriched.length === 0) {
     return (
       <div className="min-h-screen bg-white">
         <AsteNav />
@@ -202,358 +425,117 @@ export function AsteHubPage() {
       <section className="pb-28 pt-6 md:pb-16">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
-          {endingSoon.length > 0 && (
-            <div className="mb-8">
-              {/* Mobile: stack verticale, Desktop: flex orizzontale */}
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
-                {/* Sezione In evidenza - 3 card */}
-                <div className="flex-1">
-                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-700">
-                    In evidenza
-                  </h3>
-                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                    {endingSoon.slice(0, 3).map((a) => (
-                      <EndingSoonCard key={a.id} auction={a} now={now} featured />
-                    ))}
+            {endingSoon.length > 0 && (
+              <div className="mb-8">
+                <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
+                  <div className="flex-1">
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-700">
+                      In evidenza
+                    </h3>
+                    <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2">
+                      {endingSoon.slice(0, 3).map((a) => (
+                        <EndingSoonCard key={a.id} auction={a} now={now} featured />
+                      ))}
+                    </div>
                   </div>
-                </div>
-
-                {/* Separatore verticale - solo desktop */}
-                <div className="hidden w-px self-stretch bg-gray-300 sm:block" />
-
-                {/* Sezione Terminano presto - 3 card */}
-                <div className="flex-1">
-                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-700">
-                    Terminano presto
-                  </h3>
-                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                    {endingSoon.slice(3, 6).map((a) => (
-                      <EndingSoonCard key={a.id} auction={a} now={now} />
-                    ))}
+                  <div className="hidden w-px self-stretch bg-gray-300 sm:block" />
+                  <div className="flex-1">
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-700">
+                      Terminano presto
+                    </h3>
+                    <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2">
+                      {endingSoon.slice(3, 6).map((a) => (
+                        <EndingSoonCard key={a.id} auction={a} now={now} />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
+            )}
+
+            <AppBreadcrumb
+              items={breadcrumbItems}
+              ariaLabel="Breadcrumb"
+              variant="default"
+              className="mb-2 w-auto text-sm"
+            />
+
+            <h2 className="mb-4 text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
+              {browseTab === 'ended' ? t('auctions.hubEndedTitle') : t('auctions.hubOngoingTitle')}
+            </h2>
+
+            <AsteHubToolbar
+              q={q}
+              onQChange={setQ}
+              filterPriceMax={filterPriceMax}
+              onFilterPriceMaxChange={setFilterPriceMax}
+              filterMinBids={filterMinBids}
+              onFilterMinBidsChange={setFilterMinBids}
+              browseTab={browseTab}
+              onBrowseTabChange={setBrowseTab}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              t={t}
+            />
+
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-700">
+                {t('auctions.resultsCount', { count: displayed.length })}
+                {searchResolving && q.trim().length >= 2 && (
+                  <span className="ml-2 text-xs font-normal text-gray-400">…</span>
+                )}
+              </p>
+              <p className="text-xs text-gray-500">
+                ({filtered.length}
+                {total > filtered.length ? ` / ${total}` : ''} totali)
+              </p>
             </div>
-          )}
 
-          <AppBreadcrumb
-            items={breadcrumbItems}
-            ariaLabel="Breadcrumb"
-            variant="default"
-            className="mb-4 w-auto text-sm"
-          />
-
-          {/* Sezione filtri unificata */}
-          <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            {/* Riga superiore: ricerca + toggle filtri */}
-            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
-              {/* Search bar */}
-              <div className="flex w-full min-w-0 items-center overflow-hidden rounded-full bg-gray-100 px-2 py-1.5">
-                <div className="flex min-w-0 flex-1 items-center gap-2 px-3">
-                  <Search className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
-                  <input
-                    id="aste-hub-search"
-                    type="search"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder={t('auctions.searchPlaceholder')}
-                    className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none"
-                    aria-label={t('auctions.searchPlaceholder')}
-                  />
-                  {q && (
-                    <button
-                      type="button"
-                      onClick={() => setQ('')}
-                      className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
-                      aria-label="Cancella ricerca"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
+            <div className="overflow-hidden border border-gray-300 bg-gray-50">
+              {displayed.length === 0 ? (
+                <div className="p-8 text-center text-gray-500 sm:p-16">{t('auctions.noResults')}</div>
+              ) : viewMode === 'grid' ? (
+                <AuctionResultsGrid auctions={displayed} now={now} t={t} />
+              ) : (
+                <div className="overflow-x-auto">
+                  <AuctionListTable auctions={displayed} now={now} t={t} />
                 </div>
+              )}
+            </div>
+
+            {hasMore && displayed.length > 0 && (
+              <div className="mt-4 flex justify-center">
                 <button
                   type="button"
-                  className="btn-orange-glow shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs sm:px-4 sm:text-sm"
+                  onClick={handleLoadMore}
+                  disabled={isFetching}
+                  className="inline-flex min-w-[10rem] items-center justify-center rounded-full border-2 border-[#FF7300]/30 bg-white px-6 py-2.5 text-xs font-bold uppercase tracking-wide text-[#FF7300] transition hover:border-[#FF7300] hover:bg-[#FFF4EC] disabled:cursor-wait disabled:opacity-60"
                 >
-                  Cerca
+                  {isFetching ? '…' : t('auctions.loadMore')}
                 </button>
-              </div>
-              {/* Toggle filtri accanto alla search */}
-              <button
-                type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                className={cn(
-                  'self-center sm:self-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/40 bg-primary/60 text-white shadow transition-all hover:scale-105 hover:bg-primary/70 active:scale-95',
-                  showFilters && 'bg-primary/70'
-                )}
-                aria-label={showFilters ? 'Nascondi filtri' : 'Mostra filtri'}
-              >
-                {showFilters ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-
-            {/* Filtri espandibili + risultati */}
-            <div
-              className={`overflow-hidden transition-all duration-300 ${showFilters ? 'mt-4 max-h-[75vh] overflow-y-auto pr-1 opacity-100' : 'max-h-0 opacity-0'}`}
-            >
-              {/* Riga unica: filtri + ordinamento + vista */}
-              <div className="flex flex-wrap items-end gap-3 border-b border-gray-200 pb-4">
-                <label className="flex flex-col gap-1 w-full sm:w-auto">
-                  <span className="text-xs font-semibold uppercase text-gray-600">{t('auctions.filterGame')}</span>
-                  <select
-                    value={filterGame}
-                    onChange={(e) => setFilterGame(e.target.value as 'all' | AuctionGame)}
-                    className="w-full sm:min-w-[140px] sm:w-auto rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 [color-scheme:light]"
-                  >
-                    <option value="all">{t('auctions.gameAll')}</option>
-                    <option value="mtg">{t('auctions.gameMtg')}</option>
-                    <option value="lorcana">{t('auctions.gameLorcana')}</option>
-                    <option value="pokemon">{t('auctions.gamePokemon')}</option>
-                    <option value="op">{t('auctions.gameOp')}</option>
-                    <option value="ygo">{t('auctions.gameYgo')}</option>
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 w-full sm:w-auto">
-                  <span className="text-xs font-semibold uppercase text-gray-600">{t('auctions.filterPriceMax')}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    inputMode="numeric"
-                    placeholder="€ max"
-                    value={filterPriceMax}
-                    onChange={(e) => setFilterPriceMax(e.target.value)}
-                    className="w-full sm:w-[120px] rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 w-full sm:w-auto">
-                  <span className="text-xs font-semibold uppercase text-gray-600">{t('auctions.filterMinBids')}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    inputMode="numeric"
-                    placeholder="Min offerte"
-                    value={filterMinBids}
-                    onChange={(e) => setFilterMinBids(e.target.value)}
-                    className="w-full sm:w-[120px] rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
-                  />
-                </label>
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-800 w-full sm:w-auto h-[38px]">
-                  <input
-                    type="checkbox"
-                    checked={filterEndingOnly}
-                    onChange={(e) => setFilterEndingOnly(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-400 text-[#FF7300] focus:ring-[#FF7300]"
-                  />
-                  {t('auctions.filterEndingOnly')}
-                </label>
-                
-                {/* Spacer per spingere Ordina per e vista a destra */}
-                <div className="hidden lg:block flex-1" />
-                
-                {/* Ordina per + vista */}
-                <label className="flex items-center gap-2 text-sm text-gray-600 w-full sm:w-auto">
-                  <span className="whitespace-nowrap text-xs font-semibold uppercase text-gray-600">{t('search.sortBy')}</span>
-                  <select
-                    value={sort}
-                    onChange={(e) => setSort(e.target.value as SortMode)}
-                    className="min-w-[11rem] rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium bg-white text-gray-900 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40"
-                  >
-                    <option value="ending">{t('auctions.sortEndingSoon')}</option>
-                    <option value="new">{t('auctions.sortNewest')}</option>
-                    <option value="bid">{t('auctions.sortHighestBid')}</option>
-                  </select>
-                </label>
-                <AuctionViewToggle
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                  listLabel={t('auctions.viewList')}
-                  gridLabel={t('auctions.viewGrid')}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Risultati aste */}
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-700">{t('auctions.resultsCount', { count: filtered.length })}</p>
-            <p className="text-xs text-gray-500">
-              ({total} totali)
-            </p>
-          </div>
-          <div className="overflow-hidden border border-gray-300 bg-gray-50">
-            {filtered.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 sm:p-16">{t('auctions.noResults')}</div>
-            ) : viewMode === 'grid' ? (
-              <AuctionResultsGrid auctions={filtered} now={now} t={t} />
-            ) : (
-              <div className="overflow-x-auto">
-                <AuctionListTable auctions={filtered} now={now} t={t} />
               </div>
             )}
           </div>
-          {totalPages > 1 && (
-            <div className="mt-4 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={(p) => {
-                  setPage(p);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-              />
-            </div>
-          )}
-        </div>
         </div>
       </section>
 
-      {/* Sticky Bottom Bar - Search + Expandable Filters */}
       {showStickyBar && (
-        <div
-          className="fixed bottom-0 left-0 right-0 z-40 overflow-x-clip border-t border-gray-200 bg-white/95 backdrop-blur-md animate-slide-up-bounce"
-        >
+        <div className="animate-slide-up-bounce fixed bottom-0 left-0 right-0 z-40 overflow-x-clip border-t border-gray-200 bg-white/95 backdrop-blur-md">
           <div className="px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
-            {/* Stessa UI della search bar originale */}
-            <div className="flex min-w-0 items-center gap-2">
-              {/* Search bar pillola */}
-              <div className="flex min-w-0 flex-1 items-center overflow-hidden rounded-full bg-gray-100 px-2 py-1.5">
-                <div className="flex min-w-0 flex-1 items-center gap-2 px-3">
-                  <Search className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
-                  <input
-                    type="search"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder={t('auctions.searchPlaceholder')}
-                    className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none"
-                    aria-label={t('auctions.searchPlaceholder')}
-                  />
-                  {q && (
-                    <button
-                      type="button"
-                      onClick={() => setQ('')}
-                      className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
-                      aria-label="Cancella ricerca"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="shrink-0 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#e86800] sm:px-4 sm:text-sm"
-                >
-                  Cerca
-                </button>
-              </div>
-              {/* Toggle filtri */}
-              <button
-                type="button"
-                onClick={() => setBottomBarExpanded(!bottomBarExpanded)}
-                className={cn(
-                  'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/50 text-white shadow ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 transition-all hover:scale-105 hover:bg-primary/60 active:scale-95',
-                  bottomBarExpanded && 'bg-primary/70'
-                )}
-                aria-label={bottomBarExpanded ? 'Comprimi filtri' : 'Espandi filtri'}
-              >
-                {bottomBarExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronUp className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-
-            {/* Filtri espandibili */}
-            {bottomBarExpanded && (
-              <div className="mt-3 overflow-hidden transition-all duration-300">
-                <div className="flex flex-wrap items-end gap-3 border-b border-gray-200 pb-3">
-                  {/* Game Filter */}
-                  <label className="flex flex-col gap-1 w-full sm:w-auto">
-                    <span className="text-xs font-semibold uppercase text-gray-600">{t('auctions.filterGame')}</span>
-                    <select
-                      value={filterGame}
-                      onChange={(e) => setFilterGame(e.target.value as 'all' | AuctionGame)}
-                      className="w-full sm:min-w-[140px] sm:w-auto rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 [color-scheme:light]"
-                    >
-                      <option value="all">{t('auctions.gameAll')}</option>
-                      <option value="mtg">{t('auctions.gameMtg')}</option>
-                      <option value="lorcana">{t('auctions.gameLorcana')}</option>
-                      <option value="pokemon">{t('auctions.gamePokemon')}</option>
-                      <option value="op">{t('auctions.gameOp')}</option>
-                      <option value="ygo">{t('auctions.gameYgo')}</option>
-                    </select>
-                  </label>
-
-                  {/* Price Max */}
-                  <label className="flex flex-col gap-1 w-full sm:w-auto">
-                    <span className="text-xs font-semibold uppercase text-gray-600">{t('auctions.filterPriceMax')}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      inputMode="numeric"
-                      placeholder="€ max"
-                      value={filterPriceMax}
-                      onChange={(e) => setFilterPriceMax(e.target.value)}
-                      className="w-full sm:w-[120px] rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
-                    />
-                  </label>
-
-                  {/* Min Bids */}
-                  <label className="flex flex-col gap-1 w-full sm:w-auto">
-                    <span className="text-xs font-semibold uppercase text-gray-600">{t('auctions.filterMinBids')}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      inputMode="numeric"
-                      placeholder="Min offerte"
-                      value={filterMinBids}
-                      onChange={(e) => setFilterMinBids(e.target.value)}
-                      className="w-full sm:w-[120px] rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
-                    />
-                  </label>
-
-                  {/* Ending Only */}
-                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-800 w-full sm:w-auto h-[38px]">
-                    <input
-                      type="checkbox"
-                      checked={filterEndingOnly}
-                      onChange={(e) => setFilterEndingOnly(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-400 text-[#FF7300] focus:ring-[#FF7300]"
-                    />
-                    {t('auctions.filterEndingOnly')}
-                  </label>
-
-                  {/* Spacer */}
-                  <div className="hidden lg:block flex-1" />
-
-                  {/* Sort */}
-                  <label className="flex items-center gap-2 text-sm text-gray-600 w-full sm:w-auto">
-                    <span className="whitespace-nowrap text-xs font-semibold uppercase text-gray-600">{t('search.sortBy')}</span>
-                    <select
-                      value={sort}
-                      onChange={(e) => setSort(e.target.value as SortMode)}
-                      className="min-w-[11rem] rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium bg-white text-gray-900 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40"
-                    >
-                      <option value="ending">{t('auctions.sortEndingSoon')}</option>
-                      <option value="new">{t('auctions.sortNewest')}</option>
-                      <option value="bid">{t('auctions.sortHighestBid')}</option>
-                    </select>
-                  </label>
-
-                  {/* View Toggle */}
-                  <AuctionViewToggle
-                    viewMode={viewMode}
-                    onViewModeChange={setViewMode}
-                    listLabel={t('auctions.viewList')}
-                    gridLabel={t('auctions.viewGrid')}
-                  />
-                </div>
-              </div>
-            )}
+            <AsteHubToolbar
+              q={q}
+              onQChange={setQ}
+              filterPriceMax={filterPriceMax}
+              onFilterPriceMaxChange={setFilterPriceMax}
+              filterMinBids={filterMinBids}
+              onFilterMinBidsChange={setFilterMinBids}
+              browseTab={browseTab}
+              onBrowseTabChange={setBrowseTab}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              compact
+              t={t}
+            />
           </div>
         </div>
       )}
@@ -578,27 +560,24 @@ function EndingSoonCard({
       prefetch
       className={`group relative flex h-[180px] w-[160px] shrink-0 flex-col overflow-hidden rounded-[16px] border bg-white shadow-md transition hover:shadow-lg sm:h-[200px] sm:w-[200px] ${featured ? 'border-amber-400/60 hover:border-amber-500' : 'border-gray-200 hover:border-[#FF7300]'}`}
     >
-      {/* Card image with overlay */}
       <div className="relative h-full w-full">
-        <Image 
-          src={auction.image} 
-          alt="" 
-          fill 
-          className="object-cover transition duration-500 group-hover:scale-105" 
-          sizes="200px" 
-          unoptimized 
+        <Image
+          src={auction.image}
+          alt=""
+          fill
+          className="object-cover transition duration-500 group-hover:scale-105"
+          sizes="200px"
+          unoptimized
         />
-        {/* Dark blur overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-        
-        {/* Content overlay - timer e nome prodotto */}
         <div className="absolute inset-0 flex flex-col justify-end p-3">
-          {/* Countdown - scadenza con bordo condizionale */}
-          <div className={`mb-2 rounded-full border bg-white/20 p-1.5 text-center backdrop-blur-md shadow-lg ${featured ? 'border-amber-400/60' : 'border-red-400/60 animate-pulse'}`}>
-            <p className="font-mono text-sm font-bold tabular-nums text-white" suppressHydrationWarning>{formatHMS(ms)}</p>
+          <div
+            className={`mb-2 rounded-full border bg-white/20 p-1.5 text-center shadow-lg backdrop-blur-md ${featured ? 'border-amber-400/60' : 'animate-pulse border-red-400/60'}`}
+          >
+            <p className="font-mono text-sm font-bold tabular-nums text-white" suppressHydrationWarning>
+              {formatHMS(ms)}
+            </p>
           </div>
-          
-          {/* Title - nome prodotto */}
           <p className="line-clamp-2 text-xs font-bold text-white drop-shadow-md">{auction.title}</p>
         </div>
       </div>

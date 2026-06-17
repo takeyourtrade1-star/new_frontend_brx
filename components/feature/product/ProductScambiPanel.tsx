@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeftRight, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
+import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { getCardImageUrl } from '@/lib/assets';
 import type { CardDocument } from '@/lib/product-detail';
@@ -56,7 +57,7 @@ export function ProductScambiPanel({ card }: ProductScambiPanelProps) {
           className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full text-white shadow-md"
           style={{ backgroundColor: PRIMARY }}
         >
-          <ArrowLeftRight className="h-6 w-6" aria-hidden />
+          <ScambiIcon className="h-6 w-6" aria-hidden />
         </div>
         <p className="text-sm font-bold uppercase tracking-wide text-gray-800">
           {t('productDetail.scambi.title')}

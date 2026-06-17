@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Icone Aste — 30 Proposte Custom Premium</title>
+  <style>
+    :root {
+      --brand-orange: #FF7300;
+      --brand-blue: #1D3160;
+      --brand-blue-light: #3D65C6;
+      --card-bg: rgba(255, 255, 255, 0.94);
+      --text: #1f2937;
+      --text-muted: #6b7280;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-light) 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      color: white;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 900;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+    }
+
+    p.subtitle { margin: 0; opacity: 0.9; font-size: 1rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 1rem;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 1rem;
+      padding: 1.25rem 1rem;
+      text-align: center;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(29, 49, 96, 0.1);
+    }
+
+    .card:hover {
+      transform: translateY(-4px) scale(1.02);
+      border-color: var(--brand-orange);
+      box-shadow: 0 14px 36px rgba(255, 115, 0, 0.22);
+    }
+
+    .card:hover .icon-preview { color: var(--brand-orange); }
+
+    .icon-preview {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 0.75rem;
+      color: var(--brand-blue);
+      transition: color 0.2s ease;
+    }
+
+    .icon-preview svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .icon-name {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.35rem;
+      color: var(--text);
+    }
+
+    .icon-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .legend {
+      max-width: 1300px;
+      margin: 2.5rem auto 0;
+      padding: 1rem 1.25rem;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 0.75rem;
+      color: white;
+      font-size: 0.9rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .legend strong { color: var(--brand-orange); }
+    .legend code {
+      background: rgba(255,255,255,0.2);
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Icone Aste Custom</h1>
+    <p class="subtitle">30 SVG disegnati ad hoc per sostituire il martelletto</p>
+  </header>
+
+  <svg width="0" height="0" style="position:absolute;">
+    <defs>
+      <!-- 1. Gavel Premium -->
+      <symbol id="icon-gavel-premium" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="14" width="9" height="4.5" rx="1" transform="rotate(-45 8.5 16.25)"/>
+        <path d="M11 9l6.5-6.5"/>
+        <path d="M18.5 3.5l2 2"/>
+        <path d="M2 22l4-4"/>
+      </symbol>
+
+      <!-- 2. Gavel + Card -->
+      <symbol id="icon-gavel-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="6" width="11" height="14" rx="1.5"/>
+        <circle cx="8.5" cy="12" r="2.5"/>
+        <path d="M3 10h11"/>
+        <rect x="12" y="3" width="7" height="3.5" rx="1" transform="rotate(45 15.5 4.75)"/>
+        <path d="M17 7l3-3"/>
+      </symbol>
+
+      <!-- 3. Bid Paddle -->
+      <symbol id="icon-bid-paddle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="7" y="3" width="10" height="14" rx="2"/>
+        <path d="M12 10v-3"/>
+        <path d="M9 17h6v4H9z"/>
+        <path d="M11 21v-4"/>
+        <path d="M13 21v-4"/>
+      </symbol>
+
+      <!-- 4. Card on Pedestal -->
+      <symbol id="icon-card-pedestal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="7" y="3" width="10" height="14" rx="1.5"/>
+        <circle cx="12" cy="9" r="2.5"/>
+        <path d="M7 7h10"/>
+        <path d="M2 21h20"/>
+        <path d="M8 17h8v4H8z"/>
+      </symbol>
+
+      <!-- 5. Rising Price -->
+      <symbol id="icon-rising-price" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="10" height="14" rx="1.5"/>
+        <circle cx="8" cy="11" r="2"/>
+        <path d="M3 8h10"/>
+        <path d="M15 14l3-3 3 3"/>
+        <path d="M18 11v8"/>
+        <circle cx="18" cy="9" r="1.5" fill="currentColor" stroke="none"/>
+      </symbol>
+
+      <!-- 6. Hand Bid -->
+      <symbol id="icon-hand-bid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 21V10"/>
+        <path d="M8 14v-3a2 2 0 012-2h0a2 2 0 012 2v3"/>
+        <path d="M12 11V7a2 2 0 012-2h0a2 2 0 012 2v4"/>
+        <path d="M16 13V9a2 2 0 012-2h0a2 2 0 012 2v5"/>
+        <path d="M9 21h6"/>
+        <path d="M7 17l-2 2 2 2"/>
+        <path d="M4 19h3"/>
+      </symbol>
+
+      <!-- 7. Hand Coins -->
+      <symbol id="icon-hand-coins" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 21V10"/>
+        <path d="M8 14v-3a2 2 0 012-2h0a2 2 0 012 2v3"/>
+        <path d="M16 13V9a2 2 0 012-2h0a2 2 0 012 2v5"/>
+        <path d="M9 21h6"/>
+        <circle cx="5" cy="8" r="2.5"/>
+        <path d="M5 6.5v3"/>
+      </symbol>
+
+      <!-- 8. Auction Hammer -->
+      <symbol id="icon-auction-hammer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="18" width="12" height="3" rx="1"/>
+        <rect x="8" y="11" width="8" height="4" rx="1" transform="rotate(-45 12 13)"/>
+        <path d="M13 8l5-5"/>
+        <path d="M19 3l2 2"/>
+      </symbol>
+
+      <!-- 9. Countdown Card -->
+      <symbol id="icon-countdown-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="12" height="16" rx="1.5"/>
+        <circle cx="9" cy="11" r="2.5"/>
+        <path d="M3 8h12"/>
+        <circle cx="18" cy="17" r="4"/>
+        <path d="M18 15.5v2l1.2 1.2"/>
+      </symbol>
+
+      <!-- 10. Live Auction -->
+      <symbol id="icon-live-auction" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="5" width="11" height="14" rx="1.5"/>
+        <circle cx="9.5" cy="11" r="2"/>
+        <path d="M4 9h11"/>
+        <circle cx="18" cy="9" r="2.5" fill="currentColor" stroke="none"/>
+        <path d="M18 14v5"/>
+        <path d="M18 21h0"/>
+      </symbol>
+
+      <!-- 11. Winning Bid -->
+      <symbol id="icon-winning-bid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="10" height="14" rx="1.5"/>
+        <circle cx="8" cy="11" r="2"/>
+        <path d="M3 8h10"/>
+        <path d="M15 7l2 2 4-4"/>
+      </symbol>
+
+      <!-- 12. Reserved Card -->
+      <symbol id="icon-reserved-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="11" height="14" rx="1.5"/>
+        <circle cx="8.5" cy="11" r="2"/>
+        <path d="M3 8h11"/>
+        <path d="M17 11h4"/>
+        <circle cx="19" cy="11" r="1.5" fill="currentColor" stroke="none"/>
+        <path d="M19 6v3"/>
+        <path d="M19 13v3"/>
+      </symbol>
+
+      <!-- 13. Hot Auction -->
+      <symbol id="icon-hot-auction" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="5" width="10" height="14" rx="1.5"/>
+        <circle cx="9" cy="11" r="2"/>
+        <path d="M4 8h10"/>
+        <path d="M18 18c0-2.5 1.5-4 1.5-6.5 0-2-1-3.5-1.5-4.5-.5 1-1.5 2.5-1.5 4.5 0 2.5 1.5 4 1.5 6.5z"/>
+      </symbol>
+
+      <!-- 14. Flash Auction -->
+      <symbol id="icon-flash-auction" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="10" height="14" rx="1.5"/>
+        <circle cx="8" cy="11" r="2"/>
+        <path d="M3 8h10"/>
+        <path d="M16 4l-2 6h4l-2 6"/>
+      </symbol>
+
+      <!-- 15. Auction Calendar -->
+      <symbol id="icon-auction-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="17" rx="2"/>
+        <path d="M3 10h18"/>
+        <path d="M8 2v4"/>
+        <path d="M16 2v4"/>
+        <rect x="9" y="13" width="6" height="3" rx="1" transform="rotate(-45 12 14.5)"/>
+        <path d="M12 12l3-3"/>
+      </symbol>
+
+      <!-- 16. Auction Bell -->
+      <symbol id="icon-auction-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 01-3.46 0"/>
+        <rect x="10" y="2" width="4" height="3" rx="1"/>
+        <rect x="15" y="3" width="7" height="3" rx="1" transform="rotate(45 18.5 4.5)"/>
+      </symbol>
+
+      <!-- 17. Target Bid -->
+      <symbol id="icon-target-bid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="8"/>
+        <circle cx="12" cy="12" r="4"/>
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+        <path d="M12 2v3"/>
+        <path d="M12 19v3"/>
+        <path d="M2 12h3"/>
+        <path d="M19 12h3"/>
+      </symbol>
+
+      <!-- 18. Auction Scale -->
+      <symbol id="icon-auction-scale" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3v18"/>
+        <path d="M4 6h16"/>
+        <path d="M4 6l3 7H5"/>
+        <path d="M20 6l-3 7h2"/>
+        <circle cx="12" cy="3" r="1.5"/>
+      </symbol>
+
+      <!-- 19. Crown Card -->
+      <symbol id="icon-crown-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="7" width="11" height="14" rx="1.5"/>
+        <circle cx="9.5" cy="13" r="2"/>
+        <path d="M4 10h11"/>
+        <path d="M18 4l2 3 2-3v5a2 2 0 01-2 2h0a2 2 0 01-2-2V4z"/>
+      </symbol>
+
+      <!-- 20. Gem Card -->
+      <symbol id="icon-gem-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="10" height="14" rx="1.5"/>
+        <circle cx="8" cy="11" r="2"/>
+        <path d="M3 8h10"/>
+        <path d="M17 7l3 4.5-3 4.5-3-4.5z"/>
+      </symbol>
+
+      <!-- 21. Stack Cards -->
+      <symbol id="icon-stack-cards" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="3" width="12" height="16" rx="1.5"/>
+        <path d="M6 7h12"/>
+        <circle cx="12" cy="12" r="2.5"/>
+        <rect x="3" y="6" width="12" height="16" rx="1.5" opacity="0.4"/>
+        <path d="M3 10h12" opacity="0.4"/>
+      </symbol>
+
+      <!-- 22. Card Exchange -->
+      <symbol id="icon-card-exchange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="8" height="11" rx="1"/>
+        <rect x="13" y="8" width="8" height="11" rx="1"/>
+        <path d="M7 16v3"/>
+        <path d="M17 5V2"/>
+        <path d="M5 3l2-2 2 2"/>
+        <path d="M15 19l2 2 2-2"/>
+      </symbol>
+
+      <!-- 23. Auction Tag -->
+      <symbol id="icon-auction-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 10l9-7 9 7v10a2 2 0 01-2 2H5a2 2 0 01-2-2V10z"/>
+        <circle cx="12" cy="13" r="2"/>
+        <rect x="18" y="2" width="5" height="3" rx="1" transform="rotate(45 20.5 3.5)"/>
+        <path d="M20 5l2 2"/>
+      </symbol>
+
+      <!-- 24. Auction Megaphone -->
+      <symbol id="icon-auction-megaphone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 11l6-2v8l-6-2z"/>
+        <path d="M9 9v8"/>
+        <path d="M9 9a5 5 0 015-5h0"/>
+        <path d="M9 17a5 5 0 005 5"/>
+        <rect x="18" y="3" width="5" height="3" rx="1" transform="rotate(45 20.5 4.5)"/>
+        <path d="M20 6l2 2"/>
+      </symbol>
+
+      <!-- 25. Verified Auction -->
+      <symbol id="icon-verified-auction" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="5" width="10" height="14" rx="1.5"/>
+        <circle cx="9" cy="11" r="2"/>
+        <path d="M4 8h10"/>
+        <path d="M17 12l2 2 4-4"/>
+      </symbol>
+
+      <!-- 26. Auction Trophy -->
+      <symbol id="icon-auction-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 4h12"/>
+        <path d="M6 4v4a6 6 0 0012 0V4"/>
+        <path d="M18 4h2a1 1 0 011 1v2a3 3 0 01-3 3"/>
+        <path d="M6 4H4a1 1 0 00-1 1v2a3 3 0 003 3"/>
+        <path d="M9 17h6"/>
+        <path d="M10 17v4h4v-4"/>
+      </symbol>
+
+      <!-- 27. Bid Arrow -->
+      <symbol id="icon-bid-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 20V4"/>
+        <path d="M5 11l7-7 7 7"/>
+        <circle cx="12" cy="4" r="2" fill="currentColor" stroke="none"/>
+        <path d="M6 16h12"/>
+        <path d="M6 19h12"/>
+      </symbol>
+
+      <!-- 28. Auction Shield -->
+      <symbol id="icon-auction-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <rect x="7" y="9" width="10" height="7" rx="1"/>
+        <circle cx="12" cy="12.5" r="1.5"/>
+        <path d="M7 11h10"/>
+      </symbol>
+
+      <!-- 29. Global Auction -->
+      <symbol id="icon-global-auction" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="8"/>
+        <path d="M2 12h20"/>
+        <path d="M12 2a15.3 15.3 0 010 20"/>
+        <path d="M12 2a15.3 15.3 0 000 20"/>
+        <rect x="17" y="3" width="5" height="3" rx="1" transform="rotate(45 19.5 4.5)"/>
+        <path d="M19 6l2 2"/>
+      </symbol>
+
+      <!-- 30. Auction Search -->
+      <symbol id="icon-auction-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="10" height="14" rx="1.5"/>
+        <circle cx="8" cy="11" r="2"/>
+        <path d="M3 8h10"/>
+        <circle cx="18" cy="16" r="4"/>
+        <path d="M21 19l-3-3"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <main class="grid">
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-gavel-premium"/></svg></div>
+      <div class="icon-name">Gavel Premium</div>
+      <div class="icon-desc">Martelletto stilizzato, linee pulite e moderne.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-gavel-card"/></svg></div>
+      <div class="icon-name">Gavel + Card</div>
+      <div class="icon-desc">Martello sopra una carta: asta di carte.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-bid-paddle"/></svg></div>
+      <div class="icon-name">Bid Paddle</div>
+      <div class="icon-desc">Palette d'asta classica, riconoscibile subito.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-card-pedestal"/></svg></div>
+      <div class="icon-name">Card Pedestal</div>
+      <div class="icon-desc">Carta esposta su piedistallo, come un tesoro.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-rising-price"/></svg></div>
+      <div class="icon-name">Rising Price</div>
+      <div class="icon-desc">Carta con prezzo che sale, dinamica d'asta.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-hand-bid"/></svg></div>
+      <div class="icon-name">Hand Bid</div>
+      <div class="icon-desc">Mano che alza l'offerta, azione d'asta.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-hand-coins"/></svg></div>
+      <div class="icon-name">Hand Coins</div>
+      <div class="icon-desc">Mano con moneta, offerta in denaro.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-auction-hammer"/></svg></div>
+      <div class="icon-name">Auction Hammer</div>
+      <div class="icon-desc">Martello che colpisce il battente, chiusura asta.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-countdown-card"/></svg></div>
+      <div class="icon-name">Countdown Card</div>
+      <div class="icon-desc">Carta con timer, urgenza e scadenza.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-live-auction"/></svg></div>
+      <div class="icon-name">Live Auction</div>
+      <div class="icon-desc">Carta con indicatore live, asta in diretta.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-winning-bid"/></svg></div>
+      <div class="icon-name">Winning Bid</div>
+      <div class="icon-desc">Carta con check, offerta vincente.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-reserved-card"/></svg></div>
+      <div class="icon-name">Reserved Card</div>
+      <div class="icon-desc">Carta riservata/lock, asta privata o Prenotata.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-hot-auction"/></svg></div>
+      <div class="icon-name">Hot Auction</div>
+      <div class="icon-desc">Carta con fiamma, asta molto seguita.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-flash-auction"/></svg></div>
+      <div class="icon-name">Flash Auction</div>
+      <div class="icon-desc">Carta con fulmine, asta lampo.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-auction-calendar"/></svg></div>
+      <div class="icon-name">Auction Calendar</div>
+      <div class="icon-desc">Calendario con martello, asta programmata.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-auction-bell"/></svg></div>
+      <div class="icon-name">Auction Bell</div>
+      <div class="icon-desc">Campana con martello, notifica fine asta.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-target-bid"/></svg></div>
+      <div class="icon-name">Target Bid</div>
+      <div class="icon-desc">Bersaglio, mira al prezzo giusto.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-auction-scale"/></svg></div>
+      <div class="icon-name">Auction Scale</div>
+      <div class="icon-desc">Bilancia, valutazione e contrattazione.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-crown-card"/></svg></div>
+      <div class="icon-name">Crown Card</div>
+      <div class="icon-desc">Carta con corona, rarità premium.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-gem-card"/></svg></div>
+      <div class="icon-name">Gem Card</div>
+      <div class="icon-desc">Carta con gemma, valore e preziosità.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-stack-cards"/></svg></div>
+      <div class="icon-name">Stack Cards</div>
+      <div class="icon-desc">Mazzo di carte in asta, molteplici lotti.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-card-exchange"/></svg></div>
+      <div class="icon-name">Card Exchange</div>
+      <div class="icon-desc">Scambio/offerta tra carte.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-auction-tag"/></svg></div>
+      <div class="icon-name">Auction Tag</div>
+      <div class="icon-desc">Tag prezzo con martello, offerta e sconto.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-auction-megaphone"/></svg></div>
+      <div class="icon-name">Auction Megaphone</div>
+      <div class="icon-desc">Megafono con martello, annuncio asta.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-verified-auction"/></svg></div>
+      <div class="icon-name">Verified Auction</div>
+      <div class="icon-desc">Carta verificata, autenticità garantita.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-auction-trophy"/></svg></div>
+      <div class="icon-name">Auction Trophy</div>
+      <div class="icon-desc">Trofeo, vittoria nell'asta.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-bid-arrow"/></svg></div>
+      <div class="icon-name">Bid Arrow</div>
+      <div class="icon-desc">Freccia offerta verso l'alto, prezzo crescente.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-auction-shield"/></svg></div>
+      <div class="icon-name">Auction Shield</div>
+      <div class="icon-desc">Scudo con carta, protezione acquisto.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-global-auction"/></svg></div>
+      <div class="icon-name">Global Auction</div>
+      <div class="icon-desc">Mondo con martello, asta globale.</div>
+    </div>
+
+    <div class="card">
+      <div class="icon-preview"><svg><use href="#icon-auction-search"/></svg></div>
+      <div class="icon-name">Auction Search</div>
+      <div class="icon-desc">Cerca tra le aste disponibili.</div>
+    </div>
+  </main>
+
+  <div class="legend">
+    <strong>Top consigliate:</strong>
+    <code>Gavel + Card</code>, <code>Bid Paddle</code>, <code>Card Pedestal</code>,
+    <code>Rising Price</code>, <code>Hand Bid</code>.
+    Sono le più semantiche per un marketplace di aste di carte collezionabili.
+  </div>
+</body>
+</html>

@@ -4,7 +4,7 @@ import { SellObjectsContent } from '@/components/feature/vendi/SellObjectsConten
 
 export const metadata = {
   title: 'Vendi oggetti — scegli categoria | Ebartex',
-  description: 'Scegli boosters, booster box, set e lotti, prodotti sigillati o accessori per metterli in vendita.',
+  description: 'Scegli boosters, booster box, set e lotti o prodotti sigillati per metterli in vendita.',
 };
 
 export default function VendiOggettiPage() {

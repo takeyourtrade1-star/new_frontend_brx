@@ -1,23 +1,11 @@
-import { Suspense } from 'react';
-import { Header } from '@/components/layout/Header';
-import { ScambiNav } from '@/components/feature/scambi/ScambiNav';
-import { ScambiContent } from '@/components/feature/scambi/ScambiContent';
-import { ScambiGuard } from '../ScambiGuard';
+import { redirect } from 'next/navigation';
 
 export const metadata = {
   title: 'Scambi in corso | Ebartex',
 };
 
+// "Scambi in corso" è ora la pagina principale degli scambi (/scambi).
+// Manteniamo /scambi/mie come redirect per non rompere i link esistenti.
 export default function MieiScambiPage() {
-  return (
-    <>
-      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
-        <Header />
-      </Suspense>
-      <ScambiGuard>
-        <ScambiNav />
-        <ScambiContent />
-      </ScambiGuard>
-    </>
-  );
+  redirect('/scambi');
 }

@@ -3,7 +3,7 @@ import { getVendiCatalogHref } from '@/lib/sell-flow/sell-flow';
 import { getVendiCardStyle } from './vendi-card-styles';
 import type { VendiCardStyle } from './vendi-card-styles';
 
-export type VendiCategoryId = 'singole' | 'oggetti';
+export type VendiCategoryId = 'singole' | 'oggetti' | 'accessori';
 
 export type VendiCategoryConfig = {
   id: VendiCategoryId;
@@ -11,6 +11,7 @@ export type VendiCategoryConfig = {
   imageSrc: string;
   titleKey: MessageKey;
   descriptionKey: MessageKey;
+  subtitleKey?: MessageKey;
   style?: VendiCardStyle;
   fullCard?: boolean;
 };
@@ -33,7 +34,15 @@ export const VENDI_CATEGORIES: VendiCategoryConfig[] = [
     style: getVendiCardStyle('oggetti'),
     fullCard: true,
   },
-
+  {
+    id: 'accessori',
+    href: getVendiCatalogHref('/products/accessori'),
+    imageSrc: '/vendi/oggetti-accessori2.svg',
+    titleKey: 'vendi.category.accessories',
+    subtitleKey: 'vendi.category.accessoriesSubtitle',
+    descriptionKey: 'vendi.category.accessoriesDesc',
+    style: getVendiCardStyle('accessori'),
+  },
 ];
 
 export function getVendiCategoryById(id: string): VendiCategoryConfig | undefined {

@@ -7,11 +7,12 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Eye, Package, Settings, Shield, TrendingUp, Users, Bookmark, Crown, ArrowLeft, Trophy, Check, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, PlusCircle, CalendarPlus, Smartphone, Globe } from 'lucide-react';
+import { Eye, Package, Shield, TrendingUp, Users, Bookmark, Crown, ArrowLeft, Trophy, Check, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, PlusCircle, CalendarPlus, Smartphone, Globe } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { minNextBidEur, parseLocaleMoneyInput, roundMoney, roundUpToHalfStep } from '@/lib/auction/bid-math';
+import { formatAuctionCountdown, isAuctionCountdownLong } from '@/lib/auction/auction-countdown';
 import { AuctionBidPanel } from '@/components/feature/aste/AuctionBidPanel';
 import { AuctionShareButton } from '@/components/feature/aste/AuctionShareButton';
 import { AuctionQrButton } from '@/components/feature/aste/AuctionQrButton';
@@ -50,22 +51,6 @@ const CALENDAR_GLASS_MENU_CLASS =
 const CALENDAR_MENU_ITEM_CLASS =
   'flex w-full items-center justify-between rounded-xl px-2.5 py-2.5 text-left text-[13px] font-semibold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)] transition hover:bg-white/14 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45';
 const CALENDAR_MENU_BADGE_CLASS = 'rounded-md border border-white/30 bg-white/12 px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide text-white';
-
-function formatHMS(ms: number): string {
-  if (ms <= 0) return '00:00:00';
-  const s = Math.floor(ms / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  return [h, m, sec].map((n) => String(n).padStart(2, '0')).join(':');
-}
-
-/** Countdown compatto in stile Figma (es. 29 MIN, 22 H, 7 G). */
-function formatBannerCountdown(hours: number): string {
-  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} MIN`;
-  if (hours < 72) return `${Math.round(hours)} H`;
-  return `${Math.round(hours / 24)} G`;
-}
 
 function sellerBannerHandle(seller: string): string {
   const raw = (seller.split(/[\s_]+/)[0] ?? seller).replace(/[^a-zA-Z0-9]/g, '');
@@ -269,6 +254,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const asteNavRef = useRef<HTMLDivElement>(null);
   const [mobileSection, setMobileSection] = useState<string | null>('auction');
   const [bidsExpanded, setBidsExpanded] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [calendarMenuOpen, setCalendarMenuOpen] = useState(false);
   const calendarMenuMobileRef = useRef<HTMLDivElement>(null);
   const calendarMenuDesktopRef = useRef<HTMLDivElement>(null);
@@ -421,6 +407,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const statsWatchingCount = Math.max(0, Math.round(statsWatchingCountRaw));
   const endsAt = detail?.endsAt ?? new Date(0).toISOString();
   const msLeft = new Date(endsAt).getTime() - now;
+  const countdownIsLong = isAuctionCountdownLong(msLeft);
   const mainImg = detailImages[imgIdx] ?? detailImages[0] ?? '';
   const visibleThumbs = 4;
   const hasThumbOverflow = detailImages.length > visibleThumbs;
@@ -452,6 +439,12 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     currentUserId != null &&
     sameUserId(detail?.highestBidderId, currentUserId);
   const fmtEur = (n: number) => formatAuctionEur(n);
+  const antiSnipeLabel =
+    detail != null && detail.antiSniperEnabled && detail.antiSniperMinutes != null
+      ? t('auctions.createAntiSniperMinutes', { minutes: String(detail.antiSniperMinutes) })
+      : t('auctions.detailAntiSnipeOff');
+  const descriptionText =
+    detail?.description?.trim() || t('auctions.detailDescriptionEmpty');
   const proxyBidIsWinning = !isOwner && !isEnded && myMaxBidEur != null && isWinning && myMaxBidEur >= effectiveCurrentBidEur;
   const proxyBidOutbid = !isOwner && !isEnded && myMaxBidEur != null && !proxyBidIsWinning;
   const downloadCalendarIcs = useCallback(() => {
@@ -896,11 +889,19 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                               className="mt-1 font-mono text-lg font-bold tabular-nums tracking-tight text-gray-900 sm:text-xl"
                               suppressHydrationWarning
                             >
-                              {formatHMS(msLeft)}
+                              {formatAuctionCountdown(msLeft)}
                             </p>
-                            <p className="text-[10px] font-medium text-gray-400">
-                              {t('auctions.detailHoursSuffix')}
-                            </p>
+                            {!countdownIsLong && (
+                              <p className="text-[10px] font-medium text-gray-400">
+                                {t('auctions.detailHoursSuffix')}
+                              </p>
+                            )}
+                            {!isEnded && (
+                              <p className="mt-1.5 text-[10px] font-medium text-gray-500">
+                                <span className="font-semibold text-gray-600">{t('auctions.detailAntiSnipe')}:</span>{' '}
+                                <span className="text-gray-700">{antiSnipeLabel}</span>
+                              </p>
+                            )}
                           </div>
                         </div>
                         {/* Meta row */}
@@ -994,11 +995,34 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     ) : null}
                   </div>
                 </div>
-                <div className="mt-1 flex justify-center border-t border-gray-100 pt-3">
+                <div className="mt-1 flex flex-col items-center border-t border-gray-100 pt-3">
                   <div className="inline-flex items-center gap-2 rounded-full border border-[#FF7300]/35 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-700 shadow-[0_10px_24px_rgba(255,115,0,0.12)] backdrop-blur-md backdrop-saturate-150 sm:gap-3">
                     <span>{t('auctions.detailCondition')}: <span className="text-gray-900">{conditionLabel}</span></span>
                     <span className="text-gray-300">|</span>
                     <span>{t('auctions.detailFrom')}: <span className="text-[#1D3160]">{fmtEur(detail.startingBidEur)}</span></span>
+                  </div>
+                  <div className="mt-3 w-full max-w-xl px-1">
+                    <button
+                      type="button"
+                      onClick={() => setDescriptionExpanded((open) => !open)}
+                      className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-200/80 bg-gray-50/80 px-3 py-2 text-left transition hover:border-gray-300 hover:bg-gray-50"
+                      aria-expanded={descriptionExpanded}
+                    >
+                      <span className="text-[11px] font-bold uppercase tracking-wide text-gray-600">
+                        {t('auctions.detailDescription')}
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${descriptionExpanded ? 'rotate-180' : ''}`}
+                        aria-hidden
+                      />
+                    </button>
+                    <div
+                      className={`overflow-hidden transition-all duration-300 ${descriptionExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
+                    >
+                      <p className="px-1 pt-2 text-left text-sm leading-relaxed text-gray-600">
+                        {descriptionText}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1144,7 +1168,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
                 {isOwner && outcome === 'sold' && (
                   <Link
-                    href={`/aste/spedizioni?order=${encodeURIComponent(String(detail.numericId))}`}
+                    href="/ordini/vendite?tab=da-spedire"
                     className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#FF7300] bg-[#FF7300] py-4 text-center text-base font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-[#e86800]"
                   >
                     <Package className="h-5 w-5 shrink-0" aria-hidden />
@@ -1153,21 +1177,20 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                 )}
 
                 {isOwner && !isEnded && (
-                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                    <button
-                      type="button"
-                      disabled
-                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-gray-300 bg-white py-3 text-sm font-bold uppercase tracking-wide text-gray-500"
-                    >
-                      <Settings className="h-4 w-4" aria-hidden />
-                      {t('auctions.sellerActionEdit')}
-                    </button>
+                  <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <Link
                       href="/aste/mie"
-                      className="btn-orange-outline-glow inline-flex flex-1 items-center justify-center rounded-full py-3"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm transition hover:border-[#FF7300]/35 hover:text-[#FF7300]"
                     >
                       {t('auctions.sellerActionManage')}
                     </Link>
+                    <button
+                      type="button"
+                      disabled
+                      className="self-center text-xs font-medium text-gray-500 underline-offset-2 transition hover:text-[#FF7300] hover:underline disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
+                    >
+                      {t('auctions.sellerActionEdit')}
+                    </button>
                   </div>
                 )}
 
@@ -1289,10 +1312,16 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         className="mt-3 flex items-baseline justify-center gap-1.5 font-mono text-3xl font-bold tabular-nums tracking-tight text-[#9A3412] leading-none xl:text-4xl 3xl:text-5xl"
                         suppressHydrationWarning
                       >
-                        {formatHMS(msLeft)}
-                        <span className="text-xl font-black tracking-widest text-orange-800/80 xl:text-2xl">
-                          {t('auctions.detailHoursSuffix').toUpperCase()}
-                        </span>
+                        {formatAuctionCountdown(msLeft)}
+                        {!countdownIsLong && (
+                          <span className="text-xl font-black tracking-widest text-orange-800/80 xl:text-2xl">
+                            {t('auctions.detailHoursSuffix').toUpperCase()}
+                          </span>
+                        )}
+                      </p>
+                      <p className="mt-3 text-[11px] font-semibold text-orange-900/75">
+                        <span className="uppercase tracking-wide text-orange-800/60">{t('auctions.detailAntiSnipe')}:</span>{' '}
+                        {antiSnipeLabel}
                       </p>
                     </div>
                   )}
@@ -1300,16 +1329,21 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
 
                 {/* Ultime Offerte — Design Premium Slider */}
                 <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-                  <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3 xl:px-6 xl:py-4">
-                    <h3 className="text-xs font-black uppercase tracking-[0.15em] text-gray-900">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-gray-100 bg-gray-50/50 px-3 py-2.5 sm:px-4 xl:px-5">
+                    <h3 className="min-w-0 flex-1 text-[10px] font-black uppercase leading-snug tracking-[0.08em] text-gray-900 sm:text-[11px] sm:tracking-[0.1em]">
                       {isOwner ? t('auctions.sellerBidHistoryTitle') : t('auctions.detailBidHistory')}
                     </h3>
-                    <span className="flex h-6 items-center justify-center rounded bg-[#1D3160] px-2 text-[11px] font-bold text-white shadow-sm">
-                      {bidRows.length} Offerte
+                    <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-[#1D3160] px-2 py-0.5 text-[10px] font-bold leading-none text-white">
+                      {bidRows.length} {t('auctions.detailBidsCount')}
                     </span>
                   </div>
 
-                  <div className="max-h-72 overflow-y-auto py-1">
+                  <div className={`overflow-y-auto py-1 ${bidRows.length === 0 ? 'min-h-[4.5rem]' : 'max-h-72'}`}>
+                    {bidRows.length === 0 && (
+                      <p className="px-4 py-3 text-center text-xs text-gray-400 xl:px-5">
+                        Nessuna offerta ancora.
+                      </p>
+                    )}
                     {/* Bids List */}
                     {(() => {
                       let crownShown = false;
@@ -1380,30 +1414,14 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             </div>
 
             <section className="mt-8 rounded-3xl border border-black/10 bg-white px-5 py-6 shadow-[0_8px_28px_rgba(0,0,0,0.06)] sm:mt-10 sm:px-7 sm:py-7 lg:px-9 lg:py-8">
-              <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] lg:gap-9">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6E6E73]">Descrizione</p>
-                  <h3 className="mt-1 text-[24px] font-semibold tracking-tight text-[#1D1D1F] sm:text-[28px]">
-                    Buone condizioni
-                  </h3>
-                  <p className="mt-4 max-w-[70ch] text-[15px] leading-7 text-[#424245] sm:text-[16px]">
-                    {detail.description || 'Nessuna descrizione aggiuntiva fornita dal venditore.'}
-                  </p>
-                  <p className="mt-5 max-w-[70ch] text-[13px] leading-6 text-[#6E6E73]">
-                    Politiche di reso: il reso e gestito secondo le condizioni dichiarate dal venditore e lo stato dell&apos;oggetto. In caso di problemi, puoi aprire una contestazione dalla cronologia ordini.
-                  </p>
-                </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6E6E73]">Spedizione</p>
+                <h3 className="mt-1 text-[24px] font-semibold tracking-tight text-[#1D1D1F] sm:text-[28px]">
+                  {shippingInfo.included ? 'Spedizione inclusa' : 'Spedizione'}
+                </h3>
+                <p className="mt-2 text-[13px] text-[#6E6E73] sm:text-[14px]">{shippingInfo.label}</p>
 
-                <div className="hidden w-px bg-black/10 lg:block" aria-hidden />
-
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6E6E73]">Spedizione</p>
-                  <h3 className="mt-1 text-[24px] font-semibold tracking-tight text-[#1D1D1F] sm:text-[28px]">
-                    Spedizione da definire
-                  </h3>
-                  <p className="mt-2 text-[13px] text-[#6E6E73] sm:text-[14px]">{shippingInfo.label}</p>
-
-                  <div className="mt-5 space-y-2.5">
+                <div className="mt-5 space-y-2.5">
                     {detail.shippingOriginCountry ? (
                       <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-[#F7F7F8] px-3.5 py-3 text-[13px]">
                         <div className="flex items-center gap-2.5">
@@ -1450,7 +1468,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         </div>
                       </div>
                     ) : null}
-                  </div>
                 </div>
               </div>
             </section>
@@ -1466,7 +1483,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 scrollbar-hide lg:hidden">
               {similarCards.map((a) => {
                 const fmtEur = (n: number) => formatAuctionEur(n);
-                const timeLeft = formatBannerCountdown(a.hoursFromNow);
+                const ms = new Date(a.endsAt).getTime() - now;
+                const timeLeft = formatAuctionCountdown(ms);
                 return (
                   <Link
                     key={a.id}
@@ -1513,7 +1531,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             <div className="hidden gap-5 sm:grid-cols-2 lg:grid lg:grid-cols-3">
               {similarCards.map((a) => {
                 const fmtEur = (n: number) => formatAuctionEur(n);
-                const timeLeft = formatBannerCountdown(a.hoursFromNow);
+                const ms = new Date(a.endsAt).getTime() - now;
+                const timeLeft = formatAuctionCountdown(ms);
                 return (
                   <Link
                     key={a.id}
@@ -1547,7 +1566,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         </p>
                         <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                           <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
-                          {timeLeft} {t('auctions.detailHoursSuffix')}
+                          {timeLeft}
+                          {!isAuctionCountdownLong(ms) ? ` ${t('auctions.detailHoursSuffix')}` : null}
                         </p>
                       </div>
                     </div>

@@ -47,11 +47,20 @@ export function LegalSection({
   );
 }
 
-export function LegalIntro({ title, updated }: { title: string; updated: string }) {
+export function LegalIntro({
+  title,
+  published,
+  updated,
+}: {
+  title: string;
+  published: string;
+  updated: string;
+}) {
   return (
     <div className="rounded-xl border border-[#FF7300]/20 bg-gradient-to-br from-[#FFF8F3] to-white px-5 py-4 md:px-6 md:py-5">
       <p className="font-display text-sm font-bold uppercase tracking-widest text-[#FF7300]">{title}</p>
-      <p className="mt-1 text-sm text-slate-500">Ultimo aggiornamento: {updated}</p>
+      <p className="mt-1 text-sm text-slate-500">Pubblicazione: {published}</p>
+      <p className="text-sm text-slate-500">Ultimo aggiornamento: {updated}</p>
     </div>
   );
 }

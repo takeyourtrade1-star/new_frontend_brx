@@ -10,9 +10,13 @@ import { useRouter } from 'next/navigation';
 import { LayoutGrid, LayoutList, SlidersHorizontal, Star } from 'lucide-react';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { FlagIcon } from '@/components/ui/FlagIcon';
+import { cn } from '@/lib/utils';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { isAuctionEndedUI, type AuctionUI, type AuctionGame } from '@/lib/auction/auction-adapter';
 import { roundUpToHalfStep } from '@/lib/auction/bid-math';
+import { formatAuctionCountdown, formatHMS } from '@/lib/auction/auction-countdown';
+
+export { formatAuctionCountdown, formatHMS };
 
 export type EnrichedAuction = AuctionUI;
 
@@ -42,28 +46,6 @@ export function MoneyWithSmallCents({ value, className = '' }: { value: number; 
       <span className="ml-1">€</span>
     </span>
   );
-}
-
-export function formatHMS(ms: number): string {
-  if (ms <= 0) return '00:00:00';
-  const s = Math.floor(ms / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  return [h, m, sec].map((n) => String(n).padStart(2, '0')).join(':');
-}
-
-/** Solo durata leggibile (es. "2g 5h", "3h 12m", "45m") — per badge su immagine. */
-function formatCountdownDuration(ms: number): string {
-  if (ms <= 0) return '—';
-  const totalMinutes = Math.ceil(ms / 60000);
-  const days = Math.floor(totalMinutes / (24 * 60));
-  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
-  const minutes = totalMinutes % 60;
-
-  if (days > 0) return `${days}g ${hours}h`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
 }
 
 function formatSellerLabel(rawSeller: string): string {
@@ -103,8 +85,45 @@ export function AuctionViewToggle({
   onViewModeChange: (v: 'list' | 'grid') => void;
   listLabel?: string;
   gridLabel?: string;
-  variant?: 'icons-only' | 'with-labels';
+  variant?: 'icons-only' | 'with-labels' | 'compact';
 }) {
+  if (variant === 'compact') {
+    const activeCls =
+      'border-[#FF7300]/40 bg-[#FF7300]/85 text-white shadow-sm';
+    const inactiveCls =
+      'border-gray-200 bg-white text-gray-600 hover:border-[#FF7300]/30 hover:text-gray-900';
+    return (
+      <div className="flex items-center gap-1" role="group" aria-label={`${listLabel} / ${gridLabel}`}>
+        <button
+          type="button"
+          onClick={() => onViewModeChange('list')}
+          aria-label={listLabel}
+          title={listLabel}
+          aria-pressed={viewMode === 'list'}
+          className={cn(
+            'inline-flex items-center justify-center rounded-full border p-1.5 transition-colors',
+            viewMode === 'list' ? activeCls : inactiveCls
+          )}
+        >
+          <LayoutList className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        </button>
+        <button
+          type="button"
+          onClick={() => onViewModeChange('grid')}
+          aria-label={gridLabel}
+          title={gridLabel}
+          aria-pressed={viewMode === 'grid'}
+          className={cn(
+            'inline-flex items-center justify-center rounded-full border p-1.5 transition-colors',
+            viewMode === 'grid' ? activeCls : inactiveCls
+          )}
+        >
+          <LayoutGrid className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        </button>
+      </div>
+    );
+  }
+
   if (variant === 'icons-only') {
     return (
       <div className="flex h-10 overflow-hidden rounded-full bg-gray-100">
@@ -219,7 +238,7 @@ export function AuctionGridCard({
                   className="mt-0.5 text-sm font-bold tabular-nums tracking-tight text-white sm:text-[15px]"
                   suppressHydrationWarning
                 >
-                  {formatCountdownDuration(ms)}
+                  {formatAuctionCountdown(ms)}
                 </p>
               </>
             )}
@@ -344,7 +363,7 @@ export function AuctionListTable({
                   prefetch={false}
                   className="inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-xs font-bold uppercase text-header-bg hover:underline"
                 >
-                  {ended ? t('auctions.viewClosedAuction') : 'Fai la tua offerta'}
+                  {ended ? t('auctions.viewClosedAuction') : t('auctions.listParticipate')}
                 </Link>
               </div>
             </li>
@@ -396,12 +415,12 @@ export function AuctionListTable({
                     </Link>
                   </td>
                   <td className="p-3">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="flex items-center gap-1 text-gray-800">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-gray-800">
+                      <span className="flex min-w-0 items-center gap-1">
                         <FlagIcon country={a.sellerCountry} size="sm" />
-                        {a.seller}
+                        <span className="truncate">{a.seller}</span>
                       </span>
-                      <span className="text-xs text-amber-600">
+                      <span className="shrink-0 text-xs text-amber-600">
                         ★ {a.sellerRating}% ({a.sellerReviewCount})
                       </span>
                     </div>
@@ -427,7 +446,7 @@ export function AuctionListTable({
                       prefetch
                       className="inline-flex rounded-lg px-3 py-2 text-xs font-bold uppercase text-header-bg hover:underline"
                     >
-                      {ended ? t('auctions.viewClosedAuction') : 'Fai la tua offerta'}
+                      {ended ? t('auctions.viewClosedAuction') : t('auctions.listParticipate')}
                     </Link>
                   </td>
                 </tr>

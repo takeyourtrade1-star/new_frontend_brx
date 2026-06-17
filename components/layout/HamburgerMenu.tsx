@@ -7,7 +7,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, ShoppingCart, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, ArrowLeftRight, QrCode } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, Key, Eye, EyeOff, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, ShoppingCart, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, QrCode } from 'lucide-react';
+import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { useCartStore } from '@/lib/stores/cart-store';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme-context';
@@ -492,7 +493,7 @@ export function HamburgerMenu() {
                   { href: '/ordini/acquisti', icon: ShoppingBag, label: t('purchases.myPurchases') },
                   { href: '/account/lista-desideri', icon: Heart, label: t('purchases.wishlist') },
                   { href: '/account/sincronizzazione', icon: RefreshCw, label: t('account.sync') },
-                  { href: '/scambi', icon: ArrowLeftRight, label: 'I MIEI SCAMBI' },
+                  { href: '/scambi', icon: ScambiIcon, label: 'I MIEI SCAMBI' },
                 ].map(({ href, icon: Icon, label }) => (
                   <Link
                     key={href}

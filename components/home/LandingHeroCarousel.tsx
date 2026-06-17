@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Gavel, ArrowLeftRight, Trophy, Zap } from 'lucide-react';
+import { ArrowRight, Gavel, Trophy, Zap } from 'lucide-react';
+import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { getTournamentsPortalUrl, TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -60,7 +61,7 @@ const SLIDES: SlideConfig[] = [
     cta: 'Vai agli scambi',
     href: '/scambi',
     ariaLabel: 'Vai agli scambi',
-    Icon: ArrowLeftRight,
+    Icon: ScambiIcon,
     accentColor: '#34D399',
   },
   {
@@ -384,7 +385,7 @@ export function LandingHeroCarousel() {
 
       {/* Unified Card + Steps */}
       <motion.div
-        className="relative flex-1 overflow-hidden rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md flex flex-col"
+        className="relative flex-1 overflow-hidden rounded-2xl border border-white/15 bg-[#0F172A]/50 backdrop-blur-md flex flex-col"
       >
         {/* Slide content */}
         <div className="relative min-h-[10rem] sm:min-h-[9rem] md:min-h-[10rem] flex-1">

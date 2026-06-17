@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import {
   PenTool,
   Sparkles,
+  Award,
   ArrowLeft,
   Filter,
   Grid3X3,
@@ -376,7 +377,7 @@ export function SignedAlteredCollectionPage() {
 
   const breadcrumbItems: AppBreadcrumbItem[] = [
     { label: 'Home', href: '/' },
-    { label: 'Collezioni Firmate e Alterate', href: '/collezioni-firmate-alterate' },
+    { label: 'Collezioni Firmate, Gradate e Alterate', href: '/collezioni-firmate-alterate' },
   ];
 
   const filteredCards = COLLECTION_CARDS.filter((card) => {
@@ -443,7 +444,9 @@ export function SignedAlteredCollectionPage() {
               <h1 className="font-display text-3xl font-bold text-white sm:text-4xl">
                 Collezioni{' '}
                 <span className="text-amber-400">Firmate</span>
-                <span className="text-white/40"> & </span>
+                <span className="text-white/40">, </span>
+                <span className="text-emerald-400">Gradate</span>
+                <span className="text-white/40"> e </span>
                 <span className="text-violet-400">Alterate</span>
               </h1>
               <p className="mt-1 text-zinc-400">
@@ -454,8 +457,8 @@ export function SignedAlteredCollectionPage() {
 
           {/* Description */}
           <p className="max-w-2xl text-sm leading-relaxed text-zinc-300">
-            Scopri le carte firmate direttamente dagli artisti originali e le alterazioni artistiche uniche.
-            Ogni pezzo  una vera opera d arte, perfetta per i collezionisti pi esigenti.
+            Scopri le carte firmate dagli artisti originali, quelle certificate da enti di grading
+            e le alterazioni artistiche uniche. Ogni pezzo  una vera opera d arte, perfetta per i collezionisti pi esigenti.
           </p>
         </div>
       </section>
@@ -626,6 +629,17 @@ export function SignedAlteredCollectionPage() {
             </div>
 
             <div className="rounded-xl bg-white p-6 shadow-sm">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100">
+                <Award className="h-6 w-6 text-emerald-600" />
+              </div>
+              <h3 className="font-display text-lg font-bold text-zinc-900">Carte Gradate</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-600">
+                Carte certificate da enti di grading riconosciuti. Gradi verificati e custodie
+                originali per collezionisti che cercano autenticit e valore garantito.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-white p-6 shadow-sm">
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100">
                 <Sparkles className="h-6 w-6 text-violet-600" />
               </div>
@@ -633,20 +647,6 @@ export function SignedAlteredCollectionPage() {
               <p className="mt-2 text-sm leading-relaxed text-zinc-600">
                 Opere d arte su carta. Gli alteratori professionisti trasformano le carte in pezzi
                 unici con tecniche avanzate di pittura e modifica dei bordi.
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100">
-                <div className="flex items-center gap-1">
-                  <PenTool className="h-5 w-5 text-orange-600" />
-                  <Sparkles className="h-5 w-5 text-orange-600" />
-                </div>
-              </div>
-              <h3 className="font-display text-lg font-bold text-zinc-900">Edizioni Speciali</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-                Le carte pi rare: firmate E alterate. Il meglio del meglio per i collezionisti
-                pi esigenti che cercano il pezzo forte della loro collezione.
               </p>
             </div>
           </div>

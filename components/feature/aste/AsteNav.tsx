@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { PlusCircle, List, Users, Truck, ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
+import { Home, PlusCircle, List, Users, ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
@@ -86,6 +86,18 @@ export function AsteNav() {
             aria-label="Menu aste"
           >
             <Link
+              href="/aste"
+              aria-label={t('auctions.breadcrumbHome')}
+              className={cn(
+                'group flex h-9 sm:h-12 w-9 shrink-0 items-center justify-center rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-all duration-300',
+                pathname === '/aste'
+                  ? 'border-2 border-[#FF7300] bg-[#FFF4EC] text-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.2)] scale-105'
+                  : 'border-2 border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)] active:scale-95'
+              )}
+            >
+              <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" aria-hidden />
+            </Link>
+            <Link
               href="/login?redirect=/aste/nuova"
               className="group flex h-9 sm:h-12 shrink-0 items-center gap-1.5 sm:gap-2 rounded-full border-2 border-[#FF7300] bg-[#FFF4EC] px-3 sm:px-4 text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-[#FF7300] transition-all duration-300 hover:bg-[#FFF0E0] hover:shadow-[0_0_12px_rgba(255,115,0,0.3)] active:scale-95"
             >
@@ -98,14 +110,17 @@ export function AsteNav() {
     );
   }
 
-  const links: { href: string; label: string; Icon: LucideIcon; isPrimary?: boolean }[] = [
+  const links: { href: string; label: string; Icon: LucideIcon; isPrimary?: boolean; iconOnly?: boolean }[] = [
+    { href: '/aste', label: t('auctions.breadcrumbHome'), Icon: Home, iconOnly: true },
     { href: '/aste/nuova', label: t('auctions.createAuction'), Icon: PlusCircle, isPrimary: true },
     { href: '/aste/mie', label: t('auctions.navMyListings'), Icon: List },
     { href: '/aste/partecipazioni', label: t('auctions.navParticipations'), Icon: Users },
-    { href: '/aste/spedizioni', label: t('auctions.navShipping'), Icon: Truck },
   ];
 
   function isActive(href: string) {
+    if (href === '/aste') {
+      return pathname === '/aste';
+    }
     return pathname?.startsWith(href) ?? false;
   }
 
@@ -150,23 +165,25 @@ export function AsteNav() {
           className="scrollbar-hide flex items-center justify-center gap-2 sm:gap-3 overflow-x-auto px-4 py-1.5"
           aria-label="Menu aste"
         >
-          {links.map(({ href, label, Icon, isPrimary }) => {
+          {links.map(({ href, label, Icon, isPrimary, iconOnly }) => {
             const active = isActive(href);
             return (
               <Link
                 key={href}
                 href={href}
+                aria-label={iconOnly ? label : undefined}
                 className={cn(
-                  'group relative flex h-9 sm:h-12 shrink-0 items-center justify-center sm:justify-start rounded-full px-0 sm:px-4 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-all duration-300',
+                  'group relative flex h-9 sm:h-12 shrink-0 items-center rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-all duration-300',
+                  iconOnly ? 'w-9 justify-center' : 'justify-center sm:justify-start px-0 sm:px-4 w-9 sm:w-auto',
                   active
-                    ? 'w-9 sm:w-auto border-2 border-[#FF7300] bg-[#FFF4EC] text-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.2)] scale-105'
+                    ? 'border-2 border-[#FF7300] bg-[#FFF4EC] text-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.2)] scale-105'
                     : isPrimary
-                      ? 'w-9 sm:w-auto border-2 border-[#FF7300]/30 bg-[#FFF4EC] text-[#FF7300]/90 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_12px_rgba(255,115,0,0.2)] active:scale-95'
-                      : 'w-9 sm:w-auto border-2 border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)] active:scale-95'
+                      ? 'border-2 border-[#FF7300]/30 bg-[#FFF4EC] text-[#FF7300]/90 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_12px_rgba(255,115,0,0.2)] active:scale-95'
+                      : 'border-2 border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)] active:scale-95'
                 )}
               >
                 <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-300', isPrimary && 'group-hover:rotate-90')} aria-hidden />
-                <span className="hidden sm:inline whitespace-nowrap sm:ml-1.5">{label}</span>
+                {!iconOnly && <span className="hidden sm:inline whitespace-nowrap sm:ml-1.5">{label}</span>}
               </Link>
             );
           })}

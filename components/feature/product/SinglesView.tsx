@@ -31,6 +31,9 @@ import { getCategoryIdsForProductSlug } from '@/lib/product-categories';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { isSellFlow, getProductDetailHref } from '@/lib/sell-flow/sell-flow';
 import { Pagination } from '@/components/ui/Pagination';
+import { useDebounce } from '@/lib/hooks/use-debounce';
+
+const LIVE_SEARCH_DEBOUNCE_MS = 350;
 
 const BACKEND_LANG_ORDER = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
 type SupportedLang = (typeof BACKEND_LANG_ORDER)[number];
@@ -272,9 +275,22 @@ export function ProductCategoryView({
   const [isRarityOpen, setIsRarityOpen] = useState(false);
   const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
   const [data, setData] = useState<SearchApiResponse | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(() => Boolean(q || setFilter));
   const [loading, setLoading] = useState(!sellFlow);
   const [error, setError] = useState<string | null>(null);
+
+  const debouncedNome = useDebounce(nomeInput, LIVE_SEARCH_DEBOUNCE_MS);
+  const debouncedEdizione = useDebounce(edizioneInput, LIVE_SEARCH_DEBOUNCE_MS);
+  const fetchNome = sellFlow ? debouncedNome : nomeInput;
+  const fetchEdizione = sellFlow ? debouncedEdizione : edizioneInput;
+  const showResults =
+    !sellFlow || hasSearched || nomeInput.trim().length > 0 || edizioneInput.trim().length > 0;
+  const sellQueryActive = debouncedNome.trim().length > 0 || debouncedEdizione.trim().length > 0;
+  const sellSearchPending =
+    sellFlow &&
+    showResults &&
+    (nomeInput.trim() !== debouncedNome.trim() ||
+      edizioneInput.trim() !== debouncedEdizione.trim());
 
   useEffect(() => {
     setNomeInput(q);
@@ -294,14 +310,48 @@ export function ProductCategoryView({
     [searchParams, effectiveGame, categorySlug]
   );
 
+  const liveSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerLiveSearch = useCallback(
+    (nextNomeInput: string, nextEdizioneInput: string) => {
+      if (!sellFlow) return;
+      if (liveSearchTimeoutRef.current) clearTimeout(liveSearchTimeoutRef.current);
+      const qVal = nextNomeInput.trim();
+      const setVal = nextEdizioneInput.trim();
+      liveSearchTimeoutRef.current = setTimeout(() => {
+        router.replace(buildUrl({ q: qVal, set: setVal, page: '1' }));
+      }, LIVE_SEARCH_DEBOUNCE_MS);
+    },
+    [sellFlow, router, buildUrl]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (liveSearchTimeoutRef.current) clearTimeout(liveSearchTimeoutRef.current);
+    };
+  }, []);
+
+  const syncSellSearchState = useCallback(
+    (nextNomeInput: string, nextEdizioneInput: string) => {
+      if (!sellFlow) return;
+      if (nextNomeInput.trim() || nextEdizioneInput.trim()) {
+        setHasSearched(true);
+      } else {
+        setHasSearched(false);
+      }
+      triggerLiveSearch(nextNomeInput, nextEdizioneInput);
+    },
+    [sellFlow, triggerLiveSearch]
+  );
+
   const fetchResults = useCallback(async () => {
     setLoading(true);
     setError(null);
     const params = new URLSearchParams();
     params.set('game', apiGame);
     const queryParts: string[] = [];
-    if (nomeInput.trim()) queryParts.push(nomeInput.trim());
-    if (edizioneInput.trim()) queryParts.push(edizioneInput.trim());
+    if (fetchNome.trim()) queryParts.push(fetchNome.trim());
+    if (fetchEdizione.trim()) queryParts.push(fetchEdizione.trim());
     const combinedQ = queryParts.join(' ');
     if (combinedQ) params.set('q', combinedQ);
     if (categoryIds.length > 0) {
@@ -326,13 +376,13 @@ export function ProductCategoryView({
     } finally {
       setLoading(false);
     }
-  }, [apiGame, nomeInput, edizioneInput, categoryIds, categoryId, pageParam, sortParam]);
+  }, [apiGame, fetchNome, fetchEdizione, categoryIds, categoryId, pageParam, sortParam]);
 
   useEffect(() => {
-    if (!sellFlow || hasSearched) {
+    if (!sellFlow || sellQueryActive) {
       fetchResults();
     }
-  }, [fetchResults, sellFlow, hasSearched]);
+  }, [fetchResults, sellFlow, sellQueryActive]);
 
   const total = data?.total ?? 0;
   const rawHits = (data?.hits ?? []) as SinglesHit[];
@@ -391,11 +441,22 @@ export function ProductCategoryView({
   }, [data?.hits, nomeInput, edizioneInput]);
 
   const handleCerca = () => {
-    if (sellFlow && !hasSearched) {
-      setHasSearched(true);
+    if (liveSearchTimeoutRef.current) clearTimeout(liveSearchTimeoutRef.current);
+    if (typeof document !== 'undefined') {
+      const el = document.activeElement;
+      if (el instanceof HTMLElement) el.blur();
     }
-    router.push(buildUrl({ q: nomeInput.trim(), set: edizioneInput.trim(), page: '1' }));
+    if (sellFlow) {
+      if (nomeInput.trim() || edizioneInput.trim()) {
+        setHasSearched(true);
+      } else {
+        setHasSearched(false);
+      }
+    }
+    router.replace(buildUrl({ q: nomeInput.trim(), set: edizioneInput.trim(), page: '1' }));
   };
+
+  const effectiveLoading = loading || sellSearchPending;
 
   const formatEuro = (n: number | undefined) =>
     n != null ? formatEuroNoSpace(n, 'it-IT') : '–';
@@ -409,7 +470,7 @@ export function ProductCategoryView({
   return (
     <RarityLegendProvider>
       <section className="min-h-screen pb-12 bg-[#F0F0F0]">
-        {(!sellFlow || hasSearched) && (
+        {showResults && (
           <div className="container-content px-4 sm:px-6 pt-6 pb-2">
             <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-wide text-gray-900">
               {pageTitle}
@@ -422,32 +483,32 @@ export function ProductCategoryView({
             {/* Sidebar filtri */}
             <aside className={cn(
               'w-full shrink-0 transition-all duration-300',
-              sellFlow && !hasSearched
+              sellFlow && !showResults
                 ? 'lg:w-full xl:w-full flex items-center justify-center lg:min-h-[60vh]'
                 : 'lg:w-56 xl:w-64'
             )}>
               <div className={cn(
                 'transition-all duration-300',
-                sellFlow && !hasSearched
+                sellFlow && !showResults
                   ? 'p-8 lg:p-12 flex flex-col justify-center items-center w-full max-w-2xl'
                   : 'rounded-xl border border-gray-200 bg-white shadow-sm p-4 sticky top-4'
               )}>
-                {(!sellFlow || hasSearched) && (
+                {showResults && (
                   <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-gray-500">
                     {t('search.filtersSheetTitle')}
                   </p>
                 )}
                 <div className={cn(
                   'flex flex-col gap-3 w-full',
-                  sellFlow && !hasSearched ? 'max-w-2xl' : ''
+                  sellFlow && !showResults ? 'max-w-2xl' : ''
                 )}>
                   {/* Ricerca rapida (solo in flusso vendi) */}
                   {sellFlow && (
                     <div className={cn(
                       'flex flex-col gap-4',
-                      sellFlow && !hasSearched ? 'w-full items-center' : ''
+                      sellFlow && !showResults ? 'w-full items-center' : ''
                     )}>
-                      {sellFlow && !hasSearched && (
+                      {sellFlow && !showResults && (
                         <h2 className="text-4xl lg:text-5xl font-black text-[#FF8800] tracking-tight uppercase text-center mb-2">
                           {pageTitle}
                         </h2>
@@ -455,17 +516,21 @@ export function ProductCategoryView({
                       
                       <div className={cn(
                         'flex items-center gap-3',
-                        sellFlow && !hasSearched ? 'w-full max-w-2xl mx-auto' : ''
+                        sellFlow && !showResults ? 'w-full max-w-2xl mx-auto' : ''
                       )}>
                         <div className="relative flex-1">
-                          <AnimatedSearchPlaceholder visible={sellFlow && !hasSearched && !nomeInput} categorySlug={categorySlug} />
+                          <AnimatedSearchPlaceholder visible={sellFlow && !showResults && !nomeInput} categorySlug={categorySlug} />
                           <input
                             type="text"
                             value={nomeInput}
-                            onChange={(e) => setNomeInput(e.target.value)}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setNomeInput(v);
+                              syncSellSearchState(v, edizioneInput);
+                            }}
                             onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
-                            placeholder={sellFlow && !hasSearched ? '' : t('search.quickSearchPlaceholder')}
-                            className={sellFlow && !hasSearched 
+                            placeholder={sellFlow && !showResults ? '' : t('search.quickSearchPlaceholder')}
+                            className={sellFlow && !showResults
                               ? 'min-h-[56px] w-full rounded-full border-2 border-[#FF8800] bg-white px-6 py-3 text-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF8800]/30 shadow-sm'
                               : fieldClass
                             }
@@ -473,7 +538,10 @@ export function ProductCategoryView({
                           {nomeInput && (
                             <button
                               type="button"
-                              onClick={() => setNomeInput('')}
+                              onClick={() => {
+                                setNomeInput('');
+                                syncSellSearchState('', edizioneInput);
+                              }}
                               className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
                               aria-label={t('search.clearQuickSearch')}
                             >
@@ -482,7 +550,7 @@ export function ProductCategoryView({
                           )}
                         </div>
                         
-                        {sellFlow && !hasSearched && (
+                        {sellFlow && !showResults && (
                           <button
                             type="button"
                             onClick={handleCerca}
@@ -494,7 +562,7 @@ export function ProductCategoryView({
                         )}
                       </div>
                       
-                      {sellFlow && !hasSearched && (
+                      {sellFlow && !showResults && (
                         <p className="text-center text-sm text-gray-500 mt-2">
                           {t('search.sellSearchHint')}
                         </p>
@@ -502,7 +570,7 @@ export function ProductCategoryView({
                     </div>
                   )}
 
-                  {(!sellFlow || hasSearched) && (
+                  {showResults && (
                     <label className="flex flex-col gap-1">
                       <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
                         {t('search.filterEdition')}
@@ -512,8 +580,10 @@ export function ProductCategoryView({
                           type="text"
                           value={edizioneInput}
                           onChange={(e) => {
-                            setEdizioneInput(e.target.value);
+                            const v = e.target.value;
+                            setEdizioneInput(v);
                             setIsSetDropdownOpen(true);
+                            syncSellSearchState(nomeInput, v);
                           }}
                           onFocus={() => { if (availableSets.length > 0) setIsSetDropdownOpen(true); }}
                           onKeyDown={(e) => {
@@ -526,7 +596,11 @@ export function ProductCategoryView({
                         {edizioneInput && (
                           <button
                             type="button"
-                            onClick={() => { setEdizioneInput(''); setIsSetDropdownOpen(false); }}
+                            onClick={() => {
+                              setEdizioneInput('');
+                              setIsSetDropdownOpen(false);
+                              syncSellSearchState(nomeInput, '');
+                            }}
                             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
                             aria-label={t('search.clearEdition')}
                           >
@@ -652,7 +726,7 @@ export function ProductCategoryView({
                   </label>
                   )}
 
-                  {!(sellFlow && !hasSearched) && (
+                  {showResults && (
                     <button
                       type="button"
                       onClick={handleCerca}
@@ -669,9 +743,9 @@ export function ProductCategoryView({
             {/* Contenuto principale */}
             <div className={cn(
               'min-w-0 flex-1',
-              sellFlow && !hasSearched ? 'hidden' : ''
+              sellFlow && !showResults ? 'hidden' : ''
             )}>
-              {(!sellFlow || hasSearched) && !loading && !error && (
+              {showResults && !effectiveLoading && !error && (
                 <SearchResultsToolbar
                   className="mb-4"
                   total={total}
@@ -685,7 +759,7 @@ export function ProductCategoryView({
                 />
               )}
 
-              {(!sellFlow || hasSearched) && (loading || error) && (
+              {showResults && (effectiveLoading || error) && (
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
                   <p className="text-sm text-gray-700">
                     <strong>{total}</strong> {t('search.results')}
@@ -693,19 +767,19 @@ export function ProductCategoryView({
                 </div>
               )}
 
-              {(!sellFlow || hasSearched) && (
+              {showResults && (
                 <div className="overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm search-results-card">
                   {error && (
                     <div className="p-6 text-center text-red-600 bg-red-50">{error}</div>
                   )}
-                  {loading && (
+                  {effectiveLoading && (
                     <div className="p-12 text-center text-gray-500">{t('search.loading')}</div>
                   )}
-                  {!loading && !error && hits.length === 0 && (
+                  {!effectiveLoading && !error && hits.length === 0 && (
                     <div className="p-12 text-center text-gray-500">{t('search.noResults')}</div>
                   )}
 
-                  {!loading && !error && hits.length > 0 && viewMode === 'list' && (
+                  {!effectiveLoading && !error && hits.length > 0 && viewMode === 'list' && (
                     <SearchResultsTable
                       hits={hits}
                       selectedLang={selectedLang}
@@ -719,7 +793,7 @@ export function ProductCategoryView({
                     />
                   )}
 
-                  {!loading && !error && hits.length > 0 && viewMode === 'grid' && (
+                  {!effectiveLoading && !error && hits.length > 0 && viewMode === 'grid' && (
                     <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                       {hits.map((hit) => {
                         const imgUrl = getCardImageUrl(hit.image ?? null);
@@ -767,7 +841,7 @@ export function ProductCategoryView({
                     </div>
                   )}
 
-                  {!loading && !error && totalPages > 1 && (
+                  {!effectiveLoading && !error && totalPages > 1 && (
                     <Pagination
                       currentPage={currentPage}
                       totalPages={totalPages}

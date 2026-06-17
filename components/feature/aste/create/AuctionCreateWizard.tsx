@@ -5,13 +5,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
 import { useRouter } from 'next/navigation';
-import { Camera, Check, ChevronLeft, ChevronRight, Gavel, ImageIcon, Package, QrCode } from 'lucide-react';
+import { Camera, Check, ChevronLeft, ChevronRight, Gavel, ImageIcon, Info, Package, QrCode } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   buildAuctionLanguageOptions,
   AUCTION_CARD_CONDITION_OPTIONS,
   AUCTION_CREATE_DEFAULT_DRAFT,
   AUCTION_CREATE_GAMES,
+  AUCTION_ANTI_SNIPER_BACKEND_READY,
+  AUCTION_ANTI_SNIPER_MINUTES_OPTIONS,
   AUCTION_CUSTOM_DESCRIPTION_MAX,
   AUCTION_LISTING_PHOTO_MAX,
   AUCTION_LISTING_PHOTO_MIN,
@@ -48,6 +50,7 @@ import {
 } from '@/lib/api/auction-photo-client';
 import { usePhotoPairingSession } from '@/lib/hooks/use-photo-pairing-session';
 import { AuctionCreateCardPicker } from './AuctionCreateCardPicker';
+import { AuctionCreateGenericSearch } from './AuctionCreateGenericSearch';
 import {
   AuctionListingPhotoUpload,
   ListingPhotoThumbnailsRow,
@@ -60,6 +63,7 @@ import { CompactPhotoGallery } from './CompactPhotoGallery';
 import { ImageLightbox } from '@/components/ui/ImageLightbox';
 
 type WizardStepId =
+  | 'item_pick'
   | 'q_card'
   | 'card_pick'
   | 'inventory_pick'
@@ -69,6 +73,15 @@ type WizardStepId =
   | 'shipping'
   | 'photos'
   | 'review';
+
+const STANDALONE_STEP_ORDER: WizardStepId[] = [
+  'item_pick',
+  'details',
+  'price',
+  'shipping',
+  'photos',
+  'review',
+];
 
 const NON_CARD_GAME_OPTIONS = AUCTION_CREATE_GAMES.filter((g) => g.value !== 'other');
 
@@ -82,9 +95,7 @@ function getStepOrder(
     if (opts.hasEmbeddedInventory) return ['inventory_pick', ...tail];
     return tail;
   }
-  if (isCard === true) return ['q_card', 'card_pick', 'details', 'price', 'shipping', 'photos', 'review'];
-  if (isCard === false) return ['q_card', 'noncard_game', 'details', 'price', 'shipping', 'photos', 'review'];
-  return ['q_card', 'noncard_game', 'details', 'price', 'shipping', 'photos', 'review'];
+  return STANDALONE_STEP_ORDER;
 }
 
 function getPreviousStepId(
@@ -99,15 +110,13 @@ function getPreviousStepId(
     if (stepId === 'review') return 'details';
     return 'cancel';
   }
-  if (stepId === 'q_card') return 'cancel';
-  if (stepId === 'card_pick') return 'q_card';
-  if (stepId === 'noncard_game') return 'q_card';
-  if (stepId === 'details') return draft.isCard ? 'card_pick' : 'noncard_game';
+  if (stepId === 'item_pick') return 'cancel';
+  if (stepId === 'details') return 'item_pick';
   if (stepId === 'price') return 'details';
   if (stepId === 'shipping') return 'price';
   if (stepId === 'photos') return 'shipping';
   if (stepId === 'review') return 'photos';
-  return 'q_card';
+  return 'item_pick';
 }
 
 function slotIncludedIn(slots: ListingPhotoSlot[], s: ListingPhotoSlot): boolean {
@@ -149,7 +158,7 @@ export function AuctionCreateWizard({
       ? hasEmbeddedInventory
         ? 'inventory_pick'
         : 'details'
-      : 'q_card'
+      : 'item_pick'
   );
   const [draft, setDraft] = useState<AuctionCreateDraft>(() =>
     isEmbedded && embeddedCard ? createEmbeddedDraftFromProduct(embeddedCard) : AUCTION_CREATE_DEFAULT_DRAFT
@@ -396,22 +405,15 @@ export function AuctionCreateWizard({
         'Spedizione, foto e conferma',
       ];
     }
-    const branchLabel =
-      draft.isCard === true
-        ? t('auctions.createStepPickCard')
-        : draft.isCard === false
-          ? t('auctions.createStepNonCardGame')
-          : t('auctions.createStepNonCardGame');
     return [
-      t('auctions.createStepperQCard'),
-      branchLabel,
+      t('auctions.createStepItem'),
       t('auctions.createStepDetails'),
       t('auctions.createStepPrice'),
       t('auctions.createStepShipping'),
       t('auctions.createStepPhotos'),
       t('auctions.createStepReview'),
     ];
-  }, [draft.isCard, hasEmbeddedInventory, stepVariant, t]);
+  }, [hasEmbeddedInventory, stepVariant, t]);
 
   const stepHeading = useMemo(() => {
     if (isEmbedded) {
@@ -419,6 +421,8 @@ export function AuctionCreateWizard({
       if (stepId === 'review') return 'Spedizione, foto e conferma';
     }
     switch (stepId) {
+      case 'item_pick':
+        return t('auctions.createAskInInventory');
       case 'q_card':
         return t('auctions.createAskIsCard');
       case 'card_pick':
@@ -444,6 +448,8 @@ export function AuctionCreateWizard({
 
   const stepHint = useMemo(() => {
     switch (stepId) {
+      case 'item_pick':
+        return t('auctions.createStepItemHint');
       case 'q_card':
         return '';
       case 'card_pick':
@@ -475,6 +481,16 @@ export function AuctionCreateWizard({
           return false;
         }
       }
+      if (id === 'item_pick') {
+        if (draft.fromSyncInventory === null) {
+          setError(t('auctions.createContinueDisabledFooter'));
+          return false;
+        }
+        if (!draft.cardSelection && !draft.title.trim()) {
+          setError(t('auctions.createValidationPickCard'));
+          return false;
+        }
+      }
       if (id === 'card_pick') {
         if (!draft.cardSelection) {
           setError(t('auctions.createValidationPickCard'));
@@ -493,11 +509,6 @@ export function AuctionCreateWizard({
           return false;
         }
         if (draft.isCard) {
-          const note = draft.description.trim();
-          if (!note) {
-            setError(t('auctions.createValidationAuctionNote'));
-            return false;
-          }
           if (draft.description.length > AUCTION_CUSTOM_DESCRIPTION_MAX) {
             setError(t('auctions.createValidationAuctionNoteMax'));
             return false;
@@ -509,6 +520,14 @@ export function AuctionCreateWizard({
         if (!Number.isFinite(start) || start <= 0) {
           setError(t('auctions.createValidationStart'));
           return false;
+        }
+        const buyNowRaw = draft.buyNowPriceEur.trim();
+        if (buyNowRaw) {
+          const buyNow = roundUpToHalfStep(parseLocaleMoneyInput(buyNowRaw));
+          if (!Number.isFinite(buyNow) || buyNow <= start) {
+            setError(t('auctions.createValidationBuyNow'));
+            return false;
+          }
         }
       }
       if (id === 'shipping' || (isEmbedded && id === 'review')) {
@@ -583,6 +602,41 @@ export function AuctionCreateWizard({
     setError(null);
   }, []);
 
+  const handleGenericSelect = useCallback((sel: AuctionCreateCardSelection) => {
+    handleCardSelect(sel);
+  }, [handleCardSelect]);
+
+  const chooseInInventoryYes = () => {
+    setDraft((d) => ({
+      ...d,
+      fromSyncInventory: true,
+      isCard: true,
+      cardSelection: null,
+      title: '',
+      description: '',
+      imageUrl: '',
+      game: '',
+      listingPhotos: [],
+    }));
+    setError(null);
+  };
+
+  const chooseInInventoryNo = () => {
+    setDraft((d) => ({
+      ...d,
+      fromSyncInventory: false,
+      isCard: null,
+      cardSelection: null,
+      title: '',
+      description: '',
+      imageUrl: '',
+      game: '',
+      nonCardCategory: '',
+      listingPhotos: [],
+    }));
+    setError(null);
+  };
+
   const chooseYesCard = () => {
     setDraft((d) => ({
       ...d,
@@ -653,6 +707,20 @@ export function AuctionCreateWizard({
         description: '',
         imageUrl: '',
         game: '',
+      }));
+    }
+    if (stepId === 'item_pick') {
+      setDraft((d) => ({
+        ...d,
+        fromSyncInventory: null,
+        isCard: null,
+        cardSelection: null,
+        title: '',
+        description: '',
+        imageUrl: '',
+        game: '',
+        nonCardCategory: '',
+        listingPhotos: [],
       }));
     }
     if (stepId === 'card_pick') {
@@ -755,6 +823,11 @@ export function AuctionCreateWizard({
     const imageFront = firstPhotoCdn || fallbackFront;
     const imageBack = secondPhotoCdn || fallbackBack;
 
+    const buyNowRaw = draft.buyNowPriceEur.trim();
+    const buyNowPrice = buyNowRaw
+      ? roundUpToHalfStep(parseLocaleMoneyInput(buyNowRaw))
+      : undefined;
+
     const payload: AuctionCreatePayload = {
       title: draft.title,
       description: draft.description || '',
@@ -772,6 +845,9 @@ export function AuctionCreateWizard({
       image_front: imageFront,
       image_back: imageBack,
       photo_ids: photoIds.length > 0 ? photoIds : undefined,
+      buy_now_enabled: buyNowPrice != null && Number.isFinite(buyNowPrice) && buyNowPrice > 0,
+      buy_now_price:
+        buyNowPrice != null && Number.isFinite(buyNowPrice) && buyNowPrice > 0 ? buyNowPrice : null,
       shipping_payer: draft.shippingPayer,
       shipping_origin_country: draft.shippingOriginCountry || null,
       shipping_national_eur:
@@ -818,6 +894,10 @@ export function AuctionCreateWizard({
 
   /** Continua disabilitato finché non si risponde o non si sceglie una carta (stesso criterio di goNext). */
   const continueDisabled = useMemo(() => {
+    if (stepId === 'item_pick') {
+      if (draft.fromSyncInventory === null) return true;
+      return !draft.cardSelection && !draft.title.trim();
+    }
     if (stepId === 'q_card') return true;
     if (stepId === 'card_pick') return !draft.cardSelection;
     if (stepId === 'inventory_pick') return embeddedInventoryPick === 'unset';
@@ -829,7 +909,9 @@ export function AuctionCreateWizard({
     return false;
   }, [
     stepId,
+    draft.fromSyncInventory,
     draft.cardSelection,
+    draft.title,
     draft.listingPhotos,
     embeddedInventoryPick,
     allPhotosUploaded,
@@ -881,8 +963,28 @@ export function AuctionCreateWizard({
     [cardLanguageOptions, draft.cardLanguage]
   );
 
+  /** Passo 1: dopo Sì/No inventario serve Continua per proseguire. */
+  const itemPickSearchActive = stepId === 'item_pick' && draft.fromSyncInventory !== null;
+
+  const clearCardSelection = useCallback(() => {
+    setDraft((d) => ({
+      ...d,
+      cardSelection: null,
+      title: '',
+      description: '',
+      imageUrl: '',
+      game: '',
+      selectedInventoryItemId: null,
+      startingBidEur: '',
+      condition: '',
+      cardLanguage: '',
+    }));
+    setError(null);
+  }, []);
+
   /** Barra navigazione sticky in colonna solo standalone; embedded usa footer inline nel card. */
-  const showStickyNav = !isEmbedded && stepId !== 'q_card';
+  const showStickyNav =
+    !isEmbedded && stepId !== 'q_card' && (stepId !== 'item_pick' || itemPickSearchActive);
 
   const formatDateTimeLong = useCallback((iso: string) => {
     const d = new Date(iso);
@@ -1065,6 +1167,54 @@ export function AuctionCreateWizard({
             >
               {error}
             </p>
+          )}
+
+          {stepId === 'item_pick' && (
+            <div className="flex flex-col gap-5">
+              {draft.fromSyncInventory === null ? (
+                <div className="flex flex-col items-center gap-5">
+                  <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
+                    <button
+                      type="button"
+                      onClick={chooseInInventoryYes}
+                      data-step-focus="true"
+                      className="rounded-xl border-2 border-[#FF7300] bg-[#FF7300] px-8 py-4 text-sm font-bold uppercase text-white transition hover:bg-[#e86800]"
+                    >
+                      {t('auctions.createInInventoryYes')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={chooseInInventoryNo}
+                      className="rounded-xl border-2 border-[#1D3160] bg-white px-8 py-4 text-sm font-bold uppercase text-[#1D3160] transition hover:bg-[#1D3160]/5"
+                    >
+                      {t('auctions.createInInventoryNo')}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/aste')}
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 underline decoration-gray-300 underline-offset-4 transition hover:text-[#1D3160] hover:decoration-[#1D3160]/40"
+                  >
+                    {t('auctions.createCancel')}
+                  </button>
+                </div>
+              ) : draft.fromSyncInventory === true ? (
+                <AuctionCreateCardPicker
+                  variant="wizard-step1-inventory"
+                  selectedId={draft.cardSelection?.id ?? null}
+                  selectedTitle={draft.cardSelection?.title ?? null}
+                  onSelect={handleCardSelect}
+                  onClearSelection={clearCardSelection}
+                />
+              ) : (
+                <AuctionCreateGenericSearch
+                  selectedId={draft.cardSelection?.id ?? null}
+                  selectedTitle={draft.cardSelection?.title ?? null}
+                  onSelect={handleGenericSelect}
+                  onClearSelection={clearCardSelection}
+                />
+              )}
+            </div>
           )}
 
           {stepId === 'q_card' && (
@@ -1385,33 +1535,7 @@ export function AuctionCreateWizard({
           )}
 
           {stepId === 'details' && draft.isCard && !isEmbedded && (
-            <div className={cn('space-y-5', isEmbedded && 'space-y-3')}>
-              <div>
-                <label htmlFor="ac-desc" className="flex items-baseline justify-between gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wide text-gray-600">{t('auctions.createAuctionNoteLabel')}</span>
-                  <span className="text-[11px] tabular-nums text-gray-400">
-                    {draft.description.length}/{AUCTION_CUSTOM_DESCRIPTION_MAX}
-                  </span>
-                </label>
-                <textarea
-                  id="ac-desc"
-                  value={draft.description}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v.length <= AUCTION_CUSTOM_DESCRIPTION_MAX) update('description', v);
-                  }}
-                  rows={isEmbedded ? 3 : 4}
-                  maxLength={AUCTION_CUSTOM_DESCRIPTION_MAX}
-                  className={cn(
-                    'mt-1.5 w-full resize-y rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                    isEmbedded && 'py-2 text-sm'
-                  )}
-                  placeholder={t('auctions.createAuctionNotePlaceholder')}
-                />
-                <p className={cn('mt-1 text-xs text-gray-500', isEmbedded && 'mt-0.5 text-[11px] leading-snug')}>
-                  {t('auctions.createAuctionNoteHint')}
-                </p>
-              </div>
+            <div className="space-y-5">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wide text-gray-600">
                   {t('auctions.createConditionLabel')}
@@ -1423,10 +1547,7 @@ export function AuctionCreateWizard({
                   }))}
                   value={conditionSelectValue(draft.condition)}
                   onChange={(value) => update('condition', value)}
-                  className={cn(
-                    'mt-1.5',
-                    isEmbedded && '[&_button]:py-2'
-                  )}
+                  className="mt-1.5"
                 />
               </div>
               <div>
@@ -1437,11 +1558,108 @@ export function AuctionCreateWizard({
                   options={cardLanguageFlagOptions}
                   value={draft.cardLanguage}
                   onChange={(code) => update('cardLanguage', code)}
-                  className={cn(
-                    'mt-1.5',
-                    isEmbedded && '[&_button]:py-2'
-                  )}
+                  className="mt-1.5"
                 />
+              </div>
+              <div>
+                <span className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+                  {t('auctions.createDurationLabel')}
+                </span>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {([3, 5, 7] as const).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => update('durationDays', d)}
+                      className={cn(
+                        'rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-colors',
+                        draft.durationDays === d
+                          ? 'border-[#FF7300] bg-[#FF7300] text-white'
+                          : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                      )}
+                    >
+                      {t('auctions.createDurationDays', { days: d })}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={draft.antiSniperEnabled}
+                      onChange={(e) => update('antiSniperEnabled', e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-[#FF7300] focus:ring-[#FF7300]/30"
+                    />
+                    <span className="text-xs font-bold uppercase tracking-wide text-gray-700">
+                      {t('auctions.createAntiSniperToggle')}
+                    </span>
+                  </label>
+                  <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                    {t('auctions.createAntiSniperLabel')}
+                  </span>
+                  <button
+                    type="button"
+                    title={t('auctions.createAntiSniperHint')}
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-200 hover:text-[#1D3160]"
+                    aria-label={t('auctions.createAntiSniperHint')}
+                  >
+                    <Info className="h-4 w-4" aria-hidden />
+                  </button>
+                </div>
+                {draft.antiSniperEnabled && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {AUCTION_ANTI_SNIPER_MINUTES_OPTIONS.map((minutes) => {
+                      const backendReady = AUCTION_ANTI_SNIPER_BACKEND_READY.has(minutes);
+                      return (
+                        <button
+                          key={minutes}
+                          type="button"
+                          disabled={!backendReady}
+                          onClick={() => backendReady && update('antiSniperMinutes', minutes)}
+                          className={cn(
+                            'relative rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
+                            !backendReady && 'cursor-not-allowed opacity-50',
+                            draft.antiSniperMinutes === minutes && backendReady
+                              ? 'border-[#FF7300] bg-[#FF7300] text-white'
+                              : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                          )}
+                        >
+                          {t('auctions.createAntiSniperMinutes', { minutes: String(minutes) })}
+                          {!backendReady && (
+                            <span className="ml-1 text-[9px] font-medium normal-case text-gray-400">
+                              ({t('auctions.createAntiSniperComingSoon')})
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label htmlFor="ac-desc" className="flex items-baseline justify-between gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wide text-gray-600">
+                    {t('auctions.createObjectNoteLabel')}
+                  </span>
+                  <span className="text-[11px] tabular-nums text-gray-400">
+                    {draft.description.length}/{AUCTION_CUSTOM_DESCRIPTION_MAX}
+                  </span>
+                </label>
+                <textarea
+                  id="ac-desc"
+                  value={draft.description}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v.length <= AUCTION_CUSTOM_DESCRIPTION_MAX) update('description', v);
+                  }}
+                  rows={4}
+                  maxLength={AUCTION_CUSTOM_DESCRIPTION_MAX}
+                  className="mt-1.5 w-full resize-y rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
+                  placeholder={t('auctions.createObjectNotePlaceholder')}
+                />
+                <p className="mt-1 text-xs text-gray-500">{t('auctions.createAuctionNoteHint')}</p>
               </div>
             </div>
           )}
@@ -1546,6 +1764,27 @@ export function AuctionCreateWizard({
                   </p>
                 </div>
               </div>
+              {!isEmbedded && (
+                <div>
+                  <label htmlFor="ac-buynow" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+                    {t('auctions.createBuyNowLabel')}
+                  </label>
+                  <div className="relative mt-1.5 max-w-xs">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
+                    <input
+                      id="ac-buynow"
+                      value={draft.buyNowPriceEur}
+                      onChange={(e) => update('buyNowPriceEur', e.target.value)}
+                      onBlur={(e) => update('buyNowPriceEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                      className="w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
+                      inputMode="decimal"
+                      placeholder="—"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">{t('auctions.createBuyNowHint')}</p>
+                </div>
+              )}
+              {isEmbedded && (
               <div>
                 <span className="block text-xs font-bold uppercase tracking-wide text-gray-600">{t('auctions.createDurationLabel')}</span>
                 <div className={cn('mt-2 flex flex-wrap gap-2', isEmbedded && 'mt-1 gap-1')}>
@@ -1567,6 +1806,7 @@ export function AuctionCreateWizard({
                   ))}
                 </div>
               </div>
+              )}
             </div>
           )}
 
@@ -1614,22 +1854,10 @@ export function AuctionCreateWizard({
               {draft.shippingPayer === 'buyer' && (
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="ac-ship-origin" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                      Paese di spedizione
-                    </label>
-                    <input
-                      id="ac-ship-origin"
-                      value={draft.shippingOriginCountry}
-                      onChange={(e) => update('shippingOriginCountry', e.target.value.toUpperCase().slice(0, 2))}
-                      className={cn(
-                        'mt-1.5 w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2.5 text-sm uppercase text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                        isEmbedded && 'py-2'
-                      )}
-                    />
-                  </div>
-                  <div>
                     <label htmlFor="ac-ship-national" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                      Spedizione nazionale ({draft.shippingOriginCountry || 'IT'})
+                      {t('auctions.createShippingNationalLabel', {
+                        country: draft.shippingOriginCountry || 'IT',
+                      })}
                     </label>
                     <div className="relative mt-1.5 max-w-xs">
                       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
@@ -1648,7 +1876,7 @@ export function AuctionCreateWizard({
                   </div>
                   <div>
                     <label htmlFor="ac-ship-eu" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                      Spedizione default resto Europa
+                      {t('auctions.createShippingEuLabel')}
                     </label>
                     <div className="relative mt-1.5 max-w-xs">
                       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
@@ -1667,7 +1895,7 @@ export function AuctionCreateWizard({
                   </div>
                   <div>
                     <label htmlFor="ac-ship-rest-world" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                      Spedizione resto del mondo (fuori UE)
+                      {t('auctions.createShippingExtraUeLabel')}
                     </label>
                     <p className="mt-1 text-[11px] text-gray-500">
                       Tariffa unica per acquirenti al di fuori dell&apos;area UE indicata sopra (non il paese di origine).
@@ -1829,9 +2057,9 @@ export function AuctionCreateWizard({
                         />
                       </div>
                     </div>
-                    <div title="Spedizione default resto Europa">
+                    <div title={t('auctions.createShippingEuLabel')}>
                       <label htmlFor="ac-ship-eu-emb" className="block truncate text-[9px] font-bold uppercase tracking-wide text-gray-500">
-                        Resto UE
+                        {t('auctions.createShippingEuLabel')}
                       </label>
                       <div className="relative mt-0.5">
                         <span className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">€</span>
@@ -2089,111 +2317,112 @@ export function AuctionCreateWizard({
           )}
 
           {stepId === 'review' && !isEmbedded && (
-            <div className={cn('space-y-4', isEmbedded && 'space-y-3')}>
-              <div className={cn('rounded-xl border border-[#1D3160]/15 bg-[#f8f9fb] p-4', isEmbedded && 'rounded-lg border-zinc-200/60 bg-zinc-50/80 p-2.5')}>
-                <p className="text-xs font-bold uppercase tracking-wide text-[#1D3160]">Pubblicazione</p>
-                <p className="mt-2 text-sm leading-relaxed text-gray-700">
-                  L&apos;asta partirà <span className="font-semibold text-gray-900">subito</span> quando confermi la pubblicazione (non è possibile programmare data e ora).
-                </p>
+            <div className="space-y-4">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-sm font-bold text-amber-900">{t('auctions.createCancelWindowBanner')}</p>
               </div>
 
-              <dl className="divide-y divide-gray-100 rounded-xl border border-gray-100 bg-gray-50/80">
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createAskIsCard')}</dt>
-                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
-                      {draft.isCard === true ? t('auctions.createIsCardYes') : draft.isCard === false ? t('auctions.createIsCardNo') : '—'}
-                    </dd>
-                  </div>
-                  {draft.isCard && draft.cardSelection && (
-                    <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createStepPickCard')}</dt>
-                      <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
-                        {draft.cardSelection.title}
-                        {draft.cardSelection.setName ? ` — ${draft.cardSelection.setName}` : ''}
-                        {draft.cardSelection.inventoryItemId != null ? (
-                          <span className="mt-1 block text-xs font-normal text-gray-500">
-                            {t('auctions.createFromCollectionItem', { id: draft.cardSelection.inventoryItemId })}
-                          </span>
-                        ) : null}
-                      </dd>
-                    </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t('auctions.createStepItem')}</p>
+                  <p className="mt-1 text-sm font-semibold text-[#1D3160]">{draft.title || '—'}</p>
+                  {draft.cardSelection?.setName ? (
+                    <p className="text-xs text-gray-500">{draft.cardSelection.setName}</p>
+                  ) : null}
+                  {draft.fromSyncInventory != null && (
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      {draft.fromSyncInventory
+                        ? t('auctions.createInInventoryYes')
+                        : t('auctions.createInInventoryNo')}
+                    </p>
                   )}
-                  {draft.isCard === false && draft.game === 'other' && (
-                    <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        {t('auctions.createNonCardCategorySection')}
-                      </dt>
-                      <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{t('auctions.createNonCardCategoryOther')}</dd>
-                    </div>
-                  )}
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.filterGame')}</dt>
-                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
-                      {draft.game
-                        ? t(AUCTION_CREATE_GAMES.find((g) => g.value === draft.game)?.labelKey ?? 'auctions.gameOther')
-                        : '—'}
-                    </dd>
-                  </div>
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createTitleLabel')}</dt>
-                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{draft.title || '—'}</dd>
-                  </div>
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      {draft.isCard ? t('auctions.createAuctionNoteLabel') : t('auctions.createDescLabel')}
-                    </dt>
-                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2 whitespace-pre-wrap">{draft.description || '—'}</dd>
-                  </div>
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createConditionLabel')}</dt>
-                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{t(auctionConditionLabelKey(draft.condition))}</dd>
-                  </div>
+                </div>
+                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t('auctions.createConditionLabel')}</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-900">{t(auctionConditionLabelKey(draft.condition))}</p>
                   {draft.isCard && (
-                    <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Lingua carta</dt>
-                      <dd className="text-sm font-medium text-gray-900 sm:col-span-2">{cardLanguageLabel}</dd>
-                    </div>
+                    <>
+                      <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-gray-400">Lingua carta</p>
+                      <p className="mt-0.5 text-sm font-semibold text-gray-900">{cardLanguageLabel}</p>
+                    </>
                   )}
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createStartingBidLabel')}</dt>
-                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">€{draft.startingBidEur || '—'}</dd>
+                </div>
+                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t('auctions.createDurationLabel')}</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                    {t('auctions.createDurationDays', { days: draft.durationDays })}
+                  </p>
+                  {draft.antiSniperEnabled && (
+                    <p className="mt-2 text-[11px] text-gray-600">
+                      {t('auctions.createAntiSniperLabel')}:{' '}
+                      {t('auctions.createAntiSniperMinutes', { minutes: String(draft.antiSniperMinutes) })}
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t('auctions.createStepPrice')}</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                    {t('auctions.createStartingBidLabel')}: €{draft.startingBidEur || '—'}
+                  </p>
+                  {draft.reservePriceEur ? (
+                    <p className="text-xs text-gray-600">
+                      {t('auctions.createReserveLabel')}: €{draft.reservePriceEur}
+                    </p>
+                  ) : null}
+                  {draft.buyNowPriceEur ? (
+                    <p className="text-xs text-gray-600">
+                      {t('auctions.createBuyNowLabel')}: €{draft.buyNowPriceEur}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:col-span-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t('auctions.createShippingWhoLabel')}</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                    {draft.shippingPayer === 'buyer' ? t('auctions.createShippingBuyer') : t('auctions.createShippingSeller')}
+                    {draft.shippingPayer === 'buyer' && (
+                      <span className="block text-xs font-normal text-gray-600">
+                        {t('auctions.createShippingNationalLabel', { country: draft.shippingOriginCountry || 'IT' })}: €
+                        {draft.shippingNationalEur} · {t('auctions.createShippingEuLabel')}: €{draft.shippingEuDefaultEur} ·{' '}
+                        {t('auctions.createShippingExtraUeLabel')}: €{draft.shippingRestOfWorldEur}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                {draft.description ? (
+                  <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:col-span-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                      {t('auctions.createObjectNoteLabel')}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-800 whitespace-pre-wrap">{draft.description}</p>
                   </div>
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createDurationLabel')}</dt>
-                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
-                      {t('auctions.createDurationDays', { days: draft.durationDays })}
-                    </dd>
+                ) : null}
+                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:col-span-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t('auctions.createStepPhotos')}</p>
+                  <div className="mt-2">
+                    <ListingPhotoThumbnailsRow photos={draft.listingPhotos} />
                   </div>
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createShippingWhoLabel')}</dt>
-                    <dd className="text-sm font-medium text-gray-900 sm:col-span-2">
-                      {draft.shippingPayer === 'buyer' ? t('auctions.createShippingBuyer') : t('auctions.createShippingSeller')}
-                      {draft.shippingPayer === 'buyer' && (
-                        <span className="text-gray-600">
-                          {' '}
-                          — Nazionale €{draft.shippingNationalEur} · UE €{draft.shippingEuDefaultEur} · Extra-UE €{draft.shippingRestOfWorldEur}
-                        </span>
-                      )}
-                    </dd>
-                  </div>
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('auctions.createStepPhotos')}</dt>
-                    <dd className="sm:col-span-2">
-                      <ListingPhotoThumbnailsRow photos={draft.listingPhotos} />
-                    </dd>
-                  </div>
-                </dl>
+                </div>
+              </div>
+
+              <p className="text-center text-[11px] text-gray-500">
+                <span
+                  className="cursor-help underline decoration-dotted underline-offset-2"
+                  title={t('auctions.createPublishTermsTooltip')}
+                >
+                  {t('auctions.createPublishTermsLabel')}
+                </span>
+              </p>
             </div>
           )}
         </div>
 
-        {isEmbedded && stepId !== 'q_card' && (
+        {isEmbedded && stepId !== 'q_card' && (stepId !== 'item_pick' || itemPickSearchActive) && (
           <div className="border-t border-zinc-100 bg-zinc-50/70 px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={goBack}
-                className="inline-flex min-h-[36px] items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#1D3160] transition hover:border-zinc-400"
+                className="inline-flex min-h-[32px] items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#1D3160] transition hover:border-zinc-400"
               >
                 <ChevronLeft className="h-3 w-3" aria-hidden />
                 {t('auctions.createBack')}
@@ -2206,7 +2435,7 @@ export function AuctionCreateWizard({
                   title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
                   onClick={goNext}
                   className={cn(
-                    'inline-flex min-h-[36px] items-center gap-1 rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
+                    'inline-flex min-h-[32px] items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
                     continueDisabled
                       ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
                       : 'bg-[#FF7300] hover:bg-[#e86800]'
@@ -2229,7 +2458,7 @@ export function AuctionCreateWizard({
                   }
                   onClick={openPublishConfirm}
                   className={cn(
-                    'inline-flex min-h-[36px] items-center gap-1 rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
+                    'inline-flex min-h-[32px] items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
                     publishDisabled
                       ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
                       : 'bg-[#FF7300] hover:bg-[#e86800]'
@@ -2249,7 +2478,7 @@ export function AuctionCreateWizard({
         <div
           className={cn(
             'sticky bottom-0 z-40 mt-4 sm:mt-6',
-            'border-t border-gray-200/90 bg-[#f5f5f5]/95 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] shadow-[0_-8px_28px_-12px_rgba(29,49,96,0.12)] backdrop-blur-md'
+            'border-t border-gray-200/80 bg-[#f5f5f5]/90 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm'
           )}
           role="navigation"
           aria-label={t('auctions.createProgress', { current: currentStepNumber, total: totalSteps })}
@@ -2259,16 +2488,13 @@ export function AuctionCreateWizard({
               {t('auctions.createContinueDisabledFooter')}
             </p>
           )}
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-200/80 bg-white px-4 py-3 shadow-sm sm:gap-4 sm:px-6 sm:py-4">
+          <div className="flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4">
             <button
               type="button"
               onClick={goBack}
-              className={cn(
-                'inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white font-semibold uppercase tracking-wide text-[#1D3160] transition hover:bg-zinc-50',
-                'min-h-[48px] flex-1 px-5 py-2.5 text-sm sm:min-h-[52px] sm:flex-none sm:px-8 sm:text-base'
-              )}
+              className="inline-flex min-h-[34px] items-center justify-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#1D3160] transition hover:bg-zinc-50"
             >
-              <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
+              <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
               {t('auctions.createBack')}
             </button>
 
@@ -2279,23 +2505,22 @@ export function AuctionCreateWizard({
                 title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
                 onClick={goNext}
                 className={cn(
-                  'inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition',
-                  'min-h-[48px] flex-1 sm:min-h-[52px] sm:flex-none sm:px-8 sm:text-base',
+                  'inline-flex min-h-[34px] items-center justify-center gap-1 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white transition',
                   continueDisabled
                     ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
                     : 'bg-[#FF7300] hover:bg-[#e86800]'
                 )}
               >
                 {t('auctions.createContinue')}
-                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
+                <ChevronRight className="h-3.5 w-3.5" aria-hidden />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={openPublishConfirm}
-                className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-[#FF7300] px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800] sm:min-h-[52px] sm:flex-none sm:px-8 sm:text-base"
+                className="inline-flex min-h-[34px] items-center justify-center gap-1 rounded-full bg-[#FF7300] px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
               >
-                <Gavel className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
+                <Gavel className="h-3.5 w-3.5" aria-hidden />
                 {t('auctions.createSubmit')}
               </button>
             )}
@@ -2345,11 +2570,10 @@ export function AuctionCreateWizard({
           className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl"
         >
           <h2 id="publish-confirm-title" className="text-lg font-bold uppercase tracking-wide text-[#1D3160]">
-            Asta pronta alla pubblicazione
+            {t('auctions.createPublishConfirmTitle')}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-gray-700">
-            Avrai a disposizione 5 minuti per verificare e apportare eventuali modifiche finali. Trascorso questo
-            intervallo, la pubblicazione verra confermata in modo definitivo e non sara piu reversibile.
+            {t('auctions.createPublishConfirmBody')}
           </p>
 
           <div className="mt-4 flex items-center gap-2">
@@ -2358,14 +2582,14 @@ export function AuctionCreateWizard({
               onClick={closePublishConfirm}
               className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
             >
-              Controlla
+              {t('auctions.createPublishConfirmCheck')}
             </button>
             <button
               type="button"
               onClick={editFromPublishConfirm}
               className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
             >
-              Modifica
+              {t('auctions.createPublishConfirmEdit')}
             </button>
           </div>
 
@@ -2377,7 +2601,7 @@ export function AuctionCreateWizard({
             }}
             className="mt-3 w-full rounded-xl bg-[#FF7300] px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
           >
-            Continua
+            {t('auctions.createPublishConfirmContinue')}
           </button>
         </div>
       </div>

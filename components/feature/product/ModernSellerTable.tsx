@@ -15,12 +15,14 @@ import {
   Star,
   X,
 } from 'lucide-react';
+import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { ConditionBadge, type ConditionCode } from '@/components/ui/ConditionBadge';
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { type ListingItem } from '@/lib/api/sync-client';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
+import { formatAuctionCountdown } from '@/lib/auction/auction-countdown';
 import type { AuctionUI } from '@/lib/auction/auction-adapter';
 import { listingConditionCode, type MarketplaceRow } from '@/lib/product-detail/marketplace-rows';
 import { listingRowKey } from '@/lib/marketplace/listing-map';
@@ -107,17 +109,6 @@ function formatSalesCount(count: number): string {
     return `${(count / 1_000).toLocaleString('it-IT', { maximumFractionDigits: 1 })}K`;
   }
   return count.toLocaleString('it-IT');
-}
-
-function formatCountdownDuration(ms: number): string {
-  if (ms <= 0) return '—';
-  const totalMinutes = Math.ceil(ms / 60000);
-  const days = Math.floor(totalMinutes / (24 * 60));
-  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
-  const minutes = totalMinutes % 60;
-  if (days > 0) return `${days}g ${hours}h`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
 }
 
 const MOCK_SELLER_DESCRIPTIONS = [
@@ -489,21 +480,32 @@ const MemoMarketplaceProductInfoCell = memo(MarketplaceProductInfoCell);
 function AuctionCountdownText({ endsAt, className }: { endsAt: string; className?: string }) {
   const nowMs = useMarketplaceNowMs();
   const remaining = new Date(endsAt).getTime() - nowMs;
-  return <span className={className}>{formatCountdownDuration(remaining)}</span>;
+  return (
+    <span className={className}>
+      {remaining <= 0 ? '—' : formatAuctionCountdown(remaining)}
+    </span>
+  );
 }
 
 function AuctionGavelLinkDesktop({ numericId, endsAt }: { numericId: number; endsAt: string }) {
   const nowMs = useMarketplaceNowMs();
   const remaining = new Date(endsAt).getTime() - nowMs;
+  const label = remaining <= 0 ? '—' : formatAuctionCountdown(remaining);
   return (
-    <Link
-      href={auctionDetailPath(String(numericId))}
-      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-violet-600 text-white shadow-sm transition hover:bg-violet-700"
-      aria-label="Apri asta"
-      title={`Asta · ${formatCountdownDuration(remaining)}`}
-    >
-      <Gavel className="h-3.5 w-3.5" strokeWidth={2.25} />
-    </Link>
+    <div className="inline-flex items-center">
+      <Link
+        href={auctionDetailPath(String(numericId))}
+        className="relative z-10 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm transition hover:bg-violet-700"
+        aria-label="Apri asta"
+        title={`Asta · ${label}`}
+      >
+        <Gavel className="h-3.5 w-3.5" strokeWidth={2.25} />
+      </Link>
+      {/* Pillola tempo rimasto: bordo sinistro "fuso" sotto il bottone circolare */}
+      <span className="-ml-3 inline-flex h-6 items-center rounded-r-full bg-violet-100 pl-4 pr-2 text-[10px] font-bold tabular-nums leading-none text-violet-700">
+        {label}
+      </span>
+    </div>
   );
 }
 
@@ -518,7 +520,7 @@ function MarketplaceOfferGrid({
   actions: ReactNode;
 }) {
   return (
-    <div className="grid w-full grid-cols-[minmax(0,1fr)_2.75rem_4.5rem] items-center">
+    <div className="grid w-full grid-cols-[minmax(0,1fr)_2.75rem_6.5rem] items-center">
       <div className="pr-2 text-right text-sm font-bold tabular-nums text-[#1D3160]">{price}</div>
       <div className="text-center text-xs font-semibold tabular-nums text-slate-600">{quantity}</div>
       <div className="flex justify-end">{actions}</div>
@@ -592,7 +594,7 @@ const DesktopAuctionRow = memo(function DesktopAuctionRow({
       <td className="px-2.5 py-2">
         <MarketplaceOfferGrid
           price={formatEuro(a.currentBidEur || a.startingBidEur)}
-          quantity={<AuctionCountdownText endsAt={a.endsAt} className="text-violet-700" />}
+          quantity={null}
           actions={<AuctionGavelLinkDesktop numericId={a.numericId} endsAt={a.endsAt} />}
         />
       </td>
@@ -616,6 +618,7 @@ type DesktopListingRowProps = {
   onOwnerEdit?: (item: ListingItem) => void;
   onAddToCart?: (item: ListingItem, quantity: number, sourceEl: HTMLElement) => void;
   onBuyNow?: (item: ListingItem, quantity: number) => void;
+  onProposeTrade?: (item: ListingItem) => void;
   onOpenInlineCart: (item: ListingItem) => void;
   onCloseInlineCart: () => void;
   onSetCartQty: (rowKey: string, qty: number, max: number) => void;
@@ -638,10 +641,11 @@ const DesktopListingRow = memo(function DesktopListingRow({
   onOwnerEdit,
   onAddToCart,
   onBuyNow,
+  onProposeTrade,
   onOpenInlineCart,
   onCloseInlineCart,
   onSetCartQty,
-}: DesktopListingRowProps) {
+}:DesktopListingRowProps) {
   const conditionCode = listingConditionCode(item.condition);
   const langFlag = languageFlagCode(item.mtg_language);
   const rep = getSellerReputation(item);
@@ -721,8 +725,21 @@ const DesktopListingRow = memo(function DesktopListingRow({
                   <Pencil className="h-3 w-3" />
                 </button>
               </div>
-            ) : isCartOpen ? (
-              <div className="inline-flex items-center rounded-sm border border-orange-200 bg-white">
+            ) : (
+              <div className="flex items-center justify-end gap-1">
+                {onProposeTrade && (
+                  <button
+                    type="button"
+                    onClick={() => onProposeTrade(item)}
+                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-[#FF7300] text-white hover:bg-[#e86a00]"
+                    aria-label="Proponi scambio"
+                    title="Proponi scambio"
+                  >
+                    <ScambiIcon className="h-3.5 w-3.5" strokeWidth={2.25} />
+                  </button>
+                )}
+                {isCartOpen ? (
+                <div className="inline-flex items-center rounded-sm border border-orange-200 bg-white">
                 <button
                   type="button"
                   onClick={() => onSetCartQty(rowKey, cartQty - 1, item.quantity)}
@@ -780,6 +797,8 @@ const DesktopListingRow = memo(function DesktopListingRow({
               >
                 <ShoppingCart className="h-3.5 w-3.5" strokeWidth={2.25} />
               </button>
+                )}
+              </div>
             )
           }
         />
@@ -851,7 +870,7 @@ const MobileAuctionRow = memo(function MobileAuctionRow({
       <div className="flex shrink-0 items-center self-center">
         <Link
           href={auctionDetailPath(String(a.numericId))}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-violet-600 text-white shadow-sm"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm"
           aria-label="Apri asta"
         >
           <Gavel className="h-4 w-4" strokeWidth={2.25} />
@@ -880,10 +899,11 @@ const MobileListingRow = memo(function MobileListingRow({
   onOwnerEdit,
   onAddToCart,
   onBuyNow,
+  onProposeTrade,
   onOpenInlineCart,
   onCloseInlineCart,
   onSetCartQty,
-}: MobileListingRowProps) {
+}:MobileListingRowProps) {
   const conditionCode = listingConditionCode(item.condition);
   const langFlag = languageFlagCode(item.mtg_language);
   const rep = getSellerReputation(item);
@@ -928,7 +948,18 @@ const MobileListingRow = memo(function MobileListingRow({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center self-center">
+      <div className="flex shrink-0 items-center gap-1.5 self-center">
+        {!isOwn && onProposeTrade && (
+          <button
+            type="button"
+            onClick={() => onProposeTrade(item)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-[#FF7300] text-white shadow-sm"
+            aria-label="Proponi scambio"
+            title="Proponi scambio"
+          >
+            <ScambiIcon className="h-4 w-4" strokeWidth={2.25} />
+          </button>
+        )}
         {isOwn ? (
           <div className="inline-flex flex-col overflow-hidden rounded-sm border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center border-b border-slate-200">
@@ -1041,6 +1072,7 @@ interface ModernSellerTableProps {
   cardLanguage?: string | null;
   onAddToCart?: (item: ListingItem, quantity: number, sourceEl: HTMLElement) => void;
   onBuyNow?: (item: ListingItem, quantity: number) => void;
+  onProposeTrade?: (item: ListingItem) => void;
   isOwnListing?: (item: ListingItem) => boolean;
   onOwnerEdit?: (item: ListingItem) => void;
   onOwnerQuantityChange?: (item: ListingItem, delta: -1 | 1) => Promise<void>;
@@ -1059,6 +1091,7 @@ function ModernSellerTableInner({
   cardLanguage,
   onAddToCart,
   onBuyNow,
+  onProposeTrade,
   isOwnListing = noopIsOwnListing,
   onOwnerEdit,
   onOwnerQuantityChange,
@@ -1133,16 +1166,16 @@ function ModernSellerTableInner({
       {/* Desktop — layout Cardmarket compatto */}
       <table className="hidden w-full table-fixed border-collapse text-left text-sm sm:table">
         <colgroup>
-          <col style={{ width: '24%' }} />
-          <col style={{ width: '50%' }} />
-          <col style={{ width: '26%' }} />
+          <col style={{ width: '22%' }} />
+          <col style={{ width: '46%' }} />
+          <col style={{ width: '32%' }} />
         </colgroup>
         <thead>
           <tr className="bg-[#1D3160] text-[11px] font-semibold uppercase tracking-wide text-white">
             <th className="border-r border-white/15 px-2.5 py-2">Venditore</th>
             <th className="border-r border-white/15 px-2.5 py-2">Informazioni sul prodotto</th>
             <th className="px-0 py-0">
-              <div className="grid grid-cols-[minmax(0,1fr)_2.75rem_4.5rem] border-l border-white/10 px-2.5 py-2 text-right">
+              <div className="grid grid-cols-[minmax(0,1fr)_2.75rem_6.5rem] border-l border-white/10 px-2.5 py-2 text-right">
                 <span>Offerta</span>
                 <span className="sr-only">Quantità</span>
                 <span className="sr-only">Azioni</span>
@@ -1193,6 +1226,7 @@ function ModernSellerTableInner({
                 onOwnerEdit={onOwnerEdit}
                 onAddToCart={onAddToCart}
                 onBuyNow={onBuyNow}
+                onProposeTrade={onProposeTrade}
                 onOpenInlineCart={openInlineCart}
                 onCloseInlineCart={closeInlineCart}
                 onSetCartQty={setCartQty}

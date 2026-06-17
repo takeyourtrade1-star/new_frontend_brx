@@ -58,6 +58,7 @@ const GAME_FULLSCREEN_IMAGES: Record<string, string> = {
 const getComingSoonGames = (): {
   src: string;
   alt: string;
+  label: string;
   homeHref?: string;
   comingSoon?: boolean;
   gameSlug?: LandingGameSlug;
@@ -66,6 +67,7 @@ const getComingSoonGames = (): {
   {
     src: getCdnImageUrl('loghi-giochi/pokèmon.png'),
     alt: 'Pokémon Trading Card Game',
+    label: 'Pokémon',
     homeHref: '/home/pokemon',
     gameSlug: 'pokemon',
     comingSoon: true,
@@ -74,16 +76,30 @@ const getComingSoonGames = (): {
   {
     src: getCdnImageUrl('loghi-giochi/yu-gi-oh.png'),
     alt: 'Yu-Gi-Oh! Trading Card Game',
+    label: 'Yu-Gi-Oh!',
     homeHref: '/home',
     gameSlug: 'clear',
     comingSoon: true,
     waitlistCount: 892,
   },
-  { src: getCdnImageUrl('loghi-giochi/One_Piece_Card_Game_Logo%201.png'), alt: 'One Piece Card Game', comingSoon: true, waitlistCount: 1563 },
-  { src: getCdnImageUrl('loghi-giochi/Disney_Lorcana_480x480%201.png'), alt: 'Disney Lorcana', comingSoon: true, waitlistCount: 634 },
+  {
+    src: getCdnImageUrl('loghi-giochi/One_Piece_Card_Game_Logo%201.png'),
+    alt: 'One Piece Card Game',
+    label: 'One Piece',
+    comingSoon: true,
+    waitlistCount: 1563,
+  },
+  {
+    src: getCdnImageUrl('loghi-giochi/Disney_Lorcana_480x480%201.png'),
+    alt: 'Disney Lorcana',
+    label: 'Lorcana',
+    comingSoon: true,
+    waitlistCount: 634,
+  },
   {
     src: getCdnImageUrl('star_wars.jpg'),
     alt: 'Star Wars: Unlimited',
+    label: 'Star Wars',
     comingSoon: true,
     waitlistCount: 2105,
   },
@@ -246,7 +262,7 @@ export function LandingWelcome() {
 
             {/* ──── LEFT: MAGIC CARD ──── */}
             <div
-              className="bento-entry group relative flex flex-col min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px] rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden"
+              className="bento-entry group relative flex flex-col min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px] rounded-2xl border border-white/10 bg-[#0F172A]/50 backdrop-blur-md overflow-hidden"
               style={{ animationDelay: '180ms' }}
             >
               <Link
@@ -293,7 +309,8 @@ export function LandingWelcome() {
                       <button
                         key={game.alt}
                         type="button"
-                        className="group/game flex aspect-square w-full items-center justify-center rounded-lg overflow-hidden bg-white/5 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-105"
+                        aria-label={game.alt}
+                        className="group/game flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg overflow-hidden bg-white/10 border border-white/15 px-1 py-1.5 transition-all duration-300 hover:bg-white/15 hover:border-white/25 hover:scale-105"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -306,11 +323,16 @@ export function LandingWelcome() {
                           }
                         }}
                       >
-                        <img
-                          src={game.src}
-                          alt={game.alt}
-                          className="max-w-[60%] max-h-[60%] object-contain"
-                        />
+                        <div className="flex flex-1 min-h-0 w-full items-center justify-center">
+                          <img
+                            src={game.src}
+                            alt=""
+                            className="max-h-[52%] max-w-[58%] object-contain"
+                          />
+                        </div>
+                        <span className="shrink-0 text-center text-[8px] font-medium leading-tight text-white/80 sm:text-[9px]">
+                          {game.label}
+                        </span>
                       </button>
                     ))}
                   </div>

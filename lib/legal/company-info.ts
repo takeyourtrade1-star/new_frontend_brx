@@ -10,4 +10,5 @@ export const COMPANY_INFO = {
   legalForm: 'Società a responsabilità limitata',
 } as const;
 
+export const TERMS_PUBLISHED = '12 giugno 2026';
 export const TERMS_LAST_UPDATED = '12 giugno 2026';

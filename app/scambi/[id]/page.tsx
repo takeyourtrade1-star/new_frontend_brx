@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
-import { ScambiNav } from '@/components/feature/scambi/ScambiNav';
 import { ScambiDetailView } from '@/components/feature/scambi/ScambiDetailView';
 import { ScambiGuard } from '../ScambiGuard';
 export const metadata = {
@@ -20,7 +19,6 @@ export default async function ScambiDetailPage({ params }: Props) {
         <Header />
       </Suspense>
       <ScambiGuard>
-      <ScambiNav />
       <ScambiDetailView scambioId={id} />
       </ScambiGuard>
     </main>

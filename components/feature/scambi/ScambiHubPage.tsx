@@ -6,7 +6,8 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Search, ChevronDown, ChevronUp, X, ArrowLeftRight, Sparkles } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, X, Sparkles } from 'lucide-react';
+import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 import {
@@ -136,7 +137,7 @@ export function ScambiHubPage() {
                 type="button"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7300] to-[#FF8800] px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-[#FF7300]/25 transition-all hover:brightness-110 active:scale-95"
               >
-                <ArrowLeftRight className="h-4 w-4" />
+                <ScambiIcon className="h-4 w-4" />
                 Proponi scambio
               </button>
             </div>

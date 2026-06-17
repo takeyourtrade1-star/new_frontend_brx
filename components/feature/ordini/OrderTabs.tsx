@@ -59,13 +59,14 @@ export function OrderTabs<T extends string>({
         className={cn(
           'inline-flex items-center justify-center rounded-full text-xs font-semibold uppercase tracking-wide transition-colors',
           isActive ? 'px-3.5 py-1.5' : 'px-2.5 py-1.5 md:px-3.5',
+          'border shadow-sm backdrop-blur-md md:border-0 md:shadow-none md:backdrop-blur-none',
           isLeft
             ? isActive
-              ? 'bg-[#FF7300] text-white shadow-sm'
-              : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-900'
+              ? 'bg-[#FF7300]/85 text-white border-[#FF7300]/40 shadow-[0_2px_8px_rgba(255,115,0,0.18)] md:bg-[#FF7300] md:shadow-sm'
+              : 'bg-white/65 text-gray-700 border-white/75 hover:bg-white/90 hover:text-gray-900 md:bg-white md:text-gray-600 md:ring-1 md:ring-gray-200 md:hover:bg-gray-50'
             : isActive
-              ? 'bg-gray-700 text-white shadow-sm'
-              : 'bg-white text-gray-500 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-700',
+              ? 'bg-gray-800/85 text-white border-gray-700/40 md:bg-gray-700 md:shadow-sm'
+              : 'bg-white/65 text-gray-600 border-white/75 hover:bg-white/90 hover:text-gray-800 md:bg-white md:text-gray-500 md:ring-1 md:ring-gray-200 md:hover:bg-gray-50',
         )}
       >
         <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -81,7 +82,7 @@ export function OrderTabs<T extends string>({
           <span
             className={cn(
               'ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
-              isActive ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600',
+              isActive ? 'bg-white/20 text-white' : 'bg-white/50 text-gray-700 md:bg-gray-200 md:text-gray-600',
             )}
           >
             {tab.count}
@@ -95,8 +96,7 @@ export function OrderTabs<T extends string>({
     <div
       className={cn(
         'sticky z-40 md:static -mx-4 px-4 md:mx-0 md:px-0',
-        'border-b border-white/60 md:border-gray-200',
-        'bg-[#F5F4F0]/95 backdrop-blur-xl md:bg-transparent md:backdrop-blur-none',
+        'md:border-b md:border-gray-200',
         'py-2 md:mb-6 md:pb-3',
       )}
       style={{ top: stickyTop }}

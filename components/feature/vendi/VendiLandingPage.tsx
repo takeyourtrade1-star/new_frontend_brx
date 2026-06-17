@@ -36,7 +36,7 @@ export function VendiLandingPage() {
           <h1 className="text-3xl font-bold text-[#1D3160] sm:text-4xl">{t('vendi.pageTitle')}</h1>
         </header>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 px-2 max-w-[640px] mx-auto">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 px-2 max-w-[960px] mx-auto">
           {VENDI_CATEGORIES.map((category) => (
             <ListingMethodCard
               key={category.id}
@@ -44,6 +44,7 @@ export function VendiLandingPage() {
               imageSrc={category.imageSrc}
               imageAlt={t(category.titleKey)}
               title={t(category.titleKey)}
+              subtitle={category.subtitleKey ? t(category.subtitleKey) : undefined}
               size="large"
               background={category.style?.background}
               glowColor={category.style?.glowColor}

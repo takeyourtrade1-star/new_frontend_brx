@@ -7,7 +7,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, ArrowLeftRight, Bookmark, Shield } from 'lucide-react';
+import { ArrowLeft, Bookmark, Shield } from 'lucide-react';
+import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { ScambiProponiModal } from '@/components/feature/scambi/ScambiProponiModal';
@@ -82,7 +83,7 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
         <div className="container-content container-content-card-detail py-20 text-center">
           <div className="mx-auto max-w-md">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-              <ArrowLeftRight className="h-8 w-8 text-gray-400" />
+              <ScambiIcon className="h-8 w-8 text-gray-400" />
             </div>
             <h2 className="mt-6 text-xl font-bold text-gray-900">Scambio non trovato</h2>
             <p className="mt-2 text-sm text-gray-500">

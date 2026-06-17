@@ -116,10 +116,14 @@ export function AuctionCreateCardPicker({
   selectedId,
   selectedTitle,
   onSelect,
+  onClearSelection,
+  variant = 'full',
 }: {
   selectedId: string | null;
   selectedTitle?: string | null;
   onSelect: (selection: AuctionCreateCardSelection) => void;
+  onClearSelection?: () => void;
+  variant?: 'full' | 'wizard-step1-inventory';
 }) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
@@ -139,6 +143,21 @@ export function AuctionCreateCardPicker({
   const [loadingCollection, setLoadingCollection] = useState(true);
   const [collectionError, setCollectionError] = useState<string | null>(null);
   const [scannerTarget, setScannerTarget] = useState<'catalog' | 'collection' | null>(null);
+
+  const isWizardInventory = variant === 'wizard-step1-inventory';
+  // Variante inventario ("Sì, è nell'inventario"): mostriamo SOLO la barra
+  // dell'inventario, mai la ricerca a catalogo. Negli altri casi la sezione
+  // collezione resta visibile finché non è stata scelta una carta.
+  const showCollectionSection = !selectedId;
+
+  const handleSelect = useCallback(
+    (sel: AuctionCreateCardSelection) => {
+      onSelect(sel);
+      setQuery('');
+      setCollectionQuery('');
+    },
+    [onSelect]
+  );
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebounced(query.trim()), 350);
@@ -227,30 +246,54 @@ export function AuctionCreateCardPicker({
   }, [user?.id, accessToken, t]);
 
   useEffect(() => {
+    if (isWizardInventory && !showCollectionSection) return;
     void loadInventory();
-  }, [loadInventory]);
+  }, [loadInventory, isWizardInventory, showCollectionSection]);
 
   const filteredCollection = useMemo(() => {
     return inventoryItems.filter((item) => matchCollectionQuery(item, collectionQuery));
   }, [inventoryItems, collectionQuery]);
 
   return (
-    <div className="space-y-10 overflow-x-hidden">
-      <section className="space-y-4">
-        <div className="flex items-start gap-3">
-          <span
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1D3160] text-sm font-bold text-white"
-            aria-hidden
-          >
-            1
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#1D3160]">
-              {t('auctions.createCatalogSearchTitle')}
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">{t('auctions.createCatalogSearchSubtitle')}</p>
-          </div>
+    <div className={cn('overflow-x-hidden', isWizardInventory ? 'space-y-6' : 'space-y-10')}>
+      {selectedId && selectedTitle ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-[#FF7300] bg-orange-50/60 px-4 py-3">
+          <p className="min-w-0 flex-1">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-[#FF7300]">
+              {t('auctions.createCardSelected')}
+            </span>
+            <span className="mt-0.5 block truncate text-sm font-semibold text-[#1D3160]">{selectedTitle}</span>
+          </p>
+          {onClearSelection ? (
+            <button
+              type="button"
+              onClick={onClearSelection}
+              className="shrink-0 rounded-lg border border-[#1D3160]/20 bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#1D3160] transition hover:border-[#1D3160]/40"
+            >
+              {t('auctions.createChangeCardSelection')}
+            </button>
+          ) : null}
         </div>
+      ) : (
+      <>
+      {!isWizardInventory && (
+      <section className="space-y-4">
+        {!isWizardInventory && (
+          <div className="flex items-start gap-3">
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1D3160] text-sm font-bold text-white"
+              aria-hidden
+            >
+              1
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#1D3160]">
+                {t('auctions.createCatalogSearchTitle')}
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">{t('auctions.createCatalogSearchSubtitle')}</p>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-1.5">
           {CATALOG_GAME_CHIPS.map(({ value, labelKey, available }) =>
@@ -347,7 +390,7 @@ export function AuctionCreateCardPicker({
                     />
                     <button
                       type="button"
-                      onClick={() => onSelect(sel)}
+                      onClick={() => handleSelect(sel)}
                       aria-label={
                         isTopRelevance
                           ? `${hit.name}, ${hit.set_name}. ${t('auctions.createTopSearchResultHint')}`
@@ -372,16 +415,20 @@ export function AuctionCreateCardPicker({
           </ul>
         )}
       </section>
+      )}
 
+      {showCollectionSection && (
       <section className="space-y-4 border-t border-gray-200 pt-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex items-start gap-3 min-w-0">
+          <div className="flex min-w-0 items-start gap-3">
+            {!isWizardInventory && (
             <span
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-sm font-bold text-white"
               aria-hidden
             >
               2
             </span>
+            )}
             <div className="min-w-0">
               <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#1D3160]">
                 {t('auctions.createCollectionTitle')}
@@ -482,11 +529,11 @@ export function AuctionCreateCardPicker({
                     className="rounded-t-xl"
                     thumbClassName="relative aspect-[63/88] w-full"
                     sizes="(max-width: 768px) 50vw, 180px"
-                    onImageClick={() => onSelect(sel)}
+                    onImageClick={() => handleSelect(sel)}
                   />
                   <button
                     type="button"
-                    onClick={() => onSelect(sel)}
+                    onClick={() => handleSelect(sel)}
                     className="w-full flex flex-col gap-1 p-2 text-left"
                   >
                     <p className="line-clamp-2 text-xs font-semibold text-gray-900">{cardName}</p>
@@ -535,7 +582,7 @@ export function AuctionCreateCardPicker({
                     />
                     <button
                       type="button"
-                      onClick={() => onSelect(sel)}
+                      onClick={() => handleSelect(sel)}
                       className="flex min-w-0 flex-1 flex-col items-start justify-center gap-1 text-left"
                     >
                       <div className="min-w-0 flex-1">
@@ -562,6 +609,9 @@ export function AuctionCreateCardPicker({
           </ul>
         )}
       </section>
+      )}
+      </>
+      )}
 
       {scannerTarget !== null && (
         <ScannerModal

@@ -243,7 +243,7 @@ export const MOCK_AUCTIONS: AuctionMock[] = [
     status: 'ended',
     winnerUsername: null,
   },
-  /** Aste MTG concluse collegate a mock spedizioni (vedi mock-auction-shipping.ts). */
+  /** Aste MTG concluse — spedizioni gestite in /ordini/vendite. */
   {
     id: 'c3',
     title: 'Black Lotus — Alpha',

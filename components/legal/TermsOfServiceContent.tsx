@@ -1,4 +1,4 @@
-import { COMPANY_INFO, TERMS_LAST_UPDATED } from '@/lib/legal/company-info';
+import { COMPANY_INFO, TERMS_LAST_UPDATED, TERMS_PUBLISHED } from '@/lib/legal/company-info';
 import {
   LegalP as P,
   LegalH2 as H2,
@@ -14,7 +14,11 @@ export function TermsOfServiceContent() {
 
   return (
     <>
-      <LegalIntro title="Termini e Condizioni di Servizio – Ebartex" updated={TERMS_LAST_UPDATED} />
+      <LegalIntro
+        title="Termini e Condizioni di Servizio – Ebartex"
+        published={TERMS_PUBLISHED}
+        updated={TERMS_LAST_UPDATED}
+      />
 
       <LegalSection>
         <P>

@@ -5,7 +5,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { X, Search, Send, Zap, Clock, Check, Loader2 } from 'lucide-react';
+import {
+  X, Search, Send, Check, Loader2,
+  Coins, Library, Package, Sparkles,
+  Zap, Clock,
+} from 'lucide-react';
+import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import Image from 'next/image';
 import { ConditionBadge } from '@/components/ui/ConditionBadge';
 import type { ConditionCode } from '@/components/ui/ConditionBadge';
@@ -61,7 +66,7 @@ interface TradeCardItem {
 
 const MODAL_ANIM_CSS = `
 @keyframes modal-enter {
-  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  from { opacity: 0; transform: scale(0.96) translateY(16px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 @keyframes modal-backdrop-enter {
@@ -74,40 +79,47 @@ const MODAL_ANIM_CSS = `
 }
 @keyframes glow-pulse {
   0%,100% { box-shadow: 0 0 0 0 rgba(255,115,0,0); }
-  50%     { box-shadow: 0 0 12px 2px rgba(255,115,0,0.25); }
+  50%     { box-shadow: 0 0 18px 3px rgba(255,115,0,0.22); }
 }
 @keyframes card-shine {
   0%   { transform: translateX(-100%) rotate(25deg); }
   100% { transform: translateX(200%) rotate(25deg); }
 }
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes badge-pop {
   0%   { transform: scale(0); }
-  60%  { transform: scale(1.2); }
+  60%  { transform: scale(1.25); }
   100% { transform: scale(1); }
 }
+@keyframes float-soft {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-4px); }
+}
 .animate-modal-enter {
-  animation: modal-enter 0.35s cubic-bezier(0.22,1,0.36,1) forwards;
+  animation: modal-enter 0.38s cubic-bezier(0.22,1,0.36,1) forwards;
 }
 .animate-backdrop-enter {
-  animation: modal-backdrop-enter 0.2s ease-out forwards;
+  animation: modal-backdrop-enter 0.25s ease-out forwards;
 }
 .animate-shimmer-btn {
   background-size: 200% 100%;
   animation: shimmer-btn 2.5s linear infinite;
 }
 .animate-glow-pulse {
-  animation: glow-pulse 2s ease-in-out infinite;
+  animation: glow-pulse 2.2s ease-in-out infinite;
 }
 .animate-fade-in-up {
-  animation: fade-in-up 0.4s cubic-bezier(0.22,1,0.36,1) forwards;
+  animation: fade-in-up 0.45s cubic-bezier(0.22,1,0.36,1) forwards;
   opacity: 0;
 }
 .animate-badge-pop {
-  animation: badge-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  animation: badge-pop 0.32s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+.animate-float-soft {
+  animation: float-soft 4s ease-in-out infinite;
 }
 .card-shine-wrapper {
   position: relative;
@@ -120,9 +132,9 @@ const MODAL_ANIM_CSS = `
   background: linear-gradient(
     105deg,
     transparent 40%,
-    rgba(255,255,255,0.35) 45%,
-    rgba(255,255,255,0.5) 50%,
-    rgba(255,255,255,0.35) 55%,
+    rgba(255,255,255,0.28) 45%,
+    rgba(255,255,255,0.48) 50%,
+    rgba(255,255,255,0.28) 55%,
     transparent 60%
   );
   transform: translateX(-100%) rotate(25deg);
@@ -130,7 +142,15 @@ const MODAL_ANIM_CSS = `
   transition: none;
 }
 .card-shine-wrapper:hover::after {
-  animation: card-shine 0.7s ease forwards;
+  animation: card-shine 0.75s ease forwards;
+}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
 }
 `;
 
@@ -214,46 +234,46 @@ function MiniCard({
     <button
       type="button"
       onClick={onClick}
-      className={`group relative flex flex-col items-center rounded-xl border-2 p-1.5 text-left transition-all duration-200 animate-fade-in-up ${
+      className={`group relative flex flex-col items-center rounded-2xl border-2 p-2 text-left transition-all duration-200 animate-fade-in-up ${
         selected
-          ? 'border-[#FF7300] bg-orange-50/80 shadow-lg shadow-orange-500/15 animate-glow-pulse'
-          : 'border-gray-100/80 bg-white/80 hover:border-orange-300 hover:shadow-md hover:-translate-y-0.5'
+          ? 'border-[#FF7300] bg-gradient-to-b from-orange-50 to-white shadow-xl shadow-orange-500/20 scale-[1.02]'
+          : 'border-gray-100 bg-white shadow-sm shadow-black/5 hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/10 hover:-translate-y-1'
       }`}
-      style={{ animationDelay: `${delayIdx * 40}ms` }}
+      style={{ animationDelay: `${delayIdx * 45}ms` }}
     >
       {selected && (
-        <div className="absolute -top-2 -right-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-md animate-badge-pop">
-          <Check className="h-3 w-3" strokeWidth={3} />
+        <div className="absolute -top-2 -right-2 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-lg shadow-orange-500/30 animate-badge-pop">
+          <Check className="h-3.5 w-3.5" strokeWidth={3} />
         </div>
       )}
       {item.badge && (
-        <div className="absolute left-1 top-1 z-10 rounded bg-[#1D3160] px-1 py-0.5 text-[8px] font-bold uppercase text-white shadow">
+        <div className="absolute left-2 top-2 z-10 rounded-lg bg-[#1D3160]/90 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow backdrop-blur-sm">
           {item.badge}
         </div>
       )}
       {!selected && item.qty && item.qty > 1 && (
-        <div className="absolute bottom-1 right-1 z-10 rounded-full bg-[#FF7300] px-1.5 py-0.5 text-[9px] font-bold text-white shadow">
+        <div className="absolute bottom-7 right-2 z-10 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#FF7300] px-1 text-[9px] font-bold text-white shadow-md">
           x{item.qty}
         </div>
       )}
       {showQtySelector && (
         <div
-          className="absolute bottom-0.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 shadow-lg border border-[#FF7300]/30"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-full bg-white px-2 py-1 shadow-xl border border-[#FF7300]/30"
           onClick={(e) => e.stopPropagation()}
         >
           <span
-            className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-[11px] font-bold text-gray-600 hover:bg-gray-200 select-none"
+            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600 transition hover:bg-gray-200 select-none"
             onClick={() => onQtyChange(-1)}
           >
             −
           </span>
-          <span className="min-w-[16px] text-center text-[11px] font-bold text-[#FF7300] tabular-nums">
+          <span className="min-w-[18px] text-center text-xs font-black text-[#FF7300] tabular-nums">
             {selectedQty ?? 1}
           </span>
           <span
-            className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold select-none ${
+            className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold select-none transition ${
               (selectedQty ?? 1) < (maxQty ?? 1)
-                ? 'cursor-pointer bg-[#FF7300] text-white hover:bg-[#e86800]'
+                ? 'cursor-pointer bg-[#FF7300] text-white hover:bg-[#e86800] hover:scale-105'
                 : 'cursor-not-allowed bg-gray-200 text-gray-400'
             }`}
             onClick={() => { if ((selectedQty ?? 1) < (maxQty ?? 1)) onQtyChange(1); }}
@@ -262,19 +282,19 @@ function MiniCard({
           </span>
         </div>
       )}
-      <div className="card-shine-wrapper relative aspect-[200/280] w-full overflow-hidden rounded-lg bg-gray-100">
+      <div className={`card-shine-wrapper relative aspect-[200/280] w-full overflow-hidden rounded-xl bg-gray-100 transition-shadow ${selected ? 'shadow-md shadow-orange-500/10' : ''}`}>
         <Image
           src={item.image}
           alt={item.name}
           fill
           unoptimized
           className="object-cover transition-transform duration-300 group-hover:scale-110"
-          sizes="80px"
+          sizes="96px"
         />
       </div>
-      <div className="mt-1.5 w-full px-0.5">
-        <p className="truncate text-[10px] font-bold leading-tight text-gray-900">{item.name}</p>
-        {item.condition ? <p className="text-[9px] text-gray-400">{item.condition}</p> : null}
+      <div className="mt-2 w-full px-0.5">
+        <p className="truncate text-[11px] font-black leading-tight text-gray-900">{item.name}</p>
+        {item.condition ? <p className="text-[10px] font-medium text-gray-500">{item.condition}</p> : null}
       </div>
     </button>
   );
@@ -302,55 +322,58 @@ function MiniCardListItem({
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full items-center gap-3 rounded-xl border-2 p-2 text-left transition-all duration-200 animate-fade-in-up ${
+      className={`group flex w-full items-center gap-3 rounded-2xl border-2 p-2.5 text-left transition-all duration-200 animate-fade-in-up ${
         selected
-          ? 'border-[#FF7300] bg-orange-50/80 shadow-md'
-          : 'border-gray-100/80 bg-white/80 hover:border-orange-300'
+          ? 'border-[#FF7300] bg-gradient-to-r from-orange-50 to-white shadow-md shadow-orange-500/10'
+          : 'border-gray-100 bg-white shadow-sm shadow-black/5 hover:border-orange-200 hover:shadow-md'
       }`}
-      style={{ animationDelay: `${delayIdx * 40}ms` }}
+      style={{ animationDelay: `${delayIdx * 45}ms` }}
     >
-      <div className="card-shine-wrapper relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+      <div className={`card-shine-wrapper relative h-16 w-11 shrink-0 overflow-hidden rounded-xl bg-gray-100 ${selected ? 'shadow-md shadow-orange-500/10' : ''}`}>
         <Image
           src={item.image}
           alt={item.name}
           fill
           unoptimized
           className="object-cover transition-transform duration-300 group-hover:scale-110"
-          sizes="40px"
+          sizes="48px"
         />
       </div>
       <div className="min-w-0 flex-1 text-left">
-        <p className="truncate text-xs font-bold text-gray-900">{item.name}</p>
-        {item.condition ? <p className="text-[10px] text-gray-400">{item.condition}</p> : null}
-        {item.badge ? (
-          <span className="mt-1 inline-block rounded bg-[#1D3160] px-1.5 py-0.5 text-[8px] font-bold uppercase text-white">
-            {item.badge}
-          </span>
-        ) : null}
-        {!selected && item.qty && item.qty > 1 ? (
-          <span className="ml-1 mt-1 inline-block rounded-full bg-[#FF7300] px-1.5 py-0.5 text-[9px] font-bold text-white">
-            x{item.qty}
-          </span>
-        ) : null}
+        <p className="truncate text-sm font-black text-gray-900">{item.name}</p>
+        {item.condition ? <p className="text-[11px] font-medium text-gray-500">{item.condition}</p> : null}
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          {item.badge ? (
+            <span className="inline-flex items-center gap-1 rounded-lg bg-[#1D3160]/90 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+              <Package className="h-2.5 w-2.5" />
+              {item.badge}
+            </span>
+          ) : null}
+          {!selected && item.qty && item.qty > 1 ? (
+            <span className="inline-flex items-center rounded-full bg-[#FF7300] px-1.5 py-0.5 text-[9px] font-bold text-white">
+              x{item.qty}
+            </span>
+          ) : null}
+        </div>
       </div>
       {showQtySelector && (
         <div
-          className="flex shrink-0 items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 shadow border border-[#FF7300]/30"
+          className="flex shrink-0 items-center gap-1 rounded-full bg-white px-2 py-1 shadow-lg border border-[#FF7300]/30"
           onClick={(e) => e.stopPropagation()}
         >
           <span
-            className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-[11px] font-bold text-gray-600 hover:bg-gray-200 select-none"
+            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600 transition hover:bg-gray-200 select-none"
             onClick={() => onQtyChange(-1)}
           >
             −
           </span>
-          <span className="min-w-[16px] text-center text-[11px] font-bold text-[#FF7300] tabular-nums">
+          <span className="min-w-[18px] text-center text-xs font-black text-[#FF7300] tabular-nums">
             {selectedQty ?? 1}
           </span>
           <span
-            className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold select-none ${
+            className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold select-none transition ${
               (selectedQty ?? 1) < (maxQty ?? 1)
-                ? 'cursor-pointer bg-[#FF7300] text-white hover:bg-[#e86800]'
+                ? 'cursor-pointer bg-[#FF7300] text-white hover:bg-[#e86800] hover:scale-105'
                 : 'cursor-not-allowed bg-gray-200 text-gray-400'
             }`}
             onClick={() => { if ((selectedQty ?? 1) < (maxQty ?? 1)) onQtyChange(1); }}
@@ -360,8 +383,8 @@ function MiniCardListItem({
         </div>
       )}
       {selected && !showQtySelector && (
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white animate-badge-pop">
-          <Check className="h-3 w-3" strokeWidth={3} />
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-md shadow-orange-500/25 animate-badge-pop">
+          <Check className="h-3.5 w-3.5" strokeWidth={3} />
         </div>
       )}
     </button>
@@ -379,63 +402,50 @@ function CreditField({
   label: string;
   disabled?: boolean;
 }) {
+  const decrement = () => onChange(Math.max(0, value - 1));
+  const increment = () => onChange(value + 1);
   return (
-    <div className={`animate-fade-in-up transition-opacity ${disabled ? 'opacity-40' : ''}`} style={{ animationDelay: '120ms' }}>
-      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-gray-500">
+    <div className={`animate-fade-in-up transition-opacity ${disabled ? 'opacity-50' : ''}`} style={{ animationDelay: '120ms' }}>
+      <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-gray-500">
+        <Coins className="h-3 w-3" />
         {label}
       </label>
-      <div className="flex items-center gap-2">
-        <input
-          type="number"
-          min={0}
-          value={value}
+      <div
+        className={`flex items-center overflow-hidden rounded-xl border-2 bg-white shadow-sm transition ${
+          disabled
+            ? 'border-gray-100 bg-gray-50'
+            : 'border-gray-200 focus-within:border-[#FF7300] focus-within:ring-4 focus-within:ring-[#FF7300]/10'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={decrement}
+          disabled={disabled || value <= 0}
+          className="flex h-10 w-10 items-center justify-center bg-gray-50 text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
+        >
+          −
+        </button>
+        <div className="relative flex-1">
+          <input
+            type="number"
+            min={0}
+            value={value}
+            disabled={disabled}
+            onChange={(e) => onChange(Math.max(0, parseInt(e.target.value) || 0))}
+            className={`h-10 w-full border-x-2 border-gray-100 bg-transparent px-2 py-2 text-center text-sm font-black text-gray-900 outline-none tabular-nums transition ${
+              disabled ? 'text-gray-400 cursor-not-allowed' : ''
+            }`}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={increment}
           disabled={disabled}
-          onChange={(e) => onChange(Math.max(0, parseInt(e.target.value) || 0))}
-          className={`w-24 rounded-lg border px-3 py-2 text-sm font-bold outline-none backdrop-blur-sm transition ${
-            disabled
-              ? 'border-gray-200/50 bg-gray-100/50 text-gray-400 cursor-not-allowed'
-              : 'border-gray-200/80 bg-white/80 text-gray-900 focus:border-[#FF7300] focus:ring-2 focus:ring-[#FF7300]/20 focus:bg-white'
-          }`}
-        />
-        <span className="text-xs text-gray-400">crediti</span>
+          className="flex h-10 w-10 items-center justify-center bg-gray-50 text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
+        >
+          +
+        </button>
       </div>
-    </div>
-  );
-}
-
-function ModeToggle({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center gap-2 animate-fade-in-up" style={{ animationDelay: '80ms' }}>
-      <button
-        type="button"
-        onClick={() => onChange(false)}
-        className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[10px] font-bold uppercase transition-all duration-200 ${
-          !checked
-            ? 'border-[#FF7300] bg-gradient-to-r from-orange-50 to-orange-100/50 text-[#FF7300] shadow-sm shadow-orange-500/10'
-            : 'border-gray-200/80 bg-gray-50/50 text-gray-400 hover:border-gray-300 hover:bg-gray-50'
-        }`}
-      >
-        <Clock className="h-3 w-3" />
-        Async
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange(true)}
-        className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[10px] font-bold uppercase transition-all duration-200 ${
-          checked
-            ? 'border-[#FF7300] bg-gradient-to-r from-orange-50 to-orange-100/50 text-[#FF7300] shadow-sm shadow-orange-500/10'
-            : 'border-gray-200/80 bg-gray-50/50 text-gray-400 hover:border-gray-300 hover:bg-gray-50'
-        }`}
-      >
-        <Zap className="h-3 w-3" />
-        Realtime
-      </button>
     </div>
   );
 }
@@ -449,10 +459,12 @@ function SubmitButton({ onClick, children }: { onClick: () => void; children: Re
     <button
       type="button"
       onClick={onClick}
-      className="animate-shimmer-btn relative ml-auto flex items-center gap-1.5 overflow-hidden rounded-xl bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-white shadow-lg shadow-orange-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+      className="animate-shimmer-btn group relative ml-auto flex items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] px-6 py-3 text-xs font-black uppercase tracking-wide text-white shadow-lg shadow-orange-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-orange-500/45 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
     >
-      <span className="relative z-10 flex items-center gap-1.5">
-        <Send className="h-3.5 w-3.5" />
+      <span className="relative z-10 flex items-center gap-2">
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
+          <Send className="h-3.5 w-3.5" />
+        </span>
         {children}
       </span>
     </button>
@@ -470,23 +482,25 @@ function SelectedBadge({ count, items, quantities }: { count: number; items: Tra
     : count;
   return (
     <div className="group relative">
-      <span className="cursor-default rounded-full bg-[#FF7300] px-2.5 py-0.5 text-[11px] font-bold text-white shadow-md shadow-orange-500/25 animate-badge-pop">
+      <span className="inline-flex cursor-default items-center gap-1.5 rounded-full bg-[#FF7300] px-3 py-1.5 text-[11px] font-black text-white shadow-md shadow-orange-500/25 animate-badge-pop">
+        <Check className="h-3 w-3" strokeWidth={3} />
         {count} sel. {totalQty !== count ? `(${totalQty} carte)` : ''}
       </span>
       <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-        <div className="rounded-xl border border-gray-200 bg-white p-2 shadow-xl w-52 max-h-48 overflow-y-auto">
+        <div className="rounded-2xl border border-gray-200 bg-white p-2.5 shadow-2xl w-56 max-h-52 overflow-y-auto">
           {items.map((item) => {
             const qty = quantities?.[item.id] ?? 1;
             return (
-              <div key={item.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5">
-                <div className="relative h-8 w-6 shrink-0 overflow-hidden rounded bg-gray-100">
-                  <Image src={item.image} alt={item.name} fill unoptimized className="object-cover" sizes="24px" />
+              <div key={item.id} className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 hover:bg-gray-50">
+                <div className="relative h-9 w-7 shrink-0 overflow-hidden rounded-lg bg-gray-100 shadow-sm">
+                  <Image src={item.image} alt={item.name} fill unoptimized className="object-cover" sizes="28px" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[10px] font-medium text-gray-700">{item.name}</p>
+                  <p className="truncate text-[11px] font-bold text-gray-800">{item.name}</p>
+                  {item.condition ? <p className="text-[9px] text-gray-500">{item.condition}</p> : null}
                 </div>
                 {qty > 1 && (
-                  <span className="shrink-0 rounded-full bg-[#FF7300]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#FF7300]">x{qty}</span>
+                  <span className="shrink-0 rounded-full bg-[#FF7300]/10 px-1.5 py-0.5 text-[10px] font-black text-[#FF7300]">x{qty}</span>
                 )}
               </div>
             );
@@ -511,17 +525,17 @@ function SearchBar({
   placeholder: string;
 }) {
   return (
-    <div className="animate-fade-in-up flex items-center gap-2 rounded-full border border-gray-200/80 bg-gray-50/80 px-3 py-1.5 backdrop-blur-sm transition-all focus-within:border-[#FF7300] focus-within:ring-2 focus-within:ring-[#FF7300]/15 focus-within:bg-white">
-      <Search className="h-3.5 w-3.5 text-gray-400" />
+    <div className="animate-fade-in-up flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2 transition-all focus-within:border-[#FF7300] focus-within:bg-white focus-within:shadow-md focus-within:shadow-orange-500/10">
+      <Search className="h-4 w-4 text-gray-400" />
       <input
         type="text"
         value={query}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 bg-transparent text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none"
+        className="flex-1 bg-transparent text-sm font-semibold text-gray-900 placeholder:text-gray-400 focus:outline-none"
       />
       {query && (
-        <button type="button" onClick={() => onChange('')} className="text-gray-400 hover:text-gray-600 transition-colors">
+        <button type="button" onClick={() => onChange('')} className="flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-200 hover:text-gray-700">
           <X className="h-3 w-3" />
         </button>
       )}
@@ -539,7 +553,6 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
     (s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
   );
 
-  const [isRealtime, setIsRealtime] = useState(false);
   const [selectedOfferedIds, setSelectedOfferedIds] = useState<string[]>([]);
   const [offeredCredits, setOfferedCredits] = useState(0);
   const [requestedCredits, setRequestedCredits] = useState(0);
@@ -678,7 +691,6 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
 
   useEffect(() => {
     if (open) {
-      setIsRealtime(mode === 'counter' ? MOCK_A_PROPOSAL.isRealtime : false);
       setSelectedOfferedIds([]);
       setOfferedCredits(0);
       setRequestedCredits(0);
@@ -765,7 +777,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
       offeredCredits,
       requestedItems,
       requestedCredits,
-      isRealtime,
+      isRealtime: false,
       message,
     };
   };
@@ -787,7 +799,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
       offeredCredits: MOCK_A_PROPOSAL.offeredCredits,
       requestedItems: [],
       requestedCredits: 0,
-      isRealtime: MOCK_A_PROPOSAL.isRealtime,
+      isRealtime: false,
       message: 'Accetto la proposta',
     });
     onClose();
@@ -834,14 +846,10 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4">
         <style>{MODAL_ANIM_CSS}</style>
 
-        {/* Backdrop con gradiente blu scuro come header del sito */}
+        {/* Backdrop immersivo */}
         <button
           type="button"
-          className="animate-backdrop-enter absolute inset-0"
-          style={{
-            background: 'linear-gradient(180deg, rgba(29,49,96,0.75) 0%, rgba(15,23,42,0.85) 100%)',
-            backdropFilter: 'blur(8px)',
-          }}
+          className="animate-backdrop-enter absolute inset-0 bg-[#0F172A]/75 backdrop-blur-md"
           aria-label="Chiudi"
           onClick={onClose}
         />
@@ -849,55 +857,65 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
         <div
           role="dialog"
           aria-modal="true"
-          className="animate-modal-enter relative z-[201] flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden rounded-none bg-white/95 shadow-2xl shadow-black/20 sm:h-auto sm:max-h-[85dvh] sm:rounded-2xl"
-          style={{ backdropFilter: 'blur(20px) saturate(150%)' }}
+          className="animate-modal-enter relative z-[201] flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-none bg-[#F8F7F4] shadow-2xl shadow-black/25 sm:h-auto sm:max-h-[90dvh] sm:rounded-[28px]"
         >
-          {/* Header con gradient glass */}
-          <div className="relative flex shrink-0 items-center justify-between overflow-hidden border-b border-white/20 bg-gradient-to-r from-[#1D3160] via-[#243663] to-[#1D3160] px-5 py-3">
-            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-            <div className="relative">
-              <h2 className="text-base font-black uppercase tracking-tight text-white drop-shadow">Proponi scambio</h2>
-              <p className="text-[10px] text-white/60">Seleziona cosa offri in cambio</p>
+          {/* Header */}
+          <div className="relative flex shrink-0 items-center justify-between overflow-hidden bg-gradient-to-r from-[#1D3160] via-[#2A3F73] to-[#1D3160] px-5 py-4 sm:px-6">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+            <div className="relative flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 shadow-inner backdrop-blur-sm">
+                <ScambiIcon className="h-5 w-5 text-[#FF7300]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black uppercase tracking-tight text-white drop-shadow-sm">Proponi scambio</h2>
+                <p className="text-[11px] font-medium text-white/70">Seleziona cosa offri in cambio</p>
+              </div>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="relative rounded-full p-1.5 text-white/70 transition hover:bg-white/10 hover:text-white"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
           {/* Body */}
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-            {/* Left — target card con glass */}
-            <div className="flex shrink-0 flex-col gap-3 border-b border-gray-100/60 bg-gradient-to-b from-gray-50/80 to-white/60 p-4 lg:w-72 lg:border-b-0 lg:border-r lg:border-gray-100/60 lg:bg-white/80">
-              <div className="animate-fade-in-up text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            {/* Left — target card */}
+            <div className="flex shrink-0 flex-col gap-4 border-b border-gray-200/60 bg-gradient-to-b from-white to-[#F8F7F4] p-5 lg:w-80 lg:border-b-0 lg:border-r lg:border-gray-200/60">
+              <div className="animate-fade-in-up flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-400">
+                <Sparkles className="h-3.5 w-3.5 text-[#FF7300]" />
                 Carta richiesta
               </div>
 
-              <div className="animate-fade-in-up flex flex-col gap-2" style={{ animationDelay: '60ms' }}>
-                <div className="card-shine-wrapper relative w-full overflow-hidden rounded-xl shadow-lg shadow-black/10 ring-1 ring-black/5 transition-transform duration-300 hover:scale-105" style={{ aspectRatio: '200/280' }}>
-                  <Image src={scambio.image} alt={scambio.title} fill unoptimized className="object-cover" sizes="288px" priority />
+              <div className="animate-fade-in-up flex flex-col gap-3" style={{ animationDelay: '60ms' }}>
+                <div className="card-shine-wrapper animate-float-soft relative w-full overflow-hidden rounded-2xl shadow-xl shadow-black/15 ring-1 ring-black/5 transition-transform duration-300 hover:scale-[1.02]" style={{ aspectRatio: '200/280' }}>
+                  <Image src={scambio.image} alt={scambio.title} fill unoptimized className="object-cover" sizes="320px" priority />
                 </div>
-                <div className="min-w-0">
+                <div className="rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm">
                   <p className="truncate text-sm font-black uppercase text-[#1D3160]">{scambio.title}</p>
-                  <div className="mt-1"><ConditionBadge condition={scambio.condition as ConditionCode} /></div>
-                  <p className="mt-1 text-[10px] text-gray-500">
-                    di <span className="font-bold text-gray-700">{scambio.seller}</span>
+                  <div className="mt-2 flex items-center gap-2">
+                    <ConditionBadge condition={scambio.condition as ConditionCode} />
+                  </div>
+                  <p className="mt-2 text-[11px] font-medium text-gray-500">
+                    di <span className="font-bold text-gray-800">{scambio.seller}</span>
                   </p>
                 </div>
-              </div>
-
-              <div className="mt-auto">
-                <ModeToggle checked={isRealtime} onChange={setIsRealtime} />
               </div>
             </div>
 
             {/* Right — inventory */}
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4">
-              <div className="animate-fade-in-up mb-2 flex flex-wrap items-center justify-between gap-2" style={{ animationDelay: '40ms' }}>
-                <span className="text-xs font-black uppercase tracking-tight text-[#1D3160]">Cosa offri</span>
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              {/* Toolbar */}
+              <div className="animate-fade-in-up flex flex-wrap items-center justify-between gap-3 border-b border-gray-200/60 bg-white/80 px-5 py-3 backdrop-blur-sm" style={{ animationDelay: '40ms' }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-black uppercase tracking-tight text-[#1D3160]">Cosa offri</span>
+                  <span className="hidden h-4 w-px bg-gray-300 sm:block" />
+                  <span className="hidden text-[11px] font-semibold text-gray-400 sm:block">
+                    {offeredInventoryItems.length > 0 && `${offeredInventoryItems.length} nel tuo inventario`}
+                  </span>
+                </div>
                 <div className="flex items-center gap-2">
                   <AuctionViewToggle
                     viewMode={viewMode}
@@ -908,129 +926,166 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                 </div>
               </div>
 
-              <div className="mb-3" style={{ animationDelay: '60ms' }}>
-                <SearchBar
-                  query={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="Cerca nel tuo inventario o nel catalogo..."
-                />
-              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
+                <div className="mb-4" style={{ animationDelay: '60ms' }}>
+                  <SearchBar
+                    query={searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder="Cerca nel tuo inventario o nel catalogo..."
+                  />
+                </div>
 
-              <div className="flex-1 min-h-0 overflow-y-auto">
                 {loadingInventory && (
-                  <div className="flex items-center gap-2 py-4 text-xs text-gray-500">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <div className="flex flex-col items-center justify-center gap-2 py-8 text-sm text-gray-500">
+                    <Loader2 className="h-5 w-5 animate-spin text-[#FF7300]" />
                     Caricamento inventario...
                   </div>
                 )}
 
                 {!loadingInventory && !user?.id && (
-                  <p className="py-4 text-center text-xs text-gray-400">
-                    Accedi per vedere la tua collezione.
-                  </p>
+                  <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white py-8 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                      <Library className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-600">Accedi per vedere la tua collezione</p>
+                  </div>
                 )}
 
                 {!loadingInventory && (user?.id ? (
-                  viewMode === 'grid' ? (
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
-                      {offeredInventoryItems.map((item, i) => (
-                        <MiniCard
-                          key={item.id}
-                          item={item}
-                          selected={selectedOfferedIds.includes(item.id)}
-                          onClick={() => toggleOfferedItem(item)}
-                          delayIdx={i}
-                          selectedQty={offeredQuantities[item.id]}
-                          maxQty={item.qty}
-                          onQtyChange={(delta) => {
-                            const cur = offeredQuantities[item.id] ?? 1;
-                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
-                            if (next === cur) return;
-                            setOfferedQuantities((prev) => ({ ...prev, [item.id]: next }));
-                          }}
-                        />
-                      ))}
-                      {offeredCatalogItems.map((item, i) => (
-                        <MiniCard
-                          key={item.id}
-                          item={item}
-                          selected={selectedOfferedIds.includes(item.id)}
-                          onClick={() => toggleOfferedItem(item)}
-                          delayIdx={offeredInventoryItems.length + i}
-                          selectedQty={offeredQuantities[item.id]}
-                          maxQty={item.qty}
-                          onQtyChange={(delta) => {
-                            const cur = offeredQuantities[item.id] ?? 1;
-                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
-                            if (next === cur) return;
-                            setOfferedQuantities((prev) => ({ ...prev, [item.id]: next }));
-                          }}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {offeredInventoryItems.map((item, i) => (
-                        <MiniCardListItem
-                          key={item.id}
-                          item={item}
-                          selected={selectedOfferedIds.includes(item.id)}
-                          onClick={() => toggleOfferedItem(item)}
-                          delayIdx={i}
-                          selectedQty={offeredQuantities[item.id]}
-                          maxQty={item.qty}
-                          onQtyChange={(delta) => {
-                            const cur = offeredQuantities[item.id] ?? 1;
-                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
-                            if (next === cur) return;
-                            setOfferedQuantities((prev) => ({ ...prev, [item.id]: next }));
-                          }}
-                        />
-                      ))}
-                      {offeredCatalogItems.map((item, i) => (
-                        <MiniCardListItem
-                          key={item.id}
-                          item={item}
-                          selected={selectedOfferedIds.includes(item.id)}
-                          onClick={() => toggleOfferedItem(item)}
-                          delayIdx={offeredInventoryItems.length + i}
-                          selectedQty={offeredQuantities[item.id]}
-                          maxQty={item.qty}
-                          onQtyChange={(delta) => {
-                            const cur = offeredQuantities[item.id] ?? 1;
-                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
-                            if (next === cur) return;
-                            setOfferedQuantities((prev) => ({ ...prev, [item.id]: next }));
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )
+                  <>
+                    {offeredInventoryItems.length > 0 && (
+                      <div className="mb-4">
+                        <div className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-500">
+                          <Package className="h-3.5 w-3.5" />
+                          Dal tuo inventario
+                        </div>
+                        {viewMode === 'grid' ? (
+                          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
+                            {offeredInventoryItems.map((item, i) => (
+                              <MiniCard
+                                key={item.id}
+                                item={item}
+                                selected={selectedOfferedIds.includes(item.id)}
+                                onClick={() => toggleOfferedItem(item)}
+                                delayIdx={i}
+                                selectedQty={offeredQuantities[item.id]}
+                                maxQty={item.qty}
+                                onQtyChange={(delta) => {
+                                  const cur = offeredQuantities[item.id] ?? 1;
+                                  const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                                  if (next === cur) return;
+                                  setOfferedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                                }}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {offeredInventoryItems.map((item, i) => (
+                              <MiniCardListItem
+                                key={item.id}
+                                item={item}
+                                selected={selectedOfferedIds.includes(item.id)}
+                                onClick={() => toggleOfferedItem(item)}
+                                delayIdx={i}
+                                selectedQty={offeredQuantities[item.id]}
+                                maxQty={item.qty}
+                                onQtyChange={(delta) => {
+                                  const cur = offeredQuantities[item.id] ?? 1;
+                                  const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                                  if (next === cur) return;
+                                  setOfferedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                                }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {offeredCatalogItems.length > 0 && (
+                      <div className="mb-4">
+                        <div className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-500">
+                          <Library className="h-3.5 w-3.5" />
+                          Dal catalogo
+                        </div>
+                        {viewMode === 'grid' ? (
+                          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
+                            {offeredCatalogItems.map((item, i) => (
+                              <MiniCard
+                                key={item.id}
+                                item={item}
+                                selected={selectedOfferedIds.includes(item.id)}
+                                onClick={() => toggleOfferedItem(item)}
+                                delayIdx={offeredInventoryItems.length + i}
+                                selectedQty={offeredQuantities[item.id]}
+                                maxQty={item.qty}
+                                onQtyChange={(delta) => {
+                                  const cur = offeredQuantities[item.id] ?? 1;
+                                  const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                                  if (next === cur) return;
+                                  setOfferedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                                }}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {offeredCatalogItems.map((item, i) => (
+                              <MiniCardListItem
+                                key={item.id}
+                                item={item}
+                                selected={selectedOfferedIds.includes(item.id)}
+                                onClick={() => toggleOfferedItem(item)}
+                                delayIdx={offeredInventoryItems.length + i}
+                                selectedQty={offeredQuantities[item.id]}
+                                maxQty={item.qty}
+                                onQtyChange={(delta) => {
+                                  const cur = offeredQuantities[item.id] ?? 1;
+                                  const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                                  if (next === cur) return;
+                                  setOfferedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                                }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 ) : null)}
 
                 {loadingSearch && (
                   <div className="flex items-center gap-2 py-3 text-xs text-gray-500">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Ricerca in corso...
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF7300]" />
+                    Ricerca nel catalogo in corso...
                   </div>
                 )}
 
                 {searchError && (
-                  <p className="py-2 text-xs text-red-600">{searchError}</p>
+                  <div className="mb-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">
+                    {searchError}
+                  </div>
                 )}
 
                 {offeredInventoryItems.length === 0 && offeredCatalogItems.length === 0 && !loadingInventory && !loadingSearch && (
-                  <p className="animate-fade-in-up py-4 text-center text-xs text-gray-400">
-                    Nessuna carta trovata
-                  </p>
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white py-10 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                      <Search className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-gray-600">Nessuna carta trovata</p>
+                    <p className="text-[11px] text-gray-400">Prova a cercare nel catalogo</p>
+                  </div>
                 )}
               </div>
 
-              {/* Bottom row */}
-              <div className="animate-fade-in-up flex flex-wrap items-end gap-4 pt-3" style={{ animationDelay: '200ms' }}>
-                <CreditField value={offeredCredits} onChange={handleOfferedCreditsChange} label="Offri crediti" disabled={requestedCredits > 0} />
-                <CreditField value={requestedCredits} onChange={handleRequestedCreditsChange} label="Richiedi crediti" disabled={offeredCredits > 0} />
-                <SelectedBadge count={selectedOfferedIds.length} items={Object.values(offeredItemData)} quantities={offeredQuantities} />
+              {/* Bottom bar */}
+              <div className="animate-fade-in-up flex flex-wrap items-end gap-4 border-t border-gray-200/60 bg-white/90 px-5 py-4 backdrop-blur-md" style={{ animationDelay: '200ms' }}>
+                <div className="flex flex-1 flex-wrap items-end gap-4">
+                  <CreditField value={offeredCredits} onChange={handleOfferedCreditsChange} label="Offri crediti" disabled={requestedCredits > 0} />
+                  <CreditField value={requestedCredits} onChange={handleRequestedCreditsChange} label="Richiedi crediti" disabled={offeredCredits > 0} />
+                  <SelectedBadge count={selectedOfferedIds.length} items={Object.values(offeredItemData)} quantities={offeredQuantities} />
+                </div>
                 <SubmitButton onClick={handleSubmit}>Invia proposta</SubmitButton>
               </div>
             </div>
@@ -1050,11 +1105,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
 
       <button
         type="button"
-        className="animate-backdrop-enter absolute inset-0"
-        style={{
-          background: 'linear-gradient(180deg, rgba(29,49,96,0.75) 0%, rgba(15,23,42,0.85) 100%)',
-          backdropFilter: 'blur(8px)',
-        }}
+        className="animate-backdrop-enter absolute inset-0 bg-[#0F172A]/75 backdrop-blur-md"
         aria-label="Chiudi"
         onClick={onClose}
       />
@@ -1062,86 +1113,97 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
       <div
         role="dialog"
         aria-modal="true"
-        className="animate-modal-enter relative z-[201] flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden rounded-none bg-white/95 shadow-2xl shadow-black/20 sm:h-auto sm:max-h-[85dvh] sm:rounded-2xl"
-        style={{ backdropFilter: 'blur(20px) saturate(150%)' }}
+        className="animate-modal-enter relative z-[201] flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-none bg-[#F8F7F4] shadow-2xl shadow-black/25 sm:h-auto sm:max-h-[90dvh] sm:rounded-[28px]"
       >
-        {/* Header glass */}
-        <div className="relative flex shrink-0 items-center justify-between overflow-hidden border-b border-white/20 bg-gradient-to-r from-[#1D3160] via-[#243663] to-[#1D3160] px-5 py-3">
-          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-          <div className="relative">
-            <h2 className="text-base font-black uppercase tracking-tight text-white drop-shadow">Rispondi allo scambio</h2>
-            <p className="text-[10px] text-white/60">{scambio.seller} ti ha proposto uno scambio</p>
+        {/* Header */}
+        <div className="relative flex shrink-0 items-center justify-between overflow-hidden bg-gradient-to-r from-[#1D3160] via-[#2A3F73] to-[#1D3160] px-5 py-4 sm:px-6">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+          <div className="relative flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 shadow-inner backdrop-blur-sm">
+              <ScambiIcon className="h-5 w-5 text-[#FF7300]" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black uppercase tracking-tight text-white drop-shadow-sm">Rispondi allo scambio</h2>
+              <p className="text-[11px] font-medium text-white/70">{scambio.seller} ti ha proposto uno scambio</p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="relative rounded-full p-1.5 text-white/70 transition hover:bg-white/10 hover:text-white"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Body */}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
           {/* Left — their proposal */}
-          <div className="flex shrink-0 flex-col gap-3 border-b border-gray-100/60 bg-gradient-to-b from-gray-50/80 to-white/60 p-4 lg:w-72 lg:border-b-0 lg:border-r lg:border-gray-100/60 lg:bg-white/80">
-            <div className="animate-fade-in-up text-[10px] font-bold uppercase tracking-wider text-gray-400">
+          <div className="flex shrink-0 flex-col gap-4 border-b border-gray-200/60 bg-gradient-to-b from-white to-[#F8F7F4] p-5 lg:w-80 lg:border-b-0 lg:border-r lg:border-gray-200/60">
+            <div className="animate-fade-in-up flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-400">
+              <Sparkles className="h-3.5 w-3.5 text-[#FF7300]" />
               La sua proposta
             </div>
 
-            <div className="animate-fade-in-up flex items-center gap-3" style={{ animationDelay: '60ms' }}>
-              <div className="card-shine-wrapper relative h-24 w-16 shrink-0 overflow-hidden rounded-xl shadow-lg shadow-black/10 ring-1 ring-black/5 transition-transform duration-300 hover:scale-105">
-                <Image src={scambio.image} alt={scambio.title} fill unoptimized className="object-cover" sizes="64px" priority />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-black uppercase text-[#1D3160]">{scambio.title}</p>
-                <div className="mt-1"><ConditionBadge condition={scambio.condition as ConditionCode} /></div>
+            <div className="animate-fade-in-up rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm" style={{ animationDelay: '60ms' }}>
+              <div className="flex items-center gap-3">
+                <div className="card-shine-wrapper relative h-24 w-16 shrink-0 overflow-hidden rounded-xl shadow-md shadow-black/10 ring-1 ring-black/5">
+                  <Image src={scambio.image} alt={scambio.title} fill unoptimized className="object-cover" sizes="64px" priority />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-black uppercase text-[#1D3160]">{scambio.title}</p>
+                  <div className="mt-1"><ConditionBadge condition={scambio.condition as ConditionCode} /></div>
+                </div>
               </div>
             </div>
 
-            <div className="animate-fade-in-up rounded-xl border border-gray-200/60 bg-white/80 p-3 backdrop-blur-sm" style={{ animationDelay: '100ms' }}>
-              <p className="mb-2 text-[9px] font-bold uppercase tracking-wider text-gray-400">Offre</p>
-              <div className="flex gap-2">
+            <div className="animate-fade-in-up rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm" style={{ animationDelay: '100ms' }}>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-[11px] font-black uppercase tracking-wider text-gray-500">Offre</p>
+                {MOCK_A_PROPOSAL.offeredCredits > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#FF7300]/10 px-2 py-0.5 text-[10px] font-black text-[#FF7300]">
+                    <Coins className="h-3 w-3" /> +{MOCK_A_PROPOSAL.offeredCredits}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
                 {MOCK_A_PROPOSAL.offeredCards.map((item, i) => (
-                  <div key={item.id} className="card-shine-wrapper relative h-16 w-11 overflow-hidden rounded-lg shadow transition-transform duration-200 hover:scale-105" style={{ animationDelay: `${120 + i * 50}ms` }}>
-                    <Image src={item.image} alt={item.name} fill unoptimized className="object-cover" sizes="44px" />
+                  <div key={item.id} className="card-shine-wrapper relative h-20 w-14 overflow-hidden rounded-xl shadow-md shadow-black/10 transition-transform duration-200 hover:scale-105" style={{ animationDelay: `${120 + i * 50}ms` }}>
+                    <Image src={item.image} alt={item.name} fill unoptimized className="object-cover" sizes="56px" />
                   </div>
                 ))}
               </div>
-              {MOCK_A_PROPOSAL.offeredCredits > 0 && (
-                <p className="mt-2 text-xs font-bold text-[#FF7300]">+ {MOCK_A_PROPOSAL.offeredCredits} crediti</p>
-              )}
             </div>
 
             {MOCK_A_PROPOSAL.message && (
-              <div className="animate-fade-in-up rounded-lg border-l-4 border-[#FF7300] bg-gradient-to-r from-orange-50/60 to-transparent px-3 py-2" style={{ animationDelay: '140ms' }}>
-                <p className="text-[11px] italic leading-relaxed text-gray-600">&ldquo;{MOCK_A_PROPOSAL.message}&rdquo;</p>
+              <div className="animate-fade-in-up rounded-2xl border-l-4 border-[#FF7300] bg-gradient-to-r from-orange-50 to-white px-4 py-3 shadow-sm" style={{ animationDelay: '140ms' }}>
+                <p className="text-[12px] font-medium italic leading-relaxed text-gray-700">&ldquo;{MOCK_A_PROPOSAL.message}&rdquo;</p>
               </div>
             )}
 
             <div className="animate-fade-in-up flex items-center gap-2" style={{ animationDelay: '160ms' }}>
-              <span className="text-[10px] text-gray-400">Modalità:</span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-bold text-[#FF7300] shadow-sm shadow-orange-500/10">
+              <span className="text-[11px] font-semibold text-gray-500">Modalità proposta:</span>
+              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black shadow-sm ${MOCK_A_PROPOSAL.isRealtime ? 'bg-[#FF7300] text-white shadow-orange-500/25' : 'bg-gray-100 text-gray-600'}`}>
                 {MOCK_A_PROPOSAL.isRealtime ? <Zap className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                 {MOCK_A_PROPOSAL.isRealtime ? 'Realtime' : 'Async'}
               </span>
             </div>
 
-            <div className="animate-fade-in-up mt-auto space-y-2" style={{ animationDelay: '180ms' }}>
+            <div className="animate-fade-in-up mt-auto space-y-2.5" style={{ animationDelay: '180ms' }}>
               <button
                 type="button"
                 onClick={handleAccept}
-                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-500 px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:bg-emerald-600 hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-xs font-black uppercase tracking-wide text-white shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:bg-emerald-600 hover:shadow-xl hover:shadow-emerald-500/35 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
               >
-                <Check className="h-3.5 w-3.5" /> Accetta
+                <Check className="h-4 w-4" /> Accetta scambio
               </button>
               <button
                 type="button"
                 onClick={() => setCounterEditing(true)}
-                className={`flex w-full items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide transition-all duration-200 active:scale-[0.98] ${
+                className={`flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-xs font-black uppercase tracking-wide transition-all duration-200 active:scale-[0.98] ${
                   counterEditing
-                    ? 'border-[#FF7300] bg-gradient-to-r from-orange-50 to-orange-100/30 text-[#FF7300] shadow-sm shadow-orange-500/10'
-                    : 'border-gray-200/80 bg-white/80 text-gray-700 backdrop-blur-sm hover:border-gray-300 hover:bg-white hover:shadow-sm'
+                    ? 'border-[#FF7300] bg-gradient-to-r from-orange-50 to-orange-100/30 text-[#FF7300] shadow-md shadow-orange-500/15'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md'
                 }`}
               >
                 Modifica proposta
@@ -1150,20 +1212,24 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
           </div>
 
           {/* Right — your counter */}
-          <div className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4 ${!counterEditing ? 'hidden lg:flex' : ''}`}>
+          <div className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ${!counterEditing ? 'hidden lg:flex' : ''}`}>
             {!counterEditing ? (
-              <div className="flex h-full flex-col items-center justify-center text-center">
-                <div className="animate-fade-in-up flex h-12 w-12 items-center justify-center rounded-full bg-gray-100/80 shadow-inner">
-                  <Send className="h-5 w-5 text-gray-400" />
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-center px-4">
+                <div className="animate-fade-in-up flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 shadow-inner">
+                  <Send className="h-6 w-6 text-gray-400" />
                 </div>
-                <p className="animate-fade-in-up mt-3 text-xs text-gray-400" style={{ animationDelay: '80ms' }}>
-                  Clicca &ldquo;Modifica&rdquo; per rispondere con una controproposta
+                <p className="animate-fade-in-up text-sm font-bold text-gray-700" style={{ animationDelay: '80ms' }}>
+                  Vuoi rispondere con una controproposta?
+                </p>
+                <p className="animate-fade-in-up max-w-xs text-[12px] text-gray-500" style={{ animationDelay: '120ms' }}>
+                  Clicca &ldquo;Modifica proposta&rdquo; per chiedere altre carte o crediti.
                 </p>
               </div>
             ) : (
               <>
-                <div className="animate-fade-in-up mb-2 flex flex-wrap items-center justify-between gap-2" style={{ animationDelay: '40ms' }}>
-                  <span className="text-xs font-black uppercase tracking-tight text-[#1D3160]">Cosa chiedi</span>
+                {/* Toolbar */}
+                <div className="animate-fade-in-up flex flex-wrap items-center justify-between gap-3 border-b border-gray-200/60 bg-white/80 px-5 py-3 backdrop-blur-sm" style={{ animationDelay: '40ms' }}>
+                  <span className="text-sm font-black uppercase tracking-tight text-[#1D3160]">Cosa chiedi</span>
                   <div className="flex items-center gap-2">
                     <AuctionViewToggle
                       viewMode={viewMode}
@@ -1174,114 +1240,146 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                   </div>
                 </div>
 
-                <div className="mb-3" style={{ animationDelay: '60ms' }}>
-                  <SearchBar
-                    query={searchQuery}
-                    onChange={setSearchQuery}
-                    placeholder={`Cerca in ${scambio.seller} o nel catalogo...`}
-                  />
-                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
+                  <div className="mb-4" style={{ animationDelay: '60ms' }}>
+                    <SearchBar
+                      query={searchQuery}
+                      onChange={setSearchQuery}
+                      placeholder={`Cerca in ${scambio.seller} o nel catalogo...`}
+                    />
+                  </div>
 
-                <div className="min-h-0 flex-1 overflow-y-auto">
-                  {viewMode === 'grid' ? (
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
-                      {requestedInventoryItems.map((item, i) => (
-                        <MiniCard
-                          key={item.id}
-                          item={item}
-                          selected={selectedRequestedIds.includes(item.id)}
-                          onClick={() => toggleRequestedItem(item)}
-                          delayIdx={i}
-                          selectedQty={requestedQuantities[item.id]}
-                          maxQty={item.qty}
-                          onQtyChange={(delta) => {
-                            const cur = requestedQuantities[item.id] ?? 1;
-                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
-                            if (next === cur) return;
-                            setRequestedQuantities((prev) => ({ ...prev, [item.id]: next }));
-                          }}
-                        />
-                      ))}
-                      {requestedCatalogItems.map((item, i) => (
-                        <MiniCard
-                          key={item.id}
-                          item={item}
-                          selected={selectedRequestedIds.includes(item.id)}
-                          onClick={() => toggleRequestedItem(item)}
-                          delayIdx={requestedInventoryItems.length + i}
-                          selectedQty={requestedQuantities[item.id]}
-                          maxQty={item.qty}
-                          onQtyChange={(delta) => {
-                            const cur = requestedQuantities[item.id] ?? 1;
-                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
-                            if (next === cur) return;
-                            setRequestedQuantities((prev) => ({ ...prev, [item.id]: next }));
-                          }}
-                        />
-                      ))}
+                  {requestedInventoryItems.length > 0 && (
+                    <div className="mb-4">
+                      <div className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-500">
+                        <Package className="h-3.5 w-3.5" />
+                        Disponibili da {scambio.seller}
+                      </div>
+                      {viewMode === 'grid' ? (
+                        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
+                          {requestedInventoryItems.map((item, i) => (
+                            <MiniCard
+                              key={item.id}
+                              item={item}
+                              selected={selectedRequestedIds.includes(item.id)}
+                              onClick={() => toggleRequestedItem(item)}
+                              delayIdx={i}
+                              selectedQty={requestedQuantities[item.id]}
+                              maxQty={item.qty}
+                              onQtyChange={(delta) => {
+                                const cur = requestedQuantities[item.id] ?? 1;
+                                const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                                if (next === cur) return;
+                                setRequestedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                              }}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {requestedInventoryItems.map((item, i) => (
+                            <MiniCardListItem
+                              key={item.id}
+                              item={item}
+                              selected={selectedRequestedIds.includes(item.id)}
+                              onClick={() => toggleRequestedItem(item)}
+                              delayIdx={i}
+                              selectedQty={requestedQuantities[item.id]}
+                              maxQty={item.qty}
+                              onQtyChange={(delta) => {
+                                const cur = requestedQuantities[item.id] ?? 1;
+                                const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                                if (next === cur) return;
+                                setRequestedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {requestedInventoryItems.map((item, i) => (
-                        <MiniCardListItem
-                          key={item.id}
-                          item={item}
-                          selected={selectedRequestedIds.includes(item.id)}
-                          onClick={() => toggleRequestedItem(item)}
-                          delayIdx={i}
-                          selectedQty={requestedQuantities[item.id]}
-                          maxQty={item.qty}
-                          onQtyChange={(delta) => {
-                            const cur = requestedQuantities[item.id] ?? 1;
-                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
-                            if (next === cur) return;
-                            setRequestedQuantities((prev) => ({ ...prev, [item.id]: next }));
-                          }}
-                        />
-                      ))}
-                      {requestedCatalogItems.map((item, i) => (
-                        <MiniCardListItem
-                          key={item.id}
-                          item={item}
-                          selected={selectedRequestedIds.includes(item.id)}
-                          onClick={() => toggleRequestedItem(item)}
-                          delayIdx={requestedInventoryItems.length + i}
-                          selectedQty={requestedQuantities[item.id]}
-                          maxQty={item.qty}
-                          onQtyChange={(delta) => {
-                            const cur = requestedQuantities[item.id] ?? 1;
-                            const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
-                            if (next === cur) return;
-                            setRequestedQuantities((prev) => ({ ...prev, [item.id]: next }));
-                          }}
-                        />
-                      ))}
+                  )}
+
+                  {requestedCatalogItems.length > 0 && (
+                    <div className="mb-4">
+                      <div className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-500">
+                        <Library className="h-3.5 w-3.5" />
+                        Dal catalogo
+                      </div>
+                      {viewMode === 'grid' ? (
+                        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
+                          {requestedCatalogItems.map((item, i) => (
+                            <MiniCard
+                              key={item.id}
+                              item={item}
+                              selected={selectedRequestedIds.includes(item.id)}
+                              onClick={() => toggleRequestedItem(item)}
+                              delayIdx={requestedInventoryItems.length + i}
+                              selectedQty={requestedQuantities[item.id]}
+                              maxQty={item.qty}
+                              onQtyChange={(delta) => {
+                                const cur = requestedQuantities[item.id] ?? 1;
+                                const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                                if (next === cur) return;
+                                setRequestedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                              }}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {requestedCatalogItems.map((item, i) => (
+                            <MiniCardListItem
+                              key={item.id}
+                              item={item}
+                              selected={selectedRequestedIds.includes(item.id)}
+                              onClick={() => toggleRequestedItem(item)}
+                              delayIdx={requestedInventoryItems.length + i}
+                              selectedQty={requestedQuantities[item.id]}
+                              maxQty={item.qty}
+                              onQtyChange={(delta) => {
+                                const cur = requestedQuantities[item.id] ?? 1;
+                                const next = Math.max(1, Math.min(item.qty ?? 1, cur + delta));
+                                if (next === cur) return;
+                                setRequestedQuantities((prev) => ({ ...prev, [item.id]: next }));
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {loadingSearch && (
+                    <div className="flex items-center gap-2 py-3 text-xs text-gray-500">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF7300]" />
+                      Ricerca nel catalogo in corso...
+                    </div>
+                  )}
+
+                  {searchError && (
+                    <div className="mb-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">
+                      {searchError}
+                    </div>
+                  )}
+
+                  {requestedInventoryItems.length === 0 && requestedCatalogItems.length === 0 && !loadingSearch && (
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white py-10 text-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                        <Search className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-gray-600">Nessuna carta trovata</p>
+                      <p className="text-[11px] text-gray-400">Prova a cercare nel catalogo</p>
                     </div>
                   )}
                 </div>
 
-                {loadingSearch && (
-                  <div className="flex items-center gap-2 py-3 text-xs text-gray-500">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Ricerca in corso...
+                {/* Bottom bar */}
+                <div className="animate-fade-in-up flex flex-wrap items-end gap-4 border-t border-gray-200/60 bg-white/90 px-5 py-4 backdrop-blur-md" style={{ animationDelay: '200ms' }}>
+                  <div className="flex flex-1 flex-wrap items-end gap-4">
+                    <CreditField value={offeredCredits} onChange={handleOfferedCreditsChange} label="Offri crediti" disabled={requestedCredits > 0} />
+                    <CreditField value={requestedCredits} onChange={handleRequestedCreditsChange} label="Richiedi crediti" disabled={offeredCredits > 0} />
+                    <SelectedBadge count={selectedRequestedIds.length} items={Object.values(requestedItemData)} quantities={requestedQuantities} />
                   </div>
-                )}
-
-                {searchError && (
-                  <p className="py-2 text-xs text-red-600">{searchError}</p>
-                )}
-
-                {requestedInventoryItems.length === 0 && requestedCatalogItems.length === 0 && !loadingSearch && (
-                  <p className="animate-fade-in-up py-4 text-center text-xs text-gray-400">
-                    Nessuna carta trovata
-                  </p>
-                )}
-
-                <div className="animate-fade-in-up mt-auto flex flex-wrap items-end gap-4 pt-3" style={{ animationDelay: '200ms' }}>
-                  <CreditField value={offeredCredits} onChange={handleOfferedCreditsChange} label="Offri crediti" disabled={requestedCredits > 0} />
-                  <CreditField value={requestedCredits} onChange={handleRequestedCreditsChange} label="Richiedi crediti" disabled={offeredCredits > 0} />
-                  <SelectedBadge count={selectedRequestedIds.length} items={Object.values(requestedItemData)} quantities={requestedQuantities} />
-                  <ModeToggle checked={isRealtime} onChange={setIsRealtime} />
                   <SubmitButton onClick={handleSubmit}>Invia controproposta</SubmitButton>
                 </div>
               </>

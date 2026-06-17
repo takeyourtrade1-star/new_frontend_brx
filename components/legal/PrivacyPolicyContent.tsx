@@ -1,4 +1,4 @@
-import { COMPANY_INFO, TERMS_LAST_UPDATED } from '@/lib/legal/company-info';
+import { COMPANY_INFO, TERMS_LAST_UPDATED, TERMS_PUBLISHED } from '@/lib/legal/company-info';
 import {
   LegalP as P,
   LegalH2 as H2,
@@ -20,7 +20,11 @@ export function PrivacyPolicyContent() {
 
   return (
     <>
-      <LegalIntro title={`Informativa sulla Privacy – ${tradeName}`} updated={TERMS_LAST_UPDATED} />
+      <LegalIntro
+        title={`Informativa sulla Privacy – ${tradeName}`}
+        published={TERMS_PUBLISHED}
+        updated={TERMS_LAST_UPDATED}
+      />
 
       <LegalSection>
         <H2>1. Premessa e ambito di applicazione</H2>

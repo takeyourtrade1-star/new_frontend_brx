@@ -41,6 +41,8 @@ export interface AuctionAPI {
   reserve_not_reached_message?: string | null;
   created_by_user_id?: string | null;
   payment_deadline_hours?: number;
+  anti_sniper_enabled?: boolean;
+  anti_sniper_minutes?: number;
 }
 
 export interface AuctionListResponse {

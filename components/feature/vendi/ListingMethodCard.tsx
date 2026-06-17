@@ -9,6 +9,7 @@ type ListingMethodCardProps = {
   imageSrc: string;
   imageAlt: string;
   title: string;
+  subtitle?: string;
   className?: string;
   size?: 'default' | 'large';
   background?: string;
@@ -37,6 +38,7 @@ export function ListingMethodCard({
   imageSrc,
   imageAlt,
   title,
+  subtitle,
   className,
   size = 'default',
   background,
@@ -70,11 +72,18 @@ export function ListingMethodCard({
         />
         <div className="absolute inset-0 bg-black/40 transition-all duration-300 group-hover:bg-black/10 group-hover:backdrop-blur-[2px]" />
         <span 
-          className="absolute z-10 text-center font-bold text-white transition-all duration-300 group-hover:scale-110 font-display text-2xl sm:text-3xl"
+          className="absolute z-10 px-3 text-center font-bold text-white transition-all duration-300 group-hover:scale-110 font-display text-xl sm:text-2xl"
           style={glowColor ? { textShadow: '0 2px 12px rgba(0,0,0,0.45)', ['--glow-color' as string]: glowColor } : { textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}
         >
           <span className="block transition-all duration-300 group-hover:[text-shadow:0_0_20px_rgba(var(--glow-color),0.9),0_0_40px_rgba(var(--glow-color),0.6),0_2px_12px_rgba(0,0,0,0.45)]">
-            {title}
+            {subtitle ? (
+              <>
+                <span className="block text-xl sm:text-2xl">{title}</span>
+                <span className="mt-1 block text-base sm:text-lg tracking-[0.12em]">{subtitle}</span>
+              </>
+            ) : (
+              title
+            )}
           </span>
         </span>
       </div>

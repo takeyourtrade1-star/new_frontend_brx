@@ -19,8 +19,8 @@ export function SellObjectsContent() {
       subtitle={t('vendi.products.chooseType')}
       breadcrumbItems={breadcrumbItems}
     >
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 px-2 max-w-[1400px] mx-auto">
-        {VENDI_OBJECT_CATEGORIES.map((category, index) => (
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4 px-2 max-w-[1200px] mx-auto">
+        {VENDI_OBJECT_CATEGORIES.map((category) => (
           <ListingMethodCard
             key={category.id}
             href={category.href}
@@ -32,7 +32,6 @@ export function SellObjectsContent() {
             glowColor={category.style?.glowColor}
             imagePosition={category.style?.imagePosition}
             fullCard={category.fullCard}
-            className={index === VENDI_OBJECT_CATEGORIES.length - 1 ? 'col-span-2 sm:col-span-1' : ''}
           />
         ))}
       </div>

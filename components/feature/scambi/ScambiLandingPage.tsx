@@ -15,10 +15,10 @@ import {
   Globe,
   Sparkles,
   Mail,
-  ArrowLeftRight,
   Users,
   Lock
 } from 'lucide-react';
+import { ScambiIcon } from '@/components/ui/ScambiIcon';
 
 // Animation utility components using Tailwind
 function FadeIn({ 
@@ -319,7 +319,7 @@ export function ScambiLandingPage() {
                 <FloatingCard delay={400} className="absolute left-0 top-0 w-80 p-6 bg-white">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#FF7300] to-[#FF8800]">
-                      <ArrowLeftRight className="h-6 w-6 text-white" />
+                      <ScambiIcon className="h-6 w-6 text-white" />
                     </div>
                     <div>
                       <div className="text-sm font-semibold text-[#1D3160]">Scambio Diretto</div>
@@ -413,7 +413,7 @@ export function ScambiLandingPage() {
           <div className="grid gap-12 lg:grid-cols-2">
             <div className="space-y-8">
               <StepCard number={1} icon={Package} title="Seleziona le tue carte" description="Scegli dalla tua collezione le carte che vuoi scambiare." delay={0} />
-              <StepCard number={2} icon={ArrowLeftRight} title="Cerca o ricevi proposte" description="Trova carte che ti interessano o attendi proposte da altri utenti." delay={150} />
+              <StepCard number={2} icon={ScambiIcon} title="Cerca o ricevi proposte" description="Trova carte che ti interessano o attendi proposte da altri utenti." delay={150} />
               <StepCard number={3} icon={RefreshCw} title="Negozia e accordati" description="Discuti i dettagli e trova l&apos;accordo perfetto con il tuo partner." delay={300} />
               <StepCard number={4} icon={CheckCircle2} title="Completa lo scambio" description="Conferma e completa la transazione protetta in sicurezza." delay={450} />
             </div>

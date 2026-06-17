@@ -33,9 +33,14 @@ export type AuctionCreateCardSelection = {
   availableLanguages?: string[];
 };
 
+/** Minuti Anti-Sniper supportati (1 e 3 in arrivo lato backend). */
+export type AuctionAntiSniperMinutes = 1 | 3 | 5;
+
 export type AuctionCreateDraft = {
   /** null = non ancora risposto nel flusso "È una carta?" */
   isCard: boolean | null;
+  /** null = non ancora risposto «Ce l'hai in inventario?» (solo standalone). */
+  fromSyncInventory: boolean | null;
   cardSelection: AuctionCreateCardSelection | null;
   /** Ramo non-carta: obbligatorio confermare «altro oggetto». */
   nonCardCategory: '' | 'other_object';
@@ -48,7 +53,12 @@ export type AuctionCreateDraft = {
   imageUrl: string;
   startingBidEur: string;
   reservePriceEur: string;
+  /** Prezzo Compra subito (facoltativo; abilita buy_now se > 0). */
+  buyNowPriceEur: string;
   durationDays: 3 | 5 | 7;
+  /** Anti-Sniper opzionale; backend attualmente default 5 min. */
+  antiSniperEnabled: boolean;
+  antiSniperMinutes: AuctionAntiSniperMinutes;
   /** Hours granted to the winner to pay before the order can escalate to a
    * dispute. Marketplace policy: default & minimum are 7 days (168h); the
    * upper bound is 30 days (720h). The wizard does NOT currently expose this
@@ -186,8 +196,14 @@ export function conditionSelectValue(condition: string): string {
   return AUCTION_CARD_CONDITION_OPTIONS.some((o) => o.value === n) ? n : 'near_mint';
 }
 
+export const AUCTION_ANTI_SNIPER_MINUTES_OPTIONS: readonly AuctionAntiSniperMinutes[] = [1, 3, 5];
+
+/** Opzioni Anti-Sniper già supportate dal backend (le altre mostrate come «in arrivo»). */
+export const AUCTION_ANTI_SNIPER_BACKEND_READY: ReadonlySet<AuctionAntiSniperMinutes> = new Set([5]);
+
 export const AUCTION_CREATE_DEFAULT_DRAFT: AuctionCreateDraft = {
   isCard: null,
+  fromSyncInventory: null,
   cardSelection: null,
   nonCardCategory: '',
   game: '',
@@ -198,7 +214,10 @@ export const AUCTION_CREATE_DEFAULT_DRAFT: AuctionCreateDraft = {
   imageUrl: '',
   startingBidEur: '',
   reservePriceEur: '',
+  buyNowPriceEur: '',
   durationDays: 7,
+  antiSniperEnabled: false,
+  antiSniperMinutes: 5,
   paymentDeadlineHours: AUCTION_PAYMENT_DEADLINE_DEFAULT_HOURS,
   shippingPayer: 'buyer',
   shippingFlatEur: '4.99',

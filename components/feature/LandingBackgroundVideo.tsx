@@ -121,7 +121,7 @@ export function LandingBackgroundVideo({ className }: LandingBackgroundVideoProp
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(180deg, rgba(15,23,42,0.55) 0%, rgba(29,49,96,0.40) 50%, rgba(15,23,42,0.65) 100%)',
+            'linear-gradient(180deg, rgba(15,23,42,0.69) 0%, rgba(29,49,96,0.58) 50%, rgba(15,23,42,0.76) 100%)',
         }}
       />
     </div>

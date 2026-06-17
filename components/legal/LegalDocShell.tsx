@@ -7,19 +7,22 @@ import { LOCALE_TO_INTL } from '@/lib/i18n/locales';
 import type { UiLocale } from '@/lib/i18n/locales';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { LegalNav } from '@/components/legal/LegalNav';
-import { COMPANY_INFO } from '@/lib/legal/company-info';
+import { COMPANY_INFO, TERMS_PUBLISHED } from '@/lib/legal/company-info';
 
 export function LegalDocShell({
   titleKey,
+  published,
   lastUpdated,
   children,
 }: {
   titleKey: MessageKey;
+  published?: string;
   lastUpdated?: string;
   children: React.ReactNode;
 }) {
   const { t, locale } = useTranslation();
   const intl = LOCALE_TO_INTL[locale as UiLocale] ?? 'it-IT';
+  const publishedLabel = published ?? TERMS_PUBLISHED;
   const updatedLabel = lastUpdated ?? new Date().toLocaleDateString(intl);
 
   return (
@@ -48,9 +51,16 @@ export function LegalDocShell({
           <h1 className="font-display text-3xl font-black tracking-tight text-white md:text-4xl lg:text-5xl">
             {t(titleKey)}
           </h1>
-          <p className="mt-3 text-sm text-white/60">
-            {t('legal.lastUpdated')} <span className="font-medium text-white/80">{updatedLabel}</span>
-          </p>
+          <div className="mt-3 space-y-1 text-sm text-white/60">
+            <p>
+              {t('legal.published')}{' '}
+              <span className="font-medium text-white/80">{publishedLabel}</span>
+            </p>
+            <p>
+              {t('legal.lastUpdated')}{' '}
+              <span className="font-medium text-white/80">{updatedLabel}</span>
+            </p>
+          </div>
         </header>
 
         <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">

@@ -22,11 +22,11 @@ import {
   ShoppingCart,
   Info,
   Tag,
-  ArrowLeftRight,
   Gavel,
   LineChart,
   type LucideIcon,
 } from 'lucide-react';
+import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 import { getCardImageUrl, getSetIconUrl } from '@/lib/assets';
@@ -81,7 +81,6 @@ import { CountrySelect, type CountryOption } from '@/components/ui/CountrySelect
 import { useUserCountry } from '@/lib/hooks/use-user-country';
 import { useFlyToCart } from '@/lib/hooks/use-fly-to-cart';
 import { useCartStore } from '@/lib/stores/cart-store';
-import { useScambiVisibility } from '@/lib/hooks/use-scambi-visibility';
 import { ProductAuctionsPanel } from '@/components/feature/product/ProductAuctionsPanel';
 import { ProductScambiPanel } from '@/components/feature/product/ProductScambiPanel';
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
@@ -97,6 +96,7 @@ import {
   buildMarketplaceRows,
   filterMarketplaceRows,
   sortMarketplaceRows,
+  listingConditionCode,
   CONDITION_FILTER_OPTIONS,
   MARKETPLACE_LANGUAGE_FILTER_OPTIONS,
   type MarketplaceFilterState,
@@ -105,6 +105,7 @@ import {
 } from '@/lib/product-detail/marketplace-rows';
 import { ConditionBadge, type ConditionCode } from '@/components/ui/ConditionBadge';
 import { shouldOpenVendiTab } from '@/lib/sell-flow/sell-flow';
+import { setTradeProposalContext } from '@/lib/scambi/trade-proposal-context';
 
 // PERF: lazy-load heavy tab panels to keep product page initial bundle smaller.
 const AuctionCreateWizard = dynamic(
@@ -169,7 +170,7 @@ const REPRINT_GRID_SCROLL_CLASS =
 const REPRINT_LIST_SCROLL_CLASS =
   'max-h-[calc(3.5rem*6+0.25rem*5)] min-h-[calc(3.5rem*6+0.25rem*5)]';
 
-type ProductDetailTabId = 'INFO' | 'VENDI' | 'SCAMBIA' | 'ASTA' | 'GRAFICO';
+type ProductDetailTabId = 'INFO' | 'VENDI' | 'ASTA' | 'GRAFICO';
 
 type ProductDetailTabConfig = {
   id: ProductDetailTabId;
@@ -619,7 +620,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const flyToCart = useFlyToCart();
   const addToCartStore = useCartStore((s) => s.addItem);
   const detectedCountry = useUserCountry();
-  const scambiVisible = useScambiVisibility();
 
   // Popup quantità per aggiunta al carrello
   const [qtyPopup, setQtyPopup] = useState<{ open: boolean; item?: ListingItem; sourceEl?: HTMLElement; imageSrc?: string }>({ open: false });
@@ -1316,6 +1316,30 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     [user, accessToken],
   );
 
+  const handleProposeTrade = useCallback(
+    (item: ListingItem) => {
+      if (!card) return;
+      const imageSrc = cardImages[currentImageIndex] || effectiveImageSrc;
+      setTradeProposalContext({
+        seller: {
+          name: item.seller_display_name,
+          isPro: item.seller_account_type === 'business',
+          country: item.country ?? null,
+        },
+        card: {
+          id: `product-${card.id}`,
+          name: card.name,
+          image: imageSrc,
+          condition: listingConditionCode(item.condition),
+          priceEur: item.price_cents / 100,
+          game: card.game_slug ?? null,
+        },
+      });
+      router.push('/scambi/proponi');
+    },
+    [card, cardImages, currentImageIndex, effectiveImageSrc, router],
+  );
+
   const handleMarketplaceOwnerEdit = useCallback(
     (item: ListingItem) => {
       if (isMarketplaceListingItem(item) && item.marketplace_listing_id) {
@@ -1415,8 +1439,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const tabs: ProductDetailTabConfig[] = [
     { id: 'INFO', label: 'INFO', mobileLabel: 'INFO', icon: Info },
     { id: 'VENDI', label: 'VENDI', mobileLabel: 'VENDI', icon: Tag },
-    ...(scambiVisible ? [{ id: 'SCAMBIA' as const, label: 'SCAMBIA', mobileLabel: 'SCAMBIA', icon: ArrowLeftRight }] : []),
-    { id: 'ASTA', label: "METTI ALL'ASTA", mobileLabel: 'ASTA', icon: Gavel },
+    { id: 'ASTA', label: "METTI ALL'ASTA", mobileLabel: "METTI ALL'ASTA", icon: Gavel },
     { id: 'GRAFICO', label: 'GRAFICO PREZZI', mobileLabel: 'GRAFICO', icon: LineChart },
   ];
 
@@ -1566,23 +1589,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 {activeTab === 'VENDI' && !card && (
                   <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl bg-white p-4 text-center text-xs text-zinc-400">
                     Seleziona un prodotto dal catalogo per vendere.
-                  </div>
-                )}
-
-                {activeTab === 'SCAMBIA' && (
-                  <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                    <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10" aria-hidden>
-                      <svg className="h-5 w-5 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <polyline points="17 1 21 5 17 9" />
-                        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-                        <polyline points="7 23 3 19 7 15" />
-                        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-                      </svg>
-                    </div>
-                    <h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-800">Scambio</h3>
-                    <p className="mt-1.5 max-w-[200px] text-center text-xs leading-relaxed text-zinc-400">
-                      Funzionalità in arrivo prossimamente.
-                    </p>
                   </div>
                 )}
 
@@ -2091,21 +2097,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 </p>
               </div>
             )}
-            {/* Tab SCAMBIA */}
-            {activeTab === 'SCAMBIA' && (
-              <div className="hidden flex-1 flex-col items-center justify-center p-6 min-w-0 w-full sm:flex">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 mb-3" aria-hidden>
-                  <svg className="w-5 h-5 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <polyline points="17 1 21 5 17 9" />
-                    <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-                    <polyline points="7 23 3 19 7 15" />
-                    <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-                  </svg>
-                </div>
-                <h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-800">Scambio</h3>
-                <p className="mt-1.5 text-xs text-zinc-400 max-w-[200px] text-center leading-relaxed">Funzionalità in arrivo prossimamente.</p>
-              </div>
-            )}
             {/* Tab GRAFICO: andamento prezzi */}
             {activeTab === 'GRAFICO' && (
               <div className="hidden min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto p-2.5 sm:flex sm:p-3">
@@ -2407,15 +2398,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           </svg>
                         )}
                         {tab.icon === 'scambi' && (
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden>
-                            <path d="M16 3h5v5" />
-                            <path d="M8 3H3v5" />
-                            <path d="M12 22v-8.3a4 4 0 0 0 1.172-2.872L21 3" />
-                            <path d="m3 3 7 7" />
-                            <path d="M16 21h5v-5" />
-                            <path d="M8 21H3v-5" />
-                            <path d="M12 14.7V22" />
-                          </svg>
+                          <ScambiIcon className={iconClass} aria-hidden />
                         )}
                         <span className="truncate">{tab.label}</span>
                       </button>
@@ -2429,15 +2412,15 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     aria-controls="pd-market-panel-TCG_EXPRESS"
                     onClick={() => setSellerSubTab('TCG_EXPRESS')}
                     className={cn(
-                      'relative flex min-w-[100px] flex-1 items-center justify-center gap-1 rounded-full px-2.5 py-2 text-[10px] font-extrabold uppercase tracking-wide transition-all sm:min-w-0 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm',
+                      'relative flex shrink-0 items-center justify-center gap-1 self-center rounded-full px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide transition-all',
                       sellerSubTab === 'TCG_EXPRESS'
                         ? 'bg-gradient-to-r from-[#FF7300] to-amber-500 text-white shadow-md ring-1 ring-orange-300'
                         : 'bg-white text-orange-600 ring-1 ring-gray-200 hover:bg-orange-50'
                     )}
                   >
-                    <Zap className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden />
+                    <Zap className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     <span className="truncate">{t('productDetail.tabs.brxExpress')}</span>
-                    <span className="inline-flex items-center rounded-full bg-emerald-500 px-1.5 py-[2px] text-[9px] font-bold text-white shadow-sm">
+                    <span className="inline-flex items-center rounded-full bg-emerald-500 px-1 text-[7px] font-bold leading-[1.6] text-white">
                       {t('productDetail.tabs.brxNew')}
                     </span>
                   </button>
@@ -2465,6 +2448,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     cardLanguage={card?.available_languages?.[0] ?? null}
                     onAddToCart={handleMarketplaceAddToCart}
                     onBuyNow={handleMarketplaceBuyNow}
+                    onProposeTrade={handleProposeTrade}
                     isOwnListing={isOwnListing}
                     onOwnerEdit={handleMarketplaceOwnerEdit}
                     onOwnerQuantityChange={handleOwnerQtyDelta}

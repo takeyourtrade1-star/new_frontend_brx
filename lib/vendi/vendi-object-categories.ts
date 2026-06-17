@@ -42,11 +42,4 @@ export const VENDI_OBJECT_CATEGORIES: VendiObjectCategoryConfig[] = [
     titleKey: 'products.sealed',
     style: getVendiCardStyle('sigillati'),
   },
-  {
-    id: 'accessori',
-    href: getVendiCatalogHref('/products/accessori'),
-    imageSrc: '/vendi/oggetti-accessori2.svg',
-    titleKey: 'products.accessories',
-    style: getVendiCardStyle('accessori'),
-  },
 ];

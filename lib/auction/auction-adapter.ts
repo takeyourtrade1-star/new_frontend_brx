@@ -57,6 +57,8 @@ export interface AuctionUI {
   setName: string | null;
   setHref: string | null;
   catalogGameSlug: string | null;
+  antiSniperEnabled: boolean;
+  antiSniperMinutes: number | null;
 }
 
 function asNumber(value: unknown, fallback = 0): number {
@@ -131,6 +133,11 @@ export function apiToAuctionUI(
     setName,
     setHref,
     catalogGameSlug: gameSlug,
+    antiSniperEnabled: a.anti_sniper_enabled === true,
+    antiSniperMinutes:
+      a.anti_sniper_minutes != null && Number.isFinite(Number(a.anti_sniper_minutes))
+        ? Number(a.anti_sniper_minutes)
+        : null,
   };
 }
 
@@ -172,4 +179,8 @@ export function isAuctionEndedUI(a: AuctionUI): boolean {
 
 export function isEndingSoonUI(hoursFromNow: number): boolean {
   return hoursFromNow > 0 && hoursFromNow <= 48;
+}
+
+export function isEndingWithin24h(hoursFromNow: number): boolean {
+  return hoursFromNow > 0 && hoursFromNow <= 24;
 }

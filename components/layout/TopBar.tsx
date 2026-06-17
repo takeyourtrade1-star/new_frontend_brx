@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeftRight, ChevronDown, Eye, EyeOff, Gavel, LogIn, LogOut, ShoppingBag, Tag } from 'lucide-react';
+import { ChevronDown, Eye, EyeOff, LogIn, LogOut, ShoppingBag, Tag } from 'lucide-react';
 import { HamburgerMenu } from './HamburgerMenu';
 import { TournamentsPortalLink } from './TournamentsPortalButton';
 import { CartDropdown } from './CartDropdown';
@@ -191,7 +191,7 @@ export function TopBar() {
       <div className="flex w-full min-h-0 items-center gap-0 py-0.5">
         {/* Left: Logo + selettore gioco — colonna allineata al menu Prodotti sotto */}
         <div
-          className={`flex min-w-0 shrink-0 items-center overflow-visible ${HEADER_GAME_ROW_GAP_CLASS}`}
+          className={`flex min-w-0 flex-1 md:flex-none items-center overflow-visible ${HEADER_GAME_ROW_GAP_CLASS}`}
         >
           <div className={HEADER_BRX_LOGO_COLUMN_CLASS}>
             <Link
@@ -739,20 +739,49 @@ export function TopBar() {
                 as="link"
                 href="/scambi"
                 aria-label={t('nav.trades')}
-                className="order-3 md:hidden"
+                className="group order-3 md:hidden"
               >
-                <ArrowLeftRight className={MOBILE_HEADER_ICON_CLASS} strokeWidth={2} aria-hidden />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#FF7300"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-6 w-6 shrink-0 transition-transform duration-[1200ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:rotate-180"
+                  aria-hidden
+                >
+                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                  <path d="M21 21v-5h-5" />
+                </svg>
               </MobileHeaderNavIcon>
               <Link
                 href="/scambi"
-                className="order-3 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex"
+                className="group order-3 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex"
                 aria-label={t('nav.trades')}
               >
                 <span
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5"
                   aria-hidden
                 >
-                  <ArrowLeftRight className="h-[0.9rem] w-[0.9rem] text-[#FF7300]" strokeWidth={2} />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FF7300"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-[0.9rem] w-[0.9rem] transition-transform duration-[1200ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:rotate-180"
+                  >
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                    <path d="M21 21v-5h-5" />
+                  </svg>
                 </span>
                 <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
                   {t('nav.trades')}
@@ -764,17 +793,50 @@ export function TopBar() {
                 as="link"
                 href="/aste"
                 aria-label={t('nav.auctions')}
-                className="order-4 md:hidden"
+                className="group relative order-4 md:hidden"
               >
-                <Gavel className={MOBILE_HEADER_ICON_CLASS} strokeWidth={2} aria-hidden />
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FF7300"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-6 w-6 shrink-0 origin-bottom-left group-hover:animate-gavel-bang"
+                    aria-hidden
+                  >
+                    <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8"></path>
+                    <path d="m16 16 6-6"></path>
+                    <path d="m8 8 6-6"></path>
+                    <path d="m9 7 8 8"></path>
+                    <path d="m21 11-8-8"></path>
+                  </svg>
+                  {/* Lineette d'impatto: ferme, lampeggiano in sync con i colpi */}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FF7300"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    className="pointer-events-none absolute inset-0 m-auto h-6 w-6 origin-[83%_75%] opacity-0 group-hover:animate-gavel-spark"
+                    aria-hidden
+                  >
+                    <line x1="20" y1="18.5" x2="20" y2="21" />
+                    <line x1="21.8" y1="17.6" x2="23.4" y2="19" />
+                    <line x1="18.2" y1="17.6" x2="16.6" y2="19" />
+                  </svg>
+                </>
               </MobileHeaderNavIcon>
               <Link
                 href="/aste"
-                className="order-4 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-5 md:flex"
+                className="group order-4 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-5 md:flex"
                 aria-label={t('nav.auctions')}
               >
                 <span
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5"
+                  className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5"
                   aria-hidden
                 >
                   <svg
@@ -787,13 +849,27 @@ export function TopBar() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="h-[0.9rem] w-[0.9rem]"
+                    className="h-[0.9rem] w-[0.9rem] origin-bottom-left group-hover:animate-gavel-bang"
                   >
                     <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8"></path>
                     <path d="m16 16 6-6"></path>
                     <path d="m8 8 6-6"></path>
                     <path d="m9 7 8 8"></path>
                     <path d="m21 11-8-8"></path>
+                  </svg>
+                  {/* Lineette d'impatto: ferme, lampeggiano in sync con i colpi */}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FF7300"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    className="pointer-events-none absolute inset-0 m-auto h-[0.9rem] w-[0.9rem] origin-[83%_75%] opacity-0 group-hover:animate-gavel-spark"
+                  >
+                    <line x1="20" y1="18.5" x2="20" y2="21" />
+                    <line x1="21.8" y1="17.6" x2="23.4" y2="19" />
+                    <line x1="18.2" y1="17.6" x2="16.6" y2="19" />
                   </svg>
                 </span>
                 <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
@@ -810,7 +886,7 @@ export function TopBar() {
           ) : null}
         </div>
         {/* Destra: notifiche, portale tornei (esterno), hamburger */}
-        <div className="ml-1 flex shrink-0 items-center gap-2 md:gap-2.5" aria-label={t('header.menuAria')}>
+        <div className="ml-1 flex flex-1 justify-end md:flex-none md:justify-start items-center gap-2 md:gap-2.5" aria-label={t('header.menuAria')}>
           {isAuthenticated ? <NotificationBell /> : null}
           <TournamentsPortalLink variant="header" />
           <HamburgerMenu />
