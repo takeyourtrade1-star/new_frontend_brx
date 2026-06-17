@@ -684,6 +684,23 @@ export function AuctionCreateWizard({
   const goBack = () => {
     setError(null);
     setIsTransitioning(true);
+    // Sub-passo item_pick: dopo Sì/No compare la ricerca; indietro torna alla domanda inventario.
+    if (stepId === 'item_pick' && draft.fromSyncInventory !== null) {
+      setDraft((d) => ({
+        ...d,
+        fromSyncInventory: null,
+        isCard: null,
+        cardSelection: null,
+        title: '',
+        description: '',
+        imageUrl: '',
+        game: '',
+        nonCardCategory: '',
+        listingPhotos: [],
+      }));
+      setTimeout(() => setIsTransitioning(false), 400);
+      return;
+    }
     const prev = getPreviousStepId(stepId, draft, {
       variant: stepVariant,
       hasEmbeddedInventory,
@@ -708,20 +725,6 @@ export function AuctionCreateWizard({
         description: '',
         imageUrl: '',
         game: '',
-      }));
-    }
-    if (stepId === 'item_pick') {
-      setDraft((d) => ({
-        ...d,
-        fromSyncInventory: null,
-        isCard: null,
-        cardSelection: null,
-        title: '',
-        description: '',
-        imageUrl: '',
-        game: '',
-        nonCardCategory: '',
-        listingPhotos: [],
       }));
     }
     if (stepId === 'card_pick') {
