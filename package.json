@@ -10,6 +10,7 @@
     "lint": "next lint",
     "postinstall": "node scripts/copy-ort-wasm.mjs",
     "i18n:check": "node scripts/check-i18n-hardcoded.mjs",
+    "i18n:keys": "node scripts/check-i18n-keys.mjs",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui"

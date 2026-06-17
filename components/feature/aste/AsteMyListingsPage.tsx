@@ -288,7 +288,7 @@ function MyAuctionGrid({
 }: {
   auctions: AuctionUI[];
   now: number;
-  t: (k: any, v?: any) => string;
+  t: AuctionTranslate;
   confirmDeleteId: string | null;
   onConfirmDelete: (id: string | null) => void;
   onDelete: (id: string) => void;
@@ -370,7 +370,7 @@ function MyAuctionTable({
 }: {
   auctions: AuctionUI[];
   now: number;
-  t: (k: any, v?: any) => string;
+  t: AuctionTranslate;
   confirmDeleteId: string | null;
   onConfirmDelete: (id: string | null) => void;
   onDelete: (id: string) => void;
