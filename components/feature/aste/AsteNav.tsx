@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { PlusCircle, List, Users, ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
-import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
+import { Home, PlusCircle, List, ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
@@ -103,12 +102,9 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
             <Link
               href="/aste"
               aria-label={t('auctions.breadcrumbHome')}
-              className={cn(compact ? HOME_NAV_BUTTON_COMPACT_CLASS : HOME_NAV_BUTTON_CLASS, 'group')}
+              className={cn(compact ? HOME_NAV_BUTTON_COMPACT_CLASS : HOME_NAV_BUTTON_CLASS)}
             >
-              <AuctionGavelIcon
-                className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4'}
-                animated
-              />
+              <Home className={cn('shrink-0', compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4')} aria-hidden />
             </Link>
             <Link
               href="/login?redirect=/aste/nuova"
@@ -139,19 +135,20 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
     href: string;
     label: string;
     Icon?: LucideIcon;
-    auctionIcon?: boolean;
     isPrimary?: boolean;
     iconOnly?: boolean;
   }[] = [
-    { href: '/aste', label: t('auctions.breadcrumbHome'), auctionIcon: true, iconOnly: true },
+    { href: '/aste', label: t('auctions.breadcrumbHome'), Icon: Home, iconOnly: true },
     { href: '/aste/nuova', label: t('auctions.createAuction'), Icon: PlusCircle, isPrimary: true },
-    { href: '/aste/mie', label: t('auctions.navMyListings'), Icon: List },
-    { href: '/aste/partecipazioni', label: t('auctions.navParticipations'), Icon: Users },
+    { href: '/aste/mie', label: t('auctions.navPublishedAndParticipations'), Icon: List },
   ];
 
   function isActive(href: string) {
     if (href === '/aste') {
       return pathname === '/aste';
+    }
+    if (href === '/aste/mie') {
+      return pathname?.startsWith('/aste/mie') || pathname?.startsWith('/aste/partecipazioni') || false;
     }
     return pathname?.startsWith(href) ?? false;
   }
@@ -208,7 +205,7 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
           )}
           aria-label="Menu aste"
         >
-          {links.map(({ href, label, Icon, auctionIcon, isPrimary, iconOnly }) => {
+          {links.map(({ href, label, Icon, isPrimary, iconOnly }) => {
             const active = isActive(href);
             const showIconOnly = iconOnly || compact;
             return (
@@ -241,12 +238,7 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
                       ),
                 )}
               >
-                {auctionIcon ? (
-                  <AuctionGavelIcon
-                    className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4'}
-                    animated
-                  />
-                ) : Icon ? (
+                {Icon ? (
                   <Icon
                     className={cn(
                       'shrink-0 transition-transform duration-300',

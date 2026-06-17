@@ -100,8 +100,15 @@ function AsteHubToolbar({
   t,
 }: AsteHubToolbarProps) {
   return (
-    <div className={cn('space-y-2', compact ? 'space-y-1.5' : 'mb-6')}>
-      <div className="flex w-full min-w-0 items-center overflow-hidden rounded-full bg-gray-100 px-2 py-1.5">
+    <div
+      className={cn(
+        'space-y-3',
+        compact
+          ? 'space-y-1.5'
+          : 'mb-6 rounded-2xl border border-slate-200/50 bg-slate-50/70 px-4 py-3.5 sm:px-5 sm:py-4',
+      )}
+    >
+      <div className="flex w-full min-w-0 items-center overflow-hidden rounded-full bg-white px-2 py-1.5 shadow-sm ring-1 ring-slate-200/60">
         <div className="flex min-w-0 flex-1 items-center gap-2 px-3">
           <Search className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
           <input
@@ -134,8 +141,8 @@ function AsteHubToolbar({
 
       <div
         className={cn(
-          'flex flex-wrap items-end gap-2 border-b border-gray-100 pb-2',
-          compact && 'border-0 pb-0 pt-1'
+          'flex flex-wrap items-end gap-2',
+          compact ? 'pt-1' : 'border-t border-slate-200/45 pt-3',
         )}
       >
         {!compact && (
@@ -473,17 +480,17 @@ export function AsteHubPage() {
             />
 
             <div className="mb-3 flex items-end justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-2xl font-black tabular-nums leading-none text-[#1D3160] sm:text-3xl">
+              <h2 className="flex min-w-0 flex-wrap items-baseline gap-2 sm:gap-3">
+                <span className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
+                  {browseTab === 'ended' ? t('auctions.hubEndedTitle') : t('auctions.hubOngoingTitle')}
+                </span>
+                <span className="text-base font-black tabular-nums leading-none text-[#1D3160] sm:text-lg">
                   {displayed.length}
                   {searchResolving && q.trim().length >= 2 && (
-                    <span className="ml-1 text-base font-normal text-gray-400">…</span>
+                    <span className="ml-0.5 text-sm font-normal text-gray-400">…</span>
                   )}
-                </p>
-                <h2 className="mt-1 text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
-                  {browseTab === 'ended' ? t('auctions.hubEndedTitle') : t('auctions.hubOngoingTitle')}
-                </h2>
-              </div>
+                </span>
+              </h2>
               <p className="shrink-0 pb-0.5 text-xs text-gray-500">
                 ({filtered.length}
                 {total > filtered.length ? ` / ${total}` : ''} totali)

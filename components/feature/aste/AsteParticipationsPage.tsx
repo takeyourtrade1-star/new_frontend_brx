@@ -14,6 +14,7 @@ import {
 import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
+import { AsteMineViewBar } from '@/components/feature/aste/AsteMineViewBar';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
 
@@ -127,7 +128,9 @@ export function AsteParticipationsPage() {
           </p>
         </header>
 
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border border-gray-300 bg-white px-4 py-3">
+        <div className="mb-4 flex flex-col gap-3">
+          <AsteMineViewBar variant="participations" t={t} />
+          <div className="flex flex-wrap items-center justify-between gap-3 border border-gray-300 bg-white px-4 py-3">
           <p className="text-sm text-gray-700">{t('auctions.resultsCount', { count: rows.length })}</p>
           <AuctionViewToggle
             viewMode={viewMode}
@@ -135,6 +138,7 @@ export function AsteParticipationsPage() {
             listLabel={t('auctions.viewList')}
             gridLabel={t('auctions.viewGrid')}
           />
+          </div>
         </div>
 
         <div className="overflow-hidden border border-gray-300 bg-white">

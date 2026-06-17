@@ -17,6 +17,7 @@ import {
 import { useAuctionList, useDeleteAuction } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
+import { AsteMineViewBar, type MyListingsTab } from '@/components/feature/aste/AsteMineViewBar';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { isAuctionEndedUI } from '@/lib/auction/auction-adapter';
@@ -25,71 +26,6 @@ import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichm
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'mie';
-
-type MyListingsTab = 'ongoing' | 'ended';
-
-function MyListingsStatusSwitch({
-  value,
-  onChange,
-  ongoingCount,
-  endedCount,
-  t,
-}: {
-  value: MyListingsTab;
-  onChange: (tab: MyListingsTab) => void;
-  ongoingCount: number;
-  endedCount: number;
-  t: AuctionTranslate;
-}) {
-  const tabs: { id: MyListingsTab; label: string; count: number }[] = [
-    { id: 'ongoing', label: t('auctions.myListingsTabOngoing'), count: ongoingCount },
-    { id: 'ended', label: t('auctions.myListingsTabEnded'), count: endedCount },
-  ];
-
-  return (
-    <div
-      role="tablist"
-      aria-label={t('auctions.myListingsStatusLabel')}
-      className="relative grid w-full max-w-[17rem] grid-cols-2 rounded-full border border-white/70 bg-white/55 p-1 shadow-[0_10px_28px_rgba(29,49,96,0.14)] backdrop-blur-xl backdrop-saturate-150 ring-1 ring-[#1D3160]/10 sm:max-w-xs"
-    >
-      <span
-        aria-hidden
-        className={cn(
-          'pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full transition-transform duration-300 ease-[cubic-bezier(0.34,1.2,0.64,1)]',
-          value === 'ongoing'
-            ? 'translate-x-0 bg-gradient-to-br from-[#FF7300] to-[#ff8f40] shadow-[0_4px_16px_rgba(255,115,0,0.38)]'
-            : 'translate-x-full bg-gradient-to-br from-[#1D3160] to-[#2a4480] shadow-[0_4px_16px_rgba(29,49,96,0.32)]',
-        )}
-      />
-      {tabs.map((tab) => {
-        const active = value === tab.id;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(tab.id)}
-            className={cn(
-              'relative z-10 inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-2 text-[11px] font-bold uppercase tracking-wide transition-colors duration-300 sm:px-3',
-              active ? 'text-white' : 'text-[#1D3160]/70 hover:text-[#1D3160]',
-            )}
-          >
-            {tab.label}
-            <span
-              className={cn(
-                'rounded-full px-1.5 py-0.5 text-[9px] font-black tabular-nums',
-                active ? 'bg-white/25 text-white' : 'bg-[#1D3160]/8 text-[#1D3160]',
-              )}
-            >
-              {tab.count}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 function useNowTick(intervalMs = 1000): number {
   const [now, setNow] = useState(() => Date.now());
@@ -244,15 +180,16 @@ export function AsteMyListingsPage() {
           </div>
         )}
 
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <MyListingsStatusSwitch
-            value={statusTab}
-            onChange={setStatusTab}
+        <div className="mb-4 flex flex-col gap-3">
+          <AsteMineViewBar
+            variant="published"
+            statusTab={statusTab}
+            onStatusTabChange={setStatusTab}
             ongoingCount={ongoingAuctions.length}
             endedCount={endedAuctions.length}
             t={t}
           />
-          <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-gray-700">{t('auctions.resultsCount', { count: visibleAuctions.length })}</p>
             <AuctionViewToggle
               viewMode={viewMode}

@@ -2362,14 +2362,18 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 role="tablist"
                 aria-label={t('productDetail.tabs.ariaLabel')}
               >
-                <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto scrollbar-hide pb-2">
+                <div className="flex flex-wrap items-center gap-2 overflow-x-auto scrollbar-hide pb-2">
+                  <div
+                    className="flex min-w-0 flex-1 rounded-xl bg-slate-100/80 p-1 ring-1 ring-inset ring-slate-200/70"
+                    role="presentation"
+                  >
                   {(
                     [
                       { id: 'VENDITORI' as const, label: t('productDetail.tabs.inVendita'), icon: 'vendita' },
                       { id: 'ASTE' as const, label: t('productDetail.tabs.aste'), icon: 'aste' },
                     ] as const
                   ).map((tab) => {
-                    const iconClass = 'h-4 w-4 sm:h-5 sm:w-5 shrink-0';
+                    const iconClass = 'h-4 w-4 sm:h-[18px] sm:w-[18px] shrink-0';
                     const selected = sellerSubTab === tab.id;
                     return (
                       <button
@@ -2381,10 +2385,10 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                         aria-controls={`pd-market-panel-${tab.id}`}
                         onClick={() => setSellerSubTab(tab.id)}
                         className={cn(
-                          'group flex min-w-[88px] flex-1 items-center justify-center gap-1 rounded-full px-2.5 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors sm:min-w-0 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm',
+                          'group flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[10px] font-bold uppercase tracking-wide transition-all duration-200 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs',
                           selected
-                            ? 'bg-[#FF7300] text-white shadow-sm'
-                            : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-900'
+                            ? 'bg-white text-[#FF7300] shadow-sm ring-1 ring-slate-200/90'
+                            : 'text-slate-500 hover:text-slate-700'
                         )}
                       >
                         {tab.icon === 'vendita' && (
@@ -2400,6 +2404,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                       </button>
                     );
                   })}
+                  </div>
                   <button
                     type="button"
                     role="tab"
@@ -2410,8 +2415,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     className={cn(
                       'relative flex shrink-0 items-center justify-center gap-1 self-center rounded-full px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide transition-all',
                       sellerSubTab === 'TCG_EXPRESS'
-                        ? 'bg-gradient-to-r from-[#FF7300] to-amber-500 text-white shadow-md ring-1 ring-orange-300'
-                        : 'bg-white text-orange-600 ring-1 ring-gray-200 hover:bg-orange-50'
+                        ? 'bg-white text-[#FF7300] shadow-sm ring-2 ring-[#FF7300]/30'
+                        : 'bg-white text-orange-600/90 ring-1 ring-gray-200 hover:bg-orange-50/60'
                     )}
                   >
                     <Zap className="h-3.5 w-3.5 shrink-0" aria-hidden />
