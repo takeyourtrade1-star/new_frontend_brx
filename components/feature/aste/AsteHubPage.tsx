@@ -105,7 +105,7 @@ function AsteHubToolbar({
         'space-y-3',
         compact
           ? 'space-y-1.5'
-          : 'mb-6 rounded-2xl border border-slate-200/50 bg-slate-50/70 px-4 py-3.5 sm:px-5 sm:py-4',
+          : 'mb-6 rounded-2xl border border-slate-200/75 bg-slate-100/90 px-4 py-3.5 shadow-[0_1px_4px_rgba(15,23,42,0.06)] sm:px-5 sm:py-4',
       )}
     >
       <div className="flex w-full min-w-0 items-center overflow-hidden rounded-full bg-white px-2 py-1.5 shadow-sm ring-1 ring-slate-200/60">
@@ -142,7 +142,7 @@ function AsteHubToolbar({
       <div
         className={cn(
           'flex flex-wrap items-end gap-2',
-          compact ? 'pt-1' : 'border-t border-slate-200/45 pt-3',
+          compact ? 'pt-1' : 'border-t border-slate-200/65 pt-3',
         )}
       >
         {!compact && (
