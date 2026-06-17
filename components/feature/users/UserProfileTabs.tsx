@@ -1,6 +1,7 @@
 'use client';
 
-import { Archive, Gavel, Heart, MessageSquare } from 'lucide-react';
+import { Archive, Heart, MessageSquare } from 'lucide-react';
+import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 
 import { UserProfileAuctionsPanel } from '@/components/feature/users/UserProfileAuctionsPanel';
@@ -15,7 +16,7 @@ const TABS: {
   implemented: boolean;
 }[] = [
   { id: 'collezione', label: 'Collezione', icon: Archive, implemented: true },
-  { id: 'aste', label: 'Aste', icon: Gavel, implemented: true },
+  { id: 'aste', label: 'Aste', icon: AuctionGavelIcon, implemented: true },
   { id: 'scambi', label: 'Scambi', icon: ScambiIcon, implemented: false },
   { id: 'recensioni', label: 'Recensioni', icon: MessageSquare, implemented: false },
   { id: 'wishlist', label: 'Wishlist', icon: Heart, implemented: false },
@@ -107,13 +108,20 @@ export function UserProfileTabs({
               role="tab"
               aria-selected={isActive}
               onClick={() => onTabChange(tab.id)}
-              className={`relative flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
+              className={`group relative flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
                 isActive
                   ? 'bg-white text-slate-900 shadow-[0_4px_14px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/60'
                   : 'text-slate-500 hover:bg-white/50 hover:text-slate-800'
               }`}
             >
-              <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#ff7300]' : ''}`} />
+              {tab.id === 'aste' ? (
+                <AuctionGavelIcon
+                  className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#ff7300]' : ''}`}
+                  animated
+                />
+              ) : (
+                <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#ff7300]' : ''}`} />
+              )}
               <span>{tab.label}</span>
               {count != null && (
                 <span

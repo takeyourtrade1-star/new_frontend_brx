@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Gavel, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+
+import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 
 import {
   AuctionListTable,
@@ -100,7 +102,7 @@ export function UserProfileAuctionsPanel({ userId, username }: UserProfileAuctio
     return (
       <div className="flex min-h-[280px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200/80 bg-white/40 px-8 py-16 text-center backdrop-blur-xl">
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100/80">
-          <Gavel className="h-7 w-7 text-slate-400" />
+          <AuctionGavelIcon className="h-7 w-7 text-slate-400" />
         </div>
         <p className="text-base font-semibold text-slate-800">Nessuna asta</p>
         <p className="mt-1 max-w-sm text-sm text-slate-500">
@@ -114,7 +116,7 @@ export function UserProfileAuctionsPanel({ userId, username }: UserProfileAuctio
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/50 px-4 py-3 backdrop-blur-xl">
         <p className="flex items-center gap-2 text-sm font-medium text-slate-600">
-          <Gavel className="h-4 w-4 text-[#ff7300]" />
+          <AuctionGavelIcon className="h-4 w-4 text-[#ff7300]" />
           <span>
             <span className="font-bold text-slate-900">{auctions.length}</span> aste
           </span>

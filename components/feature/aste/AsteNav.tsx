@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Home, PlusCircle, List, Users, ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
+import { PlusCircle, List, Users, ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
+import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
@@ -102,9 +103,12 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
             <Link
               href="/aste"
               aria-label={t('auctions.breadcrumbHome')}
-              className={compact ? HOME_NAV_BUTTON_COMPACT_CLASS : HOME_NAV_BUTTON_CLASS}
+              className={cn(compact ? HOME_NAV_BUTTON_COMPACT_CLASS : HOME_NAV_BUTTON_CLASS, 'group')}
             >
-              <Home className={cn('shrink-0', compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4')} aria-hidden />
+              <AuctionGavelIcon
+                className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4'}
+                animated
+              />
             </Link>
             <Link
               href="/login?redirect=/aste/nuova"
@@ -131,8 +135,15 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
     );
   }
 
-  const links: { href: string; label: string; Icon: LucideIcon; isPrimary?: boolean; iconOnly?: boolean }[] = [
-    { href: '/aste', label: t('auctions.breadcrumbHome'), Icon: Home, iconOnly: true },
+  const links: {
+    href: string;
+    label: string;
+    Icon?: LucideIcon;
+    auctionIcon?: boolean;
+    isPrimary?: boolean;
+    iconOnly?: boolean;
+  }[] = [
+    { href: '/aste', label: t('auctions.breadcrumbHome'), auctionIcon: true, iconOnly: true },
     { href: '/aste/nuova', label: t('auctions.createAuction'), Icon: PlusCircle, isPrimary: true },
     { href: '/aste/mie', label: t('auctions.navMyListings'), Icon: List },
     { href: '/aste/partecipazioni', label: t('auctions.navParticipations'), Icon: Users },
@@ -197,7 +208,7 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
           )}
           aria-label="Menu aste"
         >
-          {links.map(({ href, label, Icon, isPrimary, iconOnly }) => {
+          {links.map(({ href, label, Icon, auctionIcon, isPrimary, iconOnly }) => {
             const active = isActive(href);
             const showIconOnly = iconOnly || compact;
             return (
@@ -230,14 +241,21 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
                       ),
                 )}
               >
-                <Icon
-                  className={cn(
-                    'shrink-0 transition-transform duration-300',
-                    compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4',
-                    isPrimary && 'group-hover:rotate-90',
-                  )}
-                  aria-hidden
-                />
+                {auctionIcon ? (
+                  <AuctionGavelIcon
+                    className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4'}
+                    animated
+                  />
+                ) : Icon ? (
+                  <Icon
+                    className={cn(
+                      'shrink-0 transition-transform duration-300',
+                      compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4',
+                      isPrimary && 'group-hover:rotate-90',
+                    )}
+                    aria-hidden
+                  />
+                ) : null}
                 {!showIconOnly && <span className="hidden sm:inline whitespace-nowrap sm:ml-1.5">{label}</span>}
               </Link>
             );

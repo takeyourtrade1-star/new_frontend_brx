@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Home, ChevronRight } from 'lucide-react';
-import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { cn } from '@/lib/utils';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { FlagIcon } from '@/components/ui/FlagIcon';
@@ -99,20 +98,11 @@ export function ScambiContent() {
         ) : (
           <>
             {/* Notifiche scambi */}
-            <div className="mb-6 flex max-h-[200px] flex-col gap-2 overflow-y-auto pr-1">
-              <div className="group flex items-center gap-3 overflow-hidden rounded-full bg-white pl-1.5 pr-3 py-1.5 ring-1 ring-inset ring-gray-200 transition hover:ring-gray-300">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FF7300]">
-                  <ScambiIcon className="h-4 w-4 text-white" strokeWidth={2.5} />
-                </div>
-                <div className="min-w-0 flex-1 py-0.5">
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs font-bold uppercase tracking-wide text-[#1D3160]">Nuova proposta</p>
-                    <span className="relative inline-flex items-center overflow-hidden rounded-full bg-gradient-to-r from-[#FF7300] to-[#FF5500] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
-                      <span className="relative z-10">NUOVO</span>
-                      <span className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-                    </span>
-                  </div>
-                  <p className="text-[11px] leading-tight text-gray-500">Qualcuno vuole scambiare una carta con te.</p>
+            <div className="mb-6 flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-gray-200/80 bg-white px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900">Nuova proposta</p>
+                  <p className="mt-0.5 text-sm text-gray-500">Qualcuno vuole scambiare una carta con te.</p>
                 </div>
                 <button
                   type="button"
@@ -120,26 +110,20 @@ export function ScambiContent() {
                     setActiveTab('richieste');
                     if (proposals[0]) setOpenProposal(proposals[0]);
                   }}
-                  className="shrink-0 rounded-full bg-[#1D3160] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white transition hover:bg-[#FF7300] active:scale-[0.98]"
+                  className="shrink-0 text-sm font-medium text-gray-600 underline-offset-2 transition hover:text-gray-900 hover:underline"
                 >
                   Guarda
                 </button>
               </div>
 
-              <div className="group flex items-center gap-3 overflow-hidden rounded-full bg-white pl-1.5 pr-3 py-1.5 ring-1 ring-inset ring-gray-200 transition hover:ring-gray-300">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FF7300]">
-                  <ScambiIcon className="h-4 w-4 text-white" strokeWidth={2.5} />
-                </div>
-                <div className="min-w-0 flex-1 py-0.5">
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs font-bold uppercase tracking-wide text-[#1D3160]">Proposta accettata</p>
-                    <span className="inline-flex items-center rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">OK</span>
-                  </div>
-                  <p className="text-[11px] leading-tight text-gray-500">La tua offerta per Black Lotus è stata accettata.</p>
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-gray-200/80 bg-white px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900">Proposta accettata</p>
+                  <p className="mt-0.5 text-sm text-gray-500">La tua offerta per Black Lotus è stata accettata.</p>
                 </div>
                 <button
                   type="button"
-                  className="shrink-0 rounded-full ring-1 ring-inset ring-[#1D3160] bg-white px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#1D3160] transition hover:bg-[#1D3160] hover:text-white active:scale-[0.98]"
+                  className="shrink-0 text-sm font-medium text-gray-600 underline-offset-2 transition hover:text-gray-900 hover:underline"
                 >
                   Dettagli
                 </button>

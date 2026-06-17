@@ -26,6 +26,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { LOCALE_TO_INTL } from '@/lib/i18n/locales';
 import type { UiLocale } from '@/lib/i18n/locales';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
+import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { FEATURES } from '@/lib/config/features';
 import {
   HEADER_BRX_LOGO_COLUMN_CLASS,
@@ -795,40 +796,7 @@ export function TopBar() {
                 aria-label={t('nav.auctions')}
                 className="group relative order-4 md:hidden"
               >
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#FF7300"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-6 w-6 shrink-0 origin-bottom-left group-hover:animate-gavel-bang"
-                    aria-hidden
-                  >
-                    <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8"></path>
-                    <path d="m16 16 6-6"></path>
-                    <path d="m8 8 6-6"></path>
-                    <path d="m9 7 8 8"></path>
-                    <path d="m21 11-8-8"></path>
-                  </svg>
-                  {/* Lineette d'impatto: ferme, lampeggiano in sync con i colpi */}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#FF7300"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    className="pointer-events-none absolute inset-0 m-auto h-6 w-6 origin-[83%_75%] opacity-0 group-hover:animate-gavel-spark"
-                    aria-hidden
-                  >
-                    <line x1="20" y1="18.5" x2="20" y2="21" />
-                    <line x1="21.8" y1="17.6" x2="23.4" y2="19" />
-                    <line x1="18.2" y1="17.6" x2="16.6" y2="19" />
-                  </svg>
-                </>
+                <AuctionGavelIcon className="h-6 w-6" stroke="#FF7300" animated />
               </MobileHeaderNavIcon>
               <Link
                 href="/aste"
@@ -839,38 +807,7 @@ export function TopBar() {
                   className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5"
                   aria-hidden
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#FF7300"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-[0.9rem] w-[0.9rem] origin-bottom-left group-hover:animate-gavel-bang"
-                  >
-                    <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8"></path>
-                    <path d="m16 16 6-6"></path>
-                    <path d="m8 8 6-6"></path>
-                    <path d="m9 7 8 8"></path>
-                    <path d="m21 11-8-8"></path>
-                  </svg>
-                  {/* Lineette d'impatto: ferme, lampeggiano in sync con i colpi */}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#FF7300"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    className="pointer-events-none absolute inset-0 m-auto h-[0.9rem] w-[0.9rem] origin-[83%_75%] opacity-0 group-hover:animate-gavel-spark"
-                  >
-                    <line x1="20" y1="18.5" x2="20" y2="21" />
-                    <line x1="21.8" y1="17.6" x2="23.4" y2="19" />
-                    <line x1="18.2" y1="17.6" x2="16.6" y2="19" />
-                  </svg>
+                  <AuctionGavelIcon className="h-[0.9rem] w-[0.9rem]" stroke="#FF7300" animated />
                 </span>
                 <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
                   {t('nav.auctions')}

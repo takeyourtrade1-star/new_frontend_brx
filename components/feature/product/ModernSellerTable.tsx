@@ -1,11 +1,11 @@
 'use client';
 
 import { memo, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import Link from 'next/link';
 import {
   ChevronLeft,
   ChevronRight,
-  Gavel,
   Loader2,
   MessageSquare,
   Minus,
@@ -495,11 +495,11 @@ function AuctionGavelLinkDesktop({ numericId, endsAt }: { numericId: number; end
     <div className="inline-flex items-center">
       <Link
         href={auctionDetailPath(String(numericId))}
-        className="relative z-10 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm transition hover:bg-violet-700"
+        className="group relative z-10 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm transition hover:bg-violet-700"
         aria-label="Apri asta"
         title={`Asta · ${label}`}
       >
-        <Gavel className="h-3.5 w-3.5" strokeWidth={2.25} />
+        <AuctionGavelIcon className="h-3.5 w-3.5" strokeWidth={2.25} animated />
       </Link>
       {/* Pillola tempo rimasto: bordo sinistro "fuso" sotto il bottone circolare */}
       <span className="-ml-3 inline-flex h-6 items-center rounded-r-full bg-violet-100 pl-4 pr-2 text-[10px] font-bold tabular-nums leading-none text-violet-700">
@@ -870,10 +870,10 @@ const MobileAuctionRow = memo(function MobileAuctionRow({
       <div className="flex shrink-0 items-center self-center">
         <Link
           href={auctionDetailPath(String(a.numericId))}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm"
+          className="group inline-flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm"
           aria-label="Apri asta"
         >
-          <Gavel className="h-4 w-4" strokeWidth={2.25} />
+          <AuctionGavelIcon className="h-4 w-4" strokeWidth={2.25} animated />
         </Link>
       </div>
     </article>

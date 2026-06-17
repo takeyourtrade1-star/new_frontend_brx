@@ -5,7 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
 import { useRouter } from 'next/navigation';
-import { Camera, Check, ChevronLeft, ChevronRight, Gavel, ImageIcon, Info, Package, QrCode } from 'lucide-react';
+import { Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Info, Package, QrCode } from 'lucide-react';
+import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   buildAuctionLanguageOptions,
@@ -1383,13 +1384,13 @@ export function AuctionCreateWizard({
                         setError(null);
                       }}
                       className={cn(
-                        'flex items-center gap-3 rounded-xl border-2 px-4 py-4 text-left transition-all',
+                        'group flex items-center gap-3 rounded-xl border-2 px-4 py-4 text-left transition-all',
                         draft.game === value
                           ? 'border-[#FF7300] bg-orange-50/80 shadow-sm'
                           : 'border-gray-200 bg-white hover:border-gray-300'
                       )}
                     >
-                      <Gavel className="h-5 w-5 shrink-0 text-[#FF7300]" aria-hidden />
+                      <AuctionGavelIcon className="h-5 w-5 shrink-0 text-[#FF7300]" animated />
                       <span className="text-sm font-semibold uppercase tracking-wide text-gray-900">{t(labelKey)}</span>
                     </button>
                   ))}
@@ -2458,13 +2459,13 @@ export function AuctionCreateWizard({
                   }
                   onClick={openPublishConfirm}
                   className={cn(
-                    'inline-flex min-h-[32px] items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
+                    'group inline-flex min-h-[32px] items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
                     publishDisabled
                       ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
                       : 'bg-[#FF7300] hover:bg-[#e86800]'
                   )}
                 >
-                  <Gavel className="h-3 w-3" aria-hidden />
+                  <AuctionGavelIcon className="h-3 w-3" animated />
                   {t('auctions.createSubmit')}
                 </button>
               )}
@@ -2518,9 +2519,9 @@ export function AuctionCreateWizard({
               <button
                 type="button"
                 onClick={openPublishConfirm}
-                className="inline-flex min-h-[34px] items-center justify-center gap-1 rounded-full bg-[#FF7300] px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
+                className="group inline-flex min-h-[34px] items-center justify-center gap-1 rounded-full bg-[#FF7300] px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
               >
-                <Gavel className="h-3.5 w-3.5" aria-hidden />
+                <AuctionGavelIcon className="h-3.5 w-3.5" animated />
                 {t('auctions.createSubmit')}
               </button>
             )}

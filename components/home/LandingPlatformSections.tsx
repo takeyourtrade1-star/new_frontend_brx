@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { getTournamentsPortalUrl, TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 import {
-  Gavel,
   Search,
   HandCoins,
   PackageCheck,
@@ -17,6 +16,7 @@ import {
   ArrowRight,
   type LucideIcon,
 } from 'lucide-react';
+import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { motion, type Variants } from 'framer-motion';
 import {
@@ -44,7 +44,7 @@ import {
 type Accent = 'orange' | 'emerald' | 'violet';
 
 type Step = {
-  icon: LucideIcon;
+  icon: LucideIcon | typeof AuctionGavelIcon;
   title: string;
   description: string;
 };
@@ -130,7 +130,7 @@ const SECTIONS: PlatformSectionConfig[] = [
         description: 'Punta in tempo reale con incrementi chiari. Il sistema ti avvisa se vieni superato.',
       },
       {
-        icon: Gavel,
+        icon: AuctionGavelIcon,
         title: "Vinci l'asta",
         description:
           "Alla scadenza, l'offerta più alta si aggiudica la carta. Pagamento e conferma guidati sulla piattaforma.",
@@ -359,6 +359,7 @@ function PlatformSectionBlock({ config, reverse, sectionIndex }: PlatformSection
         >
             {config.steps.map((step, index) => {
               const Icon = step.icon;
+              const isAuctionIcon = Icon === AuctionGavelIcon;
               return (
                 <motion.div
                   key={step.title}
@@ -376,10 +377,14 @@ function PlatformSectionBlock({ config, reverse, sectionIndex }: PlatformSection
                   />
 
                   <motion.div
-                    className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${styles.iconBg}`}
+                    className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl group ${styles.iconBg}`}
                     whileHover={reduced ? undefined : iconSpring}
                   >
-                    <Icon className={`h-5 w-5 ${styles.iconText}`} strokeWidth={1.75} />
+                    {isAuctionIcon ? (
+                      <AuctionGavelIcon className={`h-5 w-5 ${styles.iconText}`} animated />
+                    ) : (
+                      <Icon className={`h-5 w-5 ${styles.iconText}`} strokeWidth={1.75} />
+                    )}
                   </motion.div>
 
                   <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">

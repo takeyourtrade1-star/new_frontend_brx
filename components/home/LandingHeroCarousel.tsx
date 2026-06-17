@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Gavel, Trophy, Zap } from 'lucide-react';
+import { ArrowRight, Trophy, Zap } from 'lucide-react';
+import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { getTournamentsPortalUrl, TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -30,7 +31,7 @@ type SlideConfig = {
   href: string;
   ariaLabel: string;
   external?: boolean;
-  Icon: typeof Gavel;
+  Icon: React.ComponentType<{ className?: string }>;
   accentColor: string;
 };
 
@@ -49,7 +50,7 @@ const SLIDES: SlideConfig[] = [
     cta: 'Esplora le aste',
     href: '/aste',
     ariaLabel: 'Vai alle aste',
-    Icon: Gavel,
+    Icon: AuctionGavelIcon,
     accentColor: '#FB923C',
   },
   {

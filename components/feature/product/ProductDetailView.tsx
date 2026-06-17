@@ -22,10 +22,10 @@ import {
   ShoppingCart,
   Info,
   Tag,
-  Gavel,
   LineChart,
   type LucideIcon,
 } from 'lucide-react';
+import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
@@ -176,7 +176,7 @@ type ProductDetailTabConfig = {
   id: ProductDetailTabId;
   label: string;
   mobileLabel: string;
-  icon: LucideIcon;
+  icon: LucideIcon | typeof AuctionGavelIcon;
 };
 
 function ProductDetailIconTabBar({
@@ -196,6 +196,7 @@ function ProductDetailIconTabBar({
     <div className={cn('flex border-b border-zinc-200/80 bg-white', className)} role="tablist" aria-label="Azioni carta">
       {tabs.map((tab) => {
         const Icon = tab.icon;
+        const isAuctionIcon = tab.id === 'ASTA';
         const isActive = activeTab === tab.id;
         return (
           <button
@@ -206,14 +207,21 @@ function ProductDetailIconTabBar({
             aria-label={tab.label}
             onClick={() => onTabChange(tab.id)}
             className={cn(
-              'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-colors',
+              'group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-colors',
               compact ? 'px-0.5 py-2' : 'px-1 py-2 sm:py-2.5',
               isActive
                 ? 'text-primary after:absolute after:bottom-0 after:left-1 after:right-1 after:h-0.5 after:rounded-full after:bg-primary sm:after:left-2 sm:after:right-2'
                 : 'text-zinc-500 hover:bg-zinc-50/80 hover:text-zinc-700'
             )}
           >
-            <Icon className={cn('shrink-0', compact ? 'h-4 w-4' : 'h-4 w-4 sm:h-[18px] sm:w-[18px]')} aria-hidden />
+            {isAuctionIcon ? (
+              <AuctionGavelIcon
+                className={cn('shrink-0', compact ? 'h-4 w-4' : 'h-4 w-4 sm:h-[18px] sm:w-[18px]')}
+                animated
+              />
+            ) : (
+              <Icon className={cn('shrink-0', compact ? 'h-4 w-4' : 'h-4 w-4 sm:h-[18px] sm:w-[18px]')} aria-hidden />
+            )}
             <span
               className={cn(
                 'truncate font-bold uppercase tracking-wide',
@@ -1439,7 +1447,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const tabs: ProductDetailTabConfig[] = [
     { id: 'INFO', label: 'INFO', mobileLabel: 'INFO', icon: Info },
     { id: 'VENDI', label: 'VENDI', mobileLabel: 'VENDI', icon: Tag },
-    { id: 'ASTA', label: "METTI ALL'ASTA", mobileLabel: "METTI ALL'ASTA", icon: Gavel },
+    { id: 'ASTA', label: "METTI ALL'ASTA", mobileLabel: "METTI ALL'ASTA", icon: AuctionGavelIcon },
     { id: 'GRAFICO', label: 'GRAFICO PREZZI', mobileLabel: 'GRAFICO', icon: LineChart },
   ];
 
@@ -2376,7 +2384,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                         aria-controls={`pd-market-panel-${tab.id}`}
                         onClick={() => setSellerSubTab(tab.id)}
                         className={cn(
-                          'flex min-w-[88px] flex-1 items-center justify-center gap-1 rounded-full px-2.5 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors sm:min-w-0 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm',
+                          'group flex min-w-[88px] flex-1 items-center justify-center gap-1 rounded-full px-2.5 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors sm:min-w-0 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm',
                           selected
                             ? 'bg-[#FF7300] text-white shadow-sm'
                             : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-900'
@@ -2389,13 +2397,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                           </svg>
                         )}
                         {tab.icon === 'aste' && (
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden>
-                            <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8" />
-                            <path d="m16 16 6-6" />
-                            <path d="m8 8 6-6" />
-                            <path d="m9 7 8 8" />
-                            <path d="m21 11-8-8" />
-                          </svg>
+                          <AuctionGavelIcon className={iconClass} animated />
                         )}
                         {tab.icon === 'scambi' && (
                           <ScambiIcon className={iconClass} aria-hidden />
