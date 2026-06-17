@@ -1347,7 +1347,7 @@ export const it: Record<MessageKey, string> = {
   'productDetail.tabs.aste': 'Aste',
   'productDetail.tabs.brxExpress': 'BRX Express',
   'productDetail.tabs.brxNew': 'NUOVO',
-  'productDetail.tabs.hint': 'Seleziona una sezione per vedere vendite, scambi o aste su questa carta.',
+  'productDetail.tabs.hint': 'Seleziona una sezione per vedere vendite o aste su questa carta.',
   'productDetail.filters.hideAuctions': 'Nascondi aste',
   'productDetail.filters.minCondition': 'Condizione minima',
   'productDetail.filters.cardLanguage': 'Lingua carta',
@@ -1367,8 +1367,6 @@ export const it: Record<MessageKey, string> = {
   'productDetail.auctions.forThisCard': 'Aste su questa carta',
   'productDetail.auctions.recommendedTitle': 'Altre aste aperte e consigliate',
   'productDetail.auctions.viewAll': 'Vedi tutte',
-  'productDetail.auctions.searchNote':
-    'Le aste sono filtrate per nome carta finché il backend non supporta il filtro per blueprint.',
   'productDetail.scambi.title': 'Scambi su questa carta',
   'productDetail.scambi.emptyBody':
     'Proponi uno scambio con questa carta oppure esplora gli scambi aperti sulla piattaforma.',

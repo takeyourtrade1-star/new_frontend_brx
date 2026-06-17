@@ -23,13 +23,11 @@ function useNowTick(intervalMs = 1000): number {
 
 export type ProductAuctionsPanelProps = {
   card: CardDocument;
-  blueprintId: number | null;
   onCreateAuctionEmbedded: () => void;
 };
 
 export function ProductAuctionsPanel({
   card,
-  blueprintId,
   onCreateAuctionEmbedded,
 }: ProductAuctionsPanelProps) {
   const { t } = useTranslation();
@@ -102,12 +100,6 @@ export function ProductAuctionsPanel({
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 p-4 sm:p-6">
-      {blueprintId != null && (
-        <p className="mb-3 text-[11px] text-gray-500">
-          {t('productDetail.auctions.searchNote')}
-        </p>
-      )}
-
       {loading && (
         <div className="flex min-h-[160px] items-center justify-center gap-2 text-sm text-gray-500">
           <Loader2 className="h-5 w-5 animate-spin" style={{ color: PRIMARY }} aria-hidden />

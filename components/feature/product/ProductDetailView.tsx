@@ -26,7 +26,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
-import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
 import { getCardImageUrl, getSetIconUrl } from '@/lib/assets';
@@ -82,7 +81,6 @@ import { useUserCountry } from '@/lib/hooks/use-user-country';
 import { useFlyToCart } from '@/lib/hooks/use-fly-to-cart';
 import { useCartStore } from '@/lib/stores/cart-store';
 import { ProductAuctionsPanel } from '@/components/feature/product/ProductAuctionsPanel';
-import { ProductScambiPanel } from '@/components/feature/product/ProductScambiPanel';
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { RarityIndicator } from '@/components/ui/RarityIndicator';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
@@ -590,7 +588,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     }
   }, [searchParams]);
   const [mobileReprintsOpen, setMobileReprintsOpen] = useState(false);
-  const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'SCAMBI' | 'ASTE' | 'TCG_EXPRESS'>('VENDITORI');
+  const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'ASTE' | 'TCG_EXPRESS'>('VENDITORI');
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [soloFoil, setSoloFoil] = useState(false);
@@ -2357,7 +2355,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               )}
             </aside>
 
-            {/* Marketplace: IN VENDITA | SCAMBI | ASTE | BRX Express */}
+            {/* Marketplace: IN VENDITA | ASTE | BRX Express */}
             <div className="flex-1 min-w-0 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
               <div
                 className="border-b border-gray-200 bg-white px-2 pt-2 sm:px-3 sm:pt-3"
@@ -2368,7 +2366,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   {(
                     [
                       { id: 'VENDITORI' as const, label: t('productDetail.tabs.inVendita'), icon: 'vendita' },
-                      { id: 'SCAMBI' as const, label: t('productDetail.tabs.scambi'), icon: 'scambi' },
                       { id: 'ASTE' as const, label: t('productDetail.tabs.aste'), icon: 'aste' },
                     ] as const
                   ).map((tab) => {
@@ -2398,9 +2395,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                         )}
                         {tab.icon === 'aste' && (
                           <AuctionGavelIcon className={iconClass} animated />
-                        )}
-                        {tab.icon === 'scambi' && (
-                          <ScambiIcon className={iconClass} aria-hidden />
                         )}
                         <span className="truncate">{tab.label}</span>
                       </button>
@@ -2458,15 +2452,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                   />
                 </div>
               )}
-              {sellerSubTab === 'SCAMBI' && card && (
-                <div
-                  id="pd-market-panel-SCAMBI"
-                  role="tabpanel"
-                  aria-labelledby="pd-market-tab-SCAMBI"
-                >
-                  <ProductScambiPanel card={card} />
-                </div>
-              )}
               {sellerSubTab === 'ASTE' && card && (
                 <div
                   id="pd-market-panel-ASTE"
@@ -2475,7 +2460,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 >
                   <ProductAuctionsPanel
                     card={card}
-                    blueprintId={blueprintIdForAuction}
                     onCreateAuctionEmbedded={() => setActiveTab('ASTA')}
                   />
                 </div>

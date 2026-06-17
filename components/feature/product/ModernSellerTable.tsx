@@ -402,7 +402,7 @@ function MobileProductAttributes({
       <MobileDescriptionNote description={description} />
       <MobileTraitLetters foil={foil} signed={signed} altered={altered} />
       {auctionTag ? (
-        <span className="shrink-0 rounded bg-violet-100 px-1 py-px text-[8px] font-bold uppercase text-violet-800">
+        <span className="shrink-0 rounded bg-[#FFF4EC] px-1 py-px text-[8px] font-bold uppercase text-[#FF7300]">
           Asta
         </span>
       ) : null}
@@ -443,7 +443,7 @@ function MarketplaceProductInfoCell({
         {langFlag ? <FlagIcon country={langFlag} size="sm" title={langTitle} className="shrink-0" /> : null}
         <MarketplacePhotoCarousel imageUrls={imageUrls} name={imageName ?? 'Carta'} />
         {auctionTag ? (
-          <span className="shrink-0 rounded bg-violet-100 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-violet-800">
+          <span className="shrink-0 rounded bg-[#FFF4EC] px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-[#FF7300]">
             Asta
           </span>
         ) : null}
@@ -495,14 +495,14 @@ function AuctionGavelLinkDesktop({ numericId, endsAt }: { numericId: number; end
     <div className="inline-flex items-center">
       <Link
         href={auctionDetailPath(String(numericId))}
-        className="group relative z-10 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm transition hover:bg-violet-700"
+        className="group relative z-10 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-sm transition hover:bg-[#e86800]"
         aria-label="Apri asta"
         title={`Asta · ${label}`}
       >
         <AuctionGavelIcon className="h-3.5 w-3.5" strokeWidth={2.25} animated />
       </Link>
       {/* Pillola tempo rimasto: bordo sinistro "fuso" sotto il bottone circolare */}
-      <span className="-ml-3 inline-flex h-6 items-center rounded-r-full bg-violet-100 pl-4 pr-2 text-[10px] font-bold tabular-nums leading-none text-violet-700">
+      <span className="-ml-3 inline-flex h-6 items-center rounded-r-full bg-[#FFF4EC] pl-4 pr-2 text-[10px] font-bold tabular-nums leading-none text-[#FF7300]">
         {label}
       </span>
     </div>
@@ -568,7 +568,7 @@ const DesktopAuctionRow = memo(function DesktopAuctionRow({
       key={rowId}
       className={cn(
         'border-b border-gray-200 align-middle',
-        index % 2 === 0 ? 'bg-violet-50/20' : 'bg-violet-50/35'
+        index % 2 === 0 ? 'bg-orange-50/30' : 'bg-orange-50/50'
       )}
     >
       <td className="border-r border-gray-200/80 px-2.5 py-2">
@@ -838,7 +838,7 @@ const MobileAuctionRow = memo(function MobileAuctionRow({
       key={rowId}
       className={cn(
         'flex gap-2 border-b border-slate-200/90 px-3 py-2.5',
-        index % 2 === 0 ? 'bg-violet-50/25' : 'bg-violet-50/40'
+        index % 2 === 0 ? 'bg-orange-50/35' : 'bg-orange-50/55'
       )}
     >
       <div className="min-w-0 flex-1">
@@ -860,7 +860,7 @@ const MobileAuctionRow = memo(function MobileAuctionRow({
             auctionTag
           />
           <div className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
-            <AuctionCountdownText endsAt={a.endsAt} className="text-xs font-medium text-violet-700" />
+            <AuctionCountdownText endsAt={a.endsAt} className="text-xs font-medium text-[#FF7300]" />
             <span className="text-sm font-bold text-slate-900">
               {formatEuro(a.currentBidEur || a.startingBidEur)}
             </span>
@@ -870,7 +870,7 @@ const MobileAuctionRow = memo(function MobileAuctionRow({
       <div className="flex shrink-0 items-center self-center">
         <Link
           href={auctionDetailPath(String(a.numericId))}
-          className="group inline-flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm"
+          className="group inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-sm transition hover:bg-[#e86800]"
           aria-label="Apri asta"
         >
           <AuctionGavelIcon className="h-4 w-4" strokeWidth={2.25} animated />

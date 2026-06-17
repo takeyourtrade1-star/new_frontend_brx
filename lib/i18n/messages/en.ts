@@ -1331,7 +1331,7 @@ export const en = {
   'productDetail.tabs.aste': 'Auctions',
   'productDetail.tabs.brxExpress': 'BRX Express',
   'productDetail.tabs.brxNew': 'NEW',
-  'productDetail.tabs.hint': 'Select a section to view sales, trades, or auctions for this card.',
+  'productDetail.tabs.hint': 'Select a section to view sales or auctions for this card.',
   'productDetail.filters.hideAuctions': 'Hide auctions',
   'productDetail.filters.minCondition': 'Minimum condition',
   'productDetail.filters.cardLanguage': 'Card language',
@@ -1350,8 +1350,6 @@ export const en = {
   'productDetail.auctions.forThisCard': 'Auctions for this card',
   'productDetail.auctions.recommendedTitle': 'Other open and recommended auctions',
   'productDetail.auctions.viewAll': 'View all',
-  'productDetail.auctions.searchNote':
-    'Auctions are matched by card name until blueprint filtering is available on the API.',
   'productDetail.scambi.title': 'Trades for this card',
   'productDetail.scambi.emptyBody':
     'Propose a trade with this card or explore open trades on the platform.',
