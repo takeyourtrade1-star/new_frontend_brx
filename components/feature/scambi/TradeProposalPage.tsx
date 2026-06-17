@@ -16,11 +16,9 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Check, Minus, Plus, Search } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
-import { formatEuroNoSpace } from '@/lib/utils';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import {
   getTradeProposalContext,
@@ -28,275 +26,19 @@ import {
   type TradeProposalContext,
 } from '@/lib/scambi/trade-proposal-context';
 import { getMockCardValueEur, tradeBalance } from '@/lib/scambi/card-mock-value';
-import { MOCK_INVENTORY_A, MOCK_INVENTORY_B } from './mock-trade-inventories';
-
-interface TradeCard {
-  id: string;
-  name: string;
-  image: string;
-  condition: string;
-  game: string;
-  value: number;
-}
-
-interface InventoryFiltersState {
-  query: string;
-  game: string | null;
-  condition: string | null;
-}
-
-const GAME_LABELS: Record<string, string> = {
-  mtg: 'MTG',
-  pokemon: 'PKM',
-  op: 'OP',
-  ygo: 'YGO',
-  lorcana: 'LOR',
-};
-
-function formatEuro(n: number): string {
-  return formatEuroNoSpace(n, 'it-IT');
-}
-
-function mockToTradeCard(item: {
-  id: string;
-  name: string;
-  image: string;
-  condition: string;
-  game: string;
-}): TradeCard {
-  return {
-    id: item.id,
-    name: item.name,
-    image: item.image,
-    condition: item.condition,
-    game: item.game,
-    value: getMockCardValueEur(item.id),
-  };
-}
-
-function filterTradeCards(cards: TradeCard[], filters: InventoryFiltersState): TradeCard[] {
-  const q = filters.query.trim().toLowerCase();
-  return cards.filter((card) => {
-    if (filters.game && card.game !== filters.game) return false;
-    if (filters.condition && card.condition !== filters.condition) return false;
-    if (q && !card.name.toLowerCase().includes(q)) return false;
-    return true;
-  });
-}
-
-function uniqueValues(cards: TradeCard[], key: 'game' | 'condition'): string[] {
-  return [...new Set(cards.map((c) => c[key]))].sort();
-}
-
-/* ------------------------------------------------------------------ */
-/*  Pezzi UI                                                           */
-/* ------------------------------------------------------------------ */
-
-/** Carta sul tavolo (compatta), con eventuale pulsante di rimozione. */
-function TableCard({ card, onRemove }: { card: TradeCard; onRemove?: () => void }) {
-  return (
-    <div className="group relative w-16 shrink-0 sm:w-[4.5rem]">
-      <div className="relative aspect-[200/280] w-full overflow-hidden rounded-lg bg-gray-200 ring-1 ring-black/10">
-        <Image src={card.image} alt={card.name} fill unoptimized className="object-cover" sizes="72px" />
-        {onRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-red-500"
-            aria-label={`Rimuovi ${card.name}`}
-          >
-            <Minus className="h-3 w-3" strokeWidth={3} />
-          </button>
-        )}
-      </div>
-      <p className="mt-0.5 truncate text-[9px] font-semibold leading-tight text-gray-700" title={card.name}>
-        {card.name}
-      </p>
-      <p className="text-[10px] font-bold tabular-nums text-[#1D3160]">{formatEuro(card.value)}</p>
-    </div>
-  );
-}
-
-/** Chip "differenza in crediti" sul tavolo. */
-function MoneyChip({ amount }: { amount: number }) {
-  return (
-    <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-lg border border-dashed border-[#FF7300]/50 bg-orange-50/60 py-2 sm:w-[4.5rem]">
-      <span className="text-sm font-bold tabular-nums text-[#1D3160]">+{formatEuro(amount)}</span>
-      <span className="text-[8px] font-semibold uppercase text-gray-500">crediti</span>
-    </div>
-  );
-}
-
-/** Ricerca e filtri compatti per una lista inventario. */
-function InventoryToolbar({
-  filters,
-  onChange,
-  cards,
-}: {
-  filters: InventoryFiltersState;
-  onChange: (next: InventoryFiltersState) => void;
-  cards: TradeCard[];
-}) {
-  const games = uniqueValues(cards, 'game');
-  const conditions = uniqueValues(cards, 'condition');
-  const showGameFilters = games.length > 1;
-  const showConditionFilters = conditions.length > 1;
-
-  const chipClass = (active: boolean) =>
-    `shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide transition ${
-      active
-        ? 'bg-[#1D3160] text-white'
-        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-    }`;
-
-  return (
-    <div className="mb-1.5 space-y-1">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400" />
-        <input
-          type="search"
-          value={filters.query}
-          onChange={(e) => onChange({ ...filters, query: e.target.value })}
-          placeholder="Cerca..."
-          className="h-7 w-full rounded-full border border-gray-200 bg-gray-50 pl-7 pr-2.5 text-[11px] text-gray-800 outline-none placeholder:text-gray-400 focus:border-[#FF7300]/50 focus:bg-white"
-        />
-      </div>
-      {(showGameFilters || showConditionFilters) && (
-        <div className="flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {showGameFilters && (
-            <>
-              <button
-                type="button"
-                onClick={() => onChange({ ...filters, game: null })}
-                className={chipClass(filters.game === null)}
-              >
-                Tutti
-              </button>
-              {games.map((game) => (
-                <button
-                  key={game}
-                  type="button"
-                  onClick={() => onChange({ ...filters, game })}
-                  className={chipClass(filters.game === game)}
-                >
-                  {GAME_LABELS[game] ?? game}
-                </button>
-              ))}
-            </>
-          )}
-          {showGameFilters && showConditionFilters && (
-            <span className="mx-0.5 shrink-0 self-center text-[9px] text-gray-300">|</span>
-          )}
-          {showConditionFilters && (
-            <>
-              <button
-                type="button"
-                onClick={() => onChange({ ...filters, condition: null })}
-                className={chipClass(filters.condition === null)}
-              >
-                Tutte
-              </button>
-              {conditions.map((condition) => (
-                <button
-                  key={condition}
-                  type="button"
-                  onClick={() => onChange({ ...filters, condition })}
-                  className={chipClass(filters.condition === condition)}
-                >
-                  {condition}
-                </button>
-              ))}
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Riga selezionabile nelle liste inventario. */
-function InventoryRow({
-  card,
-  selected,
-  onToggle,
-}: {
-  card: TradeCard;
-  selected: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className={`group flex w-full items-center gap-2.5 rounded-lg border p-1.5 text-left transition ${
-        selected ? 'border-[#FF7300] bg-orange-50/70' : 'border-gray-200 bg-white hover:border-orange-200'
-      }`}
-    >
-      <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded bg-gray-200">
-        <Image src={card.image} alt={card.name} fill unoptimized className="object-cover" sizes="36px" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-semibold text-gray-900">{card.name}</p>
-        <p className="text-[11px] font-bold tabular-nums text-[#1D3160]">
-          {formatEuro(card.value)} <span className="font-medium text-gray-400">· {card.condition}</span>
-        </p>
-      </div>
-      <span
-        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition ${
-          selected ? 'bg-[#FF7300] text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#FF7300]'
-        }`}
-      >
-        {selected ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />}
-      </span>
-    </button>
-  );
-}
-
-/** Campo monetario compatto (differenza in euro). */
-function MoneyField({
-  value,
-  onChange,
-  label,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  label: string;
-}) {
-  return (
-    <label className="flex items-center gap-2">
-      <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wide text-gray-500">{label}</span>
-      <span className="flex items-center overflow-hidden rounded-lg border border-gray-300 bg-white focus-within:border-[#FF7300]">
-        <button
-          type="button"
-          onClick={() => onChange(Math.max(0, value - 5))}
-          className="flex h-8 w-7 items-center justify-center text-gray-500 hover:bg-gray-50"
-          aria-label="Diminuisci"
-        >
-          <Minus className="h-3 w-3" />
-        </button>
-        <span className="relative">
-          <span className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">€</span>
-          <input
-            type="number"
-            min={0}
-            value={value || ''}
-            onChange={(e) => onChange(Math.max(0, parseInt(e.target.value, 10) || 0))}
-            placeholder="0"
-            className="h-8 w-14 border-x border-gray-200 bg-transparent pl-4 pr-1 text-center text-sm font-bold tabular-nums text-gray-900 outline-none"
-          />
-        </span>
-        <button
-          type="button"
-          onClick={() => onChange(value + 5)}
-          className="flex h-8 w-7 items-center justify-center text-gray-500 hover:bg-gray-50"
-          aria-label="Aumenta"
-        >
-          <Plus className="h-3 w-3" />
-        </button>
-      </span>
-    </label>
-  );
-}
+import { MOCK_INVENTORY_A, MOCK_INVENTORY_B, findMockInventoryItem } from './mock-trade-inventories';
+import {
+  filterTradeCards,
+  formatTradeEuro,
+  InventoryPanel,
+  mockToTradeCard,
+  AnimatedBalanceScale,
+  MoneyChip,
+  MoneyField,
+  TableCard,
+  type InventoryFiltersState,
+  type TradeCard,
+} from './trade-proposal-ui';
 
 /* ------------------------------------------------------------------ */
 /*  Pagina                                                             */
@@ -315,13 +57,15 @@ export function TradeProposalPage() {
   const [submitted, setSubmitted] = useState(false);
   const [myFilters, setMyFilters] = useState<InventoryFiltersState>({
     query: '',
-    game: null,
     condition: null,
+    language: null,
+    printings: [],
   });
   const [otherFilters, setOtherFilters] = useState<InventoryFiltersState>({
     query: '',
-    game: null,
     condition: null,
+    language: null,
+    printings: [],
   });
 
   useEffect(() => {
@@ -345,11 +89,15 @@ export function TradeProposalPage() {
   /** Carta base richiesta (quella selezionata dall'altro utente). */
   const baseCard: TradeCard | null = useMemo(() => {
     if (!ctx) return null;
+    const fromInventory = findMockInventoryItem(ctx.card.id);
+    if (fromInventory) return mockToTradeCard(fromInventory);
     return {
       id: ctx.card.id,
       name: ctx.card.name,
       image: ctx.card.image,
       condition: ctx.card.condition,
+      language: 'en',
+      printing: 'standard',
       value: getMockCardValueEur(ctx.card.id),
     };
   }, [ctx]);
@@ -471,11 +219,14 @@ export function TradeProposalPage() {
         {/* Banner equità + compensazione rapida */}
         {!balance.balanced && (
           <div className="mb-3 flex flex-col gap-2 rounded-xl border border-[#FF7300]/40 bg-orange-50 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[13px] text-gray-700">
-              <span className="font-bold text-[#1D3160]">La bilancia pende un po’ da una parte ⚖️</span>{' '}
-              {offeredValue === 0
-                ? 'Aggiungi qualcosa per iniziare!'
-                : `mancano ${formatEuro(Math.abs(gap))} per pareggiare.`}
+            <p className="flex items-start gap-2 text-[13px] text-gray-700">
+              <AnimatedBalanceScale offeredValue={offeredValue} requestedValue={requestedValue} className="mt-0.5" />
+              <span>
+                <span className="font-bold text-[#1D3160]">La bilancia pende un po&apos; da una parte</span>{' '}
+                {offeredValue === 0
+                  ? 'Aggiungi qualcosa per iniziare!'
+                  : `mancano ${formatTradeEuro(Math.abs(gap))} per pareggiare.`}
+              </span>
             </p>
             <button
               type="button"
@@ -511,7 +262,7 @@ export function TradeProposalPage() {
           <div className="px-3.5 py-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Chiedi</span>
-              <span className="text-sm font-black tabular-nums text-[#1D3160]">{formatEuro(requestedValue)}</span>
+              <span className="text-sm font-black tabular-nums text-[#1D3160]">{formatTradeEuro(requestedValue)}</span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {requestedCards.map((card) => (
@@ -531,7 +282,7 @@ export function TradeProposalPage() {
           <div className="px-3.5 py-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Offri</span>
-              <span className="text-sm font-black tabular-nums text-[#1D3160]">{formatEuro(offeredValue)}</span>
+              <span className="text-sm font-black tabular-nums text-[#1D3160]">{formatTradeEuro(offeredValue)}</span>
             </div>
             {offeredCards.length === 0 && addMoney === 0 ? (
               <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 py-5 text-center text-xs text-gray-400">
@@ -550,51 +301,28 @@ export function TradeProposalPage() {
 
         {/* DUE LISTE */}
         <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <section className="rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm">
-            <div className="mb-1.5 flex items-center justify-between border-b border-gray-100 pb-1.5">
-              <h2 className="text-[13px] font-bold uppercase tracking-tight text-[#1D3160]">Il tuo inventario</h2>
-              <span className="text-[10px] font-medium text-gray-400">tocca per offrire</span>
-            </div>
-            <InventoryToolbar filters={myFilters} onChange={setMyFilters} cards={myInventory} />
-            <div className="flex max-h-[380px] flex-col gap-1.5 overflow-y-auto pr-1">
-              {filteredMyInventory.length === 0 ? (
-                <p className="py-4 text-center text-[11px] text-gray-400">Nessuna carta trovata</p>
-              ) : (
-                filteredMyInventory.map((card) => (
-                  <InventoryRow
-                    key={card.id}
-                    card={card}
-                    selected={selectedOfferedIds.includes(card.id)}
-                    onToggle={() => toggleOffered(card.id)}
-                  />
-                ))
-              )}
-            </div>
-          </section>
-
-          <section className="rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm">
-            <div className="mb-1.5 flex items-center justify-between border-b border-gray-100 pb-1.5">
-              <h2 className="truncate text-[13px] font-bold uppercase tracking-tight text-[#1D3160]">
-                Inventario di {ctx.seller.name}
-              </h2>
-              <span className="shrink-0 text-[10px] font-medium text-gray-400">tocca per chiedere</span>
-            </div>
-            <InventoryToolbar filters={otherFilters} onChange={setOtherFilters} cards={otherInventory} />
-            <div className="flex max-h-[380px] flex-col gap-1.5 overflow-y-auto pr-1">
-              {filteredOtherInventory.length === 0 ? (
-                <p className="py-4 text-center text-[11px] text-gray-400">Nessuna carta trovata</p>
-              ) : (
-                filteredOtherInventory.map((card) => (
-                  <InventoryRow
-                    key={card.id}
-                    card={card}
-                    selected={selectedRequestedIds.includes(card.id)}
-                    onToggle={() => toggleRequested(card.id)}
-                  />
-                ))
-              )}
-            </div>
-          </section>
+          <InventoryPanel
+            variant="mine"
+            title="Il tuo inventario"
+            hint="tocca per offrire"
+            filters={myFilters}
+            onFiltersChange={setMyFilters}
+            cards={myInventory}
+            filteredCards={filteredMyInventory}
+            selectedIds={selectedOfferedIds}
+            onToggle={toggleOffered}
+          />
+          <InventoryPanel
+            variant="other"
+            title={`Inventario di ${ctx.seller.name}`}
+            hint="tocca per chiedere"
+            filters={otherFilters}
+            onFiltersChange={setOtherFilters}
+            cards={otherInventory}
+            filteredCards={filteredOtherInventory}
+            selectedIds={selectedRequestedIds}
+            onToggle={toggleRequested}
+          />
         </div>
       </div>
 
@@ -611,14 +339,14 @@ export function TradeProposalPage() {
                 <span className="text-gray-600">Offri</span>
                 <span className="font-bold text-[#1D3160]">
                   {offeredCards.length} {offeredCards.length === 1 ? 'carta' : 'carte'}
-                  {addMoney > 0 ? ` + ${formatEuro(addMoney)}` : ''} · {formatEuro(offeredValue)}
+                  {addMoney > 0 ? ` + ${formatTradeEuro(addMoney)}` : ''} · {formatTradeEuro(offeredValue)}
                 </span>
               </div>
               <div className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
                 <span className="text-gray-600">Chiedi</span>
                 <span className="font-bold text-[#1D3160]">
                   {requestedCards.length} {requestedCards.length === 1 ? 'carta' : 'carte'}
-                  {reqMoney > 0 ? ` + ${formatEuro(reqMoney)}` : ''} · {formatEuro(requestedValue)}
+                  {reqMoney > 0 ? ` + ${formatTradeEuro(reqMoney)}` : ''} · {formatTradeEuro(requestedValue)}
                 </span>
               </div>
             </div>
