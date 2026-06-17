@@ -10,6 +10,9 @@ import { cn } from '@/lib/utils';
 
 const HEADER_OFFSET = 80;
 
+const HOME_NAV_BUTTON_CLASS =
+  'flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full border-2 border-gray-200 bg-white text-gray-600 transition-all duration-300 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)] active:scale-95';
+
 /** Glass bubble navigation - each item in its own floating bubble */
 export function AsteNav() {
   const { t } = useTranslation();
@@ -88,12 +91,7 @@ export function AsteNav() {
             <Link
               href="/aste"
               aria-label={t('auctions.breadcrumbHome')}
-              className={cn(
-                'group flex h-9 sm:h-12 w-9 shrink-0 items-center justify-center rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-all duration-300',
-                pathname === '/aste'
-                  ? 'border-2 border-[#FF7300] bg-[#FFF4EC] text-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.2)] scale-105'
-                  : 'border-2 border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)] active:scale-95'
-              )}
+              className={HOME_NAV_BUTTON_CLASS}
             >
               <Home className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" aria-hidden />
             </Link>
@@ -172,14 +170,19 @@ export function AsteNav() {
                 key={href}
                 href={href}
                 aria-label={iconOnly ? label : undefined}
+                aria-current={iconOnly && active ? 'page' : undefined}
                 className={cn(
-                  'group relative flex h-9 sm:h-12 shrink-0 items-center rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-all duration-300',
-                  iconOnly ? 'w-9 justify-center' : 'justify-center sm:justify-start px-0 sm:px-4 w-9 sm:w-auto',
-                  active
-                    ? 'border-2 border-[#FF7300] bg-[#FFF4EC] text-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.2)] scale-105'
-                    : isPrimary
-                      ? 'border-2 border-[#FF7300]/30 bg-[#FFF4EC] text-[#FF7300]/90 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_12px_rgba(255,115,0,0.2)] active:scale-95'
-                      : 'border-2 border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)] active:scale-95'
+                  'group relative flex shrink-0 items-center rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-all duration-300',
+                  iconOnly
+                    ? HOME_NAV_BUTTON_CLASS
+                    : cn(
+                        'h-9 sm:h-12 justify-center sm:justify-start px-0 sm:px-4 w-9 sm:w-auto',
+                        active
+                          ? 'border-2 border-[#FF7300] bg-[#FFF4EC] text-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.2)] scale-105'
+                          : isPrimary
+                            ? 'border-2 border-[#FF7300]/30 bg-[#FFF4EC] text-[#FF7300]/90 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_12px_rgba(255,115,0,0.2)] active:scale-95'
+                            : 'border-2 border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)] active:scale-95'
+                      )
                 )}
               >
                 <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-300', isPrimary && 'group-hover:rotate-90')} aria-hidden />

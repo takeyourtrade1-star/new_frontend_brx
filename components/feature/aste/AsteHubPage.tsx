@@ -77,8 +77,8 @@ type AsteHubToolbarProps = {
   onFilterPriceMaxChange: (value: string) => void;
   filterMinBids: string;
   onFilterMinBidsChange: (value: string) => void;
-  browseTab: BrowseTab;
-  onBrowseTabChange: (tab: BrowseTab) => void;
+  browseTab: BrowseTab | null;
+  onBrowseTabChange: (tab: BrowseTab | null) => void;
   viewMode: AsteViewMode;
   onViewModeChange: (mode: AsteViewMode) => void;
   compact?: boolean;
@@ -203,7 +203,7 @@ function AsteHubToolbar({
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => onBrowseTabChange(tab)}
+                onClick={() => onBrowseTabChange(active ? null : tab)}
                 className={cn(
                   'inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors sm:px-3 sm:text-[11px]',
                   active
@@ -239,7 +239,7 @@ export function AsteHubPage() {
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const [apiBatchCount, setApiBatchCount] = useState(1);
   const [viewMode, setViewMode] = useState<AsteViewMode>('list');
-  const [browseTab, setBrowseTab] = useState<BrowseTab>('ending_soon');
+  const [browseTab, setBrowseTab] = useState<BrowseTab | null>(null);
   const [q, setQ] = useState('');
   const debouncedQ = useDebouncedValue(q, SEARCH_DEBOUNCE_MS);
   const [filterPriceMax, setFilterPriceMax] = useState('');
@@ -372,8 +372,8 @@ export function AsteHubPage() {
         if (!isAuctionEndedUI(a)) return false;
       } else if (browseTab === 'ending_soon') {
         if (isAuctionEndedUI(a) || !isEndingWithin24h(a.hoursFromNow)) return false;
-      } else {
-        if (isAuctionEndedUI(a)) return false;
+      } else if (isAuctionEndedUI(a)) {
+        return false;
       }
       return true;
     });
@@ -383,8 +383,10 @@ export function AsteHubPage() {
       copy.sort((a, b) => new Date(b.endsAt).getTime() - new Date(a.endsAt).getTime());
     } else if (browseTab === 'ending_soon') {
       copy.sort((a, b) => a.hoursFromNow - b.hoursFromNow);
-    } else {
+    } else if (browseTab === 'recent') {
       copy.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+    } else {
+      copy.sort((a, b) => a.hoursFromNow - b.hoursFromNow);
     }
     return copy;
   }, [enriched, q, searchMatchTerms, browseTab, filterPriceMax, filterMinBids]);
