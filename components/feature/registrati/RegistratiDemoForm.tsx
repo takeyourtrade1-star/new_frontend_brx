@@ -20,6 +20,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon, CountrySelect, type CountryOption } from '@/lib/auction/country-flag';
 import { useUserCountry } from '@/lib/hooks/use-user-country';
 import { RegistrationLegalCheckboxes } from '@/components/legal/RegistrationLegalCheckboxes';
+import { safeInternalRedirectPath } from '@/lib/auth/redirect';
 
 const defaultValues: RegisterDemoValues = {
   website_url: '',
@@ -52,16 +53,8 @@ export function RegistratiDemoForm() {
   const prefilledEmail = searchParams.get('email') ?? '';
   const rawReturnTo = searchParams.get('returnTo');
 
-  /**
-   * Sanitize returnTo: accettiamo solo path interni che iniziano per "/" e non
-   * sono assoluti (es. "//attacker.com/...", "https://...") per evitare open
-   * redirect. Fallback alla home se invalido.
-   */
   const safeReturnTo = useCallback((): string => {
-    if (!rawReturnTo) return '/';
-    if (typeof rawReturnTo !== 'string') return '/';
-    if (!rawReturnTo.startsWith('/') || rawReturnTo.startsWith('//')) return '/';
-    return rawReturnTo;
+    return safeInternalRedirectPath(rawReturnTo);
   }, [rawReturnTo]);
 
   const {

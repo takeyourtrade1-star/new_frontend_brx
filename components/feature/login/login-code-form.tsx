@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Mail, AlertCircle } from 'lucide-react';
@@ -17,6 +17,7 @@ import { useRequestLoginCode, useVerifyLoginCode } from '@/lib/hooks/use-auth';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
 import { parseAuthError } from '@/lib/api/auth-error';
+import { safeInternalRedirectPath, withSafeRedirectParam } from '@/lib/auth/redirect';
 
 const appleInputClass =
   'h-[52px] w-full rounded-2xl border border-black/10 bg-black/5 px-4 text-[15px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/20 transition-all disabled:opacity-50';
@@ -27,6 +28,7 @@ const APPLE_MODAL =
 export function LoginCodeForm() {
   const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const requestMutation = useRequestLoginCode();
   const verifyMutation = useVerifyLoginCode();
@@ -34,6 +36,9 @@ export function LoginCodeForm() {
   const [step, setStep] = useState<'request' | 'verify'>('request');
   const [countdown, setCountdown] = useState(300); // 5 minuti
   const [localError, setLocalError] = useState<string | null>(null);
+  const redirectPath = safeInternalRedirectPath(searchParams.get('redirect'));
+  const mfaHref = withSafeRedirectParam('/login/verify-mfa', redirectPath);
+  const loginHref = withSafeRedirectParam('/login?accesso=1', redirectPath);
 
   const requestForm = useForm<LoginCodeRequestValues>({
     resolver: zodResolver(loginCodeRequestSchema),
@@ -94,9 +99,9 @@ export function LoginCodeForm() {
       try {
         const result = await verifyMutation.mutateAsync({ email, code });
         if (result.mfaRequired) {
-          router.replace('/login/verify-mfa');
+          router.replace(mfaHref);
         } else {
-          router.push('/');
+          router.push(redirectPath);
         }
       } catch (err: any) {
         const parsed = parseAuthError(err);
@@ -104,7 +109,7 @@ export function LoginCodeForm() {
         // Lascia l'input libero per riprovare
       }
     },
-    [verifyMutation, verifyForm, router]
+    [verifyMutation, verifyForm, router, mfaHref, redirectPath]
   );
 
   const handleResend = useCallback(async () => {
@@ -128,7 +133,7 @@ export function LoginCodeForm() {
       <div className="p-8 sm:p-10 flex flex-col">
         {/* Indietro */}
         <Link
-          href="/login?accesso=1"
+          href={loginHref}
           className="self-start text-[#86868b] hover:text-[#1d1d1f] mb-5 flex items-center gap-1 text-[12px] font-medium transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> {t('loginCode.backToLogin')}
@@ -196,7 +201,7 @@ export function LoginCodeForm() {
 
             <div className="pt-0.5 text-center text-[12px] text-[#515154]">
               <Link
-                href="/login?accesso=1"
+                href={loginHref}
                 className="font-medium text-[#0066cc] hover:underline"
               >
                 {t('loginCode.backToLogin')}
@@ -275,7 +280,7 @@ export function LoginCodeForm() {
 
             <div className="text-center text-[12px] text-[#515154]">
               <Link
-                href="/login?accesso=1"
+                href={loginHref}
                 className="font-medium text-[#0066cc] hover:underline"
               >
                 {t('loginCode.backToLogin')}

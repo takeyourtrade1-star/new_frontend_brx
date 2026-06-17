@@ -9,6 +9,7 @@ import { AuthShell, AUTH_GLASS_CLASS, AUTH_GLASS_LIGHT } from '@/components/layo
 import { useLanguage, LANGUAGE_NAMES } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
+import { safeInternalRedirectPath, withSafeRedirectParam } from '@/lib/auth/redirect';
 export function LoginView() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -16,6 +17,9 @@ export function LoginView() {
   const { selectedLang, setSelectedLang, availableLangs } = useLanguage();
 
   const openLoginFromUrl = searchParams.get('accesso') === '1';
+  const redirectPath = safeInternalRedirectPath(searchParams.get('redirect'));
+  const loginHref = withSafeRedirectParam('/login?accesso=1', redirectPath);
+  const registerHref = withSafeRedirectParam('/registrati', redirectPath, 'returnTo');
   const [showLoginForm, setShowLoginForm] = useState(openLoginFromUrl);
 
   useEffect(() => {
@@ -24,7 +28,7 @@ export function LoginView() {
 
   function goToLoginForm() {
     setShowLoginForm(true);
-    router.replace('/login?accesso=1');
+    router.replace(loginHref);
   }
 
   return (
@@ -44,7 +48,7 @@ export function LoginView() {
                 <LoginForm />
                 <div className="mt-8 pt-6 border-t border-gray-200/50 text-center">
                   <p className="text-[14px] text-[#515154]">
-                    {t('pages.login.noAccount')} <Link href="/registrati" className="font-semibold text-[#0066cc] hover:underline">Registrati</Link>
+                    {t('pages.login.noAccount')} <Link href={registerHref} className="font-semibold text-[#0066cc] hover:underline">Registrati</Link>
                   </p>
                 </div>
               </div>
@@ -114,7 +118,7 @@ export function LoginView() {
                       Accedi
                     </button>
                     <Link
-                      href="/registrati"
+                      href={registerHref}
                       className="w-full rounded-full bg-[#1d1d1f] px-4 py-3.5 text-center text-[15px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
                     >
                       Registrati

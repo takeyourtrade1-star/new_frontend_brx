@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import { AuthErrorAlert } from '@/components/ui/AuthErrorAlert';
 import { useLogin } from '@/lib/hooks/use-auth';
@@ -12,6 +12,7 @@ import { useAuthError } from '@/lib/errors/useAuthError';
 import { loginSchema, type LoginValues } from '@/lib/validations/auth';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
+import { safeInternalRedirectPath, withSafeRedirectParam } from '@/lib/auth/redirect';
 
 const appleInputClass =
   'h-[52px] w-full rounded-2xl border border-black/10 bg-black/5 px-4 text-[15px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/20 transition-all disabled:opacity-50';
@@ -19,9 +20,13 @@ const appleInputClass =
 export function LoginForm() {
   const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const loginMutation = useLogin();
   const authError = useAuthError();
   const [showPassword, setShowPassword] = useState(false);
+  const redirectPath = safeInternalRedirectPath(searchParams.get('redirect'));
+  const mfaHref = withSafeRedirectParam('/login/verify-mfa', redirectPath);
+  const loginCodeHref = withSafeRedirectParam('/login/code', redirectPath);
 
   const {
     register,
@@ -45,9 +50,9 @@ export function LoginForm() {
       const result = await loginMutation.mutateAsync(credentials);
 
       if (result.mfaRequired) {
-        router.replace('/login/verify-mfa');
+        router.replace(mfaHref);
       } else {
-        router.push('/');
+        router.push(redirectPath);
       }
     } catch (err: any) {
       authError.setError(err);
@@ -116,7 +121,7 @@ export function LoginForm() {
 
       <p className="pt-1 text-center text-[13px] text-[#515154]">
         <Link
-          href="/login/code"
+          href={loginCodeHref}
           className="font-medium text-[#0066cc] hover:underline"
         >
           Accedi con codice monouso

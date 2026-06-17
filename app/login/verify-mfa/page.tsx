@@ -14,6 +14,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { useVerifyMFA } from '@/lib/hooks/use-auth';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { readMfaPreAuthToken } from '@/lib/auth/mfa-session';
+import { safeInternalRedirectPath, withSafeRedirectParam } from '@/lib/auth/redirect';
 
 type MFAFormValues = { mfa_code: string };
 
@@ -41,6 +42,8 @@ export default function VerifyMFAPage() {
   const [clientReady, setClientReady] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [rememberDevice, setRememberDevice] = useState(false);
+  const [redirectPath, setRedirectPath] = useState('/');
+  const loginHref = withSafeRedirectParam('/login?accesso=1', redirectPath);
 
   const {
     register,
@@ -62,6 +65,8 @@ export default function VerifyMFAPage() {
     if (fromSession) {
       useAuthStore.setState({ preAuthToken: fromSession, mfaRequired: true });
     }
+    const params = new URLSearchParams(window.location.search);
+    setRedirectPath(safeInternalRedirectPath(params.get('redirect')));
     setClientReady(true);
   }, []);
 
@@ -98,7 +103,7 @@ export default function VerifyMFAPage() {
               <p className="text-[14px] text-[#86868b]">{t('mfa.sessionExpired')}</p>
             </div>
             <Link
-              href="/login?accesso=1"
+              href={loginHref}
               className="flex items-center gap-1.5 text-[14px] font-medium text-[#0066cc] hover:underline"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
@@ -123,7 +128,7 @@ export default function VerifyMFAPage() {
         mfa_code: data.mfa_code,
         remember_device: rememberDevice,
       });
-      router.push('/');
+      router.push(redirectPath);
     } catch (err: any) {
       setLocalError(storeError ?? t('mfa.verifyFailed'));
     }
@@ -137,7 +142,7 @@ export default function VerifyMFAPage() {
         <div className="p-8 sm:p-10 flex flex-col">
           {/* Indietro */}
           <Link
-            href="/login?accesso=1"
+            href={loginHref}
             className="self-start text-[#86868b] hover:text-[#1d1d1f] mb-6 flex items-center gap-1 text-[13px] font-medium transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Indietro
@@ -219,7 +224,7 @@ export default function VerifyMFAPage() {
               </button>
 
               <Link
-                href="/login?accesso=1"
+                href={loginHref}
                 className="flex items-center justify-center gap-1.5 text-[13px] font-medium text-[#86868b] hover:text-[#1d1d1f] transition-colors group"
               >
                 <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />

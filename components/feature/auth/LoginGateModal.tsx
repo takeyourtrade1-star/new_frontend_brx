@@ -24,6 +24,7 @@ import {
   useVerifyLoginCode,
 } from '@/lib/hooks/use-auth';
 import { parseAuthError } from '@/lib/api/auth-error';
+import { safeInternalRedirectPath, withSafeRedirectParam } from '@/lib/auth/redirect';
 
 type Step = 'email' | 'password' | 'code';
 
@@ -69,9 +70,9 @@ export function LoginGateModal({
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
   const resolveReturnTo = useCallback((): string => {
-    if (returnTo) return returnTo;
+    if (returnTo) return safeInternalRedirectPath(returnTo);
     if (typeof window === 'undefined') return '/';
-    return window.location.pathname + window.location.search;
+    return safeInternalRedirectPath(window.location.pathname + window.location.search);
   }, [returnTo]);
 
   const resetState = useCallback(() => {
@@ -171,7 +172,7 @@ export function LoginGateModal({
         const result = await loginMutation.mutateAsync(credentials);
         if (result.mfaRequired) {
           onClose();
-          router.push('/login/verify-mfa');
+          router.push(withSafeRedirectParam('/login/verify-mfa', resolveReturnTo()));
           return;
         }
         onSuccess?.();
@@ -180,7 +181,7 @@ export function LoginGateModal({
         setError(parseAuthError(err).message);
       }
     },
-    [password, isValidEmail, normalizedEmail, trimmedIdentifier, loginMutation, onClose, onSuccess, router]
+    [password, isValidEmail, normalizedEmail, trimmedIdentifier, loginMutation, onClose, onSuccess, router, resolveReturnTo]
   );
 
   const requestCode = useCallback(async () => {
@@ -209,7 +210,7 @@ export function LoginGateModal({
         });
         if (result.mfaRequired) {
           onClose();
-          router.push('/login/verify-mfa');
+          router.push(withSafeRedirectParam('/login/verify-mfa', resolveReturnTo()));
           return;
         }
         onSuccess?.();
@@ -218,7 +219,7 @@ export function LoginGateModal({
         setError(parseAuthError(err).message);
       }
     },
-    [normalizedEmail, verifyCodeMutation, onClose, onSuccess, router]
+    [normalizedEmail, verifyCodeMutation, onClose, onSuccess, router, resolveReturnTo]
   );
 
   const resendCode = useCallback(async () => {
