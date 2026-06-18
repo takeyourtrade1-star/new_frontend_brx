@@ -391,11 +391,11 @@ export function ProductCategoryView({
 
   const availableSets = useMemo(() => {
     const names = new Set<string>();
-    rawHits.forEach((hit) => {
+    ((data?.hits ?? []) as SinglesHit[]).forEach((hit) => {
       if (hit.set_name) names.add(hit.set_name);
     });
     return Array.from(names).sort((a, b) => a.localeCompare(b));
-  }, [rawHits]);
+  }, [data?.hits]);
 
   // Ordina hits: match esatti prima, poi parziali
   const { hits, exactMatchIds } = useMemo(() => {

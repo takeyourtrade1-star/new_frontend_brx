@@ -139,18 +139,10 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   }
 
   const isAttachListing = path === 'photos/attach-listing';
-  if (isAttachListing) {
-    // eslint-disable-next-line no-console
-    console.log('[auction proxy] attach-listing request', { targetUrl: url.toString(), body: body ? JSON.parse(body) : undefined });
-  }
 
   try {
     const res = await fetchWithTimeout(url.toString(), { method: request.method, headers, body }, PROXY_TIMEOUT_MS);
     const data = await res.json().catch(() => ({}));
-    if (isAttachListing) {
-      // eslint-disable-next-line no-console
-      console.log('[auction proxy] attach-listing response', { status: res.status, data });
-    }
     return NextResponse.json(data, { status: res.status, headers: noStoreHeaders() });
   } catch (err) {
     const isTimeout = err instanceof Error && err.name === 'AbortError';

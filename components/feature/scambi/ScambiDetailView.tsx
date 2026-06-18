@@ -332,8 +332,7 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
         onClose={() => setModalOpen(false)}
         scambio={scambio}
         mode="propose"
-        onSubmit={(payload) => {
-          console.log('Proposta inviata:', payload);
+        onSubmit={() => {
           alert('Proposta inviata!');
           setModalOpen(false);
         }}

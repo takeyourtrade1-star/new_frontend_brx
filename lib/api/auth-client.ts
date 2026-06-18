@@ -37,11 +37,6 @@ class AuthApiClient {
   constructor() {
     const baseURL = getAuthBaseURL();
 
-    // Log per debug (solo in sviluppo)
-    if (typeof window !== 'undefined' && config.debug.isDevelopment) {
-      console.log('[AuthApiClient] Base URL:', baseURL || '(same-origin /api/auth proxy)');
-    }
-
     this.instance = axios.create({
       baseURL,
       timeout: config.api.timeout,

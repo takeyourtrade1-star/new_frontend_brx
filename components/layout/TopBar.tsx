@@ -101,11 +101,7 @@ export function TopBar() {
         ? { email: input, password: data.password }
         : { username: input, password: data.password };
 
-      console.log('[TopBar] Sending login with', isEmail ? 'email' : 'username', ':', input);
-      
       const result = await loginMutation.mutateAsync(credentials);
-
-      console.log('[TopBar] Login result:', result);
 
       // Stesso flusso della pagina /login: vai al form codice Authenticator (non alla landing /login)
       if (result.mfaRequired) {

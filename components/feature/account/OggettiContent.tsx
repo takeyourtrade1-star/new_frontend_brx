@@ -1494,9 +1494,6 @@ export function OggettiContent() {
 
       await loadInventory();
 
-      if (platform === 'all') {
-        console.log('TODO: sync price updates to all platforms', ids);
-      }
       setToast({
         message: t('accountPage.bulkPriceSuccess', {
           count: ids.length,
@@ -1538,10 +1535,6 @@ export function OggettiContent() {
             failedIds.push(ids[i]);
           }
           setBulkDeleteProgress({ current: i + 1, total: ids.length });
-        }
-
-        if (deleteFromPlatforms) {
-          console.log('TODO: delete from external platforms', ids);
         }
 
         await loadInventory();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, useRef, useEffect, useCallback } from 'react';
+import { useId, useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { Check, ChevronDown, Minus, Plus, Search } from 'lucide-react';
@@ -48,9 +48,9 @@ export function formatTradeEuro(n: number): string {
   return formatEuroNoSpace(n, 'it-IT');
 }
 
-const BALANCE_MAX_TILT_DEG = 24;
+const BALANCE_MAX_TILT_DEG = 22;
 const BALANCE_MOTION =
-  'transform 0.65s cubic-bezier(0.34, 1.25, 0.64, 1), opacity 0.65s ease';
+  'transform 0.8s cubic-bezier(0.34, 1.45, 0.5, 1)';
 
 /** Angolo di inclinazione: positivo = più valore richiesto (destra), negativo = più offerto (sinistra). */
 export function tradeBalanceTiltDeg(offeredValue: number, requestedValue: number): number {
@@ -60,41 +60,100 @@ export function tradeBalanceTiltDeg(offeredValue: number, requestedValue: number
   return Math.max(-1, Math.min(1, imbalance)) * BALANCE_MAX_TILT_DEG;
 }
 
-function ScalePan({
-  weight,
-  panGradientId,
-  chainGradientId,
-}: {
-  weight: number;
-  panGradientId: string;
-  chainGradientId: string;
-}) {
-  const bowlOpacity = 0.55 + weight * 0.45;
+/** Numero di monetine impilate su un piatto in base al valore di quel lato. */
+function coinsForValue(value: number): number {
+  if (value <= 0) return 0;
+  if (value < 8) return 1;
+  if (value < 25) return 2;
+  if (value < 55) return 3;
+  return 4;
+}
 
+/** Scintilla a quattro punte che brilla in loop (twinkle). */
+function Sparkle({ cx, cy, r, begin }: { cx: number; cy: number; r: number; begin: string }) {
+  const t = r * 0.3;
   return (
-    <g transform="translate(0, 9)">
-      <line x1="-2.2" y1="-9" x2="-6.2" y2="0" stroke={`url(#${chainGradientId})`} strokeWidth="0.9" strokeLinecap="round" />
-      <line x1="0" y1="-9" x2="0" y2="0" stroke={`url(#${chainGradientId})`} strokeWidth="0.9" strokeLinecap="round" />
-      <line x1="2.2" y1="-9" x2="6.2" y2="0" stroke={`url(#${chainGradientId})`} strokeWidth="0.9" strokeLinecap="round" />
-      <ellipse cx="0" cy="0.8" rx="7.8" ry="1.35" fill="#1D3160" opacity="0.18" />
-      <path
-        d="M-7.4 0.5 C-7.4 0.5 -7.6 5.8 0 7.2 C7.6 5.8 7.4 0.5 7.4 0.5 C7.4 0.5 4.2 -0.8 0 -0.8 C-4.2 -0.8 -7.4 0.5 -7.4 0.5 Z"
-        fill={`url(#${panGradientId})`}
-        opacity={bowlOpacity}
+    <path
+      d={`M${cx} ${cy - r} L${cx + t} ${cy - t} L${cx + r} ${cy} L${cx + t} ${cy + t} L${cx} ${cy + r} L${cx - t} ${cy + t} L${cx - r} ${cy} L${cx - t} ${cy - t} Z`}
+      fill="#FFFDF5"
+      opacity={0}
+    >
+      <animate
+        attributeName="opacity"
+        values="0;0.95;0"
+        dur="2.6s"
+        begin={begin}
+        repeatCount="indefinite"
+        calcMode="spline"
+        keyTimes="0;0.5;1"
+        keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
       />
-      <path
-        d="M-7.2 0.6 C-4.2 -0.4 4.2 -0.4 7.2 0.6"
-        stroke="#FFF4EC"
-        strokeWidth="0.75"
-        strokeLinecap="round"
-        opacity={0.55 + weight * 0.25}
-      />
-      <ellipse cx="0" cy="6.8" rx="4.8" ry="1.1" fill="#1D3160" opacity={0.08 + weight * 0.1} />
+    </path>
+  );
+}
+
+/** Pila di monetine dorate dentro al piatto (origine: centro piatto). */
+function CoinStack({ count, goldId, sparkleBegin }: { count: number; goldId: string; sparkleBegin: string }) {
+  if (count <= 0) return null;
+  const coins = [];
+  for (let i = 0; i < count; i += 1) {
+    const cy = 9 - i * 1.85;
+    coins.push(
+      <g key={i}>
+        <ellipse cx={0} cy={cy + 0.5} rx={3.6} ry={1.5} fill="#7A4600" opacity={0.4} />
+        <ellipse cx={0} cy={cy} rx={3.6} ry={1.55} fill={`url(#${goldId})`} stroke="#B26A00" strokeWidth={0.3} />
+        <ellipse cx={-0.5} cy={cy - 0.4} rx={2.1} ry={0.65} fill="#FFF6D0" opacity={0.85} />
+      </g>,
+    );
+  }
+  const topCy = 9 - (count - 1) * 1.85;
+  return (
+    <g>
+      {coins}
+      <Sparkle cx={1.7} cy={topCy - 0.7} r={1.5} begin={sparkleBegin} />
     </g>
   );
 }
 
-/** Bilancia animata: asta inclinata e piatti sempre orizzontali, come una bilancia reale. */
+/** Piatto appeso: catene + scodella + monetine. Origine (0,0) = punto di aggancio (cima). */
+function ScalePan({
+  coins,
+  panId,
+  chainId,
+  goldId,
+  sparkleBegin,
+}: {
+  coins: number;
+  panId: string;
+  chainId: string;
+  goldId: string;
+  sparkleBegin: string;
+}) {
+  return (
+    <g>
+      {/* anello di aggancio */}
+      <circle cx={0} cy={0} r={1.1} fill={`url(#${chainId})`} />
+      {/* catene */}
+      <line x1={0} y1={0} x2={-6.2} y2={8} stroke={`url(#${chainId})`} strokeWidth={0.7} strokeLinecap="round" />
+      <line x1={0} y1={0} x2={0} y2={8} stroke={`url(#${chainId})`} strokeWidth={0.7} strokeLinecap="round" />
+      <line x1={0} y1={0} x2={6.2} y2={8} stroke={`url(#${chainId})`} strokeWidth={0.7} strokeLinecap="round" />
+      {/* scodella metallica con profondità */}
+      <ellipse cx={0} cy={14.6} rx={6.2} ry={1.2} fill="#1D3160" opacity={0.14} />
+      <path d="M-7 8 C -6.6 13 -4 13.8 0 13.8 C 4 13.8 6.6 13 7 8 Z" fill={`url(#${panId})`} />
+      <path d="M-5.6 9.6 C -3 12 3 12 5.6 9.6" stroke="#7A2E00" strokeWidth={0.6} strokeLinecap="round" opacity={0.25} fill="none" />
+      <path d="M-7 8 C -3 6.7 3 6.7 7 8" stroke="#FFF4EC" strokeWidth={0.75} strokeLinecap="round" opacity={0.7} />
+      {/* monetine (sopra le catene, dentro la scodella) */}
+      <CoinStack count={coins} goldId={goldId} sparkleBegin={sparkleBegin} />
+    </g>
+  );
+}
+
+/**
+ * Bilancia animata super-figa: fulcro centrale, asta inclinata in base
+ * all'equilibrio della proposta, piatti orizzontali con monetine metalliche
+ * che brillano, gemma centrale pulsante, ago con finiale a diamante e leggera
+ * oscillazione di riposo.
+ */
 export function AnimatedBalanceScale({
   offeredValue,
   requestedValue,
@@ -108,104 +167,117 @@ export function AnimatedBalanceScale({
   const beamGradientId = `trade-balance-beam-${uid}`;
   const panGradientId = `trade-balance-pan-${uid}`;
   const chainGradientId = `trade-balance-chain-${uid}`;
+  const goldGradientId = `trade-balance-gold-${uid}`;
+  const glowGradientId = `trade-balance-glow-${uid}`;
   const shadowFilterId = `trade-balance-shadow-${uid}`;
 
   const tilt = tradeBalanceTiltDeg(offeredValue, requestedValue);
-  const total = Math.max(offeredValue + requestedValue, 1);
-  const leftWeight = offeredValue / total;
-  const rightWeight = requestedValue / total;
+  const leftCoins = coinsForValue(offeredValue);
+  const rightCoins = coinsForValue(requestedValue);
 
-  const pivotX = 32;
-  const pivotY = 27.5;
-  const beamHalf = 22;
+  const pivotX = 40;
+  const pivotY = 24;
+  const beamHalf = 24;
+
+  const beamTransition = { transform: `rotate(${tilt}deg)`, transformOrigin: `${pivotX}px ${pivotY}px`, transformBox: 'view-box', transition: BALANCE_MOTION } as const;
+  const panTransition = { transform: `rotate(${-tilt}deg)`, transformOrigin: '50% 0', transformBox: 'fill-box', transition: BALANCE_MOTION } as const;
 
   return (
-    <span
-      className={`inline-flex shrink-0 items-center justify-center ${className}`}
-      aria-hidden
-    >
-      <svg
-        viewBox="0 0 64 56"
-        className="h-9 w-9 overflow-visible"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
+    <span className={`inline-flex shrink-0 items-center justify-center ${className}`} aria-hidden>
+      <svg viewBox="0 0 80 78" className="h-12 w-12 overflow-visible" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id={beamGradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#3A5088" />
             <stop offset="100%" stopColor="#1D3160" />
           </linearGradient>
-          <linearGradient id={panGradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#FF9A4D" />
+          <radialGradient id={panGradientId} cx="50%" cy="18%" r="92%">
+            <stop offset="0%" stopColor="#FFB066" />
             <stop offset="55%" stopColor="#FF7300" />
-            <stop offset="100%" stopColor="#D95F00" />
-          </linearGradient>
+            <stop offset="100%" stopColor="#C95400" />
+          </radialGradient>
           <linearGradient id={chainGradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#64748B" />
-            <stop offset="100%" stopColor="#334155" />
+            <stop offset="0%" stopColor="#A9B6C8" />
+            <stop offset="100%" stopColor="#475569" />
           </linearGradient>
-          <filter id={shadowFilterId} x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="1.2" stdDeviation="0.9" floodColor="#1D3160" floodOpacity="0.18" />
+          <radialGradient id={goldGradientId} cx="36%" cy="28%" r="78%">
+            <stop offset="0%" stopColor="#FFF6D0" />
+            <stop offset="45%" stopColor="#F7C24B" />
+            <stop offset="100%" stopColor="#C9821A" />
+          </radialGradient>
+          <radialGradient id={glowGradientId} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FF7300" stopOpacity={0.55} />
+            <stop offset="100%" stopColor="#FF7300" stopOpacity={0} />
+          </radialGradient>
+          <filter id={shadowFilterId} x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="1.4" stdDeviation="1" floodColor="#1D3160" floodOpacity="0.2" />
           </filter>
         </defs>
 
-        <ellipse cx={pivotX} cy={pivotY + 1.2} rx="18" ry="2.2" fill="#1D3160" opacity="0.06" />
+        {/* ombra a terra */}
+        <ellipse cx={pivotX} cy={70} rx={20} ry={2.6} fill="#1D3160" opacity={0.08} />
 
-        <rect x="27.5" y="44" width="9" height="2.6" rx="1.3" fill="#1D3160" opacity="0.92" />
-        <rect x="29.8" y="31.5" width="4.4" height="13" rx="1.2" fill={`url(#${beamGradientId})`} />
-        <path d={`M${pivotX} ${pivotY + 2.2} L${pivotX - 5.2} ${pivotY + 8.4} H${pivotX + 5.2} Z`} fill="#1D3160" />
-        <path
-          d={`M${pivotX} ${pivotY + 1.8} L${pivotX - 3.6} ${pivotY + 6.2} H${pivotX + 3.6} Z`}
-          fill="#2A4480"
-          opacity="0.55"
-        />
+        {/* base + colonna */}
+        <path d="M28 67 L52 67 L47.5 61 L32.5 61 Z" fill={`url(#${beamGradientId})`} />
+        <rect x={pivotX - 2.4} y={26} width={4.8} height={36} rx={1.8} fill={`url(#${beamGradientId})`} />
+        <rect x={pivotX - 1} y={28} width={1.4} height={32} rx={0.7} fill="#FFF4EC" opacity={0.18} />
+        {/* fulcro */}
+        <path d={`M${pivotX} ${pivotY + 1} L${pivotX - 4.5} ${pivotY + 7} H${pivotX + 4.5} Z`} fill="#16264D" />
 
-        <g transform={`translate(${pivotX} ${pivotY})`} filter={`url(#${shadowFilterId})`}>
-          <g
-            style={{
-              transform: `rotate(${tilt}deg)`,
-              transformOrigin: '0px 0px',
-              transformBox: 'fill-box',
-              transition: BALANCE_MOTION,
-            }}
-          >
-            <rect
-              x={-beamHalf}
-              y={-1.35}
-              width={beamHalf * 2}
-              height={2.7}
-              rx={1.35}
-              fill={`url(#${beamGradientId})`}
+        {/* gruppo oscillante (riposo) attorno al fulcro */}
+        <g filter={`url(#${shadowFilterId})`}>
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            values={`-1.1 ${pivotX} ${pivotY}; 1.1 ${pivotX} ${pivotY}; -1.1 ${pivotX} ${pivotY}`}
+            dur="5s"
+            repeatCount="indefinite"
+            calcMode="spline"
+            keyTimes="0;0.5;1"
+            keySplines="0.45 0 0.55 1; 0.45 0 0.55 1"
+          />
+
+          {/* asta che si inclina in base all'equilibrio */}
+          <g style={beamTransition}>
+            {/* ago indicatore + finiale a diamante */}
+            <line x1={pivotX} y1={pivotY} x2={pivotX} y2={pivotY - 9} stroke={`url(#${beamGradientId})`} strokeWidth={1.1} strokeLinecap="round" />
+            <path
+              d={`M${pivotX} ${pivotY - 12} L${pivotX + 1.5} ${pivotY - 10} L${pivotX} ${pivotY - 8} L${pivotX - 1.5} ${pivotY - 10} Z`}
+              fill="#FF7300"
             />
-            <rect x={-beamHalf + 4} y={-0.55} width={beamHalf * 2 - 8} height={0.9} rx={0.45} fill="#FFF4EC" opacity="0.22" />
-            <circle cx={-beamHalf} cy={0} r={1.65} fill="#1D3160" />
-            <circle cx={beamHalf} cy={0} r={1.65} fill="#1D3160" />
-            <circle cx={0} cy={0} r={2.45} fill="#F5F4F0" stroke="#1D3160" strokeWidth="1.1" />
-            <circle cx={0} cy={0} r={0.95} fill="#FF7300" opacity="0.85" />
+            <path d={`M${pivotX} ${pivotY - 11.4} L${pivotX + 0.7} ${pivotY - 10} L${pivotX} ${pivotY - 8.6} Z`} fill="#FFC58A" opacity={0.85} />
 
-            <g transform={`translate(${-beamHalf} 0)`}>
-              <g
-                style={{
-                  transform: `rotate(${-tilt}deg)`,
-                  transformOrigin: '0px 0px',
-                  transformBox: 'fill-box',
-                  transition: BALANCE_MOTION,
-                }}
-              >
-                <ScalePan weight={leftWeight} panGradientId={panGradientId} chainGradientId={chainGradientId} />
+            {/* barra */}
+            <rect x={pivotX - beamHalf} y={pivotY - 1.5} width={beamHalf * 2} height={3} rx={1.5} fill={`url(#${beamGradientId})`} />
+            <rect x={pivotX - beamHalf + 4} y={pivotY - 0.6} width={beamHalf * 2 - 8} height={1} rx={0.5} fill="#FFF4EC" opacity={0.22} />
+            <circle cx={pivotX - beamHalf} cy={pivotY} r={1.8} fill="#16264D" />
+            <circle cx={pivotX + beamHalf} cy={pivotY} r={1.8} fill="#16264D" />
+
+            {/* gemma centrale con bagliore pulsante */}
+            <circle cx={pivotX} cy={pivotY} r={7} fill={`url(#${glowGradientId})`}>
+              <animate
+                attributeName="opacity"
+                values="0.7;0.2;0.7"
+                dur="3.2s"
+                repeatCount="indefinite"
+                calcMode="spline"
+                keyTimes="0;0.5;1"
+                keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+              />
+            </circle>
+            <circle cx={pivotX} cy={pivotY} r={2.8} fill="#F5F4F0" stroke="#1D3160" strokeWidth={1.2} />
+            <circle cx={pivotX} cy={pivotY} r={1} fill="#FF7300" />
+
+            {/* piatto sinistro (offerto) */}
+            <g transform={`translate(${pivotX - beamHalf} ${pivotY})`}>
+              <g style={panTransition}>
+                <ScalePan coins={leftCoins} panId={panGradientId} chainId={chainGradientId} goldId={goldGradientId} sparkleBegin="0s" />
               </g>
             </g>
 
-            <g transform={`translate(${beamHalf} 0)`}>
-              <g
-                style={{
-                  transform: `rotate(${-tilt}deg)`,
-                  transformOrigin: '0px 0px',
-                  transformBox: 'fill-box',
-                  transition: BALANCE_MOTION,
-                }}
-              >
-                <ScalePan weight={rightWeight} panGradientId={panGradientId} chainGradientId={chainGradientId} />
+            {/* piatto destro (richiesto) */}
+            <g transform={`translate(${pivotX + beamHalf} ${pivotY})`}>
+              <g style={panTransition}>
+                <ScalePan coins={rightCoins} panId={panGradientId} chainId={chainGradientId} goldId={goldGradientId} sparkleBegin="1.3s" />
               </g>
             </g>
           </g>
@@ -251,37 +323,69 @@ export function idsEqual(a: string[], b: string[]): boolean {
   return sortedA.every((id, i) => id === sortedB[i]);
 }
 
-/** Carta sul tavolo (compatta), con eventuale pulsante di rimozione. */
-export function TableCard({ card, onRemove }: { card: TradeCard; onRemove?: () => void }) {
+/** Carta appoggiata sul tavolo: ombra, leggera inclinazione, prezzo overlay e
+ * "sollevamento" all'hover come se la prendessi in mano. */
+export function TableCard({ card, onRemove, tiltDeg = 0 }: { card: TradeCard; onRemove?: () => void; tiltDeg?: number }) {
   return (
-    <div className="group relative w-16 shrink-0 sm:w-[4.5rem]">
-      <div className="relative aspect-[200/280] w-full overflow-hidden rounded-lg bg-gray-200 ring-1 ring-black/10">
+    <div
+      className="group relative w-[3.25rem] shrink-0 transition-transform duration-200 ease-out [transform:rotate(var(--tilt))] hover:z-10 hover:[transform:translateY(-5px)_rotate(0deg)_scale(1.07)] sm:w-[3.6rem]"
+      style={{ '--tilt': `${tiltDeg}deg` } as CSSProperties}
+      title={card.name}
+    >
+      {/* ombra di contatto: la carta sembra appoggiata sul feltro */}
+      <span
+        className="pointer-events-none absolute inset-x-1 bottom-0 h-2.5 rounded-[50%] bg-black/50 blur-[4px] transition-all duration-200 group-hover:-bottom-1.5 group-hover:opacity-55"
+        aria-hidden
+      />
+      <div className="relative aspect-[200/280] w-full overflow-hidden rounded-[5px] bg-gray-300 shadow-[0_6px_12px_-5px_rgba(0,0,0,0.7)] ring-1 ring-black/30 transition-shadow duration-200 group-hover:shadow-[0_16px_24px_-8px_rgba(0,0,0,0.75)]">
         <Image src={card.image} alt={card.name} fill unoptimized className="object-cover" sizes="72px" />
+        {/* riflesso/lucentezza diagonale */}
+        <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/25 via-transparent to-black/15" />
+        {/* filo di luce sul bordo superiore */}
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/40" />
+        {/* prezzo overlay */}
+        <span className="absolute inset-x-0 bottom-0.5 flex justify-center">
+          <span className="rounded-full bg-black/70 px-1.5 py-[1px] text-[8px] font-bold tabular-nums text-white ring-1 ring-white/10">
+            {formatTradeEuro(card.value)}
+          </span>
+        </span>
         {onRemove && (
           <button
             type="button"
             onClick={onRemove}
-            className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-red-500"
+            className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/65 text-white shadow-sm ring-1 ring-white/15 transition hover:bg-red-500"
             aria-label={`Rimuovi ${card.name}`}
           >
             <Minus className="h-3 w-3" strokeWidth={3} />
           </button>
         )}
       </div>
-      <p className="mt-0.5 truncate text-[9px] font-semibold leading-tight text-gray-700" title={card.name}>
-        {card.name}
-      </p>
-      <p className="text-[10px] font-bold tabular-nums text-[#1D3160]">{formatTradeEuro(card.value)}</p>
     </div>
   );
 }
 
-/** Chip "differenza in crediti" sul tavolo. */
-export function MoneyChip({ amount }: { amount: number }) {
+/** Gettone "differenza in crediti" appoggiato sul tavolo. */
+export function MoneyChip({ amount, tiltDeg = 0 }: { amount: number; tiltDeg?: number }) {
   return (
-    <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-lg border border-dashed border-[#FF7300]/50 bg-orange-50/60 py-2 sm:w-[4.5rem]">
-      <span className="text-sm font-bold tabular-nums text-[#1D3160]">+{formatTradeEuro(amount)}</span>
-      <span className="text-[8px] font-semibold uppercase text-gray-500">crediti</span>
+    <div className="group relative w-[3.25rem] shrink-0 sm:w-[3.6rem]" style={{ transform: `rotate(${tiltDeg}deg)` }}>
+      {/* ombra di contatto sul feltro */}
+      <span className="pointer-events-none absolute inset-x-1 bottom-0 h-2.5 rounded-[50%] bg-black/50 blur-[4px]" aria-hidden />
+      <div
+        className="relative flex aspect-[200/280] w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-[5px] bg-gradient-to-b from-[#FF9A40] to-[#FF6A00] shadow-[0_6px_12px_-5px_rgba(0,0,0,0.7)] ring-1 ring-black/20"
+        title={`+${formatTradeEuro(amount)} in crediti`}
+      >
+        {/* lucentezza + filo di luce */}
+        <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-black/15" aria-hidden />
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/45" aria-hidden />
+        {/* moneta dorata in rilievo */}
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-b from-[#FFE7B0] to-[#F4B53C] text-[10px] font-black text-[#7A4600] shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_1px_2px_rgba(0,0,0,0.25)] ring-1 ring-[#C9821A]">
+          €
+        </span>
+        <span className="relative text-[11px] font-black leading-none tabular-nums text-white [text-shadow:0_1px_1px_rgba(0,0,0,0.3)]">
+          +{formatTradeEuro(amount)}
+        </span>
+        <span className="relative text-[7px] font-bold uppercase tracking-wide text-white/85">crediti</span>
+      </div>
     </div>
   );
 }
@@ -556,10 +660,12 @@ export function InventoryRow({
       onClick={onToggle}
       className={`group flex w-full items-center gap-2.5 rounded-lg border p-1.5 text-left transition ${
         selected
-          ? 'border-[#FF7300] bg-orange-50/70'
+          ? isOther
+            ? 'border-[#1D3160] bg-[#EEF1F8]'
+            : 'border-[#FF7300] bg-[#FFF4EC]'
           : isOther
-            ? 'border-[#C9D3E3] bg-white/85 hover:border-orange-200'
-            : 'border-gray-200 bg-white hover:border-orange-200'
+            ? 'border-[#C9D3E3] bg-white/85 hover:border-[#1D3160]/35'
+            : 'border-gray-200 bg-white hover:border-[#FF7300]/45'
       }`}
     >
       <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded bg-gray-200">
@@ -578,10 +684,12 @@ export function InventoryRow({
       <span
         className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition ${
           selected
-            ? 'bg-[#FF7300] text-white'
+            ? isOther
+              ? 'bg-[#1D3160] text-white'
+              : 'bg-[#FF7300] text-white'
             : isOther
-              ? 'bg-[#E8ECF3] text-gray-500 group-hover:bg-orange-100 group-hover:text-[#FF7300]'
-              : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#FF7300]'
+              ? 'bg-[#E8ECF3] text-gray-500 group-hover:bg-[#1D3160]/10 group-hover:text-[#1D3160]'
+              : 'bg-gray-100 text-gray-400 group-hover:bg-[#FF7300]/15 group-hover:text-[#FF7300]'
         }`}
       >
         {selected ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />}
@@ -601,6 +709,8 @@ export function InventoryPanel({
   filteredCards,
   selectedIds,
   onToggle,
+  embedded = false,
+  ownerBadge,
 }: {
   variant: InventoryPanelVariant;
   title: string;
@@ -611,27 +721,45 @@ export function InventoryPanel({
   filteredCards: TradeCard[];
   selectedIds: string[];
   onToggle: (id: string) => void;
+  /** Incassato dentro al blocco scambio: niente bordo/ombra propri. */
+  embedded?: boolean;
+  /** Etichetta proprietario (es. "Tu" o nome utente) per distinguere le due liste. */
+  ownerBadge?: string;
 }) {
   const isOther = variant === 'other';
 
+  // Identità coi colori del sito: arancione = TU, navy = altro utente.
+  const accent = isOther
+    ? { dot: 'bg-[#1D3160]', text: 'text-[#1D3160]', chip: 'bg-white text-[#1D3160] ring-[#C9D3E3]', border: 'border-[#C9D3E3]/80' }
+    : { dot: 'bg-[#FF7300]', text: 'text-[#C2410C]', chip: 'bg-white text-[#C2410C] ring-[#FFD7B5]', border: 'border-[#FFD7B5]/80' };
+
+  const sectionClass = embedded
+    ? cn('p-2.5', isOther ? 'bg-[#F4F6FB]' : 'bg-[#FFF9F3]')
+    : isOther
+      ? 'rounded-xl border border-[#C9D3E3] bg-[#E8ECF3] p-2.5 shadow-sm'
+      : 'rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm';
+
   return (
-    <section
-      className={
-        isOther
-          ? 'rounded-xl border border-[#C9D3E3] bg-[#E8ECF3] p-2.5 shadow-sm'
-          : 'rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm'
-      }
-    >
-      <div
-        className={`mb-1.5 flex items-center justify-between border-b pb-1.5 ${
-          isOther ? 'border-[#C9D3E3]/80' : 'border-gray-100'
-        }`}
-      >
-        <h2 className="truncate text-[13px] font-bold uppercase tracking-tight text-[#1D3160]">{title}</h2>
+    <section className={sectionClass}>
+      <div className={cn('mb-1.5 flex items-center justify-between gap-2 border-b pb-1.5', accent.border)}>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className={cn('h-2 w-2 shrink-0 rounded-full', accent.dot)} aria-hidden />
+          <h2 className={cn('truncate text-[12px] font-bold uppercase tracking-tight', accent.text)}>{title}</h2>
+          {ownerBadge && (
+            <span
+              className={cn(
+                'inline-flex max-w-[7rem] shrink items-center truncate rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ring-1',
+                accent.chip,
+              )}
+            >
+              {ownerBadge}
+            </span>
+          )}
+        </span>
         <span className="shrink-0 text-[10px] font-medium text-gray-500">{hint}</span>
       </div>
       <InventoryToolbar filters={filters} onChange={onFiltersChange} cards={cards} variant={variant} />
-      <div className="flex max-h-[380px] flex-col gap-1.5 overflow-y-auto pr-1">
+      <div className="flex max-h-[260px] flex-col gap-1.5 overflow-y-auto pr-1">
         {filteredCards.length === 0 ? (
           <p className="py-4 text-center text-[11px] text-gray-500">Nessuna carta trovata</p>
         ) : (

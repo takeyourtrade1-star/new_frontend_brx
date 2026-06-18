@@ -129,12 +129,6 @@ export function getCdnVideoUrl(path: string): string {
 export const SEARCH_ADMIN_API_URL =
   process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL || '';
 
-// Log per debug (solo in sviluppo)
-if (isDevelopment && typeof window !== 'undefined') {
-  console.log('[Config] Auth API URL:', authApiURL);
-  console.log('[Config] Meilisearch Host:', MEILISEARCH.host);
-}
-
 export const config = {
   api: {
     baseURL: authApiURL,

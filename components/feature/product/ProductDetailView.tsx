@@ -839,8 +839,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       const marketplaceIds = marketplaceListings
         .map((l) => l.marketplace_listing_id)
         .filter((id): id is string => Boolean(id));
-      // eslint-disable-next-line no-console
-      console.log('[ProductDetailView] marketplaceIds for prefetch', marketplaceIds);
       if (marketplaceIds.length > 0) {
         void prefetchListingCoverPhotos(marketplaceIds);
       }

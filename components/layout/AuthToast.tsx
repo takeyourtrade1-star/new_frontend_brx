@@ -100,50 +100,77 @@ export function AuthToast({ headerHeight }: { headerHeight: number }) {
       `}</style>
 
       {showFlash && (
-        <div
-          className={cn(
-            'fixed left-1/2 w-[min(88vw,500px)]',
-            flashExiting ? 'auth-toast-exit' : 'auth-toast-enter'
-          )}
-          style={{ top: topOffset, zIndex: AUTH_TOAST_Z }}
-          role="status"
-          aria-live="polite"
-        >
-          <div className="flex items-center gap-3 rounded-full border border-emerald-200/80 bg-white/80 px-5 py-2.5 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_8px_32px_-4px_rgba(16,185,129,0.14),0_2px_10px_rgba(0,0,0,0.06)]">
-            <Check
-              className="h-3.5 w-3.5 shrink-0 text-emerald-500"
-              strokeWidth={2.5}
-              aria-hidden
-            />
-            <span className="text-[13.5px] font-semibold tracking-[0.01em] text-emerald-700 truncate">
-              {flashMessage ?? lastFlashRef.current}
-            </span>
-          </div>
-        </div>
+        <ToastPill
+          variant="success"
+          message={flashMessage ?? lastFlashRef.current ?? ''}
+          exiting={flashExiting}
+          topOffset={topOffset}
+        />
       )}
 
       {showError && (
-        <div
-          className={cn(
-            'fixed left-1/2 w-[min(88vw,500px)]',
-            errorExiting ? 'auth-toast-exit' : 'auth-toast-enter'
-          )}
-          style={{ top: topOffset, zIndex: AUTH_TOAST_Z }}
-          role="alert"
-          aria-live="assertive"
-        >
-          <div className="flex items-center gap-3 rounded-full border border-red-200/80 bg-white/80 px-5 py-2.5 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_8px_32px_-4px_rgba(239,68,68,0.14),0_2px_10px_rgba(0,0,0,0.06)]">
-            <AlertCircle
-              className="h-3.5 w-3.5 shrink-0 text-red-500"
-              strokeWidth={2.5}
-              aria-hidden
-            />
-            <span className="text-[13.5px] font-semibold tracking-[0.01em] text-red-600 truncate">
-              {authError ?? lastErrorRef.current}
-            </span>
-          </div>
-        </div>
+        <ToastPill
+          variant="error"
+          message={authError ?? lastErrorRef.current ?? ''}
+          exiting={errorExiting}
+          topOffset={topOffset}
+        />
       )}
     </>
+  );
+}
+
+function ToastPill({
+  variant,
+  message,
+  exiting,
+  topOffset,
+}: {
+  variant: 'success' | 'error';
+  message: string;
+  exiting: boolean;
+  topOffset: number;
+}) {
+  const isError = variant === 'error';
+  const Icon = isError ? AlertCircle : Check;
+
+  return (
+    // Outer wrapper is shrink-to-fit (no fixed width) so the pill hugs its
+    // content and stays horizontally centered via the -50% transform.
+    <div
+      className={cn(
+        'fixed left-1/2 w-auto max-w-[min(92vw,440px)]',
+        exiting ? 'auth-toast-exit' : 'auth-toast-enter'
+      )}
+      style={{ top: topOffset, zIndex: AUTH_TOAST_Z }}
+      role={isError ? 'alert' : 'status'}
+      aria-live={isError ? 'assertive' : 'polite'}
+    >
+      <div
+        className={cn(
+          'inline-flex max-w-full items-center justify-center gap-2 rounded-full border bg-white/80 px-4 py-2 backdrop-blur-2xl backdrop-saturate-150',
+          isError
+            ? 'border-red-200/80 shadow-[0_8px_32px_-4px_rgba(239,68,68,0.14),0_2px_10px_rgba(0,0,0,0.06)]'
+            : 'border-emerald-200/80 shadow-[0_8px_32px_-4px_rgba(16,185,129,0.14),0_2px_10px_rgba(0,0,0,0.06)]'
+        )}
+      >
+        <Icon
+          className={cn(
+            'h-3.5 w-3.5 shrink-0',
+            isError ? 'text-red-500' : 'text-emerald-500'
+          )}
+          strokeWidth={2.5}
+          aria-hidden
+        />
+        <span
+          className={cn(
+            'min-w-0 truncate text-[13.5px] font-semibold tracking-[0.01em]',
+            isError ? 'text-red-600' : 'text-emerald-700'
+          )}
+        >
+          {message}
+        </span>
+      </div>
+    </div>
   );
 }

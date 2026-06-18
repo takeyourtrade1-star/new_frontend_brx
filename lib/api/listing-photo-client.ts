@@ -63,8 +63,6 @@ async function fetchListingPhotosFromApi(listingId: string): Promise<ListingPhot
     headers: { Accept: 'application/json', ...authHeaders() },
   });
   const data = await res.json().catch(() => ({}));
-  // eslint-disable-next-line no-console
-  console.log('[ListingPhotos] by-listing response', { listingId, status: res.status, ok: res.ok, data });
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined') {
       const newToken = await tokenManager.ensureFreshToken();
@@ -102,13 +100,9 @@ export async function prefetchListingCoverPhotos(listingIds: string[]): Promise<
     headers: { Accept: 'application/json', ...authHeaders() },
   });
   const data = await res.json().catch(() => ({}));
-  // eslint-disable-next-line no-console
-  console.log('[ListingPhotos] by-listings prefetch', { status: res.status, ok: res.ok, data });
   if (!res.ok) return;
 
   const covers = (data as { data?: { covers?: Record<string, ListingPhotoSummary> } })?.data?.covers ?? {};
-  // eslint-disable-next-line no-console
-  console.log('[ListingPhotos] prefetched covers', Object.keys(covers));
   for (const [listingId, photo] of Object.entries(covers)) {
     seedListingPhotosCache(listingId, [photo]);
   }
@@ -119,8 +113,6 @@ export async function getListingPhotos(listingId: string): Promise<ListingPhotoS
   const key = String(listingId);
   const cached = listingPhotosCache.get(key);
   if (cached && Date.now() - cached.at < LISTING_PHOTOS_CACHE_MS) {
-    // eslint-disable-next-line no-console
-    console.log('[ListingPhotos] getListingPhotos cache hit', { key, photos: cached.photos });
     return cached.photos;
   }
 
@@ -129,8 +121,6 @@ export async function getListingPhotos(listingId: string): Promise<ListingPhotoS
 
   const promise = fetchListingPhotosFromApi(key)
     .then((photos) => {
-      // eslint-disable-next-line no-console
-      console.log('[ListingPhotos] getListingPhotos fetched', { key, photos });
       listingPhotosCache.set(key, { at: Date.now(), photos });
       return photos;
     })

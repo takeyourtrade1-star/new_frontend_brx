@@ -154,8 +154,6 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    console.log('[auth proxy] Forwarding', request.method, '→', url.toString());
-
     const res = await fetch(url.toString(), {
       method: request.method,
       headers,
@@ -167,8 +165,6 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     
     const data = await res.json().catch(() => ({}));
 
-    console.log('[auth proxy] Response from backend:', res.status, typeof data === 'object' ? Object.keys(data) : typeof data);
-    
     // 1. Creiamo gli header di risposta
     const responseHeaders = new Headers();
     responseHeaders.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');

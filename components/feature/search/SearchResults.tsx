@@ -36,6 +36,7 @@ import { getMessage } from '@/lib/i18n/getMessage';
 import { DEFAULT_LOCALE } from '@/lib/i18n/locales';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { SearchHit } from '@/app/api/search/route';
+import { useSearchCards, type SearchApiResponse } from '@/lib/hooks/use-search';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
 import { SearchResultsTable } from '@/components/feature/search/SearchResultsTable';
@@ -96,13 +97,6 @@ const GAME_TO_HEADER_KEY: Record<string, MessageKey> = {
   'one-piece': 'games.header.op',
 };
 
-interface SearchApiResponse {
-  hits: SearchHit[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
 
 const SORT_DEFS: { value: string; labelKey: MessageKey }[] = [
   { value: 'name_asc', labelKey: 'search.sort.nameAsc' },
@@ -327,11 +321,24 @@ export function SearchResults({
   const [edizioneInput, setEdizioneInput] = useState(setFilter);
   const [advancedNameMode, setAdvancedNameMode] = useState<'exact' | 'available'>('exact');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [data, setData] = useState<SearchApiResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const [imagePreviewModalOpen, setImagePreviewModalOpen] = useState(false);
+
+  const apiGame = game ? (FRONTEND_TO_GAME_SLUG[game] || game) : '';
+  const meiliQuery = [q, setFilter].filter(Boolean).join(' ').trim() || undefined;
+  const { data, isLoading: loading, error: queryError } = useSearchCards({
+    q: meiliQuery,
+    game: apiGame || undefined,
+    category_ids: categoryIds.length > 0 ? categoryIds : undefined,
+    category_id: categoryIds.length === 0 && categoryIdLegacy ? Number(categoryIdLegacy) : undefined,
+    page: pageParam,
+    limit: 20,
+    sort: sortParam,
+  });
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : t('search.httpError', { status: 0 })
+    : null;
 
   // Garantiamo che non resti uno "scroll lock" sporco da route precedenti.
   useEffect(() => {
@@ -362,49 +369,6 @@ export function SearchResults({
     setNomeInput(q);
     setEdizioneInput(setFilter);
   }, [q, setFilter]);
-
-  const fetchResults = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const params = new URLSearchParams();
-    // Per "Edizione" vogliamo una classica ricerca full-text Meilisearch:
-    // il valore di set + il testo del campo "Nome" (q) nella stessa query.
-    const meiliQuery = [q, setFilter].filter(Boolean).join(' ').trim();
-    if (meiliQuery) params.set('q', meiliQuery);
-    const apiGame = game ? (FRONTEND_TO_GAME_SLUG[game] || game) : '';
-    if (apiGame) params.set('game', apiGame);
-    // Usa category_ids (multiplo) se disponibile, altrimenti fallback a category_id singolo
-    if (categoryIds.length > 0) {
-      params.set('category_ids', categoryIds.join(','));
-    } else if (categoryIdLegacy) {
-      params.set('category_id', categoryIdLegacy);
-    }
-    params.set('page', String(pageParam));
-    params.set('limit', '20');
-    params.set('sort', sortParam);
-    try {
-      const res = await fetch(`/api/search?${params.toString()}`);
-      if (!res.ok) {
-        const j = (await res.json().catch(() => ({}))) as { error?: string; detail?: string };
-        const msg =
-          (typeof j?.error === 'string' && j.error) ||
-          (typeof j?.detail === 'string' && j.detail) ||
-          t('search.httpError', { status: res.status });
-        throw new Error(msg);
-      }
-      const json: SearchApiResponse = await res.json();
-      setData(json);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [q, game, setFilter, categoryIds, categoryIdLegacy, pageParam, sortParam, t]);
-
-  useEffect(() => {
-    fetchResults();
-  }, [fetchResults]);
 
   const total = data?.total ?? 0;
   const hits = data?.hits ?? [];

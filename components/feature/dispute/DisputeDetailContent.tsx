@@ -103,10 +103,9 @@ export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
     setWsMessages([]);
   }, [messagesQuery.dataUpdatedAt]);
 
-  const serverMessages = messagesQuery.data?.data ?? [];
-
   // Merge server + WS-only messages, deduplicating by id, sorted by creation time.
   const allMessages = useMemo<DisputeMessageAPI[]>(() => {
+    const serverMessages = messagesQuery.data?.data ?? [];
     const byId = new Map<number, DisputeMessageAPI>();
     for (const m of serverMessages) byId.set(m.id, m);
     for (const m of wsMessages) if (!byId.has(m.id)) byId.set(m.id, m);
@@ -114,7 +113,7 @@ export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
       const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       return diff !== 0 ? diff : a.id - b.id;
     });
-  }, [serverMessages, wsMessages]);
+  }, [messagesQuery.data?.data, wsMessages]);
 
   const dispute = detailQuery.data?.data;
 

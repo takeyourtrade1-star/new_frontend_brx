@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useSearchCards } from '@/lib/hooks/use-search';
 import { getCdnImageUrl } from '@/lib/config';
 import { getCardImageUrl } from '@/lib/assets';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -225,48 +226,23 @@ export function MarketplaceDashboard({
 } = {}) {
   const { t } = useTranslation();
 
-  const [magicHits, setMagicHits] = useState<SearchHit[]>([]);
+  const isMtg = !gameSlug || gameSlug === 'mtg';
+  const { data: searchData, isLoading: magicLoading } = useSearchCards(
+    { game: 'mtg', category_id: 1, limit: 30, sort: 'name_asc' },
+    { enabled: isMtg },
+  );
+
+  const magicHits = useMemo<SearchHit[]>(() => {
+    if (gameSlug === 'pokemon') return POKEMON_HITS;
+    if (gameSlug === 'op') return OP_HITS;
+    const hits = (searchData?.hits ?? []).filter((h) => h?.id && h?.name);
+    return hits.length > 0 ? hits : MTG_HITS_FALLBACK;
+  }, [gameSlug, searchData]);
+
   const [magicOffset, setMagicOffset] = useState(0);
-  const [magicLoading, setMagicLoading] = useState(true);
   const espansioniItems = nuoveEspansioni?.length
     ? nuoveEspansioni
     : NUOVE_ESPANSIONI_PLACEHOLDER;
-
-  useEffect(() => {
-    let isMounted = true;
-    const loadMagicCards = async () => {
-      // Se non è Magic, usiamo i placeholder e non chiamiamo il backend
-      if (gameSlug === 'pokemon') {
-        setMagicHits(POKEMON_HITS);
-        setMagicLoading(false);
-        return;
-      }
-      if (gameSlug === 'op') {
-        setMagicHits(OP_HITS);
-        setMagicLoading(false);
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/search?game=mtg&category_id=1&limit=30&sort=name_asc');
-        if (!res.ok) {
-          throw new Error('API Fallback');
-        }
-        const json = (await res.json()) as { hits?: SearchHit[] };
-        const hits = Array.isArray(json.hits) ? json.hits.filter((h) => h?.id && h?.name) : [];
-        if (isMounted) setMagicHits(hits.length > 0 ? hits : MTG_HITS_FALLBACK);
-      } catch {
-        // Fallback to mock data if API fails to ensure UI remains beautiful
-        if (isMounted) setMagicHits(MTG_HITS_FALLBACK);
-      } finally {
-        if (isMounted) setMagicLoading(false);
-      }
-    };
-    loadMagicCards();
-    return () => {
-      isMounted = false;
-    };
-  }, [gameSlug]);
 
   useEffect(() => {
     if (magicHits.length < 4) return;

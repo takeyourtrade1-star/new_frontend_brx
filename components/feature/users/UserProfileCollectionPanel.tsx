@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Archive, ChevronLeft, ChevronRight, Loader2, PackageOpen } from 'lucide-react';
@@ -8,8 +8,7 @@ import { Pagination } from '@/components/ui/Pagination';
 
 import { ConditionBadge } from '@/components/ui/ConditionBadge';
 import { usePublicUserCollection } from '@/lib/hooks/use-public-user-collection';
-import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
-import type { BlueprintToCardMap } from '@/lib/meilisearch-cards-by-ids';
+import { useMeilisearchCards } from '@/lib/hooks/use-meilisearch-cards';
 import { getCardDisplayNames } from '@/lib/card-display-name';
 import { getInventoryConditionCode } from '@/lib/inventory/inventory-filter-utils';
 import { ASSETS, getCdnImageUrl } from '@/lib/config';
@@ -53,32 +52,12 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const [catalog, setCatalog] = useState<BlueprintToCardMap>({});
-  const [catalogLoading, setCatalogLoading] = useState(false);
-
   const blueprintIds = useMemo(
-    () => [...new Set(items.map((i) => i.blueprint_id).filter((id) => id > 0))],
-    [items],
+    () => [...new Set((data?.items ?? []).map((i) => i.blueprint_id).filter((id) => id > 0))],
+    [data?.items],
   );
 
-  useEffect(() => {
-    if (blueprintIds.length === 0) {
-      setCatalog({});
-      return;
-    }
-    let cancelled = false;
-    setCatalogLoading(true);
-    fetchCardsByBlueprintIds(blueprintIds)
-      .then((map) => {
-        if (!cancelled) setCatalog(map);
-      })
-      .finally(() => {
-        if (!cancelled) setCatalogLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [blueprintIds]);
+  const { data: catalog = {}, isLoading: catalogLoading } = useMeilisearchCards(blueprintIds);
 
   if (isLoading) {
     return (

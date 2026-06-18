@@ -27,18 +27,8 @@ import {
 } from '@/lib/scambi/trade-proposal-context';
 import { getMockCardValueEur, tradeBalance } from '@/lib/scambi/card-mock-value';
 import { MOCK_INVENTORY_A, MOCK_INVENTORY_B, findMockInventoryItem } from './mock-trade-inventories';
-import {
-  filterTradeCards,
-  formatTradeEuro,
-  InventoryPanel,
-  mockToTradeCard,
-  AnimatedBalanceScale,
-  MoneyChip,
-  MoneyField,
-  TableCard,
-  type InventoryFiltersState,
-  type TradeCard,
-} from './trade-proposal-ui';
+import { formatTradeEuro, mockToTradeCard, type TradeCard } from './trade-proposal-ui';
+import { TradeComposer } from './TradeComposer';
 
 /* ------------------------------------------------------------------ */
 /*  Pagina                                                             */
@@ -55,18 +45,6 @@ export function TradeProposalPage() {
   const [reqMoney, setReqMoney] = useState(0); // Richiedi differenza → aumenta il richiesto
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [myFilters, setMyFilters] = useState<InventoryFiltersState>({
-    query: '',
-    condition: null,
-    language: null,
-    printings: [],
-  });
-  const [otherFilters, setOtherFilters] = useState<InventoryFiltersState>({
-    query: '',
-    condition: null,
-    language: null,
-    printings: [],
-  });
 
   useEffect(() => {
     setCtx(getTradeProposalContext());
@@ -75,14 +53,6 @@ export function TradeProposalPage() {
 
   const myInventory = useMemo(() => MOCK_INVENTORY_A.map(mockToTradeCard), []);
   const otherInventory = useMemo(() => MOCK_INVENTORY_B.map(mockToTradeCard), []);
-  const filteredMyInventory = useMemo(
-    () => filterTradeCards(myInventory, myFilters),
-    [myInventory, myFilters],
-  );
-  const filteredOtherInventory = useMemo(
-    () => filterTradeCards(otherInventory, otherFilters),
-    [otherInventory, otherFilters],
-  );
 
   const isCounter = ctx?.mode === 'counter';
 
@@ -216,114 +186,43 @@ export function TradeProposalPage() {
           </span>
         </div>
 
-        {/* Banner equità + compensazione rapida */}
-        {!balance.balanced && (
-          <div className="mb-3 flex flex-col gap-2 rounded-xl border border-[#FF7300]/40 bg-orange-50 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-            <p className="flex items-start gap-2 text-[13px] text-gray-700">
-              <AnimatedBalanceScale offeredValue={offeredValue} requestedValue={requestedValue} className="mt-0.5" />
-              <span>
-                <span className="font-bold text-[#1D3160]">La bilancia pende un po&apos; da una parte</span>{' '}
-                {offeredValue === 0
-                  ? 'Aggiungi qualcosa per iniziare!'
-                  : `mancano ${formatTradeEuro(Math.abs(gap))} per pareggiare.`}
-              </span>
-            </p>
-            <button
-              type="button"
-              onClick={quickCompensate}
-              className="shrink-0 self-start rounded-full bg-[#1D3160] px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#16264d] active:scale-95 sm:self-auto"
-            >
-              Compensazione rapida
-            </button>
-          </div>
-        )}
-
-        {/* Controlli: crediti + invia (sopra il tavolo) */}
-        <div className="mb-4 flex flex-col items-stretch gap-3 rounded-xl border border-gray-200 bg-white px-3.5 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <MoneyField value={addMoney} onChange={setAddMoney} label="Aggiungi differenza" />
+        {/* Azione principale (allineata a destra) */}
+        <div className="mb-3 flex justify-end">
           <button
             type="button"
             onClick={() => canSubmit && setShowConfirm(true)}
             disabled={!canSubmit}
-            className={`order-first rounded-lg px-6 py-2.5 text-sm font-black uppercase tracking-wide text-white transition sm:order-none ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-[12px] font-bold uppercase tracking-wide text-white transition active:scale-95 ${
               canSubmit
-                ? 'bg-[#FF7300] hover:bg-[#e86800] active:scale-95'
+                ? 'bg-gradient-to-b from-[#FF8A26] to-[#FF7300] shadow-sm shadow-[#FF7300]/30 hover:shadow-md hover:shadow-[#FF7300]/40 hover:brightness-105'
                 : 'cursor-not-allowed bg-gray-300'
             }`}
           >
-            Invia Proposta
+            {isCounter ? 'Invia controproposta' : 'Invia proposta'}
           </button>
-          <MoneyField value={reqMoney} onChange={setReqMoney} label="Richiedi differenza" />
         </div>
 
-        {/* TAVOLO */}
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          {/* Sopra: ciò che chiedo */}
-          <div className="px-3.5 py-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Chiedi</span>
-              <span className="text-sm font-black tabular-nums text-[#1D3160]">{formatTradeEuro(requestedValue)}</span>
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {requestedCards.map((card) => (
-                <TableCard
-                  key={card.id}
-                  card={card}
-                  onRemove={card.id === baseCard.id ? undefined : () => toggleRequested(card.id)}
-                />
-              ))}
-              {reqMoney > 0 && <MoneyChip amount={reqMoney} />}
-            </div>
-          </div>
-
-          <div className="h-px bg-gray-200" />
-
-          {/* Sotto: ciò che offro */}
-          <div className="px-3.5 py-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Offri</span>
-              <span className="text-sm font-black tabular-nums text-[#1D3160]">{formatTradeEuro(offeredValue)}</span>
-            </div>
-            {offeredCards.length === 0 && addMoney === 0 ? (
-              <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 py-5 text-center text-xs text-gray-400">
-                Aggiungi le tue carte dall’inventario qui sotto
-              </div>
-            ) : (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {offeredCards.map((card) => (
-                  <TableCard key={card.id} card={card} onRemove={() => toggleOffered(card.id)} />
-                ))}
-                {addMoney > 0 && <MoneyChip amount={addMoney} />}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* DUE LISTE */}
-        <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <InventoryPanel
-            variant="mine"
-            title="Il tuo inventario"
-            hint="tocca per offrire"
-            filters={myFilters}
-            onFiltersChange={setMyFilters}
-            cards={myInventory}
-            filteredCards={filteredMyInventory}
-            selectedIds={selectedOfferedIds}
-            onToggle={toggleOffered}
-          />
-          <InventoryPanel
-            variant="other"
-            title={`Inventario di ${ctx.seller.name}`}
-            hint="tocca per chiedere"
-            filters={otherFilters}
-            onFiltersChange={setOtherFilters}
-            cards={otherInventory}
-            filteredCards={filteredOtherInventory}
-            selectedIds={selectedRequestedIds}
-            onToggle={toggleRequested}
-          />
-        </div>
+        {/* Blocco scambio unificato */}
+        <TradeComposer
+          myInventory={myInventory}
+          otherInventory={otherInventory}
+          otherName={ctx.seller.name}
+          selectedOfferedIds={selectedOfferedIds}
+          selectedRequestedIds={selectedRequestedIds}
+          offeredCards={offeredCards}
+          requestedCards={requestedCards}
+          onToggleOffered={toggleOffered}
+          onToggleRequested={toggleRequested}
+          addMoney={addMoney}
+          reqMoney={reqMoney}
+          onAddMoneyChange={setAddMoney}
+          onReqMoneyChange={setReqMoney}
+          offeredValue={offeredValue}
+          requestedValue={requestedValue}
+          balance={balance}
+          onQuickCompensate={quickCompensate}
+          lockedRequestedId={baseCard.id}
+        />
       </div>
 
       {/* Modale di conferma finale */}

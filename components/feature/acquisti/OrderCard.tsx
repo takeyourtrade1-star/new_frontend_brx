@@ -1,62 +1,28 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo } from 'react';
-import { Clock, Mail, ShieldAlert, Truck, CheckCircle2, XCircle, ArrowRightLeft } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { ExpandableCard } from '@/components/shared/ExpandableCard';
+import { Gavel } from 'lucide-react';
+import {
+  OrderActionButton,
+  OrderItemCard,
+  type OrderItemModel,
+  type OrderStatusTone,
+  type OrderViewMode,
+} from '@/components/feature/ordini/OrderItemCard';
 import type { OrderAPI, OrderStatus } from '@/types/order';
 
-const STATUS_BADGES: Record<
-  OrderStatus,
-  { label: string; cls: string; Icon: typeof Clock }
-> = {
-  PAYMENT_PENDING: {
-    label: 'Da pagare',
-    cls: 'bg-amber-50 text-amber-700',
-    Icon: Clock,
-  },
-  PAYMENT_OVERDUE: {
-    label: 'In ritardo',
-    cls: 'bg-orange-50 text-orange-700',
-    Icon: ShieldAlert,
-  },
-  DISPUTED: {
-    label: 'Contesa',
-    cls: 'bg-red-50 text-red-700',
-    Icon: ShieldAlert,
-  },
-  PAID: {
-    label: 'Pagato',
-    cls: 'bg-emerald-50 text-emerald-700',
-    Icon: CheckCircle2,
-  },
-  SHIPPED: {
-    label: 'Inviato',
-    cls: 'bg-blue-50 text-blue-700',
-    Icon: Truck,
-  },
-  DELIVERED: {
-    label: 'Consegnato',
-    cls: 'bg-emerald-50 text-emerald-700',
-    Icon: CheckCircle2,
-  },
-  CANCELLED: {
-    label: 'Cancellato',
-    cls: 'bg-gray-100 text-gray-600',
-    Icon: XCircle,
-  },
-  REASSIGNED: {
-    label: 'Riassegnato',
-    cls: 'bg-gray-100 text-gray-600',
-    Icon: ArrowRightLeft,
-  },
+const STATUS_META: Record<OrderStatus, { label: string; tone: OrderStatusTone }> = {
+  PAYMENT_PENDING: { label: 'Da pagare', tone: 'waiting' },
+  PAYMENT_OVERDUE: { label: 'In ritardo', tone: 'action' },
+  DISPUTED: { label: 'Contesa', tone: 'action' },
+  PAID: { label: 'Pagato', tone: 'done' },
+  SHIPPED: { label: 'Inviato', tone: 'progress' },
+  DELIVERED: { label: 'Consegnato', tone: 'done' },
+  CANCELLED: { label: 'Cancellato', tone: 'cancelled' },
+  REASSIGNED: { label: 'Riassegnato', tone: 'cancelled' },
 };
 
-const eurFmt = new Intl.NumberFormat('it-IT', {
-  style: 'currency',
-  currency: 'EUR',
-});
+const eurFmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
 
 function formatDateTime(iso: string | null): string {
   if (!iso) return '—';
@@ -81,12 +47,8 @@ function relativeTime(targetIso: string | null): { label: string; isOverdue: boo
   const absMs = Math.abs(diff);
   const hours = Math.floor(absMs / 3_600_000);
   const days = Math.floor(hours / 24);
-  if (days >= 2) {
-    return { label: `${isOverdue ? '−' : ''}${days} giorni`, isOverdue };
-  }
-  if (hours >= 1) {
-    return { label: `${isOverdue ? '−' : ''}${hours} ore`, isOverdue };
-  }
+  if (days >= 2) return { label: `${isOverdue ? '−' : ''}${days} giorni`, isOverdue };
+  if (hours >= 1) return { label: `${isOverdue ? '−' : ''}${hours} ore`, isOverdue };
   const minutes = Math.max(1, Math.floor(absMs / 60_000));
   return { label: `${isOverdue ? '−' : ''}${minutes} min`, isOverdue };
 }
@@ -98,6 +60,7 @@ export interface OrderCardProps {
   paying?: boolean;
   onOpenDispute?: (order: OrderAPI) => void;
   openingDispute?: boolean;
+  layout?: OrderViewMode;
 }
 
 export function OrderCard({
@@ -107,105 +70,50 @@ export function OrderCard({
   paying = false,
   onOpenDispute,
   openingDispute = false,
+  layout = 'list',
 }: OrderCardProps) {
-  const badge = STATUS_BADGES[order.status];
+  const statusMeta = STATUS_META[order.status];
   const dueRelative = useMemo(() => relativeTime(order.due_at), [order.due_at]);
 
-  const counterparty =
+  const counterpartyName =
     perspective === 'buyer'
       ? order.seller_display_name || 'Venditore'
       : order.buyer_display_name || 'Acquirente';
 
-  const canPay = perspective === 'buyer' && (order.status === 'PAYMENT_PENDING' || order.status === 'PAYMENT_OVERDUE');
+  const canPay =
+    perspective === 'buyer' && (order.status === 'PAYMENT_PENDING' || order.status === 'PAYMENT_OVERDUE');
   const canOpenDispute =
-    perspective === 'seller' &&
-    (order.status === 'PAYMENT_PENDING' || order.status === 'PAYMENT_OVERDUE');
-  const StatusIcon = badge.Icon;
+    perspective === 'seller' && (order.status === 'PAYMENT_PENDING' || order.status === 'PAYMENT_OVERDUE');
 
-  const summary = (
-    <div className="flex items-start gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F5F4F0] text-[#FF7300]">
-        <StatusIcon className="h-5 w-5" aria-hidden />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-semibold text-gray-900 truncate">
-            <Link href={`/aste/${order.auction_id}`} className="hover:text-[#FF7300] hover:underline">
-              {order.auction_title || `Asta #${order.auction_id}`}
-            </Link>
-          </h3>
-          <span className="text-sm font-bold text-gray-900 shrink-0">{eurFmt.format(order.total_amount)}</span>
-        </div>
-        <div className="mt-0.5 flex items-center gap-1 text-xs text-gray-600">
-          <Mail className="h-3.5 w-3.5" aria-hidden />
-          {perspective === 'buyer' ? 'Venditore' : 'Acquirente'}:
-          <span className="font-medium text-gray-800">{counterparty}</span>
-        </div>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', badge.cls)}>
-              <StatusIcon className="h-3 w-3" aria-hidden />
-              {badge.label}
-            </span>
-            {order.due_at && dueRelative.isOverdue && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-red-100 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">
-                <Clock className="h-3 w-3" aria-hidden />
-                Scaduto
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500">
-              Asta
-            </span>
-            {canPay && onPay && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPay(order);
-                }}
-                disabled={paying}
-                className="inline-flex items-center justify-center rounded-md bg-[#FF7300] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#e56500] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {paying ? 'Pagamento…' : 'Paga ora'}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const metaLine =
+    order.status === 'PAID'
+      ? `Pagato il ${formatDateTime(order.paid_at)}`
+      : order.due_at
+        ? `${dueRelative.isOverdue ? 'Scaduto da ' : 'Scade tra '}${dueRelative.label} · ${formatDateTime(order.due_at)}`
+        : undefined;
 
-  const details = (
-    <div className="space-y-3">
-      {order.due_at && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
-          <span className={cn('flex items-center gap-1', dueRelative.isOverdue ? 'text-red-700' : 'text-gray-600')}>
-            <Clock className="h-3.5 w-3.5" aria-hidden />
-            {dueRelative.isOverdue ? 'Scaduto da ' : 'Scade tra '}
-            <strong>{dueRelative.label}</strong>
-          </span>
-          <span className="text-gray-400">({formatDateTime(order.due_at)})</span>
-        </div>
-      )}
-      <div className="flex flex-wrap items-center gap-2">
-        {canOpenDispute && onOpenDispute && (
-          <button
-            type="button"
-            onClick={() => onOpenDispute(order)}
-            disabled={openingDispute}
-            className="inline-flex items-center justify-center rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-bold uppercase tracking-wide text-red-700 transition-colors hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400/30 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {openingDispute ? 'Apertura…' : 'Apri contestazione'}
-          </button>
-        )}
-      </div>
-      {order.status === 'PAID' && (
-        <p className="text-xs text-emerald-700">Pagato il {formatDateTime(order.paid_at)}</p>
-      )}
-    </div>
-  );
+  const model: OrderItemModel = {
+    id: String(order.id),
+    title: order.auction_title || `Asta #${order.auction_id}`,
+    href: `/aste/${order.auction_id}`,
+    fallbackIcon: Gavel,
+    priceLabel: eurFmt.format(order.total_amount),
+    counterparty: { label: perspective === 'buyer' ? 'Venditore' : 'Acquirente', name: counterpartyName },
+    status: statusMeta,
+    alert: order.due_at && dueRelative.isOverdue ? 'Scaduto' : undefined,
+    channel: 'Asta',
+    metaLine,
+    actions:
+      canPay && onPay ? (
+        <OrderActionButton variant="primary" disabled={paying} onClick={() => onPay(order)}>
+          {paying ? 'Pagamento…' : 'Paga ora'}
+        </OrderActionButton>
+      ) : canOpenDispute && onOpenDispute ? (
+        <OrderActionButton variant="danger" disabled={openingDispute} onClick={() => onOpenDispute(order)}>
+          {openingDispute ? 'Apertura…' : 'Apri contestazione'}
+        </OrderActionButton>
+      ) : undefined,
+  };
 
-  return <ExpandableCard summary={summary} details={details} />;
+  return <OrderItemCard model={model} layout={layout} />;
 }

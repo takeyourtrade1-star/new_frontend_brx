@@ -45,6 +45,32 @@ next-env.d.ts
 # Editor scratch (e.g. accidental paste files)
 lib/i18n/messages/Untitled-*.txt
 
+# Large working assets — immagini/video da non tracciare nel repo
+*.webm
+*.mp4
+tournament-video*
+_temp_block*
+
+# Cartelle foto condizioni e asset grezzi (le versioni processate sono in public/conditions/)
+Damaged/
+Heavily\ Played/
+Light-Played/
+Moderately\ Played/
+Near\ Mint/
+up-mod-pic/
+
+# Asset SVG/webp di staging (copie lavoro, le versioni finali sono in public/)
+accessori2.svg
+booster_boxes2.svg
+boosters2.svg
+prodotti_sigillati2.svg
+set_lotti_collezioni2.svg
+singles2.svg
+oggetti2.webp
+
+# Cartella immagini backend (WebP da inviare al team, non committare)
+Immagini\ da\ caricare\ sul\ backend/
+
 # IDE
 .idea
 .qwen/

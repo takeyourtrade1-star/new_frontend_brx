@@ -12,9 +12,9 @@ import {
   type EnrichedAuction,
 } from '@/components/feature/aste/auctions-browse-shared';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
-import { apiToAuctionUI, type AuctionUI } from '@/lib/auction/auction-adapter';
+import { apiToAuctionUI, isAuctionEndedUI, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
-import { AsteMineViewBar } from '@/components/feature/aste/AsteMineViewBar';
+import { AsteMineViewBar, type MyListingsTab } from '@/components/feature/aste/AsteMineViewBar';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
 
@@ -38,6 +38,7 @@ export function AsteParticipationsPage() {
   const { data: listData, isLoading } = useAuctionList({ limit: 100 });
 
   const [viewMode, setViewMode] = useState<AsteViewMode>('grid');
+  const [statusTab, setStatusTab] = useState<MyListingsTab>('ongoing');
 
   useEffect(() => {
     setViewMode(getStoredAsteViewMode(STORAGE_KEY));
@@ -86,6 +87,25 @@ export function AsteParticipationsPage() {
     };
   }, [rowsBase]);
 
+  const { ongoingRows, endedRows } = useMemo(() => {
+    const ongoing: AuctionUI[] = [];
+    const ended: AuctionUI[] = [];
+    for (const auction of rows) {
+      if (isAuctionEndedUI(auction)) {
+        ended.push(auction);
+      } else {
+        ongoing.push(auction);
+      }
+    }
+    return { ongoingRows: ongoing, endedRows: ended };
+  }, [rows]);
+
+  const visibleRows = statusTab === 'ongoing' ? ongoingRows : endedRows;
+  const emptyMessage =
+    statusTab === 'ongoing'
+      ? t('auctions.emptyParticipationsOngoing')
+      : t('auctions.emptyParticipationsEnded');
+
   const displayName = user?.name ?? user?.email?.split('@')[0] ?? '';
   const breadcrumbItems: AppBreadcrumbItem[] = [
     { href: '/', label: t('auctions.breadcrumbHome'), isCurrent: false },
@@ -129,9 +149,16 @@ export function AsteParticipationsPage() {
         </header>
 
         <div className="mb-4 flex flex-col gap-3">
-          <AsteMineViewBar variant="participations" t={t} />
+          <AsteMineViewBar
+            variant="participations"
+            statusTab={statusTab}
+            onStatusTabChange={setStatusTab}
+            ongoingCount={ongoingRows.length}
+            endedCount={endedRows.length}
+            t={t}
+          />
           <div className="flex flex-wrap items-center justify-between gap-3 border border-gray-300 bg-white px-4 py-3">
-          <p className="text-sm text-gray-700">{t('auctions.resultsCount', { count: rows.length })}</p>
+          <p className="text-sm text-gray-700">{t('auctions.resultsCount', { count: visibleRows.length })}</p>
           <AuctionViewToggle
             viewMode={viewMode}
             onViewModeChange={setViewMode}
@@ -142,12 +169,12 @@ export function AsteParticipationsPage() {
         </div>
 
         <div className="overflow-hidden border border-gray-300 bg-white">
-          {rows.length === 0 ? (
-            <div className="p-16 text-center text-gray-500">{t('auctions.emptyParticipations')}</div>
+          {visibleRows.length === 0 ? (
+            <div className="p-16 text-center text-gray-500">{emptyMessage}</div>
           ) : viewMode === 'grid' ? (
-            <AuctionResultsGrid auctions={rows} now={now} t={t} />
+            <AuctionResultsGrid auctions={visibleRows} now={now} t={t} />
           ) : (
-            <AuctionListTable auctions={rows} now={now} t={t} myBidById={myBidById} />
+            <AuctionListTable auctions={visibleRows} now={now} t={t} myBidById={myBidById} />
           )}
         </div>
       </div>

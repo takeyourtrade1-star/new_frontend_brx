@@ -13,7 +13,8 @@ const nextConfig = {
   // dalla parent directory quando c'è un package-lock.json superiore.
   outputFileTracingRoot: process.cwd().replace(/\\/g, '/'),
   // Evita fallimento build su Amplify/CI per opzioni ESLint deprecate (useEslintrc, extensions)
-  eslint: { ignoreDuringBuilds: true },
+  eslint: { ignoreDuringBuilds: false },
+  compiler: { removeConsole: { exclude: ['error', 'warn'] } },
   typescript: { ignoreBuildErrors: false },
   modularizeImports: {
     'lucide-react': {

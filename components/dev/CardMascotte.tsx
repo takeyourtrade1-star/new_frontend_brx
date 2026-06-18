@@ -2,12 +2,10 @@
 
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import dynamic from 'next/dynamic';
 import { useRouter, usePathname } from 'next/navigation';
 import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare, ArrowRight, Sparkles, Loader2, Play, Users, Shirt } from 'lucide-react';
-import html2canvas from 'html2canvas';
 import { CardLoader } from '@/components/dev/CardLoader';
-import { KakeguruiArena } from '@/components/feature/game/KakeguruiArena';
-import { KakeguruiP2P } from '@/components/feature/game/KakeguruiP2P';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import {
   ACCESSORY_ITEMS,
@@ -34,6 +32,17 @@ import {
   getAssoBubbleBottom,
 } from '@/lib/asso-layout';
 import { getTournamentsPortalUrl } from '@/lib/config/tournaments';
+
+// Minigiochi: caricati on-demand (chunk separato) solo alla prima apertura,
+// così il loro peso + simple-peer (WebRTC) non entra nel bundle della mascotte.
+const KakeguruiArena = dynamic(
+  () => import('@/components/feature/game/KakeguruiArena').then((m) => m.KakeguruiArena),
+  { ssr: false },
+);
+const KakeguruiP2P = dynamic(
+  () => import('@/components/feature/game/KakeguruiP2P').then((m) => m.KakeguruiP2P),
+  { ssr: false },
+);
 
 // Storage keys for bug report data
 const BUG_REPORT_STORAGE = {
@@ -458,6 +467,16 @@ export function CardMascotte() {
   });
   const [isArenaOpen, setIsArenaOpen] = useState(false);
   const [isP2POpen, setIsP2POpen] = useState(false);
+  // Latch: una volta aperto un gioco resta montato (preserva le animazioni di
+  // chiusura), ma il chunk viene scaricato solo alla prima apertura.
+  const [arenaLoaded, setArenaLoaded] = useState(false);
+  const [p2pLoaded, setP2pLoaded] = useState(false);
+  useEffect(() => {
+    if (isArenaOpen) setArenaLoaded(true);
+  }, [isArenaOpen]);
+  useEffect(() => {
+    if (isP2POpen) setP2pLoaded(true);
+  }, [isP2POpen]);
   const [showGameModeMenu, setShowGameModeMenu] = useState(false);
   const [isCheckingArenaPlayers, setIsCheckingArenaPlayers] = useState(false);
   const [connectedPlayers, setConnectedPlayers] = useState<number | null>(null);
@@ -1759,7 +1778,8 @@ export function CardMascotte() {
       // Wait for UI to update
       await new Promise(resolve => setTimeout(resolve, 400));
 
-      // Capture screenshot
+      // Capture screenshot — html2canvas caricato on-demand (chunk separato)
+      const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(document.body, {
         useCORS: true,
         allowTaint: true,
@@ -3812,25 +3832,29 @@ export function CardMascotte() {
         </div>
       )}
 
-      <KakeguruiArena
-        key={arenaMatchId ?? 'arena-idle'}
-        open={isArenaOpen}
-        onClose={() => {
-          setIsArenaOpen(false);
-          setArenaMatchId(null);
-          setArenaGateMessage('Pronto: puoi premere Play');
-        }}
-        playerName={authUser?.name?.trim() || 'Tu'}
-        opponentName={arenaOpponentName}
-      />
+      {arenaLoaded && (
+        <KakeguruiArena
+          key={arenaMatchId ?? 'arena-idle'}
+          open={isArenaOpen}
+          onClose={() => {
+            setIsArenaOpen(false);
+            setArenaMatchId(null);
+            setArenaGateMessage('Pronto: puoi premere Play');
+          }}
+          playerName={authUser?.name?.trim() || 'Tu'}
+          opponentName={arenaOpponentName}
+        />
+      )}
 
-      <KakeguruiP2P
-        open={isP2POpen}
-        onClose={() => {
-          setIsP2POpen(false);
-          setArenaGateMessage('Pronto: puoi premere Play');
-        }}
-      />
+      {p2pLoaded && (
+        <KakeguruiP2P
+          open={isP2POpen}
+          onClose={() => {
+            setIsP2POpen(false);
+            setArenaGateMessage('Pronto: puoi premere Play');
+          }}
+        />
+      )}
 
       {/* Float animation */}
       <style dangerouslySetInnerHTML={{

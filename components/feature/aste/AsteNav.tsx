@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Home, PlusCircle, List, ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
+import { Home, Plus, PlusCircle, List, Gavel, ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
@@ -110,20 +110,22 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
               href="/login?redirect=/aste/nuova"
               title={t('auctions.createAuction')}
               className={cn(
-                'group flex shrink-0 items-center justify-center rounded-full font-semibold uppercase tracking-wide text-[#FF7300] transition-all duration-300 active:scale-95',
+                'group relative flex shrink-0 items-center rounded-full border border-white/40 bg-white/70 font-semibold uppercase tracking-wide text-[#FF7300] shadow-lg backdrop-blur-md transition-all duration-300 hover:bg-white/85 hover:shadow-xl active:scale-95',
                 compact
-                  ? 'h-7 w-7 border border-[#FF7300]/35 bg-[#FFF4EC]/90 backdrop-blur-md hover:border-[#FF7300] hover:shadow-[0_0_8px_rgba(255,115,0,0.2)]'
-                  : 'h-9 sm:h-12 gap-1.5 sm:gap-2 border-2 border-[#FF7300] bg-[#FFF4EC] px-3 sm:px-4 text-[10px] sm:text-xs hover:bg-[#FFF0E0] hover:shadow-[0_0_12px_rgba(255,115,0,0.3)]',
+                  ? 'h-7 w-7 justify-center'
+                  : 'h-9 sm:h-12 pl-9 pr-4 sm:pl-12 sm:pr-5 text-[10px] sm:text-xs',
               )}
             >
-              <PlusCircle
+              <span
                 className={cn(
-                  'shrink-0 transition-transform group-hover:rotate-90',
-                  compact ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4',
+                  'flex items-center justify-center rounded-full bg-[#FF7300] text-white shadow-sm transition-transform duration-300 group-hover:rotate-90',
+                  compact ? 'h-5 w-5' : 'absolute left-1 h-7 w-7 sm:left-1.5 sm:h-9 sm:w-9',
                 )}
                 aria-hidden
-              />
-              {!compact && <span className="whitespace-nowrap">{t('auctions.createAuction')}</span>}
+              >
+                <Plus className={cn('shrink-0', compact ? 'h-3 w-3' : 'h-4 w-4 sm:h-5 sm:w-5')} strokeWidth={3} />
+              </span>
+              {!compact && <span className="w-full whitespace-nowrap text-center">{t('auctions.createAuction')}</span>}
             </Link>
           </nav>
         </div>
@@ -140,7 +142,8 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
   }[] = [
     { href: '/aste', label: t('auctions.breadcrumbHome'), Icon: Home, iconOnly: true },
     { href: '/aste/nuova', label: t('auctions.createAuction'), Icon: PlusCircle, isPrimary: true },
-    { href: '/aste/mie', label: t('auctions.navPublishedAndParticipations'), Icon: List },
+    { href: '/aste/mie', label: t('auctions.navPublished'), Icon: List },
+    { href: '/aste/partecipazioni', label: t('auctions.navParticipated'), Icon: Gavel },
   ];
 
   function isActive(href: string) {
@@ -148,7 +151,10 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
       return pathname === '/aste';
     }
     if (href === '/aste/mie') {
-      return pathname?.startsWith('/aste/mie') || pathname?.startsWith('/aste/partecipazioni') || false;
+      return pathname?.startsWith('/aste/mie') ?? false;
+    }
+    if (href === '/aste/partecipazioni') {
+      return pathname?.startsWith('/aste/partecipazioni') ?? false;
     }
     return pathname?.startsWith(href) ?? false;
   }
@@ -208,6 +214,41 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
           {links.map(({ href, label, Icon, isPrimary, iconOnly }) => {
             const active = isActive(href);
             const showIconOnly = iconOnly || compact;
+
+            // "Crea asta": pill in stile tasto "Vendi" del menu header
+            // (vetro bianco, badge tondo arancione con "+", testo arancione).
+            if (isPrimary) {
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-label={label}
+                  title={label}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'group relative flex shrink-0 items-center rounded-full border border-white/40 bg-white/70 font-semibold uppercase tracking-wide text-[#FF7300] shadow-lg backdrop-blur-md transition-all duration-300 hover:bg-white/85 hover:shadow-xl active:scale-95',
+                    compact
+                      ? 'h-7 w-7 justify-center'
+                      : 'h-9 sm:h-12 pl-9 pr-4 sm:pl-12 sm:pr-5 text-[10px] sm:text-xs',
+                    active && 'ring-2 ring-[#FF7300]/40',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'flex items-center justify-center rounded-full bg-[#FF7300] text-white shadow-sm transition-transform duration-300 group-hover:rotate-90',
+                      compact
+                        ? 'h-5 w-5'
+                        : 'absolute left-1 h-7 w-7 sm:left-1.5 sm:h-9 sm:w-9',
+                    )}
+                    aria-hidden
+                  >
+                    <Plus className={cn('shrink-0', compact ? 'h-3 w-3' : 'h-4 w-4 sm:h-5 sm:w-5')} strokeWidth={3} />
+                  </span>
+                  {!compact && <span className="w-full whitespace-nowrap text-center">{label}</span>}
+                </Link>
+              );
+            }
+
             return (
               <Link
                 key={href}

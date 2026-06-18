@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Home, ChevronRight, Loader2, LayoutGrid, Hourglass, PackageOpen, Truck, BadgeCheck, LifeBuoy } from 'lucide-react';
 import { OrderTabs, type OrderTab } from '@/components/feature/ordini/OrderTabs';
+import { ordersWrapperClass } from '@/components/feature/ordini/OrderItemCard';
+import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';
+import { getStoredAsteViewMode, setStoredAsteViewMode, type AsteViewMode } from '@/lib/auction/aste-view-storage';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useMockSupportStore } from '@/lib/stores/mock-support-store';
@@ -57,6 +60,14 @@ export function VenditeContent() {
   const tabParam = searchParams.get('tab');
 
   const [activeTab, setActiveTab] = useState<TabId>('tutte');
+  const [viewMode, setViewMode] = useState<AsteViewMode>('list');
+
+  useEffect(() => {
+    setViewMode(getStoredAsteViewMode('vendite', 'list'));
+  }, []);
+  useEffect(() => {
+    setStoredAsteViewMode('vendite', viewMode);
+  }, [viewMode]);
 
   useEffect(() => {
     if (isValidTabId(tabParam)) {
@@ -120,13 +131,11 @@ export function VenditeContent() {
     }
     return (
       <div className="space-y-4">
-        {filtered.map((vendita) => (
-          <VenditeSaleCard
-            key={vendita.id}
-            vendita={vendita}
-            showStatoBadge={activeTab === 'tutte'}
-          />
-        ))}
+        <div className={ordersWrapperClass(viewMode)}>
+          {filtered.map((vendita) => (
+            <VenditeSaleCard key={vendita.id} vendita={vendita} layout={viewMode} />
+          ))}
+        </div>
         <p className="text-center text-xs text-gray-500">
           {filtered.length} vendit{filtered.length === 1 ? 'a' : 'e'} mostrate
           {activeTab !== 'tutte' ? ` · ${tabMeta.label}` : ''}
@@ -196,6 +205,18 @@ export function VenditeContent() {
           activeTab={activeTab}
           onChange={setActiveTab}
         />
+
+        {!isSupportoTab && (
+          <div className="mb-3 mt-4 flex items-center justify-end">
+            <AuctionViewToggle
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              listLabel="Lista"
+              gridLabel="Griglia"
+              variant="compact"
+            />
+          </div>
+        )}
 
         {isSupportoTab ? renderSupportContent() : renderOrdersContent()}
       </div>

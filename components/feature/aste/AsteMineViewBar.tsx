@@ -6,29 +6,33 @@ import type { AuctionTranslate } from '@/components/feature/aste/auctions-browse
 
 export type MyListingsTab = 'ongoing' | 'ended';
 
-function MyListingsStatusSwitch({
+function StatusSwitch({
   value,
   onChange,
+  ongoingLabel,
+  endedLabel,
   ongoingCount,
   endedCount,
-  t,
+  ariaLabel,
 }: {
   value: MyListingsTab;
   onChange: (tab: MyListingsTab) => void;
+  ongoingLabel: string;
+  endedLabel: string;
   ongoingCount: number;
   endedCount: number;
-  t: AuctionTranslate;
+  ariaLabel: string;
 }) {
   const tabs: { id: MyListingsTab; label: string; count: number }[] = [
-    { id: 'ongoing', label: t('auctions.myListingsTabOngoing'), count: ongoingCount },
-    { id: 'ended', label: t('auctions.myListingsTabEnded'), count: endedCount },
+    { id: 'ongoing', label: ongoingLabel, count: ongoingCount },
+    { id: 'ended', label: endedLabel, count: endedCount },
   ];
 
   return (
     <div
       role="tablist"
-      aria-label={t('auctions.myListingsStatusLabel')}
-      className="relative grid w-full max-w-[17rem] grid-cols-2 rounded-full border border-white/70 bg-white/55 p-1 shadow-[0_10px_28px_rgba(29,49,96,0.14)] backdrop-blur-xl backdrop-saturate-150 ring-1 ring-[#1D3160]/10 sm:max-w-xs"
+      aria-label={ariaLabel}
+      className="relative grid w-full max-w-[20rem] grid-cols-2 rounded-full border border-white/70 bg-white/55 p-1 shadow-[0_10px_28px_rgba(29,49,96,0.14)] backdrop-blur-xl backdrop-saturate-150 ring-1 ring-[#1D3160]/10 sm:max-w-sm"
     >
       <span
         aria-hidden
@@ -69,69 +73,49 @@ function MyListingsStatusSwitch({
   );
 }
 
-const PARTICIPATIONS_LINK_CLASS =
+const CROSS_LINK_CLASS =
   'inline-flex shrink-0 items-center justify-center rounded-full border-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wide transition-all duration-300 sm:px-4 sm:py-2.5 sm:text-[11px]';
 
-type AsteMineViewBarProps =
-  | {
-      variant: 'published';
-      statusTab: MyListingsTab;
-      onStatusTabChange: (tab: MyListingsTab) => void;
-      ongoingCount: number;
-      endedCount: number;
-      t: AuctionTranslate;
-    }
-  | {
-      variant: 'participations';
-      t: AuctionTranslate;
-    };
+type AsteMineViewBarProps = {
+  variant: 'published' | 'participations';
+  statusTab: MyListingsTab;
+  onStatusTabChange: (tab: MyListingsTab) => void;
+  ongoingCount: number;
+  endedCount: number;
+  t: AuctionTranslate;
+};
 
-export function AsteMineViewBar(props: AsteMineViewBarProps) {
-  const { t, variant } = props;
+export function AsteMineViewBar({
+  variant,
+  statusTab,
+  onStatusTabChange,
+  ongoingCount,
+  endedCount,
+  t,
+}: AsteMineViewBarProps) {
+  const isPublished = variant === 'published';
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      {variant === 'published' ? (
-        <MyListingsStatusSwitch
-          value={props.statusTab}
-          onChange={props.onStatusTabChange}
-          ongoingCount={props.ongoingCount}
-          endedCount={props.endedCount}
-          t={t}
-        />
-      ) : (
-        <Link
-          href="/aste/mie"
-          className={cn(
-            PARTICIPATIONS_LINK_CLASS,
-            'border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)]',
-          )}
-        >
-          {t('auctions.myPublishedLink')}
-        </Link>
-      )}
+      <StatusSwitch
+        value={statusTab}
+        onChange={onStatusTabChange}
+        ongoingLabel={isPublished ? t('auctions.myListingsTabOngoing') : t('auctions.participationsTabOngoing')}
+        endedLabel={isPublished ? t('auctions.myListingsTabEnded') : t('auctions.participationsTabEnded')}
+        ongoingCount={ongoingCount}
+        endedCount={endedCount}
+        ariaLabel={isPublished ? t('auctions.myListingsStatusLabel') : t('auctions.participationsStatusLabel')}
+      />
 
-      {variant === 'published' ? (
-        <Link
-          href="/aste/partecipazioni"
-          className={cn(
-            PARTICIPATIONS_LINK_CLASS,
-            'border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)]',
-          )}
-        >
-          {t('auctions.myParticipationsLink')}
-        </Link>
-      ) : (
-        <span
-          className={cn(
-            PARTICIPATIONS_LINK_CLASS,
-            'border-[#FF7300] bg-[#FFF4EC] text-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.2)]',
-          )}
-          aria-current="page"
-        >
-          {t('auctions.myParticipationsLink')}
-        </span>
-      )}
+      <Link
+        href={isPublished ? '/aste/partecipazioni' : '/aste/mie'}
+        className={cn(
+          CROSS_LINK_CLASS,
+          'border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)]',
+        )}
+      >
+        {isPublished ? t('auctions.myParticipationsLink') : t('auctions.myPublishedLink')}
+      </Link>
     </div>
   );
 }

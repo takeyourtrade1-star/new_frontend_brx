@@ -90,15 +90,15 @@ export function CartDropdown() {
       {/* Cart Trigger Button */}
       <Link
         href="/cart"
-        className="group flex items-center gap-2 rounded-xl border border-transparent bg-white/5 px-2 py-2 text-white transition-all duration-200 ease-out hover:border-white/20 hover:bg-white/15 hover:shadow-[0_0_20px_rgba(255,115,0,0.3)] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:px-3"
+        className="group flex items-center gap-2 rounded-xl border border-white/40 bg-[#F5F2EA] px-2 py-2 text-[#1D3160] shadow-sm transition-all duration-200 ease-out hover:bg-white hover:shadow-[0_0_22px_rgba(255,115,0,0.4)] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:px-3"
         aria-label={t('nav.cartAria', { total: formatEuro(cartTotal) })}
       >
-        <span data-cart-icon="true" className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 transition-all duration-200 group-hover:bg-primary/30 group-hover:shadow-[0_0_12px_rgba(255,115,0,0.5)]">
+        <span data-cart-icon="true" className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 transition-all duration-200 group-hover:bg-primary/25 group-hover:shadow-[0_0_12px_rgba(255,115,0,0.5)]">
           <ShoppingCart className="h-5 w-5 text-primary transition-transform duration-200 group-hover:scale-110" strokeWidth={2} />
           {cartCount > 0 && (
             <span
               className={cn(
-                'absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-white px-0.5 text-[9px] font-bold text-primary transition-transform',
+                'absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-bold text-white ring-1 ring-white transition-transform',
                 badgeBounce && 'animate-cart-badge-bounce'
               )}
               aria-hidden
@@ -107,7 +107,7 @@ export function CartDropdown() {
             </span>
           )}
         </span>
-        <span className="hidden text-sm font-medium text-white/90 transition-colors duration-200 group-hover:text-white sm:inline">
+        <span className="hidden text-sm font-semibold text-[#1D3160] transition-colors duration-200 group-hover:text-[#16264d] sm:inline">
           ({formatEuro(cartTotal)})
         </span>
       </Link>

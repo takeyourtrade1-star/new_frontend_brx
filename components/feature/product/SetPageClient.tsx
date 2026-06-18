@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useSetPageCards } from '@/lib/hooks/use-search';
 import { LayoutGrid, LayoutList, Search } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -81,10 +82,6 @@ export function SetPageClient({ game, setName }: SetPageClientProps) {
   const { selectedLang } = useLanguage();
   const { t } = useTranslation();
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [hits, setHits] = useState<SetHit[]>([]);
-
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [searchValue, setSearchValue] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -103,70 +100,12 @@ export function SetPageClient({ game, setName }: SetPageClientProps) {
   const apiGame = game ? BACKEND_GAME_MAP[game] || game : '';
   const safeSetName = setName?.trim() ?? '';
 
-  useEffect(() => {
-    if (!apiGame || !safeSetName) return;
-    let cancelled = false;
-    const run = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const baseParams = new URLSearchParams();
-        const q = debouncedSearch ? debouncedSearch : safeSetName;
-        baseParams.set('q', q);
-        baseParams.set('game', apiGame);
-        baseParams.set('set', safeSetName);
-        baseParams.set('limit', '100');
-        baseParams.set('sort', 'name_asc');
-
-        const firstParams = new URLSearchParams(baseParams);
-        firstParams.set('page', '1');
-
-        const firstRes = await fetch(`/api/search?${firstParams.toString()}`);
-        if (!firstRes.ok) {
-          const j = await firstRes.json().catch(() => ({}));
-          throw new Error(j?.error || j?.detail || `Errore ${firstRes.status}`);
-        }
-
-        const firstJson = (await firstRes.json()) as {
-          hits?: SetHit[];
-          totalPages?: number;
-          total?: number;
-        };
-
-        const totalPages = Math.max(1, Number(firstJson.totalPages ?? 1) || 1);
-        // Per far combaciare i conti delle categorie serve caricare
-        // tutte le pagine (con limit=100 → pagesToLoad = totalPages).
-        const pagesToLoad = debouncedSearch ? Math.min(totalPages, 1) : totalPages;
-
-        const all: SetHit[] = Array.isArray(firstJson.hits) ? firstJson.hits : [];
-
-        for (let page = 2; page <= pagesToLoad; page++) {
-          if (cancelled) return;
-          const params = new URLSearchParams(baseParams);
-          params.set('page', String(page));
-          const res = await fetch(`/api/search?${params.toString()}`);
-          if (!res.ok) continue;
-          const json = (await res.json()) as { hits?: SetHit[] };
-          if (Array.isArray(json.hits)) all.push(...json.hits);
-        }
-
-        if (cancelled) return;
-
-        setHits(all);
-      } catch (e) {
-        if (cancelled) return;
-        setError(e instanceof Error ? e.message : String(e));
-        setHits([]);
-      } finally {
-        if (cancelled) return;
-        setLoading(false);
-      }
-    };
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [apiGame, safeSetName, debouncedSearch]);
+  const {
+    data: hits = [],
+    isLoading: loading,
+    error: queryError,
+  } = useSetPageCards(apiGame, safeSetName, debouncedSearch);
+  const error = queryError instanceof Error ? queryError.message : queryError ? String(queryError) : null;
 
   // Calcoliamo l'altezza reale dell'header (ora fixed) per impostare il top dello sticky.
   useLayoutEffect(() => {

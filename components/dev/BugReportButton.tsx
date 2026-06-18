@@ -109,7 +109,6 @@ export function BugReportButton() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Invio del feedback - in produzione questo chiamerebbe un'API
-    console.log('Bug report:', message);
     setSubmitted(true);
     setTimeout(() => {
       setIsOpen(false);

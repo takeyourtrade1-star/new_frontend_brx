@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { getLoadedDictionary, loadDictionary } from '@/lib/i18n/dictionaries';
+import { isUiLocale } from '@/lib/i18n/locales';
 
 const AVAILABLE_LANGS = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
 const LANGUAGE_STORAGE_KEY = 'ebartex_preferred_language';
@@ -20,6 +22,9 @@ interface LanguageContextValue {
   setSelectedLang: (lang: string) => void;
   availableLangs: readonly string[];
   isLangLoading: boolean;
+  /** Incrementato quando un dizionario lazy finisce di caricare: forza il
+   *  re-render dei consumer (useTranslation) per sostituire il fallback EN. */
+  dictVersion: number;
 }
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
@@ -42,10 +47,34 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
   const [selectedLang, setSelectedLangState] = useState<string>('it');
   const [isLangLoading, setIsLangLoading] = useState(false);
+  const [dictVersion, setDictVersion] = useState(0);
 
   useEffect(() => {
     setSelectedLangState(getInitialLanguage());
   }, []);
+
+  // Carica on-demand il dizionario della lingua attiva se non è già in memoria
+  // (en/it sono nel bundle iniziale; de/es/fr/pt sono lazy). Al termine forza
+  // un re-render così i consumer passano dal fallback EN alla lingua reale.
+  useEffect(() => {
+    if (!isUiLocale(selectedLang)) return;
+    if (getLoadedDictionary(selectedLang)) return;
+
+    let cancelled = false;
+    setIsLangLoading(true);
+    loadDictionary(selectedLang)
+      .then(() => {
+        if (cancelled) return;
+        setDictVersion((v) => v + 1);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLangLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedLang]);
 
   useEffect(() => {
     const pref = user?.preferences?.language;
@@ -75,8 +104,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       setSelectedLang,
       availableLangs: AVAILABLE_LANGS,
       isLangLoading,
+      dictVersion,
     }),
-    [selectedLang, setSelectedLang, isLangLoading]
+    [selectedLang, setSelectedLang, isLangLoading, dictVersion]
   );
 
   return (

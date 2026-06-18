@@ -15,8 +15,10 @@ import {
   LifeBuoy,
   Ban,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { OrderTabs, type OrderTab } from '@/components/feature/ordini/OrderTabs';
+import { ordersWrapperClass } from '@/components/feature/ordini/OrderItemCard';
+import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';
+import { getStoredAsteViewMode, setStoredAsteViewMode, type AsteViewMode } from '@/lib/auction/aste-view-storage';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { useBuyerOrders, useMarkOrderPaid } from '@/lib/hooks/use-orders';
 import {
@@ -179,6 +181,7 @@ export function AcquistiContent() {
   const tabParam = searchParams.get('tab');
 
   const [activeTab, setActiveTab] = useState<TabId>('da-pagare');
+  const [viewMode, setViewMode] = useState<AsteViewMode>('list');
   const [orderToPay, setOrderToPay] = useState<OrderAPI | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [mockOrderToPay, setMockOrderToPay] = useState<MockPurchaseOrder | null>(null);
@@ -226,6 +229,13 @@ export function AcquistiContent() {
     () => mockOrders.filter((o) => o.status === 'paid'),
     [mockOrders],
   );
+
+  useEffect(() => {
+    setViewMode(getStoredAsteViewMode('acquisti', 'list'));
+  }, []);
+  useEffect(() => {
+    setStoredAsteViewMode('acquisti', viewMode);
+  }, [viewMode]);
 
   useEffect(() => {
     if (isValidTabId(tabParam)) {
@@ -323,9 +333,8 @@ export function AcquistiContent() {
 
   const mockSupportTickets = useMockSupportStore((s) => s.tickets);
 
-  const allOrders = allOrdersQuery.data?.data ?? [];
-
   const countsByTab = useMemo<Record<TabId, number>>(() => {
+    const allOrders = allOrdersQuery.data?.data ?? [];
     const counts: Record<TabId, number> = {
       'da-pagare': 0,
       pagato: 0,
@@ -361,7 +370,7 @@ export function AcquistiContent() {
     counts['supporto'] = disputes.length + mockSupportTickets.length;
 
     return counts;
-  }, [allOrders, marketplaceOrders, mockOrders, mockShippingOrders, disputes, mockSupportTickets]);
+  }, [allOrdersQuery.data?.data, marketplaceOrders, mockOrders, mockShippingOrders, disputes, mockSupportTickets]);
 
   const leftTabs = useMemo(
     () => TABS_LEFT.map((tab) => ({ ...tab, count: countsByTab[tab.id] })),
@@ -526,24 +535,27 @@ export function AcquistiContent() {
         <div className="space-y-6">
           <CartPreviewSection key={previewRefreshKey} onOrdersCreated={handlePreviewOrdersCreated} />
           {filteredMockOrders.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <h2 className="text-sm font-bold uppercase tracking-wide text-gray-700">
                 {t('mockCheckout.ordersToPayTitle')}
               </h2>
-              {filteredMockOrders.map((order) => (
-                <MockPurchaseOrderCard
-                  key={order.id}
-                  order={order}
-                  onPay={(o) => setMockOrderToPay(o)}
-                  paying={mockPaying && mockOrderToPay?.id === order.id}
-                />
-              ))}
+              <div className={ordersWrapperClass(viewMode)}>
+                {filteredMockOrders.map((order) => (
+                  <MockPurchaseOrderCard
+                    key={order.id}
+                    order={order}
+                    onPay={(o) => setMockOrderToPay(o)}
+                    paying={mockPaying && mockOrderToPay?.id === order.id}
+                    layout={viewMode}
+                  />
+                ))}
+              </div>
             </div>
           )}
           {filteredMarketplaceOrders.length > 0 && (
-            <div className="space-y-4">
+            <div className={ordersWrapperClass(viewMode)}>
               {filteredMarketplaceOrders.map((order) => (
-                <MarketplaceOrderCard key={order.id} order={order} />
+                <MarketplaceOrderCard key={order.id} order={order} layout={viewMode} />
               ))}
             </div>
           )}
@@ -552,7 +564,7 @@ export function AcquistiContent() {
               <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
             </div>
           ) : orders.length > 0 ? (
-            <div className="space-y-4">
+            <div className={ordersWrapperClass(viewMode)}>
               {orders.map((order) => (
                 <OrderCard
                   key={order.id}
@@ -563,6 +575,7 @@ export function AcquistiContent() {
                     setOrderToPay(o);
                   }}
                   paying={payMutation.isPending && orderToPay?.id === order.id}
+                  layout={viewMode}
                 />
               ))}
             </div>
@@ -595,20 +608,22 @@ export function AcquistiContent() {
       }
       return (
         <div className="space-y-4">
-          {filteredMockOrders.map((order) => (
-            <MockPurchaseOrderCard key={order.id} order={order} />
-          ))}
-          {filteredMarketplaceOrders.map((order) => (
-            <MarketplaceOrderCard key={order.id} order={order} />
-          ))}
-          {ordersQuery.isLoading ? (
+          <div className={ordersWrapperClass(viewMode)}>
+            {filteredMockOrders.map((order) => (
+              <MockPurchaseOrderCard key={order.id} order={order} layout={viewMode} />
+            ))}
+            {filteredMarketplaceOrders.map((order) => (
+              <MarketplaceOrderCard key={order.id} order={order} layout={viewMode} />
+            ))}
+            {!ordersQuery.isLoading &&
+              orders.map((order) => (
+                <OrderCard key={order.id} order={order} perspective="buyer" layout={viewMode} />
+              ))}
+          </div>
+          {ordersQuery.isLoading && (
             <div className="flex min-h-[120px] items-center justify-center border border-gray-200 bg-white">
               <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
             </div>
-          ) : (
-            orders.map((order) => (
-              <OrderCard key={order.id} order={order} perspective="buyer" />
-            ))
           )}
           <p className="text-center text-xs text-gray-500">
             {totalItemsCount} ordin{totalItemsCount === 1 ? 'e' : 'i'} pagati
@@ -629,25 +644,28 @@ export function AcquistiContent() {
       }
       return (
         <div className="space-y-4">
-          {filteredShippingOrders.map((order) => (
-            <MockShippingOrderCard
-              key={order.id}
-              order={order}
-              onReceived={handleShippingReceived}
-              onNotReceived={handleShippingNotReceived}
-            />
-          ))}
-          {filteredMarketplaceOrders.map((order) => (
-            <MarketplaceOrderCard key={order.id} order={order} />
-          ))}
-          {ordersQuery.isLoading ? (
+          <div className={ordersWrapperClass(viewMode)}>
+            {filteredShippingOrders.map((order) => (
+              <MockShippingOrderCard
+                key={order.id}
+                order={order}
+                onReceived={handleShippingReceived}
+                onNotReceived={handleShippingNotReceived}
+                layout={viewMode}
+              />
+            ))}
+            {filteredMarketplaceOrders.map((order) => (
+              <MarketplaceOrderCard key={order.id} order={order} layout={viewMode} />
+            ))}
+            {!ordersQuery.isLoading &&
+              orders.map((order) => (
+                <OrderCard key={order.id} order={order} perspective="buyer" layout={viewMode} />
+              ))}
+          </div>
+          {ordersQuery.isLoading && (
             <div className="flex min-h-[120px] items-center justify-center border border-gray-200 bg-white">
               <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
             </div>
-          ) : (
-            orders.map((order) => (
-              <OrderCard key={order.id} order={order} perspective="buyer" />
-            ))
           )}
           {totalItemsCount > 0 && (
             <p className="text-center text-xs text-gray-500">
@@ -670,20 +688,22 @@ export function AcquistiContent() {
       }
       return (
         <div className="space-y-4">
-          {filteredShippingOrders.map((order) => (
-            <MockShippingOrderCard key={order.id} order={order} />
-          ))}
-          {filteredMarketplaceOrders.map((order) => (
-            <MarketplaceOrderCard key={order.id} order={order} />
-          ))}
-          {ordersQuery.isLoading ? (
+          <div className={ordersWrapperClass(viewMode)}>
+            {filteredShippingOrders.map((order) => (
+              <MockShippingOrderCard key={order.id} order={order} layout={viewMode} />
+            ))}
+            {filteredMarketplaceOrders.map((order) => (
+              <MarketplaceOrderCard key={order.id} order={order} layout={viewMode} />
+            ))}
+            {!ordersQuery.isLoading &&
+              orders.map((order) => (
+                <OrderCard key={order.id} order={order} perspective="buyer" layout={viewMode} />
+              ))}
+          </div>
+          {ordersQuery.isLoading && (
             <div className="flex min-h-[120px] items-center justify-center border border-gray-200 bg-white">
               <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
             </div>
-          ) : (
-            orders.map((order) => (
-              <OrderCard key={order.id} order={order} perspective="buyer" />
-            ))
           )}
           {totalItemsCount > 0 && (
             <p className="text-center text-xs text-gray-500">
@@ -706,15 +726,17 @@ export function AcquistiContent() {
 
     return (
       <div className="space-y-4">
-        {filteredMockOrders.map((order) => (
-          <MockPurchaseOrderCard key={order.id} order={order} />
-        ))}
-        {filteredMarketplaceOrders.map((order) => (
-          <MarketplaceOrderCard key={order.id} order={order} />
-        ))}
-        {orders.map((order) => (
-          <OrderCard key={order.id} order={order} perspective="buyer" />
-        ))}
+        <div className={ordersWrapperClass(viewMode)}>
+          {filteredMockOrders.map((order) => (
+            <MockPurchaseOrderCard key={order.id} order={order} layout={viewMode} />
+          ))}
+          {filteredMarketplaceOrders.map((order) => (
+            <MarketplaceOrderCard key={order.id} order={order} layout={viewMode} />
+          ))}
+          {orders.map((order) => (
+            <OrderCard key={order.id} order={order} perspective="buyer" layout={viewMode} />
+          ))}
+        </div>
         <p className="text-center text-xs text-gray-500">
           {totalItemsCount} ordin{totalItemsCount === 1 ? 'e' : 'i'} totali
         </p>
@@ -813,6 +835,18 @@ export function AcquistiContent() {
           activeTab={activeTab}
           onChange={setActiveTab}
         />
+
+        {!isSupportoTab && (
+          <div className="mb-3 mt-4 flex items-center justify-end">
+            <AuctionViewToggle
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              listLabel="Lista"
+              gridLabel="Griglia"
+              variant="compact"
+            />
+          </div>
+        )}
 
         {isSupportoTab ? renderSupportContent() : renderOrdersContent()}
       </div>

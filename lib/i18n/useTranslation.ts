@@ -6,11 +6,12 @@ import { getMessage } from './getMessage';
 import type { MessageKey } from './messages/en';
 
 export function useTranslation() {
-  const { selectedLang } = useLanguage();
+  const { selectedLang, dictVersion } = useLanguage();
 
   const t = useCallback(
     (key: MessageKey, vars?: Record<string, string | number>) => getMessage(selectedLang, key, vars),
-    [selectedLang]
+    // dictVersion forza un nuovo `t` quando un dizionario lazy finisce di caricare.
+    [selectedLang, dictVersion]
   );
 
   return { t, locale: selectedLang };
