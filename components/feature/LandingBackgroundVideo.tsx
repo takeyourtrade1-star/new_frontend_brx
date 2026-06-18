@@ -11,13 +11,18 @@ const PLAYBACK_RATE = 1.12;
 
 type LandingBackgroundVideoProps = {
   className?: string;
+  /** Sfondo solo sulla metà sinistra su desktop (layout auth split). */
+  splitLeft?: boolean;
 };
 
 /**
  * Sfondo video landing: preload, fade-in su canplay, niente transform su scroll
  * (il parallax sulla <video> causava scatti e repaint continui).
  */
-export function LandingBackgroundVideo({ className }: LandingBackgroundVideoProps) {
+export function LandingBackgroundVideo({
+  className,
+  splitLeft = false,
+}: LandingBackgroundVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -77,7 +82,10 @@ export function LandingBackgroundVideo({ className }: LandingBackgroundVideoProp
   return (
     <div
       className={cn(
-        'pointer-events-none fixed inset-0 z-0 h-[100dvh] w-full overflow-hidden',
+        'pointer-events-none overflow-hidden',
+        splitLeft
+          ? 'absolute inset-0 z-0 lg:right-1/2'
+          : 'fixed inset-0 z-0 h-[100dvh] w-full',
         className
       )}
       aria-hidden

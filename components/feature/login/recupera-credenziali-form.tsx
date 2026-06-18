@@ -18,11 +18,14 @@ import {
   passwordResetVerifyOtp2Schema,
 } from '@/lib/validations/auth';
 
-const appleInputClass =
-  'h-[52px] w-full rounded-2xl border border-black/10 bg-black/5 px-4 text-[15px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/20 transition-all';
-
-const appleButtonClass =
-  'w-full rounded-full bg-[#1d1d1f] py-3.5 text-[15px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100';
+import {
+  AUTH_SPLIT_INPUT_CLASS,
+  AUTH_SPLIT_BUTTON_CLASS,
+  AUTH_SPLIT_ERROR_CLASS,
+  AUTH_SPLIT_FORM_CLASS,
+  AUTH_SPLIT_MUTED_CLASS,
+  AUTH_ERROR_CLASS,
+} from '@/components/auth/ui';
 
 export function RecuperaCredenzialiForm() {
   const { t } = useTranslation();
@@ -47,7 +50,7 @@ export function RecuperaCredenzialiForm() {
     if (step === 'completed') {
       const timer = setTimeout(() => {
         resetFlow();
-        router.push('/login?accesso=1');
+        router.push('/login');
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -108,7 +111,7 @@ export function RecuperaCredenzialiForm() {
   // ── Error display helper ──
   function ErrorBlock({ messageKey }: { messageKey: string }) {
     return (
-      <div className="rounded-2xl bg-red-50 border border-red-100 p-3.5 flex items-center gap-2.5">
+      <div className={AUTH_ERROR_CLASS}>
         <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
         <p className="text-[13px] text-red-600">{t(messageKey as any)}</p>
       </div>
@@ -118,20 +121,20 @@ export function RecuperaCredenzialiForm() {
   // ── Completed ──
   if (step === 'completed') {
     return (
-      <div className="flex flex-col items-center gap-5 py-4 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#1d1d1f]/5">
-          <CheckCircle className="h-8 w-8 text-[#1d1d1f]" strokeWidth={1.5} />
+      <div className="space-y-3.5 text-left">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1d1d1f]/5">
+          <CheckCircle className="h-6 w-6 text-[#1d1d1f]" strokeWidth={1.5} />
         </div>
         <div className="space-y-1">
-          <p className="text-[17px] font-semibold text-[#1d1d1f]">{t('passwordReset.successTitle')}</p>
-          <p className="text-[14px] text-[#86868b]">{t('passwordReset.successMessage')}</p>
+          <p className="text-[16px] font-semibold text-[#1d1d1f]">{t('passwordReset.successTitle')}</p>
+          <p className={AUTH_SPLIT_MUTED_CLASS}>{t('passwordReset.successMessage')}</p>
         </div>
         <button
           onClick={() => {
             resetFlow();
-            router.push('/login?accesso=1');
+            router.push('/login');
           }}
-          className="mt-2 rounded-full bg-[#1d1d1f] px-8 py-3 text-[15px] font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
+          className={`${AUTH_SPLIT_BUTTON_CLASS} w-auto self-start px-6`}
         >
           {t('passwordReset.backLogin')}
         </button>
@@ -142,19 +145,19 @@ export function RecuperaCredenzialiForm() {
   // ── Error ──
   if (step === 'error') {
     return (
-      <div className="flex flex-col items-center gap-5 py-4 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
-          <AlertCircle className="h-8 w-8 text-red-500" strokeWidth={1.5} />
+      <div className="space-y-3.5 text-left">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+          <AlertCircle className="h-6 w-6 text-red-500" strokeWidth={1.5} />
         </div>
         <div className="space-y-1">
-          <p className="text-[17px] font-semibold text-[#1d1d1f]">{t('errors.titles.generic')}</p>
-          <p className="text-[14px] text-[#86868b]">
+          <p className="text-[16px] font-semibold text-[#1d1d1f]">{t('errors.titles.generic')}</p>
+          <p className={AUTH_SPLIT_MUTED_CLASS}>
             {error ? t(error.message as any) : t('passwordReset.errorGeneric')}
           </p>
         </div>
         <button
           onClick={resetFlow}
-          className="mt-2 rounded-full bg-[#1d1d1f] px-8 py-3 text-[15px] font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
+          className={`${AUTH_SPLIT_BUTTON_CLASS} w-auto self-start px-6`}
         >
           {t('passwordReset.restartFlow')}
         </button>
@@ -163,27 +166,27 @@ export function RecuperaCredenzialiForm() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={AUTH_SPLIT_FORM_CLASS}>
       {/* Step 1 — Email */}
       {step === 'idle' && (
-        <form onSubmit={emailForm.handleSubmit(onSubmitEmail)} className="space-y-4">
+        <form onSubmit={emailForm.handleSubmit(onSubmitEmail)} className={AUTH_SPLIT_FORM_CLASS}>
           <div>
             <input
               type="email"
               autoComplete="email"
               placeholder={t('loginForm.email')}
-              className={appleInputClass}
+              className={AUTH_SPLIT_INPUT_CLASS}
               {...emailForm.register('email')}
             />
             {emailForm.formState.errors.email && (
-              <p className="mt-1.5 pl-1 text-[12px] text-red-500">
+              <p className={AUTH_SPLIT_ERROR_CLASS}>
                 {translateZodMessage(emailForm.formState.errors.email.message, t)}
               </p>
             )}
           </div>
-          <p className="text-[13px] leading-relaxed text-[#86868b]">{t('passwordReset.step1Subtitle')}</p>
-          <div className="pt-2">
-            <button type="submit" disabled={isLoading} className={appleButtonClass}>
+          <p className={AUTH_SPLIT_MUTED_CLASS}>{t('passwordReset.step1Subtitle')}</p>
+          <div className="pt-1">
+            <button type="submit" disabled={isLoading} className={AUTH_SPLIT_BUTTON_CLASS}>
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -199,14 +202,14 @@ export function RecuperaCredenzialiForm() {
 
       {/* Step 2 — OTP1 */}
       {step === 'otp1_requested' && (
-        <form onSubmit={otp1Form.handleSubmit(onSubmitOtp1)} className="space-y-4">
+        <form onSubmit={otp1Form.handleSubmit(onSubmitOtp1)} className={AUTH_SPLIT_FORM_CLASS}>
           <div>
             <input
               type="text"
               autoComplete="off"
               maxLength={8}
               placeholder={t('passwordReset.step2Placeholder')}
-              className={appleInputClass}
+              className={AUTH_SPLIT_INPUT_CLASS}
               {...otp1Form.register('code')}
               onChange={(e) => {
                 const v = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8);
@@ -214,13 +217,13 @@ export function RecuperaCredenzialiForm() {
               }}
             />
             {otp1Form.formState.errors.code && (
-              <p className="mt-1.5 pl-1 text-[12px] text-red-500">
+              <p className={AUTH_SPLIT_ERROR_CLASS}>
                 {translateZodMessage(otp1Form.formState.errors.code.message, t)}
               </p>
             )}
           </div>
 
-          <div className="flex items-center justify-between text-[13px] text-[#86868b]">
+          <div className={`flex items-center justify-between ${AUTH_SPLIT_MUTED_CLASS}`}>
             <span>{t('passwordReset.step2Subtitle')}</span>
             {expiresAt && (
               <span className={isExpired ? 'text-red-500 font-medium' : 'tabular-nums'}>
@@ -232,14 +235,14 @@ export function RecuperaCredenzialiForm() {
           </div>
 
           {isExpired && (
-            <button type="button" onClick={resetFlow} className={appleButtonClass}>
+            <button type="button" onClick={resetFlow} className={AUTH_SPLIT_BUTTON_CLASS}>
               {t('passwordReset.restartFlow')}
             </button>
           )}
 
           {!isExpired && (
-            <div className="pt-2">
-              <button type="submit" disabled={isLoading} className={appleButtonClass}>
+            <div className="pt-1">
+              <button type="submit" disabled={isLoading} className={AUTH_SPLIT_BUTTON_CLASS}>
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -256,14 +259,14 @@ export function RecuperaCredenzialiForm() {
 
       {/* Step 3 — New Password */}
       {step === 'otp1_verified' && (
-        <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-4">
+        <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className={AUTH_SPLIT_FORM_CLASS}>
           <div className="space-y-3">
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="new-password"
                 placeholder={t('passwordReset.newPasswordLabel')}
-                className={appleInputClass + ' pr-12'}
+                className={`${AUTH_SPLIT_INPUT_CLASS} pr-12`}
                 {...passwordForm.register('new_password')}
               />
               <button
@@ -276,7 +279,7 @@ export function RecuperaCredenzialiForm() {
               </button>
             </div>
             {passwordForm.formState.errors.new_password && (
-              <p className="mt-1 pl-1 text-[12px] text-red-500">
+              <p className={AUTH_SPLIT_ERROR_CLASS}>
                 {translateZodMessage(passwordForm.formState.errors.new_password.message, t)}
               </p>
             )}
@@ -286,7 +289,7 @@ export function RecuperaCredenzialiForm() {
                 type={showConfirm ? 'text' : 'password'}
                 autoComplete="new-password"
                 placeholder={t('passwordReset.confirmPasswordLabel')}
-                className={appleInputClass + ' pr-12'}
+                className={`${AUTH_SPLIT_INPUT_CLASS} pr-12`}
                 {...passwordForm.register('confirm_password')}
               />
               <button
@@ -299,15 +302,15 @@ export function RecuperaCredenzialiForm() {
               </button>
             </div>
             {passwordForm.formState.errors.confirm_password && (
-              <p className="mt-1 pl-1 text-[12px] text-red-500">
+              <p className={AUTH_SPLIT_ERROR_CLASS}>
                 {translateZodMessage(passwordForm.formState.errors.confirm_password.message, t)}
               </p>
             )}
           </div>
 
-          <p className="text-[13px] leading-relaxed text-[#86868b]">{t('passwordReset.passwordHint')}</p>
+          <p className={AUTH_SPLIT_MUTED_CLASS}>{t('passwordReset.passwordHint')}</p>
 
-          <div className="flex items-center justify-between text-[13px] text-[#86868b]">
+          <div className={`flex items-center justify-between ${AUTH_SPLIT_MUTED_CLASS}`}>
             {expiresAt && (
               <span className={isExpired ? 'text-red-500 font-medium' : 'tabular-nums'}>
                 {isExpired
@@ -318,12 +321,12 @@ export function RecuperaCredenzialiForm() {
           </div>
 
           {isExpired ? (
-            <button type="button" onClick={resetFlow} className={appleButtonClass}>
+            <button type="button" onClick={resetFlow} className={AUTH_SPLIT_BUTTON_CLASS}>
               {t('passwordReset.restartFlow')}
             </button>
           ) : (
-            <div className="pt-2">
-              <button type="submit" disabled={isLoading} className={appleButtonClass}>
+            <div className="pt-1">
+              <button type="submit" disabled={isLoading} className={AUTH_SPLIT_BUTTON_CLASS}>
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -340,7 +343,7 @@ export function RecuperaCredenzialiForm() {
 
       {/* Step 4 — OTP2 */}
       {step === 'otp2_requested' && (
-        <form onSubmit={otp2Form.handleSubmit(onSubmitOtp2)} className="space-y-4">
+        <form onSubmit={otp2Form.handleSubmit(onSubmitOtp2)} className={AUTH_SPLIT_FORM_CLASS}>
           <OtpSixBoxes
             value={otp2Form.watch('code')}
             onChange={(v) => otp2Form.setValue('code', v, { shouldValidate: true })}
@@ -349,7 +352,7 @@ export function RecuperaCredenzialiForm() {
             ariaLabelPrefix={t('mfa.digitAria').replace('{n}', '').trim()}
           />
 
-          <div className="flex items-center justify-between text-[13px] text-[#86868b]">
+          <div className={`flex items-center justify-between ${AUTH_SPLIT_MUTED_CLASS}`}>
             <span>{t('passwordReset.step4Subtitle')}</span>
             {expiresAt && (
               <span className={isExpired ? 'text-red-500 font-medium' : 'tabular-nums'}>
@@ -361,12 +364,12 @@ export function RecuperaCredenzialiForm() {
           </div>
 
           {isExpired ? (
-            <button type="button" onClick={resetFlow} className={appleButtonClass}>
+            <button type="button" onClick={resetFlow} className={AUTH_SPLIT_BUTTON_CLASS}>
               {t('passwordReset.restartFlow')}
             </button>
           ) : (
-            <div className="pt-2">
-              <button type="submit" disabled={isLoading} className={appleButtonClass}>
+            <div className="pt-1">
+              <button type="submit" disabled={isLoading} className={AUTH_SPLIT_BUTTON_CLASS}>
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />

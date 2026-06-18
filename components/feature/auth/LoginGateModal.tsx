@@ -24,6 +24,8 @@ import {
   useVerifyLoginCode,
 } from '@/lib/hooks/use-auth';
 import { parseAuthError } from '@/lib/api/auth-error';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import { AUTH_INPUT_CLASS, AUTH_LINK_CLASS, AUTH_PRIMARY_BUTTON_CLASS } from '@/components/auth/ui/auth-styles';
 
 type Step = 'email' | 'password' | 'code';
 
@@ -41,17 +43,17 @@ export interface LoginGateModalProps {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const inputBase =
-  'h-[52px] w-full rounded-2xl border border-black/10 bg-black/5 px-4 text-[15px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-[#0066cc] focus:ring-2 focus:ring-[#0066cc]/20 transition-all disabled:opacity-50';
+const inputBase = AUTH_INPUT_CLASS;
 
 export function LoginGateModal({
   open,
   onClose,
   onSuccess,
   returnTo,
-  title = 'Accedi o registrati per offrire',
-  subtitle = 'Bastano pochi secondi per partecipare all\u2019asta.',
+  title,
+  subtitle,
 }: LoginGateModalProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const loginMutation = useLogin();
   const requestCodeMutation = useRequestLoginCode();
@@ -138,15 +140,18 @@ export function LoginGateModal({
   const isValidEmail = EMAIL_REGEX.test(normalizedEmail);
   const hasIdentifier = trimmedIdentifier.length > 0;
 
+  const resolvedTitle = title ?? t('loginGate.title');
+  const resolvedSubtitle = subtitle ?? t('loginGate.subtitle');
+
   const goLogin = useCallback(() => {
     if (!hasIdentifier) {
-      setEmailError('Inserisci email o username.');
+      setEmailError(t('loginGate.emailRequired'));
       return;
     }
     setEmailError(null);
     setError(null);
     setStep('password');
-  }, [hasIdentifier]);
+  }, [hasIdentifier, t]);
 
   const goRegister = useCallback(() => {
     const url = new URL('/registrati', window.location.origin);
@@ -160,7 +165,7 @@ export function LoginGateModal({
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (!password) {
-        setError('Inserisci la password.');
+        setError(t('loginGate.passwordRequired'));
         return;
       }
       setError(null);
@@ -180,12 +185,12 @@ export function LoginGateModal({
         setError(parseAuthError(err).message);
       }
     },
-    [password, isValidEmail, normalizedEmail, trimmedIdentifier, loginMutation, onClose, onSuccess, router]
+    [password, isValidEmail, normalizedEmail, trimmedIdentifier, loginMutation, onClose, onSuccess, router, t]
   );
 
   const requestCode = useCallback(async () => {
     if (!isValidEmail) {
-      setError('Per il codice monouso inserisci un indirizzo email valido.');
+      setError(t('loginGate.codeEmailRequired'));
       return;
     }
     setError(null);
@@ -197,7 +202,7 @@ export function LoginGateModal({
     } catch (err) {
       setError(parseAuthError(err).message);
     }
-  }, [isValidEmail, normalizedEmail, requestCodeMutation]);
+  }, [isValidEmail, normalizedEmail, requestCodeMutation, t]);
 
   const verifyCode = useCallback(
     async (value: string) => {
@@ -224,7 +229,7 @@ export function LoginGateModal({
   const resendCode = useCallback(async () => {
     if (countdown > 0) return;
     if (!isValidEmail) {
-      setError('Per il codice monouso inserisci un indirizzo email valido.');
+      setError(t('loginGate.codeEmailRequired'));
       return;
     }
     setError(null);
@@ -234,7 +239,7 @@ export function LoginGateModal({
     } catch (err) {
       setError(parseAuthError(err).message);
     }
-  }, [isValidEmail, normalizedEmail, requestCodeMutation, countdown]);
+  }, [isValidEmail, normalizedEmail, requestCodeMutation, countdown, t]);
 
   if (!open) return null;
 
@@ -258,7 +263,7 @@ export function LoginGateModal({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Chiudi"
+          aria-label={t('loginGate.closeAria')}
           className="absolute right-4 top-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full text-[#86868b] transition hover:bg-black/5 hover:text-[#1d1d1f]"
         >
           <X className="h-4 w-4" />
@@ -275,10 +280,10 @@ export function LoginGateModal({
                   id="login-gate-title"
                   className="text-[20px] font-bold tracking-tight text-[#1d1d1f] sm:text-[22px]"
                 >
-                  {title}
+                  {resolvedTitle}
                 </h2>
                 <p className="mt-1.5 text-[13px] leading-[1.45] text-[#86868b]">
-                  {subtitle}
+                  {resolvedSubtitle}
                 </p>
               </div>
 
@@ -286,7 +291,7 @@ export function LoginGateModal({
                 htmlFor="login-gate-email"
                 className="mb-1.5 pl-1 text-[12px] font-semibold uppercase tracking-wide text-[#86868b]"
               >
-                Email o username
+                {t('loginGate.emailLabel')}
               </label>
               <input
                 ref={emailInputRef}
@@ -294,7 +299,7 @@ export function LoginGateModal({
                 type="text"
                 inputMode="email"
                 autoComplete="username"
-                placeholder="Email o username"
+                placeholder={t('loginGate.emailPlaceholder')}
                 value={identifier}
                 onChange={(e) => {
                   setIdentifier(e.target.value);
@@ -318,22 +323,21 @@ export function LoginGateModal({
                   onClick={goRegister}
                   className="rounded-full border border-black/10 bg-white px-4 py-3.5 text-[14px] font-semibold text-[#1d1d1f] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:bg-gray-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Registrati
+                  {t('loginGate.register')}
                 </button>
                 <button
                   type="button"
                   onClick={goLogin}
                   disabled={!hasIdentifier}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[#1d1d1f] px-4 py-3.5 text-[14px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-full bg-gradient-global px-4 py-3.5 text-[14px] font-semibold text-white shadow-[0_4px_14px_rgba(61,101,198,0.35)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                 >
-                  Accedi
+                  {t('loginGate.login')}
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
 
               <p className="mt-5 text-center text-[11.5px] leading-[1.5] text-[#86868b]">
-                Continuando accetti i Termini di Servizio e la Privacy Policy di
-                Ebartex.
+                {t('loginGate.termsNote')}
               </p>
             </div>
           )}
@@ -349,7 +353,7 @@ export function LoginGateModal({
                 className="mb-4 inline-flex w-fit items-center gap-1 text-[12.5px] font-medium text-[#86868b] transition hover:text-[#1d1d1f]"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                Indietro
+                {t('auth.back')}
               </button>
 
               <div className="mb-5 flex flex-col items-center text-center">
@@ -357,10 +361,10 @@ export function LoginGateModal({
                   <Lock className="h-5 w-5" strokeWidth={1.8} />
                 </div>
                 <h2 className="text-[19px] font-bold tracking-tight text-[#1d1d1f] sm:text-[21px]">
-                  Bentornato
+                  {t('loginGate.welcomeBack')}
                 </h2>
                 <p className="mt-1.5 text-[13px] leading-[1.45] text-[#86868b]">
-                  Inserisci la password di{' '}
+                  {t('loginGate.passwordFor')}{' '}
                   <span className="font-semibold text-[#1d1d1f]">
                     {isValidEmail ? normalizedEmail : trimmedIdentifier}
                   </span>
@@ -371,14 +375,14 @@ export function LoginGateModal({
                 htmlFor="login-gate-password"
                 className="mb-1.5 pl-1 text-[12px] font-semibold uppercase tracking-wide text-[#86868b]"
               >
-                Password
+                {t('loginGate.passwordLabel')}
               </label>
               <input
                 ref={passwordInputRef}
                 id="login-gate-password"
                 type="password"
                 autoComplete="current-password"
-                placeholder="Inserisci la password"
+                placeholder={t('loginGate.passwordPlaceholder')}
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -398,15 +402,15 @@ export function LoginGateModal({
               <button
                 type="submit"
                 disabled={isLoginPending || !password}
-                className="mt-5 w-full rounded-full bg-[#1d1d1f] py-3.5 text-[15px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                className={`mt-5 ${AUTH_PRIMARY_BUTTON_CLASS}`}
               >
-                {isLoginPending ? 'Accesso in corso\u2026' : 'Accedi'}
+                {isLoginPending ? t('loginGate.loggingIn') : t('loginGate.login')}
               </button>
 
               <div className="mt-4 flex items-center gap-3">
                 <span className="h-px flex-1 bg-black/8" />
                 <span className="text-[10.5px] font-medium uppercase tracking-[0.15em] text-[#86868b]">
-                  oppure
+                  {t('loginGate.or')}
                 </span>
                 <span className="h-px flex-1 bg-black/8" />
               </div>
@@ -418,17 +422,12 @@ export function LoginGateModal({
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-black/10 bg-white py-3 text-[14px] font-semibold text-[#1d1d1f] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:bg-gray-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <KeyRound className="h-4 w-4" />
-                {isRequestPending
-                  ? 'Invio codice\u2026'
-                  : 'Accedi con codice monouso'}
+                {isRequestPending ? t('loginGate.sendingCode') : t('loginGate.loginWithCode')}
               </button>
 
               <p className="mt-4 text-center text-[12.5px] text-[#515154]">
-                <a
-                  href="/recupera-credenziali"
-                  className="font-medium text-[#0066cc] hover:underline"
-                >
-                  Password dimenticata?
+                <a href="/recupera-credenziali" className={AUTH_LINK_CLASS}>
+                  {t('loginGate.forgotPassword')}
                 </a>
               </p>
             </form>
@@ -446,7 +445,7 @@ export function LoginGateModal({
                 className="mb-4 inline-flex w-fit items-center gap-1 text-[12.5px] font-medium text-[#86868b] transition hover:text-[#1d1d1f]"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                Indietro
+                {t('auth.back')}
               </button>
 
               <div className="mb-5 flex flex-col items-center text-center">
@@ -454,10 +453,10 @@ export function LoginGateModal({
                   <Mail className="h-5 w-5" strokeWidth={1.8} />
                 </div>
                 <h2 className="text-[19px] font-bold tracking-tight text-[#1d1d1f] sm:text-[21px]">
-                  Controlla la tua email
+                  {t('loginGate.checkEmail')}
                 </h2>
                 <p className="mt-1.5 text-[13px] leading-[1.45] text-[#86868b]">
-                  Abbiamo inviato un codice a 8 caratteri a{' '}
+                  {t('loginGate.codeSentTo')}{' '}
                   <span className="font-semibold text-[#1d1d1f]">
                     {normalizedEmail}
                   </span>
@@ -482,17 +481,17 @@ export function LoginGateModal({
 
               <p className="mt-4 text-center text-[12px] text-[#86868b]">
                 {countdown > 0
-                  ? `Reinvia disponibile tra ${formattedCountdown}`
-                  : 'Non hai ricevuto il codice?'}
+                  ? t('loginGate.resendAvailable', { time: formattedCountdown })
+                  : t('loginGate.resendHint')}
               </p>
 
               <button
                 type="button"
                 onClick={resendCode}
                 disabled={isRequestPending || countdown > 0}
-                className="mt-1 text-center text-[13px] font-medium text-[#0066cc] hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:no-underline"
+                className={`mt-1 text-center text-[13px] font-medium ${AUTH_LINK_CLASS} disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:no-underline`}
               >
-                Reinvia codice
+                {t('loginGate.resendCode')}
               </button>
 
               <button
@@ -501,9 +500,9 @@ export function LoginGateModal({
                   if (code.length === 8) verifyCode(code);
                 }}
                 disabled={isVerifyPending || code.length !== 8}
-                className="mt-5 w-full rounded-full bg-[#1d1d1f] py-3.5 text-[15px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                className={`mt-5 ${AUTH_PRIMARY_BUTTON_CLASS}`}
               >
-                {isVerifyPending ? 'Accesso in corso\u2026' : 'Accedi'}
+                {isVerifyPending ? t('loginGate.loggingIn') : t('loginGate.login')}
               </button>
             </div>
           )}

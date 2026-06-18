@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { AuthSubmitButton, AuthRequiredLegend, AUTH_SPLIT_LABEL_CLASS, AUTH_REQUIRED_MARKER_CLASS, AUTH_SPLIT_FLOATING_INPUT_CLASS, AUTH_SPLIT_ERROR_CLASS, AUTH_SPLIT_FORM_CLASS } from '@/components/auth/ui';
 import { FloatingLabelField } from '@/components/ui/floating-label-field';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import {
@@ -15,9 +15,8 @@ import {
   COUNTRIES,
 } from '@/lib/registrati/schema';
 import type { RegisterDemoValues } from '@/lib/registrati/schema';
-import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { FlagIcon, CountrySelect, type CountryOption } from '@/lib/auction/country-flag';
+import { CountrySelect, type CountryOption } from '@/lib/auction/country-flag';
 import { useUserCountry } from '@/lib/hooks/use-user-country';
 import { RegistrationLegalCheckboxes } from '@/components/legal/RegistrationLegalCheckboxes';
 
@@ -182,6 +181,8 @@ export function RegistratiDemoForm() {
     }
   }, [isAuthenticated, flashMessage, router, safeReturnTo]);
 
+  const fieldInputClass = AUTH_SPLIT_FLOATING_INPUT_CLASS;
+
   const onSubmit = async (values: RegisterDemoValues) => {
     clearError();
     try {
@@ -194,7 +195,7 @@ export function RegistratiDemoForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} className={AUTH_SPLIT_FORM_CLASS}>
       {/* Honeypot: nascosto, valore vuoto (anti-bot) */}
       <div className="absolute -left-[9999px] top-0 h-0 w-0 overflow-hidden" aria-hidden>
         <label htmlFor="website_url_reg_demo">Lascia vuoto</label>
@@ -207,6 +208,8 @@ export function RegistratiDemoForm() {
         />
       </div>
 
+      <AuthRequiredLegend />
+
       <div>
         <FloatingLabelField
           label={t('registerForm.usernameLabel')}
@@ -214,12 +217,13 @@ export function RegistratiDemoForm() {
           type="text"
           value={watch('username')}
           floatingLabelBg="rgba(255,255,255,0.75)"
-          inputClassName="h-14 pt-7 text-base bg-black/5 border border-black/10 focus-visible:bg-white focus-visible:border-[#0066cc] focus-visible:ring-4 focus-visible:ring-[#0066cc]/20 transition-all"
+          inputClassName={fieldInputClass}
           autoComplete="username"
+          required
           {...register('username')}
         />
         {errors.username && (
-          <p className="mt-1 text-sm text-red-500">{String(errors.username.message ?? '')}</p>
+          <p className={AUTH_SPLIT_ERROR_CLASS}>{String(errors.username.message ?? '')}</p>
         )}
       </div>
 
@@ -230,12 +234,13 @@ export function RegistratiDemoForm() {
           type="email"
           value={watch('email')}
           floatingLabelBg="rgba(255,255,255,0.75)"
-          inputClassName="h-14 pt-7 text-base bg-black/5 border border-black/10 focus-visible:bg-white focus-visible:border-[#0066cc] focus-visible:ring-4 focus-visible:ring-[#0066cc]/20 transition-all"
+          inputClassName={fieldInputClass}
           autoComplete="email"
+          required
           {...register('email')}
         />
         {errors.email && (
-          <p className="mt-1 text-sm text-red-500">{String(errors.email.message ?? '')}</p>
+          <p className={AUTH_SPLIT_ERROR_CLASS}>{String(errors.email.message ?? '')}</p>
         )}
       </div>
 
@@ -246,8 +251,9 @@ export function RegistratiDemoForm() {
           type={showPassword ? 'text' : 'password'}
           value={watch('password')}
           floatingLabelBg="rgba(255,255,255,0.75)"
-          inputClassName="h-14 pt-7 text-base pr-10 bg-black/5 border border-black/10 focus-visible:bg-white focus-visible:border-[#0066cc] focus-visible:ring-4 focus-visible:ring-[#0066cc]/20 transition-all"
+          inputClassName={`${fieldInputClass} pr-10`}
           autoComplete="new-password"
+          required
           {...register('password')}
         />
         <button
@@ -259,12 +265,12 @@ export function RegistratiDemoForm() {
           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
         </button>
         {errors.password && (
-          <p className="mt-1 text-sm text-red-500">{String(errors.password.message ?? '')}</p>
+          <p className={AUTH_SPLIT_ERROR_CLASS}>{String(errors.password.message ?? '')}</p>
         )}
       </div>
 
       <div className="flex gap-2">
-        <div className="w-28 shrink-0">
+        <div className="w-[6.5rem] min-w-[6.5rem] shrink-0">
           <Controller
             name="phone_prefix"
             control={control}
@@ -273,7 +279,8 @@ export function RegistratiDemoForm() {
                 options={prefixOptions}
                 value={field.value}
                 onChange={field.onChange}
-                size="md"
+                size="sm"
+                variant="prefix"
               />
             )}
           />
@@ -285,17 +292,24 @@ export function RegistratiDemoForm() {
             type="tel"
             value={watch('phone')}
             floatingLabelBg="rgba(255,255,255,0.75)"
-            inputClassName="h-14 pt-7 text-base bg-black/5 border border-black/10 focus-visible:bg-white focus-visible:border-[#0066cc] focus-visible:ring-4 focus-visible:ring-[#0066cc]/20 transition-all"
+            inputClassName={fieldInputClass}
             autoComplete="tel-national"
+            required
             {...register('phone')}
           />
           {errors.phone && (
-            <p className="mt-1 text-sm text-red-500">{String(errors.phone.message ?? '')}</p>
+            <p className={AUTH_SPLIT_ERROR_CLASS}>{String(errors.phone.message ?? '')}</p>
           )}
         </div>
       </div>
 
       <div>
+        <label className={AUTH_SPLIT_LABEL_CLASS}>
+          {t('registerForm.countryLabel')}
+          <span className={AUTH_REQUIRED_MARKER_CLASS} aria-hidden>
+            *
+          </span>
+        </label>
         <Controller
           name="country"
           control={control}
@@ -307,34 +321,35 @@ export function RegistratiDemoForm() {
                 countryManuallyEditedRef.current = true;
                 field.onChange(val);
               }}
-              placeholder={t('registerForm.countryLabel')}
-              size="md"
+              placeholder={t('registerForm.countryPlaceholder')}
+              size="sm"
             />
           )}
         />
         {errors.country && (
-          <p className="mt-1 text-sm text-red-500">{String(errors.country.message ?? '')}</p>
+          <p className={AUTH_SPLIT_ERROR_CLASS}>{String(errors.country.message ?? '')}</p>
         )}
       </div>
 
       <RegistrationLegalCheckboxes
         register={register}
         errors={errors}
-        textClassName="pt-0.5 text-sm text-gray-700"
+        textClassName="pt-0.5 text-[13px] leading-snug text-[#515154]"
       />
 
       {error && (
-        <p className="text-sm text-red-500">{error}</p>
+        <p className={AUTH_SPLIT_ERROR_CLASS}>{error}</p>
       )}
 
-      <div className="pt-4 flex justify-center">
-        <Button
-          type="submit"
+      <div className="pt-1">
+        <AuthSubmitButton
+          variant="split"
           disabled={isLoading}
-          className="w-full h-[52px] rounded-full bg-[#1d1d1f] hover:bg-black text-[15px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          loading={isLoading}
+          loadingText={t('registerForm.registrationLoading')}
         >
-          {isLoading ? t('registerForm.registrationLoading') : t('auth.register')}
-        </Button>
+          {t('auth.register')}
+        </AuthSubmitButton>
       </div>
     </form>
   );

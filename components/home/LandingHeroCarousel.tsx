@@ -6,6 +6,7 @@ import { ArrowRight, Trophy, Zap } from 'lucide-react';
 import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { getTournamentsPortalUrl, TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
+import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   motionVariants,
@@ -172,10 +173,12 @@ function FeatureSlide({
   slide,
   direction,
   reduced,
+  informative = false,
 }: {
   slide: SlideConfig;
   direction: number;
   reduced: boolean;
+  informative?: boolean;
 }) {
   const variants = reduced ? slideReducedVariants : slideVariants;
   const { Icon } = slide;
@@ -189,19 +192,20 @@ function FeatureSlide({
       exit="exit"
       className="absolute inset-0 flex flex-col p-4 sm:p-5 md:p-6 group/card"
     >
-      {slide.external ? (
-        <a
-          {...TOURNAMENTS_PORTAL_LINK_PROPS}
-          className="absolute inset-0 z-10 rounded-2xl"
-          aria-label={slide.ariaLabel}
-        />
-      ) : (
-        <Link
-          href={slide.href}
-          className="absolute inset-0 z-10 rounded-2xl"
-          aria-label={slide.ariaLabel}
-        />
-      )}
+      {!informative &&
+        (slide.external ? (
+          <a
+            {...TOURNAMENTS_PORTAL_LINK_PROPS}
+            className="absolute inset-0 z-10 rounded-2xl"
+            aria-label={slide.ariaLabel}
+          />
+        ) : (
+          <Link
+            href={slide.href}
+            className="absolute inset-0 z-10 rounded-2xl"
+            aria-label={slide.ariaLabel}
+          />
+        ))}
 
       <h3 className="text-base sm:text-lg md:text-xl font-bold uppercase tracking-tight text-white mb-2">
         {slide.headline}
@@ -211,7 +215,10 @@ function FeatureSlide({
         {slide.description}
       </p>
 
-      <div className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: slide.accentColor }}>
+      <div
+        className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
+        style={{ color: slide.accentColor }}
+      >
         <span>{slide.cta}</span>
         <ArrowRight className="h-3 w-3" />
       </div>
@@ -226,9 +233,11 @@ function FeatureSlide({
 function StepsRow({
   steps,
   reduced,
+  informative = false,
 }: {
   steps: Step[];
   reduced: boolean;
+  informative?: boolean;
 }) {
   if (steps.length === 0) return null;
 
@@ -261,7 +270,10 @@ function StepsRow({
               },
             },
           }}
-          className="relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] p-2.5 sm:p-3 backdrop-blur-sm transition-colors duration-300 hover:bg-white/[0.08] hover:border-white/20"
+          className={cn(
+            'relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] p-2.5 backdrop-blur-sm sm:p-3',
+            !informative && 'transition-colors duration-300 hover:bg-white/[0.08] hover:border-white/20'
+          )}
         >
           <h4 className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white/90 mb-1 leading-tight">
             {step.title}
@@ -284,21 +296,48 @@ function HeroTab({
   isActive,
   onSelect,
   reduced,
+  informative = false,
 }: {
   slide: SlideConfig;
   isActive: boolean;
   onSelect: () => void;
   reduced: boolean;
+  informative?: boolean;
 }) {
+  const className = cn(
+    'relative overflow-hidden rounded-lg border px-2 py-2 text-[9px] font-bold uppercase tracking-wider sm:px-3 sm:py-2.5 sm:text-[10px]',
+    isActive
+      ? 'bg-white/10 text-white'
+      : 'border-white/10 bg-white/5 text-white/50',
+    !informative && !isActive && 'hover:bg-white/[0.08] hover:text-white/70 transition-all duration-300'
+  );
+
+  const content = (
+    <span className="relative z-[1] flex items-center justify-center gap-1.5">
+      {slide.tabLabel}
+    </span>
+  );
+
+  if (informative) {
+    return (
+      <div
+        className={className}
+        style={{
+          backdropFilter: 'blur(12px)',
+          borderColor: isActive ? slide.accentColor : undefined,
+        }}
+        aria-hidden
+      >
+        {content}
+      </div>
+    );
+  }
+
   return (
     <motion.button
       type="button"
       onClick={onSelect}
-      className={`relative overflow-hidden rounded-lg border px-2 py-2 sm:px-3 sm:py-2.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${
-        isActive
-          ? 'bg-white/10 text-white'
-          : 'border-white/10 bg-white/5 text-white/50 hover:bg-white/[0.08] hover:text-white/70'
-      }`}
+      className={className}
       style={{
         backdropFilter: 'blur(12px)',
         borderColor: isActive ? slide.accentColor : undefined,
@@ -307,9 +346,7 @@ function HeroTab({
       whileTap={{ scale: 0.98 }}
       aria-pressed={isActive}
     >
-      <span className="relative z-[1] flex items-center justify-center gap-1.5">
-        {slide.tabLabel}
-      </span>
+      {content}
     </motion.button>
   );
 }
@@ -318,7 +355,7 @@ function HeroTab({
    LandingHeroCarousel
    ─────────────────────────────────────────────── */
 
-export function LandingHeroCarousel() {
+export function LandingHeroCarousel({ informative = false }: { informative?: boolean }) {
   const reduced = useReducedMotion();
   const [activeFeature, setActiveFeature] =
     useState<HeroFeatureKey>('aste');
@@ -380,6 +417,7 @@ export function LandingHeroCarousel() {
             isActive={activeFeature === slide.key}
             onSelect={() => setActiveFeature(slide.key)}
             reduced={reduced}
+            informative={informative}
           />
         ))}
       </div>
@@ -396,6 +434,7 @@ export function LandingHeroCarousel() {
               slide={activeSlide}
               direction={slideDirection}
               reduced={reduced}
+              informative={informative}
             />
           </AnimatePresence>
         </div>
@@ -416,6 +455,7 @@ export function LandingHeroCarousel() {
             <StepsRow
               steps={activeSteps}
               reduced={reduced}
+              informative={informative}
             />
           </motion.div>
         </AnimatePresence>

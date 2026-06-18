@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { LoginCodeForm } from '@/components/feature/login/login-code-form';
-import { AuthShell } from '@/components/layout/AuthShell';
+import { AuthSplitViewShell } from '@/components/layout/AuthSplitViewShell';
 import { AuthSkeleton } from '@/components/layout/AuthSkeleton';
 
 export const metadata = {
@@ -10,10 +10,10 @@ export const metadata = {
 
 export default function LoginCodePage() {
   return (
-    <AuthShell>
-      <Suspense fallback={<AuthSkeleton />}>
+    <Suspense fallback={<AuthSkeleton />}>
+      <AuthSplitViewShell centerForm>
         <LoginCodeForm />
-      </Suspense>
-    </AuthShell>
+      </AuthSplitViewShell>
+    </Suspense>
   );
 }

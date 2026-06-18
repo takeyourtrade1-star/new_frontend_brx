@@ -4,7 +4,7 @@
 
 import Link from 'next/link';
 
-import { RegistratiDemoForm } from '@/components/feature/registrati/RegistratiDemoForm';
+import { RegistratiPrivatoForm } from '@/components/feature/registrati/RegistratiPrivatoForm';
 
 import {
 
@@ -24,7 +24,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 
 
 
-export function RegisterView() {
+export function RegistratiPrivatoView() {
 
   const { t } = useTranslation();
 
@@ -36,7 +36,7 @@ export function RegisterView() {
 
       <AuthSplitHeader
 
-        title={t('pages.register.title')}
+        title={t('registrati.privato.title')}
 
         className="mb-0 shrink-0"
 
@@ -44,19 +44,25 @@ export function RegisterView() {
 
 
 
-      <RegistratiDemoForm />
+      <RegistratiPrivatoForm />
 
 
 
-      <p className={cn(AUTH_SPLIT_VIEW_FOOTER_CLASS, 'mt-5')}>
+      <div className={cn(AUTH_SPLIT_VIEW_FOOTER_CLASS, 'mt-5 flex flex-wrap gap-x-4 gap-y-2')}>
 
-        <Link href="/login" className={AUTH_LINK_CLASS}>
+        <Link href="/registrati" className={AUTH_LINK_CLASS}>
 
-          {t('pages.register.hasAccount')}
+          {t('registrati.privato.backToChoice')}
 
         </Link>
 
-      </p>
+        <Link href="/login" className={AUTH_LINK_CLASS}>
+
+          {t('registrati.privato.hasAccount')}
+
+        </Link>
+
+      </div>
 
     </AuthSplitViewShell>
 

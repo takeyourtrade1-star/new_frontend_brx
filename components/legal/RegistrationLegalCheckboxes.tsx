@@ -2,7 +2,10 @@
 
 import Link from 'next/link';
 import type { FieldErrors, UseFormRegister } from 'react-hook-form';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import type { MessageKey } from '@/lib/i18n/messages/en';
+import { AUTH_LINK_CLASS } from '@/components/auth/ui/auth-styles';
 
 type LegalCheckboxFields = {
   termsAccepted: boolean;
@@ -18,70 +21,92 @@ type RegistrationLegalCheckboxesProps<T extends LegalCheckboxFields> = {
   textClassName?: string;
 };
 
+function LegalTextWithLink({
+  textKey,
+  linkKey,
+  href,
+  textClassName,
+}: {
+  textKey: MessageKey;
+  linkKey: MessageKey;
+  href: string;
+  textClassName: string;
+}) {
+  const { t } = useTranslation();
+  const text = t(textKey);
+  const linkText = t(linkKey);
+  const parts = text.split('{link}');
+
+  return (
+    <span className={textClassName}>
+      {parts[0]}
+      <Link href={href} className={AUTH_LINK_CLASS} target="_blank">
+        {linkText}
+      </Link>
+      {parts[1] ?? ''}
+    </span>
+  );
+}
+
 export function RegistrationLegalCheckboxes<T extends LegalCheckboxFields>({
   register,
   errors,
-  textClassName = 'text-sm text-white/90',
+  textClassName = 'text-[13px] leading-snug text-[#515154]',
 }: RegistrationLegalCheckboxesProps<T>) {
   const { t } = useTranslation();
 
+  const errorMessage = String(
+    (errors.termsAccepted?.message ||
+      errors.specificClausesAccepted?.message ||
+      errors.privacyAccepted?.message ||
+      errors.cancellationAccepted?.message ||
+      errors.adultConfirmed?.message) ??
+      ''
+  );
+
   return (
     <div className="space-y-3">
-      <label className="flex items-start gap-2">
-        <input type="checkbox" {...register('termsAccepted' as never)} className="mt-1" />
-        <span className={textClassName}>
-          Accetto i{' '}
-          <Link href="/legal/condizioni" className="underline hover:opacity-80" target="_blank">
-            Termini e Condizioni di Servizio
-          </Link>
-        </span>
-      </label>
+      <div className="flex items-start gap-3">
+        <Checkbox {...register('termsAccepted' as never)} className="mt-0.5" />
+        <LegalTextWithLink
+          textKey="registerForm.termsAccepted"
+          linkKey="registerForm.termsLink"
+          href="/legal/condizioni"
+          textClassName={textClassName}
+        />
+      </div>
 
-      <label className="flex items-start gap-2">
-        <input type="checkbox" {...register('specificClausesAccepted' as never)} className="mt-1" />
-        <span className={textClassName}>
-          Ai sensi degli artt. 1341 e 1342 c.c., approvo specificamente le clausole indicate nei{' '}
-          <Link href="/legal/condizioni" className="underline hover:opacity-80" target="_blank">
-            Termini e Condizioni di Servizio
-          </Link>
-        </span>
-      </label>
+      <div className="flex items-start gap-3">
+        <Checkbox {...register('specificClausesAccepted' as never)} className="mt-0.5" />
+        <LegalTextWithLink
+          textKey="registerForm.specificClausesAccepted"
+          linkKey="registerForm.termsLink"
+          href="/legal/condizioni"
+          textClassName={textClassName}
+        />
+      </div>
 
-      <label className="flex items-start gap-2">
-        <input type="checkbox" {...register('privacyAccepted' as never)} className="mt-1" />
-        <span className={textClassName}>
-          {t('registerForm.privacyAcceptedText')}{' '}
-          <Link href="/legal/privacy" className="underline hover:opacity-80" target="_blank">
-            Privacy Policy
-          </Link>
-        </span>
-      </label>
+      <div className="flex items-start gap-3">
+        <Checkbox {...register('privacyAccepted' as never)} className="mt-0.5" />
+        <LegalTextWithLink
+          textKey="registerForm.privacyAccepted"
+          linkKey="registerForm.privacyLink"
+          href="/legal/privacy"
+          textClassName={textClassName}
+        />
+      </div>
 
-      <label className="flex items-start gap-2">
-        <input type="checkbox" {...register('cancellationAccepted' as never)} className="mt-1" />
+      <div className="flex items-start gap-3">
+        <Checkbox {...register('cancellationAccepted' as never)} className="mt-0.5" />
         <span className={textClassName}>{t('registerForm.cancellationAcceptedText')}</span>
-      </label>
+      </div>
 
-      <label className="flex items-start gap-2">
-        <input type="checkbox" {...register('adultConfirmed' as never)} className="mt-1" />
+      <div className="flex items-start gap-3">
+        <Checkbox {...register('adultConfirmed' as never)} className="mt-0.5" />
         <span className={textClassName}>{t('registerForm.adultConfirmedText')}</span>
-      </label>
+      </div>
 
-      {(errors.termsAccepted ||
-        errors.specificClausesAccepted ||
-        errors.privacyAccepted ||
-        errors.cancellationAccepted ||
-        errors.adultConfirmed) && (
-        <p className="text-sm text-red-500">
-          {String(
-            (errors.termsAccepted?.message ||
-              errors.specificClausesAccepted?.message ||
-              errors.privacyAccepted?.message ||
-              errors.cancellationAccepted?.message ||
-              errors.adultConfirmed?.message) ?? ''
-          )}
-        </p>
-      )}
+      {errorMessage && <p className="text-sm text-red-500">{errorMessage}</p>}
     </div>
   );
 }

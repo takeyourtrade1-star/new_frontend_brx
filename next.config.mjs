@@ -37,6 +37,7 @@ const nextConfig = {
       // set_icon_uri may be stored as direct S3 URLs before/without CloudFront
       { protocol: 'https', hostname: '*.s3.amazonaws.com', pathname: '/**' },
       { protocol: 'https', hostname: '*.s3.eu-south-1.amazonaws.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'flagcdn.com', pathname: '/**' },
     ],
   },
   // Usa le stesse variabili del frontend Vite: mappa VITE_* su NEXT_PUBLIC_* per il client

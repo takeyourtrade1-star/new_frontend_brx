@@ -29,6 +29,7 @@ const FloatingLabelField = React.forwardRef<
       inputClassName,
       className,
       floatingLabelBg,
+      required,
       onFocus,
       onBlur,
       ...props
@@ -44,6 +45,8 @@ const FloatingLabelField = React.forwardRef<
           ref={ref}
           id={id}
           value={value}
+          required={required}
+          aria-required={required || undefined}
           className={cn(
             'h-14 w-full rounded-xl border-0 bg-[#e5e7eb] pt-6 pb-2 px-3 text-base text-[#0F172A]',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/50 focus-visible:ring-offset-0',
@@ -76,6 +79,11 @@ const FloatingLabelField = React.forwardRef<
           }
         >
           {label}
+          {required && (
+            <span className="ml-0.5 text-primary font-semibold" aria-hidden>
+              *
+            </span>
+          )}
         </label>
       </div>
     );

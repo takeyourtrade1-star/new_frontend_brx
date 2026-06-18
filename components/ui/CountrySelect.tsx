@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import { ChevronDown, Check, Search } from 'lucide-react';
 import { FlagIcon, type CountryCode } from './FlagIcon';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,8 @@ interface CountrySelectProps {
   className?: string;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  /** Compatto per prefisso telefonico: bandiera sempre visibile, valore più accentuato. */
+  variant?: 'default' | 'prefix';
 }
 
 const sizeClasses = {
@@ -47,18 +50,23 @@ export function CountrySelect({
   options,
   value,
   onChange,
-  placeholder = 'Seleziona...',
+  placeholder,
   label,
   className,
   disabled = false,
   size = 'md',
+  variant = 'default',
 }: CountrySelectProps) {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t('countrySelect.placeholder');
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const selectedOption = options.find((o) => o.code === value);
+  const hasSelection = Boolean(selectedOption);
   const sizes = sizeClasses[size];
+  const isPrefix = variant === 'prefix';
 
   // Filter options based on search query
   const filteredOptions = useMemo(() => {
@@ -125,27 +133,46 @@ export function CountrySelect({
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         className={cn(
-          'flex w-full items-center justify-between gap-2 rounded-2xl border transition-all duration-150',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0066cc]/20 focus-visible:ring-offset-0',
+          'flex w-full items-center justify-between rounded-2xl border transition-all duration-150',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-global-bg-start/25 focus-visible:ring-offset-0',
+          isPrefix ? 'gap-1.5' : 'gap-2',
           sizes.trigger,
+          isPrefix && 'pl-3 pr-2.5',
           disabled
             ? 'cursor-not-allowed border-black/10 bg-black/5 text-gray-400'
-            : 'cursor-pointer border-black/10 bg-black/5 text-gray-900 hover:border-[#0066cc]/40 hover:bg-black/[0.07]'
+            : hasSelection
+              ? cn(
+                  'cursor-pointer border-global-bg-start/50 bg-white text-[#1d1d1f] shadow-[0_0_0_1px_rgba(61,101,198,0.12)]',
+                  'hover:border-global-bg-start hover:bg-white'
+                )
+              : 'cursor-pointer border-black/10 bg-black/5 text-gray-900 hover:border-global-bg-start/40 hover:bg-black/[0.07]'
         )}
       >
-        <span className="flex items-center gap-3">
+        <span className={cn('flex min-w-0 flex-1 items-center', isPrefix ? 'gap-2' : 'gap-3')}>
           {selectedOption ? (
             <>
-              <FlagIcon country={selectedOption.flagCode} size={sizes.flag} />
-              <span className="font-medium">{selectedOption.label}</span>
+              <FlagIcon
+                country={selectedOption.flagCode}
+                size={isPrefix ? 'sm' : sizes.flag}
+                className="shrink-0"
+              />
+              <span
+                className={cn(
+                  'truncate',
+                  hasSelection ? 'font-semibold text-[#1d1d1f]' : 'font-medium'
+                )}
+              >
+                {selectedOption.label}
+              </span>
             </>
           ) : (
-            <span className="text-gray-400">{placeholder}</span>
+            <span className="truncate text-gray-400">{resolvedPlaceholder}</span>
           )}
         </span>
         <ChevronDown
           className={cn(
-            'h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200',
+            'h-4 w-4 shrink-0 transition-transform duration-200',
+            hasSelection ? 'text-global-bg-start/70' : 'text-gray-400',
             isOpen && 'rotate-180'
           )}
           aria-hidden
@@ -156,7 +183,8 @@ export function CountrySelect({
       {isOpen && (
         <div
           className={cn(
-            'absolute left-0 right-0 z-50 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg',
+            'absolute z-50 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg',
+            isPrefix ? 'left-0 min-w-[11rem] w-max' : 'left-0 right-0',
             sizes.list
           )}
           role="listbox"
@@ -170,7 +198,7 @@ export function CountrySelect({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cerca paese..."
+                placeholder={t('countrySelect.searchPlaceholder')}
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#FF7300]/50 focus:outline-none focus:ring-1 focus:ring-[#FF7300]/30"
                 onClick={(e) => e.stopPropagation()}
               />
@@ -179,7 +207,7 @@ export function CountrySelect({
           <ul className="max-h-64 overflow-y-auto py-1">
             {filteredOptions.length === 0 ? (
               <li className="px-4 py-3 text-sm text-gray-400 text-center">
-                Nessun paese trovato
+                {t('countrySelect.empty')}
               </li>
             ) : (
               filteredOptions.map((option) => {
@@ -196,15 +224,17 @@ export function CountrySelect({
                         'flex w-full items-center gap-3 text-left transition-colors',
                         sizes.item,
                         isSelected
-                          ? 'bg-[#FF7300]/5 text-[#FF7300]'
+                          ? 'bg-global-bg-start/10 font-semibold text-global-bg-start'
                           : 'text-gray-700 hover:bg-gray-50'
                       )}
                     >
-                      <FlagIcon country={option.flagCode} size={sizes.flag} />
-                      <span className={cn('flex-1', isSelected && 'font-medium')}>
+                      <FlagIcon country={option.flagCode} size={sizes.flag} className="shrink-0" />
+                      <span className={cn('min-w-0 flex-1 truncate', isSelected && 'font-semibold')}>
                         {option.label}
                       </span>
-                      {isSelected && <Check className="h-4 w-4 shrink-0" />}
+                      {isSelected && (
+                        <Check className="h-4 w-4 shrink-0 text-global-bg-start" aria-hidden />
+                      )}
                     </button>
                   </li>
                 );

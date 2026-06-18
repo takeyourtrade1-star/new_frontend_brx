@@ -5,12 +5,12 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { AuthSubmitButton, AuthRequiredLegend, AUTH_SPLIT_LABEL_CLASS, AUTH_REQUIRED_MARKER_CLASS, AUTH_SPLIT_FLOATING_INPUT_CLASS, AUTH_SPLIT_ERROR_CLASS, AUTH_SPLIT_FORM_CLASS } from '@/components/auth/ui';
 import { FloatingLabelField } from '@/components/ui/floating-label-field';
 import { AuthErrorAlert } from '@/components/ui/AuthErrorAlert';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useAuthError } from '@/lib/errors/useAuthError';
-import { AUTH_ERROR_CODES, getAuthFieldErrors } from '@/lib/errors/auth-error-codes';
+import { getAuthFieldErrors } from '@/lib/errors/auth-error-codes';
 import {
   registerPrivatoSchema,
   toRegisterPayloadPrivato,
@@ -18,7 +18,6 @@ import {
   COUNTRIES,
 } from '@/lib/registrati/schema';
 import type { RegisterPrivatoValues } from '@/lib/registrati/schema';
-import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { RegistrationLegalCheckboxes } from '@/components/legal/RegistrationLegalCheckboxes';
 import { CountrySelect, type CountryOption } from '@/components/ui/CountrySelect';
@@ -146,6 +145,17 @@ export function RegistratiPrivatoForm() {
     }
   }, [isAuthenticated, flashMessage, router]);
 
+  const fieldInputClass = AUTH_SPLIT_FLOATING_INPUT_CLASS;
+
+  const prefixOptions: CountryOption[] = useMemo(
+    () =>
+      PHONE_PREFIXES.map((p) => {
+        const iso = phonePrefixToCountryCode(p);
+        return { code: p, label: p, flagCode: iso || 'IT' };
+      }),
+    []
+  );
+
   const onSubmit = async (values: RegisterPrivatoValues) => {
     authError.clearError();
     clearStoreError();
@@ -171,7 +181,7 @@ export function RegistratiPrivatoForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} className={AUTH_SPLIT_FORM_CLASS}>
       <div className="absolute -left-[9999px] top-0 h-0 w-0 overflow-hidden" aria-hidden>
         <label htmlFor="website_url_reg_privato">Lascia vuoto</label>
         <input
@@ -183,19 +193,22 @@ export function RegistratiPrivatoForm() {
         />
       </div>
 
+      <AuthRequiredLegend />
+
       <div>
         <FloatingLabelField
           label={t('registerForm.firstNameLabel')}
           id="first_name"
           type="text"
           value={watch('first_name')}
-          floatingLabelBg="#e5e7eb"
-          inputClassName="h-14 pt-7 text-base"
+          floatingLabelBg="rgba(255,255,255,0.75)"
+          inputClassName={fieldInputClass}
           autoComplete="given-name"
+          required
           {...register('first_name')}
         />
         {errors.first_name && (
-          <p className="mt-1 text-sm text-red-500">{String(errors.first_name.message ?? '')}</p>
+          <p className={AUTH_SPLIT_ERROR_CLASS}>{String(errors.first_name.message ?? '')}</p>
         )}
       </div>
 
@@ -205,13 +218,14 @@ export function RegistratiPrivatoForm() {
           id="last_name"
           type="text"
           value={watch('last_name')}
-          floatingLabelBg="#e5e7eb"
-          inputClassName="h-14 pt-7 text-base"
+          floatingLabelBg="rgba(255,255,255,0.75)"
+          inputClassName={fieldInputClass}
           autoComplete="family-name"
+          required
           {...register('last_name')}
         />
         {errors.last_name && (
-          <p className="mt-1 text-sm text-red-500">{String(errors.last_name.message ?? '')}</p>
+          <p className={AUTH_SPLIT_ERROR_CLASS}>{String(errors.last_name.message ?? '')}</p>
         )}
       </div>
 
@@ -221,13 +235,14 @@ export function RegistratiPrivatoForm() {
           id="username"
           type="text"
           value={watch('username')}
-          floatingLabelBg="#e5e7eb"
-          inputClassName="h-14 pt-7 text-base"
+          floatingLabelBg="rgba(255,255,255,0.75)"
+          inputClassName={fieldInputClass}
           autoComplete="username"
+          required
           {...register('username')}
         />
         {errors.username && (
-          <p className="mt-1 text-sm text-red-500">{String(errors.username.message ?? '')}</p>
+          <p className={AUTH_SPLIT_ERROR_CLASS}>{String(errors.username.message ?? '')}</p>
         )}
       </div>
 
@@ -237,13 +252,14 @@ export function RegistratiPrivatoForm() {
           id="email"
           type="email"
           value={watch('email')}
-          floatingLabelBg="#e5e7eb"
-          inputClassName="h-14 pt-7 text-base"
+          floatingLabelBg="rgba(255,255,255,0.75)"
+          inputClassName={fieldInputClass}
           autoComplete="email"
+          required
           {...register('email')}
         />
         {errors.email && (
-          <p className="mt-1 text-sm text-red-500">{String(errors.email.message ?? '')}</p>
+          <p className={AUTH_SPLIT_ERROR_CLASS}>{String(errors.email.message ?? '')}</p>
         )}
       </div>
 
@@ -253,9 +269,10 @@ export function RegistratiPrivatoForm() {
           id="password"
           type={showPassword ? 'text' : 'password'}
           value={watch('password')}
-          floatingLabelBg="#e5e7eb"
-          inputClassName="h-14 pt-7 text-base pr-10"
+          floatingLabelBg="rgba(255,255,255,0.75)"
+          inputClassName={`${fieldInputClass} pr-10`}
           autoComplete="new-password"
+          required
           {...register('password')}
         />
         <button
@@ -267,25 +284,23 @@ export function RegistratiPrivatoForm() {
           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
         </button>
         {errors.password && (
-          <p className="mt-1 text-sm text-red-500">{String(errors.password.message ?? '')}</p>
+          <p className={AUTH_SPLIT_ERROR_CLASS}>{String(errors.password.message ?? '')}</p>
         )}
       </div>
 
       <div className="flex gap-2">
-        <div className="w-24 shrink-0">
+        <div className="w-[6.5rem] min-w-[6.5rem] shrink-0">
           <Controller
             name="phone_prefix"
             control={control}
             render={({ field }) => (
-              <select
-                id="phone_prefix_privato"
-                className="h-14 w-full rounded-lg border border-gray-300 bg-[#e5e7eb] px-2 text-base"
-                {...field}
-              >
-                {PHONE_PREFIXES.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
+              <CountrySelect
+                options={prefixOptions}
+                value={field.value}
+                onChange={field.onChange}
+                size="sm"
+                variant="prefix"
+              />
             )}
           />
         </div>
@@ -295,18 +310,25 @@ export function RegistratiPrivatoForm() {
             id="phone"
             type="tel"
             value={watch('phone')}
-            floatingLabelBg="#e5e7eb"
-            inputClassName="h-14 pt-7 text-base"
+            floatingLabelBg="rgba(255,255,255,0.75)"
+            inputClassName={fieldInputClass}
             autoComplete="tel-national"
+            required
             {...register('phone')}
           />
           {errors.phone && (
-            <p className="mt-1 text-sm text-red-500">{String(errors.phone.message ?? '')}</p>
+            <p className={AUTH_SPLIT_ERROR_CLASS}>{String(errors.phone.message ?? '')}</p>
           )}
         </div>
       </div>
 
       <div>
+        <label className={AUTH_SPLIT_LABEL_CLASS}>
+          {t('registerForm.countryLabel')}
+          <span className={AUTH_REQUIRED_MARKER_CLASS} aria-hidden>
+            *
+          </span>
+        </label>
         <Controller
           name="country"
           control={control}
@@ -318,17 +340,21 @@ export function RegistratiPrivatoForm() {
                 countryManuallyEditedRef.current = true;
                 field.onChange(val);
               }}
-              placeholder={t('registerForm.countryLabel')}
-              size="md"
+              placeholder={t('registerForm.countryPlaceholder')}
+              size="sm"
             />
           )}
         />
         {errors.country && (
-          <p className="mt-1 text-sm text-red-500">{String(errors.country.message ?? '')}</p>
+          <p className={AUTH_SPLIT_ERROR_CLASS}>{String(errors.country.message ?? '')}</p>
         )}
       </div>
 
-      <RegistrationLegalCheckboxes register={register} errors={errors} />
+      <RegistrationLegalCheckboxes
+        register={register}
+        errors={errors}
+        textClassName="pt-0.5 text-[13px] leading-snug text-[#515154]"
+      />
 
       {/* Error Alert - Elegant UI with i18n support */}
       <AuthErrorAlert 
@@ -336,15 +362,15 @@ export function RegistratiPrivatoForm() {
         className="mt-4"
       />
 
-      <div className="pt-3">
-        <Button
-          type="submit"
+      <div className="pt-1">
+        <AuthSubmitButton
+          variant="split"
           disabled={isLoading || authError.isRateLimitError}
-          className="h-14 w-full rounded-xl text-xl font-semibold uppercase tracking-wide text-white hover:opacity-90"
-          style={{ backgroundColor: '#FF7300' }}
+          loading={isLoading}
+          loadingText={t('registerForm.registrationLoading')}
         >
-          {isLoading ? t('registerForm.registrationLoading') : t('registerForm.createPrivateAccount')}
-        </Button>
+          {t('registerForm.createPrivateAccount')}
+        </AuthSubmitButton>
       </div>
     </form>
   );
