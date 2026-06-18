@@ -1,4 +1,4 @@
-import React, { type ReactElement } from 'react';
+import { type ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import AsteDetailPage from '@/app/aste/[id]/page';
@@ -18,8 +18,8 @@ describe('AsteDetailPage', () => {
     const firstPage = await AsteDetailPage({ params: Promise.resolve({ id: '42' }) });
     const secondPage = await AsteDetailPage({ params: Promise.resolve({ id: '43' }) });
 
-    const firstChildren = React.Children.toArray(firstPage.props.children) as ReactElement[];
-    const secondChildren = React.Children.toArray(secondPage.props.children) as ReactElement[];
+    const firstChildren = firstPage.props.children as ReactElement[];
+    const secondChildren = secondPage.props.children as ReactElement[];
 
     expect(firstChildren[1].key).toBe('auction-detail-42');
     expect(secondChildren[1].key).toBe('auction-detail-43');
