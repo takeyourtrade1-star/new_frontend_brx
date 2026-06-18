@@ -23,7 +23,7 @@ export default async function AsteDetailPage({ params }: Props) {
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
       </Suspense>
-      <AsteDetailView auctionId={id} />
+      <AsteDetailView key={`auction-detail-${id}`} auctionId={id} />
     </main>
   );
 }
