@@ -1,15 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight } from 'lucide-react';
 import { useIsIOS } from '@/hooks/useIsIOS';
-import { IOSInstallTutorial } from './IOSInstallTutorial';
 
 const VISIT_COUNT_KEY = 'ios-install-visit-count';
 const SESSION_COUNTED_KEY = 'ios-install-counted';
 const DISMISSED_KEY = 'ios-install-dismissed';
+
+const IOSInstallTutorial = dynamic(
+  () => import('./IOSInstallTutorial').then((mod) => mod.IOSInstallTutorial),
+  { ssr: false, loading: () => null }
+);
 
 export function IOSInstallPrompt() {
   const pathname = usePathname();
@@ -132,11 +137,12 @@ export function IOSInstallPrompt() {
         )}
       </AnimatePresence>
 
-      {/* Tutorial Modale */}
-      <IOSInstallTutorial
-        isOpen={showTutorial}
-        onClose={() => setShowTutorial(false)}
-      />
+      {showTutorial ? (
+        <IOSInstallTutorial
+          isOpen={showTutorial}
+          onClose={() => setShowTutorial(false)}
+        />
+      ) : null}
     </>
   );
 }

@@ -6,9 +6,12 @@
     "dev": "next dev",
     "dev:3001": "next dev -p 3001 -H 127.0.0.1",
     "build": "node scripts/generate-build-info.js && next build",
+    "build:budget": "npm run build && npm run bundle:budget",
+    "analyze": "set ANALYZE=true&& node scripts/generate-build-info.js && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "bundle:budget": "node scripts/check-bundle-budget.mjs",
     "postinstall": "node scripts/copy-ort-wasm.mjs",
     "i18n:check": "node scripts/check-i18n-hardcoded.mjs",
     "i18n:keys": "node scripts/check-i18n-keys.mjs",
@@ -49,6 +52,7 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.5.15",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

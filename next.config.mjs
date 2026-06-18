@@ -1,4 +1,9 @@
 import withSerwistInit from '@serwist/next';
+import bundleAnalyzer from '@next/bundle-analyzer';
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
 
 const withSerwist = withSerwistInit({
   swSrc: 'app/sw.ts',
@@ -125,6 +130,7 @@ const nextConfig = {
   },
 };
 
-export default process.env.NODE_ENV === 'development'
-  ? nextConfig
-  : withSerwist(nextConfig);
+const configuredNext =
+  process.env.NODE_ENV === 'development' ? nextConfig : withSerwist(nextConfig);
+
+export default withBundleAnalyzer(configuredNext);

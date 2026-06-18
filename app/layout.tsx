@@ -5,7 +5,7 @@ import { Providers } from '@/components/providers';
 import { ConditionalFooter } from '@/components/layout/ConditionalFooter';
 import { CardMascotteGate } from '@/components/dev/CardMascotteGate';
 import { BuildInfoBadge } from '@/components/dev/BuildInfoBadge';
-import { IOSInstallPrompt } from '@/components/pwa/IOSInstallPrompt';
+import { IOSInstallPromptGate } from '@/components/pwa/IOSInstallPromptGate';
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -81,6 +81,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const brxBgUrl = getBrxBgCssUrl();
+  const showBuildInfo =
+    process.env.NODE_ENV !== 'production' ||
+    process.env.NEXT_PUBLIC_SHOW_BUILD_INFO === 'true';
+
   return (
     <html lang="it" suppressHydrationWarning className={nunito.variable}>
       <head>
@@ -105,7 +109,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased min-h-screen flex flex-col">
-        <IOSInstallPrompt />
+        <IOSInstallPromptGate />
         <Providers>
           <div className="flex-1 flex flex-col" id="main-content">
             {children}
@@ -113,7 +117,7 @@ export default function RootLayout({
           </div>
           <CardMascotteGate />
         </Providers>
-        <BuildInfoBadge />
+        {showBuildInfo ? <BuildInfoBadge /> : null}
       </body>
     </html>
   );
