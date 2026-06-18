@@ -1921,7 +1921,7 @@ export const fr: Record<MessageKey, string> = {
 
   // Login Code
   'loginCode.title': 'Connexion avec code',
-  'loginCode.emailLabel': 'E-mail',
+  'loginCode.emailLabel': 'Saisissez votre e-mail, vous recevrez un code pour vous connecter',
   'loginCode.emailPlaceholder': 'votre@email.com',
   'loginCode.sendCode': 'Envoyer le code',
   'loginCode.sending': 'Envoi en cours…',
@@ -1939,7 +1939,7 @@ export const fr: Record<MessageKey, string> = {
   'loginCode.accountLocked': 'Compte verrouillé. Veuillez réessayer plus tard',
   'loginCode.rateLimit': 'Trop de tentatives. Veuillez réessayer plus tard',
   'loginCode.genericError': 'Quelque chose s\'est mal passé. Veuillez réessayer',
-  'loginCode.noAccount': 'Pas de compte ? Inscrivez-vous',
+  'loginCode.noAccount': 'Pas de compte ?',
 
   // Validation - code
   'validation.codeRequired': 'Saisissez le code',

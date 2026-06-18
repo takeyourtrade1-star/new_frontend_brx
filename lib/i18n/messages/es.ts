@@ -1933,7 +1933,7 @@ export const es: Record<MessageKey, string> = {
 
   // Login Code
   'loginCode.title': 'Iniciar sesión con código',
-  'loginCode.emailLabel': 'Correo',
+  'loginCode.emailLabel': 'Introduce tu correo, recibirás un código para acceder',
   'loginCode.emailPlaceholder': 'tu@correo.com',
   'loginCode.sendCode': 'Enviar código',
   'loginCode.sending': 'Enviando…',
@@ -1951,7 +1951,7 @@ export const es: Record<MessageKey, string> = {
   'loginCode.accountLocked': 'Cuenta bloqueada. Inténtalo más tarde',
   'loginCode.rateLimit': 'Demasiados intentos. Inténtalo más tarde',
   'loginCode.genericError': 'Algo ha salido mal. Inténtalo de nuevo',
-  'loginCode.noAccount': '¿Sin cuenta? Regístrate',
+  'loginCode.noAccount': '¿Sin cuenta?',
 
   // Validation - code
   'validation.codeRequired': 'Introduce el código',

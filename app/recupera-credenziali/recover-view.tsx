@@ -10,7 +10,7 @@ import {
   AuthSplitHeader,
   AUTH_LINK_CLASS,
 } from '@/components/auth/ui';
-import { AuthSplitViewShell } from '@/components/layout/AuthSplitViewShell';
+import { AuthSplitLayout } from '@/components/layout/AuthSplitLayout';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { usePasswordResetStore } from '@/lib/stores/password-reset-store';
 
@@ -68,25 +68,33 @@ export function RecoverView() {
   const showStepIndicator = step !== 'completed' && step !== 'error';
 
   return (
-    <AuthSplitViewShell>
+    <AuthSplitLayout
+      formPlacement="start"
+      className="min-h-screen lg:min-h-screen"
+      panelClassName="flex min-h-full flex-1 flex-col"
+    >
       <AuthBackLink href="/login" label={t('auth.back')} />
 
-      <AuthSplitHeader
-        title={t(titleKey)}
-        subtitle={showStepIndicator ? t(subtitleKey) : undefined}
-        className="mb-0 shrink-0"
-      />
+      <div className="flex flex-1 flex-col justify-center py-6 sm:py-8">
+        <AuthSplitHeader
+          title={t(titleKey)}
+          subtitle={showStepIndicator ? t(subtitleKey) : undefined}
+          className="mb-0 shrink-0"
+        />
 
-      {showStepIndicator ? <AuthStepIndicator currentStep={stepNumber(step)} totalSteps={4} /> : null}
+        {showStepIndicator ? (
+          <AuthStepIndicator currentStep={stepNumber(step)} totalSteps={4} />
+        ) : null}
 
-      <RecuperaCredenzialiForm />
+        <RecuperaCredenzialiForm />
+      </div>
 
-      <AuthFooterLinks align="left" className="mt-5">
-        {t('pages.login.noAccount')}{' '}
+      <AuthFooterLinks align="left" className="mt-auto shrink-0">
+        {t('pages.login.noAccountPrompt')}{' '}
         <Link href="/registrati" className={`font-semibold ${AUTH_LINK_CLASS}`}>
           {t('auth.register')}
         </Link>
       </AuthFooterLinks>
-    </AuthSplitViewShell>
+    </AuthSplitLayout>
   );
 }

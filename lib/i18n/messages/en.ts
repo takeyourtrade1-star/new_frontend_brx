@@ -1934,7 +1934,7 @@ export const en = {
 
   // Login Code
   'loginCode.title': 'Log in with code',
-  'loginCode.emailLabel': 'Email',
+  'loginCode.emailLabel': 'Enter your email, you will receive a code to log in',
   'loginCode.emailPlaceholder': 'your@email.com',
   'loginCode.sendCode': 'Send code',
   'loginCode.sending': 'Sending…',
@@ -1952,7 +1952,7 @@ export const en = {
   'loginCode.accountLocked': 'Account locked. Try again later',
   'loginCode.rateLimit': 'Too many attempts. Try again later',
   'loginCode.genericError': 'Something went wrong. Try again',
-  'loginCode.noAccount': 'No account? Sign up',
+  'loginCode.noAccount': 'No account?',
 
   // Validation - code
   'validation.codeRequired': 'Enter the code',

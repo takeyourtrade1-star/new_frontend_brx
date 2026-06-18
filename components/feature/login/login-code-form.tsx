@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,9 +17,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
 import { parseAuthError } from '@/lib/api/auth-error';
 import {
-  AuthBackLink,
   AuthSplitHeader,
-  AuthFooterLinks,
   AuthField,
   AuthSubmitButton,
   AUTH_LINK_CLASS,
@@ -130,8 +127,6 @@ export function LoginCodeForm() {
 
   return (
     <>
-      <AuthBackLink href="/login" />
-
       <AuthSplitHeader
         title={t('loginCode.title')}
         subtitle={step === 'request' ? t('loginCode.emailLabel') : t('loginCode.checkEmail')}
@@ -148,10 +143,10 @@ export function LoginCodeForm() {
       {step === 'request' && (
         <form onSubmit={requestForm.handleSubmit(handleRequest)} className={AUTH_SPLIT_FORM_CLASS}>
           <AuthField
-            label={t('loginForm.email')}
             type="email"
             autoComplete="email"
             placeholder={t('loginCode.emailPlaceholder')}
+            aria-label={t('loginForm.email')}
             required
             variant="split"
             disabled={isRequestPending}
@@ -171,12 +166,6 @@ export function LoginCodeForm() {
           >
             {t('loginCode.sendCode')}
           </AuthSubmitButton>
-
-          <div className={AUTH_SPLIT_BODY_CLASS}>
-            <Link href="/login" className={AUTH_LINK_CLASS}>
-              {t('loginCode.backToLogin')}
-            </Link>
-          </div>
         </form>
       )}
 
@@ -229,21 +218,9 @@ export function LoginCodeForm() {
           >
             {t('loginCode.login')}
           </AuthSubmitButton>
-
-          <div className={AUTH_SPLIT_BODY_CLASS}>
-            <Link href="/login" className={AUTH_LINK_CLASS}>
-              {t('loginCode.backToLogin')}
-            </Link>
-          </div>
         </div>
       )}
 
-      <AuthFooterLinks align="left" className="mt-5">
-        {t('loginCode.noAccount')}{' '}
-        <Link href="/registrati" className={`font-semibold ${AUTH_LINK_CLASS}`}>
-          {t('auth.register')}
-        </Link>
-      </AuthFooterLinks>
     </>
   );
 }
