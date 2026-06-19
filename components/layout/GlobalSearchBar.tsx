@@ -885,6 +885,9 @@ function CardHit({
         {subtitle && (
           <div className="text-sm text-[#777777] truncate mt-0.5">{subtitle}</div>
         )}
+        {setName && (
+          <div className="text-xs text-[#999999] truncate mt-0.5" title={setName}>{setName}</div>
+        )}
       </div>
 
       <div

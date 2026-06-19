@@ -812,6 +812,9 @@ export function SearchResults({
                       {secondary && (
                         <p className="text-xs text-gray-500 line-clamp-1">{secondary}</p>
                       )}
+                      {setName && (
+                        <p className="text-[11px] text-gray-400 line-clamp-1 mt-0.5" title={setName}>{setName}</p>
+                      )}
                       <p className="text-[#FF7300] font-semibold text-sm mt-1">{t('search.fromPrice')}</p>
                     </Link>
                     {setPageHref && (setName || hit.set_code) && (

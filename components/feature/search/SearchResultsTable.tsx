@@ -169,6 +169,11 @@ export function SearchResultsTable({
                           {nameTranslation}
                         </p>
                       )}
+                      {editionVariant === 'icon' && setName && (
+                        <span className="text-[11px] font-normal leading-tight text-gray-400 break-words" title={setName}>
+                          {setName}
+                        </span>
+                      )}
                     </div>
                   </td>
                   {showCardDetails && (
@@ -279,6 +284,11 @@ export function SearchResultsTable({
                   <p className="text-[11px] font-normal leading-tight text-gray-500 break-words">
                     {nameTranslation}
                   </p>
+                )}
+                {editionVariant === 'icon' && setName && (
+                  <span className="text-[11px] font-normal leading-tight text-gray-400 break-words" title={setName}>
+                    {setName}
+                  </span>
                 )}
                 {/* Metadata badges for mobile */}
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-[11px] text-gray-500">
