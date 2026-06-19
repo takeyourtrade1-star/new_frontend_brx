@@ -50,6 +50,10 @@ lib/i18n/messages/Untitled-*.txt
 *.mp4
 tournament-video*
 _temp_block*
+# Eccezione: il video introduttivo dei tornei DEVE stare nel repo (serve in
+# build/deploy e su tutti i PC). Senza, /tornei va in 404 e resta bloccato.
+!public/videos/tournament-video-trial.webm
+!public/videos/tournament-video-trial.mp4
 
 # Cartelle foto condizioni e asset grezzi (le versioni processate sono in public/conditions/)
 Damaged/

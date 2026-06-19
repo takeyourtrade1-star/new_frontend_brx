@@ -21,6 +21,7 @@ type CardTraits = {
   signed: boolean;
   altered: boolean;
   foil: boolean;
+  graded: boolean;
 };
 
 type ShowcaseCard = {
@@ -31,6 +32,7 @@ type ShowcaseCard = {
 };
 
 const SHOWCASE_FILES = [
+  'ancestral-recall_graded.png',
   'black-lotus_signed_alterated.png',
   'birds-of-paradise_signed.png',
   'carta-cinese_signed_foil.png',
@@ -50,6 +52,7 @@ function filenameToName(filename: string): string {
     .replace(/_signed.*$/, '')
     .replace(/_alterated.*$/, '')
     .replace(/_altered.*$/, '')
+    .replace(/_graded.*$/, '')
     .replace(/_foil.*$/, '')
     .replace(/-\d+$/, '');
 
@@ -65,6 +68,7 @@ function parseTraits(filename: string): CardTraits {
     signed: filename.includes('signed'),
     altered: filename.includes('alterated') || filename.includes('altered'),
     foil: filename.includes('foil'),
+    graded: filename.includes('graded'),
   };
 }
 
@@ -190,6 +194,7 @@ export function SignedAlteredShowcase({ featuredCards }: SignedAlteredShowcasePr
                       unoptimized
                     />
                     <div className="absolute inset-x-0 bottom-0 flex gap-1.5 bg-gradient-to-t from-black/60 to-transparent p-2 pt-5">
+                      {card.traits.graded ? <TraitBadge icon={Award} label="Gradata" /> : null}
                       {card.traits.signed ? <TraitBadge icon={PenLine} label="Firmata" /> : null}
                       {card.traits.altered ? <TraitBadge icon={Paintbrush} label="Alterata" /> : null}
                       {card.traits.foil ? <TraitBadge icon={Sparkles} label="Foil" /> : null}

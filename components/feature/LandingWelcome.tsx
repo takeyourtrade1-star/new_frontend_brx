@@ -55,6 +55,17 @@ const GAME_FULLSCREEN_IMAGES: Record<string, string> = {
   'Star Wars: Unlimited': '/landing-giochi-bg/starwars.png',
 };
 
+/** Sfondo gradiente leggero per ogni gioco, sui colori del brand:
+ * Pokémon (giallo/blu), Yu-Gi-Oh! (viola/oro), One Piece (rosso/oro),
+ * Lorcana (turchese/oro inchiostro), Star Wars (blu/ambra). */
+const GAME_GRADIENTS: Record<string, string> = {
+  'Pokémon Trading Card Game': 'from-[#FFCB05]/25 to-[#2A75BB]/25',
+  'Yu-Gi-Oh! Trading Card Game': 'from-[#7A3FA0]/30 to-[#C9A227]/20',
+  'One Piece Card Game': 'from-[#D8232A]/28 to-[#E0A23B]/20',
+  'Disney Lorcana': 'from-[#15A6A6]/28 to-[#D4AF37]/20',
+  'Star Wars: Unlimited': 'from-[#1E6FB8]/26 to-[#F2C200]/18',
+};
+
 const getComingSoonGames = (): {
   src: string;
   alt: string;
@@ -310,7 +321,7 @@ export function LandingWelcome() {
                         key={game.alt}
                         type="button"
                         aria-label={game.alt}
-                        className="group/game flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg overflow-hidden bg-white/10 border border-white/15 px-1 py-1.5 transition-all duration-300 hover:bg-white/15 hover:border-white/25 hover:scale-105"
+                        className="group/game relative flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg overflow-hidden bg-white/10 border border-white/15 px-1 py-1.5 transition-all duration-300 hover:bg-white/15 hover:border-white/25 hover:scale-105"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -323,14 +334,19 @@ export function LandingWelcome() {
                           }
                         }}
                       >
-                        <div className="flex flex-1 min-h-0 w-full items-center justify-center">
+                        {/* Sfondo gradiente sui colori del brand del gioco */}
+                        <span
+                          aria-hidden
+                          className={`pointer-events-none absolute inset-0 bg-gradient-to-br opacity-70 transition-opacity duration-300 group-hover/game:opacity-100 ${GAME_GRADIENTS[game.alt] ?? ''}`}
+                        />
+                        <div className="relative z-10 flex flex-1 min-h-0 w-full items-center justify-center">
                           <img
                             src={game.src}
                             alt=""
                             className="max-h-[52%] max-w-[58%] object-contain"
                           />
                         </div>
-                        <span className="shrink-0 text-center text-[8px] font-medium leading-tight text-white/80 sm:text-[9px]">
+                        <span className="relative z-10 shrink-0 text-center text-[8px] font-medium leading-tight text-white/80 sm:text-[9px]">
                           {game.label}
                         </span>
                       </button>
