@@ -92,6 +92,16 @@ export function AuthShell({
       <div className="relative min-h-screen w-full overflow-hidden bg-[#2d2d2d]">
         <LandingBackgroundVideo splitLeft />
 
+        {/* Scrim blu brand sopra il video — solo metà sinistra (leggibilità showcase) */}
+        <div
+          className="pointer-events-none absolute inset-0 z-0 lg:right-1/2"
+          style={{
+            background:
+              'radial-gradient(120% 80% at 12% 8%, rgba(61,101,198,0.45) 0%, transparent 55%), linear-gradient(180deg, rgba(29,49,96,0.42) 0%, rgba(15,23,42,0.82) 100%)',
+          }}
+          aria-hidden
+        />
+
         {/* Metà destra — tutta l'altezza */}
         <div
           className="absolute inset-y-0 right-0 z-[1] hidden w-1/2 bg-white/90 lg:block"

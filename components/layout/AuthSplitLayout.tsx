@@ -83,7 +83,7 @@ export function AuthSplitLayout({
     <AuthShell splitHero compact>
 
       <aside className={SHOWCASE_COLUMN_CLASS}>
-        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto lg:overflow-hidden">
           <LoginDemoShowcase className="mx-auto w-full max-w-xl lg:max-w-none" />
         </div>
       </aside>
