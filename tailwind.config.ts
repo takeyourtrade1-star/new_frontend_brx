@@ -169,6 +169,21 @@ const config: Config = {
           '64%': { opacity: '0', transform: 'translateX(5px) rotate(18deg)' },
           '100%': { opacity: '0', transform: 'translateX(5px) rotate(18deg)' },
         },
+        'cart-wobble': {
+          '0%': { transform: 'translateY(0) rotate(0deg)' },
+          '18%': { transform: 'translateY(-2px) rotate(-16deg)' },
+          '34%': { transform: 'translateY(0) rotate(11deg)' },
+          '50%': { transform: 'translateY(-1px) rotate(-7deg)' },
+          '68%': { transform: 'translateY(0) rotate(4deg)' },
+          '84%': { transform: 'translateY(0) rotate(-2deg)' },
+          '100%': { transform: 'translateY(0) rotate(0deg)' },
+        },
+        'cart-speed': {
+          '0%, 35%': { opacity: '0', transform: 'translateX(0)' },
+          '48%': { opacity: '1', transform: 'translateX(-2px)' },
+          '70%': { opacity: '0.5', transform: 'translateX(-5px)' },
+          '100%': { opacity: '0', transform: 'translateX(-7px)' },
+        },
       },
       animation: {
         'caret-blink': 'caret-blink 1.2s ease-out infinite',
@@ -183,6 +198,8 @@ const config: Config = {
         'tag-tilt': 'tag-tilt 0.9s cubic-bezier(0.34,1.56,0.64,1)',
         'coin-pop': 'coin-pop 1s cubic-bezier(0.22,1,0.36,1)',
         'coin-shine': 'coin-shine 1s ease-out',
+        'cart-wobble': 'cart-wobble 0.9s cubic-bezier(0.34,1.56,0.64,1)',
+        'cart-speed': 'cart-speed 0.9s ease-out',
       },
       backgroundImage: {
         'gradient-global': 'linear-gradient(to bottom, #3D65C6 0%, #1D3160 100%)',

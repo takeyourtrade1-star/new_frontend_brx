@@ -61,9 +61,9 @@ const GAME_FULLSCREEN_IMAGES: Record<string, string> = {
 const GAME_GRADIENTS: Record<string, string> = {
   'Pokémon Trading Card Game': 'from-[#FFCB05]/25 to-[#2A75BB]/25',
   'Yu-Gi-Oh! Trading Card Game': 'from-[#7A3FA0]/30 to-[#C9A227]/20',
-  'One Piece Card Game': 'from-[#D8232A]/28 to-[#E0A23B]/20',
-  'Disney Lorcana': 'from-[#15A6A6]/28 to-[#D4AF37]/20',
-  'Star Wars: Unlimited': 'from-[#1E6FB8]/26 to-[#F2C200]/18',
+  'One Piece Card Game': 'from-[#D8232A]/[28%] to-[#E0A23B]/20',
+  'Disney Lorcana': 'from-[#15A6A6]/[28%] to-[#D4AF37]/20',
+  'Star Wars: Unlimited': 'from-[#1E6FB8]/[26%] to-[#F2C200]/[18%]',
 };
 
 const getComingSoonGames = (): {

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart, Trash2, ArrowRight } from 'lucide-react';
 import { useCartStore } from '@/lib/stores/cart-store';
+import { ShoppingCartIcon } from '@/components/ui/ShoppingCartIcon';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { getCdnImageUrl } from '@/lib/config';
@@ -90,15 +91,19 @@ export function CartDropdown() {
       {/* Cart Trigger Button */}
       <Link
         href="/cart"
-        className="group flex items-center gap-2 rounded-xl border border-white/40 bg-[#F5F2EA] px-2 py-2 text-[#1D3160] shadow-sm transition-all duration-200 ease-out hover:bg-white hover:shadow-[0_0_22px_rgba(255,115,0,0.4)] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:px-3"
+        className="group flex items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
         aria-label={t('nav.cartAria', { total: formatEuro(cartTotal) })}
       >
-        <span data-cart-icon="true" className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 transition-all duration-200 group-hover:bg-primary/25 group-hover:shadow-[0_0_12px_rgba(255,115,0,0.5)]">
-          <ShoppingCart className="h-5 w-5 text-primary transition-transform duration-200 group-hover:scale-110" strokeWidth={2} />
+        <span
+          data-cart-icon="true"
+          className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary shadow-[0_0_10px_rgba(255,115,0,0.45)] transition-all duration-200 group-hover:shadow-[0_0_16px_rgba(255,115,0,0.7)]"
+          aria-hidden
+        >
+          <ShoppingCartIcon className="h-4 w-4" stroke="#FFFFFF" strokeWidth={2.25} animated />
           {cartCount > 0 && (
             <span
               className={cn(
-                'absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-bold text-white ring-1 ring-white transition-transform',
+                'absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-white px-0.5 text-[9px] font-bold text-primary ring-1 ring-primary transition-transform',
                 badgeBounce && 'animate-cart-badge-bounce'
               )}
               aria-hidden
@@ -107,7 +112,7 @@ export function CartDropdown() {
             </span>
           )}
         </span>
-        <span className="hidden text-sm font-semibold text-[#1D3160] transition-colors duration-200 group-hover:text-[#16264d] sm:inline">
+        <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase text-white md:inline">
           ({formatEuro(cartTotal)})
         </span>
       </Link>
