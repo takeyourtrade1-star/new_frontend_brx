@@ -57,42 +57,47 @@ export async function resolveAuctionSearchQuery(
     });
     const res = await fetch(`/api/search?${params.toString()}`);
     if (!res.ok) {
-      return { apiQ: trimmed, matchTerms: [trimmed] };
+      return { apiQ: trimmed, matchTerms: [] };
     }
     const data = (await res.json()) as { hits?: SearchHit[] };
     const hits = data.hits ?? [];
     if (hits.length === 0) {
-      return { apiQ: trimmed, matchTerms: [trimmed] };
+      return { apiQ: trimmed, matchTerms: [] };
     }
 
-    const allTerms = [trimmed, ...hits.flatMap((h) => collectTermsFromHit(h, lang))];
+    const allTerms = hits.flatMap((h) => collectTermsFromHit(h, lang));
     const matchTerms = dedupeLower(allTerms);
     const apiQ = hits[0]?.name?.trim() || trimmed;
 
     return { apiQ, matchTerms };
   } catch {
-    return { apiQ: trimmed, matchTerms: [trimmed] };
+    return { apiQ: trimmed, matchTerms: [] };
   }
 }
 
 export function auctionMatchesSearchTerms(
-  auction: { title: string; seller: string; sellerDisplayName?: string },
+  auction: { title: string; setName?: string | null; seller: string; sellerDisplayName?: string },
   matchTerms: string[],
   rawQuery: string
 ): boolean {
   const needle = rawQuery.trim().toLowerCase();
   if (!needle && matchTerms.length === 0) return true;
 
-  const haystacks = [
-    auction.title,
-    auction.seller,
-    auction.sellerDisplayName ?? '',
-  ].map((s) => s.toLowerCase());
+  const hay = `${auction.title} ${auction.setName ?? ''} ${auction.seller} ${auction.sellerDisplayName ?? ''}`.toLowerCase();
+  const tokens = needle.split(/\s+/).filter(Boolean);
+  const cardTerms = matchTerms.length > 0 ? matchTerms : needle ? [needle] : [];
+  const cardMatched = cardTerms.some((t) => hay.includes(t.toLowerCase()));
 
-  const terms = matchTerms.length > 0 ? matchTerms : needle ? [needle] : [];
-  for (const term of terms) {
-    const t = term.toLowerCase();
-    if (haystacks.some((h) => h.includes(t))) return true;
+  if (cardMatched) {
+    const cardTermTokens = new Set(cardTerms.flatMap((t) => t.toLowerCase().split(/\s+/)));
+    for (const tok of tokens) {
+      if (cardTermTokens.has(tok)) continue;
+      if (!hay.includes(tok)) return false;
+    }
+    return true;
   }
-  return false;
+  for (const tok of tokens) {
+    if (!hay.includes(tok)) return false;
+  }
+  return true;
 }
