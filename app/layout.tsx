@@ -81,9 +81,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const brxBgUrl = getBrxBgCssUrl();
-  const showBuildInfo =
-    process.env.NODE_ENV !== 'production' ||
-    process.env.NEXT_PUBLIC_SHOW_BUILD_INFO === 'true';
 
   return (
     <html lang="it" suppressHydrationWarning className={nunito.variable}>
@@ -117,7 +114,7 @@ export default function RootLayout({
           </div>
           <CardMascotteGate />
         </Providers>
-        {showBuildInfo ? <BuildInfoBadge /> : null}
+        <BuildInfoBadge />
       </body>
     </html>
   );
