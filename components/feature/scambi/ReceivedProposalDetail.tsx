@@ -7,7 +7,7 @@
  * quando l'utente modifica carte o crediti.
  */
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowLeft, ArrowLeftRight, Check, X } from 'lucide-react';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { tradeBalance } from '@/lib/scambi/card-mock-value';
@@ -75,6 +75,15 @@ export function ReceivedProposalDetail({
   /** Di default si vede solo la proposta sul tavolo; le due liste inventario
    * compaiono solo entrando in modalità controproposta. */
   const [counterMode, setCounterMode] = useState(false);
+  const inventoriesRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!counterMode) return;
+    const frame = requestAnimationFrame(() => {
+      inventoriesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [counterMode]);
 
   const [selectedRequestedIds, setSelectedRequestedIds] = useState<string[]>(initialRequestedIds);
   const [selectedOfferedIds, setSelectedOfferedIds] = useState<string[]>(initialOfferedIds);
@@ -326,6 +335,7 @@ export function ReceivedProposalDetail({
         balance={balance}
         onQuickCompensate={quickCompensate}
         editable={counterMode}
+        inventoriesSectionRef={inventoriesRef}
       />
 
       {/* Modale conferma controproposta */}

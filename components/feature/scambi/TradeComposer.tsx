@@ -15,7 +15,7 @@
  * possiede solo i filtri locali delle due liste.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type Ref } from 'react';
 import { Check, Plus } from 'lucide-react';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { cn } from '@/lib/utils';
@@ -68,6 +68,8 @@ export interface TradeComposerProps {
    * il tavolo: niente inventari, crediti, "Compensa" o tasti di rimozione.
    */
   editable?: boolean;
+  /** Ref opzionale sulla sezione inventari (per scroll quando si apre). */
+  inventoriesSectionRef?: Ref<HTMLElement>;
 }
 
 /** Grana fine del feltro: rumore frattale monocromatico in un'unica tile SVG.
@@ -237,6 +239,7 @@ export function TradeComposer({
   onQuickCompensate,
   lockedRequestedId,
   editable = true,
+  inventoriesSectionRef,
 }: TradeComposerProps) {
   const [myFilters, setMyFilters] = useState<InventoryFiltersState>(EMPTY_FILTERS);
   const [otherFilters, setOtherFilters] = useState<InventoryFiltersState>(EMPTY_FILTERS);
@@ -354,7 +357,10 @@ export function TradeComposer({
 
       {/* 3. Crediti + inventari (solo in controproposta) */}
       {editable && (
-        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.06),0_14px_34px_-18px_rgba(29,49,96,0.32)]">
+        <section
+          ref={inventoriesSectionRef}
+          className="scroll-mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.06),0_14px_34px_-18px_rgba(29,49,96,0.32)]"
+        >
           {/* Crediti di compensazione */}
           <div className="flex flex-col gap-2 bg-[#FAFAF7] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
             <MoneyField value={addMoney} onChange={onAddMoneyChange} label="Aggiungi differenza" />
