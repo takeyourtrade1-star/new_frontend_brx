@@ -97,39 +97,6 @@ export function ScambiContent() {
           <ReceivedProposalDetail proposal={openProposal} onBack={() => setOpenProposal(null)} />
         ) : (
           <>
-            {/* Notifiche scambi */}
-            <div className="mb-6 flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-gray-200/80 bg-white px-4 py-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900">Nuova proposta</p>
-                  <p className="mt-0.5 text-sm text-gray-500">Qualcuno vuole scambiare una carta con te.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('richieste');
-                    if (proposals[0]) setOpenProposal(proposals[0]);
-                  }}
-                  className="shrink-0 text-sm font-medium text-gray-600 underline-offset-2 transition hover:text-gray-900 hover:underline"
-                >
-                  Guarda
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-gray-200/80 bg-white px-4 py-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900">Proposta accettata</p>
-                  <p className="mt-0.5 text-sm text-gray-500">La tua offerta per Black Lotus è stata accettata.</p>
-                </div>
-                <button
-                  type="button"
-                  className="shrink-0 text-sm font-medium text-gray-600 underline-offset-2 transition hover:text-gray-900 hover:underline"
-                >
-                  Dettagli
-                </button>
-              </div>
-            </div>
-
             {/* Tab */}
             <div className="mb-6 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 border-b border-gray-200 pb-3">
               {TABS.map((tab) => (
