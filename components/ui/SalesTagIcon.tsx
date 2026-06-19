@@ -99,6 +99,25 @@ export function SalesTagIcon({
       >
         <line x1="15.5" y1="14.5" x2="15.5" y2="19.5" strokeOpacity="0.85" />
       </svg>
+      {/* "+" guadagno: indicatore reward che spunta sopra la moneta e sale
+          svanendo, come un "+1" da gioco = "guadagni". */}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        className={cn(
+          'pointer-events-none absolute inset-0 m-auto',
+          sizeClass,
+          'origin-[83%_30%] opacity-0 group-hover:animate-coin-earn',
+        )}
+        aria-hidden
+      >
+        <line x1="18.4" y1="7" x2="21.6" y2="7" />
+        <line x1="20" y1="5.4" x2="20" y2="8.6" />
+      </svg>
     </span>
   );
 }

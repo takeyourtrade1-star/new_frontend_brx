@@ -684,10 +684,10 @@ export function TopBar() {
                   aria-label={t('nav.sell')}
                 >
                   <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5"
                     aria-hidden
                   >
-                    <SalesTagIcon className="h-5 w-5" stroke="#FF7300" strokeWidth={2} animated />
+                    <SalesTagIcon className="h-[0.9rem] w-[0.9rem]" stroke="#FF7300" strokeWidth={2} animated />
                   </span>
                   <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase lg:inline">
                     {t('nav.sell')}
