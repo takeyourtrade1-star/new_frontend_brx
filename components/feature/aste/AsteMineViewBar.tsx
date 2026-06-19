@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { AuctionTranslate } from '@/components/feature/aste/auctions-browse-shared';
 
@@ -73,9 +72,6 @@ function StatusSwitch({
   );
 }
 
-const CROSS_LINK_CLASS =
-  'inline-flex shrink-0 items-center justify-center rounded-full border-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wide transition-all duration-300 sm:px-4 sm:py-2.5 sm:text-[11px]';
-
 type AsteMineViewBarProps = {
   variant: 'published' | 'participations';
   statusTab: MyListingsTab;
@@ -96,26 +92,14 @@ export function AsteMineViewBar({
   const isPublished = variant === 'published';
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <StatusSwitch
-        value={statusTab}
-        onChange={onStatusTabChange}
-        ongoingLabel={isPublished ? t('auctions.myListingsTabOngoing') : t('auctions.participationsTabOngoing')}
-        endedLabel={isPublished ? t('auctions.myListingsTabEnded') : t('auctions.participationsTabEnded')}
-        ongoingCount={ongoingCount}
-        endedCount={endedCount}
-        ariaLabel={isPublished ? t('auctions.myListingsStatusLabel') : t('auctions.participationsStatusLabel')}
-      />
-
-      <Link
-        href={isPublished ? '/aste/partecipazioni' : '/aste/mie'}
-        className={cn(
-          CROSS_LINK_CLASS,
-          'border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)]',
-        )}
-      >
-        {isPublished ? t('auctions.myParticipationsLink') : t('auctions.myPublishedLink')}
-      </Link>
-    </div>
+    <StatusSwitch
+      value={statusTab}
+      onChange={onStatusTabChange}
+      ongoingLabel={isPublished ? t('auctions.myListingsTabOngoing') : t('auctions.participationsTabOngoing')}
+      endedLabel={isPublished ? t('auctions.myListingsTabEnded') : t('auctions.participationsTabEnded')}
+      ongoingCount={ongoingCount}
+      endedCount={endedCount}
+      ariaLabel={isPublished ? t('auctions.myListingsStatusLabel') : t('auctions.participationsStatusLabel')}
+    />
   );
 }

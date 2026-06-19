@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, type AuctionUI } from '@/lib/auction/auction-adapter';
@@ -23,12 +23,10 @@ function useNowTick(intervalMs = 1000): number {
 
 export type ProductAuctionsPanelProps = {
   card: CardDocument;
-  onCreateAuctionEmbedded: () => void;
 };
 
 export function ProductAuctionsPanel({
   card,
-  onCreateAuctionEmbedded,
 }: ProductAuctionsPanelProps) {
   const { t } = useTranslation();
   const now = useNowTick();
@@ -108,33 +106,9 @@ export function ProductAuctionsPanel({
       )}
 
       {!loading && !hasCardAuctions && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50/80 px-5 py-8 text-center">
-          <p className="text-sm font-semibold text-gray-800">{t('productDetail.auctions.emptyTitle')}</p>
-          <p className="mt-2 text-sm text-gray-600">{t('productDetail.auctions.emptyBody')}</p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={onCreateAuctionEmbedded}
-              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-sm transition hover:opacity-95"
-              style={{ backgroundColor: PRIMARY }}
-            >
-              <PlusCircle className="h-4 w-4" aria-hidden />
-              {t('productDetail.auctions.createNow')}
-            </button>
-            <Link
-              href="/aste/nuova"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-50"
-            >
-              {t('auctions.createAuction')}
-            </Link>
-            <Link
-              href="/aste"
-              className="inline-flex items-center rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#FF7300] ring-1 ring-[#FF7300]/30 transition hover:bg-orange-50"
-            >
-              {t('productDetail.auctions.exploreOthers')}
-            </Link>
-          </div>
-        </div>
+        <p className="rounded-xl border border-gray-200 bg-gray-50/80 px-5 py-6 text-center text-sm font-semibold text-gray-800">
+          {t('productDetail.auctions.emptyTitle')}
+        </p>
       )}
 
       {!loading && hasCardAuctions && (
@@ -149,7 +123,9 @@ export function ProductAuctionsPanel({
       <section className="mt-8 border-t border-gray-100 pt-6" aria-labelledby="pd-auctions-recommended">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 id="pd-auctions-recommended" className="text-xs font-bold uppercase tracking-wide text-gray-700">
-            {t('productDetail.auctions.recommendedTitle')}
+            {hasCardAuctions
+              ? t('productDetail.auctions.recommendedTitle')
+              : t('productDetail.auctions.recommendedTitleEmpty')}
           </h3>
           <Link
             href="/aste"

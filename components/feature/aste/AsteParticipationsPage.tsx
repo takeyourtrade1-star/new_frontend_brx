@@ -157,7 +157,7 @@ export function AsteParticipationsPage() {
             endedCount={endedRows.length}
             t={t}
           />
-          <div className="flex flex-wrap items-center justify-between gap-3 border border-gray-300 bg-white px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-gray-700">{t('auctions.resultsCount', { count: visibleRows.length })}</p>
           <AuctionViewToggle
             viewMode={viewMode}
@@ -168,7 +168,7 @@ export function AsteParticipationsPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden border border-gray-300 bg-white">
+        <div className="overflow-hidden rounded-2xl border border-white/60 bg-white/70 shadow-[0_8px_32px_rgba(29,49,96,0.08)] backdrop-blur-xl backdrop-saturate-150 ring-1 ring-[#1D3160]/5">
           {visibleRows.length === 0 ? (
             <div className="p-16 text-center text-gray-500">{emptyMessage}</div>
           ) : viewMode === 'grid' ? (

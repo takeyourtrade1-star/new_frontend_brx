@@ -7,7 +7,7 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown, Eye, EyeOff, LogIn, LogOut, ShoppingBag, Tag } from 'lucide-react';
+import { ChevronDown, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
 import { TournamentsPortalLink } from './TournamentsPortalButton';
 import { CartDropdown } from './CartDropdown';
 import { MobileHeaderNavIcon, MOBILE_HEADER_ICON_CLASS } from './MobileHeaderNavIcon';
@@ -27,6 +27,8 @@ import { LOCALE_TO_INTL } from '@/lib/i18n/locales';
 import type { UiLocale } from '@/lib/i18n/locales';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
 import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
+import { PurchasesBagIcon } from '@/components/ui/PurchasesBagIcon';
+import { SalesTagIcon } from '@/components/ui/SalesTagIcon';
 import { FEATURES } from '@/lib/config/features';
 import {
   HEADER_BRX_LOGO_COLUMN_CLASS,
@@ -536,9 +538,9 @@ export function TopBar() {
                   aria-expanded={acquistiMenuOpen}
                   menuOpen={acquistiMenuOpen}
                   showChevron
-                  className="md:hidden"
+                  className="group md:hidden"
                 >
-                  <ShoppingBag className={MOBILE_HEADER_ICON_CLASS} strokeWidth={2} aria-hidden />
+                  <PurchasesBagIcon className={MOBILE_HEADER_ICON_CLASS} stroke="#FF7300" strokeWidth={2} animated />
                 </MobileHeaderNavIcon>
 
                 {/* Desktop: Dropdown Acquisti con I miei acquisti e Lista desideri */}
@@ -548,7 +550,7 @@ export function TopBar() {
                     setAcquistiMenuOpen((o) => !o);
                     setAccountMenuOpen(false);
                   }}
-                  className="hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:flex"
+                  className="group hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:flex"
                   aria-expanded={acquistiMenuOpen}
                   aria-haspopup="true"
                   aria-label={t('purchases.menuAria')}
@@ -557,23 +559,7 @@ export function TopBar() {
                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5"
                     aria-hidden
                   >
-                    {/* Icona ACQUISTI: shopping bag (stroke #FF7300, 2px) */}
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#FF7300"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-[0.9rem] w-[0.9rem]"
-                    >
-                      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                      <line x1="3" y1="6" x2="21" y2="6"></line>
-                      <path d="M16 10a4 4 0 0 1-8 0"></path>
-                    </svg>
+                    <PurchasesBagIcon className="h-[0.9rem] w-[0.9rem]" stroke="#FF7300" strokeWidth={2} animated />
                   </span>
                   <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
                     {t('purchases.title')}
@@ -640,9 +626,9 @@ export function TopBar() {
                   aria-expanded={vendiMenuOpen}
                   menuOpen={vendiMenuOpen}
                   showChevron
-                  className="md:hidden"
+                  className="group md:hidden"
                 >
-                  <Tag className={MOBILE_HEADER_ICON_CLASS} strokeWidth={2} aria-hidden />
+                  <SalesTagIcon className={MOBILE_HEADER_ICON_CLASS} stroke="#FF7300" strokeWidth={2} animated />
                 </MobileHeaderNavIcon>
 
                 {/* Dropdown Vendi - Visibile sia mobile che desktop */}
@@ -692,7 +678,7 @@ export function TopBar() {
                     setAccountMenuOpen(false);
                     setAcquistiMenuOpen(false);
                   }}
-                  className="hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/20 md:flex"
+                  className="group hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/20 md:flex"
                   aria-expanded={vendiMenuOpen}
                   aria-haspopup="true"
                   aria-label={t('nav.sell')}
@@ -701,21 +687,7 @@ export function TopBar() {
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5"
                     aria-hidden
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#FF7300"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-5 w-5"
-                    >
-                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                      <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                    </svg>
+                    <SalesTagIcon className="h-5 w-5" stroke="#FF7300" strokeWidth={2} animated />
                   </span>
                   <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase lg:inline">
                     {t('nav.sell')}
