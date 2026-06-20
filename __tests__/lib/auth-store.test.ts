@@ -124,7 +124,7 @@ describe('auth store MFA verification', () => {
       isAuthenticated: true,
       mfaRequired: false,
       preAuthToken: null,
-      flashMessage: 'Login avvenuto con successo',
+      flashMessage: 'Autenticazione completata con successo',
     });
   });
 });
