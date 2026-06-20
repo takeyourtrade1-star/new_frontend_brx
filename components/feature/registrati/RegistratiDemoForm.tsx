@@ -188,7 +188,9 @@ export function RegistratiDemoForm() {
     try {
       const payload = toRegisterPayloadDemo({ ...values, website_url: '' });
       await registerUser(payload);
-      router.push(safeReturnTo());
+      if (useAuthStore.getState().isAuthenticated) {
+        router.push(safeReturnTo());
+      }
     } catch {
       // Errori già impostati nello store e via setError dall'effetto
     }

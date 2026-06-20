@@ -66,6 +66,17 @@ function normalizeUser(user: UserResponse | User | null): User | null {
   };
 }
 
+function unwrapAuthResponse(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object' || !('data' in raw)) return raw;
+  return (raw as { data?: unknown }).data ?? raw;
+}
+
+function isTokenResponse(response: unknown): response is TokenResponse {
+  if (!response || typeof response !== 'object') return false;
+  const data = response as Record<string, unknown>;
+  return typeof data.access_token === 'string' && typeof data.refresh_token === 'string';
+}
+
 interface AuthState {
   // State
   user: User | null;
@@ -454,14 +465,14 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = (await authApi.post(
+          const raw = await authApi.post(
             '/api/auth/verify-mfa',
             data
-          )) as TokenResponse;
+          );
+          const response = unwrapAuthResponse(raw);
 
-          const { access_token, refresh_token } = response;
-
-          if (access_token && refresh_token) {
+          if (isTokenResponse(response)) {
+            const { access_token, refresh_token } = response;
             // Salva entrambi i token
             authApi.setToken(access_token, refresh_token);
 
@@ -528,10 +539,11 @@ export const useAuthStore = create<AuthState>()(
             '/api/auth/register',
             payload
           )) as UserResponse | TokenResponse;
+          const unwrappedResponse = unwrapAuthResponse(response);
 
           // Se la registrazione restituisce token (auto-login), gestiscili
-          if ('access_token' in response && 'refresh_token' in response) {
-            const { access_token, refresh_token } = response;
+          if (isTokenResponse(unwrappedResponse)) {
+            const { access_token, refresh_token } = unwrappedResponse;
             authApi.setToken(access_token, refresh_token);
 
             // Fetch user
