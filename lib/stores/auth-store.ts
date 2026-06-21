@@ -66,6 +66,24 @@ function normalizeUser(user: UserResponse | User | null): User | null {
   };
 }
 
+function unwrapAuthResponse(response: unknown): unknown {
+  if (!response || typeof response !== 'object' || !('data' in response)) {
+    return response;
+  }
+  return (response as { data?: unknown }).data ?? response;
+}
+
+function isTokenResponse(response: unknown): response is TokenResponse {
+  if (!response || typeof response !== 'object') return false;
+  const tokens = response as Partial<TokenResponse>;
+  return (
+    typeof tokens.access_token === 'string' &&
+    tokens.access_token.length > 0 &&
+    typeof tokens.refresh_token === 'string' &&
+    tokens.refresh_token.length > 0
+  );
+}
+
 interface AuthState {
   // State
   user: User | null;
@@ -348,7 +366,7 @@ export const useAuthStore = create<AuthState>()(
           )) as PreAuthTokenResponse | TokenResponse | Record<string, unknown>;
 
           // Proxy / backend possono avere body { data: { ... } }
-          const response = (raw as { data?: unknown }).data ?? raw;
+          const response = unwrapAuthResponse(raw);
 
           // Handle MFA response (Scenario 2)
           if (
@@ -454,14 +472,15 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = (await authApi.post(
+          const raw = (await authApi.post(
             '/api/auth/verify-mfa',
             data
-          )) as TokenResponse;
+          )) as TokenResponse | Record<string, unknown>;
 
-          const { access_token, refresh_token } = response;
+          const response = unwrapAuthResponse(raw);
 
-          if (access_token && refresh_token) {
+          if (isTokenResponse(response)) {
+            const { access_token, refresh_token } = response;
             // Salva entrambi i token
             authApi.setToken(access_token, refresh_token);
 
@@ -759,7 +778,7 @@ export const useAuthStore = create<AuthState>()(
             | PreAuthTokenResponse
             | Record<string, unknown>;
 
-          const response = (raw as { data?: unknown }).data ?? raw;
+          const response = unwrapAuthResponse(raw);
 
           // Handle MFA response
           if (
@@ -852,9 +871,7 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         accessToken: state.accessToken,
         isAuthenticated: state.isAuthenticated,
-        // Persiste il flusso MFA tra reload / navigazione (token breve, come sessione login)
-        preAuthToken: state.preAuthToken,
-        mfaRequired: state.mfaRequired,
+        // Il token pre-auth MFA resta solo in sessionStorage: non deve sopravvivere a sessioni diverse.
       }),
       merge: (persisted, current) => ({
         ...current,
@@ -863,10 +880,8 @@ export const useAuthStore = create<AuthState>()(
           (persisted as { accessToken: string | null }).accessToken ?? null,
         isAuthenticated:
           (persisted as { isAuthenticated: boolean }).isAuthenticated ?? false,
-        preAuthToken:
-          (persisted as { preAuthToken: string | null }).preAuthToken ?? null,
-        mfaRequired:
-          (persisted as { mfaRequired: boolean }).mfaRequired ?? false,
+        preAuthToken: null,
+        mfaRequired: false,
         flashMessage: null, // Non persistire flashMessage
       }),
     }

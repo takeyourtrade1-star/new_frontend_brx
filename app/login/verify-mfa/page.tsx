@@ -172,7 +172,7 @@ export default function VerifyMFAPage() {
 
 
 
-  const effectiveToken = preAuthToken || (clientReady ? readMfaPreAuthToken() : null);
+  const effectiveToken = (clientReady ? readMfaPreAuthToken() : null) || preAuthToken;
 
 
 
@@ -242,7 +242,7 @@ export default function VerifyMFAPage() {
 
 
 
-    const tokenToSend = effectiveToken || preAuthToken;
+    const tokenToSend = effectiveToken;
 
     if (!tokenToSend) {
 
