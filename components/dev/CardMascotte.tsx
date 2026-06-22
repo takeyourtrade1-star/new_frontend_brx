@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import dynamic from 'next/dynamic';
 import { useRouter, usePathname } from 'next/navigation';
-import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare, ArrowRight, Sparkles, Loader2, Play, Users, Shirt } from 'lucide-react';
+import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare, ArrowRight, Sparkles, Shirt } from 'lucide-react';
 import { CardLoader } from '@/components/dev/CardLoader';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import {
@@ -33,17 +31,6 @@ import {
 } from '@/lib/asso-layout';
 import { getTournamentsPortalUrl } from '@/lib/config/tournaments';
 
-// Minigiochi: caricati on-demand (chunk separato) solo alla prima apertura,
-// così il loro peso + simple-peer (WebRTC) non entra nel bundle della mascotte.
-const KakeguruiArena = dynamic(
-  () => import('@/components/feature/game/KakeguruiArena').then((m) => m.KakeguruiArena),
-  { ssr: false },
-);
-const KakeguruiP2P = dynamic(
-  () => import('@/components/feature/game/KakeguruiP2P').then((m) => m.KakeguruiP2P),
-  { ssr: false },
-);
-
 // Storage keys for bug report data
 const BUG_REPORT_STORAGE = {
   SCREENSHOT: 'brx_bug_screenshot',
@@ -65,22 +52,10 @@ const EXPRESSION_TRANSITION_MS = 140;
 const CODING_PREVIEW_MS = 900;
 const SUBMIT_FEEDBACK_MS = 1400;
 const BUG_MODAL_FADE_MS = 220;
-const MATCHMAKING_GUEST_KEY = 'brx_kakegurui_guest_id';
 const WARDROBE_STORAGE_KEY = 'brx_mascotte_wardrobe_v1';
 
 function isValidFaceColorId(value: unknown): value is FaceColorId {
   return typeof value === 'string' && FACE_COLOR_OPTIONS.some((option) => option.id === value);
-}
-
-interface MatchmakingPayload {
-  status: 'waiting' | 'matched' | 'not_found';
-  ticketId: string;
-  queueSize?: number;
-  matchId?: string;
-  opponent?: {
-    userId: string;
-    username: string;
-  };
 }
 
 // Console log capture
@@ -465,24 +440,6 @@ export function CardMascotte() {
     objects: [],
     faceColor: DEFAULT_FACE_COLOR_ID,
   });
-  const [isArenaOpen, setIsArenaOpen] = useState(false);
-  const [isP2POpen, setIsP2POpen] = useState(false);
-  // Latch: una volta aperto un gioco resta montato (preserva le animazioni di
-  // chiusura), ma il chunk viene scaricato solo alla prima apertura.
-  const [arenaLoaded, setArenaLoaded] = useState(false);
-  const [p2pLoaded, setP2pLoaded] = useState(false);
-  useEffect(() => {
-    if (isArenaOpen) setArenaLoaded(true);
-  }, [isArenaOpen]);
-  useEffect(() => {
-    if (isP2POpen) setP2pLoaded(true);
-  }, [isP2POpen]);
-  const [showGameModeMenu, setShowGameModeMenu] = useState(false);
-  const [isCheckingArenaPlayers, setIsCheckingArenaPlayers] = useState(false);
-  const [connectedPlayers, setConnectedPlayers] = useState<number | null>(null);
-  const [arenaGateMessage, setArenaGateMessage] = useState<string | null>(null);
-  const [arenaOpponentName, setArenaOpponentName] = useState('Rivale Live');
-  const [arenaMatchId, setArenaMatchId] = useState<string | null>(null);
   const [holoPos, setHoloPos] = useState({ x: 50, y: 50 });
   const [easterEggActive, setEasterEggActive] = useState(false);
   const [goldenConfetti, setGoldenConfetti] = useState<Array<{ id: number; x: number; delay: number; size: number; rotation: number; duration: number; color: string }>>([]);
@@ -497,38 +454,14 @@ export function CardMascotte() {
   const particleIdRef = useRef(0);
   const lastFlipTimeRef = useRef(0);
   const backFaceRef = useRef<HTMLDivElement>(null);
-  const gameModeMenuRef = useRef<HTMLDivElement>(null);
-  const playButtonRef = useRef<HTMLButtonElement>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
-  const matchmakingTicketRef = useRef<string | null>(null);
-  const matchmakingPollRef = useRef<number | null>(null);
 
   const closeMascottePanels = useCallback(() => {
     setShowAlbum(false);
     setIsWardrobeOpen(false);
-    setShowGameModeMenu(false);
-    setMenuPosition(null);
     setShowChatModal(false);
     setIsModalOpen(false);
-    setIsArenaOpen(false);
-    setIsP2POpen(false);
-    setIsCheckingArenaPlayers(false);
     setIsFlipped(false);
   }, []);
-
-  // Close game mode menu when clicking outside
-  useEffect(() => {
-    if (!showGameModeMenu) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (gameModeMenuRef.current && !gameModeMenuRef.current.contains(event.target as Node)) {
-        setShowGameModeMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showGameModeMenu]);
 
   useEffect(() => {
     try {
@@ -1100,209 +1033,6 @@ export function CardMascotte() {
     vibrate(15);
     setShowAlbum(prev => !prev);
   }, [vibrate]);
-
-  const stopMatchmakingPoll = useCallback(() => {
-    if (matchmakingPollRef.current != null) {
-      window.clearInterval(matchmakingPollRef.current);
-      matchmakingPollRef.current = null;
-    }
-  }, []);
-
-  const getArenaIdentity = useCallback(() => {
-    if (authUser?.id) {
-      const fallbackName = `Player-${authUser.id.slice(0, 6)}`;
-      return {
-        userId: authUser.id,
-        username: authUser.name?.trim() || fallbackName,
-      };
-    }
-
-    let guestId = '';
-    try {
-      guestId = localStorage.getItem(MATCHMAKING_GUEST_KEY) || '';
-      if (!guestId) {
-        guestId = `guest-${Math.random().toString(36).slice(2, 10)}`;
-        localStorage.setItem(MATCHMAKING_GUEST_KEY, guestId);
-      }
-    } catch {
-      guestId = `guest-${Math.random().toString(36).slice(2, 10)}`;
-    }
-
-    return {
-      userId: guestId,
-      username: `Guest-${guestId.slice(-4).toUpperCase()}`,
-    };
-  }, [authUser]);
-
-  const requestMatchmaking = useCallback(async (ticketId?: string): Promise<MatchmakingPayload | null> => {
-    const identity = getArenaIdentity();
-
-    try {
-      const response = await fetch('/api/game/matchmaking', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        cache: 'no-store',
-        body: JSON.stringify({
-          userId: identity.userId,
-          username: identity.username,
-          ticketId,
-        }),
-      });
-
-      if (!response.ok) return null;
-      const data = (await response.json().catch(() => null)) as MatchmakingPayload | null;
-      return data;
-    } catch {
-      return null;
-    }
-  }, [getArenaIdentity]);
-
-  const leaveMatchmakingQueue = useCallback(async (ticketId: string) => {
-    try {
-      await fetch(`/api/game/matchmaking?ticketId=${encodeURIComponent(ticketId)}`, {
-        method: 'DELETE',
-        cache: 'no-store',
-      });
-    } catch {
-      // ignore best-effort cleanup failures
-    }
-  }, []);
-
-  const fetchConnectedPlayers = useCallback(async (): Promise<number> => {
-    try {
-      const response = await fetch('/api/game/user-ids?limit=50', {
-        method: 'GET',
-        cache: 'no-store',
-      });
-
-      const payload: unknown = await response.json().catch(() => []);
-      if (!Array.isArray(payload)) return 0;
-
-      const uniqueIds = new Set(
-        payload
-          .map((entry) => {
-            if (typeof entry === 'string') return entry.trim();
-            if (typeof entry === 'number' && Number.isFinite(entry)) return String(entry);
-            return '';
-          })
-          .filter(Boolean)
-      );
-
-      return uniqueIds.size;
-    } catch {
-      return 0;
-    }
-  }, []);
-
-  const handlePlayArena = useCallback(async (e?: React.MouseEvent<HTMLButtonElement>) => {
-    e?.stopPropagation();
-    e?.preventDefault();
-    vibrate(20);
-
-    setIsCheckingArenaPlayers(true);
-    setArenaGateMessage('Controllo giocatori collegati...');
-    stopMatchmakingPoll();
-
-    const players = await fetchConnectedPlayers();
-    setConnectedPlayers(players);
-
-    const matchmaking = await requestMatchmaking(matchmakingTicketRef.current ?? undefined);
-
-    if (!matchmaking) {
-      setArenaGateMessage('Matchmaking non disponibile. Riprova tra poco.');
-      setIsCheckingArenaPlayers(false);
-      return;
-    }
-
-    matchmakingTicketRef.current = matchmaking.ticketId || matchmakingTicketRef.current;
-
-    if (matchmaking.status === 'matched') {
-      setArenaMatchId(matchmaking.matchId ?? null);
-      setArenaOpponentName(matchmaking.opponent?.username || 'Rivale Live');
-      setArenaGateMessage('Match trovato. Si parte!');
-      setIsArenaOpen(true);
-      setIsCheckingArenaPlayers(false);
-      return;
-    }
-
-    if (players >= 2) {
-      setArenaGateMessage('Cerco un avversario libero...');
-    } else {
-      setArenaGateMessage('In attesa di un altro giocatore');
-    }
-
-    if (matchmakingTicketRef.current) {
-      matchmakingPollRef.current = window.setInterval(() => {
-        void (async () => {
-          const update = await requestMatchmaking(matchmakingTicketRef.current ?? undefined);
-          if (!update) return;
-
-          matchmakingTicketRef.current = update.ticketId || matchmakingTicketRef.current;
-
-          if (update.status === 'matched') {
-            stopMatchmakingPoll();
-            setArenaMatchId(update.matchId ?? null);
-            setArenaOpponentName(update.opponent?.username || 'Rivale Live');
-            setArenaGateMessage('Match trovato. Si parte!');
-            setIsArenaOpen(true);
-            return;
-          }
-
-          setArenaGateMessage('In attesa di un altro giocatore');
-        })();
-      }, 2500);
-    }
-
-    setIsCheckingArenaPlayers(false);
-  }, [fetchConnectedPlayers, requestMatchmaking, stopMatchmakingPoll, vibrate]);
-
-  useEffect(() => {
-    if (!isFlipped) {
-      if (matchmakingTicketRef.current) {
-        void leaveMatchmakingQueue(matchmakingTicketRef.current);
-      }
-      stopMatchmakingPoll();
-      matchmakingTicketRef.current = null;
-      setArenaOpponentName('Rivale Live');
-      setArenaMatchId(null);
-      setConnectedPlayers(null);
-      setArenaGateMessage(null);
-      setIsCheckingArenaPlayers(false);
-      return;
-    }
-
-    if (isArenaOpen) return;
-
-    let cancelled = false;
-
-    const refreshPlayers = async () => {
-      const players = await fetchConnectedPlayers();
-      if (cancelled) return;
-      setConnectedPlayers(players);
-      if (matchmakingTicketRef.current) {
-        setArenaGateMessage('In attesa di un altro giocatore');
-        return;
-      }
-      setArenaGateMessage(players >= 2 ? 'Pronto: puoi premere Play' : 'In attesa di un altro giocatore');
-    };
-
-    void refreshPlayers();
-    const pollId = window.setInterval(() => {
-      void refreshPlayers();
-    }, 7000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(pollId);
-    };
-  }, [fetchConnectedPlayers, isArenaOpen, isFlipped, leaveMatchmakingQueue, stopMatchmakingPoll]);
-
-  useEffect(() => {
-    if (!isArenaOpen) return;
-    stopMatchmakingPoll();
-  }, [isArenaOpen, stopMatchmakingPoll]);
 
   // Cleanup timeouts
   useEffect(() => {
@@ -2046,7 +1776,7 @@ export function CardMascotte() {
 
   // No separate sleep promo cycle - uses same index as awake state
 
-  const isOverlayVisible = showChatModal || isModalOpen || isCodingTransition || showCodingCompanion || isExternalModalOpen || isArenaOpen;
+  const isOverlayVisible = showChatModal || isModalOpen || isCodingTransition || showCodingCompanion || isExternalModalOpen;
   const isStyleReactionActive = assoBubble.current?.kind === 'styleReaction';
 
   const handleAssoPromoClick = useCallback(() => {
@@ -3257,7 +2987,6 @@ export function CardMascotte() {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setShowGameModeMenu(false);
                     setIsWardrobeOpen((prev) => {
                       const next = !prev;
                       if (next) {
@@ -3293,74 +3022,6 @@ export function CardMascotte() {
                   <span className="sr-only">Apri guardaroba</span>
                 </button>
 
-                <button
-                  ref={playButtonRef}
-                  type="button"
-                  onClick={() => {
-                    if (!showGameModeMenu && playButtonRef.current) {
-                      const rect = playButtonRef.current.getBoundingClientRect();
-                      setMenuPosition({
-                        top: rect.bottom + 8,
-                        left: rect.left + rect.width / 2
-                      });
-                    }
-                    setShowGameModeMenu(prev => !prev);
-                  }}
-                  disabled={isCheckingArenaPlayers}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white transition hover:scale-105 hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-60"
-                  title="Avvia mini-gioco"
-                  aria-label="Avvia mini-gioco"
-                >
-                  {isCheckingArenaPlayers ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                  <span className="sr-only">Avvia mini-gioco</span>
-                </button>
-
-                {/* Game Mode Selector Dropdown - Ported to body to escape 3D context */}
-                {showGameModeMenu && menuPosition && typeof document !== 'undefined' && createPortal(
-                  <div
-                    ref={gameModeMenuRef}
-                    className="fixed w-48 rounded-lg border border-white/20 bg-black/95 backdrop-blur-md shadow-2xl overflow-hidden"
-                    style={{
-                      bottom: window.innerHeight - menuPosition.top + 8,
-                      left: menuPosition.left,
-                      transform: 'translateX(-50%)',
-                      zIndex: 2147483647 // Maximum safe z-index
-                    }}
-                  >
-                    <div className="p-2 space-y-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowGameModeMenu(false);
-                          handlePlayArena();
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-[11px] text-white/90 hover:bg-white/10 transition"
-                      >
-                        <span className="text-base">ðŸŽ®</span>
-                        <div>
-                          <div className="font-semibold">Single Player</div>
-                          <div className="text-[9px] text-white/50">vs CPU locale</div>
-                        </div>
-                      </button>
-                      <div className="h-px bg-white/10" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowGameModeMenu(false);
-                          setIsP2POpen(true);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-[11px] text-white/90 hover:bg-primary/20 transition group"
-                      >
-                        <span className="text-base group-hover:scale-110 transition">âš”ï¸</span>
-                        <div>
-                          <div className="font-semibold text-primary">1v1 LAN</div>
-                          <div className="text-[9px] text-white/50">vs Amico in rete</div>
-                        </div>
-                      </button>
-                    </div>
-                  </div>,
-                  document.body
-                )}
               </div>
             </div>
           </div>{/* end back face */}
@@ -3830,30 +3491,6 @@ export function CardMascotte() {
             </div>
           </div>
         </div>
-      )}
-
-      {arenaLoaded && (
-        <KakeguruiArena
-          key={arenaMatchId ?? 'arena-idle'}
-          open={isArenaOpen}
-          onClose={() => {
-            setIsArenaOpen(false);
-            setArenaMatchId(null);
-            setArenaGateMessage('Pronto: puoi premere Play');
-          }}
-          playerName={authUser?.name?.trim() || 'Tu'}
-          opponentName={arenaOpponentName}
-        />
-      )}
-
-      {p2pLoaded && (
-        <KakeguruiP2P
-          open={isP2POpen}
-          onClose={() => {
-            setIsP2POpen(false);
-            setArenaGateMessage('Pronto: puoi premere Play');
-          }}
-        />
       )}
 
       {/* Float animation */}

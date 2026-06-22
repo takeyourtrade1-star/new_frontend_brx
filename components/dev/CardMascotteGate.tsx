@@ -6,8 +6,7 @@ import dynamic from 'next/dynamic';
 // CardMascotte è un overlay (createPortal + z-index fissato): non occupa spazio nel
 // flusso del layout, quindi il fallback può essere `null` senza alterare l'UI.
 // L'import dinamico con ssr:false tiene la mascotte fuori dal bundle iniziale;
-// internamente i minigiochi (KakeguruiArena/P2P) e html2canvas sono a loro volta
-// caricati on-demand solo all'interazione (vedi CardMascotte.tsx).
+// internamente html2canvas è caricato on-demand solo all'interazione (vedi CardMascotte.tsx).
 const CardMascotte = dynamic(
   () => import('@/components/dev/CardMascotte').then((m) => m.CardMascotte),
   { ssr: false, loading: () => null }
