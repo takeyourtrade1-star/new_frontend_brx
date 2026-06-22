@@ -131,25 +131,47 @@ export function OrderItemCard({
     model;
 
   if (layout === 'grid') {
+    const FallbackIcon = fallbackIcon ?? Package;
     return (
       <article className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-3 transition-colors hover:border-gray-300">
-        <div className="mb-2 flex items-center gap-2">
-          <StatusDot status={status} />
-          {alert && <AlertText>{alert}</AlertText>}
-          {channel && <span className="ml-auto"><ChannelTag>{channel}</ChannelTag></span>}
+        <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-lg bg-[#F5F4F0] ring-1 ring-black/5">
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={title}
+              fill
+              className="object-contain p-2"
+              sizes="(min-width:1280px) 22vw, (min-width:1024px) 30vw, (min-width:640px) 45vw, 92vw"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-[#1D3160]/35">
+              <FallbackIcon className="h-10 w-10" aria-hidden />
+            </div>
+          )}
+          <span className="absolute left-1.5 top-1.5 inline-flex max-w-[calc(100%-3rem)] items-center gap-1 rounded-full bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-700 shadow-sm backdrop-blur-sm">
+            <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[status.tone])} aria-hidden />
+            <span className="truncate">{status.label}</span>
+          </span>
+          {channel && (
+            <span className="absolute right-1.5 top-1.5">
+              <ChannelTag>{channel}</ChannelTag>
+            </span>
+          )}
+          {alert && (
+            <span className="absolute bottom-1.5 left-1.5 inline-flex rounded bg-red-500/95 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+              {alert}
+            </span>
+          )}
         </div>
 
-        <div className="flex gap-3">
-          <Thumb imageUrl={imageUrl} title={title} fallbackIcon={fallbackIcon} size="md" />
-          <div className="min-w-0 flex-1">
-            <Title title={title} href={href} />
-            {subtitle && <p className="mt-0.5 truncate text-xs text-gray-500">{subtitle}</p>}
-            {counterparty && (
-              <p className="mt-0.5 truncate text-xs text-gray-500">
-                {counterparty.label}: <span className="font-medium text-gray-700">{counterparty.name}</span>
-              </p>
-            )}
-          </div>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Title title={title} href={href} />
+          {subtitle && <p className="mt-0.5 truncate text-xs text-gray-500">{subtitle}</p>}
+          {counterparty && (
+            <p className="mt-0.5 truncate text-xs text-gray-500">
+              {counterparty.label}: <span className="font-medium text-gray-700">{counterparty.name}</span>
+            </p>
+          )}
         </div>
 
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-gray-100 pt-2.5">
@@ -236,6 +258,6 @@ export function OrderActionButton({
 /** Classe contenitore coerente: griglia responsiva o stack verticale. */
 export function ordersWrapperClass(view: OrderViewMode): string {
   return view === 'grid'
-    ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3'
+    ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
     : 'space-y-3';
 }

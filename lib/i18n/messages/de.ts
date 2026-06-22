@@ -603,11 +603,9 @@ export const de: Record<MessageKey, string> = {
   'accountPage.wantlistTitle': 'Wunschliste',
   'accountPage.wantlistComingSoonBadge': 'Demnächst',
   'accountPage.wantlistComingSoonHint': 'Interface-Vorschau — die vollständige Wunschlistenverwaltung startet in Kürze.',
-  'accountPage.wantlistWizardTitle': 'Shopping Wizard',
-  'accountPage.wantlistWizardDesc': 'Intelligentes Tool, um Karten Ihrer Liste schnell und effizient zu finden und zu kaufen.',
   'accountPage.wantlistBackToLists': 'Zurück zu den Listen',
   'accountPage.wantlistDesc':
-    'Erstellen Sie eine Wunschliste (z. B. „unbesiegbarer Deck“), um zu verfolgen, was Sie kaufen möchten. Sie können auch den Shopping Wizard nutzen — ein leistungsstarkes Tool für schnellen Einkauf.',
+    'Erstellen Sie eine Wunschliste (z. B. „unbesiegbarer Deck“), um zu verfolgen, was Sie kaufen möchten.',
   'accountPage.wantlistNew': 'Neue Liste',
   'accountPage.wantlistNamePlaceholder': 'z. B. „Neues Deck“',
   'accountPage.wantlistErrEmpty': 'Geben Sie einen Namen für die Liste ein.',

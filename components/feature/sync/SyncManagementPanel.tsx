@@ -35,14 +35,14 @@ export function SyncManagementPanel({
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <div className="border-b border-gray-100 px-5 py-4">
+      <div className="border-b border-gray-100 px-3 py-3 sm:px-5 sm:py-4">
         <h2 className="text-sm font-semibold text-gray-900">Gestione integrazione</h2>
         <p className="mt-0.5 text-xs text-gray-500">
           Collega, aggiorna o revoca l’accesso a CardTrader
         </p>
       </div>
 
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 p-3 sm:p-5">
         {/* Token */}
         <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-4">
           <button
@@ -97,7 +97,7 @@ export function SyncManagementPanel({
               variant="outline"
               disabled={loadingDisconnect}
               onClick={() => void onSuspend()}
-              className="w-full justify-start border-amber-300 text-amber-800 hover:bg-amber-50"
+                className="w-full justify-start border-amber-300 bg-white text-amber-800 hover:bg-amber-50"
             >
               {loadingDisconnect ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -113,7 +113,7 @@ export function SyncManagementPanel({
                 variant="outline"
                 disabled={loadingDisconnect}
                 onClick={() => setConfirmRemove(true)}
-                className="w-full justify-start border-red-200 text-red-700 hover:bg-red-50"
+                className="w-full justify-start border-red-200 bg-white text-red-700 hover:bg-red-50"
               >
                 <Unlink className="mr-2 h-4 w-4" />
                 Rimuovi collegamento
@@ -133,7 +133,7 @@ export function SyncManagementPanel({
                     variant="outline"
                     size="sm"
                     onClick={() => setConfirmRemove(false)}
-                    className="flex-1 border-gray-300"
+                    className="flex-1 border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                   >
                     Annulla
                   </Button>

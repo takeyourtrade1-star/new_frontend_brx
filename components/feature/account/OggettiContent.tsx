@@ -1033,7 +1033,7 @@ function IconCard({ className }: { className?: string }) {
 export function OggettiContent() {
   const { t } = useTranslation();
   const isMobile = useMobileViewport();
-  const { stickyTopWithGap } = useHeaderStickyOffset();
+  const { stickyTop } = useHeaderStickyOffset();
   const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore(
     (s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
@@ -1645,7 +1645,7 @@ export function OggettiContent() {
   ].filter(Boolean).length;
 
   return (
-    <div className="flex min-h-screen w-full max-w-[100vw] flex-col items-start gap-0 overflow-x-hidden bg-[#F5F4F0] p-2 md:flex-row md:gap-4 md:p-4 lg:gap-6 lg:p-6">
+    <div className="flex w-full max-w-[100vw] flex-col gap-0 overflow-x-clip bg-[#F5F4F0] p-2 md:flex-row md:items-start md:gap-4 md:p-4 lg:gap-6 lg:p-6">
       <InventoryFiltersPanel
         filters={filters}
         onFiltersChange={setFilters}
@@ -1661,26 +1661,26 @@ export function OggettiContent() {
         onMobileFiltersOpenChange={setMobileFiltersOpen}
         inventoryItems={inventoryItems}
       />
-      <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden p-0 md:p-6">
+      <main className="w-full min-w-0 max-w-full flex-1 overflow-x-clip p-0 md:p-6">
         <div
-          className="sticky z-40 mb-2 w-full space-y-2 border-b border-gray-200/70 bg-[#F5F4F0]/95 px-2 pb-2 pt-1.5 backdrop-blur-xl md:hidden"
-          style={{ top: stickyTopWithGap }}
+          className="sticky z-40 mb-2 w-full space-y-1.5 border-b border-gray-200/70 bg-[#F5F4F0]/95 px-2 pb-1.5 pt-1 backdrop-blur-xl md:hidden"
+          style={{ top: stickyTop }}
         >
           <div className="flex items-center justify-between gap-2">
-            <h1 className="truncate text-base font-bold text-gray-900">{t('accountPage.itemsTitle')}</h1>
+            <h1 className="truncate text-sm font-bold text-gray-900">{t('accountPage.itemsTitle')}</h1>
             <div className="flex shrink-0 items-center gap-1">
               {!syncStatusLoading && (
                 <button
                   type="button"
                   onClick={() => void handleSyncNow()}
                   disabled={!integrationConnected || !canSyncNow || syncAnyPending}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-white disabled:opacity-50"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white disabled:opacity-50"
                   aria-label="Sync"
                 >
                   {syncNowPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
-                    <RefreshCw className="h-4 w-4" />
+                    <RefreshCw className="h-3.5 w-3.5" />
                   )}
                 </button>
               )}
@@ -1688,10 +1688,10 @@ export function OggettiContent() {
                 type="button"
                 onClick={() => setExportModalOpen(true)}
                 disabled={loading || filteredInventoryItems.length === 0}
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 disabled:opacity-50"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 disabled:opacity-50"
                 aria-label={t('accountPage.itemsExport')}
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
@@ -1700,7 +1700,7 @@ export function OggettiContent() {
             onChange={setSearchValue}
             onClear={clearSearch}
             disabled={loading}
-            inputClassName="rounded-lg border-gray-200 bg-white py-2 pl-9 pr-9 text-sm shadow-none backdrop-blur-none"
+            inputClassName="rounded-lg border-gray-200 bg-white py-1.5 pl-9 pr-9 text-sm shadow-none backdrop-blur-none"
           />
           <InventoryMobileQuickBar
             filters={filters}
@@ -1936,7 +1936,7 @@ export function OggettiContent() {
             t={t}
           />
           {filteredInventoryItems.length > 0 && (
-            <div className="mt-3 flex flex-col gap-2 rounded-xl bg-white p-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] max-md:mb-20 md:mt-6 md:gap-3 md:p-3 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
+            <div className={`mt-3 flex flex-col gap-2 rounded-xl bg-white p-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] md:mt-6 md:gap-3 md:p-3 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4 ${selectedIds.size > 0 ? 'max-md:mb-20' : ''}`}>
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className="text-gray-500">
                   {t('accountPage.itemsPage')} <span className="font-semibold text-gray-900">{currentPage}</span> {t('accountPage.itemsOf')}{' '}

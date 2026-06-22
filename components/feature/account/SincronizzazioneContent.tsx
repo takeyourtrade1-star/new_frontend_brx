@@ -338,7 +338,7 @@ export function SincronizzazioneContent() {
           variant="outline"
           onClick={() => void refreshAll()}
           disabled={loadingStatus}
-          className="shrink-0 border-gray-300"
+          className="shrink-0 border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
         >
           {loadingStatus ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -401,7 +401,7 @@ export function SincronizzazioneContent() {
 
           {integrationReady && <SyncModeSelector />}
 
-          <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5">
             <h2 className="mb-1 text-sm font-semibold text-gray-900">Operazioni</h2>
             <p className="mb-4 text-xs text-gray-500">
               Import inventario da CardTrader e sync listing verso EBARTEX
@@ -426,7 +426,7 @@ export function SincronizzazioneContent() {
                   variant="outline"
                   onClick={() => void handleMarketplaceSyncTrigger()}
                   disabled={marketplaceSyncLoading}
-                  className="border-gray-300"
+                  className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                 >
                   {marketplaceSyncLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

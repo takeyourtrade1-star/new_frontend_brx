@@ -603,11 +603,9 @@ export const pt: Record<MessageKey, string> = {
   'accountPage.wantlistTitle': 'Lista de desejos',
   'accountPage.wantlistComingSoonBadge': 'Em breve',
   'accountPage.wantlistComingSoonHint': 'Pré-visualização da interface — a gestão completa estará ativa em breve.',
-  'accountPage.wantlistWizardTitle': 'Shopping Wizard',
-  'accountPage.wantlistWizardDesc': 'Ferramenta inteligente para encontrar e comprar cartas da sua lista de forma rápida.',
   'accountPage.wantlistBackToLists': 'Voltar às listas',
   'accountPage.wantlistDesc':
-    'Crie uma lista de desejos (por exemplo «baralho imbatível») para acompanhar o que quer comprar. Também pode usar o Shopping Wizard, uma ferramenta poderosa para compras rápidas e eficientes.',
+    'Crie uma lista de desejos (por exemplo «baralho imbatível») para acompanhar o que quer comprar.',
   'accountPage.wantlistNew': 'Nova lista',
   'accountPage.wantlistNamePlaceholder': 'ex.: «Novo baralho»',
   'accountPage.wantlistErrEmpty': 'Introduza um nome para a lista.',

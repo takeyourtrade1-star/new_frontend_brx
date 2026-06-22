@@ -35,7 +35,7 @@ export function SyncWebhookCard({
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
+      <div className="flex items-center gap-3 border-b border-gray-100 px-3 py-3 sm:px-5 sm:py-4">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FF7300]/10">
           <Webhook className="h-5 w-5 text-[#FF7300]" aria-hidden />
         </div>
@@ -51,7 +51,7 @@ export function SyncWebhookCard({
         )}
       </div>
 
-      <div className="p-5">
+      <div className="p-3 sm:p-5">
         {loading ? (
           <div className="flex items-center gap-2 py-6 text-sm text-gray-500">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -74,7 +74,7 @@ export function SyncWebhookCard({
                 type="button"
                 variant="outline"
                 onClick={() => void handleCopy()}
-                className="shrink-0 border-gray-300"
+                className="shrink-0 border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                 title="Copia URL"
               >
                 {copied ? (

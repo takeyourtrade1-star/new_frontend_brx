@@ -43,9 +43,9 @@ function StatusTile({
   };
 
   return (
-    <div className={cn('flex flex-col gap-2 rounded-xl border p-4 transition-colors', styles[state])}>
+    <div className={cn('flex flex-col gap-1.5 rounded-xl border p-2.5 transition-colors sm:gap-2 sm:p-4', styles[state])}>
       <div className="flex items-center justify-between gap-2">
-        <Icon className="h-5 w-5 shrink-0 opacity-80" aria-hidden />
+        <Icon className="h-4 w-4 shrink-0 opacity-80 sm:h-5 sm:w-5" aria-hidden />
         {dot[state]}
       </div>
       <div>
@@ -124,7 +124,7 @@ export function SyncStatusOverview({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 xl:grid-cols-4">
         <StatusTile
           label="CardTrader"
           icon={Link2}

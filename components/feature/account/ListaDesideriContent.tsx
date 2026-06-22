@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, List, Trash2, ChevronRight, ArrowUpDown, Heart, Sparkles, Wand2 } from 'lucide-react';
+import { Plus, List, Trash2, ChevronRight, ArrowUpDown, Heart, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { AccountBreadcrumb } from '@/components/feature/account/AccountBreadcrumb';
@@ -79,19 +79,6 @@ export function ListaDesideriContent() {
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-600">
               {t('accountPage.wantlistDesc')}
             </p>
-          </div>
-
-          {/* Info card — Shopping Wizard preview */}
-          <div className="mb-6 overflow-hidden rounded-2xl border border-white/50 bg-white/70 p-5 shadow-[0_8px_30px_rgba(29,49,96,0.06)] backdrop-blur-xl backdrop-saturate-150 sm:p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF7300]/15 to-[#FF7300]/5 ring-1 ring-[#FF7300]/20">
-                <Wand2 className="h-5 w-5 text-[#FF7300]" aria-hidden />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-[#1D3160]">{t('accountPage.wantlistWizardTitle')}</p>
-                <p className="mt-1 text-sm leading-relaxed text-gray-600">{t('accountPage.wantlistWizardDesc')}</p>
-              </div>
-            </div>
           </div>
 
           {/* Nuova lista */}

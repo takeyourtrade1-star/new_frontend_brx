@@ -199,7 +199,7 @@ export function SyncModeSelector() {
         />
       )}
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div>

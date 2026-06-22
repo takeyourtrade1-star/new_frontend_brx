@@ -13,7 +13,13 @@ const CardMascotte = dynamic(
   { ssr: false, loading: () => null }
 );
 
-const HIDDEN_PATH_PREFIXES = ['/scanner', '/tornei'];
+const HIDDEN_PATH_PREFIXES = [
+  '/scanner',
+  '/tornei',
+  '/login',
+  '/registrati',
+  '/recupera-credenziali',
+];
 
 export function CardMascotteGate() {
   const pathname = usePathname();

@@ -18,7 +18,7 @@ export function SyncHistorySection({
 }) {
   return (
     <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-3 py-3 sm:px-5 sm:py-4">
         <div className="flex items-center gap-2">
           <History className="h-5 w-5 text-gray-500" aria-hidden />
           <div>
@@ -35,7 +35,7 @@ export function SyncHistorySection({
           size="sm"
           onClick={onRefresh}
           disabled={loading}
-          className="border-gray-300"
+          className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
         >
           {loading ? (
             <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
@@ -46,7 +46,7 @@ export function SyncHistorySection({
         </Button>
       </div>
 
-      <div className="p-5">
+      <div className="p-3 sm:p-5">
         {loading && events.length === 0 ? (
           <div className="flex justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-gray-300" />

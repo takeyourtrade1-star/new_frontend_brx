@@ -101,11 +101,11 @@ export function OrderTabs<T extends string>({
       )}
       style={{ top: stickyTop }}
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5 md:justify-between md:gap-x-2 md:gap-y-2">
+        <div className="contents md:flex md:flex-wrap md:items-center md:gap-x-1.5 md:gap-y-1.5">
           {leftTabs.map((tab) => renderTab(tab, 'left'))}
         </div>
-        <div className="ml-auto flex shrink-0 flex-wrap items-center gap-x-1.5 gap-y-1.5">
+        <div className="contents md:ml-auto md:flex md:shrink-0 md:flex-wrap md:items-center md:gap-x-1.5 md:gap-y-1.5">
           {rightTabs.map((tab) => renderTab(tab, 'right'))}
         </div>
       </div>
