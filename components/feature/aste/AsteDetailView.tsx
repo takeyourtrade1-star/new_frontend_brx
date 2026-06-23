@@ -27,8 +27,7 @@ import {
 import { apiToAuctionUI, apiBidToBidRow, type AuctionUI, type BidRowUI } from '@/lib/auction/auction-adapter';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useUserCountry } from '@/lib/hooks/use-user-country';
-import { savedApi } from '@/lib/api/auction-client';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuctionSaved } from '@/hooks/aste/useAuctionSaved';
 import { MascotteLoader } from '@/components/dev/MascotteLoader';
 import { useEnrichedAuction, useEnrichedAuctions, useEnrichedBidRows } from '@/lib/hooks/use-enriched-auctions';
 import {
@@ -59,7 +58,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const currentUserId = currentUser?.id ?? null;
   const isAuthenticated = currentUser != null;
   const viewerCountry = useUserCountry();
-  const queryClient = useQueryClient();
 
   const baseDetail = useMemo(() => {
     if (!detailRes?.data) return null;
@@ -110,22 +108,10 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const calendarMenuDesktopRef = useRef<HTMLDivElement>(null);
   const [pendingSaveAfterLogin, setPendingSaveAfterLogin] = useState(false);
 
-  const savedStatusQuery = useQuery({
-    queryKey: ['saved-auctions', 'status', numericId, currentUserId],
-    queryFn: () => savedApi.getSavedStatus(numericId),
-    enabled: isAuthenticated && !Number.isNaN(numericId) && numericId > 0,
-    staleTime: 10_000,
-  });
-  const savedMutation = useMutation({
-    mutationFn: async (shouldSave: boolean) => {
-      if (shouldSave) return savedApi.saveAuction(numericId);
-      await savedApi.unsaveAuction(numericId);
-      return { success: true, data: { saved: false } };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['saved-auctions', 'status', numericId, currentUserId] });
-      queryClient.invalidateQueries({ queryKey: ['saved-auctions', 'list', currentUserId] });
-    },
+  const { isSaved, setSaved } = useAuctionSaved({
+    numericId,
+    isAuthenticated,
+    currentUserId,
   });
 
   const {
@@ -281,7 +267,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const shippingCountryRows = (detail?.shippingCountryPrices ?? [])
     .filter((r) => r.country_iso !== AUCTION_SHIPPING_REST_OF_WORLD_ISO)
     .slice(0, 8);
-  const isSaved = Boolean(savedStatusQuery.data?.data?.saved);
   const reserveMet = detail?.reservePrice != null ? detail.currentBidEur >= detail.reservePrice : true;
   const effectiveMyLastOfferEur = myLastOfferEur ?? myLastOfferFromHistoryEur;
   const outcome: 'live' | 'sold' | 'unsold' = isEnded
@@ -453,7 +438,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                           setLoginGateOpen(true);
                           return;
                         }
-                        void savedMutation.mutateAsync(!isSaved);
+                        void setSaved(!isSaved);
                       }}
                       className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:shadow-md ${isSaved ? 'text-[#FF7300]' : 'text-gray-400 hover:text-[#FF7300]'}`}
                       aria-label={t('auctions.detailSaveLater')}
@@ -531,7 +516,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                         setLoginGateOpen(true);
                         return;
                       }
-                      void savedMutation.mutateAsync(!isSaved);
+                      void setSaved(!isSaved);
                     }}
                     className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-white/70 ${isSaved ? 'text-[#FF7300]' : 'text-gray-600 hover:text-[#FF7300]'}`}
                     aria-label={t('auctions.detailSaveLater')}
@@ -920,7 +905,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
             setLoginGateOpen(false);
             if (pendingSaveAfterLogin) {
               setPendingSaveAfterLogin(false);
-              void savedMutation.mutateAsync(true);
+              void setSaved(true);
             }
           }}
           title={`Accedi per offrire ${fmtEur(minNextBidEur(effectiveCurrentBidEur))}`}
