@@ -20,6 +20,23 @@ Comporre `useBrxScanner = useOnnxSession + useCameraCapture + useScanLoop`.
 
 **Test:** Aggiungere `__tests__/hooks/useOnnxSession.test.ts` con mock worker.
 
+> ⚠️ **Correzione + stato (2026-06-23):** claim del piano imprecisi — nel hook NON
+> ci sono `torch`/`debounce` (solo `facingMode`) e NESSUN `IndexedDB` diretto
+> (sta in `lib/scanner/onnx-loader`). Zero test scanner esistenti. Il `README`
+> mette 08 (test) **prima** di 01: i 3 hook condividono stato (`matchedRef`,
+> `recentNamesRef`, `hintStreakRef`, `scanGapMsRef`, `videoRef`), verificabile
+> solo a runtime (camera reale).
+>
+> Approccio adottato: **incrementale, un seam alla volta, commit per passo**.
+>
+> ✅ **Passo 1/3 FATTO:** estratto `useOnnxSession` in
+> `hooks/scanner/useOnnxSession.ts` (load modello + worker + `runOnnxEmbed` +
+> retry/standard, ~300 righe). `useBrxScanner` 986 → 761 righe. Logica identica,
+> behavior-preserving. typecheck + lint + **build** verdi.
+> ⏳ Manca: smoke-test runtime scanner; passo 2 (`useScanLoop`) e passo 3
+> (`useCameraCapture`) — più accoppiati, da fare dopo la verifica runtime del
+> passo 1. Test unit `useOnnxSession` ancora da scrivere (mock worker/onnx).
+
 ---
 
 ## 1.2 Split `AsteDetailView` (1018 righe)
