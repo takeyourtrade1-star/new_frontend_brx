@@ -1,5 +1,3 @@
-'use client';
-
 import Image from 'next/image';
 import { ScrollMarquee } from './ScrollMarquee';
 import { ResponsiveGrid, type GridItem } from './ResponsiveGrid';

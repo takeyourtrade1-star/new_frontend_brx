@@ -1,5 +1,3 @@
-'use client';
-
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { AUTH_CARD_CLASS, AUTH_CARD_INNER_CLASS } from './auth-styles';

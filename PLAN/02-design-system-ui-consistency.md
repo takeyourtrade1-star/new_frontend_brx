@@ -201,11 +201,27 @@ Rimuovere `background-attachment: fixed` (bug iOS Safari), usare `<div fixed ins
 
 Rimuovere `'use client'` da: `AuthCard`, `AuthSubmitButton`, `AuthSecondaryButton`, `AuthFooterLinks`, `AuthPageHeader`, `AuthStepIndicator`, `AuthField`, `AuthBackLink`, `AuthSplitHeader`, `AssoHintBubble`, `BuildInfoBadge`, `CardMascotteStyles`, `WardrobePanel`, `BugReportModal`, `AssoChatModal`, `CardMascotteOverlays`, `CardMascotteWidget`, `CategoriesGrid`, `EbartexProductsSection`, `GameHomeLayout`, `GridCardTitle`, `ResponsiveGrid`, `MarketplaceOrderCard`, `MockShippingOrderCard`, `SupportTicketCard`, `AsteMineViewBar`, `PhotoPairingInlinePanel`, `AuctionCreateStepPanel`, `OrderItemCard`, `cart-summary`.
 
-> 🛑 **RIMANDATO (dipende dall'appendice B mancante).** L'elenco si appoggia a un
-> "report" non presente nel repo. Ogni rimozione va verificata file-per-file (no
-> hook/handler/`window`; e che il genitore sia Server Component, altrimenti la
-> rimozione non cambia nulla). Va fatto a piccoli batch verificati con build, non
-> in blocco su 30 file. Candidato a un mini-piano dedicato dopo 2.1.
+> 🟢 **BATCH 1 FATTO (2026-06-23) — 11 file puri, gated da `npm run build`.**
+> Rimosso `'use client'` da componenti puramente presentazionali (props → JSX):
+> `AuthCard`, `AuthFooterLinks`, `AuthPageHeader`, `AuthStepIndicator`,
+> `AuthSplitHeader`, `CardMascotteStyles`, `GridCardTitle`, `CategoriesGrid`,
+> `GameHomeLayout`, `MarketplaceOrderCard`, `SupportTicketCard`.
+> Build di produzione + lint a 0 errori.
+>
+> ⚠️ **Esclusi (NON puri, resterebbero/devono restare client):**
+> - `BuildInfoBadge` → usa `useQuery`.
+> - `ResponsiveGrid` → usa styled-jsx (`<style jsx>`, non valido in RSC).
+> - `AuthField` → `forwardRef` (ref non supportate in RSC).
+> - `AuthSubmitButton`/`AuthSecondaryButton` → spread di props handler su `<button>`.
+> - `AuthBackLink`/`AssoHintBubble`/`MockShippingOrderCard`/`OrderItemCard` → `onClick`.
+> - `WardrobePanel`/`BugReportModal`/`AssoChatModal`/`CardMascotteOverlays`/
+>   `CardMascotteWidget`/`AsteMineViewBar`/`PhotoPairingInlinePanel`/
+>   `AuctionCreateStepPanel`/`EbartexProductsSection`/`cart-summary` → da verificare
+>   in un batch successivo (probabile stato/effetti).
+>
+> Nota: per i componenti già usati sotto un boundary client la rimozione è neutra
+> (restano nel bundle client); il guadagno reale è solo dove il genitore è un Server
+> Component. Resta comunque igiene corretta e voluta dal piano.
 
 ---
 
@@ -216,11 +232,13 @@ Rimuovere `'use client'` da: `AuthCard`, `AuthSubmitButton`, `AuthSecondaryButto
 >   `floating-label-input.tsx`, `floating-input.tsx`).
 > - 2.5 (parziale) — aggiunta la scala `zIndex` additiva in `tailwind.config.ts`
 >   (nessun uso ancora migrato).
+> - 2.8 (batch 1) — rimosso `'use client'` da 11 componenti puramente
+>   presentazionali (verifica `npm run build`).
 >
-> typecheck + lint a 0 errori.
+> typecheck + lint + build a 0 errori.
 >
 > **Rimandato (non minimale/comportamentale, da staged + runtime):** OTP di 2.1,
-> 2.2, 2.3, 2.4, migrazione usi 2.5, 2.6, 2.7, 2.8. Vedi note per sezione.
+> 2.2, 2.3, 2.4, migrazione usi 2.5, 2.6, 2.7, batch successivi 2.8. Vedi note per sezione.
 
 ---
 

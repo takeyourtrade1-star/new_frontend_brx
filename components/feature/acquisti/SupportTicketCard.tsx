@@ -1,5 +1,3 @@
-'use client';
-
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ExpandableCard } from '@/components/shared/ExpandableCard';

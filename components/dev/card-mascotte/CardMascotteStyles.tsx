@@ -1,5 +1,3 @@
-'use client';
-
 export interface CardMascotteFaceColorStyle {
   glowStrong: string;
   glowMid: string;

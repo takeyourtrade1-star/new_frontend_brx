@@ -1,5 +1,3 @@
-'use client';
-
 import { Package } from 'lucide-react';
 import { formatEuroNoSpace } from '@/lib/utils';
 import {

@@ -1,5 +1,3 @@
-'use client';
-
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { AUTH_SPLIT_SUBTITLE_CLASS, AUTH_SPLIT_TITLE_CLASS } from './auth-split-styles';

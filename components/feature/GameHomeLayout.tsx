@@ -1,5 +1,3 @@
-'use client';
-
 import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { GameHeroSection } from '@/components/feature/GameHeroSection';
