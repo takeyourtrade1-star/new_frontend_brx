@@ -96,13 +96,23 @@ Spostare in `lib/dev/mascotte-wardrobe-data.ts`, lazy import solo quando si apre
 
 **Verifica:** `CardMascotte.tsx` deve importare dinamicamente con `next/dynamic`.
 
-> ⚠️ **Correzione (verifica codebase 2026-06-23):** il file NON è importato solo
-> dal wardrobe panel. Ha 4 importer: `CardMascotte.tsx`, `card-mascotte/WardrobePanel.tsx`,
-> `card-mascotte/infer-bug-category.ts`, `card-mascotte/CardMascotteWidget.tsx`.
-> Il lazy-load "solo all'apertura del panel" non è banale: vanno separati i **tipi**
-> (`Category`, `FaceColorId`, `WardrobeItem`) e le costanti leggere (`FACE_COLOR_OPTIONS`)
-> dai **dati pesanti** (SVG), tenendo i primi import statici. Da fare con attenzione,
-> non eseguito in questo passaggio.
+> ⚠️ **Correzione (verifica codebase 2026-06-23):** la premessa "lazy per ridurre
+> il bundle" è più debole del dichiarato. `CardMascotte` è **già** `next/dynamic`
+> con `ssr:false` (`CardMascotteGate.tsx`): i dati pesanti NON sono nel bundle
+> iniziale, stanno nel chunk mascotte. Inoltre il file ha 4 importer
+> (`CardMascotte`, `WardrobePanel`, `infer-bug-category`, `CardMascotteWidget`),
+> e `ALL_WARDROBE_ITEMS` serve nel render base (item equipaggiati, non solo panel):
+> il lazy "vero" richiede refactor async, comportamentale, da verificare a runtime.
+>
+> ✅ **FATTO — variante sicura (2026-06-23):** estratti
+> `CLOTHING_ITEMS`/`ACCESSORY_ITEMS`/`OBJECT_ITEMS`/`ALL_WARDROBE_ITEMS` (~1860
+> righe SVG) in `components/dev/mascotte-wardrobe-items.ts`. Il file principale
+> tiene tipi + `FACE_COLOR_OPTIONS` + helper di stile (2217 → 357 righe). Import
+> statico invariato → zero cambi di comportamento, nessun guadagno di bundle.
+> `typecheck` + `lint` a 0 errori.
+>
+> ⏳ **Rimandato:** il lazy-load async (chunk SVG differito all'apertura del
+> guardaroba) — necessita test manuale runtime del guardaroba.
 
 ---
 
