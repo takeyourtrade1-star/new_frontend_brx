@@ -399,8 +399,8 @@ export function TopBar() {
             </form>
             {/* Mobile: "Accedi o Registrati" link */}
             <div className="flex shrink-0 items-center md:hidden">
-              <Link 
-                href="/login" 
+              <Link
+                href="/registrati"
                 className="text-[13px] font-semibold tracking-wide text-white/95 hover:text-white transition-colors uppercase"
               >
                 Accedi o Registrati
@@ -412,7 +412,7 @@ export function TopBar() {
                 asChild
                 className="btn-orange-glow rounded-full border px-5 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Link href="/login">{t('auth.registerUpper')}</Link>
+                <Link href="/registrati">{t('auth.registerUpper')}</Link>
               </Button>
             </div>
             </>

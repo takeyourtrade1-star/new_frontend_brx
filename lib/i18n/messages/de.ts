@@ -1590,6 +1590,7 @@ export const de: Record<MessageKey, string> = {
   'auctions.bidModalOfferQuick': 'BIETEN {amount}',
   'auctions.bidModalPlaceholder': 'Gebot eingeben',
   'auctions.bidCustomAmountLabel': 'Betrag wählen',
+  'auctions.bidMinNext': 'Mindestgebot {amount} oder mehr',
   'auctions.buyNowButton': 'Jetzt kaufen',
   'auctions.bidModalConfirm': 'BESTÄTIGEN',
   'auctions.bidModalEndsPrefix': 'Endet in:',

@@ -366,6 +366,9 @@ export function AuctionBidModal({
                 €
               </span>
             </div>
+            <p className="mt-1.5 text-[11px] font-medium text-gray-500">
+              {t('auctions.bidMinNext', { amount: fmtEur(minBid) })}
+            </p>
           </div>
 
           {/* 3 OFFERTE CONSIGLIATE */}

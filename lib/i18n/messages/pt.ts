@@ -1590,6 +1590,7 @@ export const pt: Record<MessageKey, string> = {
   'auctions.bidModalOfferQuick': 'OFERECER {amount}',
   'auctions.bidModalPlaceholder': 'Introduza a proposta',
   'auctions.bidCustomAmountLabel': 'Escolher um valor',
+  'auctions.bidMinNext': 'Lance mínimo {amount} ou mais',
   'auctions.buyNowButton': 'Comprar agora',
   'auctions.bidModalConfirm': 'CONFIRMAR',
   'auctions.bidModalEndsPrefix': 'Termina em:',

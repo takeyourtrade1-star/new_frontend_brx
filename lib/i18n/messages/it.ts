@@ -1593,6 +1593,7 @@ export const it: Record<MessageKey, string> = {
   'auctions.bidModalOfferQuick': 'OFFRI {amount}',
   'auctions.bidModalPlaceholder': 'Inserisci offerta',
   'auctions.bidCustomAmountLabel': 'Scegli un importo',
+  'auctions.bidMinNext': 'Offerta minima {amount} o superiore',
   'auctions.buyNowButton': 'Compra subito',
   'auctions.bidModalConfirm': 'CONFERMA',
   'auctions.bidModalEndsPrefix': 'Termina tra:',

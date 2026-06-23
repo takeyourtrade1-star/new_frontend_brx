@@ -9,6 +9,8 @@ import {
   Download,
   FileJson,
   FileSpreadsheet,
+  Grid3X3,
+  List,
   Loader2,
   RefreshCw,
   Trash2,
@@ -28,10 +30,8 @@ import { fetchCatalogBatched } from '@/lib/inventory/fetch-catalog-batched';
 import { InventoryFiltersPanel, DEFAULT_FILTERS } from '@/components/feature/account/InventoryFiltersPanel';
 import type { InventoryFilters } from '@/components/feature/account/InventoryFiltersPanel';
 import { InventorySearchBar } from '@/components/feature/account/InventorySearchBar';
-import { InventorySortBar } from '@/components/feature/account/InventorySortBar';
 import { useInventorySearchInput } from '@/lib/hooks/useInventorySearchInput';
 import { useMobileViewport } from '@/lib/hooks/useMobileViewport';
-import { useHeaderStickyOffset } from '@/lib/hooks/useHeaderStickyOffset';
 import {
   applyInventoryFilters,
   buildInventoryFacets,
@@ -56,7 +56,6 @@ const INVENTORY_ITEMS_PER_PAGE = 50;
 export function OggettiContent() {
   const { t } = useTranslation();
   const isMobile = useMobileViewport();
-  const { stickyTop } = useHeaderStickyOffset();
   const user = useAuthStore((s) => s.user);
   // FE-REV-018: selector puro; il fallback localStorage va nel useMemo, non dentro il selector Zustand.
   const accessTokenFromStore = useAuthStore((s) => s.accessToken);
@@ -95,6 +94,7 @@ export function OggettiContent() {
   const [viewMode, setViewMode] = useState<OggettiViewMode>('table');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showFloatingBar, setShowFloatingBar] = useState(false);
   const { searchValue, setSearchValue, clearSearch } = useInventorySearchInput(filters, setFilters);
 
   /** Verifica lato frontend: chiamate al sync service solo se integrazione marketplace attiva. */
@@ -122,6 +122,16 @@ export function OggettiContent() {
       return JSON.stringify(sanitized) === JSON.stringify(prev) ? prev : sanitized;
     });
   }, [facets]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      setShowFloatingBar(scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
 
 
@@ -608,55 +618,43 @@ export function OggettiContent() {
         inventoryItems={inventoryItems}
       />
       <main className="w-full min-w-0 max-w-full flex-1 overflow-x-clip p-0 md:p-6">
-        <div
-          className="sticky z-40 mb-2 w-full space-y-1.5 border-b border-gray-200/70 bg-[#F5F4F0]/95 px-2 pb-1.5 pt-1 backdrop-blur-xl md:hidden"
-          style={{ top: stickyTop }}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <h1 className="truncate text-sm font-bold text-gray-900">{t('accountPage.itemsTitle')}</h1>
-            <div className="flex shrink-0 items-center gap-1">
-              {!syncStatusLoading && (
-                <button
-                  type="button"
-                  onClick={() => void handleSyncNow()}
-                  disabled={!integrationConnected || !canSyncNow || syncAnyPending}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white disabled:opacity-50"
-                  aria-label="Sync"
-                >
-                  {syncNowPending ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  )}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setExportModalOpen(true)}
-                disabled={loading || filteredInventoryItems.length === 0}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 disabled:opacity-50"
-                aria-label={t('accountPage.itemsExport')}
-              >
-                <Download className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
+        <div className="mb-3 flex flex-col gap-2 md:mb-4 md:flex-row md:items-center md:gap-3">
           <InventorySearchBar
             value={searchValue}
             onChange={setSearchValue}
             onClear={clearSearch}
             disabled={loading}
-            inputClassName="rounded-lg border-gray-200 bg-white py-1.5 pl-9 pr-9 text-sm shadow-none backdrop-blur-none"
+            inputClassName="rounded-lg border-gray-200 bg-white py-1.5 pl-9 pr-9 text-sm shadow-none backdrop-blur-none md:py-2 md:text-sm"
+            className="md:max-w-xs md:flex-1"
           />
-          <InventoryMobileQuickBar
-            filters={filters}
-            onFiltersChange={setFilters}
-            facets={facets}
-            itemCount={filteredInventoryItems.length}
-            activeFilterCount={activeFilterCount}
-            onOpenFilters={() => setMobileFiltersOpen(true)}
-            disabled={loading}
-          />
+          <div className="flex shrink-0 items-center gap-2 md:ml-auto">
+            {!syncStatusLoading && (
+              <button
+                type="button"
+                onClick={() => void handleSyncNow()}
+                disabled={!integrationConnected || !canSyncNow || syncAnyPending}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-2.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+                aria-label="Sync"
+              >
+                {syncNowPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                )}
+                Sync
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setExportModalOpen(true)}
+              disabled={loading || filteredInventoryItems.length === 0}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50"
+              aria-label={t('accountPage.itemsExport')}
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t('accountPage.itemsExport')}
+            </button>
+          </div>
         </div>
 
         <nav
@@ -694,40 +692,42 @@ export function OggettiContent() {
           </div>
         )}
 
-        <div className="mb-3 hidden flex-wrap items-center justify-end gap-2 md:mb-4 md:flex">
-          {!syncStatusLoading && (
+        <div className="mb-3 flex items-center gap-2 md:mb-4">
+          <InventoryMobileQuickBar
+            filters={filters}
+            onFiltersChange={setFilters}
+            facets={facets}
+            itemCount={filteredInventoryItems.length}
+            activeFilterCount={activeFilterCount}
+            onOpenFilters={() => setMobileFiltersOpen(true)}
+            disabled={loading}
+            className="min-w-0 flex-1"
+          />
+          <div className="hidden shrink-0 items-center rounded-lg bg-gray-100 p-1 md:flex">
             <button
               type="button"
-              onClick={() => void handleSyncNow()}
-              disabled={!integrationConnected || !canSyncNow || syncAnyPending}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 md:min-h-0 md:rounded-lg"
+              onClick={() => setViewMode('table')}
+              className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
+                viewMode === 'table' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+              aria-label="Tabella"
+              title="Tabella"
             >
-              {syncNowPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              Sync
+              <List className="h-4 w-4" />
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setExportModalOpen(true)}
-            disabled={loading || filteredInventoryItems.length === 0}
-            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50 md:min-h-0 md:rounded-lg"
-          >
-            <Download className="h-4 w-4" />
-            {t('accountPage.itemsExport')}
-          </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
+                viewMode === 'cards' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+              aria-label="Griglia"
+              title="Griglia"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-
-        <InventorySortBar
-          sortBy={filters.sortBy}
-          onSortChange={(sortBy) => setFilters((prev) => ({ ...prev, sortBy }))}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          itemCount={filteredInventoryItems.length}
-        />
 
       {error && (
         <div className="mb-6 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -964,6 +964,56 @@ export function OggettiContent() {
       )}
 
       </main>
+
+      {showFloatingBar && (
+        <div className="animate-slide-up-bounce fixed bottom-0 left-0 right-0 z-40 overflow-x-clip border-t border-gray-200 bg-white/95 backdrop-blur-md">
+          <div className="mx-auto flex max-w-screen-xl flex-col gap-2 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 md:flex-row md:items-center md:gap-3 md:px-6">
+            <InventorySearchBar
+              value={searchValue}
+              onChange={setSearchValue}
+              onClear={clearSearch}
+              disabled={loading}
+              inputClassName="rounded-lg border-gray-200 bg-white py-1.5 pl-9 pr-9 text-sm shadow-none backdrop-blur-none md:py-2 md:text-sm"
+              className="md:max-w-xs md:flex-1"
+            />
+            <InventoryMobileQuickBar
+              filters={filters}
+              onFiltersChange={setFilters}
+              facets={facets}
+              itemCount={filteredInventoryItems.length}
+              activeFilterCount={activeFilterCount}
+              onOpenFilters={() => setMobileFiltersOpen(true)}
+              disabled={loading}
+            />
+            <div className="flex shrink-0 items-center gap-2 md:ml-auto">
+              {!syncStatusLoading && (
+                <button
+                  type="button"
+                  onClick={() => void handleSyncNow()}
+                  disabled={!integrationConnected || !canSyncNow || syncAnyPending}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-2.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+                >
+                  {syncNowPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  Sync
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setExportModalOpen(true)}
+                disabled={loading || filteredInventoryItems.length === 0}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50"
+              >
+                <Download className="h-3.5 w-3.5" />
+                {t('accountPage.itemsExport')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BulkPriceWizardModal
         isOpen={isBulkPriceOpen}

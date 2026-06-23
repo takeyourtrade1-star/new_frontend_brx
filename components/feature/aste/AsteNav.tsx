@@ -110,7 +110,7 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
               href="/login?redirect=/aste/nuova"
               title={t('auctions.createAuction')}
               className={cn(
-                'group relative flex shrink-0 items-center rounded-full border border-white/40 bg-white/70 font-semibold uppercase tracking-wide text-[#FF7300] shadow-lg backdrop-blur-md transition-all duration-300 hover:bg-white/85 hover:shadow-xl active:scale-95',
+                'group relative flex shrink-0 items-center rounded-full border-2 border-[#FF7300]/30 bg-white/70 font-semibold uppercase tracking-wide text-[#FF7300] backdrop-blur-md transition-all duration-300 hover:border-[#FF7300] hover:text-[#FF7300] hover:bg-white/85 active:scale-95',
                 compact
                   ? 'h-7 w-7 justify-center'
                   : 'h-9 sm:h-12 pl-9 pr-4 sm:pl-12 sm:pr-5 text-[10px] sm:text-xs',
@@ -226,11 +226,11 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
                   title={label}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'group relative flex shrink-0 items-center rounded-full border border-white/40 bg-white/70 font-semibold uppercase tracking-wide text-[#FF7300] shadow-lg backdrop-blur-md transition-all duration-300 hover:bg-white/85 hover:shadow-xl active:scale-95',
+                    'group relative flex shrink-0 items-center rounded-full border-2 border-[#FF7300]/30 bg-white/70 font-semibold uppercase tracking-wide text-[#FF7300] backdrop-blur-md transition-all duration-300 hover:border-[#FF7300] hover:text-[#FF7300] hover:bg-white/85 active:scale-95',
                     compact
                       ? 'h-7 w-7 justify-center'
                       : 'h-9 sm:h-12 pl-9 pr-4 sm:pl-12 sm:pr-5 text-[10px] sm:text-xs',
-                    active && 'ring-2 ring-[#FF7300]/40',
+                    active && 'border-[#FF7300] bg-[#FFF4EC]',
                   )}
                 >
                   <span

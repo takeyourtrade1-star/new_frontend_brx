@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { AuthErrorAlert } from '@/components/ui/AuthErrorAlert';
-import { ButtonOrange } from '@/components/ui/button-orange';
 import {
   AuthField,
   AuthSubmitButton,
@@ -158,15 +157,15 @@ export function LoginForm({ variant = 'default' }: LoginFormProps) {
         <AuthErrorAlert error={authError} />
 
         <div className="border-t border-gray-200/60 pt-4 text-center">
-          <p className="text-[14px] font-medium text-[#515154]">
-            {t('pages.login.noAccountPrompt')}
+          <p className="text-[14px] text-[#515154]">
+            {t('pages.login.noAccountPrompt')}{' '}
+            <Link
+              href="/registrati"
+              className="font-semibold text-[#ff7a00] transition-opacity hover:opacity-80"
+            >
+              {t('auth.registerUpper')}
+            </Link>
           </p>
-          <ButtonOrange
-            asChild
-            className="mx-auto mt-3 inline-flex justify-center rounded-full px-5 py-2.5 text-[14px] font-semibold sm:min-w-[11rem]"
-          >
-            <Link href="/registrati">{t('auth.registerUpper')}</Link>
-          </ButtonOrange>
         </div>
       </form>
     );

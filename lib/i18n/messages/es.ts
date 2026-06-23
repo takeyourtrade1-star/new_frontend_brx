@@ -1590,6 +1590,7 @@ export const es: Record<MessageKey, string> = {
   'auctions.bidModalOfferQuick': 'OFRECER {amount}',
   'auctions.bidModalPlaceholder': 'Introduce tu puja',
   'auctions.bidCustomAmountLabel': 'Elige un importe',
+  'auctions.bidMinNext': 'Puja mínima {amount} o superior',
   'auctions.buyNowButton': 'Compra ya',
   'auctions.bidModalConfirm': 'CONFIRMAR',
   'auctions.bidModalEndsPrefix': 'Termina en:',

@@ -23,6 +23,7 @@ interface InventoryMobileQuickBarProps {
   activeFilterCount: number;
   onOpenFilters: () => void;
   disabled?: boolean;
+  className?: string;
 }
 
 export function InventoryMobileQuickBar({
@@ -33,6 +34,7 @@ export function InventoryMobileQuickBar({
   activeFilterCount,
   onOpenFilters,
   disabled = false,
+  className = '',
 }: InventoryMobileQuickBarProps) {
   const { t } = useTranslation();
 
@@ -43,7 +45,7 @@ export function InventoryMobileQuickBar({
   });
 
   return (
-    <div className="space-y-1.5">
+    <div className={`space-y-1.5 ${className}`}>
       <div className="flex items-center gap-1.5">
         <div className="-mx-0.5 flex min-w-0 flex-1 gap-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {kindOptions.map((k) => {

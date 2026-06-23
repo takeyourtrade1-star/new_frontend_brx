@@ -287,14 +287,6 @@ export function AuctionBidPanel({
 
   const fmtEur = formatEur;
 
-  const minBidHint = useMemo(() => {
-    const dynamic = minBid.toLocaleString('it-IT', {
-      minimumFractionDigits: Number.isInteger(minBid) ? 0 : 1,
-      maximumFractionDigits: 2,
-    });
-    return `€ ${dynamic} o più`;
-  }, [minBid]);
-
   const validateInput = (): boolean => {
     if (!Number.isFinite(parsedInput)) {
       setError(t('auctions.bidErrorInvalid'));
@@ -468,8 +460,11 @@ export function AuctionBidPanel({
             onChange={(e) => setInput(e.target.value)}
             onBlur={normalizeInputOnBlur}
             className="w-full rounded-md border border-[#DEE3EA] bg-[#F5F6F8] px-3 py-2 text-base font-bold text-gray-900 placeholder:font-semibold placeholder:text-gray-500 focus:border-[#B7C0CB] focus:bg-[#F8F9FB] focus:outline-none focus:ring-0"
-            placeholder={minBidHint}
+            placeholder="0,00"
           />
+          <p className="mt-1.5 text-[11px] font-medium text-gray-500">
+            {t('auctions.bidMinNext', { amount: fmtEur(minBid) })}
+          </p>
         </div>
 
         {error && (

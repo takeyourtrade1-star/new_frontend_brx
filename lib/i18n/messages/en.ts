@@ -1589,6 +1589,7 @@ export const en = {
   'auctions.bidModalOfferQuick': 'OFFER {amount}',
   'auctions.bidModalPlaceholder': 'Enter your bid',
   'auctions.bidCustomAmountLabel': 'Choose an amount',
+  'auctions.bidMinNext': 'Minimum bid {amount} or more',
   'auctions.buyNowButton': 'Buy now',
   'auctions.bidModalConfirm': 'CONFIRM',
   'auctions.bidModalEndsPrefix': 'Ends in:',
