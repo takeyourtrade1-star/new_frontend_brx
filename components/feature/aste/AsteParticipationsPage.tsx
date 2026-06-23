@@ -16,18 +16,10 @@ import { apiToAuctionUI, isAuctionEndedUI, type AuctionUI } from '@/lib/auction/
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { AsteMineViewBar, type MyListingsTab } from '@/components/feature/aste/AsteMineViewBar';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
-import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
+import { useEnrichedAuctions } from '@/lib/hooks/use-enriched-auctions';
+import { useNowTick } from '@/lib/hooks/use-now-tick';
 
 const STORAGE_KEY = 'partecipazioni';
-
-function useNowTick(intervalMs = 1000): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-  return now;
-}
 
 export function AsteParticipationsPage() {
   const { t } = useTranslation();
@@ -67,25 +59,7 @@ export function AsteParticipationsPage() {
     }
     return { rowsBase: participated, myBidById: bids };
   }, [listData, userId]);
-  const [rows, setRows] = useState<AuctionUI[]>([]);
-
-  useEffect(() => {
-    let isCancelled = false;
-    const resolveSellers = async () => {
-      if (rowsBase.length === 0) {
-        setRows([]);
-        return;
-      }
-      const resolved = await enrichAuctionsWithPublicUsers(rowsBase);
-      if (!isCancelled) {
-        setRows(resolved);
-      }
-    };
-    resolveSellers();
-    return () => {
-      isCancelled = true;
-    };
-  }, [rowsBase]);
+  const rows = useEnrichedAuctions(rowsBase);
 
   const { ongoingRows, endedRows } = useMemo(() => {
     const ongoing: AuctionUI[] = [];

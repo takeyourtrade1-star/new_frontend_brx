@@ -340,6 +340,7 @@ export function SicurezzaContent() {
                     {t('accountPage.secScanQr')}
                   </p>
                   <div className="flex h-44 w-44 items-center justify-center rounded-xl border border-gray-200 bg-white p-2 shadow-inner">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR code */}
                     <img
                       src={setupData.qr_code_url}
                       alt="QR Code MFA"

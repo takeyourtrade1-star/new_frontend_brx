@@ -3,7 +3,6 @@
  * Wrapper around auth store actions for use in React components
  */
 
-import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { authApi } from '@/lib/api/auth-client';
@@ -18,24 +17,9 @@ import type {
 } from '@/types';
 
 /**
- * Hook per inizializzare l'autenticazione all'avvio dell'app
- */
-export function useInitializeAuth() {
-  const initializeAuth = useAuthStore((s) => s.initializeAuth);
-
-  return useQuery({
-    queryKey: ['auth', 'initialize'],
-    queryFn: initializeAuth,
-    retry: false,
-    staleTime: Infinity,
-  });
-}
-
-/**
  * Hook per ottenere l'utente corrente
  */
 export function useCurrentUser() {
-  const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const fetchUser = useAuthStore((s) => s.fetchUser);
 
@@ -102,11 +86,7 @@ export function useVerifyMFASetup() {
     mutationFn: async (data: MFAVerifySetupData): Promise<void> => {
       // L'API FastAPI espone mfa_code come query param, non come JSON body (vedi verify_mfa_setup_endpoint).
       const qs = new URLSearchParams({ mfa_code: data.mfa_code });
-      try {
-        await authApi.post(`/api/auth/mfa/verify?${qs.toString()}`, {});
-      } catch (err: any) {
-        throw err;
-      }
+      await authApi.post(`/api/auth/mfa/verify?${qs.toString()}`, {});
     },
     onSuccess: () => {
       // Invalida la query dell'utente per aggiornare mfa_enabled
@@ -189,45 +169,5 @@ export function useVerifyLoginCode() {
       queryClient.invalidateQueries({ queryKey: ['auth', 'user'] });
     },
   });
-}
-
-/**
- * Hook per accedere direttamente allo store (per valori sincroni)
- */
-export function useAuth() {
-  const user = useAuthStore((s) => s.user);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const isLoading = useAuthStore((s) => s.isLoading);
-  const error = useAuthStore((s) => s.error);
-  const mfaRequired = useAuthStore((s) => s.mfaRequired);
-  const preAuthToken = useAuthStore((s) => s.preAuthToken);
-  const flashMessage = useAuthStore((s) => s.flashMessage);
-  const clearError = useAuthStore((s) => s.clearError);
-  const setFlashMessage = useAuthStore((s) => s.setFlashMessage);
-
-  return useMemo(
-    () => ({
-      user,
-      isAuthenticated,
-      isLoading,
-      error,
-      mfaRequired,
-      preAuthToken,
-      flashMessage,
-      clearError,
-      setFlashMessage,
-    }),
-    [
-      user,
-      isAuthenticated,
-      isLoading,
-      error,
-      mfaRequired,
-      preAuthToken,
-      flashMessage,
-      clearError,
-      setFlashMessage,
-    ]
-  );
 }
 

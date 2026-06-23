@@ -28,6 +28,7 @@ import { listingConditionCode, type MarketplaceRow } from '@/lib/product-detail/
 import { listingRowKey } from '@/lib/marketplace/listing-map';
 import { getListingPhotos } from '@/lib/api/listing-photo-client';
 import { MarketplaceNowProvider, useMarketplaceNowMs } from '@/lib/hooks/use-marketplace-now-ms';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 const CONDITION_TEXT_TO_CODE: Record<string, ConditionCode> = {
   'Near Mint': 'NM',
@@ -145,8 +146,11 @@ function MarketplaceSellerCell({
   salesCount: number;
   isPro?: boolean;
 }) {
+  const { t } = useTranslation();
   const href = profileHrefForSeller(username);
-  const reviewTitle = `${reviewCount.toLocaleString('it-IT')} recensioni`;
+  const reviewTitle = t('marketplace.sellerReviewTitle', {
+    count: reviewCount.toLocaleString('it-IT'),
+  });
 
   return (
     <div className="flex min-w-0 items-center gap-1.5 overflow-hidden text-xs leading-none whitespace-nowrap">
@@ -159,7 +163,7 @@ function MarketplaceSellerCell({
         <span className="font-semibold tabular-nums">{formatReviewRating(rating)}/5</span>
       </Link>
       <span className="shrink-0 text-slate-300">·</span>
-      <span className="shrink-0 tabular-nums text-slate-500" title="Vendite completate">
+      <span className="shrink-0 tabular-nums text-slate-500" title={t('marketplace.salesCompleted')}>
         {formatSalesCount(salesCount)}
       </span>
       <span className="shrink-0 text-slate-300">·</span>
@@ -242,6 +246,7 @@ function MarketplacePhotoCarousel({
   name: string;
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const urls = imageUrls.filter(Boolean);
   if (urls.length === 0) return null;
@@ -258,7 +263,7 @@ function MarketplacePhotoCarousel({
           type="button"
           onClick={() => setIndex((i) => (i - 1 + urls.length) % urls.length)}
           className="inline-flex h-6 w-5 items-center justify-center rounded-sm text-slate-500 hover:bg-slate-100"
-          aria-label="Foto precedente"
+          aria-label={t('productDetail.photoPrev')}
         >
           <ChevronLeft className="h-3.5 w-3.5" />
         </button>
@@ -268,7 +273,11 @@ function MarketplacePhotoCarousel({
         imageUrl={current}
         name={name}
         className={cn(peekClass, 'shrink-0 text-[#3D65C6]')}
-        ariaLabel={`Anteprima foto ${hasMultiple ? `${safeIndex + 1} di ${urls.length}` : ''}`.trim()}
+        ariaLabel={
+          hasMultiple
+            ? t('productDetail.photoPreview', { n: safeIndex + 1, m: urls.length })
+            : t('productDetail.photoPreviewSingle')
+        }
       />
       {hasMultiple ? (
         compact ? (
@@ -276,7 +285,7 @@ function MarketplacePhotoCarousel({
             type="button"
             onClick={() => setIndex((i) => (i + 1) % urls.length)}
             className="ml-px text-[9px] font-semibold tabular-nums text-slate-500"
-            aria-label="Foto successiva"
+            aria-label={t('productDetail.photoNext')}
           >
             {safeIndex + 1}/{urls.length}
           </button>
@@ -289,7 +298,7 @@ function MarketplacePhotoCarousel({
               type="button"
               onClick={() => setIndex((i) => (i + 1) % urls.length)}
               className="inline-flex h-6 w-5 items-center justify-center rounded-sm text-slate-500 hover:bg-slate-100"
-              aria-label="Foto successiva"
+              aria-label={t('productDetail.photoNext')}
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
@@ -301,6 +310,7 @@ function MarketplacePhotoCarousel({
 }
 
 function MobileDescriptionNote({ description }: { description: string }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const trimmed = description.trim();
   if (!trimmed) return null;
@@ -311,8 +321,8 @@ function MobileDescriptionNote({ description }: { description: string }) {
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#3D65C6] hover:bg-sky-50"
-        aria-label="Note venditore"
-        title="Note venditore"
+        aria-label={t('marketplace.sellerNotes')}
+        title={t('marketplace.sellerNotes')}
       >
         <MessageSquare className="h-3.5 w-3.5" strokeWidth={2} />
       </button>
@@ -321,7 +331,7 @@ function MobileDescriptionNote({ description }: { description: string }) {
           className="fixed inset-0 z-[200] flex items-end justify-center bg-black/40 p-3 sm:items-center"
           role="dialog"
           aria-modal="true"
-          aria-label="Note venditore"
+          aria-label={t('marketplace.sellerNotes')}
           onClick={() => setOpen(false)}
         >
           <div
@@ -329,12 +339,12 @@ function MobileDescriptionNote({ description }: { description: string }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between gap-2">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">Note venditore</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('marketplace.sellerNotes')}</h4>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
-                aria-label="Chiudi"
+                aria-label={t('common.close')}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -345,7 +355,7 @@ function MobileDescriptionNote({ description }: { description: string }) {
               onClick={() => setOpen(false)}
               className="mt-4 w-full rounded-lg bg-slate-100 py-2.5 text-sm font-semibold text-slate-800"
             >
-              Chiudi
+              {t('common.close')}
             </button>
           </div>
         </div>
@@ -388,16 +398,17 @@ function MobileProductAttributes({
   signed?: boolean;
   altered?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1">
       <ConditionBadge condition={conditionCode} size="xs" />
       {langFlag ? <FlagIcon country={langFlag} size="xs" title={langTitle} className="shrink-0" /> : null}
-      <MarketplacePhotoCarousel imageUrls={imageUrls} name={imageName ?? 'Carta'} compact />
+      <MarketplacePhotoCarousel imageUrls={imageUrls} name={imageName ?? t('common.card')} compact />
       <MobileDescriptionNote description={description} />
       <MobileTraitLetters foil={foil} signed={signed} altered={altered} />
       {auctionTag ? (
         <span className="shrink-0 rounded bg-[#FFF4EC] px-1 py-px text-[8px] font-bold uppercase text-[#FF7300]">
-          Asta
+          {t('common.auction')}
         </span>
       ) : null}
     </div>
@@ -430,29 +441,30 @@ function MarketplaceProductInfoCell({
   signed?: boolean;
   altered?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex min-w-0 items-center">
       <div className="flex shrink-0 items-center gap-1.5 border-r border-slate-200/90 pr-3">
         <ConditionBadge condition={conditionCode} size="sm" />
         {langFlag ? <FlagIcon country={langFlag} size="sm" title={langTitle} className="shrink-0" /> : null}
-        <MarketplacePhotoCarousel imageUrls={imageUrls} name={imageName ?? 'Carta'} />
+        <MarketplacePhotoCarousel imageUrls={imageUrls} name={imageName ?? t('common.card')} />
         {auctionTag ? (
           <span className="shrink-0 rounded bg-[#FFF4EC] px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-[#FF7300]">
-            Asta
+            {t('common.auction')}
           </span>
         ) : null}
         {foil ? (
-          <span className="shrink-0 text-[9px] font-bold uppercase text-violet-700" title="Foil">
+          <span className="shrink-0 text-[9px] font-bold uppercase text-violet-700" title={t('productDetail.filters.traitFoil')}>
             F
           </span>
         ) : null}
         {signed ? (
-          <span className="shrink-0 text-[9px] font-bold uppercase text-sky-700" title="Firmata">
+          <span className="shrink-0 text-[9px] font-bold uppercase text-sky-700" title={t('productDetail.filters.traitSigned')}>
             S
           </span>
         ) : null}
         {altered ? (
-          <span className="shrink-0 text-[9px] font-bold uppercase text-rose-700" title="Alterata">
+          <span className="shrink-0 text-[9px] font-bold uppercase text-rose-700" title={t('productDetail.filters.traitAltered')}>
             A
           </span>
         ) : null}
@@ -482,6 +494,7 @@ function AuctionCountdownText({ endsAt, className }: { endsAt: string; className
 }
 
 function AuctionGavelLinkDesktop({ numericId, endsAt }: { numericId: number; endsAt: string }) {
+  const { t } = useTranslation();
   const nowMs = useMarketplaceNowMs();
   const remaining = new Date(endsAt).getTime() - nowMs;
   const label = remaining <= 0 ? '—' : formatAuctionCountdown(remaining);
@@ -490,8 +503,8 @@ function AuctionGavelLinkDesktop({ numericId, endsAt }: { numericId: number; end
       <Link
         href={auctionDetailPath(String(numericId))}
         className="group relative z-10 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-sm transition hover:bg-[#e86800]"
-        aria-label="Apri asta"
-        title={`Asta · ${label}`}
+        aria-label={t('marketplace.openAuction')}
+        title={`${t('common.auction')} · ${label}`}
       >
         <AuctionGavelIcon className="h-3.5 w-3.5" strokeWidth={2.25} animated />
       </Link>
@@ -640,6 +653,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
   onCloseInlineCart,
   onSetCartQty,
 }:DesktopListingRowProps) {
+  const { t } = useTranslation();
   const conditionCode = listingConditionCode(item.condition);
   const langFlag = languageFlagCode(item.mtg_language);
   const rep = getSellerReputation(item);
@@ -694,7 +708,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
                   disabled={isBusy}
                   onClick={() => onOwnerQuantityChange?.(item, -1)}
                   className="inline-flex h-7 w-6 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-                  aria-label="Diminuisci quantità"
+                  aria-label={t('cart.decreaseQty')}
                 >
                   {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
                 </button>
@@ -706,7 +720,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
                   disabled={isBusy || item.quantity >= 999}
                   onClick={() => onOwnerQuantityChange?.(item, 1)}
                   className="inline-flex h-7 w-6 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-                  aria-label="Aumenta quantità"
+                  aria-label={t('cart.increaseQty')}
                 >
                   <Plus className="h-3 w-3" />
                 </button>
@@ -714,7 +728,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
                   type="button"
                   onClick={() => onOwnerEdit?.(item)}
                   className="inline-flex h-7 w-6 items-center justify-center border-l border-slate-200 text-slate-500 hover:bg-amber-50"
-                  aria-label="Modifica inserzione"
+                  aria-label={t('marketplace.editListing')}
                 >
                   <Pencil className="h-3 w-3" />
                 </button>
@@ -726,8 +740,8 @@ const DesktopListingRow = memo(function DesktopListingRow({
                     type="button"
                     onClick={() => onProposeTrade(item)}
                     className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-[#FF7300] text-white hover:bg-[#e86a00]"
-                    aria-label="Proponi scambio"
-                    title="Proponi scambio"
+                    aria-label={t('marketplace.proposeTrade')}
+                    title={t('marketplace.proposeTrade')}
                   >
                     <ScambiIcon className="h-3.5 w-3.5" strokeWidth={2.25} />
                   </button>
@@ -739,7 +753,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
                   onClick={() => onSetCartQty(rowKey, cartQty - 1, item.quantity)}
                   disabled={cartQty <= 1}
                   className="inline-flex h-7 w-6 items-center justify-center text-slate-500 disabled:opacity-40"
-                  aria-label="Meno"
+                  aria-label={t('common.decrease')}
                 >
                   <Minus className="h-3 w-3" />
                 </button>
@@ -751,7 +765,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
                   onClick={() => onSetCartQty(rowKey, cartQty + 1, item.quantity)}
                   disabled={cartQty >= item.quantity}
                   className="inline-flex h-7 w-6 items-center justify-center text-slate-500 disabled:opacity-40"
-                  aria-label="Più"
+                  aria-label={t('common.increase')}
                 >
                   <Plus className="h-3 w-3" />
                 </button>
@@ -763,10 +777,10 @@ const DesktopListingRow = memo(function DesktopListingRow({
                       onCloseInlineCart();
                     }}
                     className="inline-flex h-7 min-w-[2.25rem] items-center justify-center border-l border-orange-200 bg-emerald-600 px-1 text-[9px] font-bold uppercase text-white hover:bg-emerald-700"
-                    aria-label="Acquista ora"
-                    title="Acquista ora"
+                    aria-label={t('cart.buyNow')}
+                    title={t('cart.buyNow')}
                   >
-                    Buy
+                    {t('cart.buyNowShort')}
                   </button>
                 ) : null}
                 <button
@@ -776,7 +790,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
                     onCloseInlineCart();
                   }}
                   className="inline-flex h-7 w-7 items-center justify-center border-l border-orange-200 bg-[#FF7300] text-white hover:bg-[#e86a00]"
-                  aria-label="Conferma carrello"
+                  aria-label={t('cart.confirmCart')}
                 >
                   <ShoppingCart className="h-3.5 w-3.5" />
                 </button>
@@ -786,8 +800,8 @@ const DesktopListingRow = memo(function DesktopListingRow({
                 type="button"
                 onClick={() => onOpenInlineCart(item)}
                 className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
-                aria-label="Aggiungi al carrello"
-                title="Acquista"
+                aria-label={t('cart.addToCart')}
+                title={t('cart.buyNow')}
               >
                 <ShoppingCart className="h-3.5 w-3.5" strokeWidth={2.25} />
               </button>
@@ -821,6 +835,7 @@ const MobileAuctionRow = memo(function MobileAuctionRow({
   cardName,
   formatEuro,
 }: MobileAuctionRowProps) {
+  const { t } = useTranslation();
   const sellerName = a.sellerDisplayName || a.seller;
   const auctionCondition = getConditionCode(a.condition);
   const auctionLang = languageFlagCode(cardLanguage);
@@ -865,7 +880,7 @@ const MobileAuctionRow = memo(function MobileAuctionRow({
         <Link
           href={auctionDetailPath(String(a.numericId))}
           className="group inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-sm transition hover:bg-[#e86800]"
-          aria-label="Apri asta"
+          aria-label={t('marketplace.openAuction')}
         >
           <AuctionGavelIcon className="h-4 w-4" strokeWidth={2.25} animated />
         </Link>
@@ -898,6 +913,7 @@ const MobileListingRow = memo(function MobileListingRow({
   onCloseInlineCart,
   onSetCartQty,
 }:MobileListingRowProps) {
+  const { t } = useTranslation();
   const conditionCode = listingConditionCode(item.condition);
   const langFlag = languageFlagCode(item.mtg_language);
   const rep = getSellerReputation(item);
@@ -948,8 +964,8 @@ const MobileListingRow = memo(function MobileListingRow({
             type="button"
             onClick={() => onProposeTrade(item)}
             className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-[#FF7300] text-white shadow-sm"
-            aria-label="Proponi scambio"
-            title="Proponi scambio"
+            aria-label={t('marketplace.proposeTrade')}
+            title={t('marketplace.proposeTrade')}
           >
             <ScambiIcon className="h-4 w-4" strokeWidth={2.25} />
           </button>
@@ -962,7 +978,7 @@ const MobileListingRow = memo(function MobileListingRow({
                 disabled={isBusy}
                 onClick={() => onOwnerQuantityChange?.(item, -1)}
                 className="inline-flex h-8 w-8 items-center justify-center text-slate-600 disabled:opacity-40"
-                aria-label="Diminuisci"
+                aria-label={t('common.decrease')}
               >
                 {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
               </button>
@@ -974,7 +990,7 @@ const MobileListingRow = memo(function MobileListingRow({
                 disabled={isBusy || item.quantity >= 999}
                 onClick={() => onOwnerQuantityChange?.(item, 1)}
                 className="inline-flex h-8 w-8 items-center justify-center text-slate-600 disabled:opacity-40"
-                aria-label="Aumenta"
+                aria-label={t('common.increase')}
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
@@ -983,7 +999,7 @@ const MobileListingRow = memo(function MobileListingRow({
               type="button"
               onClick={() => onOwnerEdit?.(item)}
               className="inline-flex h-7 w-full items-center justify-center text-slate-500 hover:bg-amber-50"
-              aria-label="Modifica"
+              aria-label={t('common.edit')}
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
@@ -996,7 +1012,7 @@ const MobileListingRow = memo(function MobileListingRow({
                 onClick={() => onSetCartQty(rowKey, cartQty - 1, item.quantity)}
                 disabled={cartQty <= 1}
                 className="inline-flex h-8 w-8 items-center justify-center disabled:opacity-40"
-                aria-label="Meno"
+                aria-label={t('common.decrease')}
               >
                 <Minus className="h-3.5 w-3.5" />
               </button>
@@ -1008,7 +1024,7 @@ const MobileListingRow = memo(function MobileListingRow({
                 onClick={() => onSetCartQty(rowKey, cartQty + 1, item.quantity)}
                 disabled={cartQty >= item.quantity}
                 className="inline-flex h-8 w-8 items-center justify-center disabled:opacity-40"
-                aria-label="Più"
+                aria-label={t('common.increase')}
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
@@ -1021,9 +1037,9 @@ const MobileListingRow = memo(function MobileListingRow({
                   onCloseInlineCart();
                 }}
                 className="inline-flex h-8 w-full items-center justify-center border-t border-orange-100 bg-emerald-600 text-[10px] font-bold uppercase text-white"
-                aria-label="Acquista ora"
+                aria-label={t('cart.buyNow')}
               >
-                Buy
+                {t('cart.buyNowShort')}
               </button>
             ) : null}
             <button
@@ -1033,7 +1049,7 @@ const MobileListingRow = memo(function MobileListingRow({
                 onCloseInlineCart();
               }}
               className="inline-flex h-8 w-full items-center justify-center bg-[#2563eb] text-white"
-              aria-label="Aggiungi al carrello"
+              aria-label={t('cart.addToCart')}
             >
               <ShoppingCart className="h-4 w-4" />
             </button>
@@ -1091,6 +1107,7 @@ function ModernSellerTableInner({
   onOwnerQuantityChange,
   busyItemId = null,
 }: ModernSellerTableProps) {
+  const { t } = useTranslation();
   const displayRows: MarketplaceRow[] =
     rows ??
     listings.map((l) => ({
@@ -1136,7 +1153,7 @@ function ModernSellerTableInner({
     return (
       <div className="px-4 py-8 text-center text-sm text-gray-500">
         <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin text-gray-400" />
-        Caricamento offerte…
+        {t('productDetail.marketplace.loading')}
       </div>
     );
   }
@@ -1150,7 +1167,7 @@ function ModernSellerTableInner({
   if (displayRows.length === 0) {
     return (
       <div className="px-4 py-10 text-center text-sm text-gray-600">
-        {emptyMessage ?? 'Presto ci saranno articoli in vendita disponibili.'}
+        {emptyMessage ?? t('productDetail.marketplace.empty')}
       </div>
     );
   }
@@ -1166,13 +1183,13 @@ function ModernSellerTableInner({
         </colgroup>
         <thead>
           <tr className="bg-[#1D3160] text-[11px] font-semibold uppercase tracking-wide text-white">
-            <th className="border-r border-white/15 px-2.5 py-2">Venditore</th>
-            <th className="border-r border-white/15 px-2.5 py-2">Informazioni sul prodotto</th>
+            <th className="border-r border-white/15 px-2.5 py-2">{t('marketplace.seller')}</th>
+            <th className="border-r border-white/15 px-2.5 py-2">{t('marketplace.productInfo')}</th>
             <th className="px-0 py-0">
               <div className="grid grid-cols-[minmax(0,1fr)_2.75rem_6.5rem] border-l border-white/10 px-2.5 py-2 text-right">
-                <span>Offerta</span>
-                <span className="sr-only">Quantità</span>
-                <span className="sr-only">Azioni</span>
+                <span>{t('marketplace.offer')}</span>
+                <span className="sr-only">{t('marketplace.quantity')}</span>
+                <span className="sr-only">{t('marketplace.actions')}</span>
               </div>
             </th>
           </tr>

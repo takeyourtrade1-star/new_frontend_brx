@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { AlertCircle, CheckCircle2, Loader2, Trash2 } from 'lucide-react';
 import {
   type ListingPhotoSlot,

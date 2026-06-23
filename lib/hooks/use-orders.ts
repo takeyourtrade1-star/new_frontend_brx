@@ -19,7 +19,6 @@ import type {
   OrderListResponse,
   PayOrderResponse,
 } from '@/types/order';
-import type { NotificationUnreadCountResponse } from '@/types/notification';
 
 const KEYS = {
   all: ['orders'] as const,
@@ -89,8 +88,9 @@ export function useMarkOrderPaid() {
     mutationFn: ({ orderId }) => ordersApi.payOrder(orderId),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['orders'] });
+      // invalidateQueries(['notifications']) copre già ['notifications','unread-count'];
+      // il vecchio setQueryData(prev => prev) era un no-op ed è stato rimosso.
       qc.invalidateQueries({ queryKey: ['notifications'] });
-      qc.setQueryData<NotificationUnreadCountResponse>(['notifications', 'unread-count'], (prev) => prev);
       qc.setQueryData(KEYS.detail(res.data.id), { success: true, data: res.data });
     },
   });

@@ -6,6 +6,15 @@ export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Formatta un importo già in EUR (no arrotondamento), locale-aware con spazio.
+ * Es: 10.5 → "10,50 €". Variante base; per cents usa {@link formatEurCents},
+ * senza spazio {@link formatEuroNoSpace}.
+ */
+export function formatEur(n: number): string {
+  return n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+}
+
 /** Formats a price expressed in euro-cents to a locale-aware EUR string. */
 export function formatEurCents(cents: number): string {
   return new Intl.NumberFormat('it-IT', {

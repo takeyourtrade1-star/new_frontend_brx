@@ -113,8 +113,8 @@ export default function RootLayout({
             <ConditionalFooter />
           </div>
           <CardMascotteGate />
+          <BuildInfoBadge />
         </Providers>
-        <BuildInfoBadge />
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 interface BuildInfo {
   hash: string;
@@ -19,17 +19,17 @@ function formatTimestamp(ts: number): string {
 }
 
 export function BuildInfoBadge() {
-  const [info, setInfo] = useState<BuildInfo | null>(null);
-
-  useEffect(() => {
-    fetch('/build-info.json')
-      .then((res) => {
-        if (!res.ok) throw new Error('Not found');
-        return res.json();
-      })
-      .then((data: BuildInfo) => setInfo(data))
-      .catch(() => setInfo({ hash: 'dev', timestamp: null }));
-  }, []);
+  const { data: info } = useQuery<BuildInfo>({
+    queryKey: ['build-info'],
+    queryFn: async () => {
+      const res = await fetch('/build-info.json');
+      if (!res.ok) throw new Error('Not found');
+      return res.json();
+    },
+    staleTime: Infinity,
+    retry: false,
+    placeholderData: { hash: 'dev', timestamp: null },
+  });
 
   if (!info) return null;
 

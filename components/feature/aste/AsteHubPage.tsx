@@ -30,7 +30,8 @@ import {
   type AuctionUI,
 } from '@/lib/auction/auction-adapter';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
-import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
+import { useEnrichedAuctions } from '@/lib/hooks/use-enriched-auctions';
+import { useNowTick } from '@/lib/hooks/use-now-tick';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import {
   auctionMatchesSearchTerms,
@@ -51,15 +52,6 @@ const BROWSE_TAB_KEYS: Record<BrowseTab, MessageKey> = {
   recent: 'auctions.browseRecent',
   ended: 'auctions.browseEnded',
 };
-
-function useNowTick(intervalMs = 1000): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-  return now;
-}
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -298,7 +290,7 @@ export function AsteHubPage() {
     () => (listData?.data ?? []).map((a) => apiToAuctionUI(a)),
     [listData]
   );
-  const [enriched, setEnriched] = useState<AuctionUI[]>([]);
+  const enriched = useEnrichedAuctions(baseAuctions);
   const [showStickyBar, setShowStickyBar] = useState(false);
 
   const breadcrumbItems: AppBreadcrumbItem[] = [
@@ -310,24 +302,6 @@ export function AsteHubPage() {
     setVisibleCount(BATCH_SIZE);
     setApiBatchCount(1);
   }, [q, filterPriceMax, filterMinBids, browseTab, resolvedApiQ]);
-
-  useEffect(() => {
-    let isCancelled = false;
-    const resolveSellerNames = async () => {
-      if (baseAuctions.length === 0) {
-        setEnriched([]);
-        return;
-      }
-      const next = await enrichAuctionsWithPublicUsers(baseAuctions);
-      if (!isCancelled) {
-        setEnriched(next);
-      }
-    };
-    resolveSellerNames();
-    return () => {
-      isCancelled = true;
-    };
-  }, [baseAuctions]);
 
   useEffect(() => {
     setViewMode(getStoredAsteViewMode(VIEW_STORAGE_KEY, 'list'));

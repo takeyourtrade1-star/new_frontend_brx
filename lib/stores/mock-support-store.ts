@@ -20,13 +20,11 @@ interface MockSupportState {
   tickets: MockSupportTicket[];
   addTicket: (ticket: Omit<MockSupportTicket, 'id' | 'createdAt'>) => void;
   resolveTicket: (id: string) => void;
-  getOpenTickets: () => MockSupportTicket[];
-  getResolvedTickets: () => MockSupportTicket[];
 }
 
 export const useMockSupportStore = create<MockSupportState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       tickets: [
         {
           id: 'mock-support-1',
@@ -67,11 +65,6 @@ export const useMockSupportStore = create<MockSupportState>()(
           ),
         }));
       },
-
-      getOpenTickets: () => get().tickets.filter((t) => t.status === 'OPEN'),
-
-      getResolvedTickets: () =>
-        get().tickets.filter((t) => t.status === 'RESOLVED'),
     }),
     {
       name: 'ebartex-mock-support',

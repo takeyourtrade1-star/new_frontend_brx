@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { HelpCircle, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { minNextBidEur, parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
 import { usePlaceBid } from '@/lib/hooks/use-auctions';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { formatEur } from '@/lib/utils';
 
 type AuctionBidPanelProps = {
   auctionId: number;
@@ -246,6 +247,15 @@ export function AuctionBidPanel({
   const { t } = useTranslation();
   const placeBidMutation = usePlaceBid(auctionId);
   const minBid = useMemo(() => minNextBidEur(currentBidEur), [currentBidEur]);
+
+  // FE-REV-013: ref sempre aggiornate alle callback del parent, così `executeBid` non
+  // cattura versioni stale quando il parent passa funzioni inline ricreate a ogni render.
+  const onSubmitOfferRef = useRef(onSubmitOffer);
+  const onSubmitMaxBidRef = useRef(onSubmitMaxBid);
+  useEffect(() => {
+    onSubmitOfferRef.current = onSubmitOffer;
+    onSubmitMaxBidRef.current = onSubmitMaxBid;
+  }, [onSubmitOffer, onSubmitMaxBid]);
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [outbidWarning, setOutbidWarning] = useState<string | null>(null);
@@ -275,7 +285,7 @@ export function AuctionBidPanel({
     setError(null);
   };
 
-  const fmtEur = (n: number) => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+  const fmtEur = formatEur;
 
   const minBidHint = useMemo(() => {
     const dynamic = minBid.toLocaleString('it-IT', {
@@ -297,19 +307,22 @@ export function AuctionBidPanel({
     return true;
   };
 
-  const translateApiError = (msg: string): string => {
-    const minMatch = msg.match(/Minimum bid is ([\d.]+)/i);
-    if (minMatch) {
-      const val = parseFloat(minMatch[1]);
-      if (Number.isFinite(val)) return t('auctions.bidErrorTooLow', { min: fmtEur(val) });
-    }
-    if (/not active|has ended/i.test(msg)) return t('auctions.bidErrorEnded');
-    if (/token|unauthorized|expired/i.test(msg)) return t('auctions.bidErrorAuth');
-    if (/connessione non riuscita|load failed|failed to fetch|network request failed|networkerror|the network connection was lost/i.test(msg)) {
-      return 'Connessione non riuscita. Verifica la rete e riprova.';
-    }
-    return msg;
-  };
+  const translateApiError = useCallback(
+    (msg: string): string => {
+      const minMatch = msg.match(/Minimum bid is ([\d.]+)/i);
+      if (minMatch) {
+        const val = parseFloat(minMatch[1]);
+        if (Number.isFinite(val)) return t('auctions.bidErrorTooLow', { min: fmtEur(val) });
+      }
+      if (/not active|has ended/i.test(msg)) return t('auctions.bidErrorEnded');
+      if (/token|unauthorized|expired/i.test(msg)) return t('auctions.bidErrorAuth');
+      if (/connessione non riuscita|load failed|failed to fetch|network request failed|networkerror|the network connection was lost/i.test(msg)) {
+        return 'Connessione non riuscita. Verifica la rete e riprova.';
+      }
+      return msg;
+    },
+    [t, fmtEur]
+  );
 
   const requestDirectBid = () => {
     if (!isAuthenticated) {
@@ -354,17 +367,16 @@ export function AuctionBidPanel({
         return;
       }
       if (type === 'direct') {
-        onSubmitOffer(amount);
+        onSubmitOfferRef.current(amount);
       } else {
-        onSubmitMaxBid(amount);
+        onSubmitMaxBidRef.current(amount);
       }
     } catch (err) {
       setPendingAction(null);
       const msg = err instanceof Error ? err.message : "Errore durante l'offerta";
       setError(translateApiError(msg));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingAction, minBid, placeBidMutation, t]);
+  }, [pendingAction, minBid, placeBidMutation, t, translateApiError]);
 
   return (
     <>

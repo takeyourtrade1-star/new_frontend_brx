@@ -4,15 +4,12 @@
  * Dettaglio asta — light mode (sfondo bianco) come Figma: card bianca, testi scuri, accenti arancioni.
  */
 
-import { useMemo, useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
-import Image from 'next/image';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Eye, Package, Shield, TrendingUp, Users, Bookmark, Crown, ArrowLeft, Trophy, Check, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, PlusCircle, CalendarPlus, Smartphone, Globe, Info } from 'lucide-react';
+import { Eye, Package, TrendingUp, Users, Bookmark, ArrowLeft, ChevronDown, PlusCircle, Globe } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
-import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { minNextBidEur, parseLocaleMoneyInput, roundMoney, roundUpToHalfStep } from '@/lib/auction/bid-math';
-import { formatAuctionCountdown, isAuctionCountdownLong } from '@/lib/auction/auction-countdown';
 import { AuctionBidPanel } from '@/components/feature/aste/AuctionBidPanel';
 import { AuctionShareButton } from '@/components/feature/aste/AuctionShareButton';
 import { AuctionQrButton } from '@/components/feature/aste/AuctionQrButton';
@@ -20,8 +17,7 @@ import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { LoginGateModal } from '@/components/feature/auth/LoginGateModal';
 import { auctionConditionLabelKey } from '@/lib/auction/auction-create-draft';
 import { getCardLanguageLabel } from '@/lib/card-languages';
-import { AUCTION_SHIPPING_REST_OF_WORLD_ISO, isEuShippingCountry } from '@/lib/auction/eu-shipping-regions';
-import type { MessageKey } from '@/lib/i18n/messages/en';
+import { AUCTION_SHIPPING_REST_OF_WORLD_ISO } from '@/lib/auction/eu-shipping-regions';
 import {
   useAuctionDetail,
   useAuctionBids,
@@ -36,235 +32,25 @@ import { useUserCountry } from '@/lib/hooks/use-user-country';
 import { savedApi } from '@/lib/api/auction-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MascotteLoader } from '@/components/dev/MascotteLoader';
-import { enrichAuctionsWithPublicUsers, enrichBidRowsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
-import { cn } from '@/lib/utils';
-
-const PASTEL_GRADIENTS = [
-  { gradient: 'from-rose-300/20 via-rose-200/10 to-transparent', border: 'border-rose-300/60', shadow: 'shadow-rose-200/30' },
-  { gradient: 'from-sky-300/20 via-sky-200/10 to-transparent', border: 'border-sky-300/60', shadow: 'shadow-sky-200/30' },
-  { gradient: 'from-violet-300/20 via-violet-200/10 to-transparent', border: 'border-violet-300/60', shadow: 'shadow-violet-200/30' },
-  { gradient: 'from-emerald-300/20 via-emerald-200/10 to-transparent', border: 'border-emerald-300/60', shadow: 'shadow-emerald-200/30' },
-  { gradient: 'from-amber-300/20 via-amber-200/10 to-transparent', border: 'border-amber-300/60', shadow: 'shadow-amber-200/30' },
-] as const;
-const ORANGE = '#FF7300';
-const HEADER_OFFSET = 80;
-const CALENDAR_GLASS_MENU_CLASS =
-  'absolute right-0 z-[320] w-60 overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-b from-slate-800/95 via-slate-900/93 to-black/92 p-1.5 text-white backdrop-blur-xl backdrop-saturate-150 shadow-[0_26px_60px_rgba(2,6,23,0.58)] ring-1 ring-white/10 animate-orange-menu-enter';
-const CALENDAR_MENU_ITEM_CLASS =
-  'flex w-full items-center justify-between rounded-xl px-2.5 py-2.5 text-left text-[13px] font-semibold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)] transition hover:bg-white/14 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45';
-const CALENDAR_MENU_BADGE_CLASS = 'rounded-md border border-white/30 bg-white/12 px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide text-white';
-
-function sellerBannerHandle(seller: string): string {
-  const raw = (seller.split(/[\s_]+/)[0] ?? seller).replace(/[^a-zA-Z0-9]/g, '');
-  if (!raw) return '?';
-  return (raw.length <= 5 ? raw : raw.slice(0, 4)).toUpperCase();
-}
-
-function sameUserId(a: string | null | undefined, b: string | null | undefined): boolean {
-  if (!a || !b) return false;
-  return a.trim().toLowerCase() === b.trim().toLowerCase();
-}
-
-function formatAuctionEur(value: number): string {
-  return roundUpToHalfStep(value).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
-}
-
-function resolveShippingCost(
-  detail: AuctionUI,
-  viewerCountryRaw: string | null | undefined
-): { included: boolean; label: string } {
-  if (detail.shippingPayer === 'seller') {
-    return { included: true, label: 'Spedizione inclusa' };
-  }
-  const viewerCountry = (viewerCountryRaw ?? '').toUpperCase();
-  const originCountry = (detail.shippingOriginCountry ?? '').toUpperCase();
-  if (!viewerCountry) {
-    return {
-      included: false,
-      label:
-        detail.shippingEuDefaultEur != null
-          ? `Spedizione da ${formatAuctionEur(detail.shippingEuDefaultEur)}`
-          : 'Spedizione da definire',
-    };
-  }
-  if (viewerCountry === originCountry && detail.shippingNationalEur != null) {
-    return { included: false, label: `Spedizione ${formatAuctionEur(detail.shippingNationalEur)}` };
-  }
-  const countryOverride = detail.shippingCountryPrices.find((r) => r.country_iso === viewerCountry);
-  if (countryOverride) {
-    return { included: false, label: `Spedizione ${formatAuctionEur(countryOverride.price_eur)}` };
-  }
-  if (isEuShippingCountry(viewerCountry)) {
-    if (detail.shippingEuDefaultEur != null) {
-      return { included: false, label: `Spedizione ${formatAuctionEur(detail.shippingEuDefaultEur)}` };
-    }
-  } else {
-    const restWorld = detail.shippingCountryPrices.find(
-      (r) => r.country_iso === AUCTION_SHIPPING_REST_OF_WORLD_ISO
-    );
-    if (restWorld) {
-      return { included: false, label: `Spedizione ${formatAuctionEur(restWorld.price_eur)}` };
-    }
-    if (detail.shippingEuDefaultEur != null) {
-      return { included: false, label: `Spedizione ${formatAuctionEur(detail.shippingEuDefaultEur)}` };
-    }
-  }
-  return { included: false, label: 'Spedizione da definire' };
-}
-
-function formatIcsDateUtc(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const hours = String(date.getUTCHours()).padStart(2, '0');
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-  return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
-}
-
-function escapeIcsText(value: string): string {
-  return value
-    .replace(/\\/g, '\\\\')
-    .replace(/\n/g, '\\n')
-    .replace(/,/g, '\\,')
-    .replace(/;/g, '\\;');
-}
-
-function formatGoogleDateUtc(date: Date): string {
-  return formatIcsDateUtc(date);
-}
-
-
-function useNowTick(): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
-}
-
-function AntiSnipeInfoButton({
-  hint,
-  ariaLabel,
-  buttonClassName,
-}: {
-  hint: string;
-  ariaLabel: string;
-  buttonClassName?: string;
-}) {
-  return (
-    <span className="group/anti-snipe-info relative inline-flex shrink-0 align-middle">
-      <button
-        type="button"
-        className={cn(
-          'inline-flex h-4 w-4 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40',
-          buttonClassName ?? 'text-gray-400 hover:bg-gray-100 hover:text-[#1D3160]',
-        )}
-        aria-label={ariaLabel}
-        title={hint}
-      >
-        <Info className="h-3 w-3" aria-hidden />
-      </button>
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 hidden w-52 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-left text-[10px] font-medium leading-snug text-gray-700 shadow-lg group-hover/anti-snipe-info:block group-focus-within/anti-snipe-info:block"
-      >
-        {hint}
-      </span>
-    </span>
-  );
-}
-
-function SellerMetaRow({ country, rating, reviews }: { country: string; rating: number; reviews: number }) {
-  const stars = Math.min(5, Math.max(0, Math.round((rating / 100) * 5)));
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-800">
-      <FlagIcon country={country} size="md" />
-      <Shield className="h-4 w-4 shrink-0 text-amber-500" aria-hidden />
-      <span className="text-amber-500">
-        {'★'.repeat(stars)}
-        <span className="text-gray-300">{'★'.repeat(5 - stars)}</span>
-      </span>
-      <span className="text-xs text-gray-500">
-        {rating}% · ({reviews})
-      </span>
-    </div>
-  );
-}
-
-function AuctionCollapsibleRow({
-  label,
-  expanded,
-  onToggle,
-  children,
-}: {
-  label: string;
-  expanded: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-200/80 bg-gray-50/80 px-3 py-2 text-left transition hover:border-gray-300 hover:bg-gray-50"
-        aria-expanded={expanded}
-      >
-        <span className="text-[11px] font-bold uppercase tracking-wide text-gray-600">{label}</span>
-        <ChevronDown
-          className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
-          aria-hidden
-        />
-      </button>
-      <div
-        className={`overflow-hidden transition-all duration-300 ${expanded ? 'max-h-[28rem] opacity-100' : 'max-h-0 opacity-0'}`}
-      >
-        <div className="px-1 pt-2">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function AuctionProductMeta({
-  conditionLabel,
-  languageLabel,
-  expansionName,
-  expansionHref,
-  t,
-}: {
-  conditionLabel: string;
-  languageLabel: string;
-  expansionName: string;
-  expansionHref: string | null;
-  t: (key: MessageKey) => string;
-}) {
-  const rows = [
-    { key: 'condition', label: t('auctions.detailCondition'), value: conditionLabel },
-    { key: 'language', label: t('auctions.detailLanguage'), value: languageLabel },
-    { key: 'expansion', label: t('auctions.detailExpansion'), value: expansionName, href: expansionHref },
-  ] as const;
-
-  return (
-    <dl className="mt-2 divide-y divide-gray-100/90 overflow-hidden rounded-xl border border-gray-100 bg-gray-50/60">
-      {rows.map((row) => (
-        <div key={row.key} className="flex items-center justify-between gap-3 px-3 py-1.5">
-          <dt className="text-[11px] font-medium text-gray-500">{row.label}</dt>
-          <dd className="min-w-0 text-right text-[13px] font-semibold text-gray-900">
-            {'href' in row && row.href && row.value !== '—' ? (
-              <Link href={row.href} className="truncate text-[#FF7300] transition hover:underline">
-                {row.value}
-              </Link>
-            ) : (
-              <span className="truncate">{row.value}</span>
-            )}
-          </dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
+import { useEnrichedAuction, useEnrichedAuctions, useEnrichedBidRows } from '@/lib/hooks/use-enriched-auctions';
+import {
+  formatAuctionEur,
+  resolveShippingCost,
+  formatIcsDateUtc,
+  escapeIcsText,
+  formatGoogleDateUtc,
+  sameUserId,
+  HEADER_OFFSET,
+} from '@/lib/auction/auction-detail-utils';
+import { AuctionCollapsibleRow } from '@/components/feature/aste/detail/AuctionCollapsibleRow';
+import { AuctionProductMeta } from '@/components/feature/aste/detail/AuctionProductMeta';
+import { AuctionGallery } from '@/components/feature/aste/detail/AuctionGallery';
+import { AuctionTimerCardMobile } from '@/components/feature/aste/detail/AuctionTimerCardMobile';
+import { AuctionTimerCardDesktop } from '@/components/feature/aste/detail/AuctionTimerCardDesktop';
+import { AuctionBidHistory } from '@/components/feature/aste/detail/AuctionBidHistory';
+import { SimilarAuctionsSections } from '@/components/feature/aste/detail/SimilarAuctionsSections';
+import { ProxyLimitModal } from '@/components/feature/aste/detail/ProxyLimitModal';
+import { AuctionImageLightbox } from '@/components/feature/aste/detail/AuctionImageLightbox';
 
 export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const { t } = useTranslation();
@@ -294,46 +80,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         }),
     [bidsRes]
   );
-  const [detail, setDetail] = useState<AuctionUI | null>(null);
-  const [bidRows, setBidRows] = useState<BidRowUI[]>([]);
-
-  useEffect(() => {
-    let isCancelled = false;
-    const resolveDetailSeller = async () => {
-      if (!baseDetail) {
-        setDetail(null);
-        return;
-      }
-      const [resolved] = await enrichAuctionsWithPublicUsers([baseDetail]);
-      if (!isCancelled) {
-        setDetail(resolved ?? baseDetail);
-      }
-    };
-    resolveDetailSeller();
-    return () => {
-      isCancelled = true;
-    };
-  }, [baseDetail]);
-
-  useEffect(() => {
-    let isCancelled = false;
-    const resolveBidderNames = async () => {
-      if (baseBidRows.length === 0) {
-        setBidRows([]);
-        return;
-      }
-      const resolved = await enrichBidRowsWithPublicUsers(baseBidRows);
-      if (!isCancelled) {
-        setBidRows(resolved);
-      }
-    };
-    resolveBidderNames();
-    return () => {
-      isCancelled = true;
-    };
-  }, [baseBidRows]);
-
-  const now = useNowTick();
+  const detail = useEnrichedAuction(baseDetail);
+  const bidRows = useEnrichedBidRows(baseBidRows);
 
   const detailImages = useMemo(() => {
     if (!detail) return [] as string[];
@@ -425,6 +173,14 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   useEffect(() => {
     setImgIdx(0);
     setThumbStart(0);
+    // FE-REV-007: navigando client-side da un'asta all'altra va azzerato anche lo stato proxy/offerta,
+    // altrimenti modale e toast mostrano dati dell'asta precedente.
+    setMyMaxBidEur(null);
+    setMyLastOfferEur(null);
+    setProxyModalOpen(false);
+    setProxyInput('');
+    setProxyInputError(null);
+    previousProxyBidOutbidRef.current = false;
   }, [numericId]);
 
   useEffect(() => {
@@ -463,25 +219,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       .slice(0, 3)
       .map((a) => apiToAuctionUI(a));
   }, [similarData, numericId]);
-  const [similarCards, setSimilarCards] = useState<AuctionUI[]>([]);
-
-  useEffect(() => {
-    let isCancelled = false;
-    const resolveSimilarSellers = async () => {
-      if (similarCardsBase.length === 0) {
-        setSimilarCards([]);
-        return;
-      }
-      const resolved = await enrichAuctionsWithPublicUsers(similarCardsBase);
-      if (!isCancelled) {
-        setSimilarCards(resolved);
-      }
-    };
-    resolveSimilarSellers();
-    return () => {
-      isCancelled = true;
-    };
-  }, [similarCardsBase]);
+  const similarCards = useEnrichedAuctions(similarCardsBase);
 
   const myLastOfferFromHistoryEur = useMemo(() => {
     if (!currentUserId) return null;
@@ -514,8 +252,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const statsViewsCount = Math.max(0, Math.round(statsViewsCountRaw));
   const statsWatchingCount = Math.max(0, Math.round(statsWatchingCountRaw));
   const endsAt = detail?.endsAt ?? new Date(0).toISOString();
-  const msLeft = new Date(endsAt).getTime() - now;
-  const countdownIsLong = isAuctionCountdownLong(msLeft);
   const mainImg = detailImages[imgIdx] ?? detailImages[0] ?? '';
   const visibleThumbs = 4;
   const hasThumbOverflow = detailImages.length > visibleThumbs;
@@ -895,206 +631,34 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               {/* Galleria */}
               <div className="order-1 flex h-full flex-col gap-3 lg:col-span-5 lg:self-start lg:pr-5 lg:border-r lg:border-black/10">
                 {/* Mobile: Unified Price + Timer Card */}
-                <div className="lg:hidden">
-                  <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white via-white to-orange-50/40 p-3 shadow-sm">
-                    {isEnded ? (
-                      <div className="text-center">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
-                          {t('auctions.detailAuctionClosed')}
-                        </p>
-                        <p className="mt-2 text-2xl font-extrabold text-[#FF7300]">
-                          {fmtEur(detail.currentBidEur)}
-                        </p>
-                        <p className="mt-1.5 text-xs font-medium text-gray-500">
-                          {new Date(endsAt).toLocaleString('it-IT', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-start justify-between gap-3">
-                          {/* Left: Price */}
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                              {t('auctions.currentBid')}
-                            </p>
-                            <p className="mt-1 text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl">
-                              {fmtEur(effectiveCurrentBidEur)}
-                            </p>
-                          </div>
-                          {/* Right: Timer */}
-                          <div className="shrink-0 text-right">
-                            <div ref={calendarMenuMobileRef} className="relative flex items-center justify-end gap-1.5">
-                              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#FF7300]">
-                                {t('auctions.detailClosesIn')}
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => setCalendarMenuOpen((open) => !open)}
-                                className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#FF7300]/30 bg-white/70 text-[#FF7300] transition hover:border-[#FF7300] hover:bg-white"
-                                aria-label="Apri menu calendario"
-                                title="Aggiungi al calendario"
-                                aria-haspopup="menu"
-                                aria-expanded={calendarMenuOpen}
-                              >
-                                <CalendarPlus className="h-3.5 w-3.5" />
-                              </button>
-                              {calendarMenuOpen && (
-                                <div
-                                  className={`${CALENDAR_GLASS_MENU_CLASS} top-7`}
-                                  role="menu"
-                                  aria-label="Opzioni calendario"
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={handleAddToIosCalendar}
-                                    className={CALENDAR_MENU_ITEM_CLASS}
-                                    role="menuitem"
-                                  >
-                                    <span className="inline-flex items-center gap-2">
-                                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/35">
-                                        <Smartphone className="h-4 w-4" />
-                                      </span>
-                                      <span>Calendario iOS</span>
-                                    </span>
-                                    <span className={CALENDAR_MENU_BADGE_CLASS}>ICS</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={handleAddToGoogleCalendar}
-                                    className={`${CALENDAR_MENU_ITEM_CLASS} mt-1`}
-                                    role="menuitem"
-                                  >
-                                    <span className="inline-flex items-center gap-2">
-                                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/35">
-                                        <Globe className="h-4 w-4" />
-                                      </span>
-                                      <span>Google Calendar</span>
-                                    </span>
-                                    <span className={CALENDAR_MENU_BADGE_CLASS}>WEB</span>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                            <p
-                              className="mt-1 font-mono text-lg font-bold tabular-nums tracking-tight text-gray-900 sm:text-xl"
-                              suppressHydrationWarning
-                            >
-                              {formatAuctionCountdown(msLeft)}
-                            </p>
-                            {!countdownIsLong && (
-                              <p className="text-[10px] font-medium text-gray-400">
-                                {t('auctions.detailHoursSuffix')}
-                              </p>
-                            )}
-                            {!isEnded && (
-                              <p className="mt-1.5 inline-flex flex-wrap items-center justify-end gap-1 text-[10px] font-medium text-gray-500">
-                                <span className="font-semibold text-gray-600">{t('auctions.detailAntiSnipe')}:</span>
-                                <span className="text-gray-700">{antiSnipeLabel}</span>
-                                <AntiSnipeInfoButton
-                                  hint={t('auctions.createAntiSniperHint')}
-                                  ariaLabel={t('auctions.detailAntiSnipeInfoAria')}
-                                />
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        {/* Meta row */}
-                        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-100 pt-2.5 text-xs text-gray-500">
-                          <span>{t('auctions.detailFrom')}: <span className="font-semibold text-gray-700">{fmtEur(detail.startingBidEur)}</span></span>
-                          <span className="inline-flex items-center gap-1 text-gray-600">
-                            <span className="font-semibold text-gray-800">{detail.bidCount}</span> offerte
-                          </span>
-                          <span className={`text-[11px] font-medium ${reserveMet ? 'text-emerald-600' : 'text-amber-600'}`}>
-                            {reserveMet ? t('auctions.detailReserveYes') : t('auctions.detailReserveNo')}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <AuctionTimerCardMobile
+                  isEnded={isEnded}
+                  endsAt={endsAt}
+                  currentBidEur={detail.currentBidEur}
+                  effectiveCurrentBidEur={effectiveCurrentBidEur}
+                  startingBidEur={detail.startingBidEur}
+                  bidCount={detail.bidCount}
+                  reserveMet={reserveMet}
+                  antiSnipeLabel={antiSnipeLabel}
+                  calendarRef={calendarMenuMobileRef}
+                  calendarMenuOpen={calendarMenuOpen}
+                  onToggleCalendar={() => setCalendarMenuOpen((open) => !open)}
+                  onIos={handleAddToIosCalendar}
+                  onGoogle={handleAddToGoogleCalendar}
+                />
 
-                <div className="flex items-stretch gap-3 sm:gap-4">
-                  <div className="flex w-14 shrink-0 flex-col items-center gap-2 sm:w-[4.5rem]">
-                    {hasThumbOverflow ? (
-                      <button
-                        type="button"
-                        onClick={() => setThumbStart((v) => Math.max(0, v - 1))}
-                        disabled={thumbStart <= 0}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 transition hover:border-[#FF7300] hover:text-[#FF7300] disabled:opacity-40"
-                      >
-                        <ChevronUp className="h-4 w-4" />
-                      </button>
-                    ) : null}
-
-                    {(hasThumbOverflow ? detailImages.slice(thumbStart, thumbStart + visibleThumbs) : detailImages).map((src, i) => {
-                      const absoluteIndex = hasThumbOverflow ? thumbStart + i : i;
-                      return (
-                        <button
-                          key={`${src}-${absoluteIndex}`}
-                          type="button"
-                          onClick={() => setImgIdx(absoluteIndex)}
-                          className={`relative aspect-[63/88] w-full overflow-hidden rounded-lg border-2 bg-gray-50 transition ${
-                            imgIdx === absoluteIndex ? 'border-[#FF7300] ring-2 ring-[#FF7300]/20' : 'border-gray-200 hover:border-gray-400'
-                          }`}
-                        >
-                          <Image src={src} alt="" fill className="object-cover" sizes="72px" unoptimized />
-                        </button>
-                      );
-                    })}
-
-                    {hasThumbOverflow ? (
-                      <button
-                        type="button"
-                        onClick={() => setThumbStart((v) => Math.min(maxThumbStart, v + 1))}
-                        disabled={thumbStart >= maxThumbStart}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 transition hover:border-[#FF7300] hover:text-[#FF7300] disabled:opacity-40"
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </button>
-                    ) : null}
-                  </div>
-                  <div className="group relative min-h-[240px] flex-1 overflow-hidden rounded-2xl border border-transparent bg-white/0 shadow-none sm:min-h-[300px] lg:min-h-[340px]">
-                    <button
-                      type="button"
-                      onClick={() => setLightboxOpen(true)}
-                      className="absolute inset-0 z-10 cursor-zoom-in"
-                      aria-label="Apri immagine in grande"
-                    />
-                    <Image
-                      src={mainImg}
-                      alt=""
-                      fill
-                      className="object-contain"
-                      sizes="(max-width:1024px) 100vw, 420px"
-                      priority
-                      unoptimized
-                    />
-                    {detailImages.length > 1 ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setImgIdx((v) => (v - 1 + detailImages.length) % detailImages.length)}
-                          className="absolute left-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-gray-800 shadow transition hover:bg-white group-hover:flex"
-                        >
-                          <ChevronLeft className="h-5 w-5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setImgIdx((v) => (v + 1) % detailImages.length)}
-                          className="absolute right-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-gray-800 shadow transition hover:bg-white group-hover:flex"
-                        >
-                          <ChevronRight className="h-5 w-5" />
-                        </button>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
+                <AuctionGallery
+                  detailImages={detailImages}
+                  imgIdx={imgIdx}
+                  setImgIdx={setImgIdx}
+                  thumbStart={thumbStart}
+                  setThumbStart={setThumbStart}
+                  hasThumbOverflow={hasThumbOverflow}
+                  maxThumbStart={maxThumbStart}
+                  visibleThumbs={visibleThumbs}
+                  mainImg={mainImg}
+                  onOpenLightbox={() => setLightboxOpen(true)}
+                />
                 <AuctionProductMeta
                   conditionLabel={conditionLabel}
                   languageLabel={languageLabel}
@@ -1214,7 +778,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                       </span>
                       <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${mobileSection === 'auction' ? 'rotate-180' : ''}`} />
                     </button>
-                    <div className={`overflow-hidden transition-all duration-300 ${mobileSection === 'auction' ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className={`transition-all duration-300 ${mobileSection === 'auction' ? 'max-h-[70vh] overflow-y-auto opacity-100' : 'max-h-0 overflow-hidden opacity-0'}`}>
                       <div className="space-y-2 px-4 pb-3 text-sm">
                         <div className="flex items-baseline justify-between">
                           <span className="text-gray-500">{t('auctions.detailFrom')}</span>
@@ -1374,401 +938,53 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
               <div className="order-2 flex h-full flex-col gap-3 lg:col-span-3 lg:order-3 lg:self-start">
                 {/* Note: Stats views/watching moved to hero section */}
                 {/* Timer Glass Arancio (No Shiny) */}
-                <div className="hidden relative flex-col items-center justify-center rounded-2xl border border-[#FF7300]/30 bg-[#FF7300]/10 p-3 px-4 xl:p-4 xl:px-5 backdrop-blur-md shadow-[0_8px_32px_rgba(255,115,0,0.12)] lg:flex overflow-visible min-w-0 w-full">
-                  {/* Subtle inner highlight to enhance the glass effect */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
-
-                  {isEnded ? (
-                    <div className="relative z-10 flex flex-col items-center text-center">
-                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-800/60">
-                        {t('auctions.detailAuctionClosed')}
-                      </p>
-                      <p className="mt-3 text-[13px] font-semibold text-[#9A3412]">
-                        {new Date(endsAt).toLocaleString('it-IT', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                      <p className="mt-2 text-2xl font-black text-[#FF7300]">
-                        {t('auctions.finalPriceLabel')}: {fmtEur(detail.currentBidEur)}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="relative z-10 flex flex-col items-center text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[#FF7300] drop-shadow-sm">
-                          {t('auctions.detailClosesIn')}
-                        </p>
-                        <div ref={calendarMenuDesktopRef} className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setCalendarMenuOpen((open) => !open)}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#FF7300]/35 bg-white/70 text-[#FF7300] transition hover:border-[#FF7300] hover:bg-white"
-                            aria-label="Apri menu calendario"
-                            title="Aggiungi al calendario"
-                            aria-haspopup="menu"
-                            aria-expanded={calendarMenuOpen}
-                          >
-                            <CalendarPlus className="h-4 w-4" />
-                          </button>
-                          {calendarMenuOpen && (
-                            <div
-                              className={`${CALENDAR_GLASS_MENU_CLASS} top-9 text-left`}
-                              role="menu"
-                              aria-label="Opzioni calendario"
-                            >
-                              <button
-                                type="button"
-                                onClick={handleAddToIosCalendar}
-                                className={CALENDAR_MENU_ITEM_CLASS}
-                                role="menuitem"
-                              >
-                                <span className="inline-flex items-center gap-2">
-                                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/35">
-                                    <Smartphone className="h-4 w-4" />
-                                  </span>
-                                  <span>Calendario iOS</span>
-                                </span>
-                                <span className={CALENDAR_MENU_BADGE_CLASS}>ICS</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleAddToGoogleCalendar}
-                                className={`${CALENDAR_MENU_ITEM_CLASS} mt-1`}
-                                role="menuitem"
-                              >
-                                <span className="inline-flex items-center gap-2">
-                                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/35">
-                                    <Globe className="h-4 w-4" />
-                                  </span>
-                                  <span>Google Calendar</span>
-                                </span>
-                                <span className={CALENDAR_MENU_BADGE_CLASS}>WEB</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <p
-                        className="mt-2 flex items-baseline justify-center gap-1.5 font-mono text-2xl font-bold tabular-nums tracking-tight text-[#9A3412] leading-none xl:text-3xl"
-                        suppressHydrationWarning
-                      >
-                        {formatAuctionCountdown(msLeft)}
-                        {!countdownIsLong && (
-                          <span className="text-xl font-black tracking-widest text-orange-800/80 xl:text-2xl">
-                            {t('auctions.detailHoursSuffix').toUpperCase()}
-                          </span>
-                        )}
-                      </p>
-                      <p className="mt-2 inline-flex flex-wrap items-center justify-center gap-1 text-[11px] font-semibold text-orange-900/75">
-                        <span className="uppercase tracking-wide text-orange-800/60">{t('auctions.detailAntiSnipe')}:</span>
-                        <span>{antiSnipeLabel}</span>
-                        <AntiSnipeInfoButton
-                          hint={t('auctions.createAntiSniperHint')}
-                          ariaLabel={t('auctions.detailAntiSnipeInfoAria')}
-                          buttonClassName="text-orange-700/55 hover:bg-orange-100/80 hover:text-orange-900"
-                        />
-                      </p>
-                    </div>
-                  )}
-                </div>
+                <AuctionTimerCardDesktop
+                  isEnded={isEnded}
+                  endsAt={endsAt}
+                  currentBidEur={detail.currentBidEur}
+                  antiSnipeLabel={antiSnipeLabel}
+                  calendarRef={calendarMenuDesktopRef}
+                  calendarMenuOpen={calendarMenuOpen}
+                  onToggleCalendar={() => setCalendarMenuOpen((open) => !open)}
+                  onIos={handleAddToIosCalendar}
+                  onGoogle={handleAddToGoogleCalendar}
+                />
 
                 {/* Ultime Offerte — Design Premium Slider */}
-                <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-gray-100 bg-gray-50/50 px-3 py-2 sm:px-3.5">
-                    <h3 className="min-w-0 flex-1 text-[10px] font-black uppercase leading-snug tracking-[0.08em] text-gray-900 sm:text-[11px] sm:tracking-[0.1em]">
-                      {isOwner ? t('auctions.sellerBidHistoryTitle') : t('auctions.detailBidHistory')}
-                    </h3>
-                    <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-[#1D3160] px-2 py-0.5 text-[10px] font-bold leading-none text-white">
-                      {bidRows.length} {t('auctions.detailBidsCount')}
-                    </span>
-                  </div>
-
-                  <div className={`overflow-y-auto py-0.5 ${bidRows.length === 0 ? 'min-h-[3rem]' : 'max-h-60'}`}>
-                    {bidRows.length === 0 && (
-                      <p className="px-3 py-2 text-center text-xs text-gray-400">
-                        Nessuna offerta ancora.
-                      </p>
-                    )}
-                    {/* Bids List */}
-                    {(() => {
-                      let crownShown = false;
-                      const visibleBids = bidsExpanded ? bidRows : bidRows.slice(0, 3);
-                      
-                      return visibleBids.map((b, i) => {
-                        const isLeader = sameUserId(b.userId, detail.highestBidderId);
-                        const showCrown = isLeader && !crownShown;
-                        if (showCrown) crownShown = true;
-                        const isMine = currentUserId != null && sameUserId(b.userId, currentUserId);
-                        const bidderCountry = b.countryCode || 'IT';
-                        const animationDelay = `${i * 0.05}s`;
-                        const bidDate = new Date(b.createdAt);
-                        const timeStr = bidDate.toLocaleString('it-IT', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                        });
-
-                        return (
-                          <div
-                            key={b.bidId}
-                            style={{ animationDelay }}
-                            className={`group flex items-center justify-between px-3 py-2 transition-all duration-300 hover:bg-gray-50 animate-[fadeInUp_0.4s_ease-out_both] xl:px-4 xl:py-2.5 ${i !== visibleBids.length - 1 ? 'border-b border-gray-50' : ''} ${isMine ? 'border-l-4 border-l-[#FF7300] bg-orange-50/60' : 'border-l-4 border-l-transparent hover:border-l-gray-300'}`}
-                          >
-                            <div className="flex items-center gap-3 min-w-0 transition-transform duration-300 group-hover:translate-x-1">
-                              <div className="shrink-0 overflow-hidden rounded-sm ring-1 ring-black/5">
-                                <FlagIcon country={bidderCountry} size="sm" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-xs xl:text-[13px] ${isLeader ? 'font-black text-[#1D3160]' : 'font-bold text-gray-700'}`}>
-                                    {b.displayName}
-                                  </span>
-                                  {showCrown && (
-                                    <Crown className="h-3.5 w-3.5 shrink-0 text-[#FFB800] drop-shadow-sm" aria-hidden />
-                                  )}
-                                </div>
-                                <span suppressHydrationWarning className="block mt-0.5 text-[10px] tracking-wide text-gray-400">
-                                  {timeStr}
-                                </span>
-                              </div>
-                            </div>
-                            <span className="shrink-0 text-sm font-black text-gray-900 transition-transform duration-300 group-hover:-translate-x-1 xl:text-[15px]">
-                               {fmtEur(b.amountEur)}
-                             </span>
-                          </div>
-                        );
-                      });
-                    })()}
-
-                    {/* Expand/Collapse Toggle */}
-                    {bidRows.length > 3 && (
-                      <button
-                        type="button"
-                        onClick={() => setBidsExpanded(!bidsExpanded)}
-                        className="flex w-full items-center justify-center gap-1.5 border-t border-gray-100 bg-gray-50/50 py-2.5 text-xs font-extrabold uppercase tracking-wide text-gray-500 transition-colors hover:bg-gray-50 hover:text-[#FF7300]"
-                      >
-                        {bidsExpanded ? 'Vedi meno' : `Vedi tutte (${bidRows.length})`}
-                        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${bidsExpanded ? 'rotate-180' : ''}`} />
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <AuctionBidHistory
+                  bidRows={bidRows}
+                  bidsExpanded={bidsExpanded}
+                  onToggleExpanded={() => setBidsExpanded(!bidsExpanded)}
+                  isOwner={isOwner}
+                  highestBidderId={detail.highestBidderId}
+                  currentUserId={currentUserId}
+                />
               </div>
             </div>
           </div>
 
-          {/* Oggetti simili — carousel mobile, grid desktop */}
-          <div className="mt-10 sm:mt-12">
-            <h2 className="mb-5 text-lg font-bold uppercase tracking-wide text-gray-900 sm:text-xl">
-              {t('auctions.similarTitle')}
-            </h2>
-
-            {/* Mobile: horizontal scroll carousel */}
-            <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 scrollbar-hide lg:hidden">
-              {similarCards.map((a) => {
-                const fmtEur = (n: number) => formatAuctionEur(n);
-                const ms = new Date(a.endsAt).getTime() - now;
-                const timeLeft = formatAuctionCountdown(ms);
-                return (
-                  <Link
-                    key={a.id}
-                    href={auctionDetailPath(a.id)}
-                    prefetch
-                    scroll
-                    className="group w-[220px] shrink-0 snap-start overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md transition-all duration-300 hover:border-[#FF7300] hover:shadow-lg hover:-translate-y-1"
-                  >
-                    {/* Immagine verticale */}
-                    <div className="relative aspect-[3/4] w-full overflow-hidden bg-gray-50">
-                      <Image
-                        src={a.image}
-                        alt=""
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="220px"
-                        unoptimized
-                      />
-                    </div>
-                    {/* Info sotto */}
-                    <div className="p-3">
-                      <p className="line-clamp-2 text-sm font-bold uppercase leading-tight text-gray-900">
-                        {a.title}
-                      </p>
-                      <p className="mt-1 text-[11px] text-gray-500">
-                        {a.seller}
-                      </p>
-                      <div className="mt-2 flex items-center justify-between">
-                        <p className="text-base font-extrabold text-[#FF7300]">
-                          {fmtEur(a.currentBidEur)}
-                        </p>
-                        <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
-                          {timeLeft}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-
-            {/* Desktop: grid 3 colonne (invariato) */}
-            <div className="hidden gap-5 sm:grid-cols-2 lg:grid lg:grid-cols-3">
-              {similarCards.map((a) => {
-                const fmtEur = (n: number) => formatAuctionEur(n);
-                const ms = new Date(a.endsAt).getTime() - now;
-                const timeLeft = formatAuctionCountdown(ms);
-                return (
-                  <Link
-                    key={a.id}
-                    href={auctionDetailPath(a.id)}
-                    prefetch
-                    scroll
-                    className="group flex h-[180px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md transition hover:border-[#FF7300] hover:shadow-lg"
-                  >
-                    <div className="relative h-full w-[45%] shrink-0 overflow-hidden">
-                      <Image
-                        src={a.image}
-                        alt=""
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="160px"
-                        unoptimized
-                      />
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
-                      <div>
-                        <p className="line-clamp-2 text-sm font-bold uppercase leading-tight text-gray-900">
-                          {a.title}
-                        </p>
-                        <p className="mt-1.5 text-xs text-gray-500">
-                          {t('auctions.detailSoldBy')}: <span className="font-medium text-gray-700">{a.seller}</span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-extrabold text-[#FF7300]">
-                          {fmtEur(a.currentBidEur)}
-                        </p>
-                        <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
-                          {timeLeft}
-                          {!isAuctionCountdownLong(ms) ? ` ${t('auctions.detailHoursSuffix')}` : null}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Aste in evidenza — lista compatta */}
-          <div className="mt-10 sm:mt-12">
-            <h2 className="mb-5 text-lg font-bold uppercase tracking-wide text-gray-900 sm:text-xl">
-              {t('auctions.tableExchangeTitle')}
-            </h2>
-            <div className="space-y-2 lg:space-y-3">
-              {similarCards.slice(0, 5).map((row, i) => (
-                <Link
-                  key={row.id}
-                  href={auctionDetailPath(row.id)}
-                  prefetch
-                  scroll
-                  className={`group relative isolate flex h-[80px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 lg:h-[110px] hover:border-primary/40 hover:shadow-sm lg:hover:-translate-y-0.5 lg:hover:${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].border} lg:hover:${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].shadow} lg:hover:shadow-md`}
-                >
-                  {/* Gradient background on hover — desktop only */}
-                  <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 hidden lg:block">
-                    <div className={`absolute inset-0 bg-gradient-to-r ${PASTEL_GRADIENTS[i % PASTEL_GRADIENTS.length].gradient}`} />
-                    <div className="absolute inset-y-0 -left-full w-full -skew-x-12 bg-gradient-to-r from-transparent via-white/50 to-transparent transition-all duration-700 ease-out group-hover:left-full" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 animate-pulse" />
-                  </div>
-
-                  {/* Immagine */}
-                  <div className="relative h-full w-[70px] shrink-0 overflow-hidden lg:w-1/6">
-                    <Image
-                      src={row.image}
-                      alt=""
-                      fill
-                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                      sizes="(max-width: 1024px) 70px, 72px"
-                      unoptimized
-                    />
-                  </div>
-
-                  {/* Info */}
-                  <div className="relative z-[1] flex min-w-0 flex-1 items-center justify-between gap-2 p-2.5 lg:flex-col lg:items-start lg:justify-between lg:p-3">
-                    <div className="min-w-0">
-                      <p className="line-clamp-1 text-xs font-bold uppercase leading-tight text-gray-900 sm:text-sm lg:line-clamp-2">
-                        {row.title}
-                      </p>
-                      <p className="mt-0.5 flex items-center gap-1.5 text-[10px] text-gray-500 lg:mt-1 lg:text-xs">
-                        <FlagIcon country={row.sellerCountry} size="xs" />
-                        <span className="font-medium text-gray-700">{row.seller}</span>
-                        <span className="text-amber-500">★</span>
-                        <span className="text-[10px] text-gray-400">{row.sellerRating}%</span>
-                      </p>
-                    </div>
-                    {/* Mobile: Pill CTA | Desktop: underline CTA */}
-                    <span
-                      className="shrink-0 rounded-full bg-gray-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-primary transition-colors group-hover:bg-primary group-hover:text-white lg:self-start lg:rounded-none lg:bg-transparent lg:px-0 lg:py-0 lg:text-[11px] lg:text-gray-800 lg:underline lg:decoration-gray-300 lg:underline-offset-2 lg:group-hover:bg-transparent lg:group-hover:text-primary"
-                    >
-                      {t('auctions.shippingViewAuction')}
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
+          <SimilarAuctionsSections similarCards={similarCards} />
         </div>
       </section>
 
       {lightboxOpen && detailImages.length > 0 && (
-        <div
-          className="fixed inset-0 z-[260] flex items-center justify-center bg-black/90 p-4"
-          onClick={() => setLightboxOpen(false)}
-        >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setImgIdx((v) => (v - 1 + detailImages.length) % detailImages.length);
-            }}
-            className="absolute left-4 top-1/2 z-[261] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 md:flex"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setImgIdx((v) => (v + 1) % detailImages.length);
-            }}
-            className="absolute right-4 top-1/2 z-[261] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 md:flex"
-          >
-            <ChevronRight className="h-6 w-6" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setLightboxOpen(false)}
-            className="absolute right-4 top-4 z-[261] rounded-full bg-white/20 px-3 py-1 text-sm font-semibold text-white transition hover:bg-white/30"
-          >
-            Chiudi
-          </button>
-          <div className="relative h-[82vh] w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
-            <Image src={mainImg} alt="" fill className="object-contain" sizes="100vw" unoptimized />
-          </div>
-        </div>
+        <AuctionImageLightbox
+          mainImg={mainImg}
+          onPrev={() => setImgIdx((v) => (v - 1 + detailImages.length) % detailImages.length)}
+          onNext={() => setImgIdx((v) => (v + 1) % detailImages.length)}
+          onClose={() => setLightboxOpen(false)}
+        />
       )}
 
       {showBuyerBid && (
         <LoginGateModal
           open={loginGateOpen}
-          onClose={() => setLoginGateOpen(false)}
+          onClose={() => {
+            // FE-REV-009: chiudere senza login non deve lasciare un salvataggio "in sospeso"
+            // che scatterebbe al login successivo aperto per fare un'offerta.
+            setPendingSaveAfterLogin(false);
+            setLoginGateOpen(false);
+          }}
           onSuccess={() => {
             setLoginGateOpen(false);
             if (pendingSaveAfterLogin) {
@@ -1782,69 +998,20 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       )}
 
       {proxyModalOpen && myMaxBidEur != null && (
-        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/45 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Proxy bidding</p>
-            <h3 className="mt-1 text-lg font-extrabold text-[#1D3160]">Gestisci il tuo limite massimo</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Puoi aumentare il limite senza inviare una nuova offerta manuale. Il sistema aggiorna solo il tuo tetto massimo.
-            </p>
-
-            <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Limite attuale</p>
-              <p className="text-xl font-extrabold text-[#FF7300]">{fmtEur(myMaxBidEur)}</p>
-            </div>
-
-            <div className="mt-4">
-              <label htmlFor="proxy-limit-input" className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-600">
-                Nuovo limite massimo
-              </label>
-              <input
-                id="proxy-limit-input"
-                type="text"
-                inputMode="decimal"
-                value={proxyInput}
-                onChange={(e) => {
-                  setProxyInput(e.target.value);
-                  setProxyInputError(null);
-                }}
-                placeholder="Es. 24,5"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base font-semibold text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/20"
-              />
-              {proxyInputError && (
-                <p className="mt-1 text-xs font-medium text-red-600">{proxyInputError}</p>
-              )}
-            </div>
-
-            <div className="mt-5 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={increaseProxyLimit}
-                disabled={updateProxyLimitMutation.isPending || cancelProxyLimitMutation.isPending}
-                className="flex-1 rounded-lg bg-[#FF7300] px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
-              >
-                {updateProxyLimitMutation.isPending ? 'Salvataggio...' : 'Salva nuovo limite'}
-              </button>
-              <button
-                type="button"
-                onClick={closeProxyModal}
-                disabled={updateProxyLimitMutation.isPending || cancelProxyLimitMutation.isPending}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
-              >
-                Chiudi
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={stopProxyBidding}
-              disabled={updateProxyLimitMutation.isPending || cancelProxyLimitMutation.isPending}
-              className="mt-3 w-full rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-red-700 transition hover:bg-red-100"
-            >
-              {cancelProxyLimitMutation.isPending ? 'Disattivazione...' : 'Interrompi proxy bidding'}
-            </button>
-          </div>
-        </div>
+        <ProxyLimitModal
+          maxBidEur={myMaxBidEur}
+          proxyInput={proxyInput}
+          proxyInputError={proxyInputError}
+          onChangeInput={(value) => {
+            setProxyInput(value);
+            setProxyInputError(null);
+          }}
+          onIncrease={increaseProxyLimit}
+          onStop={stopProxyBidding}
+          onClose={closeProxyModal}
+          isUpdating={updateProxyLimitMutation.isPending}
+          isCancelling={cancelProxyLimitMutation.isPending}
+        />
       )}
     </div>
   );

@@ -6,6 +6,7 @@ import { ArrowRight, Minus, Plus, TrendingDown, TrendingUp, X } from 'lucide-rea
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCdnImageUrl } from '@/lib/config';
 import { buildImageUrl, formatEurCents } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface BulkPriceModalProps {
   isOpen: boolean;
@@ -17,12 +18,6 @@ interface BulkPriceModalProps {
 
 type TargetPlatform = 'local' | 'cardmarket' | 'all';
 
-const TARGET_OPTIONS: { value: TargetPlatform; label: string; desc: string; syncOnly: boolean }[] = [
-  { value: 'local', label: 'Solo inventario locale', desc: 'Nessuna sincronizzazione esterna', syncOnly: false },
-  { value: 'cardmarket', label: 'Marketplace collegato', desc: 'Sincronizza solo sul marketplace collegato', syncOnly: true },
-  { value: 'all', label: 'Tutti i siti collegati', desc: 'Tutte le piattaforme sync attive', syncOnly: true },
-];
-
 export function BulkPriceModal({
   isOpen,
   onClose,
@@ -30,12 +25,38 @@ export function BulkPriceModal({
   syncStatus,
   onApply,
 }: BulkPriceModalProps) {
+  const { t } = useTranslation();
   const [operation, setOperation] = useState<'+' | '-'>('+');
   const [percent, setPercent] = useState(10);
   const [target, setTarget] = useState<TargetPlatform>('local');
 
   const defaultImage = getCdnImageUrl('Logo%20Principale%20EBARTEX.png');
   const syncActive = syncStatus === 'active' || syncStatus === 'syncing';
+
+  const targetOptions: { value: TargetPlatform; label: string; desc: string; syncOnly: boolean }[] =
+    useMemo(
+      () => [
+        {
+          value: 'local',
+          label: t('bulkPrice.targetLocal'),
+          desc: t('bulkPrice.targetLocalHint'),
+          syncOnly: false,
+        },
+        {
+          value: 'cardmarket',
+          label: t('bulkPrice.targetMarketplace'),
+          desc: t('bulkPrice.targetMarketplaceHint'),
+          syncOnly: true,
+        },
+        {
+          value: 'all',
+          label: t('bulkPrice.targetAll'),
+          desc: t('bulkPrice.targetAllHint'),
+          syncOnly: true,
+        },
+      ],
+      [t]
+    );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -64,7 +85,7 @@ export function BulkPriceModal({
     onClose();
   }, [operation, percent, target, onApply, onClose]);
 
-  const visibleTargets = TARGET_OPTIONS.filter((opt) => !opt.syncOnly || syncActive);
+  const visibleTargets = targetOptions.filter((opt) => !opt.syncOnly || syncActive);
 
   if (!isOpen) return null;
 
@@ -88,19 +109,19 @@ export function BulkPriceModal({
             </div>
             <div>
               <h2 id="bulk-price-modal-title" className="text-base font-bold text-gray-900">
-                Modifica prezzi selezionati
+                {t('bulkPrice.title')}
               </h2>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-              {selectedItems.length} carte
+              {t('bulkPrice.selectedCount', { count: selectedItems.length })}
             </span>
             <button
               type="button"
               onClick={onClose}
               className="rounded-lg p-2 text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-600"
-              aria-label="Chiudi"
+              aria-label={t('common.close')}
             >
               <X className="h-5 w-5" />
             </button>
@@ -113,7 +134,9 @@ export function BulkPriceModal({
             <div className="space-y-5">
               {/* Operazione */}
               <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-700">Operazione</label>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  {t('bulkPrice.operation')}
+                </label>
                 <div className="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1 gap-1">
                   <button
                     type="button"
@@ -123,7 +146,7 @@ export function BulkPriceModal({
                     }`}
                   >
                     <TrendingUp className="h-4 w-4" />
-                    +% Aumenta
+                    {t('bulkPrice.increase')}
                   </button>
                   <button
                     type="button"
@@ -133,7 +156,7 @@ export function BulkPriceModal({
                     }`}
                   >
                     <TrendingDown className="h-4 w-4" />
-                    −% Diminuisci
+                    {t('bulkPrice.decrease')}
                   </button>
                 </div>
               </div>
@@ -141,7 +164,7 @@ export function BulkPriceModal({
               {/* Percentuale */}
               <div>
                 <label className="mb-2 block text-sm font-semibold text-gray-700">
-                  Percentuale modifica
+                  {t('bulkPrice.percentLabel')}
                 </label>
                 <div className="flex items-center gap-3">
                   <button
@@ -188,7 +211,7 @@ export function BulkPriceModal({
               {/* Target piattaforme */}
               <div>
                 <label className="mb-2 block text-sm font-semibold text-gray-700">
-                  Target piattaforme
+                  {t('bulkPrice.targetLabel')}
                 </label>
                 <div className={`grid gap-2 ${visibleTargets.length === 1 ? 'grid-cols-1' : visibleTargets.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                   {visibleTargets.map((opt) => (
@@ -218,13 +241,13 @@ export function BulkPriceModal({
 
             {/* Step 2 — Anteprima */}
             <div>
-              <h3 className="mb-2 text-sm font-semibold text-gray-700">Anteprima</h3>
+              <h3 className="mb-2 text-sm font-semibold text-gray-700">{t('bulkPrice.preview')}</h3>
               <div className="overflow-hidden rounded-xl border border-gray-200">
                 <div className="max-h-64 divide-y divide-gray-100 overflow-y-auto">
                   {preview.map(({ item, currentCents, newCents }) => {
                     const imgRaw = item.card?.image;
                     const imgUrl = imgRaw ? buildImageUrl(imgRaw) ?? defaultImage : defaultImage;
-                    const name = item.card?.name ?? `Carta #${item.blueprint_id}`;
+                    const name = item.card?.name ?? t('bulkPrice.cardNumber', { number: item.blueprint_id });
                     const delta = newCents - currentCents;
                     return (
                       <div key={item.id} className="flex items-center gap-3 px-3 py-2.5">
@@ -246,7 +269,7 @@ export function BulkPriceModal({
                   })}
                 </div>
                 <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-medium text-gray-600">
-                  <span>Totale valore:</span>
+                  <span>{t('bulkPrice.totalValue')}</span>
                   <span className="flex items-center gap-1.5">
                     <span className="text-gray-400 tabular-nums">{formatEurCents(totalCurrent)}</span>
                     <ArrowRight className="h-3 w-3 text-gray-300" />
@@ -272,7 +295,7 @@ export function BulkPriceModal({
             onClick={onClose}
             className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
           >
-            Annulla
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -281,7 +304,7 @@ export function BulkPriceModal({
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
           >
             <TrendingUp className="h-4 w-4" />
-            Applica a {selectedItems.length} carte
+            {t('bulkPrice.applyToCount', { count: selectedItems.length })}
           </button>
         </div>
       </div>

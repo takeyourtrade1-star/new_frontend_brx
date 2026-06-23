@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { InventoryFilters } from '@/components/feature/account/InventoryFiltersPanel';
 
 /** Input ricerca inventario con debounce (condiviso tra sidebar desktop e toolbar mobile). */
@@ -11,18 +11,26 @@ export function useInventorySearchInput(
 ) {
   const [searchValue, setSearchValue] = useState(filters.search);
 
+  // Refs sui valori "latest": l'effect debounce non deve dipendere dall'identità
+  // di `filters`/`onFiltersChange` (ricreati a ogni render dal parent) altrimenti
+  // il timer si resetta di continuo e il debounce non scatta mai.
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  const onFiltersChangeRef = useRef(onFiltersChange);
+  onFiltersChangeRef.current = onFiltersChange;
+
   useEffect(() => {
     setSearchValue(filters.search);
   }, [filters.search]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchValue !== filters.search) {
-        onFiltersChange({ ...filters, search: searchValue });
+      if (searchValue !== filtersRef.current.search) {
+        onFiltersChangeRef.current({ ...filtersRef.current, search: searchValue });
       }
     }, debounceMs);
     return () => clearTimeout(timer);
-  }, [searchValue, filters, onFiltersChange, debounceMs]);
+  }, [searchValue, filters.search, debounceMs]);
 
   const clearSearch = useCallback(() => {
     setSearchValue('');

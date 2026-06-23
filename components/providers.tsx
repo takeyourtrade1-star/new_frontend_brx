@@ -76,6 +76,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
         defaultOptions: {
           queries: {
             staleTime: 60 * 1000,
+            gcTime: 5 * 60 * 1000,
+            // Le query con polling non martellano il BFF quando il tab è in background.
+            refetchIntervalInBackground: false,
+          },
+          mutations: {
+            onError: (err) => console.error('[mutation]', err),
           },
         },
       })

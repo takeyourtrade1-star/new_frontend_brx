@@ -29,7 +29,7 @@ export function IndirizzoForm() {
   });
 
   function onSubmit(_data: IndirizzoValues) {
-    // TODO: salva indirizzo e step successivo
+    // FE-TODO-002: salva indirizzo e step successivo (vedi docs/backlog/fe-open-todos.md)
     router.push('/registrati/account');
   }
 

@@ -27,14 +27,14 @@ export function AttivaContoVenditore() {
     e.preventDefault();
     setHasTriedSubmit(true);
     if (!hasMissingPhone && !hasMissingBankFields) {
-      // TODO: invio dati
+      // FE-TODO-004: invio dati telefono + banca venditore (vedi docs/backlog/fe-open-todos.md)
     }
   }
 
   function handleConfermaAttiva(e: React.MouseEvent) {
     e.preventDefault();
     setHasTriedSubmit(true);
-    // TODO: validazione importi e attivazione
+    // FE-TODO-005: validazione importi micro-deposito e attivazione venditore (vedi docs/backlog/fe-open-todos.md)
   }
 
   return (

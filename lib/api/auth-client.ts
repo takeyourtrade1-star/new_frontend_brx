@@ -73,9 +73,9 @@ class AuthApiClient {
     return false;
   }
 
-  private async tryDirectCredentialedPost<T = any>(
+  private async tryDirectCredentialedPost<T = unknown>(
     normalizedUrl: string,
-    data?: any
+    data?: unknown
   ): Promise<T | undefined> {
     if (!this.shouldTryDirectCredentialedCall(normalizedUrl)) {
       return undefined;
@@ -252,7 +252,7 @@ class AuthApiClient {
   /**
    * POST request
    */
-  async post<T = any>(url: string, data?: any): Promise<T> {
+  async post<T = unknown>(url: string, data?: unknown): Promise<T> {
     // Normalizza l'URL per evitare slash doppi
     const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
 
@@ -269,7 +269,7 @@ class AuthApiClient {
   /**
    * GET request
    */
-  async get<T = any>(url: string, params?: Record<string, any>): Promise<T> {
+  async get<T = unknown>(url: string, params?: Record<string, unknown>): Promise<T> {
     const response = await this.instance.get<T>(url, { params });
     return response.data;
   }
@@ -277,7 +277,7 @@ class AuthApiClient {
   /**
    * PATCH request
    */
-  async patch<T = any>(url: string, data?: any): Promise<T> {
+  async patch<T = unknown>(url: string, data?: unknown): Promise<T> {
     const response = await this.instance.patch<T>(url, data);
     return response.data;
   }
@@ -285,7 +285,7 @@ class AuthApiClient {
   /**
    * PUT request
    */
-  async put<T = any>(url: string, data?: any): Promise<T> {
+  async put<T = unknown>(url: string, data?: unknown): Promise<T> {
     const response = await this.instance.put<T>(url, data);
     return response.data;
   }
@@ -293,7 +293,7 @@ class AuthApiClient {
   /**
    * DELETE request
    */
-  async delete<T = any>(url: string): Promise<T> {
+  async delete<T = unknown>(url: string): Promise<T> {
     const response = await this.instance.delete<T>(url);
     return response.data;
   }

@@ -11,60 +11,22 @@ import type {
   TokenResponse,
   PreAuthTokenResponse,
   UserResponse,
+  LoginResponse,
 } from '@/types';
 import { authApi } from '@/lib/api/auth-client';
 import { parseAuthError } from '@/lib/api/auth-error';
+import { fetchMe } from '@/lib/auth/fetch-me';
+import { normalizeUser, DEFAULT_PREFERENCES } from '@/lib/auth/normalize-user';
 import { stopProactiveRefresh } from '@/lib/api/refresh-token';
+
+/** Promise in-flight per deduplicare chiamate concorrenti a fetchUser */
+let fetchUserPromise: Promise<User | null> | null = null;
 import { config } from '@/lib/config';
 import { isTournamentsTransitionPath } from '@/lib/config/tournaments';
 import {
   clearMfaPreAuthToken,
   saveMfaPreAuthToken,
 } from '@/lib/auth/mfa-session';
-
-/** Default preferences when backend does not return them */
-const DEFAULT_PREFERENCES: UserPreferences = {
-  theme: 'system',
-  language: 'it',
-  is_onboarding_completed: false,
-};
-
-/** Normalize user so preferences always has shape */
-function normalizeUser(user: UserResponse | User | null): User | null {
-  if (!user) return null;
-
-  const prefs = (user as UserResponse).preferences;
-  const preferences: UserPreferences = {
-    theme: (prefs?.theme ?? DEFAULT_PREFERENCES.theme) as
-      | 'light'
-      | 'dark'
-      | 'system',
-    language: prefs?.language ?? DEFAULT_PREFERENCES.language,
-    is_onboarding_completed:
-      prefs?.is_onboarding_completed ??
-      DEFAULT_PREFERENCES.is_onboarding_completed,
-  };
-
-  const u = user as UserResponse & {
-    name?: string | null;
-    username?: string | null;
-    image?: string | null;
-    country?: string;
-  };
-  return {
-    id: user.id,
-    email: user.email,
-    /** Backend può esporre `username` senza `name`: usiamolo come display name */
-    name: u.name ?? u.username ?? null,
-    image: u.image ?? null,
-    account_status: (user as UserResponse).account_status,
-    mfa_enabled: (user as UserResponse).mfa_enabled,
-    created_at: (user as UserResponse).created_at,
-    preferences,
-    country: u.country ?? undefined,
-    show_scambi: (u as any).show_scambi ?? false,
-  };
-}
 
 interface AuthState {
   // State
@@ -142,11 +104,6 @@ export const useAuthStore = create<AuthState>()(
           typeof window !== 'undefined'
             ? localStorage.getItem(config.auth.refreshTokenKey)
             : null;
-        const userStr =
-          typeof window !== 'undefined'
-            ? localStorage.getItem(config.auth.userKey)
-            : null;
-
         // SSO: sessione da tornei.ebartex.com (cookie parent-domain) → sync localStorage
         if (!refreshToken && typeof window !== 'undefined') {
           try {
@@ -202,32 +159,24 @@ export const useAuthStore = create<AuthState>()(
         if (accessToken) {
           try {
             authApi.setToken(accessToken);
-            const response = (await authApi.get('/api/auth/me')) as any;
-            // Stesso ordine di fetchUser: il client restituisce già il body UserResponse (flat), non { user: ... }
-            let user =
-              response?.user ??
-              response?.data?.user ??
-              response?.data ??
-              response;
-            if (
-              !user ||
-              typeof user !== 'object' ||
-              (user.id === undefined && user.email === undefined)
-            ) {
-              user = userStr ? JSON.parse(userStr) : null;
-            }
-
-            if (user) {
-              const normalized = normalizeUser(user);
-              if (normalized) {
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem(
-                    config.auth.userKey,
-                    JSON.stringify(normalized)
-                  );
-                }
+            const normalized = await fetchMe();
+            if (normalized) {
+              set({
+                user: normalized,
+                accessToken: accessToken,
+                isAuthenticated: true,
+                sessionExpired: false,
+              });
+            } else {
+              // Fallback a user cacheato in localStorage
+              const cached =
+                typeof window !== 'undefined'
+                  ? localStorage.getItem(config.auth.userKey)
+                  : null;
+              const cachedUser = cached ? (JSON.parse(cached) as User) : null;
+              if (cachedUser) {
                 set({
-                  user: normalized,
+                  user: cachedUser,
                   accessToken: accessToken,
                   isAuthenticated: true,
                   sessionExpired: false,
@@ -235,8 +184,6 @@ export const useAuthStore = create<AuthState>()(
               } else {
                 await get().logout();
               }
-            } else {
-              await get().logout();
             }
           } catch {
             if (!refreshToken) {
@@ -257,6 +204,8 @@ export const useAuthStore = create<AuthState>()(
 
       // fetchUser: ricarica l'utente da /api/auth/me
       fetchUser: async (): Promise<User | null> => {
+        if (fetchUserPromise) return fetchUserPromise;
+
         const token =
           get().accessToken ||
           (typeof window !== 'undefined'
@@ -266,30 +215,13 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: false });
           return null;
         }
-        if (get().isLoading) {
-          return get().user;
-        }
-        set({ isLoading: true });
-        try {
-          authApi.setToken(token);
-          const response = (await authApi.get('/api/auth/me')) as any;
-          // Backend FastAPI: GET /api/auth/me restituisce UserResponse direttamente
-          const user =
-            response?.user ?? response?.data?.user ?? response?.data ?? response;
 
-          if (
-            user &&
-            typeof user === 'object' &&
-            (user.id !== undefined || user.email !== undefined)
-          ) {
-            const normalized = normalizeUser(user as UserResponse);
+        set({ isLoading: true });
+        fetchUserPromise = (async (): Promise<User | null> => {
+          try {
+            authApi.setToken(token);
+            const normalized = await fetchMe();
             if (normalized) {
-              if (typeof window !== 'undefined') {
-                localStorage.setItem(
-                  config.auth.userKey,
-                  JSON.stringify(normalized)
-                );
-              }
               set({
                 user: normalized,
                 isAuthenticated: true,
@@ -301,16 +233,21 @@ export const useAuthStore = create<AuthState>()(
               set({ isLoading: false, user: null });
               return null;
             }
-          } else {
+          } catch (err) {
+            const parsed = parseAuthError(err);
+            console.error(
+              '[authStore.fetchUser] Errore:',
+              parsed.status,
+              parsed.message
+            );
             set({ isLoading: false, user: null });
             return null;
+          } finally {
+            fetchUserPromise = null;
           }
-        } catch (err: any) {
-          const status = err?.response?.status;
-          console.error('[authStore.fetchUser] Errore:', status, err?.message);
-          set({ isLoading: false, user: null });
-          return null;
-        }
+        })();
+
+        return fetchUserPromise;
       },
 
       // Login
@@ -342,10 +279,7 @@ export const useAuthStore = create<AuthState>()(
             payload.username = credentials.username;
           }
 
-          const raw = (await authApi.post(
-            '/api/auth/login',
-            payload
-          )) as PreAuthTokenResponse | TokenResponse | Record<string, unknown>;
+          const raw = await authApi.post<LoginResponse>('/api/auth/login', payload);
 
           // Proxy / backend possono avere body { data: { ... } }
           const response = (raw as { data?: unknown }).data ?? raw;
@@ -403,23 +337,11 @@ export const useAuthStore = create<AuthState>()(
 
               // Fetch user from /me endpoint with timeout
               try {
-                const mePromise = authApi.get('/api/auth/me') as any;
+                const mePromise = fetchMe();
                 const timeoutPromise = new Promise<never>((_, reject) =>
                   setTimeout(() => reject(new Error('me-timeout')), 8000)
                 );
-                const meResponse = await Promise.race([mePromise, timeoutPromise]);
-                const userToSet =
-                  meResponse.user ??
-                  meResponse.data?.user ??
-                  meResponse.data ??
-                  meResponse;
-                const normalized = userToSet ? normalizeUser(userToSet) : null;
-                if (normalized && typeof window !== 'undefined') {
-                  localStorage.setItem(
-                    config.auth.userKey,
-                    JSON.stringify(normalized)
-                  );
-                }
+                const normalized = await Promise.race([mePromise, timeoutPromise]);
                 set({ user: normalized });
               } catch (meError) {
                 console.error('[authStore.login] /me fetch failed:', meError);
@@ -431,10 +353,9 @@ export const useAuthStore = create<AuthState>()(
           } else {
             throw new Error('Risposta login non valida');
           }
-        } catch (error: any) {
-          console.error('[authStore.login] Error:', error?.response?.status, error?.response?.data || error?.message);
-          // Usa parseAuthError per gestire tutti i formati di errore
+        } catch (error) {
           const parsed = parseAuthError(error);
+          console.error('[authStore.login] Error:', parsed.status, parsed.message);
 
           clearMfaPreAuthToken();
           set({
@@ -466,25 +387,13 @@ export const useAuthStore = create<AuthState>()(
             authApi.setToken(access_token, refresh_token);
 
             // Fetch user from /me endpoint
-            let userToSet: UserResponse | null = null;
+            let normalized: User | null = null;
             try {
-              const meResponse = (await authApi.get('/api/auth/me')) as any;
-              userToSet =
-                meResponse.user ||
-                meResponse.data?.user ||
-                meResponse.data ||
-                meResponse;
+              normalized = await fetchMe();
             } catch (meError) {
               // If /me fails, still set authenticated but without user
             }
 
-            const normalized = userToSet ? normalizeUser(userToSet) : null;
-            if (normalized && typeof window !== 'undefined') {
-              localStorage.setItem(
-                config.auth.userKey,
-                JSON.stringify(normalized)
-              );
-            }
             clearMfaPreAuthToken();
             set({
               user: normalized,
@@ -499,8 +408,7 @@ export const useAuthStore = create<AuthState>()(
           } else {
             throw new Error('Verifica MFA fallita: token mancanti');
           }
-        } catch (error: any) {
-          // Usa parseAuthError per gestire tutti i formati di errore
+        } catch (error) {
           const parsed = parseAuthError(error);
 
           set({
@@ -524,10 +432,10 @@ export const useAuthStore = create<AuthState>()(
             website_url: data.website_url ?? '',
           };
 
-          const response = (await authApi.post(
+          const response = await authApi.post<UserResponse | TokenResponse>(
             '/api/auth/register',
             payload
-          )) as UserResponse | TokenResponse;
+          );
 
           // Se la registrazione restituisce token (auto-login), gestiscili
           if ('access_token' in response && 'refresh_token' in response) {
@@ -535,24 +443,11 @@ export const useAuthStore = create<AuthState>()(
             authApi.setToken(access_token, refresh_token);
 
             // Fetch user
-            let userToSet: UserResponse | null = null;
+            let normalized: User | null = null;
             try {
-              const meResponse = (await authApi.get('/api/auth/me')) as any;
-              userToSet =
-                meResponse.user ||
-                meResponse.data?.user ||
-                meResponse.data ||
-                meResponse;
+              normalized = await fetchMe();
             } catch (meError) {
               // If /me fails, still set authenticated but without user
-            }
-
-            const normalized = userToSet ? normalizeUser(userToSet) : null;
-            if (normalized && typeof window !== 'undefined') {
-              localStorage.setItem(
-                config.auth.userKey,
-                JSON.stringify(normalized)
-              );
             }
             set({
               user: normalized,
@@ -571,8 +466,7 @@ export const useAuthStore = create<AuthState>()(
                 'Registrazione completata. Verifica la tua email per attivare l\'account.',
             });
           }
-        } catch (error: any) {
-          // Usa parseAuthError per normalizzare l'errore
+        } catch (error) {
           const parsed = parseAuthError(error);
           let fieldErrors = parsed.fieldErrors ?? null;
 
@@ -637,7 +531,7 @@ export const useAuthStore = create<AuthState>()(
 
       // Set user (normalize preferences) and mark as authenticated
       setUser: (user: User) => {
-        const normalized = normalizeUser(user as UserResponse);
+        const normalized = normalizeUser(user);
         if (normalized) {
           if (typeof window !== 'undefined') {
             localStorage.setItem(
@@ -735,7 +629,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           await authApi.requestLoginCode(email);
           set({ isLoading: false, error: null });
-        } catch (error: any) {
+        } catch (error) {
           const parsed = parseAuthError(error);
           set({ isLoading: false, error: parsed.message });
           throw error;
@@ -797,24 +691,11 @@ export const useAuthStore = create<AuthState>()(
             if (access_token && refresh_token) {
               authApi.setToken(access_token, refresh_token);
 
-              let userToSet: UserResponse | null = null;
+              let normalized: User | null = null;
               try {
-                const meResponse = (await authApi.get('/api/auth/me')) as any;
-                userToSet =
-                  meResponse.user ||
-                  meResponse.data?.user ||
-                  meResponse.data ||
-                  meResponse;
+                normalized = await fetchMe();
               } catch {
                 // ignore
-              }
-
-              const normalized = userToSet ? normalizeUser(userToSet) : null;
-              if (normalized && typeof window !== 'undefined') {
-                localStorage.setItem(
-                  config.auth.userKey,
-                  JSON.stringify(normalized)
-                );
               }
               set({
                 user: normalized,
@@ -831,7 +712,7 @@ export const useAuthStore = create<AuthState>()(
           } else {
             throw new Error('Risposta login non valida');
           }
-        } catch (error: any) {
+        } catch (error) {
           const parsed = parseAuthError(error);
           clearMfaPreAuthToken();
           set({

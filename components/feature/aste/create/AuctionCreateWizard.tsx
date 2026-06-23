@@ -1,143 +1,51 @@
 'use client';
 
-import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
-import { QRCodeSVG } from 'qrcode.react';
 import { useRouter } from 'next/navigation';
-import { Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Info, Package, QrCode } from 'lucide-react';
-import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
-import { useTranslation } from '@/lib/i18n/useTranslation';
+import { listingPhotosComplete } from '@/components/feature/aste/create/AuctionListingPhotoUpload';
 import {
   buildAuctionLanguageOptions,
-  AUCTION_CARD_CONDITION_OPTIONS,
   AUCTION_CREATE_DEFAULT_DRAFT,
-  AUCTION_CREATE_GAMES,
-  AUCTION_ANTI_SNIPER_BACKEND_READY,
-  AUCTION_ANTI_SNIPER_MINUTES_OPTIONS,
-  AUCTION_CUSTOM_DESCRIPTION_MAX,
   AUCTION_LISTING_PHOTO_MAX,
   AUCTION_LISTING_PHOTO_MIN,
-  auctionConditionLabelKey,
-  conditionSelectValue,
   normalizeAuctionCardLanguage,
   normalizeAuctionDraftMoneyInput,
   type AuctionCreateCardSelection,
   type AuctionCreateDraft,
-  type ListingPhotoSlot,
   searchGameSlugToAuctionGame,
 } from '@/lib/auction/auction-create-draft';
-import { parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
-import { AUCTION_SHIPPING_REST_OF_WORLD_ISO } from '@/lib/auction/eu-shipping-regions';
 import {
   createEmbeddedDraftFromProduct,
   mergeInventoryIntoAuctionDraft,
   inventoryConditionToWizardValue,
 } from '@/lib/auction/auction-embedded-draft';
+import {
+  type AuctionCreateWizardProps,
+  type CreatedAuctionInfo,
+  type EmbeddedInventoryPick,
+  type WizardStepId,
+  getStepOrder,
+  getPreviousStepId,
+} from '@/lib/auction/auction-create-wizard-types';
+import { validateAuctionCreateStep } from '@/lib/auction/auction-create-validation';
+import { buildAuctionCreatePayload } from '@/lib/auction/build-auction-create-payload';
 import { buildCardLanguageOptions } from '@/lib/card-languages';
-import { CardLanguageSelect } from '@/components/ui/CardLanguageSelect';
-import { CustomSelect } from '@/components/ui/CustomSelect';
-import type { CardDocument } from '@/lib/product-detail';
-import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCardImageUrl } from '@/lib/assets';
-import { cn, formatEuroNoSpace } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { useCreateAuction } from '@/lib/hooks/use-auctions';
 import { useUserCountry } from '@/lib/hooks/use-user-country';
-import type { AuctionCreatePayload } from '@/types/auction';
-import {
-  deletePhoto as deleteUploadedPhoto,
-  uploadPhoto,
-  type UploadedPhoto,
-} from '@/lib/api/auction-photo-client';
-import { usePhotoPairingSession } from '@/lib/hooks/use-photo-pairing-session';
-import { AuctionCreateCardPicker } from './AuctionCreateCardPicker';
-import { AuctionCreateGenericSearch } from './AuctionCreateGenericSearch';
-import {
-  AuctionListingPhotoUpload,
-  ListingPhotoThumbnailsRow,
-  listingPhotosComplete,
-  listingPhotosReady,
-  type ListingPhotoUploadStatus,
-} from './AuctionListingPhotoUpload';
-import { PhotoPairingInlinePanel } from './PhotoPairingInlinePanel';
-import { CompactPhotoGallery } from './CompactPhotoGallery';
+import { useTimeoutFn } from '@/lib/hooks/use-timeout-fn';
+import { useAuctionListingPhotos } from '@/lib/hooks/use-auction-listing-photos';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import { ImageLightbox } from '@/components/ui/ImageLightbox';
+import { AuctionCreateSuccessScreen } from './wizard/AuctionCreateSuccessScreen';
+import { AuctionCreateStepper } from './wizard/AuctionCreateStepper';
+import { AuctionCreateWizardNav } from './wizard/AuctionCreateWizardNav';
+import { AuctionCreatePhoneQrModal } from './wizard/AuctionCreatePhoneQrModal';
+import { AuctionCreatePublishConfirmModal } from './wizard/AuctionCreatePublishConfirmModal';
+import { AuctionCreateStepPanel } from './wizard/AuctionCreateStepPanel';
 
-type WizardStepId =
-  | 'item_pick'
-  | 'q_card'
-  | 'card_pick'
-  | 'inventory_pick'
-  | 'noncard_game'
-  | 'details'
-  | 'price'
-  | 'shipping'
-  | 'photos'
-  | 'review';
-
-const STANDALONE_STEP_ORDER: WizardStepId[] = [
-  'item_pick',
-  'details',
-  'price',
-  'shipping',
-  'photos',
-  'review',
-];
-
-const NON_CARD_GAME_OPTIONS = AUCTION_CREATE_GAMES.filter((g) => g.value !== 'other');
-
-function getStepOrder(
-  isCard: boolean | null,
-  opts: { variant: 'standalone' | 'embedded'; hasEmbeddedInventory: boolean }
-): WizardStepId[] {
-  if (opts.variant === 'embedded') {
-    // Flusso compatto a 2 passi (come il tab Vendi): dettagli+prezzo → spedizione+foto+conferma.
-    const tail: WizardStepId[] = ['details', 'review'];
-    if (opts.hasEmbeddedInventory) return ['inventory_pick', ...tail];
-    return tail;
-  }
-  return STANDALONE_STEP_ORDER;
-}
-
-function getPreviousStepId(
-  stepId: WizardStepId,
-  draft: AuctionCreateDraft,
-  opts: { variant: 'standalone' | 'embedded'; hasEmbeddedInventory: boolean }
-): WizardStepId | 'cancel' {
-  if (opts.variant === 'embedded') {
-    if (stepId === 'inventory_pick') return 'cancel';
-    if (stepId === 'details' && opts.hasEmbeddedInventory) return 'inventory_pick';
-    if (stepId === 'details' && !opts.hasEmbeddedInventory) return 'cancel';
-    if (stepId === 'review') return 'details';
-    return 'cancel';
-  }
-  if (stepId === 'item_pick') return 'cancel';
-  if (stepId === 'details') return 'item_pick';
-  if (stepId === 'price') return 'details';
-  if (stepId === 'shipping') return 'price';
-  if (stepId === 'photos') return 'shipping';
-  if (stepId === 'review') return 'photos';
-  return 'item_pick';
-}
-
-function slotIncludedIn(slots: ListingPhotoSlot[], s: ListingPhotoSlot): boolean {
-  if (s.kind === 'local') {
-    return slots.some((x) => x.kind === 'local' && x.file === s.file);
-  }
-  return slots.some((x) => x.kind === 'remote' && x.photo.id === s.photo.id);
-}
-
-export type AuctionCreateWizardProps = {
-  variant?: 'standalone' | 'embedded';
-  /** Pagina prodotto: carta/già nota. */
-  embeddedCard?: CardDocument;
-  /** Righe inventario Sync filtrate per blueprint (solo se variant embedded). */
-  embeddedInventoryItems?: InventoryItemWithCatalog[];
-  /** Chiusura flusso embedded (es. cambio tab). */
-  onEmbeddedCancel?: () => void;
-  /** Classi aggiuntive sul contenitore esterno (es. tab prodotto). */
-  className?: string;
-};
+export type { AuctionCreateWizardProps };
 
 export function AuctionCreateWizard({
   variant = 'standalone',
@@ -152,7 +60,8 @@ export function AuctionCreateWizard({
   const isEmbedded = variant === 'embedded' && Boolean(embeddedCard);
   const hasEmbeddedInventory = isEmbedded && embeddedInventoryItems.length > 0;
 
-  const [embeddedInventoryPick, setEmbeddedInventoryPick] = useState<'unset' | 'skip' | number>('unset');
+  const [embeddedInventoryPick, setEmbeddedInventoryPick] =
+    useState<EmbeddedInventoryPick>('unset');
 
   const [stepId, setStepId] = useState<WizardStepId>(() =>
     isEmbedded && embeddedCard
@@ -164,30 +73,16 @@ export function AuctionCreateWizard({
   const [draft, setDraft] = useState<AuctionCreateDraft>(() =>
     isEmbedded && embeddedCard ? createEmbeddedDraftFromProduct(embeddedCard) : AUCTION_CREATE_DEFAULT_DRAFT
   );
-  type PhotoUploadEntry = {
-    status: 'uploading' | 'done' | 'error';
-    progress: number;
-    photo?: UploadedPhoto;
-    error?: string;
-    abort: AbortController;
-  };
-  const [photoUploads, setPhotoUploads] = useState<Map<File, PhotoUploadEntry>>(
-    () => new Map(),
-  );
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-  const [createdAuctionInfo, setCreatedAuctionInfo] = useState<{
-    id: number | null;
-    startIso: string;
-    endIso: string;
-  } | null>(null);
+  const [createdAuctionInfo, setCreatedAuctionInfo] = useState<CreatedAuctionInfo | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const setTransitionTimeout = useTimeoutFn();
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const stepContentRef = useRef<HTMLDivElement>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
-  /** Input nascosti per la riga azioni foto unificata (embedded). */
   const embGalleryInputRef = useRef<HTMLInputElement>(null);
   const embCameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -201,6 +96,20 @@ export function AuctionCreateWizard({
     });
   }, [detectedCountry]);
 
+  // FE-REV-022: stepId/draft sono inizializzati solo al mount. Se la card embedded cambia
+  // dopo (caricamento lazy o cambio prodotto nel flow), riallineiamo step e draft alla nuova card.
+  const prevEmbeddedCardIdRef = useRef<string | null>(embeddedCard?.id ?? null);
+  useEffect(() => {
+    const currentId = embeddedCard?.id ?? null;
+    if (prevEmbeddedCardIdRef.current === currentId) return;
+    prevEmbeddedCardIdRef.current = currentId;
+    if (!isEmbedded || !embeddedCard) return;
+    setStepId(hasEmbeddedInventory ? 'inventory_pick' : 'details');
+    setDraft(createEmbeddedDraftFromProduct(embeddedCard));
+    setEmbeddedInventoryPick('unset');
+    setError(null);
+  }, [embeddedCard, isEmbedded, hasEmbeddedInventory]);
+
   const stepOrder = useMemo(
     () => getStepOrder(draft.isCard, { variant: stepVariant, hasEmbeddedInventory }),
     [draft.isCard, stepVariant, hasEmbeddedInventory]
@@ -209,194 +118,78 @@ export function AuctionCreateWizard({
   const activeStepIndex = stepOrder.indexOf(stepId);
   const currentStepNumber = activeStepIndex >= 0 ? activeStepIndex + 1 : 1;
 
-  const formatEuro = useCallback((n: number) => formatEuroNoSpace(n, 'it-IT'), []);
-
   const update = useCallback(<K extends keyof AuctionCreateDraft>(key: K, value: AuctionCreateDraft[K]) => {
     setDraft((d) => ({ ...d, [key]: value }));
     setError(null);
   }, []);
 
-  /**
-   * Kick off a Direct-to-S3 upload for a freshly added file. Updates the
-   * photoUploads tracker as it progresses. The original `File` reference is
-   * the stable key in the tracker (it stays in `draft.listingPhotos` even if
-   * the compression step inside `uploadPhoto` produces a derived File).
-   */
-  const startUploadFor = useCallback((file: File) => {
-    const abort = new AbortController();
-    setPhotoUploads((prev) => {
-      const next = new Map(prev);
-      next.set(file, { status: 'uploading', progress: 0, abort });
-      return next;
-    });
+  const clearError = useCallback(() => setError(null), []);
 
-    uploadPhoto(file, {
-      signal: abort.signal,
-      onProgress: (pct) => {
-        setPhotoUploads((prev) => {
-          const entry = prev.get(file);
-          if (!entry || entry.status !== 'uploading') return prev;
-          const next = new Map(prev);
-          next.set(file, { ...entry, progress: pct });
-          return next;
-        });
-      },
-    })
-      .then((photo) => {
-        setPhotoUploads((prev) => {
-          // The user may have removed this file while we were uploading.
-          if (!prev.has(file)) return prev;
-          const next = new Map(prev);
-          next.set(file, { status: 'done', progress: 100, photo, abort });
-          return next;
-        });
-      })
-      .catch((err: unknown) => {
-        if (abort.signal.aborted) return;
-        const message =
-          err instanceof Error ? err.message : 'Upload fallito. Riprova.';
-        setPhotoUploads((prev) => {
-          if (!prev.has(file)) return prev;
-          const next = new Map(prev);
-          next.set(file, { status: 'error', progress: 0, error: message, abort });
-          return next;
-        });
-      });
-  }, []);
-
-  const setListingPhotos = useCallback(
-    (next: ListingPhotoSlot[]) => {
-      setDraft((d) => {
-        const previous = d.listingPhotos;
-
-        for (const old of previous) {
-          if (slotIncludedIn(next, old)) continue;
-          if (old.kind === 'local') {
-            const entry = photoUploads.get(old.file);
-            if (!entry) continue;
-            entry.abort.abort();
-            if (entry.status === 'done' && entry.photo) {
-              void deleteUploadedPhoto(entry.photo.id).catch(() => {
-                /* tracked server-side via lifecycle and cleanup worker */
-              });
-            }
-            setPhotoUploads((prev) => {
-              if (!prev.has(old.file)) return prev;
-              const m = new Map(prev);
-              m.delete(old.file);
-              return m;
-            });
-          } else {
-            void deleteUploadedPhoto(old.photo.id).catch(() => {});
-          }
-        }
-
-        for (const s of next) {
-          if (slotIncludedIn(previous, s)) continue;
-          if (s.kind === 'local') {
-            startUploadFor(s.file);
-          }
-        }
-
-        return { ...d, listingPhotos: next };
-      });
-      setError(null);
-    },
-    [photoUploads, startUploadFor],
-  );
-
-  const pairing = usePhotoPairingSession({
-    stepId,
-    // In embedded le foto vivono nel passo finale unificato ('review').
-    photoStepId: isEmbedded ? 'review' : 'photos',
-    contextType: 'auction',
-    qrBasePath: '/c/asta-foto',
-    maxPhotos: AUCTION_LISTING_PHOTO_MAX,
-    listingPhotos: draft.listingPhotos,
+  const {
+    photoUploads,
     setListingPhotos,
-    toastMessageKey: 'auctions.createPhotoReceivedFromPhone',
-    autoCloseOnFirstRemotePhoto: isEmbedded,
+    appendEmbeddedPhotos,
+    retryFailedUpload,
+    photoUploadStatuses,
+    allPhotosUploaded,
+    failedUploadFiles,
+    lightboxUrls,
+    pairing,
+  } = useAuctionListingPhotos({
+    draft,
+    setDraft,
+    stepId,
+    isEmbedded,
+    onErrorClear: clearError,
   });
 
-  /** Aggiunge foto dalla riga azioni unificata (embedded), rispettando il massimo. */
-  const appendEmbeddedPhotos = useCallback(
-    (fileList: FileList | null) => {
-      if (!fileList?.length) return;
-      const next = [...draft.listingPhotos];
-      for (const f of Array.from(fileList)) {
-        if (!f.type.startsWith('image/')) continue;
-        if (next.length >= AUCTION_LISTING_PHOTO_MAX) break;
-        next.push({ kind: 'local', file: f });
-      }
-      if (next.length > draft.listingPhotos.length) setListingPhotos(next);
-    },
-    [draft.listingPhotos, setListingPhotos],
-  );
-
-  // Allow user to retry a failed upload without removing the file first.
-  const retryFailedUpload = useCallback(
-    (file: File) => {
-      setPhotoUploads((prev) => {
-        if (!prev.has(file)) return prev;
-        const m = new Map(prev);
-        m.delete(file);
-        return m;
-      });
-      startUploadFor(file);
-    },
-    [startUploadFor],
-  );
-
-  // Aligned with draft.listingPhotos so the photo upload component can render
-  // an overlay (progress bar / "su CDN" badge / error) per slot.
-  const photoUploadStatuses = useMemo<ListingPhotoUploadStatus[]>(
-    () =>
-      draft.listingPhotos.map((slot) => {
-        if (slot.kind === 'remote') {
-          return { kind: 'done', cdnUrl: slot.photo.cdn_url };
-        }
-        const entry = photoUploads.get(slot.file);
-        if (!entry) return { kind: 'idle' };
-        if (entry.status === 'uploading') {
-          return { kind: 'uploading', progress: entry.progress };
-        }
-        if (entry.status === 'done' && entry.photo) {
-          return { kind: 'done', cdnUrl: entry.photo.cdn_url };
-        }
-        return { kind: 'error', message: entry.error || 'Upload fallito' };
+  const validationMessages = useMemo(
+    () => ({
+      pickInventory: t('auctions.createValidationPickInventory'),
+      continueDisabled: t('auctions.createContinueDisabledFooter'),
+      pickCard: t('auctions.createValidationPickCard'),
+      title: t('auctions.createValidationTitle'),
+      auctionNoteMax: t('auctions.createValidationAuctionNoteMax'),
+      start: t('auctions.createValidationStart'),
+      buyNow: t('auctions.createValidationBuyNow'),
+      shipping: t('auctions.createValidationShipping'),
+      photos: t('auctions.createValidationPhotos', {
+        min: AUCTION_LISTING_PHOTO_MIN,
+        max: AUCTION_LISTING_PHOTO_MAX,
       }),
-    [draft.listingPhotos, photoUploads],
+      photosUploadFailed: 'Una o più foto non sono state caricate. Riprova prima di continuare.',
+      photosUploadPending: 'Attendi il completamento del caricamento delle foto.',
+    }),
+    [t]
   );
 
-  const allPhotosUploaded = useMemo(
-    () => listingPhotosReady(draft.listingPhotos, photoUploadStatuses),
-    [draft.listingPhotos, photoUploadStatuses],
-  );
-
-  const failedUploadFiles = useMemo(
-    () =>
-      draft.listingPhotos
-        .filter(
-          (s): s is Extract<ListingPhotoSlot, { kind: 'local' }> =>
-            s.kind === 'local' && photoUploads.get(s.file)?.status === 'error',
-        )
-        .map((s) => s.file),
-    [draft.listingPhotos, photoUploads],
-  );
-
-  const lightboxUrls = useMemo(
-    () => draft.listingPhotos.map((slot) => (slot.kind === 'local' ? URL.createObjectURL(slot.file) : slot.photo.cdn_url)),
-    [draft.listingPhotos],
-  );
-
-  useEffect(() => {
-    return () => {
-      draft.listingPhotos.forEach((slot, i) => {
-        if (slot.kind === 'local') URL.revokeObjectURL(lightboxUrls[i]!);
+  const validateStepId = useCallback(
+    (id: WizardStepId): boolean => {
+      const result = validateAuctionCreateStep({
+        stepId: id,
+        draft,
+        isEmbedded,
+        embeddedInventoryPick,
+        allPhotosUploaded,
+        failedUploadCount: failedUploadFiles.length,
+        messages: validationMessages,
       });
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lightboxUrls]);
+      if (!result.ok) {
+        setError(result.error);
+        return false;
+      }
+      setError(null);
+      return true;
+    },
+    [
+      draft,
+      isEmbedded,
+      embeddedInventoryPick,
+      allPhotosUploaded,
+      failedUploadFiles.length,
+      validationMessages,
+    ]
+  );
 
   const stepperLabels = useMemo(() => {
     if (stepVariant === 'embedded') {
@@ -424,14 +217,8 @@ export function AuctionCreateWizard({
     switch (stepId) {
       case 'item_pick':
         return t('auctions.createAskInInventory');
-      case 'q_card':
-        return t('auctions.createAskIsCard');
-      case 'card_pick':
-        return t('auctions.createStepPickCard');
       case 'inventory_pick':
         return t('auctions.createStepInventoryPick');
-      case 'noncard_game':
-        return t('auctions.createStepNonCardGame');
       case 'details':
         return t('auctions.createStepDetails');
       case 'price':
@@ -442,134 +229,12 @@ export function AuctionCreateWizard({
         return t('auctions.createStepPhotos');
       case 'review':
         return t('auctions.createStepReview');
-      default:
-        return '';
+      default: {
+        const _exhaustive: never = stepId;
+        return _exhaustive;
+      }
     }
   }, [stepId, isEmbedded, t]);
-
-  const stepHint = useMemo(() => {
-    switch (stepId) {
-      case 'item_pick':
-        return t('auctions.createStepItemHint');
-      case 'q_card':
-        return '';
-      case 'card_pick':
-        return t('auctions.createStepPickCardHint');
-      case 'inventory_pick':
-        return t('auctions.createStepInventoryPickHint');
-      case 'noncard_game':
-        return t('auctions.createNonCardGameHint');
-      case 'details':
-        return draft.isCard ? t('auctions.createStep2HintCardAuction') : t('auctions.createStep2Hint');
-      case 'price':
-        return t('auctions.createStep3Hint');
-      case 'shipping':
-        return t('auctions.createStep4Hint');
-      case 'photos':
-        return t('auctions.createStepPhotosHint');
-      case 'review':
-        return t('auctions.createStep5Hint');
-      default:
-        return '';
-    }
-  }, [stepId, draft.isCard, t]);
-
-  const validateStepId = useCallback(
-    (id: WizardStepId): boolean => {
-      if (id === 'inventory_pick') {
-        if (embeddedInventoryPick === 'unset') {
-          setError(t('auctions.createValidationPickInventory'));
-          return false;
-        }
-      }
-      if (id === 'item_pick') {
-        if (draft.fromSyncInventory === null) {
-          setError(t('auctions.createContinueDisabledFooter'));
-          return false;
-        }
-        if (!draft.cardSelection && !draft.title.trim()) {
-          setError(t('auctions.createValidationPickCard'));
-          return false;
-        }
-      }
-      if (id === 'card_pick') {
-        if (!draft.cardSelection) {
-          setError(t('auctions.createValidationPickCard'));
-          return false;
-        }
-      }
-      if (id === 'noncard_game') {
-        if (!draft.game) {
-          setError(t('auctions.createValidationGame'));
-          return false;
-        }
-      }
-      if (id === 'details') {
-        if (!draft.title.trim()) {
-          setError(t('auctions.createValidationTitle'));
-          return false;
-        }
-        if (draft.isCard) {
-          if (draft.description.length > AUCTION_CUSTOM_DESCRIPTION_MAX) {
-            setError(t('auctions.createValidationAuctionNoteMax'));
-            return false;
-          }
-        }
-      }
-      if (id === 'price' || (isEmbedded && id === 'details')) {
-        const start = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.startingBidEur)));
-        if (!Number.isFinite(start) || start <= 0) {
-          setError(t('auctions.createValidationStart'));
-          return false;
-        }
-        const buyNowRaw = draft.buyNowPriceEur.trim();
-        if (buyNowRaw) {
-          const buyNow = roundUpToHalfStep(parseLocaleMoneyInput(buyNowRaw));
-          if (!Number.isFinite(buyNow) || buyNow <= start) {
-            setError(t('auctions.createValidationBuyNow'));
-            return false;
-          }
-        }
-      }
-      if (id === 'shipping' || (isEmbedded && id === 'review')) {
-        if (draft.shippingPayer === 'buyer') {
-          const national = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingNationalEur)));
-          const euDefault = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingEuDefaultEur)));
-          if (!Number.isFinite(national) || national < 0 || !Number.isFinite(euDefault) || euDefault < 0) {
-            setError(t('auctions.createValidationShipping'));
-            return false;
-          }
-          const restWorld = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingRestOfWorldEur)));
-          if (!Number.isFinite(restWorld) || restWorld < 0) {
-            setError(t('auctions.createValidationShipping'));
-            return false;
-          }
-        }
-      }
-      if (id === 'photos' || (isEmbedded && id === 'review')) {
-        if (!listingPhotosComplete(draft.listingPhotos)) {
-          setError(
-            t('auctions.createValidationPhotos', {
-              min: AUCTION_LISTING_PHOTO_MIN,
-              max: AUCTION_LISTING_PHOTO_MAX,
-            })
-          );
-          return false;
-        }
-        if (!allPhotosUploaded) {
-          if (failedUploadFiles.length > 0) {
-            setError('Una o più foto non sono state caricate. Riprova prima di continuare.');
-          } else {
-            setError('Attendi il completamento del caricamento delle foto.');
-          }
-          return false;
-        }
-      }
-      setError(null);
-      return true;
-    },
-    [draft, embeddedInventoryPick, isEmbedded, t, allPhotosUploaded, failedUploadFiles.length]
-  );
 
   const handleCardSelect = useCallback((sel: AuctionCreateCardSelection) => {
     const img =
@@ -603,11 +268,14 @@ export function AuctionCreateWizard({
     setError(null);
   }, []);
 
-  const handleGenericSelect = useCallback((sel: AuctionCreateCardSelection) => {
-    handleCardSelect(sel);
-  }, [handleCardSelect]);
+  const handleGenericSelect = useCallback(
+    (sel: AuctionCreateCardSelection) => {
+      handleCardSelect(sel);
+    },
+    [handleCardSelect]
+  );
 
-  const chooseInInventoryYes = () => {
+  const chooseInInventoryYes = useCallback(() => {
     setDraft((d) => ({
       ...d,
       fromSyncInventory: true,
@@ -620,9 +288,9 @@ export function AuctionCreateWizard({
       listingPhotos: [],
     }));
     setError(null);
-  };
+  }, []);
 
-  const chooseInInventoryNo = () => {
+  const chooseInInventoryNo = useCallback(() => {
     setDraft((d) => ({
       ...d,
       fromSyncInventory: false,
@@ -636,33 +304,25 @@ export function AuctionCreateWizard({
       listingPhotos: [],
     }));
     setError(null);
-  };
+  }, []);
 
-  const chooseYesCard = () => {
+  const clearCardSelection = useCallback(() => {
     setDraft((d) => ({
       ...d,
-      isCard: true,
       cardSelection: null,
-      listingPhotos: [],
-    }));
-    setError(null);
-    setStepId('card_pick');
-  };
-
-  const chooseNoCard = () => {
-    setDraft((d) => ({
-      ...d,
-      isCard: false,
-      cardSelection: null,
+      title: '',
+      description: '',
+      imageUrl: '',
       game: '',
-      nonCardCategory: '',
-      listingPhotos: [],
+      selectedInventoryItemId: null,
+      startingBidEur: '',
+      condition: '',
+      cardLanguage: '',
     }));
     setError(null);
-    setStepId('noncard_game');
-  };
+  }, []);
 
-  const goNext = () => {
+  const goNext = useCallback(() => {
     if (!validateStepId(stepId)) return;
     setIsTransitioning(true);
     if (stepId === 'inventory_pick' && isEmbedded && embeddedCard) {
@@ -678,13 +338,21 @@ export function AuctionCreateWizard({
     if (idx >= 0 && idx < stepOrder.length - 1) {
       setStepId(stepOrder[idx + 1]!);
     }
-    setTimeout(() => setIsTransitioning(false), 400);
-  };
+    setTransitionTimeout(() => setIsTransitioning(false), 400);
+  }, [
+    validateStepId,
+    stepId,
+    isEmbedded,
+    embeddedCard,
+    embeddedInventoryPick,
+    embeddedInventoryItems,
+    stepOrder,
+    setTransitionTimeout,
+  ]);
 
-  const goBack = () => {
+  const goBack = useCallback(() => {
     setError(null);
     setIsTransitioning(true);
-    // Sub-passo item_pick: dopo Sì/No compare la ricerca; indietro torna alla domanda inventario.
     if (stepId === 'item_pick' && draft.fromSyncInventory !== null) {
       setDraft((d) => ({
         ...d,
@@ -698,7 +366,7 @@ export function AuctionCreateWizard({
         nonCardCategory: '',
         listingPhotos: [],
       }));
-      setTimeout(() => setIsTransitioning(false), 400);
+      setTransitionTimeout(() => setIsTransitioning(false), 400);
       return;
     }
     const prev = getPreviousStepId(stepId, draft, {
@@ -717,58 +385,38 @@ export function AuctionCreateWizard({
       setDraft(embeddedCard ? createEmbeddedDraftFromProduct(embeddedCard) : AUCTION_CREATE_DEFAULT_DRAFT);
       setEmbeddedInventoryPick('unset');
     }
-    if (stepId === 'details' && draft.isCard && prev === 'card_pick') {
-      setDraft((d) => ({
-        ...d,
-        cardSelection: null,
-        title: '',
-        description: '',
-        imageUrl: '',
-        game: '',
-      }));
-    }
-    if (stepId === 'card_pick') {
-      setDraft((d) => ({
-        ...d,
-        isCard: null,
-        cardSelection: null,
-        title: '',
-        imageUrl: '',
-        game: '',
-        listingPhotos: [],
-      }));
-    }
-    if (stepId === 'noncard_game') {
-      setDraft((d) => ({
-        ...d,
-        isCard: null,
-        game: '',
-        nonCardCategory: '',
-        listingPhotos: [],
-      }));
-    }
     setStepId(prev);
-    setTimeout(() => setIsTransitioning(false), 400);
-  };
+    setTransitionTimeout(() => setIsTransitioning(false), 400);
+  }, [
+    stepId,
+    draft,
+    stepVariant,
+    hasEmbeddedInventory,
+    isEmbedded,
+    onEmbeddedCancel,
+    embeddedCard,
+    router,
+    setTransitionTimeout,
+  ]);
 
   const createAuctionMutation = useCreateAuction();
 
-  const openPublishConfirm = () => {
+  const openPublishConfirm = useCallback(() => {
     setError(null);
     setPublishConfirmOpen(true);
-  };
+  }, []);
 
-  const closePublishConfirm = () => {
+  const closePublishConfirm = useCallback(() => {
     setPublishConfirmOpen(false);
-  };
+  }, []);
 
-  const editFromPublishConfirm = () => {
+  const editFromPublishConfirm = useCallback(() => {
     setPublishConfirmOpen(false);
     setError(null);
     setStepId('details');
-  };
+  }, []);
 
-  const publish = async () => {
+  const publish = useCallback(async () => {
     const order = getStepOrder(draft.isCard, { variant: stepVariant, hasEmbeddedInventory });
     for (const id of order) {
       if (!validateStepId(id)) {
@@ -777,116 +425,35 @@ export function AuctionCreateWizard({
       }
     }
 
-    const startingPrice = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.startingBidEur)));
-    const reservePrice = draft.reservePriceEur
-      ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.reservePriceEur)))
-      : undefined;
-    const now = new Date();
-    const startDate = now;
-    const endDate = new Date(startDate.getTime() + (draft.durationDays || 7) * 86_400_000);
-
-    // Photos uploaded directly to S3 via the photo client. We send their
-    // backend ids ordered by the user's chosen sequence; the backend will
-    // rebind them to this auction in transaction and override
-    // image_front/image_back from the first two for backward compatibility.
-    const photoIds: number[] = [];
-    for (const slot of draft.listingPhotos) {
-      if (slot.kind === 'remote') {
-        photoIds.push(slot.photo.id);
-        continue;
-      }
-      const entry = photoUploads.get(slot.file);
-      if (!entry || entry.status !== 'done' || !entry.photo) {
-        setError('Una o più foto non sono ancora state caricate. Riprova.');
-        setStepId(isEmbedded ? 'review' : 'photos');
-        return;
-      }
-      photoIds.push(entry.photo.id);
+    const built = buildAuctionCreatePayload(draft, photoUploads, isEmbedded);
+    if (!built.ok) {
+      setError(built.error);
+      setStepId(built.photoStep);
+      return;
     }
 
-    // Catalog reference image (only used if no user photos were uploaded —
-    // legacy path). Backend overrides these with photo CDN URLs whenever
-    // photo_ids is non-empty.
-    const fallbackFront =
-      photoIds.length === 0 ? draft.imageUrl || '' : '';
-    const fallbackBack = fallbackFront;
-    const slot0 = draft.listingPhotos[0];
-    const slot1 = draft.listingPhotos[1];
-    const firstPhotoCdn =
-      slot0?.kind === 'remote'
-        ? slot0.photo.cdn_url
-        : slot0?.kind === 'local'
-          ? photoUploads.get(slot0.file)?.photo?.cdn_url ?? ''
-          : '';
-    const secondPhotoCdn =
-      slot1?.kind === 'remote'
-        ? slot1.photo.cdn_url
-        : slot1?.kind === 'local'
-          ? photoUploads.get(slot1.file)?.photo?.cdn_url ?? ''
-          : firstPhotoCdn;
-    const imageFront = firstPhotoCdn || fallbackFront;
-    const imageBack = secondPhotoCdn || fallbackBack;
-
-    const buyNowRaw = draft.buyNowPriceEur.trim();
-    const buyNowPrice = buyNowRaw
-      ? roundUpToHalfStep(parseLocaleMoneyInput(buyNowRaw))
-      : undefined;
-
-    const payload: AuctionCreatePayload = {
-      title: draft.title,
-      description: draft.description || '',
-      starting_price: startingPrice,
-      reserve_price: reservePrice ?? null,
-      start_time: startDate.toISOString(),
-      end_time: endDate.toISOString(),
-      product: {
-        name: draft.title,
-        description: draft.description || '',
-        image_front: imageFront,
-        image_back: imageBack,
-        condition: draft.condition || '',
-      },
-      image_front: imageFront,
-      image_back: imageBack,
-      photo_ids: photoIds.length > 0 ? photoIds : undefined,
-      buy_now_enabled: buyNowPrice != null && Number.isFinite(buyNowPrice) && buyNowPrice > 0,
-      buy_now_price:
-        buyNowPrice != null && Number.isFinite(buyNowPrice) && buyNowPrice > 0 ? buyNowPrice : null,
-      shipping_payer: draft.shippingPayer,
-      shipping_origin_country: draft.shippingOriginCountry || null,
-      shipping_national_eur:
-        draft.shippingPayer === 'buyer'
-          ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingNationalEur)))
-          : null,
-      shipping_eu_default_eur:
-        draft.shippingPayer === 'buyer'
-          ? roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingEuDefaultEur)))
-          : null,
-      shipping_country_prices:
-        draft.shippingPayer === 'buyer'
-          ? (() => {
-              const rest = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.shippingRestOfWorldEur)));
-              if (!Number.isFinite(rest) || rest < 0) return [];
-              return [{ country_iso: AUCTION_SHIPPING_REST_OF_WORLD_ISO, price_eur: rest }];
-            })()
-          : [],
-    };
-
     try {
-      const created = await createAuctionMutation.mutateAsync(payload);
+      const created = await createAuctionMutation.mutateAsync(built.payload);
       setCreatedAuctionInfo({
         id: created?.data?.id ?? null,
-        startIso: created?.data?.start_time ?? payload.start_time,
-        endIso: created?.data?.end_time ?? payload.end_time,
+        startIso: created?.data?.start_time ?? built.startIso,
+        endIso: created?.data?.end_time ?? built.endIso,
       });
       setDone(true);
       pairing.revokeOnPublish();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Errore nella creazione dell\'asta'
-      );
+      setError(err instanceof Error ? err.message : "Errore nella creazione dell'asta");
     }
-  };
+  }, [
+    draft,
+    stepVariant,
+    hasEmbeddedInventory,
+    validateStepId,
+    photoUploads,
+    isEmbedded,
+    createAuctionMutation,
+    pairing,
+  ]);
 
   const isLastStep = stepId === 'review';
 
@@ -896,18 +463,14 @@ export function AuctionCreateWizard({
     }
   }, [stepId, publishConfirmOpen]);
 
-  /** Continua disabilitato finché non si risponde o non si sceglie una carta (stesso criterio di goNext). */
   const continueDisabled = useMemo(() => {
     if (stepId === 'item_pick') {
       if (draft.fromSyncInventory === null) return true;
       return !draft.cardSelection && !draft.title.trim();
     }
-    if (stepId === 'q_card') return true;
-    if (stepId === 'card_pick') return !draft.cardSelection;
     if (stepId === 'inventory_pick') return embeddedInventoryPick === 'unset';
     if (stepId === 'photos') {
       if (!listingPhotosComplete(draft.listingPhotos)) return true;
-      // Block while at least one upload is in flight or has failed.
       return !allPhotosUploaded;
     }
     return false;
@@ -921,27 +484,17 @@ export function AuctionCreateWizard({
     allPhotosUploaded,
   ]);
 
-  /** Embedded: blocca "Pubblica" finché le foto richieste non sono complete e caricate. */
   const publishDisabled = useMemo(() => {
     if (!isEmbedded || stepId !== 'review') return false;
     if (!listingPhotosComplete(draft.listingPhotos)) return true;
     return !allPhotosUploaded;
   }, [isEmbedded, stepId, draft.listingPhotos, allPhotosUploaded]);
 
-  const previewImageSrc = draft.imageUrl ? getCardImageUrl(draft.imageUrl) ?? draft.imageUrl : null;
-
-  /**
-   * Opzioni lingua costruite DIRETTAMENTE da draft.cardSelection.availableLanguages
-   * (campo available_languages di Meilisearch). Nessun filtraggio di lista statica:
-   * ogni codice viene tradotto tramite AUCTION_LANG_LABEL_BY_CODE o mostrato così com'è.
-   * Se availableLanguages è vuoto/null → solo "English" come fallback.
-   */
   const cardLanguageOptions = useMemo(
     () => buildAuctionLanguageOptions(draft.cardSelection?.availableLanguages),
     [draft.cardSelection?.availableLanguages]
   );
 
-  // Quando le opzioni cambiano e la lingua corrente non è in lista, resetta alla prima disponibile.
   useEffect(() => {
     if (!draft.cardLanguage) return;
     if (!cardLanguageOptions.some((o) => o.value === draft.cardLanguage)) {
@@ -949,67 +502,25 @@ export function AuctionCreateWizard({
     }
   }, [cardLanguageOptions, draft.cardLanguage, update]);
 
-  /** Opzioni con bandiera (stesso componente del tab Vendi); stessi codici di cardLanguageOptions. */
   const cardLanguageFlagOptions = useMemo(
     () => buildCardLanguageOptions(draft.cardSelection?.availableLanguages),
     [draft.cardSelection?.availableLanguages]
   );
 
-  // Embedded: il select con bandiera non ha l'opzione "Non specificata" → default alla prima lingua.
   useEffect(() => {
     if (!isEmbedded || draft.cardLanguage) return;
     const first = cardLanguageFlagOptions[0]?.code;
     if (first) update('cardLanguage', first);
   }, [isEmbedded, draft.cardLanguage, cardLanguageFlagOptions, update]);
 
-  const cardLanguageLabel = useMemo(
-    () => cardLanguageOptions.find((opt) => opt.value === draft.cardLanguage)?.label ?? '—',
-    [cardLanguageOptions, draft.cardLanguage]
-  );
-
-  /** Passo 1: dopo Sì/No inventario serve Continua per proseguire. */
   const itemPickSearchActive = stepId === 'item_pick' && draft.fromSyncInventory !== null;
 
-  const clearCardSelection = useCallback(() => {
-    setDraft((d) => ({
-      ...d,
-      cardSelection: null,
-      title: '',
-      description: '',
-      imageUrl: '',
-      game: '',
-      selectedInventoryItemId: null,
-      startingBidEur: '',
-      condition: '',
-      cardLanguage: '',
-    }));
-    setError(null);
-  }, []);
+  const showStickyNav = !isEmbedded && (stepId !== 'item_pick' || itemPickSearchActive);
 
-  /** Barra navigazione sticky in colonna solo standalone; embedded usa footer inline nel card. */
-  const showStickyNav =
-    !isEmbedded && stepId !== 'q_card' && (stepId !== 'item_pick' || itemPickSearchActive);
-
-  const formatDateTimeLong = useCallback((iso: string) => {
-    const d = new Date(iso);
-    if (!Number.isFinite(d.getTime())) return '—';
-    return new Intl.DateTimeFormat('it-IT', {
-      dateStyle: 'full',
-      timeStyle: 'short',
-    }).format(d);
-  }, []);
-
-  // On every step change, scroll to top of page (at title level) and focus the first actionable field.
   useEffect(() => {
     if (!isEmbedded) {
-      // Scrolla in cima alla pagina, all'altezza del titolo "Crea asta"
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-
-    // Focus sul primo campo dopo un ritardo (per attendere lo scroll)
     const timer = window.setTimeout(() => {
       const root = stepContentRef.current;
       if (!root) return;
@@ -1032,11 +543,9 @@ export function AuctionCreateWizard({
       }
       stepHeadingRef.current?.focus({ preventScroll: true });
     }, 200);
-
     return () => window.clearTimeout(timer);
   }, [stepId, isEmbedded]);
 
-  // Scroll to top when the confirmation screen ("Inserzione inviata") appears
   useEffect(() => {
     if (done) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1045,1579 +554,160 @@ export function AuctionCreateWizard({
 
   if (done) {
     return (
-      <div className="mx-auto max-w-lg rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-          <Check className="h-8 w-8" strokeWidth={2.5} aria-hidden />
-        </div>
-        <h1 className="mt-6 text-xl font-bold uppercase tracking-wide text-gray-900">{t('auctions.createSuccessTitle')}</h1>
-        <p className="mt-3 text-sm leading-relaxed text-gray-600">{t('auctions.createSuccessBody')}</p>
-        {createdAuctionInfo && (
-          <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-left">
-            <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Dettagli pubblicazione</p>
-            <p className="mt-2 text-sm text-emerald-900">L&apos;asta è partita subito dopo la conferma.</p>
-            <p className="mt-1 text-sm text-emerald-900">Inizio asta: {formatDateTimeLong(createdAuctionInfo.startIso)}</p>
-            <p className="mt-1 text-sm text-emerald-900">Fine asta: {formatDateTimeLong(createdAuctionInfo.endIso)}</p>
-            {createdAuctionInfo.id ? (
-              <p className="mt-1 text-sm text-emerald-900">ID asta: #{createdAuctionInfo.id}</p>
-            ) : null}
-          </div>
-        )}
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link
-            href="/aste/mie"
-            className="inline-flex items-center justify-center rounded-full bg-[#FF7300] px-8 py-3 text-sm font-bold uppercase text-white transition hover:bg-[#e86800]"
-          >
-            {t('auctions.createViewListings')}
-          </Link>
-          <Link
-            href="/aste"
-            className="inline-flex items-center justify-center rounded-full border border-gray-300 px-8 py-3 text-sm font-semibold uppercase text-gray-800 transition hover:bg-gray-50"
-          >
-            {t('auctions.createBackToHub')}
-          </Link>
-        </div>
-      </div>
+      <AuctionCreateSuccessScreen createdAuctionInfo={createdAuctionInfo} />
     );
   }
 
   return (
     <>
-    <div
-      className={cn(
-        'mx-auto max-w-3xl lg:px-12 xl:px-16',
-        isEmbedded && 'max-w-full px-0',
-        className
-      )}
-    >
-      {isEmbedded ? (
-        <div className="mb-2">
-          <div className="flex items-center justify-between px-0.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-              {t('auctions.createProgress', { current: currentStepNumber, total: totalSteps })}
-            </span>
-          </div>
-          <div className="mt-1.5 flex gap-[3px]">
-            {stepperLabels.map((label, i) => {
-              const active = i === activeStepIndex;
-              const complete = i < activeStepIndex;
-              return (
-                <div
-                  key={`${label}-${i}`}
-                  className={cn(
-                    'h-[3px] flex-1 rounded-full transition-all duration-300',
-                    complete ? 'bg-primary' : active ? 'bg-[#1D3160]' : 'bg-zinc-200'
-                  )}
-                  aria-current={active ? 'step' : undefined}
-                  title={label}
-                />
-              );
-            })}
-          </div>
-        </div>
-      ) : (
-        <div className="mb-6">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 sm:text-left">
-              {stepperLabels[activeStepIndex] ?? ''}
-            </p>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400 sm:text-right">
-              {t('auctions.createProgress', { current: currentStepNumber, total: totalSteps })}
-            </span>
-          </div>
-          <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-gray-200">
-            <div
-              className="h-full rounded-full bg-[#FF7300] transition-[width] duration-700 ease-out"
-              style={{
-                width: `${totalSteps > 1 ? (activeStepIndex / (totalSteps - 1)) * 100 : 100}%`,
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className={cn('relative rounded-2xl border border-gray-200 bg-white shadow-sm', isEmbedded && 'rounded-xl border border-zinc-200/70 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]')}>
-        <div
-          className={cn(
-            'relative border-b border-gray-100 px-5 py-4 sm:px-8 sm:py-5',
-            isEmbedded && 'border-b border-zinc-100 px-3 py-2'
-          )}
-        >
-          {/* Progress bar transition indicator */}
-          {isTransitioning && (
-            <div className="absolute bottom-0 left-0 right-0 h-[3px] overflow-hidden bg-gray-100">
-              <div className="h-full w-1/3 animate-[shimmer_1s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-[#FF7300] to-transparent" />
-            </div>
-          )}
-          <h1
-            ref={stepHeadingRef}
-            tabIndex={-1}
-            className={cn(
-              'text-lg font-bold uppercase tracking-wide text-[#1D3160] sm:text-xl',
-              isEmbedded && 'text-xs font-extrabold uppercase tracking-wider text-zinc-800'
-            )}
-          >
-            {stepHeading}
-          </h1>
-        </div>
-
-        <div ref={stepContentRef} className={cn('px-5 py-6 sm:px-8 sm:py-8', isEmbedded && 'px-3 py-2 sm:px-3.5 sm:py-2.5')}>
-          {error && (
-            <p
-              className={cn(
-                'mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800',
-                isEmbedded && 'mb-2 rounded-md py-1 text-[11px]'
-              )}
-              role="alert"
-            >
-              {error}
-            </p>
-          )}
-
-          {stepId === 'item_pick' && (
-            <div className="flex flex-col gap-5">
-              {draft.fromSyncInventory === null ? (
-                <div className="flex flex-col items-center gap-5">
-                  <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
-                    <button
-                      type="button"
-                      onClick={chooseInInventoryYes}
-                      data-step-focus="true"
-                      className="rounded-xl border-2 border-[#FF7300] bg-[#FF7300] px-8 py-4 text-sm font-bold uppercase text-white transition hover:bg-[#e86800]"
-                    >
-                      {t('auctions.createInInventoryYes')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={chooseInInventoryNo}
-                      className="rounded-xl border-2 border-[#1D3160] bg-white px-8 py-4 text-sm font-bold uppercase text-[#1D3160] transition hover:bg-[#1D3160]/5"
-                    >
-                      {t('auctions.createInInventoryNo')}
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => router.push('/aste')}
-                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 underline decoration-gray-300 underline-offset-4 transition hover:text-[#1D3160] hover:decoration-[#1D3160]/40"
-                  >
-                    {t('auctions.createCancel')}
-                  </button>
-                </div>
-              ) : draft.fromSyncInventory === true ? (
-                <AuctionCreateCardPicker
-                  variant="wizard-step1-inventory"
-                  selectedId={draft.cardSelection?.id ?? null}
-                  selectedTitle={draft.cardSelection?.title ?? null}
-                  onSelect={handleCardSelect}
-                  onClearSelection={clearCardSelection}
-                />
-              ) : (
-                <AuctionCreateGenericSearch
-                  selectedId={draft.cardSelection?.id ?? null}
-                  selectedTitle={draft.cardSelection?.title ?? null}
-                  onSelect={handleGenericSelect}
-                  onClearSelection={clearCardSelection}
-                />
-              )}
-            </div>
-          )}
-
-          {stepId === 'q_card' && (
-            <div className="flex flex-col items-center gap-5">
-              <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
-                <button
-                  type="button"
-                  onClick={chooseYesCard}
-                  data-step-focus="true"
-                  className="rounded-xl border-2 border-[#FF7300] bg-[#FF7300] px-8 py-4 text-sm font-bold uppercase text-white transition hover:bg-[#e86800]"
-                >
-                  {t('auctions.createIsCardYes')}
-                </button>
-                <button
-                  type="button"
-                  onClick={chooseNoCard}
-                  className="rounded-xl border-2 border-[#1D3160] bg-white px-8 py-4 text-sm font-bold uppercase text-[#1D3160] transition hover:bg-[#1D3160]/5"
-                >
-                  {t('auctions.createIsCardNo')}
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={() => router.push('/aste')}
-                className="text-xs font-semibold uppercase tracking-wide text-gray-500 underline decoration-gray-300 underline-offset-4 transition hover:text-[#1D3160] hover:decoration-[#1D3160]/40"
-              >
-                {t('auctions.createCancel')}
-              </button>
-            </div>
-          )}
-
-          {stepId === 'card_pick' && (
-            <AuctionCreateCardPicker
-              selectedId={draft.cardSelection?.id ?? null}
-              selectedTitle={draft.cardSelection?.title ?? null}
-              onSelect={handleCardSelect}
-            />
-          )}
-
-          {stepId === 'inventory_pick' && embeddedCard && (
-            <div className={cn('space-y-4', isEmbedded && 'space-y-2')}>
-              <p className={cn('text-sm text-gray-600', isEmbedded && 'text-[11px] leading-snug text-zinc-500')}>
-                {t('auctions.createStepInventoryPickIntro')}
-              </p>
-
-              {isEmbedded ? (
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (typeof embeddedInventoryPick === 'number') return;
-                      const firstId = embeddedInventoryItems[0]?.id;
-                      if (typeof firstId === 'number') setEmbeddedInventoryPick(firstId);
-                    }}
-                    className={cn(
-                      'w-full rounded-lg border px-3 py-2 text-left text-xs transition',
-                      typeof embeddedInventoryPick === 'number'
-                        ? 'border-[#FF7300] bg-orange-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    )}
-                  >
-                    <span className="block text-[11px] font-bold uppercase tracking-wide text-[#1D3160]">
-                      Usa una copia in inventario
-                    </span>
-                    <span className="mt-0.5 block text-[11px] text-zinc-500">
-                      Seleziona la copia gia presente e parti da quei dati.
-                    </span>
-                  </button>
-
-                  <select
-                    value={typeof embeddedInventoryPick === 'number' ? String(embeddedInventoryPick) : ''}
-                    onChange={(e) => setEmbeddedInventoryPick(Number(e.target.value))}
-                    className={cn(
-                      'w-full rounded-lg border bg-white px-3 py-2 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                      typeof embeddedInventoryPick === 'number'
-                        ? 'border-[#FF7300]/60'
-                        : 'border-gray-300'
-                    )}
-                  >
-                    <option value="" disabled>
-                      Seleziona una copia
-                    </option>
-                    {embeddedInventoryItems.map((item) => {
-                      const props = item.properties as Record<string, unknown> | undefined;
-                      const cond = typeof props?.condition === 'string' ? props.condition : '';
-                      return (
-                        <option key={item.id} value={item.id}>
-                          #{item.id} · {t('auctions.createInventoryQtyLabel', { n: item.quantity })} · {formatEuro(item.price_cents / 100)}{cond ? ` · ${cond}` : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => setEmbeddedInventoryPick('skip')}
-                    className={cn(
-                      'w-full rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#1D3160] transition',
-                      embeddedInventoryPick === 'skip'
-                        ? 'border-[#FF7300] bg-orange-50'
-                        : 'border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100'
-                    )}
-                  >
-                    {t('auctions.createInventorySkipCta')}
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <ul className={cn('space-y-2', isEmbedded && 'space-y-1.5')}>
-                    {embeddedInventoryItems.map((item) => {
-                      const props = item.properties as Record<string, unknown> | undefined;
-                      const cond = typeof props?.condition === 'string' ? props.condition : '';
-                      return (
-                        <li key={item.id}>
-                          <button
-                            type="button"
-                            onClick={() => setEmbeddedInventoryPick(item.id)}
-                            className={cn(
-                              'w-full rounded-xl border px-4 py-3 text-left text-sm transition',
-                              isEmbedded && 'rounded-lg px-3 py-2 text-xs',
-                              embeddedInventoryPick === item.id
-                                ? 'border-[#FF7300] bg-orange-50'
-                                : 'border-gray-200 bg-white hover:border-gray-300'
-                            )}
-                          >
-                            <span className="font-semibold text-[#1D3160]">#{item.id}</span>
-                            <span className="text-gray-600"> · {t('auctions.createInventoryQtyLabel', { n: item.quantity })}</span>
-                            <span className="text-gray-600"> · {formatEuro(item.price_cents / 100)}</span>
-                            {cond ? <span className="text-xs text-gray-500"> · {cond}</span> : null}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={() => setEmbeddedInventoryPick('skip')}
-                    className={cn(
-                      'w-full rounded-xl border px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[#1D3160] transition',
-                      isEmbedded && 'rounded-lg px-3 py-2 text-xs',
-                      embeddedInventoryPick === 'skip'
-                        ? 'border-[#FF7300] bg-orange-50'
-                        : 'border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100'
-                    )}
-                  >
-                    {t('auctions.createInventorySkipCta')}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          {stepId === 'noncard_game' && (
-            <div className="space-y-8">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#1D3160]">
-                  {t('auctions.createNonCardGameSection')}
-                </p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  {NON_CARD_GAME_OPTIONS.map(({ value, labelKey }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => {
-                        setDraft((d) => ({ ...d, game: value, nonCardCategory: '' }));
-                        setError(null);
-                      }}
-                      className={cn(
-                        'group flex items-center gap-3 rounded-xl border-2 px-4 py-4 text-left transition-all',
-                        draft.game === value
-                          ? 'border-[#FF7300] bg-orange-50/80 shadow-sm'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      )}
-                    >
-                      <AuctionGavelIcon className="h-5 w-5 shrink-0 text-[#FF7300]" animated />
-                      <span className="text-sm font-semibold uppercase tracking-wide text-gray-900">{t(labelKey)}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="rounded-xl border border-dashed border-[#1D3160]/25 bg-[#f8f9fb] p-4 sm:p-5">
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#1D3160]">
-                  {t('auctions.createNonCardCategorySection')}
-                </p>
-                <p className="mt-1 text-sm text-gray-600">{t('auctions.createNonCardCategorySectionHint')}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDraft((d) => ({ ...d, game: 'other', nonCardCategory: 'other_object' }));
-                    setError(null);
-                  }}
-                  className={cn(
-                    'mt-4 flex w-full items-center gap-3 rounded-xl border-2 px-4 py-4 text-left text-sm font-bold uppercase tracking-wide transition-all sm:w-auto sm:min-w-[200px]',
-                    draft.game === 'other'
-                      ? 'border-[#FF7300] bg-[#FF7300] text-white shadow-sm'
-                      : 'border-gray-300 bg-white text-gray-900 hover:border-gray-400'
-                  )}
-                >
-                  <Package className="h-5 w-5 shrink-0 text-current" aria-hidden />
-                  {t('auctions.createNonCardCategoryOther')}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* EMBEDDED passo 1: dettagli + prezzo unificati in layout compatto a griglia. */}
-          {stepId === 'details' && isEmbedded && (
-            <div className="space-y-2.5">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="mb-0.5 block text-[10px] font-bold uppercase tracking-wide text-gray-600">
-                    {t('auctions.createConditionLabel')}
-                  </label>
-                  <CustomSelect
-                    options={AUCTION_CARD_CONDITION_OPTIONS.map(({ value, labelKey }) => ({
-                      value,
-                      label: t(labelKey),
-                    }))}
-                    value={conditionSelectValue(draft.condition)}
-                    onChange={(value) => update('condition', value)}
-                    className="[&_button]:rounded-lg [&_button]:border-gray-300 [&_button]:bg-white [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs"
-                  />
-                </div>
-                <div>
-                  <span className="mb-0.5 block text-[10px] font-bold uppercase tracking-wide text-gray-600">
-                    Lingua carta
-                  </span>
-                  <CardLanguageSelect
-                    options={cardLanguageFlagOptions}
-                    value={draft.cardLanguage}
-                    onChange={(code) => update('cardLanguage', code)}
-                    className="[&_button]:rounded-lg [&_button]:border-gray-300 [&_button]:bg-white [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="ac-desc-emb" className="flex items-baseline justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-gray-600">
-                    {t('auctions.createAuctionNoteLabel')}
-                  </span>
-                  <span className="text-[10px] tabular-nums text-gray-400">
-                    {draft.description.length}/{AUCTION_CUSTOM_DESCRIPTION_MAX}
-                  </span>
-                </label>
-                <textarea
-                  id="ac-desc-emb"
-                  value={draft.description}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v.length <= AUCTION_CUSTOM_DESCRIPTION_MAX) update('description', v);
-                  }}
-                  rows={2}
-                  maxLength={AUCTION_CUSTOM_DESCRIPTION_MAX}
-                  className="mt-1 w-full resize-y rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-                  placeholder={t('auctions.createAuctionNotePlaceholder')}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label htmlFor="ac-start-emb" className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
-                    {t('auctions.createStartingBidLabel')}
-                  </label>
-                  <div className="relative mt-1">
-                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500">€</span>
-                    <input
-                      id="ac-start-emb"
-                      value={draft.startingBidEur}
-                      onChange={(e) => update('startingBidEur', e.target.value)}
-                      onBlur={(e) => update('startingBidEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-                      className="w-full rounded-lg border border-gray-300 py-1.5 pl-7 pr-2.5 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-                      inputMode="decimal"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="ac-res-emb" className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
-                    {t('auctions.createReserveLabel')}
-                  </label>
-                  <div className="relative mt-1">
-                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500">€</span>
-                    <input
-                      id="ac-res-emb"
-                      value={draft.reservePriceEur}
-                      onChange={(e) => update('reservePriceEur', e.target.value)}
-                      onBlur={(e) => update('reservePriceEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-                      className="w-full rounded-lg border border-gray-300 py-1.5 pl-7 pr-2.5 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-                      inputMode="decimal"
-                      placeholder="—"
-                    />
-                  </div>
-                </div>
-              </div>
-              <p className="text-[10px] leading-snug text-gray-500">{t('auctions.createReserveHint')}</p>
-
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wide text-gray-600">
-                  {t('auctions.createDurationLabel')}
-                </span>
-                {([3, 5, 7] as const).map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => update('durationDays', d)}
-                    className={cn(
-                      'rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors',
-                      draft.durationDays === d
-                        ? 'border-[#FF7300] bg-[#FF7300] text-white'
-                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                    )}
-                  >
-                    {t('auctions.createDurationDays', { days: d })}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {stepId === 'details' && draft.isCard && !isEmbedded && (
-            <div className="space-y-5">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                  {t('auctions.createConditionLabel')}
-                </label>
-                <CustomSelect
-                  options={AUCTION_CARD_CONDITION_OPTIONS.map(({ value, labelKey }) => ({
-                    value,
-                    label: t(labelKey),
-                  }))}
-                  value={conditionSelectValue(draft.condition)}
-                  onChange={(value) => update('condition', value)}
-                  className="mt-1.5"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                  Lingua carta
-                </label>
-                <CardLanguageSelect
-                  options={cardLanguageFlagOptions}
-                  value={draft.cardLanguage}
-                  onChange={(code) => update('cardLanguage', code)}
-                  className="mt-1.5"
-                />
-              </div>
-              <div>
-                <span className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                  {t('auctions.createDurationLabel')}
-                </span>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {([3, 5, 7] as const).map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => update('durationDays', d)}
-                      className={cn(
-                        'rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-colors',
-                        draft.durationDays === d
-                          ? 'border-[#FF7300] bg-[#FF7300] text-white'
-                          : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                      )}
-                    >
-                      {t('auctions.createDurationDays', { days: d })}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <label className="flex cursor-pointer items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={draft.antiSniperEnabled}
-                      onChange={(e) => update('antiSniperEnabled', e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300 text-[#FF7300] focus:ring-[#FF7300]/30"
-                    />
-                    <span className="text-xs font-bold uppercase tracking-wide text-gray-700">
-                      {t('auctions.createAntiSniperToggle')}
-                    </span>
-                  </label>
-                  <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
-                    {t('auctions.createAntiSniperLabel')}
-                  </span>
-                  <button
-                    type="button"
-                    title={t('auctions.createAntiSniperHint')}
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-200 hover:text-[#1D3160]"
-                    aria-label={t('auctions.createAntiSniperHint')}
-                  >
-                    <Info className="h-4 w-4" aria-hidden />
-                  </button>
-                </div>
-                {draft.antiSniperEnabled && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {AUCTION_ANTI_SNIPER_MINUTES_OPTIONS.map((minutes) => {
-                      const backendReady = AUCTION_ANTI_SNIPER_BACKEND_READY.has(minutes);
-                      return (
-                        <button
-                          key={minutes}
-                          type="button"
-                          disabled={!backendReady}
-                          onClick={() => backendReady && update('antiSniperMinutes', minutes)}
-                          className={cn(
-                            'relative rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
-                            !backendReady && 'cursor-not-allowed opacity-50',
-                            draft.antiSniperMinutes === minutes && backendReady
-                              ? 'border-[#FF7300] bg-[#FF7300] text-white'
-                              : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                          )}
-                        >
-                          {t('auctions.createAntiSniperMinutes', { minutes: String(minutes) })}
-                          {!backendReady && (
-                            <span className="ml-1 text-[9px] font-medium normal-case text-gray-400">
-                              ({t('auctions.createAntiSniperComingSoon')})
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              <div>
-                <label htmlFor="ac-desc" className="flex items-baseline justify-between gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wide text-gray-600">
-                    {t('auctions.createObjectNoteLabel')}
-                  </span>
-                  <span className="text-[11px] tabular-nums text-gray-400">
-                    {draft.description.length}/{AUCTION_CUSTOM_DESCRIPTION_MAX}
-                  </span>
-                </label>
-                <textarea
-                  id="ac-desc"
-                  value={draft.description}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v.length <= AUCTION_CUSTOM_DESCRIPTION_MAX) update('description', v);
-                  }}
-                  rows={4}
-                  maxLength={AUCTION_CUSTOM_DESCRIPTION_MAX}
-                  className="mt-1.5 w-full resize-y rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-                  placeholder={t('auctions.createObjectNotePlaceholder')}
-                />
-                <p className="mt-1 text-xs text-gray-500">{t('auctions.createAuctionNoteHint')}</p>
-              </div>
-            </div>
-          )}
-
-          {stepId === 'details' && draft.isCard === false && (
-            <div className={cn('space-y-5', isEmbedded && 'space-y-3')}>
-              <div>
-                <label htmlFor="ac-title-nc" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                  {t('auctions.createTitleLabel')}
-                </label>
-                <input
-                  id="ac-title-nc"
-                  value={draft.title}
-                  onChange={(e) => update('title', e.target.value)}
-                  className={cn(
-                    'mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                    isEmbedded && 'py-2'
-                  )}
-                  placeholder={t('auctions.createTitlePlaceholder')}
-                  autoComplete="off"
-                />
-              </div>
-              <div>
-                <label htmlFor="ac-desc-nc" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                  {t('auctions.createDescLabel')}
-                </label>
-                <textarea
-                  id="ac-desc-nc"
-                  value={draft.description}
-                  onChange={(e) => update('description', e.target.value)}
-                  rows={isEmbedded ? 3 : 4}
-                  className={cn(
-                    'mt-1.5 w-full resize-y rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                    isEmbedded && 'py-2'
-                  )}
-                  placeholder={t('auctions.createDescPlaceholder')}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                  {t('auctions.createConditionLabel')}
-                </label>
-                <CustomSelect
-                  options={AUCTION_CARD_CONDITION_OPTIONS.map(({ value, labelKey }) => ({
-                    value,
-                    label: t(labelKey),
-                  }))}
-                  value={conditionSelectValue(draft.condition)}
-                  onChange={(value) => update('condition', value)}
-                  className={cn(
-                    'mt-1.5',
-                    isEmbedded && '[&_button]:py-2'
-                  )}
-                />
-              </div>
-            </div>
-          )}
-
-          {stepId === 'price' && (
-            <div className={cn('space-y-5', isEmbedded && 'space-y-3')}>
-              <div className={cn('grid gap-5 sm:grid-cols-2', isEmbedded && 'gap-2.5')}>
-                <div>
-                  <label htmlFor="ac-start" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                    {t('auctions.createStartingBidLabel')}
-                  </label>
-                  <div className="relative mt-1.5">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
-                    <input
-                      id="ac-start"
-                      value={draft.startingBidEur}
-                      onChange={(e) => update('startingBidEur', e.target.value)}
-                      onBlur={(e) => update('startingBidEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-                      className={cn(
-                        'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                        isEmbedded && 'py-2'
-                      )}
-                      inputMode="decimal"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="ac-res" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                    {t('auctions.createReserveLabel')}
-                  </label>
-                  <div className="relative mt-1.5">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
-                    <input
-                      id="ac-res"
-                      value={draft.reservePriceEur}
-                      onChange={(e) => update('reservePriceEur', e.target.value)}
-                      onBlur={(e) => update('reservePriceEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-                      className={cn(
-                        'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                        isEmbedded && 'py-2'
-                      )}
-                      inputMode="decimal"
-                      placeholder="—"
-                    />
-                  </div>
-                  <p className={cn('mt-1 text-xs text-gray-500', isEmbedded && 'mt-0.5 text-[11px]')}>
-                    {t('auctions.createReserveHint')}
-                  </p>
-                </div>
-              </div>
-              {!isEmbedded && (
-                <div>
-                  <label htmlFor="ac-buynow" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                    {t('auctions.createBuyNowLabel')}
-                  </label>
-                  <div className="relative mt-1.5 max-w-xs">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
-                    <input
-                      id="ac-buynow"
-                      value={draft.buyNowPriceEur}
-                      onChange={(e) => update('buyNowPriceEur', e.target.value)}
-                      onBlur={(e) => update('buyNowPriceEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-                      className="w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-                      inputMode="decimal"
-                      placeholder="—"
-                    />
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">{t('auctions.createBuyNowHint')}</p>
-                </div>
-              )}
-              {isEmbedded && (
-              <div>
-                <span className="block text-xs font-bold uppercase tracking-wide text-gray-600">{t('auctions.createDurationLabel')}</span>
-                <div className={cn('mt-2 flex flex-wrap gap-2', isEmbedded && 'mt-1 gap-1')}>
-                  {([3, 5, 7] as const).map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => update('durationDays', d)}
-                      className={cn(
-                        'rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-colors',
-                        isEmbedded && 'px-3 py-1.5 text-[11px]',
-                        draft.durationDays === d
-                          ? 'border-[#FF7300] bg-[#FF7300] text-white'
-                          : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                      )}
-                    >
-                      {t('auctions.createDurationDays', { days: d })}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              )}
-            </div>
-          )}
-
-          {stepId === 'shipping' && (
-            <div className={cn('space-y-6', isEmbedded && 'space-y-4')}>
-              <div>
-                <span className="block text-xs font-bold uppercase tracking-wide text-gray-600">{t('auctions.createShippingWhoLabel')}</span>
-                <div className={cn('mt-3 space-y-2', isEmbedded && 'mt-2 space-y-1.5')}>
-                  <button
-                    type="button"
-                    onClick={() => update('shippingPayer', 'buyer')}
-                    className={cn(
-                      'flex w-full items-center gap-3 rounded-xl border-2 px-4 py-4 text-left transition-all',
-                      isEmbedded && 'rounded-lg py-2.5',
-                      draft.shippingPayer === 'buyer'
-                        ? 'border-[#FF7300] bg-orange-50/80'
-                        : 'border-gray-200 hover:border-gray-300'
-                    )}
-                  >
-                    <Package className={cn('h-5 w-5 text-[#1D3160]', isEmbedded && 'h-4 w-4')} aria-hidden />
-                    <div>
-                      <p className={cn('text-sm font-semibold text-gray-900', isEmbedded && 'text-xs')}>{t('auctions.createShippingBuyer')}</p>
-                      <p className={cn('text-xs text-gray-500', isEmbedded && 'text-[11px]')}>{t('auctions.createShippingBuyerHint')}</p>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => update('shippingPayer', 'seller')}
-                    className={cn(
-                      'flex w-full items-center gap-3 rounded-xl border-2 px-4 py-4 text-left transition-all',
-                      isEmbedded && 'rounded-lg py-2.5',
-                      draft.shippingPayer === 'seller'
-                        ? 'border-[#FF7300] bg-orange-50/80'
-                        : 'border-gray-200 hover:border-gray-300'
-                    )}
-                  >
-                    <Package className={cn('h-5 w-5 text-[#1D3160]', isEmbedded && 'h-4 w-4')} aria-hidden />
-                    <div>
-                      <p className={cn('text-sm font-semibold text-gray-900', isEmbedded && 'text-xs')}>{t('auctions.createShippingSeller')}</p>
-                      <p className={cn('text-xs text-gray-500', isEmbedded && 'text-[11px]')}>{t('auctions.createShippingSellerHint')}</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-              {draft.shippingPayer === 'buyer' && (
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="ac-ship-national" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                      {t('auctions.createShippingNationalLabel', {
-                        country: draft.shippingOriginCountry || 'IT',
-                      })}
-                    </label>
-                    <div className="relative mt-1.5 max-w-xs">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
-                      <input
-                        id="ac-ship-national"
-                        value={draft.shippingNationalEur}
-                        onChange={(e) => update('shippingNationalEur', e.target.value)}
-                        onBlur={(e) => update('shippingNationalEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-                        className={cn(
-                          'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                          isEmbedded && 'py-2'
-                        )}
-                        inputMode="decimal"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="ac-ship-eu" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                      {t('auctions.createShippingEuLabel')}
-                    </label>
-                    <div className="relative mt-1.5 max-w-xs">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
-                      <input
-                        id="ac-ship-eu"
-                        value={draft.shippingEuDefaultEur}
-                        onChange={(e) => update('shippingEuDefaultEur', e.target.value)}
-                        onBlur={(e) => update('shippingEuDefaultEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-                        className={cn(
-                          'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                          isEmbedded && 'py-2'
-                        )}
-                        inputMode="decimal"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="ac-ship-rest-world" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                      {t('auctions.createShippingExtraUeLabel')}
-                    </label>
-                    <p className="mt-1 text-[11px] text-gray-500">
-                      Tariffa unica per acquirenti al di fuori dell&apos;area UE indicata sopra (non il paese di origine).
-                    </p>
-                    <div className="relative mt-1.5 max-w-xs">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
-                      <input
-                        id="ac-ship-rest-world"
-                        value={draft.shippingRestOfWorldEur}
-                        onChange={(e) => update('shippingRestOfWorldEur', e.target.value)}
-                        onBlur={(e) => update('shippingRestOfWorldEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-                        className={cn(
-                          'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
-                          isEmbedded && 'py-2'
-                        )}
-                        inputMode="decimal"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {stepId === 'photos' && (
-            <div className={cn('space-y-3', isEmbedded && 'space-y-2')}>
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-                <button
-                  type="button"
-                  onClick={() => void pairing.openPhoneUploadModal()}
-                  disabled={pairing.pairingActionLoading}
-                  className={cn(
-                    'inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#1D3160]/25 bg-[#f8f9fb] px-4 py-2.5 text-sm font-semibold text-[#1D3160] transition hover:border-[#FF7300]/50 hover:bg-orange-50/40 disabled:cursor-not-allowed disabled:opacity-60',
-                    isEmbedded && 'py-2 text-xs',
-                  )}
-                >
-                  {pairing.pairingActionLoading ? t('auctions.createPhotoFromPhoneLoading') : t('auctions.createPhotoFromPhone')}
-                </button>
-                {pairing.hasActiveSession ? (
-                  <p className="text-xs text-gray-600">
-                    {t('auctions.createPhotoPairingSessionActive', {
-                      count: String(pairing.remotePhotoCount),
-                      max: String(pairing.maxPhotos),
-                      minutes: String(pairing.expiresInMinutes ?? '—'),
-                    })}
-                  </p>
-                ) : null}
-                {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
-                  <p className="text-xs text-gray-600">{t('auctions.createPhotoFromPhonePollingHint')}</p>
-                ) : null}
-                {pairing.phonePhotoToast ? (
-                  <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900">
-                    {pairing.phonePhotoToast}
-                  </p>
-                ) : null}
-              </div>
-              {pairing.pairingActionError ? (
-                <p className="text-sm text-red-700">{pairing.pairingActionError}</p>
-              ) : null}
-              {pairing.hasActiveSession ? (
-                <div className="flex flex-wrap gap-3 text-xs">
-                  <button type="button" onClick={() => void pairing.regenerateQr()} className="font-semibold text-[#1D3160] underline">
-                    {t('auctions.createPhotoPairingRegenerateQr')}
-                  </button>
-                  <button type="button" onClick={() => void pairing.revokePairing()} className="font-semibold text-gray-500 underline">
-                    {t('auctions.createPhotoPairingCloseSession')}
-                  </button>
-                </div>
-              ) : null}
-              <AuctionListingPhotoUpload
-                photos={draft.listingPhotos}
-                onPhotosChange={setListingPhotos}
-                compact={isEmbedded}
-                uploadStatuses={photoUploadStatuses}
-                highlightPhotoId={pairing.flashPhotoId}
-              />
-              {failedUploadFiles.length > 0 && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-                  <p className="font-semibold">
-                    Alcune foto non sono state caricate.
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {failedUploadFiles.map((file, i) => (
-                      <button
-                        key={`${file.name}-${i}`}
-                        type="button"
-                        onClick={() => retryFailedUpload(file)}
-                        className="inline-flex items-center gap-1 rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-red-800 transition hover:bg-red-100"
-                      >
-                        Riprova: {file.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* EMBEDDED passo 2: spedizione + foto + riepilogo compatto. */}
-          {stepId === 'review' && isEmbedded && (
-            <div className="space-y-2.5">
-              <div>
-                <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
-                  {t('auctions.createShippingWhoLabel')}
-                </span>
-                <div className="mt-1 grid grid-cols-2 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => update('shippingPayer', 'buyer')}
-                    className={cn(
-                      'rounded-lg border px-2 py-1.5 text-center text-[11px] font-semibold transition-colors',
-                      draft.shippingPayer === 'buyer'
-                        ? 'border-[#FF7300] bg-orange-50 text-gray-900'
-                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                    )}
-                  >
-                    {t('auctions.createShippingBuyer')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => update('shippingPayer', 'seller')}
-                    className={cn(
-                      'rounded-lg border px-2 py-1.5 text-center text-[11px] font-semibold transition-colors',
-                      draft.shippingPayer === 'seller'
-                        ? 'border-[#FF7300] bg-orange-50 text-gray-900'
-                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                    )}
-                  >
-                    {t('auctions.createShippingSeller')}
-                  </button>
-                </div>
-                {draft.shippingPayer === 'buyer' && (
-                  <div className="mt-1.5 grid grid-cols-4 gap-1">
-                    <div title="Paese di spedizione (codice ISO)">
-                      <label htmlFor="ac-ship-origin-emb" className="block truncate text-[9px] font-bold uppercase tracking-wide text-gray-500">
-                        Paese
-                      </label>
-                      <input
-                        id="ac-ship-origin-emb"
-                        value={draft.shippingOriginCountry}
-                        onChange={(e) => update('shippingOriginCountry', e.target.value.toUpperCase().slice(0, 2))}
-                        className="mt-0.5 w-full rounded-md border border-gray-300 px-1.5 py-1 text-center text-xs uppercase text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-                        maxLength={2}
-                      />
-                    </div>
-                    <div title={`Spedizione nazionale (${draft.shippingOriginCountry || 'IT'})`}>
-                      <label htmlFor="ac-ship-national-emb" className="block truncate text-[9px] font-bold uppercase tracking-wide text-gray-500">
-                        Naz. ({draft.shippingOriginCountry || 'IT'})
-                      </label>
-                      <div className="relative mt-0.5">
-                        <span className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">€</span>
-                        <input
-                          id="ac-ship-national-emb"
-                          value={draft.shippingNationalEur}
-                          onChange={(e) => update('shippingNationalEur', e.target.value)}
-                          onBlur={(e) => update('shippingNationalEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-                          className="w-full rounded-md border border-gray-300 py-1 pl-5 pr-1.5 text-xs tabular-nums text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-                          inputMode="decimal"
-                        />
-                      </div>
-                    </div>
-                    <div title={t('auctions.createShippingEuLabel')}>
-                      <label htmlFor="ac-ship-eu-emb" className="block truncate text-[9px] font-bold uppercase tracking-wide text-gray-500">
-                        {t('auctions.createShippingEuLabel')}
-                      </label>
-                      <div className="relative mt-0.5">
-                        <span className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">€</span>
-                        <input
-                          id="ac-ship-eu-emb"
-                          value={draft.shippingEuDefaultEur}
-                          onChange={(e) => update('shippingEuDefaultEur', e.target.value)}
-                          onBlur={(e) => update('shippingEuDefaultEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-                          className="w-full rounded-md border border-gray-300 py-1 pl-5 pr-1.5 text-xs tabular-nums text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-                          inputMode="decimal"
-                        />
-                      </div>
-                    </div>
-                    <div title="Spedizione resto del mondo (fuori UE)">
-                      <label htmlFor="ac-ship-rest-world-emb" className="block truncate text-[9px] font-bold uppercase tracking-wide text-gray-500">
-                        Extra UE
-                      </label>
-                      <div className="relative mt-0.5">
-                        <span className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">€</span>
-                        <input
-                          id="ac-ship-rest-world-emb"
-                          value={draft.shippingRestOfWorldEur}
-                          onChange={(e) => update('shippingRestOfWorldEur', e.target.value)}
-                          onBlur={(e) => update('shippingRestOfWorldEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-                          className="w-full rounded-md border border-gray-300 py-1 pl-5 pr-1.5 text-xs tabular-nums text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-                          inputMode="decimal"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
-                  {t('auctions.createStepPhotos')} ({AUCTION_LISTING_PHOTO_MIN}–{AUCTION_LISTING_PHOTO_MAX})
-                </span>
-                <div
-                  className={cn(
-                    'mt-1 space-y-1.5',
-                    draft.listingPhotos.length > 0 && 'sm:flex sm:flex-row sm:items-start sm:gap-4 sm:space-y-0',
-                  )}
-                >
-                  <input
-                    ref={embGalleryInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="sr-only"
-                    onChange={(e) => {
-                      appendEmbeddedPhotos(e.target.files);
-                      e.target.value = '';
-                    }}
-                  />
-                  <input
-                    ref={embCameraInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="sr-only"
-                    onChange={(e) => {
-                      appendEmbeddedPhotos(e.target.files);
-                      e.target.value = '';
-                    }}
-                  />
-                  <div
-                    className={cn(
-                      'flex items-stretch gap-1.5',
-                      draft.listingPhotos.length > 0
-                        ? 'sm:flex sm:flex-col sm:w-1/3 sm:gap-2'
-                        : 'sm:grid sm:grid-cols-2',
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => embGalleryInputRef.current?.click()}
-                      disabled={draft.listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX}
-                      className={cn(
-                        'group flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40',
-                        draft.listingPhotos.length > 0 ? 'sm:w-full' : 'sm:flex-none',
-                      )}
-                    >
-                      <ImageIcon className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
-                      Carica
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => embCameraInputRef.current?.click()}
-                      disabled={draft.listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX}
-                      className="group flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:hidden"
-                    >
-                      <Camera className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
-                      Scatta da telefono
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        pairing.phoneUploadModalOpen
-                          ? pairing.closePhoneUploadModal()
-                          : void pairing.openPhoneUploadModal()
-                      }
-                      disabled={pairing.pairingActionLoading}
-                      aria-label="Carica da telefono con QR"
-                      title="Carica da telefono con QR"
-                      className={cn(
-                        'group hidden flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:flex',
-                        draft.listingPhotos.length > 0 && 'sm:w-full',
-                      )}
-                    >
-                      <QrCode className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
-                      Scatta da telefono
-                    </button>
-                  </div>
-                  <div
-                    className={cn(
-                      draft.listingPhotos.length > 0 && 'flex-1 sm:w-2/3 space-y-2',
-                      !pairing.phoneUploadModalOpen && draft.listingPhotos.length > 0 && 'sm:mt-0',
-                    )}
-                  >
-                    {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
-                      <div className="rounded-xl border border-[#1D3160]/10 bg-[#1D3160]/5 p-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#1D3160]">
-                            Collegamento telefono attivo
-                          </span>
-                        </div>
-                        <div className="text-xs text-zinc-700 font-medium">
-                          {t('auctions.createPhotoPairingSessionActive', {
-                            count: String(pairing.remotePhotoCount),
-                            max: String(pairing.maxPhotos),
-                            minutes: String(pairing.expiresInMinutes ?? '—'),
-                          })}
-                        </div>
-                        <p className="text-[10px] text-zinc-500 leading-snug">
-                          {t('auctions.createPhotoFromPhonePollingHint')}
-                        </p>
-                        <div className="flex gap-3 pt-1 text-[10px] font-semibold">
-                          <button
-                            type="button"
-                            onClick={() => void pairing.regenerateQr()}
-                            className="text-[#1D3160] hover:text-[#FF7300] transition-colors underline"
-                          >
-                            {t('auctions.createPhotoPairingRegenerateQr')}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void pairing.revokePairing()}
-                            className="text-zinc-500 hover:text-red-600 transition-colors underline"
-                          >
-                            {t('auctions.createPhotoPairingCloseSession')}
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                  {isEmbedded && pairing.phoneUploadModalOpen && pairing.phonePairingQrUrl ? (
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <div className={cn(draft.listingPhotos.length > 0 ? 'sm:w-1/3' : 'w-full')}>                        
-                        <PhotoPairingInlinePanel
-                          compact
-                          qrUrl={pairing.phonePairingQrUrl}
-                          body={t('auctions.createPhotoFromPhoneModalBody')}
-                          regenerateLabel={t('auctions.createPhotoPairingRegenerateQr')}
-                          closeSessionLabel={t('auctions.createPhotoPairingCloseSession')}
-                          onRegenerate={pairing.regenerateQr}
-                          onCloseSession={pairing.revokePairing}
-                        />
-                      </div>
-                      {draft.listingPhotos.length > 0 ? (
-                        <div className="sm:w-2/3">                          
-                          <CompactPhotoGallery
-                            photos={draft.listingPhotos}
-                            uploadStatuses={photoUploadStatuses}
-                            onRemove={(index) => {
-                              const next = draft.listingPhotos.filter((_, i) => i !== index);
-                              setListingPhotos(next);
-                            }}
-                            highlightPhotoId={pairing.flashPhotoId}
-                            onPhotoClick={(index) => {
-                              setLightboxIndex(index);
-                              setLightboxOpen(true);
-                            }}
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {pairing.phonePhotoToast ? (
-                    <p className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-medium text-emerald-900">
-                      {pairing.phonePhotoToast}
-                    </p>
-                  ) : null}
-                  {pairing.pairingActionError ? (
-                    <p className="text-[11px] text-red-700">{pairing.pairingActionError}</p>
-                  ) : null}
-                  {!pairing.phoneUploadModalOpen ? (
-                    <AuctionListingPhotoUpload
-                      photos={draft.listingPhotos}
-                      onPhotosChange={setListingPhotos}
-                      compact={draft.listingPhotos.length === 0}
-                      hideAddTile
-                      uploadStatuses={photoUploadStatuses}
-                      highlightPhotoId={pairing.flashPhotoId}
-                    />
-                  ) : null}
-                  {failedUploadFiles.length > 0 && (
-                    <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-900">
-                      <p className="font-semibold">Alcune foto non sono state caricate.</p>
-                      <div className="mt-1.5 flex flex-wrap gap-1.5">
-                        {failedUploadFiles.map((file, i) => (
-                          <button
-                            key={`${file.name}-${i}`}
-                            type="button"
-                            onClick={() => retryFailedUpload(file)}
-                            className="rounded border border-red-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-red-800 hover:bg-red-100"
-                          >
-                            Riprova
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/80 p-2">
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div className="rounded-md bg-white px-2 py-1 ring-1 ring-zinc-100">
-                    <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">Base</p>
-                    <p className="text-[11px] font-extrabold text-zinc-900">€{draft.startingBidEur || '—'}</p>
-                  </div>
-                  <div className="rounded-md bg-white px-2 py-1 ring-1 ring-zinc-100">
-                    <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">Durata</p>
-                    <p className="text-[11px] font-extrabold text-zinc-900">
-                      {t('auctions.createDurationDays', { days: draft.durationDays })}
-                    </p>
-                  </div>
-                  <div className="rounded-md bg-white px-2 py-1 ring-1 ring-zinc-100">
-                    <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">Spedizione</p>
-                    <p className="line-clamp-1 text-[11px] font-extrabold text-zinc-900">
-                      {draft.shippingPayer === 'buyer' ? t('auctions.createShippingBuyer') : t('auctions.createShippingSeller')}
-                    </p>
-                  </div>
-                  <div className="rounded-md bg-white px-2 py-1 ring-1 ring-zinc-100">
-                    <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">Foto</p>
-                    <p className="text-[11px] font-extrabold text-zinc-900">{draft.listingPhotos.length}</p>
-                  </div>
-                </div>
-                <p className="mt-1.5 text-[10px] leading-snug text-zinc-500">
-                  L&apos;asta parte subito alla pubblicazione (non è possibile programmarla).
-                </p>
-              </div>
-            </div>
-          )}
-
-          {stepId === 'review' && !isEmbedded && (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-                <p className="text-sm font-bold text-amber-900">{t('auctions.createCancelWindowBanner')}</p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t('auctions.createStepItem')}</p>
-                  <p className="mt-1 text-sm font-semibold text-[#1D3160]">{draft.title || '—'}</p>
-                  {draft.cardSelection?.setName ? (
-                    <p className="text-xs text-gray-500">{draft.cardSelection.setName}</p>
-                  ) : null}
-                  {draft.fromSyncInventory != null && (
-                    <p className="mt-1 text-[11px] text-gray-500">
-                      {draft.fromSyncInventory
-                        ? t('auctions.createInInventoryYes')
-                        : t('auctions.createInInventoryNo')}
-                    </p>
-                  )}
-                </div>
-                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t('auctions.createConditionLabel')}</p>
-                  <p className="mt-1 text-sm font-semibold text-gray-900">{t(auctionConditionLabelKey(draft.condition))}</p>
-                  {draft.isCard && (
-                    <>
-                      <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-gray-400">Lingua carta</p>
-                      <p className="mt-0.5 text-sm font-semibold text-gray-900">{cardLanguageLabel}</p>
-                    </>
-                  )}
-                </div>
-                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t('auctions.createDurationLabel')}</p>
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
-                    {t('auctions.createDurationDays', { days: draft.durationDays })}
-                  </p>
-                  {draft.antiSniperEnabled && (
-                    <p className="mt-2 text-[11px] text-gray-600">
-                      {t('auctions.createAntiSniperLabel')}:{' '}
-                      {t('auctions.createAntiSniperMinutes', { minutes: String(draft.antiSniperMinutes) })}
-                    </p>
-                  )}
-                </div>
-                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t('auctions.createStepPrice')}</p>
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
-                    {t('auctions.createStartingBidLabel')}: €{draft.startingBidEur || '—'}
-                  </p>
-                  {draft.reservePriceEur ? (
-                    <p className="text-xs text-gray-600">
-                      {t('auctions.createReserveLabel')}: €{draft.reservePriceEur}
-                    </p>
-                  ) : null}
-                  {draft.buyNowPriceEur ? (
-                    <p className="text-xs text-gray-600">
-                      {t('auctions.createBuyNowLabel')}: €{draft.buyNowPriceEur}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:col-span-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t('auctions.createShippingWhoLabel')}</p>
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
-                    {draft.shippingPayer === 'buyer' ? t('auctions.createShippingBuyer') : t('auctions.createShippingSeller')}
-                    {draft.shippingPayer === 'buyer' && (
-                      <span className="block text-xs font-normal text-gray-600">
-                        {t('auctions.createShippingNationalLabel', { country: draft.shippingOriginCountry || 'IT' })}: €
-                        {draft.shippingNationalEur} · {t('auctions.createShippingEuLabel')}: €{draft.shippingEuDefaultEur} ·{' '}
-                        {t('auctions.createShippingExtraUeLabel')}: €{draft.shippingRestOfWorldEur}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                {draft.description ? (
-                  <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:col-span-2">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
-                      {t('auctions.createObjectNoteLabel')}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-800 whitespace-pre-wrap">{draft.description}</p>
-                  </div>
-                ) : null}
-                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:col-span-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{t('auctions.createStepPhotos')}</p>
-                  <div className="mt-2">
-                    <ListingPhotoThumbnailsRow photos={draft.listingPhotos} />
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-center text-[11px] text-gray-500">
-                <span
-                  className="cursor-help underline decoration-dotted underline-offset-2"
-                  title={t('auctions.createPublishTermsTooltip')}
-                >
-                  {t('auctions.createPublishTermsLabel')}
-                </span>
-              </p>
-            </div>
-          )}
-        </div>
-
-        {isEmbedded && stepId !== 'q_card' && (stepId !== 'item_pick' || itemPickSearchActive) && (
-          <div className="border-t border-zinc-100 bg-zinc-50/70 px-3 py-2">
-            <div className="flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={goBack}
-                className="inline-flex min-h-[32px] items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#1D3160] transition hover:border-zinc-400"
-              >
-                <ChevronLeft className="h-3 w-3" aria-hidden />
-                {t('auctions.createBack')}
-              </button>
-
-              {!isLastStep ? (
-                <button
-                  type="button"
-                  disabled={continueDisabled}
-                  title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
-                  onClick={goNext}
-                  className={cn(
-                    'inline-flex min-h-[32px] items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
-                    continueDisabled
-                      ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
-                      : 'bg-[#FF7300] hover:bg-[#e86800]'
-                  )}
-                >
-                  {t('auctions.createContinue')}
-                  <ChevronRight className="h-3 w-3" aria-hidden />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={publishDisabled}
-                  title={
-                    publishDisabled
-                      ? t('auctions.createValidationPhotos', {
-                          min: AUCTION_LISTING_PHOTO_MIN,
-                          max: AUCTION_LISTING_PHOTO_MAX,
-                        })
-                      : undefined
-                  }
-                  onClick={openPublishConfirm}
-                  className={cn(
-                    'group inline-flex min-h-[32px] items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
-                    publishDisabled
-                      ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
-                      : 'bg-[#FF7300] hover:bg-[#e86800]'
-                  )}
-                >
-                  <AuctionGavelIcon className="h-3 w-3" animated />
-                  {t('auctions.createSubmit')}
-                </button>
-              )}
-            </div>
-          </div>
+      <div
+        className={cn(
+          'mx-auto max-w-3xl lg:px-12 xl:px-16',
+          isEmbedded && 'max-w-full px-0',
+          className
         )}
+      >
+        <AuctionCreateStepper
+          isEmbedded={isEmbedded}
+          stepperLabels={stepperLabels}
+          activeStepIndex={activeStepIndex}
+          totalSteps={totalSteps}
+          currentStepNumber={currentStepNumber}
+        />
 
-      </div>
-
-      {showStickyNav && (
         <div
           className={cn(
-            'sticky bottom-0 z-40 mt-4 sm:mt-6',
-            'border-t border-gray-200/80 bg-[#f5f5f5]/90 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm'
+            'relative rounded-2xl border border-gray-200 bg-white shadow-sm',
+            isEmbedded && 'rounded-xl border border-zinc-200/70 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]'
           )}
-          role="navigation"
-          aria-label={t('auctions.createProgress', { current: currentStepNumber, total: totalSteps })}
         >
-          {continueDisabled && (
-            <p className="mb-2.5 px-2 text-center text-xs leading-snug text-gray-600 sm:px-4">
-              {t('auctions.createContinueDisabledFooter')}
-            </p>
-          )}
-          <div className="flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4">
-            <button
-              type="button"
-              onClick={goBack}
-              className="inline-flex min-h-[34px] items-center justify-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#1D3160] transition hover:bg-zinc-50"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-              {t('auctions.createBack')}
-            </button>
-
-            {!isLastStep ? (
-              <button
-                type="button"
-                disabled={continueDisabled}
-                title={continueDisabled ? t('auctions.createContinueDisabledFooter') : undefined}
-                onClick={goNext}
-                className={cn(
-                  'inline-flex min-h-[34px] items-center justify-center gap-1 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white transition',
-                  continueDisabled
-                    ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
-                    : 'bg-[#FF7300] hover:bg-[#e86800]'
-                )}
-              >
-                {t('auctions.createContinue')}
-                <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={openPublishConfirm}
-                className="group inline-flex min-h-[34px] items-center justify-center gap-1 rounded-full bg-[#FF7300] px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
-              >
-                <AuctionGavelIcon className="h-3.5 w-3.5" animated />
-                {t('auctions.createSubmit')}
-              </button>
+          <div
+            className={cn(
+              'relative border-b border-gray-100 px-5 py-4 sm:px-8 sm:py-5',
+              isEmbedded && 'border-b border-zinc-100 px-3 py-2'
             )}
+          >
+            {isTransitioning && (
+              <div className="absolute bottom-0 left-0 right-0 h-[3px] overflow-hidden bg-gray-100">
+                <div className="h-full w-1/3 animate-[shimmer_1s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-[#FF7300] to-transparent" />
+              </div>
+            )}
+            <h1
+              ref={stepHeadingRef}
+              tabIndex={-1}
+              className={cn(
+                'text-lg font-bold uppercase tracking-wide text-[#1D3160] sm:text-xl',
+                isEmbedded && 'text-xs font-extrabold uppercase tracking-wider text-zinc-800'
+              )}
+            >
+              {stepHeading}
+            </h1>
           </div>
+
+          <div
+            ref={stepContentRef}
+            className={cn('px-5 py-6 sm:px-8 sm:py-8', isEmbedded && 'px-3 py-2 sm:px-3.5 sm:py-2.5')}
+          >
+            {error && (
+              <p
+                className={cn(
+                  'mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800',
+                  isEmbedded && 'mb-2 rounded-md py-1 text-[11px]'
+                )}
+                role="alert"
+              >
+                {error}
+              </p>
+            )}
+
+            <AuctionCreateStepPanel
+              stepId={stepId}
+              isEmbedded={isEmbedded}
+              draft={draft}
+              update={update}
+              embeddedCard={embeddedCard}
+              embeddedInventoryItems={embeddedInventoryItems}
+              embeddedInventoryPick={embeddedInventoryPick}
+              onEmbeddedInventoryPickChange={setEmbeddedInventoryPick}
+              cardLanguageFlagOptions={cardLanguageFlagOptions}
+              onChooseInInventoryYes={chooseInInventoryYes}
+              onChooseInInventoryNo={chooseInInventoryNo}
+              onCardSelect={handleCardSelect}
+              onGenericSelect={handleGenericSelect}
+              onClearCardSelection={clearCardSelection}
+              listingPhotos={draft.listingPhotos}
+              setListingPhotos={setListingPhotos}
+              pairing={pairing}
+              photoUploadStatuses={photoUploadStatuses}
+              failedUploadFiles={failedUploadFiles}
+              retryFailedUpload={retryFailedUpload}
+              appendEmbeddedPhotos={appendEmbeddedPhotos}
+              embGalleryInputRef={embGalleryInputRef}
+              embCameraInputRef={embCameraInputRef}
+              setLightboxIndex={setLightboxIndex}
+              setLightboxOpen={setLightboxOpen}
+            />
+          </div>
+
+          <AuctionCreateWizardNav
+            isEmbedded={isEmbedded}
+            stepId={stepId}
+            itemPickSearchActive={itemPickSearchActive}
+            showStickyNav={false}
+            isLastStep={isLastStep}
+            continueDisabled={continueDisabled}
+            publishDisabled={publishDisabled}
+            currentStepNumber={currentStepNumber}
+            totalSteps={totalSteps}
+            onBack={goBack}
+            onNext={goNext}
+            onOpenPublishConfirm={openPublishConfirm}
+          />
         </div>
+
+        <AuctionCreateWizardNav
+          isEmbedded={isEmbedded}
+          stepId={stepId}
+          itemPickSearchActive={itemPickSearchActive}
+          showStickyNav={showStickyNav}
+          isLastStep={isLastStep}
+          continueDisabled={continueDisabled}
+          publishDisabled={publishDisabled}
+          currentStepNumber={currentStepNumber}
+          totalSteps={totalSteps}
+          onBack={goBack}
+          onNext={goNext}
+          onOpenPublishConfirm={openPublishConfirm}
+        />
+      </div>
+
+      {!isEmbedded && pairing.phoneUploadModalOpen && pairing.pairingSessionId && pairing.phonePairingQrUrl ? (
+        <AuctionCreatePhoneQrModal
+          open
+          qrUrl={pairing.phonePairingQrUrl}
+          onClose={pairing.closePhoneUploadModal}
+        />
+      ) : null}
+
+      {publishConfirmOpen && (
+        <AuctionCreatePublishConfirmModal
+          open
+          onClose={closePublishConfirm}
+          onEdit={editFromPublishConfirm}
+          onPublish={() => {
+            setPublishConfirmOpen(false);
+            void publish();
+          }}
+        />
       )}
-    </div>
 
-    {!isEmbedded && pairing.phoneUploadModalOpen && pairing.pairingSessionId && pairing.phonePairingQrUrl ? (
-      <div className="fixed inset-0 z-[85] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="phone-upload-qr-title"
-          className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl"
-        >
-          <h2 id="phone-upload-qr-title" className="text-lg font-bold uppercase tracking-wide text-[#1D3160]">
-            {t('auctions.createPhotoFromPhoneModalTitle')}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-gray-700">
-            {t('auctions.createPhotoFromPhoneModalBody')}
-          </p>
-          <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
-            {t('auctions.createPhotoFromPhoneModalCloseHint')}
-          </p>
-          <div className="mt-4 flex justify-center rounded-xl border border-gray-100 bg-white p-4">
-            <QRCodeSVG value={pairing.phonePairingQrUrl} size={200} level="M" />
-          </div>
-          <p className="mt-2 break-all text-center text-[11px] text-gray-500">{pairing.phonePairingQrUrl}</p>
-          <button
-            type="button"
-            onClick={pairing.closePhoneUploadModal}
-            className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
-          >
-            {t('auctions.createPhotoFromPhoneModalClose')}
-          </button>
-        </div>
-      </div>
-    ) : null}
-
-    {publishConfirmOpen && (
-      <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1D3160]/45 px-4" role="presentation">
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="publish-confirm-title"
-          className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl"
-        >
-          <h2 id="publish-confirm-title" className="text-lg font-bold uppercase tracking-wide text-[#1D3160]">
-            {t('auctions.createPublishConfirmTitle')}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-gray-700">
-            {t('auctions.createPublishConfirmBody')}
-          </p>
-
-          <div className="mt-4 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={closePublishConfirm}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
-            >
-              {t('auctions.createPublishConfirmCheck')}
-            </button>
-            <button
-              type="button"
-              onClick={editFromPublishConfirm}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:bg-gray-50"
-            >
-              {t('auctions.createPublishConfirmEdit')}
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setPublishConfirmOpen(false);
-              void publish();
-            }}
-            className="mt-3 w-full rounded-xl bg-[#FF7300] px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
-          >
-            {t('auctions.createPublishConfirmContinue')}
-          </button>
-        </div>
-      </div>
-    )}
-
-    <ImageLightbox
-      open={lightboxOpen}
-      urls={lightboxUrls}
-      startIndex={lightboxIndex}
-      onClose={() => setLightboxOpen(false)}
-      onIndexChange={setLightboxIndex}
-    />
+      <ImageLightbox
+        open={lightboxOpen}
+        urls={lightboxUrls}
+        startIndex={lightboxIndex}
+        onClose={() => setLightboxOpen(false)}
+        onIndexChange={setLightboxIndex}
+      />
     </>
   );
 }

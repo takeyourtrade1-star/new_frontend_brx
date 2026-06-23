@@ -23,6 +23,8 @@ import { fetchCardsByBlueprintIds, type CardCatalogHit } from '@/lib/meilisearch
 import { getCardImageUrl } from '@/lib/assets';
 import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';
 import type { SearchHit } from '@/app/api/search/route';
+import { useSearchCards } from '@/lib/hooks/use-search';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface Props {
   open: boolean;
@@ -34,22 +36,9 @@ interface Props {
   initialCatalogSearch?: string;
 }
 
-const MOCK_A_PROPOSAL = {
-  offeredCards: [MOCK_INVENTORY_A[0], MOCK_INVENTORY_A[1]],
-  offeredCredits: 50,
-  isRealtime: true,
-  message: 'Ciao! Sono interessato alla tua carta. Possiamo fare uno scambio realtime?',
-};
+type TFunction = ReturnType<typeof useTranslation>['t'];
 
 type InventoryWithCard = InventoryItemResponse & { card?: CardCatalogHit | null };
-
-type SearchApiResponse = {
-  hits: SearchHit[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-};
 
 interface TradeCardItem {
   id: string;
@@ -175,7 +164,7 @@ function matchQuery(item: TradeCardItem, query: string): boolean {
   return parts.every((part) => blobNorm.includes(part));
 }
 
-function inventoryToTradeCardItem(item: InventoryWithCard): TradeCardItem {
+function inventoryToTradeCardItem(item: InventoryWithCard, t: TFunction): TradeCardItem {
   const card = item.card;
   const props = item.properties as Record<string, unknown> | undefined;
   const condition = typeof props?.condition === 'string' ? props.condition : '';
@@ -184,7 +173,7 @@ function inventoryToTradeCardItem(item: InventoryWithCard): TradeCardItem {
     name: card?.name ?? `Item ${item.blueprint_id}`,
     image: getCardImageUrl(card?.image ?? null) ?? '',
     condition,
-    badge: "Nell'inventario",
+    badge: t('scambi.modal.badgeInventory'),
     qty: item.quantity > 1 ? item.quantity : undefined,
   };
 }
@@ -198,13 +187,13 @@ function searchHitToTradeCardItem(hit: SearchHit): TradeCardItem {
   };
 }
 
-function mockItemToTradeCardItem(item: { id: string; name: string; image: string; condition: string }): TradeCardItem {
+function mockItemToTradeCardItem(item: { id: string; name: string; image: string; condition: string }, t: TFunction): TradeCardItem {
   return {
     id: item.id,
     name: item.name,
     image: item.image,
     condition: item.condition,
-    badge: 'Disponibile',
+    badge: t('scambi.modal.badgeAvailable'),
   };
 }
 
@@ -476,6 +465,7 @@ function SubmitButton({ onClick, children }: { onClick: () => void; children: Re
 /* ------------------------------------------------------------------ */
 
 function SelectedBadge({ count, items, quantities }: { count: number; items: TradeCardItem[]; quantities?: Record<string, number> }) {
+  const { t } = useTranslation();
   if (count === 0) return null;
   const totalQty = quantities
     ? items.reduce((sum, item) => sum + (quantities[item.id] ?? 1), 0)
@@ -484,7 +474,9 @@ function SelectedBadge({ count, items, quantities }: { count: number; items: Tra
     <div className="group relative">
       <span className="inline-flex cursor-default items-center gap-1.5 rounded-full bg-[#FF7300] px-3 py-1.5 text-[11px] font-black text-white shadow-md shadow-orange-500/25 animate-badge-pop">
         <Check className="h-3 w-3" strokeWidth={3} />
-        {count} sel. {totalQty !== count ? `(${totalQty} carte)` : ''}
+        {totalQty !== count
+          ? t('scambi.modal.selectedCountWithTotal', { count, totalQty })
+          : t('scambi.modal.selectedCount', { count })}
       </span>
       <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
         <div className="rounded-2xl border border-gray-200 bg-white p-2.5 shadow-2xl w-56 max-h-52 overflow-y-auto">
@@ -548,9 +540,20 @@ function SearchBar({
 /* ------------------------------------------------------------------ */
 
 export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, initialCatalogSearch }: Props) {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore(
     (s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
+  );
+
+  const mockAProposal = useMemo(
+    () => ({
+      offeredCards: [MOCK_INVENTORY_A[0], MOCK_INVENTORY_A[1]],
+      offeredCredits: 50,
+      isRealtime: true,
+      message: t('scambi.modal.defaultMessage'),
+    }),
+    [t]
   );
 
   const [selectedOfferedIds, setSelectedOfferedIds] = useState<string[]>([]);
@@ -565,9 +568,6 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [inventoryItems, setInventoryItems] = useState<InventoryWithCard[]>([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
-  const [searchHits, setSearchHits] = useState<SearchHit[]>([]);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
 
   /* Keep track of selected item data so lookups survive search changes */
   const [offeredItemData, setOfferedItemData] = useState<Record<string, TradeCardItem>>({});
@@ -646,48 +646,18 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
     return () => window.clearTimeout(id);
   }, [searchQuery]);
 
-  /* Search catalog when debounced query changes */
-  useEffect(() => {
-    const q = debouncedQuery;
-    if (!q) {
-      setSearchHits([]);
-      setSearchError(null);
-      setLoadingSearch(false);
-      return;
-    }
-    let cancelled = false;
-    setLoadingSearch(true);
-    setSearchError(null);
-    const params = new URLSearchParams();
-    params.set('q', q);
-    params.set('limit', '12');
-    params.set('page', '1');
-    fetch(`/api/search?${params.toString()}`)
-      .then(async (res) => {
-        const json = (await res.json().catch(() => ({}))) as SearchApiResponse & { error?: string; detail?: string };
-        if (cancelled) return;
-        if (!res.ok) {
-          const msg =
-            (typeof json?.error === 'string' && json.error) ||
-            (typeof json?.detail === 'string' && json.detail) ||
-            'Errore ricerca';
-          throw new Error(msg);
-        }
-        setSearchHits(Array.isArray(json.hits) ? json.hits : []);
-      })
-      .catch((e) => {
-        if (!cancelled) {
-          setSearchHits([]);
-          setSearchError(e instanceof Error ? e.message : 'Errore ricerca');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingSearch(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedQuery]);
+  /* Ricerca catalogo via React Query (regola §2): cache condivisa, niente fetch manuale. */
+  const {
+    data: searchData,
+    isLoading: loadingSearch,
+    error: searchErr,
+  } = useSearchCards(
+    { q: debouncedQuery || undefined, limit: 12, page: 1 },
+    { enabled: Boolean(debouncedQuery) },
+  );
+  const searchError = searchErr
+    ? (searchErr instanceof Error ? searchErr.message : t('scambi.modal.searchError'))
+    : null;
 
   useEffect(() => {
     if (open) {
@@ -699,8 +669,6 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
       setSearchQuery('');
       setCounterEditing(false);
       setViewMode('grid');
-      setSearchHits([]);
-      setSearchError(null);
       setOfferedItemData({});
       setRequestedItemData({});
       setOfferedQuantities({});
@@ -761,14 +729,14 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
       const data = offeredItemData[id];
       const qty = offeredQuantities[id] ?? 1;
       if (data) return { id: data.id, name: data.name, image: data.image, qty };
-      return { id, name: 'Unknown', image: '', qty: 1 };
+      return { id, name: t('scambi.modal.unknownItem'), image: '', qty: 1 };
     });
 
     const requestedItems = selectedRequestedIds.map((id) => {
       const data = requestedItemData[id];
       const qty = requestedQuantities[id] ?? 1;
       if (data) return { id: data.id, name: data.name, image: data.image, qty };
-      return { id, name: 'Unknown', image: '', qty: 1 };
+      return { id, name: t('scambi.modal.unknownItem'), image: '', qty: 1 };
     });
 
     return {
@@ -790,50 +758,50 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
   const handleAccept = () => {
     onSubmit({
       requestedCardId: scambio.id,
-      offeredItems: MOCK_A_PROPOSAL.offeredCards.map((item) => ({
+      offeredItems: mockAProposal.offeredCards.map((item) => ({
         id: item.id,
         name: item.name,
         image: item.image,
         qty: 1,
       })),
-      offeredCredits: MOCK_A_PROPOSAL.offeredCredits,
+      offeredCredits: mockAProposal.offeredCredits,
       requestedItems: [],
       requestedCredits: 0,
       isRealtime: false,
-      message: 'Accetto la proposta',
+      message: t('scambi.modal.acceptMessage'),
     });
     onClose();
   };
 
   /* Unified results for "offer" side (my inventory + catalog search) */
   const offeredInventoryItems = useMemo(() => {
-    const mapped = inventoryItems.map(inventoryToTradeCardItem);
+    const mapped = inventoryItems.map((item) => inventoryToTradeCardItem(item, t));
     if (!searchQuery.trim()) return mapped;
     return mapped.filter((i) => matchQuery(i, searchQuery));
-  }, [inventoryItems, searchQuery]);
+  }, [inventoryItems, searchQuery, t]);
 
   const offeredCatalogItems = useMemo(() => {
     if (!debouncedQuery) return [];
     const inventoryIds = new Set(inventoryItems.map((i) => String(i.id)));
-    return searchHits
+    return (searchData?.hits ?? [])
       .filter((h) => !inventoryIds.has(h.id))
       .map(searchHitToTradeCardItem);
-  }, [searchHits, inventoryItems, debouncedQuery]);
+  }, [searchData?.hits, inventoryItems, debouncedQuery]);
 
   /* Unified results for "request" side in counter (their mock + catalog search) */
   const requestedInventoryItems = useMemo(() => {
-    const mapped = MOCK_INVENTORY_B.map(mockItemToTradeCardItem);
+    const mapped = MOCK_INVENTORY_B.map((item) => mockItemToTradeCardItem(item, t));
     if (!searchQuery.trim()) return mapped;
     return mapped.filter((i) => matchQuery(i, searchQuery));
-  }, [searchQuery]);
+  }, [searchQuery, t]);
 
   const requestedCatalogItems = useMemo(() => {
     if (!debouncedQuery) return [];
     const mockIds = new Set(MOCK_INVENTORY_B.map((i) => i.id));
-    return searchHits
+    return (searchData?.hits ?? [])
       .filter((h) => !mockIds.has(h.id))
       .map(searchHitToTradeCardItem);
-  }, [searchHits, debouncedQuery]);
+  }, [searchData?.hits, debouncedQuery]);
 
   if (!open) return null;
 
@@ -850,7 +818,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
         <button
           type="button"
           className="animate-backdrop-enter absolute inset-0 bg-[#0F172A]/75 backdrop-blur-md"
-          aria-label="Chiudi"
+          aria-label={t('common.close')}
           onClick={onClose}
         />
 
@@ -867,8 +835,8 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                 <ScambiIcon className="h-5 w-5 text-[#FF7300]" />
               </div>
               <div>
-                <h2 className="text-lg font-black uppercase tracking-tight text-white drop-shadow-sm">Proponi scambio</h2>
-                <p className="text-[11px] font-medium text-white/70">Seleziona cosa offri in cambio</p>
+                <h2 className="text-lg font-black uppercase tracking-tight text-white drop-shadow-sm">{t('productDetail.scambi.propose')}</h2>
+                <p className="text-[11px] font-medium text-white/70">{t('scambi.modal.proposeSubtitle')}</p>
               </div>
             </div>
             <button
@@ -886,7 +854,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
             <div className="flex shrink-0 flex-col gap-4 border-b border-gray-200/60 bg-gradient-to-b from-white to-[#F8F7F4] p-5 lg:w-80 lg:border-b-0 lg:border-r lg:border-gray-200/60">
               <div className="animate-fade-in-up flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-400">
                 <Sparkles className="h-3.5 w-3.5 text-[#FF7300]" />
-                Carta richiesta
+                {t('scambi.modal.requestedCardLabel')}
               </div>
 
               <div className="animate-fade-in-up flex flex-col gap-3" style={{ animationDelay: '60ms' }}>
@@ -899,7 +867,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                     <ConditionBadge condition={scambio.condition as ConditionCode} />
                   </div>
                   <p className="mt-2 text-[11px] font-medium text-gray-500">
-                    di <span className="font-bold text-gray-800">{scambio.seller}</span>
+                    {t('scambi.modal.bySeller', { seller: scambio.seller })}
                   </p>
                 </div>
               </div>
@@ -910,18 +878,18 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
               {/* Toolbar */}
               <div className="animate-fade-in-up flex flex-wrap items-center justify-between gap-3 border-b border-gray-200/60 bg-white/80 px-5 py-3 backdrop-blur-sm" style={{ animationDelay: '40ms' }}>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-black uppercase tracking-tight text-[#1D3160]">Cosa offri</span>
+                  <span className="text-sm font-black uppercase tracking-tight text-[#1D3160]">{t('scambi.modal.offerSectionTitle')}</span>
                   <span className="hidden h-4 w-px bg-gray-300 sm:block" />
                   <span className="hidden text-[11px] font-semibold text-gray-400 sm:block">
-                    {offeredInventoryItems.length > 0 && `${offeredInventoryItems.length} nel tuo inventario`}
+                    {offeredInventoryItems.length > 0 && t('scambi.modal.inventoryCount', { count: offeredInventoryItems.length })}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <AuctionViewToggle
                     viewMode={viewMode}
                     onViewModeChange={setViewMode}
-                    listLabel="Lista"
-                    gridLabel="Griglia"
+                    listLabel={t('auctions.viewList')}
+                    gridLabel={t('auctions.viewGrid')}
                   />
                 </div>
               </div>
@@ -931,14 +899,14 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                   <SearchBar
                     query={searchQuery}
                     onChange={setSearchQuery}
-                    placeholder="Cerca nel tuo inventario o nel catalogo..."
+                    placeholder={t('scambi.modal.searchOfferPlaceholder')}
                   />
                 </div>
 
                 {loadingInventory && (
                   <div className="flex flex-col items-center justify-center gap-2 py-8 text-sm text-gray-500">
                     <Loader2 className="h-5 w-5 animate-spin text-[#FF7300]" />
-                    Caricamento inventario...
+                    {t('scambi.modal.loadingInventory')}
                   </div>
                 )}
 
@@ -947,7 +915,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                       <Library className="h-5 w-5 text-gray-400" />
                     </div>
-                    <p className="text-sm font-semibold text-gray-600">Accedi per vedere la tua collezione</p>
+                    <p className="text-sm font-semibold text-gray-600">{t('scambi.modal.loginRequired')}</p>
                   </div>
                 )}
 
@@ -957,7 +925,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                       <div className="mb-4">
                         <div className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-500">
                           <Package className="h-3.5 w-3.5" />
-                          Dal tuo inventario
+                          {t('scambi.modal.fromInventory')}
                         </div>
                         {viewMode === 'grid' ? (
                           <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
@@ -1007,7 +975,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                       <div className="mb-4">
                         <div className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-500">
                           <Library className="h-3.5 w-3.5" />
-                          Dal catalogo
+                          {t('scambi.modal.fromCatalog')}
                         </div>
                         {viewMode === 'grid' ? (
                           <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
@@ -1058,7 +1026,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                 {loadingSearch && (
                   <div className="flex items-center gap-2 py-3 text-xs text-gray-500">
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF7300]" />
-                    Ricerca nel catalogo in corso...
+                    {t('scambi.modal.searchingCatalog')}
                   </div>
                 )}
 
@@ -1073,8 +1041,8 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                       <Search className="h-5 w-5 text-gray-400" />
                     </div>
-                    <p className="mt-3 text-sm font-semibold text-gray-600">Nessuna carta trovata</p>
-                    <p className="text-[11px] text-gray-400">Prova a cercare nel catalogo</p>
+                    <p className="mt-3 text-sm font-semibold text-gray-600">{t('scambi.modal.noCardsFound')}</p>
+                    <p className="text-[11px] text-gray-400">{t('scambi.modal.noCardsFoundHint')}</p>
                   </div>
                 )}
               </div>
@@ -1082,11 +1050,11 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
               {/* Bottom bar */}
               <div className="animate-fade-in-up flex flex-wrap items-end gap-4 border-t border-gray-200/60 bg-white/90 px-5 py-4 backdrop-blur-md" style={{ animationDelay: '200ms' }}>
                 <div className="flex flex-1 flex-wrap items-end gap-4">
-                  <CreditField value={offeredCredits} onChange={handleOfferedCreditsChange} label="Offri crediti" disabled={requestedCredits > 0} />
-                  <CreditField value={requestedCredits} onChange={handleRequestedCreditsChange} label="Richiedi crediti" disabled={offeredCredits > 0} />
+                  <CreditField value={offeredCredits} onChange={handleOfferedCreditsChange} label={t('scambi.modal.offerCreditsLabel')} disabled={requestedCredits > 0} />
+                  <CreditField value={requestedCredits} onChange={handleRequestedCreditsChange} label={t('scambi.modal.requestCreditsLabel')} disabled={offeredCredits > 0} />
                   <SelectedBadge count={selectedOfferedIds.length} items={Object.values(offeredItemData)} quantities={offeredQuantities} />
                 </div>
-                <SubmitButton onClick={handleSubmit}>Invia proposta</SubmitButton>
+                <SubmitButton onClick={handleSubmit}>{t('scambi.modal.sendProposal')}</SubmitButton>
               </div>
             </div>
           </div>
@@ -1106,7 +1074,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
       <button
         type="button"
         className="animate-backdrop-enter absolute inset-0 bg-[#0F172A]/75 backdrop-blur-md"
-        aria-label="Chiudi"
+        aria-label={t('common.close')}
         onClick={onClose}
       />
 
@@ -1123,8 +1091,8 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
               <ScambiIcon className="h-5 w-5 text-[#FF7300]" />
             </div>
             <div>
-              <h2 className="text-lg font-black uppercase tracking-tight text-white drop-shadow-sm">Rispondi allo scambio</h2>
-              <p className="text-[11px] font-medium text-white/70">{scambio.seller} ti ha proposto uno scambio</p>
+              <h2 className="text-lg font-black uppercase tracking-tight text-white drop-shadow-sm">{t('scambi.modal.counterTitle')}</h2>
+              <p className="text-[11px] font-medium text-white/70">{t('scambi.modal.counterSubtitle', { seller: scambio.seller })}</p>
             </div>
           </div>
           <button
@@ -1142,7 +1110,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
           <div className="flex shrink-0 flex-col gap-4 border-b border-gray-200/60 bg-gradient-to-b from-white to-[#F8F7F4] p-5 lg:w-80 lg:border-b-0 lg:border-r lg:border-gray-200/60">
             <div className="animate-fade-in-up flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-400">
               <Sparkles className="h-3.5 w-3.5 text-[#FF7300]" />
-              La sua proposta
+              {t('scambi.modal.theirProposal')}
             </div>
 
             <div className="animate-fade-in-up rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm" style={{ animationDelay: '60ms' }}>
@@ -1159,15 +1127,15 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
 
             <div className="animate-fade-in-up rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm" style={{ animationDelay: '100ms' }}>
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-[11px] font-black uppercase tracking-wider text-gray-500">Offre</p>
-                {MOCK_A_PROPOSAL.offeredCredits > 0 && (
+                <p className="text-[11px] font-black uppercase tracking-wider text-gray-500">{t('scambi.modal.offers')}</p>
+                {mockAProposal.offeredCredits > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#FF7300]/10 px-2 py-0.5 text-[10px] font-black text-[#FF7300]">
-                    <Coins className="h-3 w-3" /> +{MOCK_A_PROPOSAL.offeredCredits}
+                    <Coins className="h-3 w-3" /> +{mockAProposal.offeredCredits}
                   </span>
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                {MOCK_A_PROPOSAL.offeredCards.map((item, i) => (
+                {mockAProposal.offeredCards.map((item, i) => (
                   <div key={item.id} className="card-shine-wrapper relative h-20 w-14 overflow-hidden rounded-xl shadow-md shadow-black/10 transition-transform duration-200 hover:scale-105" style={{ animationDelay: `${120 + i * 50}ms` }}>
                     <Image src={item.image} alt={item.name} fill unoptimized className="object-cover" sizes="56px" />
                   </div>
@@ -1175,17 +1143,17 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
               </div>
             </div>
 
-            {MOCK_A_PROPOSAL.message && (
+            {mockAProposal.message && (
               <div className="animate-fade-in-up rounded-2xl border-l-4 border-[#FF7300] bg-gradient-to-r from-orange-50 to-white px-4 py-3 shadow-sm" style={{ animationDelay: '140ms' }}>
-                <p className="text-[12px] font-medium italic leading-relaxed text-gray-700">&ldquo;{MOCK_A_PROPOSAL.message}&rdquo;</p>
+                <p className="text-[12px] font-medium italic leading-relaxed text-gray-700">&ldquo;{mockAProposal.message}&rdquo;</p>
               </div>
             )}
 
             <div className="animate-fade-in-up flex items-center gap-2" style={{ animationDelay: '160ms' }}>
-              <span className="text-[11px] font-semibold text-gray-500">Modalità proposta:</span>
-              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black shadow-sm ${MOCK_A_PROPOSAL.isRealtime ? 'bg-[#FF7300] text-white shadow-orange-500/25' : 'bg-gray-100 text-gray-600'}`}>
-                {MOCK_A_PROPOSAL.isRealtime ? <Zap className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                {MOCK_A_PROPOSAL.isRealtime ? 'Realtime' : 'Async'}
+              <span className="text-[11px] font-semibold text-gray-500">{t('scambi.modal.proposalModeLabel')}</span>
+              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black shadow-sm ${mockAProposal.isRealtime ? 'bg-[#FF7300] text-white shadow-orange-500/25' : 'bg-gray-100 text-gray-600'}`}>
+                {mockAProposal.isRealtime ? <Zap className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                {mockAProposal.isRealtime ? t('scambi.modal.modeRealtime') : t('scambi.modal.modeAsync')}
               </span>
             </div>
 
@@ -1195,7 +1163,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                 onClick={handleAccept}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-xs font-black uppercase tracking-wide text-white shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:bg-emerald-600 hover:shadow-xl hover:shadow-emerald-500/35 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
               >
-                <Check className="h-4 w-4" /> Accetta scambio
+                <Check className="h-4 w-4" /> {t('scambi.modal.acceptTrade')}
               </button>
               <button
                 type="button"
@@ -1206,7 +1174,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                     : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md'
                 }`}
               >
-                Modifica proposta
+                {t('scambi.modal.editProposal')}
               </button>
             </div>
           </div>
@@ -1219,23 +1187,23 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                   <Send className="h-6 w-6 text-gray-400" />
                 </div>
                 <p className="animate-fade-in-up text-sm font-bold text-gray-700" style={{ animationDelay: '80ms' }}>
-                  Vuoi rispondere con una controproposta?
+                  {t('scambi.modal.counterPrompt')}
                 </p>
                 <p className="animate-fade-in-up max-w-xs text-[12px] text-gray-500" style={{ animationDelay: '120ms' }}>
-                  Clicca &ldquo;Modifica proposta&rdquo; per chiedere altre carte o crediti.
+                  {t('scambi.modal.counterPromptHint')}
                 </p>
               </div>
             ) : (
               <>
                 {/* Toolbar */}
                 <div className="animate-fade-in-up flex flex-wrap items-center justify-between gap-3 border-b border-gray-200/60 bg-white/80 px-5 py-3 backdrop-blur-sm" style={{ animationDelay: '40ms' }}>
-                  <span className="text-sm font-black uppercase tracking-tight text-[#1D3160]">Cosa chiedi</span>
+                  <span className="text-sm font-black uppercase tracking-tight text-[#1D3160]">{t('scambi.modal.requestSectionTitle')}</span>
                   <div className="flex items-center gap-2">
                     <AuctionViewToggle
                       viewMode={viewMode}
                       onViewModeChange={setViewMode}
-                      listLabel="Lista"
-                      gridLabel="Griglia"
+                      listLabel={t('auctions.viewList')}
+                      gridLabel={t('auctions.viewGrid')}
                     />
                   </div>
                 </div>
@@ -1245,7 +1213,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                     <SearchBar
                       query={searchQuery}
                       onChange={setSearchQuery}
-                      placeholder={`Cerca in ${scambio.seller} o nel catalogo...`}
+                      placeholder={t('scambi.modal.searchRequestPlaceholder', { seller: scambio.seller })}
                     />
                   </div>
 
@@ -1253,7 +1221,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                     <div className="mb-4">
                       <div className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-500">
                         <Package className="h-3.5 w-3.5" />
-                        Disponibili da {scambio.seller}
+                        {t('scambi.modal.availableFromSeller', { seller: scambio.seller })}
                       </div>
                       {viewMode === 'grid' ? (
                         <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
@@ -1303,7 +1271,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                     <div className="mb-4">
                       <div className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-500">
                         <Library className="h-3.5 w-3.5" />
-                        Dal catalogo
+                        {t('scambi.modal.fromCatalog')}
                       </div>
                       {viewMode === 'grid' ? (
                         <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
@@ -1352,7 +1320,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                   {loadingSearch && (
                     <div className="flex items-center gap-2 py-3 text-xs text-gray-500">
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF7300]" />
-                      Ricerca nel catalogo in corso...
+                      {t('scambi.modal.searchingCatalog')}
                     </div>
                   )}
 
@@ -1367,8 +1335,8 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                         <Search className="h-5 w-5 text-gray-400" />
                       </div>
-                      <p className="mt-3 text-sm font-semibold text-gray-600">Nessuna carta trovata</p>
-                      <p className="text-[11px] text-gray-400">Prova a cercare nel catalogo</p>
+                      <p className="mt-3 text-sm font-semibold text-gray-600">{t('scambi.modal.noCardsFound')}</p>
+                      <p className="text-[11px] text-gray-400">{t('scambi.modal.noCardsFoundHint')}</p>
                     </div>
                   )}
                 </div>
@@ -1376,11 +1344,11 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                 {/* Bottom bar */}
                 <div className="animate-fade-in-up flex flex-wrap items-end gap-4 border-t border-gray-200/60 bg-white/90 px-5 py-4 backdrop-blur-md" style={{ animationDelay: '200ms' }}>
                   <div className="flex flex-1 flex-wrap items-end gap-4">
-                    <CreditField value={offeredCredits} onChange={handleOfferedCreditsChange} label="Offri crediti" disabled={requestedCredits > 0} />
-                    <CreditField value={requestedCredits} onChange={handleRequestedCreditsChange} label="Richiedi crediti" disabled={offeredCredits > 0} />
+                    <CreditField value={offeredCredits} onChange={handleOfferedCreditsChange} label={t('scambi.modal.offerCreditsLabel')} disabled={requestedCredits > 0} />
+                    <CreditField value={requestedCredits} onChange={handleRequestedCreditsChange} label={t('scambi.modal.requestCreditsLabel')} disabled={offeredCredits > 0} />
                     <SelectedBadge count={selectedRequestedIds.length} items={Object.values(requestedItemData)} quantities={requestedQuantities} />
                   </div>
-                  <SubmitButton onClick={handleSubmit}>Invia controproposta</SubmitButton>
+                  <SubmitButton onClick={handleSubmit}>{t('scambi.modal.sendCounter')}</SubmitButton>
                 </div>
               </>
             )}

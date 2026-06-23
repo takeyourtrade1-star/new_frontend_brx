@@ -13,7 +13,6 @@ import {
   CheckCircle2,
   Clock,
   Globe,
-  Sparkles,
   Mail,
   Users,
   Lock

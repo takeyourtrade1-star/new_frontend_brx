@@ -13,11 +13,8 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { ScambiProponiModal } from '@/components/feature/scambi/ScambiProponiModal';
 import type { ScambioUI } from '@/components/feature/scambi/scambi-types';
-import {
-  fetchScambioById,
-  getScambiCatalog,
-  getScambioById,
-} from '@/lib/scambi/scambi-catalog';
+import { getScambiCatalog } from '@/lib/scambi/scambi-catalog';
+import { useScambioDetail } from '@/lib/hooks/use-scambio-detail';
 
 const ORANGE = '#FF7300';
 
@@ -29,30 +26,10 @@ function getRandomScambi(catalog: ScambioUI[], excludeNumericId: number, count: 
 
 export function ScambiDetailView({ scambioId }: { scambioId: string }) {
   const { t } = useTranslation();
-  const numericId = parseInt(scambioId, 10);
 
-  const [scambio, setScambio] = useState<ScambioUI | null>(() => getScambioById(scambioId));
-  const [loading, setLoading] = useState(!getScambioById(scambioId));
-
-  useEffect(() => {
-    const cached = getScambioById(scambioId);
-    if (cached) {
-      setScambio(cached);
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    void fetchScambioById(scambioId).then((row) => {
-      if (!cancelled) {
-        setScambio(row);
-        setLoading(false);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [scambioId, numericId]);
+  const { data: scambio, isLoading } = useScambioDetail(scambioId);
+  // initialData può rendere isLoading=false subito; mostriamo loader solo se manca il dato.
+  const loading = isLoading && !scambio;
 
   const detailImages = useMemo(
     () => (scambio ? [scambio.imageFront, scambio.imageBack].filter(Boolean) : []),
@@ -62,10 +39,11 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
   const [imgIdx, setImgIdx] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const similarCards = useMemo(() => {
-    const excludeId = scambio?.numericId ?? -1;
-    return getRandomScambi(getScambiCatalog(), excludeId, 3);
-  }, [scambio]);
+  // Math.random() spostato in useEffect: shuffle server≠client causa hydration mismatch.
+  const [similarCards, setSimilarCards] = useState<ScambioUI[]>([]);
+  useEffect(() => {
+    setSimilarCards(getRandomScambi(getScambiCatalog(), scambio?.numericId ?? -1, 3));
+  }, [scambio?.numericId]);
 
   if (loading) {
     return (

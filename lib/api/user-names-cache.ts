@@ -104,8 +104,9 @@ export async function fetchPublicUserProfiles(
         }
       }),
     );
-  } catch (err: any) {
-    const status = err?.response?.status;
+  } catch (err) {
+    const status = (err as { response?: { status?: number } } | undefined)
+      ?.response?.status;
     if (status === 503 || status === 403 || status === 429) {
       // Short circuit repeated noisy calls when endpoint is temporarily blocked
       // by infra policy (internal token / allowlist / rate limit).

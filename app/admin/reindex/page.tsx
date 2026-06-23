@@ -7,7 +7,7 @@
  */
 
 import { useState } from 'react';
-import { useAuth } from '@/lib/hooks/use-auth';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { SEARCH_ADMIN_API_URL } from '@/lib/config';
 
 function getReindexUrl(): string {
@@ -51,7 +51,8 @@ async function handleReindex(adminKey: string): Promise<{ ok: boolean; message: 
 }
 
 export default function AdminReindexPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const authLoading = useAuthStore((s) => s.isLoading);
   const [adminKey, setAdminKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);

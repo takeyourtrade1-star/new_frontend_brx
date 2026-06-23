@@ -7,7 +7,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LayoutGrid, LayoutList, SlidersHorizontal, Star } from 'lucide-react';
+import { LayoutGrid, LayoutList, Star } from 'lucide-react';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { cn } from '@/lib/utils';

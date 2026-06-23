@@ -9,6 +9,7 @@ import {
   motion,
   type MotionValue
 } from 'framer-motion';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import { Zap, ArrowRight, FileText, Moon } from 'lucide-react';
 
 type Pt = { x: number; y: number };
@@ -631,6 +632,7 @@ function CardBorderFx({
 }
 
 export default function BrxExpressLanding() {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const heroStartRef = useRef<HTMLSpanElement>(null);
   const cardRefs = [
@@ -1064,7 +1066,7 @@ export default function BrxExpressLanding() {
           <div className="brx-moon-pill relative flex items-center gap-2 rounded-full px-4 py-2">
             <Moon className="h-4 w-4 shrink-0 text-amber-200 [filter:drop-shadow(0_0_6px_rgba(251,191,36,0.85))]" />
             <span className="text-[10px] sm:text-xs font-semibold text-indigo-100 whitespace-nowrap">
-              Attenzione! Non garantiamo spedizione in 24h sulla luna.
+              {t('brxExpress.moonDisclaimer')}
             </span>
           </div>
         </div>
@@ -1462,7 +1464,7 @@ export default function BrxExpressLanding() {
             className="inline-flex items-center gap-1.5 rounded-full border border-orange-500/25 px-3 py-0.5 text-[10px] font-bold tracking-wider text-orange-400 uppercase"
           >
             <Zap className="h-3 w-3 text-orange-400" />
-            Spedizione 24h
+            {t('brxExpress.shippingBadge')}
           </span>
         </div>
 
@@ -1471,14 +1473,13 @@ export default function BrxExpressLanding() {
         </h1>
 
         <p className="mt-4 text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          Il network logistico europeo di Ebartex. Spedisci le tue carte una sola volta:
-          le digitalizziamo, le gradiamo e le consegniamo ai compratori in 24 ore.
+          {t('brxExpress.heroDescription')}
         </p>
 
         <div className="mt-6 flex justify-center">
           <button className="relative group overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-3 text-xs font-bold text-white shadow-lg shadow-orange-500/10 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-orange-500/20">
             <span className="relative z-10 flex items-center gap-1.5">
-              Inizia a spedire
+              {t('brxExpress.cta')}
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
             </span>
             <span className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-500 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
@@ -1490,10 +1491,10 @@ export default function BrxExpressLanding() {
       <section className="relative z-20 max-w-6xl mx-auto px-6 py-12">
         <div className="text-center mb-16">
           <h2 className="text-2xl font-extrabold text-white tracking-tight sm:text-3xl">
-            Come Funziona
+            {t('brxExpress.howItWorksTitle')}
           </h2>
           <p className="mt-2 text-sm text-slate-400 max-w-lg mx-auto">
-            Il flusso decentralizzato che elimina lo stress delle spedizioni singole.
+            {t('brxExpress.howItWorksSubtitle')}
           </p>
         </div>
 
@@ -1513,9 +1514,9 @@ export default function BrxExpressLanding() {
                   borderRadius: '52% 48% 68% 32% / 45% 42% 58% 55%'
                 }}
               >
-                <h3 className="text-xl font-bold text-white tracking-tight">Inviaci le tue carte</h3>
+                <h3 className="text-xl font-bold text-white tracking-tight">{t('brxExpress.card1.title')}</h3>
                 <p className="mt-3 text-sm text-slate-400 leading-relaxed">
-                  Raggruppa le tue carte e spediscile all'hub BRX Express più vicino. Al resto pensiamo noi: grading professionale, foto in HD e stoccaggio protetto in camera blindata.
+                  {t('brxExpress.card1.description')}
                 </p>
               </div>
             </div>
@@ -1534,9 +1535,9 @@ export default function BrxExpressLanding() {
                     : 'bg-transparent shadow-none'
                 }`}
               >
-                <h3 className="text-xl font-bold text-white tracking-tight">Vendiamo per te</h3>
+                <h3 className="text-xl font-bold text-white tracking-tight">{t('brxExpress.card2.title')}</h3>
                 <p className="mt-3 text-sm text-slate-400 leading-relaxed">
-                  Le tue carte sono listate sul marketplace a soli 0,30€ a pezzo. Vengono visualizzate sotto un Account Ufficiale Sponsorizzato, garantendo massima visibilità e affidabilità.
+                  {t('brxExpress.card2.description')}
                 </p>
               </div>
             </div>
@@ -1553,9 +1554,9 @@ export default function BrxExpressLanding() {
                     : 'bg-transparent shadow-none'
                 }`}
               >
-                <h3 className="text-xl font-bold text-white tracking-tight">Zero doppie vendite</h3>
+                <h3 className="text-xl font-bold text-white tracking-tight">{t('brxExpress.card3.title')}</h3>
                 <p className="mt-3 text-sm text-slate-400 leading-relaxed">
-                  Eliminiamo alla radice l'incubo del doppio ordinamento. Avendo le carte fisicamente stoccate nei nostri hub regionali, la sincronizzazione dell'inventario è istantanea.
+                  {t('brxExpress.card3.description')}
                 </p>
               </div>
             </div>
@@ -1576,9 +1577,9 @@ export default function BrxExpressLanding() {
                   }`}
                 >
                   <div className="text-center max-w-[210px] flex flex-col items-center">
-                    <h3 className="text-base font-bold text-white tracking-tight">Fulfillment 24h</h3>
+                    <h3 className="text-base font-bold text-white tracking-tight">{t('brxExpress.card4.title')}</h3>
                     <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
-                      All'acquisto, la spedizione parte immediatamente dall'hub locale in cui risiede la carta. Consegna all'acquirente in tutta Europa in sole 24 ore.
+                      {t('brxExpress.card4.description')}
                     </p>
                   </div>
                 </div>
@@ -1604,10 +1605,11 @@ export default function BrxExpressLanding() {
             <div className="flex items-center gap-2 mb-6 justify-center">
               <FileText className="h-5 w-5 text-orange-500" />
               <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Termini e Condizioni
+                {t('brxExpress.termsTitle')}
               </h3>
             </div>
 
+            {/* legal content — intentionally not i18n */}
             <ul
               className={`space-y-4 text-xs sm:text-sm leading-relaxed transition-colors duration-1000 ${
                 finaleOn ? 'text-white' : 'text-slate-400'

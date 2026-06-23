@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Search, ChevronDown, X } from 'lucide-react';
 import { getCardImageUrl } from '@/lib/assets';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -32,6 +32,7 @@ import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { isSellFlow, getProductDetailHref } from '@/lib/sell-flow/sell-flow';
 import { Pagination } from '@/components/ui/Pagination';
 import { useDebounce } from '@/lib/hooks/use-debounce';
+import { useSearchCards } from '@/lib/hooks/use-search';
 
 const LIVE_SEARCH_DEBOUNCE_MS = 350;
 
@@ -74,14 +75,6 @@ const fieldClass =
 
 const fieldClassLarge =
   'min-h-[48px] w-full rounded-[16px] border-2 border-gray-200 bg-[#f2f2f7] px-4 py-3 text-base text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#5AC8FA]/30 focus:border-[#5AC8FA]/50';
-
-interface SearchApiResponse {
-  hits: SearchHit[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
 
 type SinglesHit = SearchHit & {
   rarity?: string;
@@ -274,10 +267,7 @@ export function ProductCategoryView({
   const [raritaInput, setRaritaInput] = useState('');
   const [isRarityOpen, setIsRarityOpen] = useState(false);
   const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
-  const [data, setData] = useState<SearchApiResponse | null>(null);
   const [hasSearched, setHasSearched] = useState(() => Boolean(q || setFilter));
-  const [loading, setLoading] = useState(!sellFlow);
-  const [error, setError] = useState<string | null>(null);
 
   const debouncedNome = useDebounce(nomeInput, LIVE_SEARCH_DEBOUNCE_MS);
   const debouncedEdizione = useDebounce(edizioneInput, LIVE_SEARCH_DEBOUNCE_MS);
@@ -344,45 +334,26 @@ export function ProductCategoryView({
     [sellFlow, triggerLiveSearch]
   );
 
-  const fetchResults = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const params = new URLSearchParams();
-    params.set('game', apiGame);
-    const queryParts: string[] = [];
-    if (fetchNome.trim()) queryParts.push(fetchNome.trim());
-    if (fetchEdizione.trim()) queryParts.push(fetchEdizione.trim());
-    const combinedQ = queryParts.join(' ');
-    if (combinedQ) params.set('q', combinedQ);
-    if (categoryIds.length > 0) {
-      params.set('category_ids', categoryIds.join(','));
-    } else if (categoryId != null) {
-      params.set('category_id', String(categoryId));
-    }
-    params.set('page', String(pageParam));
-    params.set('limit', '30');
-    params.set('sort', sortParam);
-    try {
-      const res = await fetch(`/api/search?${params.toString()}`);
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j?.error || j?.detail || `Errore ${res.status}`);
-      }
-      const json: SearchApiResponse = await res.json();
-      setData(json);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [apiGame, fetchNome, fetchEdizione, categoryIds, categoryId, pageParam, sortParam]);
-
-  useEffect(() => {
-    if (!sellFlow || sellQueryActive) {
-      fetchResults();
-    }
-  }, [fetchResults, sellFlow, sellQueryActive]);
+  // Ricerca via React Query (use-search) invece di useEffect+fetch+useState (regola §2).
+  const combinedQ = [fetchNome.trim(), fetchEdizione.trim()].filter(Boolean).join(' ');
+  const searchEnabled = !sellFlow || sellQueryActive;
+  const {
+    data,
+    isLoading: loading,
+    error: searchError,
+  } = useSearchCards(
+    {
+      q: combinedQ || undefined,
+      game: apiGame,
+      category_id: categoryIds.length > 0 ? null : categoryId,
+      category_ids: categoryIds,
+      page: pageParam,
+      limit: 30,
+      sort: sortParam,
+    },
+    { enabled: searchEnabled },
+  );
+  const error = searchError ? (searchError instanceof Error ? searchError.message : String(searchError)) : null;
 
   const total = data?.total ?? 0;
   const rawHits = (data?.hits ?? []) as SinglesHit[];

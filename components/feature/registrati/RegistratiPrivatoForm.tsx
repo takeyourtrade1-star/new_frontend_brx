@@ -163,7 +163,7 @@ export function RegistratiPrivatoForm() {
       const payload = toRegisterPayloadPrivato({ ...values, website_url: '' });
       await registerUser(payload);
       router.push('/');
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Usa il nuovo sistema di gestione errori con i18n
       authError.setError(err);
       

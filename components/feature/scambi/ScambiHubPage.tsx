@@ -2,7 +2,7 @@
 
 /**
  * Homepage scambi — replica struttura e stile di AsteHubPage ma con dati mockati,
- * senza timer/prezzi e senza sezione "In evidenza / Terminano presto".
+ * senza timer/prezzi e senza sezione "In evidenza / Terminando presto".
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -30,7 +30,7 @@ export function ScambiHubPage() {
 
   const breadcrumbItems: AppBreadcrumbItem[] = [
     { href: '/', label: t('auctions.breadcrumbHome') ?? 'Home', isCurrent: false },
-    { label: 'Scambi', isCurrent: true },
+    { label: t('scambi.hubTitle'), isCurrent: true },
   ];
 
   const [viewMode, setViewMode] = useState<AsteViewMode>('grid');
@@ -47,6 +47,31 @@ export function ScambiHubPage() {
   // Sticky bottom bar states
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [bottomBarExpanded, setBottomBarExpanded] = useState(false);
+
+  const gameOptions = useMemo<
+    { value: 'all' | ScambioGame; label: string }[]
+  >(
+    () => [
+      { value: 'all', label: t('common.all') },
+      { value: 'mtg', label: t('auctions.gameMtg') },
+      { value: 'lorcana', label: t('auctions.gameLorcana') },
+      { value: 'pokemon', label: t('auctions.gamePokemon') },
+      { value: 'op', label: t('auctions.gameOp') },
+      { value: 'ygo', label: t('auctions.gameYgo') },
+      { value: 'other', label: t('auctions.gameOther') },
+    ],
+    [t]
+  );
+
+  const sortOptions = useMemo<
+    { value: SortMode; label: string }[]
+  >(
+    () => [
+      { value: 'new', label: t('scambi.sortNew') },
+      { value: 'alpha', label: t('scambi.sortAlpha') },
+    ],
+    [t]
+  );
 
   useEffect(() => {
     setViewMode(getStoredAsteViewMode(VIEW_STORAGE_KEY));
@@ -110,6 +135,14 @@ export function ScambiHubPage() {
     return copy;
   }, [q, sort, filterGame, filterCondition, scambi]);
 
+  const resultsText = useMemo(
+    () =>
+      filtered.length === 1
+        ? t('scambi.resultOne', { count: filtered.length })
+        : t('scambi.resultMany', { count: filtered.length }),
+    [filtered.length, t]
+  );
+
   return (
     <div className="overflow-x-clip bg-white">
       <ScambiNav />
@@ -127,10 +160,10 @@ export function ScambiHubPage() {
                   <span className="text-xs text-gray-500">{t('scambi.comingSoonHint')}</span>
                 </div>
                 <h1 className="text-3xl font-black uppercase tracking-tight text-[#1D3160] sm:text-4xl">
-                  Scambi
+                  {t('scambi.hubTitle')}
                 </h1>
                 <p className="mt-1 text-sm text-gray-500">
-                  Trova carte collezionabili da scambiare con la community.
+                  {t('scambi.hubSubtitle')}
                 </p>
               </div>
               <button
@@ -138,13 +171,13 @@ export function ScambiHubPage() {
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7300] to-[#FF8800] px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-[#FF7300]/25 transition-all hover:brightness-110 active:scale-95"
               >
                 <ScambiIcon className="h-4 w-4" />
-                Proponi scambio
+                {t('productDetail.scambi.propose')}
               </button>
             </div>
 
             <AppBreadcrumb
               items={breadcrumbItems}
-              ariaLabel="Breadcrumb"
+              ariaLabel={t('accountPage.breadcrumbNav')}
               variant="default"
               className="mb-4 w-auto text-sm"
             />
@@ -162,16 +195,16 @@ export function ScambiHubPage() {
                       type="search"
                       value={q}
                       onChange={(e) => setQ(e.target.value)}
-                      placeholder="Cerca tra gli scambi..."
+                      placeholder={t('scambi.searchPlaceholder')}
                       className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none"
-                      aria-label="Cerca tra gli scambi"
+                      aria-label={t('scambi.searchAria')}
                     />
                     {q && (
                       <button
                         type="button"
                         onClick={() => setQ('')}
                         className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
-                        aria-label="Cancella ricerca"
+                        aria-label={t('common.clearSearch')}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -181,7 +214,7 @@ export function ScambiHubPage() {
                     type="button"
                     className="btn-orange-glow shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs sm:px-4 sm:text-sm"
                   >
-                    Cerca
+                    {t('common.search')}
                   </button>
                 </div>
                 {/* Toggle filtri accanto alla search */}
@@ -192,7 +225,7 @@ export function ScambiHubPage() {
                     'self-center sm:self-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/50 text-white shadow ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 transition-all hover:scale-105 hover:bg-primary/60 active:scale-95',
                     showFilters && 'bg-primary/70 ring-white/20'
                   )}
-                  aria-label={showFilters ? 'Nascondi filtri' : 'Mostra filtri'}
+                  aria-label={showFilters ? t('common.hideFilters') : t('common.showFilters')}
                 >
                   {showFilters ? (
                     <ChevronUp className="h-4 w-4" />
@@ -208,26 +241,24 @@ export function ScambiHubPage() {
               >
                 <div className="flex flex-wrap items-end gap-3 border-b border-gray-200 pb-4">
                   <label className="flex flex-col gap-1 w-full sm:w-auto">
-                    <span className="text-xs font-semibold uppercase text-gray-600">Gioco</span>
+                    <span className="text-xs font-semibold uppercase text-gray-600">{t('game.label')}</span>
                     <select
                       value={filterGame}
                       onChange={(e) => setFilterGame(e.target.value as 'all' | ScambioGame)}
                       className="w-full sm:min-w-[140px] sm:w-auto rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 [color-scheme:light]"
                     >
-                      <option value="all">Tutti</option>
-                      <option value="mtg">MTG</option>
-                      <option value="lorcana">Lorcana</option>
-                      <option value="pokemon">Pokémon</option>
-                      <option value="op">One Piece</option>
-                      <option value="ygo">Yu-Gi-Oh!</option>
-                      <option value="other">Altro</option>
+                      {gameOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <label className="flex flex-col gap-1 w-full sm:w-auto">
-                    <span className="text-xs font-semibold uppercase text-gray-600">Condizione</span>
+                    <span className="text-xs font-semibold uppercase text-gray-600">{t('common.condition')}</span>
                     <input
                       type="text"
-                      placeholder="Es. Near Mint"
+                      placeholder={t('scambi.conditionPlaceholder')}
                       value={filterCondition}
                       onChange={(e) => setFilterCondition(e.target.value)}
                       className="w-full sm:w-[160px] rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
@@ -239,21 +270,24 @@ export function ScambiHubPage() {
 
                   {/* Ordina per + vista */}
                   <label className="flex items-center gap-2 text-sm text-gray-600 w-full sm:w-auto">
-                    <span className="whitespace-nowrap text-xs font-semibold uppercase text-gray-600">Ordina per</span>
+                    <span className="whitespace-nowrap text-xs font-semibold uppercase text-gray-600">{t('common.sortBy')}</span>
                     <select
                       value={sort}
                       onChange={(e) => setSort(e.target.value as SortMode)}
                       className="min-w-[11rem] rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium bg-white text-gray-900 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40"
                     >
-                      <option value="new">Più recenti</option>
-                      <option value="alpha">Alfabetico</option>
+                      {sortOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <AuctionViewToggle
                     viewMode={viewMode}
                     onViewModeChange={setViewMode}
-                    listLabel="Lista"
-                    gridLabel="Griglia"
+                    listLabel={t('auctions.viewList')}
+                    gridLabel={t('auctions.viewGrid')}
                   />
                 </div>
               </div>
@@ -262,14 +296,14 @@ export function ScambiHubPage() {
             {/* Risultati scambi */}
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-medium text-gray-700">
-                {filtered.length} {filtered.length === 1 ? 'risultato' : 'risultati'}
+                {resultsText}
               </p>
             </div>
             <div className="overflow-hidden border border-gray-300 bg-gray-50">
               {loadingCatalog ? (
-                <div className="p-8 text-center text-gray-500 sm:p-16">Caricamento scambi…</div>
+                <div className="p-8 text-center text-gray-500 sm:p-16">{t('scambi.loading')}</div>
               ) : filtered.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 sm:p-16">Nessuno scambio trovato</div>
+                <div className="p-8 text-center text-gray-500 sm:p-16">{t('scambi.noResults')}</div>
               ) : viewMode === 'grid' ? (
                 <ScambiResultsGrid scambi={filtered} />
               ) : (
@@ -295,16 +329,16 @@ export function ScambiHubPage() {
                     type="search"
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
-                    placeholder="Cerca tra gli scambi..."
+                    placeholder={t('scambi.searchPlaceholder')}
                     className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none"
-                    aria-label="Cerca tra gli scambi"
+                    aria-label={t('scambi.searchAria')}
                   />
                   {q && (
                     <button
                       type="button"
                       onClick={() => setQ('')}
                       className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
-                      aria-label="Cancella ricerca"
+                      aria-label={t('common.clearSearch')}
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -314,7 +348,7 @@ export function ScambiHubPage() {
                   type="button"
                   className="shrink-0 whitespace-nowrap rounded-full bg-[#FF7300] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#e86800] sm:px-4 sm:text-sm"
                 >
-                  Cerca
+                  {t('common.search')}
                 </button>
               </div>
               {/* Toggle filtri */}
@@ -325,7 +359,7 @@ export function ScambiHubPage() {
                   'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/50 text-white shadow ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 transition-all hover:scale-105 hover:bg-primary/60 active:scale-95',
                   bottomBarExpanded && 'bg-primary/70 ring-white/20'
                 )}
-                aria-label={bottomBarExpanded ? 'Comprimi filtri' : 'Espandi filtri'}
+                aria-label={bottomBarExpanded ? t('common.collapseFilters') : t('common.expandFilters')}
               >
                 {bottomBarExpanded ? (
                   <ChevronDown className="h-4 w-4" />
@@ -340,27 +374,25 @@ export function ScambiHubPage() {
               <div className="mt-3 overflow-hidden transition-all duration-300">
                 <div className="flex flex-wrap items-end gap-3 border-b border-gray-200 pb-3">
                   <label className="flex flex-col gap-1 w-full sm:w-auto">
-                    <span className="text-xs font-semibold uppercase text-gray-600">Gioco</span>
+                    <span className="text-xs font-semibold uppercase text-gray-600">{t('game.label')}</span>
                     <select
                       value={filterGame}
                       onChange={(e) => setFilterGame(e.target.value as 'all' | ScambioGame)}
                       className="w-full sm:min-w-[140px] sm:w-auto rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 [color-scheme:light]"
                     >
-                      <option value="all">Tutti</option>
-                      <option value="mtg">MTG</option>
-                      <option value="lorcana">Lorcana</option>
-                      <option value="pokemon">Pokémon</option>
-                      <option value="op">One Piece</option>
-                      <option value="ygo">Yu-Gi-Oh!</option>
-                      <option value="other">Altro</option>
+                      {gameOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
                   </label>
 
                   <label className="flex flex-col gap-1 w-full sm:w-auto">
-                    <span className="text-xs font-semibold uppercase text-gray-600">Condizione</span>
+                    <span className="text-xs font-semibold uppercase text-gray-600">{t('common.condition')}</span>
                     <input
                       type="text"
-                      placeholder="Es. Near Mint"
+                      placeholder={t('scambi.conditionPlaceholder')}
                       value={filterCondition}
                       onChange={(e) => setFilterCondition(e.target.value)}
                       className="w-full sm:w-[160px] rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
@@ -372,14 +404,17 @@ export function ScambiHubPage() {
 
                   {/* Sort */}
                   <label className="flex items-center gap-2 text-sm text-gray-600 w-full sm:w-auto">
-                    <span className="whitespace-nowrap text-xs font-semibold uppercase text-gray-600">Ordina per</span>
+                    <span className="whitespace-nowrap text-xs font-semibold uppercase text-gray-600">{t('common.sortBy')}</span>
                     <select
                       value={sort}
                       onChange={(e) => setSort(e.target.value as SortMode)}
                       className="min-w-[11rem] rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium bg-white text-gray-900 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40"
                     >
-                      <option value="new">Più recenti</option>
-                      <option value="alpha">Alfabetico</option>
+                      {sortOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
                   </label>
 
@@ -387,8 +422,8 @@ export function ScambiHubPage() {
                   <AuctionViewToggle
                     viewMode={viewMode}
                     onViewModeChange={setViewMode}
-                    listLabel="Lista"
-                    gridLabel="Griglia"
+                    listLabel={t('auctions.viewList')}
+                    gridLabel={t('auctions.viewGrid')}
                   />
                 </div>
               </div>

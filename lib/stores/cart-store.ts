@@ -10,8 +10,6 @@ interface CartState {
   removeItem: (lineId: string) => void;
   updateQuantity: (lineId: string, quantity: number) => void;
   clearCart: () => void;
-  getItemCount: () => number;
-  getTotal: () => number;
 }
 
 export const useCartStore = create<CartState>()(
@@ -54,13 +52,6 @@ export const useCartStore = create<CartState>()(
         }));
       },
       clearCart: () => set({ items: [] }),
-      getItemCount: () =>
-        get().items.reduce((acc, item) => acc + item.quantity, 0),
-      getTotal: () =>
-        get().items.reduce(
-          (acc, item) => acc + (item.priceCents / 100) * item.quantity,
-          0,
-        ),
     }),
     {
       name: 'ebartex-cart',

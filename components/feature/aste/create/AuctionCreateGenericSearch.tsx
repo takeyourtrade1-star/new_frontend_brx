@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Camera, Loader2, Search } from 'lucide-react';
 import { ScannerModal } from '@/components/feature/scanner/ScannerModal';
 import type { SearchHit } from '@/app/api/search/route';
+import { useSearchCards } from '@/lib/hooks/use-search';
 import {
   auctionGameToSearchParam,
   type AuctionCreateCardSelection,
@@ -14,14 +15,6 @@ import { getCardImageUrl } from '@/lib/assets';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 import { AuctionCardImagePeek } from '@/components/feature/aste/create/AuctionCardImagePeek';
-
-type SearchApiResponse = {
-  hits: SearchHit[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-};
 
 function hitToSelection(hit: SearchHit): AuctionCreateCardSelection {
   return {
@@ -54,9 +47,6 @@ export function AuctionCreateGenericSearch({
   const [searchGame, setSearchGame] = useState<AuctionGame>('mtg');
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
-  const [hits, setHits] = useState<SearchHit[]>([]);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
 
   useEffect(() => {
@@ -66,42 +56,19 @@ export function AuctionCreateGenericSearch({
 
   const apiGame = useMemo(() => auctionGameToSearchParam(searchGame), [searchGame]);
 
-  const fetchSearch = useCallback(async () => {
-    if (!debounced) {
-      setHits([]);
-      setSearchError(null);
-      setLoadingSearch(false);
-      return;
-    }
-    setLoadingSearch(true);
-    setSearchError(null);
-    const params = new URLSearchParams();
-    params.set('q', debounced);
-    params.set('limit', '12');
-    params.set('page', '1');
-    if (apiGame) params.set('game', apiGame);
-    try {
-      const res = await fetch(`/api/search?${params.toString()}`);
-      const json = (await res.json().catch(() => ({}))) as SearchApiResponse & { error?: string; detail?: string };
-      if (!res.ok) {
-        const msg =
-          (typeof json?.error === 'string' && json.error) ||
-          (typeof json?.detail === 'string' && json.detail) ||
-          t('auctions.createSearchError');
-        throw new Error(msg);
-      }
-      setHits(Array.isArray(json.hits) ? json.hits : []);
-    } catch (e) {
-      setHits([]);
-      setSearchError(e instanceof Error ? e.message : t('auctions.createSearchError'));
-    } finally {
-      setLoadingSearch(false);
-    }
-  }, [debounced, apiGame, t]);
-
-  useEffect(() => {
-    void fetchSearch();
-  }, [fetchSearch]);
+  // Ricerca via React Query (regola §2) invece di useEffect+fetch+useState.
+  const {
+    data: searchData,
+    isLoading: loadingSearch,
+    error: searchErr,
+  } = useSearchCards(
+    { q: debounced || undefined, game: apiGame || undefined, limit: 12, page: 1 },
+    { enabled: Boolean(debounced) },
+  );
+  const hits = searchData?.hits ?? [];
+  const searchError = searchErr
+    ? (searchErr instanceof Error ? searchErr.message : t('auctions.createSearchError'))
+    : null;
 
   const handleSelect = useCallback(
     (sel: AuctionCreateCardSelection) => {

@@ -42,7 +42,7 @@ export function RegistratiForm() {
   });
 
   function onSubmit(_data: RegistratiStep1Values) {
-    // TODO: salva dati step 1 e passa a indirizzo
+    // FE-TODO-001: salva dati step 1 e passa a indirizzo (vedi docs/backlog/fe-open-todos.md)
     router.push('/registrati/indirizzo');
   }
 

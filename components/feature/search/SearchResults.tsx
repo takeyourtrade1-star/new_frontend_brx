@@ -19,8 +19,6 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Search,
-  ChevronLeft,
-  ChevronRight,
   Rows3,
   Grid2x2,
   SlidersHorizontal,

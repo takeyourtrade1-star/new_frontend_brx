@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight } from 'lucide-react';
@@ -105,11 +106,13 @@ export function IOSInstallPrompt() {
                 </button>
 
                 {/* Logo EbarteX */}
-                <div className="flex justify-center mb-4">
-                  <img
+                <div className="relative mx-auto mb-4 h-16 w-16 overflow-hidden rounded-2xl shadow-lg">
+                  <Image
                     src="/logo-pwa.svg"
                     alt="EbarteX"
-                    className="w-16 h-16 rounded-2xl shadow-lg"
+                    fill
+                    className="object-cover"
+                    unoptimized
                   />
                 </div>
 

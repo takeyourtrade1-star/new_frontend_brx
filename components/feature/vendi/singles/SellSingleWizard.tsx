@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
 
 import { QRCodeSVG } from 'qrcode.react';
 import { Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Loader2, QrCode, Tag } from 'lucide-react';
@@ -929,11 +930,15 @@ export function SellSingleWizard({
               )
             }
           >
-            <img
-              src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.front ?? '/conditions/near-mint-front.jpeg'}
-              alt="Fronte"
-              className="h-full w-full object-contain p-1"
-            />
+            <div className="relative h-full w-full p-1">
+              <Image
+                src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.front ?? '/conditions/near-mint-front.jpeg'}
+                alt="Fronte"
+                fill
+                sizes="(max-width: 640px) 45vw, 280px"
+                className="object-contain"
+              />
+            </div>
           </button>
           <button
             type="button"
@@ -944,11 +949,15 @@ export function SellSingleWizard({
               )
             }
           >
-            <img
-              src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.back ?? '/conditions/near-mint-back.jpeg'}
-              alt="Retro"
-              className="h-full w-full object-contain p-1"
-            />
+            <div className="relative h-full w-full p-1">
+              <Image
+                src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.back ?? '/conditions/near-mint-back.jpeg'}
+                alt="Retro"
+                fill
+                sizes="(max-width: 640px) 45vw, 280px"
+                className="object-contain"
+              />
+            </div>
           </button>
         </div>
         <p className="mt-3 text-center text-xs text-zinc-500">Tocca un&apos;immagine per ingrandire</p>
@@ -1009,18 +1018,26 @@ export function SellSingleWizard({
             </p>
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white">
-                <img
-                  src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.front ?? '/conditions/near-mint-front.jpeg'}
-                  alt="Fronte esempio"
-                  className="h-full w-full object-contain p-1"
-                />
+                <div className="relative h-full w-full p-1">
+                  <Image
+                    src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.front ?? '/conditions/near-mint-front.jpeg'}
+                    alt="Fronte esempio"
+                    fill
+                    sizes="(max-width: 640px) 45vw, 280px"
+                    className="object-contain"
+                  />
+                </div>
               </div>
               <div className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white">
-                <img
-                  src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.back ?? '/conditions/near-mint-back.jpeg'}
-                  alt="Retro esempio"
-                  className="h-full w-full object-contain p-1"
-                />
+                <div className="relative h-full w-full p-1">
+                  <Image
+                    src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.back ?? '/conditions/near-mint-back.jpeg'}
+                    alt="Retro esempio"
+                    fill
+                    sizes="(max-width: 640px) 45vw, 280px"
+                    className="object-contain"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -1037,7 +1054,9 @@ export function SellSingleWizard({
                   if (!url) return null;
                   return (
                     <div key={i} className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white">
-                      <img src={url} alt={`Foto ${i + 1}`} className="h-full w-full object-contain p-1" />
+                      <div className="relative h-full w-full p-1">
+                        <Image src={url} alt={`Foto ${i + 1}`} fill sizes="(max-width: 640px) 45vw, 280px" className="object-contain" />
+                      </div>
                     </div>
                   );
                 })}

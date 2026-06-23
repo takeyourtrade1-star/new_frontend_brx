@@ -13,10 +13,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTimeoutFn } from '@/lib/hooks/use-timeout-fn';
 import { 
-  AlertCircle, 
-  ShieldAlert, 
-  Clock, 
+  AlertCircle,
+  Clock,
   WifiOff, 
   ServerOff,
   X,
@@ -153,6 +153,7 @@ export function AuthErrorAlert({
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [progress, setProgress] = useState(100);
+  const setDismissTimeout = useTimeoutFn();
 
   const config = getErrorConfig(error.error?.code);
   const Icon = config.icon;
@@ -171,10 +172,8 @@ export function AuthErrorAlert({
     if (error.isRateLimitError && error.retryAfter > 0) {
       const totalSeconds = error.error?.retryAfterSeconds || error.retryAfter;
       const interval = setInterval(() => {
-        setProgress(prev => {
-          const newProgress = (error.retryAfter / totalSeconds) * 100;
-          return newProgress;
-        });
+        // Decrementa da prev: la barra ora cala realmente nel tempo.
+        setProgress(prev => Math.max(0, prev - (100 / totalSeconds)));
       }, 1000);
       return () => clearInterval(interval);
     }
@@ -182,7 +181,7 @@ export function AuthErrorAlert({
 
   const handleDismiss = () => {
     setIsExiting(true);
-    setTimeout(() => {
+    setDismissTimeout(() => {
       setIsVisible(false);
       error.clearError();
       onDismiss?.();

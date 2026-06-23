@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { X, Send, Camera, ImageIcon, FileText, Bug, CheckCircle2, HelpCircle, MessageSquare, ArrowRight, Sparkles, Shirt } from 'lucide-react';
 import { CardLoader } from '@/components/dev/CardLoader';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   ACCESSORY_ITEMS,
   ALL_WARDROBE_ITEMS,
@@ -12,12 +12,8 @@ import {
   DEFAULT_FACE_COLOR_ID,
   FACE_COLOR_OPTIONS,
   OBJECT_ITEMS,
-  getItemRenderClassName,
-  getItemOverlayStyle,
-  getItemRenderEnhancementStyle,
   type Category,
   type EquippedItems,
-  type FaceColorId,
   type WardrobeItem,
 } from './mascotte-wardrobe';
 import { AssoHintBubble } from '@/components/dev/AssoHintBubble';
@@ -30,287 +26,32 @@ import {
   getAssoBubbleBottom,
 } from '@/lib/asso-layout';
 import { getTournamentsPortalUrl } from '@/lib/config/tournaments';
-
-// Storage keys for bug report data
-const BUG_REPORT_STORAGE = {
-  SCREENSHOT: 'brx_bug_screenshot',
-  CONSOLE_LOGS: 'brx_bug_console_logs',
-  CATEGORY: 'brx_bug_category',
-  TIMESTAMP: 'brx_bug_timestamp',
-};
-
-const Z_INDEX = {
-  mascotteBase: 9999,
-  modal: 10000,
-  mascotteOverlay: 10002,
-  tooltip: 10003,
-  screenshotPreview: 99998,
-  flash: 99999,
-} as const;
-
-const EXPRESSION_TRANSITION_MS = 140;
-const CODING_PREVIEW_MS = 900;
-const SUBMIT_FEEDBACK_MS = 1400;
-const BUG_MODAL_FADE_MS = 220;
-const WARDROBE_STORAGE_KEY = 'brx_mascotte_wardrobe_v1';
-
-function isValidFaceColorId(value: unknown): value is FaceColorId {
-  return typeof value === 'string' && FACE_COLOR_OPTIONS.some((option) => option.id === value);
-}
-
-// Console log capture
-interface ConsoleLog {
-  type: 'log' | 'error' | 'warn';
-  message: string;
-  timestamp: number;
-}
-
-let capturedLogs: ConsoleLog[] = [];
-let originalConsole = {
-  log: console.log,
-  error: console.error,
-  warn: console.warn,
-};
-let isConsoleCaptureActive = false;
-
-// Patterns to exclude from bug report logs (internal debug noise)
-const EXCLUDED_LOG_PATTERNS = [
-  /Found pupils/i,
-  /ðŸ‘ï¸/,
-  /Mouse tracking effect mounted/i,
-  /faceContainerRef is null/i,
-  /cardRef is null/i,
-  /Mousemove listener/i,
-];
-
-function shouldExcludeLog(message: string): boolean {
-  return EXCLUDED_LOG_PATTERNS.some(pattern => pattern.test(message));
-}
-
-function safeSerializeArg(arg: unknown): string {
-  if (arg instanceof Error) {
-    return arg.stack || arg.message;
-  }
-
-  if (typeof arg === 'string') {
-    return arg;
-  }
-
-  if (typeof arg === 'object' && arg !== null) {
-    try {
-      return JSON.stringify(arg);
-    } catch {
-      return '[unserializable object]';
-    }
-  }
-
-  return String(arg);
-}
-
-function serializeArgs(args: unknown[]): string {
-  const message = args.map(safeSerializeArg).join(' ');
-  return message.length > 1200 ? `${message.slice(0, 1200)}...[truncated]` : message;
-}
-
-function startConsoleCapture() {
-  if (isConsoleCaptureActive) return;
-  isConsoleCaptureActive = true;
-  capturedLogs = [];
-  const MAX_LOGS = 200;
-
-  console.log = (...args: unknown[]) => {
-    originalConsole.log(...args);
-    const message = serializeArgs(args);
-    if (shouldExcludeLog(message)) return;
-    capturedLogs.push({
-      type: 'log',
-      message,
-      timestamp: Date.now(),
-    });
-    if (capturedLogs.length > MAX_LOGS) capturedLogs.shift();
-  };
-
-  console.error = (...args: unknown[]) => {
-    originalConsole.error(...args);
-    const message = serializeArgs(args);
-    if (shouldExcludeLog(message)) return;
-    capturedLogs.push({
-      type: 'error',
-      message,
-      timestamp: Date.now(),
-    });
-    if (capturedLogs.length > MAX_LOGS) capturedLogs.shift();
-  };
-
-  console.warn = (...args: unknown[]) => {
-    originalConsole.warn(...args);
-    const message = serializeArgs(args);
-    if (shouldExcludeLog(message)) return;
-    capturedLogs.push({
-      type: 'warn',
-      message,
-      timestamp: Date.now(),
-    });
-    if (capturedLogs.length > MAX_LOGS) capturedLogs.shift();
-  };
-}
-
-function stopConsoleCapture() {
-  if (!isConsoleCaptureActive) return;
-  console.log = originalConsole.log;
-  console.error = originalConsole.error;
-  console.warn = originalConsole.warn;
-  isConsoleCaptureActive = false;
-}
-
-function getRecentLogs(seconds: number = 60): ConsoleLog[] {
-  const cutoff = Date.now() - (seconds * 1000);
-  return capturedLogs.filter(log => log.timestamp >= cutoff);
-}
-
-function inferBugCategory(url: string): string {
-  const path = url.toLowerCase();
-  if (path.includes('/account') || path.includes('/login') || path.includes('/register')) return 'account';
-  if (path.includes('/search') || path.includes('/product') || path.includes('/carta')) return 'search';
-  if (path.includes('/cart') || path.includes('/checkout')) return 'payment';
-  if (path.includes('/auction') || path.includes('/asta')) return 'auction';
-  if (path.includes('/acquisti') || path.includes('/ordini')) return 'orders';
-  if (path.includes('/vendi') || path.includes('/inventory')) return 'selling';
-  if (path.includes('/messaggi') || path.includes('/chat')) return 'messaging';
-  if (path.includes('/games')) return 'games';
-  return 'functional';
-}
-
-const faceSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Eyes: light stroke behind (thicker) -->
-  <circle class="face-halo" cx="35" cy="39" r="11.5" stroke="#faf9f6" stroke-width="3.5"/>
-  <circle class="face-halo" cx="65" cy="39" r="11.5" stroke="#faf9f6" stroke-width="3.5"/>
-  <!-- Eyes: dark stroke on top -->
-  <circle class="face-line" cx="35" cy="39" r="11.5" stroke="#4a5548" stroke-width="2.5"/>
-  <circle class="face-line" cx="65" cy="39" r="11.5" stroke="#4a5548" stroke-width="2.5"/>
-  <!-- Pupils and highlights -->
-  <circle class="pupil" cx="35" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
-  <circle class="pupil-highlight" cx="32.3" cy="36.4" r="2.2" fill="#faf9f6" stroke="none"/>
-  <circle class="pupil" cx="65" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
-  <circle class="pupil-highlight" cx="62.3" cy="36.4" r="2.2" fill="#faf9f6" stroke="none"/>
-  <!-- Mouth: light stroke behind -->
-  <path class="face-halo" d="M 34 63 Q 50 77 66 63" stroke="#faf9f6" stroke-width="4.2" fill="none"/>
-  <!-- Mouth: dark stroke on top -->
-  <path class="face-line" d="M 34 63 Q 50 77 66 63" stroke="#4a5548" stroke-width="3.2" fill="none"/>
-</svg>`;
-
-const faceBugReportSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Eyes: light stroke behind -->
-  <circle class="face-halo" cx="34" cy="40" r="10" stroke="#faf9f6" stroke-width="3.2"/>
-  <circle class="face-halo" cx="66" cy="40" r="10" stroke="#faf9f6" stroke-width="3.2"/>
-  <!-- Eyes: dark stroke on top -->
-  <circle class="face-line" cx="34" cy="40" r="10" stroke="#4a5548" stroke-width="2.2"/>
-  <circle class="face-line" cx="66" cy="40" r="10" stroke="#4a5548" stroke-width="2.2"/>
-  <!-- Pupils and highlights -->
-  <circle class="pupil" cx="34" cy="41" r="4" fill="#4a5548" stroke="none"/>
-  <circle class="pupil-highlight" cx="31.6" cy="37.2" r="1.5" fill="#faf9f6" stroke="none"/>
-  <circle class="pupil" cx="66" cy="41" r="4" fill="#4a5548" stroke="none"/>
-  <circle class="pupil-highlight" cx="63.6" cy="37.2" r="1.5" fill="#faf9f6" stroke="none"/>
-  <!-- Monitor frame -->
-  <rect x="20" y="29" width="60" height="23" rx="4.5" stroke-width="2.1" fill="none" stroke="#faf9f6"/>
-  <line x1="50" y1="33" x2="50" y2="48" stroke-width="1.7" stroke="#faf9f6"/>
-  <line x1="20" y1="41" x2="16" y2="39" stroke-width="1.8" stroke="#faf9f6"/>
-  <line x1="80" y1="41" x2="84" y2="39" stroke-width="1.8" stroke="#faf9f6"/>
-  <path class="bug-glint bug-glint-1" d="M 28 34 L 34 31" stroke="#faf9f6" stroke-width="1.4"/>
-  <path class="bug-glint bug-glint-2" d="M 62 35 L 68 32" stroke="#faf9f6" stroke-width="1.4"/>
-  <!-- Mouth: light behind, dark on top -->
-  <path class="face-halo bug-mouth" d="M 44 65 Q 50 69 56 65" stroke="#faf9f6" stroke-width="3.8" fill="none"/>
-  <path class="face-line bug-mouth" d="M 44 65 Q 50 69 56 65" stroke="#4a5548" stroke-width="2.8" fill="none"/>
-</svg>`;
-
-const faceBugFocusSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Narrowed (squint) eye outlines: light behind -->
-  <ellipse class="face-halo" cx="34" cy="40" rx="10" ry="6.2" stroke="#faf9f6" stroke-width="3.2"/>
-  <ellipse class="face-halo" cx="66" cy="40" rx="10" ry="6.2" stroke="#faf9f6" stroke-width="3.2"/>
-  <!-- Eyes: dark on top -->
-  <ellipse class="face-line" cx="34" cy="40" rx="10" ry="6.2" stroke="#4a5548" stroke-width="2.2"/>
-  <circle class="pupil" cx="34" cy="40.2" r="3.4" fill="#4a5548" stroke="none"/>
-  <circle class="pupil-highlight" cx="31.9" cy="37.7" r="1.2" fill="#faf9f6" stroke="none"/>
-  <ellipse class="face-line" cx="66" cy="40" rx="10" ry="6.2" stroke="#4a5548" stroke-width="2.2"/>
-  <circle class="pupil" cx="66" cy="40.2" r="3.4" fill="#4a5548" stroke="none"/>
-  <circle class="pupil-highlight" cx="63.9" cy="37.7" r="1.2" fill="#faf9f6" stroke="none"/>
-  <rect x="20" y="29" width="60" height="23" rx="4.5" stroke-width="2.1" fill="none" stroke="#faf9f6"/>
-  <line x1="50" y1="33" x2="50" y2="48" stroke-width="1.7" stroke="#faf9f6"/>
-  <line x1="20" y1="41" x2="16" y2="39" stroke-width="1.8" stroke="#faf9f6"/>
-  <line x1="80" y1="41" x2="84" y2="39" stroke-width="1.8" stroke="#faf9f6"/>
-  <path class="bug-glint bug-glint-1" d="M 28 34 L 34 31" stroke="#faf9f6" stroke-width="1.4"/>
-  <path class="bug-glint bug-glint-2" d="M 62 35 L 68 32" stroke="#faf9f6" stroke-width="1.4"/>
-  <!-- Mouth: light behind, dark on top -->
-  <path class="face-halo bug-mouth" d="M 45 65 Q 50 67.5 55 65" stroke="#faf9f6" stroke-width="3.7" fill="none"/>
-  <path class="face-line bug-mouth" d="M 45 65 Q 50 67.5 55 65" stroke="#4a5548" stroke-width="2.7" fill="none"/>
-</svg>`;
-
-const faceWinkSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Wink eye: light behind, dark on top -->
-  <path class="face-halo" d="M 24 40 Q 34 32 44 40" stroke="#faf9f6" stroke-width="4.4"/>
-  <path class="face-line" d="M 24 40 Q 34 32 44 40" stroke="#4a5548" stroke-width="3.4"/>
-  <!-- Open eye: light behind -->
-  <circle class="face-halo" cx="67" cy="39" r="11.2" stroke="#faf9f6" stroke-width="3.5"/>
-  <!-- Open eye: dark on top -->
-  <circle class="face-line" cx="67" cy="39" r="11.2" stroke="#4a5548" stroke-width="2.5"/>
-  <circle class="pupil" cx="67" cy="40" r="5.6" fill="#4a5548" stroke="none"/>
-  <circle class="pupil-highlight" cx="64.4" cy="36.4" r="2.1" fill="#faf9f6" stroke="none"/>
-  <!-- Mouth: light behind, dark on top -->
-  <path class="face-halo" d="M 39 63 Q 54 72 68 62" stroke="#faf9f6" stroke-width="4.2" fill="none"/>
-  <path class="face-line" d="M 39 63 Q 54 72 68 62" stroke="#4a5548" stroke-width="3.2" fill="none"/>
-</svg>`;
-
-const faceCodingSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Eyes: light behind -->
-  <circle class="face-halo" cx="35" cy="38" r="14" stroke="#faf9f6" stroke-width="3.5"/>
-  <circle class="face-halo" cx="65" cy="38" r="14" stroke="#faf9f6" stroke-width="3.5"/>
-  <!-- Eyes: dark on top -->
-  <circle class="face-line" cx="35" cy="38" r="14" stroke="#4a5548" stroke-width="2.5"/>
-  <circle class="face-line" cx="65" cy="38" r="14" stroke="#4a5548" stroke-width="2.5"/>
-  <!-- Pupils -->
-  <circle class="pupil" cx="35" cy="38.6" r="3.6" fill="#4a5548" stroke="none"/>
-  <circle class="pupil" cx="65" cy="38.6" r="3.6" fill="#4a5548" stroke="none"/>
-  <!-- Mouth: light behind, dark on top -->
-  <path class="face-halo coding-mouth" d="M 36 66 Q 50 63.8 64 66" stroke="#faf9f6" stroke-width="4" fill="none"/>
-  <path class="face-line coding-mouth" d="M 36 66 Q 50 63.8 64 66" stroke="#4a5548" stroke-width="3" fill="none"/>
-  <!-- Glasses/monitor frame -->
-  <rect x="20" y="24" width="60" height="28" rx="3" stroke-width="2.5" fill="none" stroke="#faf9f6"/>
-  <line x1="50" y1="24" x2="50" y2="52" stroke-width="2" stroke="#faf9f6"/>
-</svg>`;
-
-const faceSleepSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Closed eyes: light behind, dark on top -->
-  <path class="face-halo" d="M 24 40 Q 34 48 44 40" stroke="#faf9f6" stroke-width="3.8" fill="none"/>
-  <path class="face-halo" d="M 56 40 Q 66 48 76 40" stroke="#faf9f6" stroke-width="3.8" fill="none"/>
-  <path class="face-line" d="M 24 40 Q 34 48 44 40" stroke="#4a5548" stroke-width="2.8" fill="none"/>
-  <path class="face-line" d="M 56 40 Q 66 48 76 40" stroke="#4a5548" stroke-width="2.8" fill="none"/>
-  <!-- Small sleepy mouth -->
-  <ellipse cx="50" cy="68" rx="3" ry="2" fill="#faf9f6" stroke="none"/>
-  <!-- Gentle blush marks -->
-  <ellipse cx="22" cy="52" rx="5" ry="3" fill="#ff9999" stroke="none" opacity="0.4"/>
-  <ellipse cx="78" cy="52" rx="5" ry="3" fill="#ff9999" stroke="none" opacity="0.4"/>
-</svg>`;
-
-const faceShockedSVG = `<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Eyes: huge shocked circles -->
-  <circle class="face-halo" cx="35" cy="38" r="13" stroke="#faf9f6" stroke-width="3.5"/>
-  <circle class="face-halo" cx="65" cy="38" r="13" stroke="#faf9f6" stroke-width="3.5"/>
-  <circle class="face-line" cx="35" cy="38" r="13" stroke="#4a5548" stroke-width="2.5"/>
-  <circle class="face-line" cx="65" cy="38" r="13" stroke="#4a5548" stroke-width="2.5"/>
-  <!-- Pupils: tiny for shock -->
-  <circle class="pupil" cx="35" cy="38" r="3.5" fill="#4a5548" stroke="none"/>
-  <circle class="pupil-highlight" cx="32.5" cy="35.5" r="1.8" fill="#faf9f6" stroke="none"/>
-  <circle class="pupil" cx="65" cy="38" r="3.5" fill="#4a5548" stroke="none"/>
-  <circle class="pupil-highlight" cx="62.5" cy="35.5" r="1.8" fill="#faf9f6" stroke="none"/>
-  <!-- Mouth: O shape -->
-  <ellipse class="face-halo" cx="50" cy="68" rx="10" ry="9" stroke="#faf9f6" stroke-width="4" fill="none"/>
-  <ellipse class="face-line" cx="50" cy="68" rx="10" ry="9" stroke="#4a5548" stroke-width="3" fill="none"/>
-  <!-- Inner mouth depth -->
-  <ellipse cx="50" cy="68" rx="6" ry="5.5" fill="#4a5548" stroke="none" opacity="0.12"/>
-</svg>`;
+import { CardMascotteOverlays } from '@/components/dev/card-mascotte/CardMascotteOverlays';
+import { CardMascotteWidget } from '@/components/dev/card-mascotte/CardMascotteWidget';
+import { AssoChatModal } from '@/components/dev/card-mascotte/AssoChatModal';
+import { BugReportModal } from '@/components/dev/card-mascotte/BugReportModal';
+import { WardrobePanel } from '@/components/dev/card-mascotte/WardrobePanel';
+import { CardMascotteStyles } from '@/components/dev/card-mascotte/CardMascotteStyles';
+import {
+  BUG_REPORT_STORAGE,
+  CODING_PREVIEW_MS,
+  EXPRESSION_TRANSITION_MS,
+  SUBMIT_FEEDBACK_MS,
+  WARDROBE_STORAGE_KEY,
+  Z_INDEX,
+} from '@/components/dev/card-mascotte/constants';
+import { inferBugCategory, isValidFaceColorId } from '@/components/dev/card-mascotte/infer-bug-category';
+import { getRecentLogs } from '@/lib/dev/log-capture';
+import { useConsoleLogCapture } from '@/lib/hooks/use-console-log-capture';
+import { useTimeouts } from '@/lib/hooks/use-timeout-fn';
 
 export function CardMascotte() {
   const authUser = useAuthStore((s) => s.user);
+  const { t } = useTranslation();
+
+  // FE-REV-016: timeout di animazioni (particelle flip, transizioni chat, flash/preview) con cleanup
+  // automatico allo smontaggio, per evitare setState post-unmount.
+  const scheduleTimeout = useTimeouts();
 
   // Safe mount check
   const [isMounted, setIsMounted] = useState(false);
@@ -329,10 +70,11 @@ export function CardMascotte() {
   }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { hasConsoleLogs, setHasConsoleLogs, showConsoleLogs, setShowConsoleLogs } =
+    useConsoleLogCapture(isModalOpen);
   const [submitted, setSubmitted] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [screenshot, setScreenshot] = useState<string | null>(null);
-  const [hasConsoleLogs, setHasConsoleLogs] = useState(false);
 
   // Flash animation state for screenshot
   const [showFlash, setShowFlash] = useState(false);
@@ -394,6 +136,12 @@ export function CardMascotte() {
   const snoreOscillatorRef = useRef<OscillatorNode | null>(null);
   const snoreGainRef = useRef<GainNode | null>(null);
   const SLEEP_DELAY_MS = 15000; // 15 seconds
+  // FE-REV-015: ref del totale accumulato, così l'effect inattività non si rilega (teardown/rebind
+  // dei 5 listener document) a ogni risveglio quando totalSleepMs viene aggiornato.
+  const totalSleepMsRef = useRef(totalSleepMs);
+  useEffect(() => {
+    totalSleepMsRef.current = totalSleepMs;
+  }, [totalSleepMs]);
 
   // Sync isSleeping ref with state
   useEffect(() => {
@@ -410,7 +158,6 @@ export function CardMascotte() {
     priority: 'medium',
     url: '',
   });
-  const [showConsoleLogs, setShowConsoleLogs] = useState(false);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const faceContainerRef = useRef<HTMLDivElement>(null);
@@ -487,16 +234,8 @@ export function CardMascotte() {
     }
   }, [equippedItems]);
 
-  // Force shocked expression when cigar-xl is equipped (mouth becomes O)
-  useEffect(() => {
-    const hasCigar = equippedItems.accessories.includes('cigar-xl');
-    if (hasCigar) {
-      setMascotteExpression('shocked');
-    } else if (mascotteExpression === 'shocked') {
-      setMascotteExpression('normal');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equippedItems.accessories]);
+  // FE-REV-014: l'espressione "shocked" del sigaro è ora gestita nella catena di priorità
+  // unica (vedi effect "Keep expression in sync"), per non essere sovrascritta dall'effect overlay.
 
   useEffect(() => {
     if (!isWardrobeOpen) {
@@ -823,15 +562,15 @@ export function CardMascotte() {
       color: colors[Math.floor(Math.random() * colors.length)],
     }));
     setGoldenConfetti(pieces);
-    setTimeout(() => setGoldenConfetti([]), 3500);
-  }, []);
+    scheduleTimeout(() => setGoldenConfetti([]), 3500);
+  }, [scheduleTimeout]);
 
   const triggerEasterEgg = useCallback(() => {
     setEasterEggActive(true);
     playFanfareSound();
     spawnGoldenConfetti();
-    setTimeout(() => setEasterEggActive(false), 2000);
-  }, [playFanfareSound, spawnGoldenConfetti]);
+    scheduleTimeout(() => setEasterEggActive(false), 2000);
+  }, [playFanfareSound, spawnGoldenConfetti, scheduleTimeout]);
 
   const playShinySound = useCallback(() => {
     try {
@@ -872,8 +611,8 @@ export function CardMascotte() {
       };
     });
     setFlipParticles(newParticles);
-    setTimeout(() => setFlipParticles([]), 700);
-  }, []);
+    scheduleTimeout(() => setFlipParticles([]), 700);
+  }, [scheduleTimeout]);
 
   const doFlip = useCallback(() => {
     const now = Date.now();
@@ -921,7 +660,7 @@ export function CardMascotte() {
     setBackVariant(BACK_VARIANTS.indexOf(available[Math.floor(Math.random() * available.length)]));
     setIsFlipping(true);
     setIsFlipped(prev => !prev);
-    setTimeout(() => setIsFlipping(false), 650);
+    scheduleTimeout(() => setIsFlipping(false), 650);
 
     // Check for newly unlocked variant
     const justUnlocked = BACK_VARIANTS.find(v => v.unlock === newCount);
@@ -957,7 +696,7 @@ export function CardMascotte() {
     if (newCount === 100) {
       triggerEasterEgg();
     }
-  }, [flipCount, comboCount, vibrate, spawnFlipParticles, playFlipSound, playShinySound, playAchievementSound, playUnlockSound, triggerEasterEgg, BACK_VARIANTS]);
+  }, [flipCount, comboCount, vibrate, spawnFlipParticles, playFlipSound, playShinySound, playAchievementSound, playUnlockSound, triggerEasterEgg, BACK_VARIANTS, scheduleTimeout]);
 
   // Share achievement
   const handleShare = useCallback(async () => {
@@ -970,10 +709,10 @@ export function CardMascotte() {
       } else {
         await navigator.clipboard.writeText(text);
         setCopiedShare(true);
-        setTimeout(() => setCopiedShare(false), 1800);
+        scheduleTimeout(() => setCopiedShare(false), 1800);
       }
     } catch { }
-  }, [flipCount, getCurrentTitle, vibrate]);
+  }, [flipCount, getCurrentTitle, vibrate, scheduleTimeout]);
 
   // â”€â”€ Touch swipe (mobile) â”€â”€
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -1142,11 +881,11 @@ export function CardMascotte() {
   chatTypewriterCompleteRef.current = () => {
     const text = chatWelcomeTextRef.current;
     setChatMessages([{ type: 'asso', text }]);
-    window.setTimeout(() => setChatStep('menu'), ASSO_MESSAGE_CHAT_MS.menuAfterGreeting);
+    scheduleTimeout(() => setChatStep('menu'), ASSO_MESSAGE_CHAT_MS.menuAfterGreeting);
   };
 
   // Handle chat modal close
-  const handleChatModalClose = () => {
+  const handleChatModalClose = useCallback(() => {
     setShowChatModal(false);
     setIsTyping(false);
 
@@ -1156,9 +895,9 @@ export function CardMascotte() {
     }
 
     chatTypewriter.cancel();
-  };
+  }, [chatTypewriter]);
 
-  const resetCodingCompanion = () => {
+  const resetCodingCompanion = useCallback(() => {
     if (codingTransitionTimeoutRef.current !== null) {
       window.clearTimeout(codingTransitionTimeoutRef.current);
       codingTransitionTimeoutRef.current = null;
@@ -1171,7 +910,71 @@ export function CardMascotte() {
     setShowCodingCompanion(false);
     setCodingStatus('compiling');
     setIsBugFormFocused(false);
-  };
+  }, []);
+
+  const handleChatFaqClick = useCallback(() => {
+    setChatMessages(prev => [...prev, { type: 'user', text: t('asso.chat.intentFaq') }]);
+    scheduleTimeout(() => {
+      handleChatModalClose();
+      window.location.href = '/aiuto';
+    }, 300);
+  }, [t, handleChatModalClose, scheduleTimeout]);
+
+  const handleChatBugClick = useCallback(() => {
+    setChatMessages(prev => [...prev, { type: 'user', text: t('asso.chat.intentBug') }]);
+    setChatStep('bug');
+    setShowChatModal(false);
+    setShowCodingCompanion(true);
+    setCodingStatus('compiling');
+    setIsCodingTransition(true);
+    if (codingTransitionTimeoutRef.current !== null) {
+      window.clearTimeout(codingTransitionTimeoutRef.current);
+    }
+    codingTransitionTimeoutRef.current = window.setTimeout(() => {
+      setIsCodingTransition(false);
+      setIsModalOpen(true);
+      codingTransitionTimeoutRef.current = null;
+    }, CODING_PREVIEW_MS);
+  }, [t]);
+
+  const handleChatSupportClick = useCallback(() => {
+    setChatMessages(prev => [...prev, { type: 'user', text: t('asso.chat.intentSupport') }]);
+    setChatStep('contact');
+    scheduleTimeout(() => {
+      setShowChatModal(false);
+      window.location.href = '/aiuto?tab=contact';
+    }, 300);
+  }, [t, scheduleTimeout]);
+
+  const handleBugModalClose = useCallback(() => {
+    setIsModalOpen(false);
+    setScreenshot(null);
+    setSubmitted(false);
+    setShowConsoleLogs(false);
+    setHasConsoleLogs(false);
+    resetCodingCompanion();
+  }, [resetCodingCompanion, setHasConsoleLogs, setShowConsoleLogs]);
+
+  const handleBugModalCancel = useCallback(() => {
+    setIsModalOpen(false);
+    setSubmitted(false);
+    setScreenshot(null);
+    setHasConsoleLogs(false);
+    setShowConsoleLogs(false);
+    setBugForm({ name: '', email: '', subject: '', message: '', bugType: 'functional', priority: 'medium', url: '' });
+    resetCodingCompanion();
+  }, [resetCodingCompanion, setHasConsoleLogs, setShowConsoleLogs]);
+
+  const handleBugFormFocusCapture = useCallback(() => {
+    setIsBugFormFocused(true);
+  }, []);
+
+  const handleBugFormBlurCapture = useCallback((e: React.FocusEvent<HTMLFormElement>) => {
+    const nextFocused = e.relatedTarget as Node | null;
+    if (!nextFocused || !e.currentTarget.contains(nextFocused)) {
+      setIsBugFormFocused(false);
+    }
+  }, []);
 
   // Audio feedback using Web Audio API
   const playOpenSound = () => {
@@ -1370,15 +1173,6 @@ export function CardMascotte() {
     }
   };
 
-  // Enable console capture only while bug modal is open to avoid global overhead.
-  useEffect(() => {
-    if (!isModalOpen) return;
-    startConsoleCapture();
-    return () => {
-      stopConsoleCapture();
-    };
-  }, [isModalOpen]);
-
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
   const bugCategory = inferBugCategory(currentUrl);
   const detailedBugUrl = `/aiuto?tab=bug&url=${encodeURIComponent(currentUrl)}&category=${bugCategory}`;
@@ -1493,7 +1287,7 @@ export function CardMascotte() {
       // Trigger flash animation and shutter sound FIRST
       setShowFlash(true);
       playShutterSound();
-      setTimeout(() => setShowFlash(false), 300);
+      scheduleTimeout(() => setShowFlash(false), 300);
 
       // Temporarily hide the modal and mascot for clean screenshot
       const modalWasOpen = isModalOpen;
@@ -1533,7 +1327,7 @@ export function CardMascotte() {
 
       // Show preview thumbnail briefly
       setShowScreenshotPreview(true);
-      setTimeout(() => setShowScreenshotPreview(false), 2000);
+      scheduleTimeout(() => setShowScreenshotPreview(false), 2000);
 
       const logs = getRecentLogs(60);
       setHasConsoleLogs(logs.length > 0);
@@ -1577,16 +1371,20 @@ export function CardMascotte() {
 
   // Keep expression in sync with current overlay state + sleep mode
   useEffect(() => {
-    // Priority: sleep > coding > modal > chat > normal
-    const nextExpression = isSleeping
-      ? 'sleeping'
-      : isCodingTransition
-        ? 'bugReport'
-        : isModalOpen
-          ? (isBugFormFocused ? 'bugFocus' : 'bugReport')
-          : showChatModal
-            ? 'wink'
-            : 'normal';
+    // Priority: cigar > sleep > coding > modal > chat > normal
+    // FE-REV-014: il sigaro (bocca a "O") resta prioritario finché equipaggiato.
+    const hasCigar = equippedItems.accessories.includes('cigar-xl');
+    const nextExpression = hasCigar
+      ? 'shocked'
+      : isSleeping
+        ? 'sleeping'
+        : isCodingTransition
+          ? 'bugReport'
+          : isModalOpen
+            ? (isBugFormFocused ? 'bugFocus' : 'bugReport')
+            : showChatModal
+              ? 'wink'
+              : 'normal';
 
     if (mascotteExpression === nextExpression) {
       return;
@@ -1608,7 +1406,7 @@ export function CardMascotte() {
         expressionTimeoutRef.current = null;
       }
     };
-  }, [isModalOpen, showChatModal, mascotteExpression, isCodingTransition, isBugFormFocused, isSleeping]);
+  }, [isModalOpen, showChatModal, mascotteExpression, isCodingTransition, isBugFormFocused, isSleeping, equippedItems.accessories]);
 
   useEffect(() => {
     if (!isModalOpen) {
@@ -1849,7 +1647,7 @@ export function CardMascotte() {
         // Calculate and save sleep duration
         if (sleepStartTimeRef.current) {
           const sleepDuration = Date.now() - sleepStartTimeRef.current;
-          const newTotal = totalSleepMs + sleepDuration;
+          const newTotal = totalSleepMsRef.current + sleepDuration;
           setTotalSleepMs(newTotal);
           try {
             localStorage.setItem('brx_asso_sleep_ms', String(newTotal));
@@ -1894,7 +1692,8 @@ export function CardMascotte() {
       stopSnoreSound();
     };
     // BUG FIX: Removed isSleeping from dependencies - use ref instead
-  }, [isOverlayVisible, isFlipped, playSnoreSound, stopSnoreSound, totalSleepMs]);
+    // FE-REV-015: rimosso anche totalSleepMs dalle deps (letto via totalSleepMsRef) per non rilegare i listener.
+  }, [isOverlayVisible, isFlipped, playSnoreSound, stopSnoreSound]);
 
   // Toggle sleep mute and persist to localStorage
   const toggleSleepMute = useCallback((e: React.MouseEvent) => {
@@ -1933,268 +1732,42 @@ export function CardMascotte() {
         {showCardLoader && (
           <CardLoader onComplete={handleCardLoaderComplete} duration={3900} />
         )}
-        {/* Chat Modal - same as desktop */}
         {showChatModal && (
-          <div className="fixed inset-0 flex items-end justify-end p-4 sm:items-center sm:justify-center" style={{ zIndex: Z_INDEX.modal }}>
-            <div
-              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-              onClick={handleChatModalClose}
-            />
-            <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-lg">
-              {/* Header - Clean, minimal, no animations */}
-              <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-1 rounded-full bg-primary" />
-                  <div>
-                    <h3 className="font-comodo text-base font-medium text-zinc-900">Asso</h3>
-                    <p className="text-xs text-zinc-500">Assistente Ebartex</p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleChatModalClose}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:text-zinc-600"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              {/* Chat Messages */}
-              <div className="max-h-[360px] min-h-[320px] overflow-y-auto bg-zinc-50 p-4">
-                {chatMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`mb-3 flex chat-message-in ${msg.type === 'asso' ? 'justify-start' : 'justify-end'}`}
-                    style={{ animationDelay: `${idx * 80}ms` }}
-                  >
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${msg.type === 'asso'
-                          ? 'rounded-tl-none bg-white text-zinc-800 border border-zinc-200'
-                          : 'rounded-tr-none bg-primary text-white'
-                        }`}
-                    >
-                      {msg.text}
-                    </div>
-                  </div>
-                ))}
-                {isTyping && (
-                  <div className="mb-3 flex justify-start chat-message-in">
-                    <div className="max-w-[85%] rounded-2xl rounded-tl-none bg-white border border-zinc-200 px-4 py-3">
-                      <div className="typing-indicator">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {chatTypewriter.isTyping && chatTypewriter.displayedText && (
-                  <div
-                    className="mb-3 flex cursor-pointer justify-start chat-message-in"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => chatTypewriter.skip()}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') chatTypewriter.skip();
-                    }}
-                    title="Mostra tutto il messaggio"
-                  >
-                    <div className="max-w-[85%] rounded-2xl rounded-tl-none border border-zinc-200 bg-white px-4 py-2.5 text-sm leading-relaxed text-zinc-800">
-                      {chatTypewriter.displayedText}
-                      <span className="asso-typewriter-cursor typing-cursor ml-0.5 inline-block h-4 w-0.5 bg-primary" />
-                    </div>
-                  </div>
-                )}
-                {chatStep === 'menu' && (
-                  <div className="mt-4 space-y-2">
-                    <button
-                      onClick={() => {
-                        setChatMessages(prev => [...prev, { type: 'user', text: 'Voglio leggere le FAQ' }]);
-                        setTimeout(() => {
-                          handleChatModalClose();
-                          window.location.href = '/aiuto';
-                        }, 300);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50 menu-option-in"
-                      style={{ animationDelay: '0ms' }}
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                        <HelpCircle className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-zinc-900">FAQ</p>
-                        <p className="text-xs text-zinc-500">Risposte rapide</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setChatMessages(prev => [...prev, { type: 'user', text: 'Voglio segnalare un bug' }]);
-                        setChatStep('bug');
-                        setShowChatModal(false);
-                        setShowCodingCompanion(true);
-                        setCodingStatus('compiling');
-                        setIsCodingTransition(true);
-                        if (codingTransitionTimeoutRef.current !== null) {
-                          window.clearTimeout(codingTransitionTimeoutRef.current);
-                        }
-                        codingTransitionTimeoutRef.current = window.setTimeout(() => {
-                          setIsCodingTransition(false);
-                          setIsModalOpen(true);
-                          codingTransitionTimeoutRef.current = null;
-                        }, CODING_PREVIEW_MS);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50 menu-option-in"
-                      style={{ animationDelay: '80ms' }}
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                        <Bug className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-zinc-900">Bug</p>
-                        <p className="text-xs text-zinc-500">Segnala un problema</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setChatMessages(prev => [...prev, { type: 'user', text: 'Voglio contattare il supporto' }]);
-                        setChatStep('contact');
-                        setTimeout(() => {
-                          setShowChatModal(false);
-                          window.location.href = '/aiuto?tab=contact';
-                        }, 300);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50 menu-option-in"
-                      style={{ animationDelay: '160ms' }}
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-600">
-                        <MessageSquare className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-zinc-900">Supporto</p>
-                        <p className="text-xs text-zinc-500">Scrivici</p>
-                      </div>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <AssoChatModal
+            zIndex={Z_INDEX.modal}
+            t={t}
+            chatMessages={chatMessages}
+            isTyping={isTyping}
+            chatTypewriter={chatTypewriter}
+            chatStep={chatStep}
+            showFooter={!isMobileView}
+            onClose={handleChatModalClose}
+            onFaqClick={handleChatFaqClick}
+            onBugClick={handleChatBugClick}
+            onSupportClick={handleChatSupportClick}
+          />
         )}
-        {/* Bug Report Modal on mobile */}
         {isModalOpen && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" style={{ zIndex: Z_INDEX.modal }}>
-            <div className="w-full max-w-md rounded-2xl border border-gray-200/60 bg-white/95 p-6 shadow-2xl backdrop-blur-xl">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                    <Bug className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-comodo text-lg tracking-wide text-black">Segnala un bug</h3>
-                    <p className="text-xs text-gray-500">Aiutaci a migliorare</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setScreenshot(null);
-                    setSubmitted(false);
-                    setShowConsoleLogs(false);
-                    setHasConsoleLogs(false);
-                    resetCodingCompanion();
-                  }}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              {!submitted ? (
-                <form
-                  onSubmit={handleSubmit}
-                  className="max-h-[70vh] overflow-y-auto pr-2"
-                >
-                  <div className="mb-3 grid gap-3 md:grid-cols-2">
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Il tuo nome</label>
-                      <input
-                        type="text"
-                        required
-                        value={bugForm.name}
-                        onChange={(e) => setBugForm({ ...bugForm, name: e.target.value })}
-                        placeholder="Mario Rossi"
-                        className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Email</label>
-                      <input
-                        type="email"
-                        required
-                        value={bugForm.email}
-                        onChange={(e) => setBugForm({ ...bugForm, email: e.target.value })}
-                        placeholder="tua@email.com"
-                        className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-                    </div>
-                  </div>
-                  <div className="mb-3">
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Oggetto</label>
-                    <input
-                      type="text"
-                      required
-                      value={bugForm.subject}
-                      onChange={(e) => setBugForm({ ...bugForm, subject: e.target.value })}
-                      placeholder="Descrivi brevemente il problema"
-                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Descrizione dettagliata</label>
-                    <textarea
-                      required
-                      value={bugForm.message}
-                      onChange={(e) => setBugForm({ ...bugForm, message: e.target.value })}
-                      placeholder="Descrivi il problema in dettaglio..."
-                      rows={4}
-                      className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsModalOpen(false);
-                        setSubmitted(false);
-                        setScreenshot(null);
-                        setHasConsoleLogs(false);
-                        setShowConsoleLogs(false);
-                        setBugForm({ name: '', email: '', subject: '', message: '', bugType: 'functional', priority: 'medium', url: '' });
-                        resetCodingCompanion();
-                      }}
-                      className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
-                    >
-                      Annulla
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={!bugForm.message.trim() || !bugForm.name.trim() || !bugForm.email.trim() || !bugForm.subject.trim()}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <Send className="h-4 w-4" />
-                      Invia
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="py-8 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                    <CheckCircle2 className="h-6 w-6 text-green-600" />
-                  </div>
-                  <p className="font-medium text-black">Grazie per il feedback!</p>
-                  <p className="text-sm text-gray-500">Esamineremo la segnalazione al più presto.</p>
-                </div>
-              )}
-            </div>
-          </div>
+          <BugReportModal
+            variant="mobile"
+            zIndex={Z_INDEX.modal}
+            t={t}
+            submitted={submitted}
+            bugForm={bugForm}
+            setBugForm={setBugForm}
+            onSubmit={handleSubmit}
+            onClose={handleBugModalClose}
+            onCancel={handleBugModalCancel}
+            screenshot={screenshot}
+            onRemoveScreenshot={removeScreenshot}
+            onCaptureScreenshot={captureScreenshot}
+            isCapturing={isCapturing}
+            hasConsoleLogs={hasConsoleLogs}
+            showConsoleLogs={showConsoleLogs}
+            setShowConsoleLogs={setShowConsoleLogs}
+          />
         )}
+        <CardMascotteStyles selectedFaceColor={selectedFaceColor} />
       </>
     );
   }
@@ -2206,1889 +1779,151 @@ export function CardMascotte() {
         <CardLoader onComplete={handleCardLoaderComplete} duration={3900} />
       )}
 
-      {/* Flash overlay for screenshot capture */}
-      {showFlash && (
-        <div
-          className="fixed inset-0 pointer-events-none bg-white"
-          style={{
-            zIndex: Z_INDEX.flash,
-            animation: 'flashFade 300ms ease-out forwards',
-          }}
-        />
-      )}
-
-      {/* Screenshot preview thumbnail */}
-      {showScreenshotPreview && screenshot && (
-        <div
-          className="fixed pointer-events-none"
-          style={{
-            zIndex: Z_INDEX.screenshotPreview,
-            bottom: '200px',
-            right: '20px',
-            animation: 'previewSlideIn 0.3s ease-out, previewFadeOut 0.3s ease-in 1.7s forwards',
-          }}
-        >
-          <div className="rounded-lg border-2 border-[#C4A35A] bg-zinc-900 p-2 shadow-2xl">
-            <div className="relative">
-              <img
-                src={screenshot}
-                alt="Screenshot preview"
-                className="h-32 w-48 rounded object-cover"
-              />
-              <div className="absolute bottom-1 right-1 rounded bg-zinc-900/80 px-2 py-0.5 text-xs text-white">
-                Screenshot catturato
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bubble messaggi Asso (promo, reazioni stile, sogno) — angolo, non copre il centro */}
-      {!isModalOpen && !showChatModal && !isAssoMini && (
-        <AssoHintBubble
-          visible={assoBubble.isVisible}
-          message={assoBubble.current}
-          displayedText={assoBubble.displayedText}
-          isTyping={assoBubble.isTyping}
-          isSleeping={isSleeping}
-          isStyleReaction={isStyleReactionActive}
-          bubbleBottom={getAssoBubbleBottom(isStickyBarVisible)}
-          onDismiss={assoBubble.dismiss}
-          onSkipTyping={assoBubble.skipTyping}
-          onPromoClick={handleAssoPromoClick}
-        />
-      )}
-
-
-      {/* Unlock Notification */}
-      {newUnlock && (
-        <div
-          className="fixed pointer-events-none"
-          style={{
-            zIndex: Z_INDEX.tooltip + 2,
-            bottom: isStickyBarVisible ? '220px' : '160px',
-            right: '10px',
-            animation: 'unlockFlash 3s ease-out forwards',
-          }}
-        >
-          <div className="unlock-badge flex items-center gap-2 rounded-xl border border-amber-500/30 bg-zinc-900/80 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-md">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" fill="white" /></svg>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-wide text-white">Sbloccato!</p>
-              <p className="text-[8px] font-bold text-white/80">{newUnlock}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mini Album Panel */}
-      {showAlbum && isFlipped && (
-        <div
-          className="fixed"
-          style={{
-            zIndex: Z_INDEX.tooltip + 3,
-            bottom: isStickyBarVisible ? '215px' : '155px',
-            right: '16px',
-            animation: 'albumSlideIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-          }}
-        >
-          <div className="w-[140px] rounded-xl border border-zinc-700/60 bg-zinc-900/95 p-2.5 shadow-2xl backdrop-blur-md">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-400">Collezione</span>
-              <span className="text-[8px] font-bold text-primary">{BACK_VARIANTS.filter(v => flipCount >= v.unlock).length}/{BACK_VARIANTS.length}</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              {BACK_VARIANTS.map((v, i) => {
-                const unlocked = flipCount >= v.unlock;
-                return (
-                  <div
-                    key={i}
-                    className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 transition-colors"
-                    style={{ background: unlocked ? 'rgba(255,255,255,0.06)' : 'transparent' }}
-                  >
-                    <div
-                      className="h-3 w-3 flex-shrink-0 rounded"
-                      style={{
-                        background: unlocked ? v.gradient : 'rgba(255,255,255,0.08)',
-                        border: unlocked ? 'none' : '1px dashed rgba(255,255,255,0.15)',
-                      }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className={`truncate text-[8px] font-bold ${unlocked ? 'text-white' : 'text-zinc-600'}`}>
-                        {unlocked ? v.label : '???'}
-                      </p>
-                      <p className="text-[6px] text-zinc-500">
-                        {unlocked ? v.sub : `${v.unlock} flip`}
-                      </p>
-                    </div>
-                    {unlocked ? (
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
-                    ) : (
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#52525b" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Wardrobe Panel */}
-      {isWardrobeOpen && (
-        <div
-          className="fixed"
-          style={{
-            zIndex: Z_INDEX.tooltip + 3,
-            bottom: isStickyBarVisible ? '260px' : '200px',
-            right: '16px',
-            animation: 'albumSlideIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-          }}
-        >
-          <div className="relative w-[250px] max-w-[calc(100vw-1.5rem)] max-h-[360px] overflow-hidden rounded-2xl border border-white/35 bg-[linear-gradient(165deg,rgba(255,210,165,0.36)_0%,rgba(255,142,42,0.24)_40%,rgba(25,24,32,0.9)_100%)] p-2.5 shadow-[0_20px_46px_rgba(255,115,0,0.35)] ring-1 ring-white/20 backdrop-blur-2xl">
-            <div className="pointer-events-none absolute -top-12 left-1/2 h-24 w-44 -translate-x-1/2 rounded-full bg-white/25 blur-2xl" />
-            <div className="pointer-events-none absolute -bottom-10 -right-8 h-28 w-28 rounded-full bg-[#ff7300]/25 blur-2xl" />
-
-            <div className="relative z-[1]">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/85">Guardaroba</span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      clearWardrobeItems();
-                    }}
-                    className="rounded-full border border-white/35 bg-white/15 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white/90 transition hover:bg-white/25"
-                  >
-                    Reset
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleWardrobeDone}
-                    className="rounded-full border border-[#FFB26B]/70 bg-gradient-to-r from-[#FF7300]/95 to-[#FFA246]/90 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white shadow-[0_6px_14px_rgba(255,115,0,0.35)] transition hover:brightness-110"
-                  >
-                    Fatto
-                  </button>
-                </div>
-              </div>
-
-              <div className="mb-2 grid grid-cols-4 gap-1">
-                {(['clothing', 'accessories', 'objects', 'color'] as const).map((category) => (
-                  <button
-                    key={category}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setWardrobeCategory(category);
-                    }}
-                    className={`min-w-0 overflow-hidden rounded-lg border px-1 py-1 text-[7px] font-bold uppercase leading-none tracking-[0.01em] transition ${wardrobeCategory === category
-                        ? 'border-white/40 bg-gradient-to-r from-[#FF7300]/95 to-[#FFA246]/90 text-white shadow-[0_6px_16px_rgba(255,115,0,0.35)]'
-                        : 'border-white/15 bg-black/20 text-white/75 hover:border-white/30 hover:bg-white/10 hover:text-white'
-                      }`}
-                  >
-                    <span className="block w-full truncate">
-                      {category === 'clothing'
-                        ? 'Abiti'
-                        : category === 'accessories'
-                          ? 'Accessori'
-                          : category === 'objects'
-                            ? 'Oggetti'
-                            : 'Colore'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {wardrobeCategory === 'color' ? (
-                <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/10 bg-black/15 p-1.5 sm:grid-cols-3">
-                  {FACE_COLOR_OPTIONS.map((option) => {
-                    const isActive = equippedItems.faceColor === option.id;
-
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isActive) return;
-                          pendingStyleReactionSourceRef.current = 'color';
-                          setEquippedItems((prev) => ({ ...prev, faceColor: option.id }));
-                        }}
-                        className={`flex items-center rounded-lg border px-2 py-1.5 text-left transition ${isActive
-                            ? 'border-[#FFB26B]/80 bg-[#FF7300]/30 text-white shadow-[0_8px_18px_rgba(255,115,0,0.25)]'
-                            : 'border-white/15 bg-black/20 text-white/85 hover:border-white/30 hover:bg-white/10'
-                          }`}
-                      >
-                        <span className="flex items-center gap-1.5 truncate text-[9px] font-semibold">
-                          <span
-                            className="h-2.5 w-2.5 rounded-full"
-                            style={{
-                              backgroundColor: option.line,
-                              boxShadow: `0 0 8px ${option.glowMid}`,
-                            }}
-                          />
-                          {option.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="max-h-[250px] overflow-y-auto rounded-xl border border-white/10 bg-black/15 p-1.5 pr-1">
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {visibleWardrobeItems.map((item) => {
-                      const equipped = isWardrobeItemEquipped(item);
-                      const thumbSrc = wardrobeThumbById.get(item.id);
-
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleWardrobeItem(item);
-                          }}
-                          className={`group flex min-h-[78px] flex-col items-center justify-center gap-1 rounded-lg border px-1 py-1.5 text-center transition ${equipped
-                              ? 'border-[#FFB26B]/80 bg-[linear-gradient(155deg,rgba(255,150,70,0.38)_0%,rgba(255,115,0,0.28)_55%,rgba(0,0,0,0.38)_100%)] text-white shadow-[0_10px_22px_rgba(255,115,0,0.28)]'
-                              : 'border-white/15 bg-[linear-gradient(160deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.02)_45%,rgba(0,0,0,0.32)_100%)] text-white/85 hover:border-white/30 hover:bg-white/10'
-                            }`}
-                        >
-                          <span className={`relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border ${equipped ? 'border-white/40 bg-white/25' : 'border-white/20 bg-white/10'}`}>
-                            <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_58%)]" />
-                            {thumbSrc ? (
-                              <img
-                                src={thumbSrc}
-                                alt=""
-                                aria-hidden="true"
-                                className="h-8 w-8 object-contain"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            ) : (
-                              <Sparkles className="h-4 w-4 text-white/80" />
-                            )}
-                          </span>
-                          <span className="w-full truncate text-[8px] font-semibold leading-tight">{item.name}</span>
-                          <span className="text-[7px] uppercase tracking-wide text-white/50">
-                            {item.category === 'clothing' ? 'Tessuto' : item.category === 'accessories' ? 'Dettaglio' : 'Prop'}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Achievement Badge */}
-      {showAchievement && (
-        <div
-          className="fixed pointer-events-none"
-          style={{
-            zIndex: Z_INDEX.tooltip + 1,
-            bottom: isStickyBarVisible ? '220px' : '160px',
-            right: '20px',
-            animation: 'achievementIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards, achievementOut 400ms ease-in 2s forwards',
-          }}
-        >
-          <div className="flex items-center gap-2 rounded-xl border border-zinc-600/40 bg-zinc-900/80 px-3 py-2 shadow-lg shadow-black/20 backdrop-blur-md">
-            <span className="text-base">&#11088;</span>
-            <div>
-              <p className="text-[10px] font-bold text-zinc-200">{showAchievement}</p>
-              <p className="text-[8px] text-zinc-400">{flipCount} flip totali</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Combo Badge */}
-      {showCombo && comboCount >= 2 && (
-        <div
-          className="fixed pointer-events-none"
-          style={{
-            zIndex: Z_INDEX.tooltip + 1,
-            bottom: isStickyBarVisible ? '155px' : '95px',
-            right: '30px',
-            animation: 'comboPopIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-          }}
-        >
-          <div className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-zinc-900/80 px-2.5 py-1 shadow-md shadow-black/20 backdrop-blur-md">
-            <span className="text-[10px] font-black text-white">{comboCount}x</span>
-            <span className="text-[8px] font-bold uppercase tracking-wider text-white/80">COMBO</span>
-          </div>
-        </div>
-      )}
-
-      {/* Sleep Bubbles - Floating when sleeping */}
-      {isSleeping && !isOverlayVisible && !isFlipped && !isMobileView && (
-        <div
-          className="fixed pointer-events-none sleep-bubbles-wrapper"
-          style={{
-            zIndex: Z_INDEX.tooltip + 1,
-            bottom: isStickyBarVisible ? '175px' : '115px',
-            right: '70px',
-          }}
-        >
-          <div className="sleep-bubbles-container">
-            <div className="sleep-bubble sleep-bubble-large">
-              <span className="sleep-bubble-text">Zzz</span>
-            </div>
-            <div className="sleep-bubble sleep-bubble-small">
-              <span className="sleep-bubble-text">z</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Flip Particles */}
-      {flipParticles.length > 0 && (
-        <div
-          className="fixed pointer-events-none"
-          style={{
-            zIndex: Z_INDEX.tooltip,
-            bottom: isStickyBarVisible ? '80px' : '20px',
-            right: '48px',
-            width: '96px',
-            height: '128px',
-          }}
-        >
-          {flipParticles.map((p) => (
-            <div
-              key={p.id}
-              className="flip-particle absolute"
-              style={{
-                left: `${p.x}px`,
-                top: `${p.y}px`,
-                width: `${p.size}px`,
-                height: `${p.size}px`,
-                '--particle-dx': `${p.dx}px`,
-                '--particle-dy': `${p.dy}px`,
-                backgroundColor: p.color,
-              } as React.CSSProperties}
+      <CardMascotteOverlays
+        t={t}
+        isStickyBarVisible={isStickyBarVisible}
+        showFlash={showFlash}
+        showScreenshotPreview={showScreenshotPreview}
+        screenshot={screenshot}
+        newUnlock={newUnlock}
+        showAlbum={showAlbum}
+        isFlipped={isFlipped}
+        backVariants={BACK_VARIANTS}
+        flipCount={flipCount}
+        showAchievement={showAchievement}
+        showCombo={showCombo}
+        comboCount={comboCount}
+        isSleeping={isSleeping}
+        isOverlayVisible={isOverlayVisible}
+        isMobileView={isMobileView}
+        flipParticles={flipParticles}
+        dressingSparkles={dressingSparkles}
+        goldenConfetti={goldenConfetti}
+        afterScreenshot={
+          !isModalOpen && !showChatModal && !isAssoMini ? (
+            <AssoHintBubble
+              visible={assoBubble.isVisible}
+              message={assoBubble.current}
+              displayedText={assoBubble.displayedText}
+              isTyping={assoBubble.isTyping}
+              isSleeping={isSleeping}
+              isStyleReaction={isStyleReactionActive}
+              bubbleBottom={getAssoBubbleBottom(isStickyBarVisible)}
+              onDismiss={assoBubble.dismiss}
+              onSkipTyping={assoBubble.skipTyping}
+              onPromoClick={handleAssoPromoClick}
             />
-          ))}
-        </div>
-      )}
-
-      {/* Dressing Sparkles â€” shown when opening wardrobe (front view) */}
-      {dressingSparkles.length > 0 && (
-        <div
-          className="fixed pointer-events-none"
-          style={{
-            zIndex: Z_INDEX.tooltip + 1,
-            bottom: isStickyBarVisible ? '80px' : '20px',
-            right: '48px',
-            width: '96px',
-            height: '128px',
-          }}
-          aria-hidden="true"
-        >
-          {dressingSparkles.map((s) => (
-            <svg
-              key={s.id}
-              className="dressing-sparkle absolute"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              style={{
-                left: `${s.left}%`,
-                top: `${s.top}%`,
-                width: `${s.size}px`,
-                height: `${s.size}px`,
-                animationDelay: `${s.delay}ms`,
-                color: s.color,
-              }}
-            >
-              <path d="M12 2 L13.7 10.3 L22 12 L13.7 13.7 L12 22 L10.3 13.7 L2 12 L10.3 10.3 Z" />
-            </svg>
-          ))}
-        </div>
-      )}
-
-      {/* Golden Confetti â€” Easter Egg at 100 flips */}
-      {goldenConfetti.length > 0 && (
-        <div
-          className="fixed pointer-events-none"
-          style={{
-            zIndex: Z_INDEX.tooltip + 5,
-            bottom: isStickyBarVisible ? '80px' : '20px',
-            right: '48px',
-            width: '96px',
-            height: '200px',
-          }}
-        >
-          {goldenConfetti.map((c) => (
-            <div
-              key={c.id}
-              className="golden-confetti absolute"
-              style={{
-                left: `${c.x}px`,
-                top: '100%',
-                width: `${c.size}px`,
-                height: `${c.size * 0.6}px`,
-                backgroundColor: c.color,
-                borderRadius: c.size > 7 ? '1px' : '50%',
-                transform: `rotate(${c.rotation}deg)`,
-                animationDelay: `${c.delay}s`,
-                animationDuration: `${c.duration}s`,
-                boxShadow: `0 0 ${c.size}px ${c.color}60`,
-              }}
+          ) : null
+        }
+        afterAlbum={
+          isWardrobeOpen ? (
+            <WardrobePanel
+              zIndex={Z_INDEX.tooltip + 3}
+              isStickyBarVisible={isStickyBarVisible}
+              t={t}
+              wardrobeCategory={wardrobeCategory}
+              setWardrobeCategory={setWardrobeCategory}
+              equippedItems={equippedItems}
+              setEquippedItems={setEquippedItems}
+              pendingStyleReactionSourceRef={pendingStyleReactionSourceRef}
+              visibleWardrobeItems={visibleWardrobeItems}
+              wardrobeThumbById={wardrobeThumbById}
+              isWardrobeItemEquipped={isWardrobeItemEquipped}
+              toggleWardrobeItem={toggleWardrobeItem}
+              clearWardrobeItems={clearWardrobeItems}
+              handleWardrobeDone={handleWardrobeDone}
             />
-          ))}
-        </div>
-      )}
+          ) : null
+        }
+      />
 
-      {/* Card Mascotte */}
-      <div
-        ref={cardRef}
-        onClick={(e) => {
-          if (isAssoMini) {
-            e.stopPropagation();
-            setIsAssoMini(false);
-            return;
-          }
-          handleClick(e);
-        }}
-        onKeyDown={handleKeyDown}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onMouseEnter={() => setIsCardHovered(true)}
-        onMouseMove={handleCardMouseMove}
-        onMouseLeave={handleCardMouseLeave}
-        className={`fixed cursor-pointer select-none transition-all duration-300 ${justReappeared ? 'mascotte-reappear' : ''} ${easterEggActive ? 'mascotte-backflip' : ''} ${isShiny ? 'mascotte-shiny' : ''}`}
-        style={{
-          zIndex: isOverlayVisible ? Z_INDEX.mascotteOverlay : Z_INDEX.mascotteBase,
-          bottom: isStickyBarVisible ? '80px' : '20px',
-          right: '48px',
-          width: '96px',
-          height: '128px',
-          perspective: '600px',
-          filter: isAssoMini
-            ? 'drop-shadow(0 2px 6px rgba(255, 115, 0, 0.15))'
-            : 'drop-shadow(0 12px 32px rgba(255, 115, 0, 0.35)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4))',
-          animation: isAssoMini
-            ? 'none'
-            : justReappeared
-              ? 'mascotteReappear 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards, mascotteFloat 3s ease-in-out infinite 500ms'
-              : 'mascotteFloat 3s ease-in-out infinite',
-          transition: 'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-in-out, transform 300ms ease-in-out, filter 300ms ease-in-out',
-          opacity: isExternalModalOpen ? 0 : 1,
-          pointerEvents: isExternalModalOpen ? 'none' : 'auto',
-          transform: isAssoMini ? 'scale(0.3)' : 'translateX(0)',
-          transformOrigin: 'bottom right',
-        }}
-        role="button"
-        tabIndex={0}
-        aria-label="Segnala un bug"
-        title="Segnala un bug"
-      >
-        {/* 3D flip inner */}
-        <div
-          className="mascotte-flip-inner relative h-full w-full"
-          style={{
-            transformStyle: 'preserve-3d',
-            transition: isFlipping || easterEggActive
-              ? 'transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1)'
-              : 'transform 150ms ease-out',
-            transform: `rotateX(${tilt.x}deg) rotateY(${isFlipped ? 180 + tilt.y : tilt.y}deg)`,
-          }}
-        >
+      <CardMascotteWidget
+        t={t}
+        cardRef={cardRef}
+        faceContainerRef={faceContainerRef}
+        backFaceRef={backFaceRef}
+        dressingSparklesTimeoutRef={dressingSparklesTimeoutRef}
+        isAssoMini={isAssoMini}
+        setIsAssoMini={setIsAssoMini}
+        handleClick={handleClick}
+        handleKeyDown={handleKeyDown}
+        handleTouchStart={handleTouchStart}
+        handleTouchEnd={handleTouchEnd}
+        handleCardMouseMove={handleCardMouseMove}
+        handleCardMouseLeave={handleCardMouseLeave}
+        setIsCardHovered={setIsCardHovered}
+        justReappeared={justReappeared}
+        easterEggActive={easterEggActive}
+        isShiny={isShiny}
+        isOverlayVisible={isOverlayVisible}
+        isStickyBarVisible={isStickyBarVisible}
+        isExternalModalOpen={isExternalModalOpen}
+        isFlipping={isFlipping}
+        isFlipped={isFlipped}
+        tilt={tilt}
+        isMobileView={isMobileView}
+        isModalOpen={isModalOpen}
+        mascotteExpression={mascotteExpression}
+        selectedFaceColor={selectedFaceColor}
+        equippedWardrobeItems={equippedWardrobeItems}
+        equippedItems={equippedItems}
+        isCardHovered={isCardHovered}
+        handleFlipButtonClick={handleFlipButtonClick}
+        toggleAssoMini={toggleAssoMini}
+        backVariants={BACK_VARIANTS}
+        backVariant={backVariant}
+        holoPos={holoPos}
+        flipCount={flipCount}
+        handleAlbumToggle={handleAlbumToggle}
+        showAlbum={showAlbum}
+        setIsWardrobeOpen={setIsWardrobeOpen}
+        setIsFlipping={setIsFlipping}
+        setIsFlipped={setIsFlipped}
+        setDressingSparkles={setDressingSparkles}
+        showCodingCompanion={showCodingCompanion}
+        codingStatus={codingStatus}
+      />
 
-          {/* â”€â”€ FRONT FACE â”€â”€ */}
-          <div
-            className="mascotte-flip-face absolute inset-0"
-            style={{
-              backfaceVisibility: isMobileView && isFlipped ? 'visible' : 'hidden',
-              pointerEvents: isFlipped ? 'none' : 'auto',
-              opacity: isMobileView && isFlipped ? 0.3 : 1,
-              transform: isMobileView && isFlipped ? 'rotateY(-30deg)' : 'rotateY(0deg)',
-              transition: isMobileView ? 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease' : 'none',
-            }}
-          >
-            {/* Card container â€” soft charm style */}
-            <div
-              className="relative h-full w-full overflow-visible rounded-2xl"
-              style={{ background: 'transparent' }}
-            >
-              {/* Soft warm glow */}
-              <div
-                className="pointer-events-none absolute rounded-2xl"
-                style={{
-                  inset: '-3px',
-                  zIndex: 0,
-                  boxShadow: isShiny
-                    ? '0 0 28px rgba(168,85,247,0.5), 0 0 56px rgba(59,130,246,0.3), 0 0 84px rgba(236,72,153,0.2)'
-                    : `0 6px 24px ${selectedFaceColor.glowSoft}, 0 2px 8px rgba(0,0,0,0.15)`,
-                  transition: 'box-shadow 300ms ease',
-                }}
-              />
-
-              {/* Shiny rainbow border overlay */}
-              {isShiny && (
-                <div
-                  className="pointer-events-none absolute shiny-border-anim"
-                  style={{
-                    inset: '-3px',
-                    zIndex: 12,
-                    borderRadius: '18px',
-                    padding: '2.5px',
-                    background: 'conic-gradient(from var(--shiny-angle, 0deg), #f43f5e, #f59e0b, #22c55e, #3b82f6, #a855f7, #ec4899, #f43f5e)',
-                    WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                    WebkitMaskComposite: 'xor',
-                    maskComposite: 'exclude',
-                  }}
-                />
-              )}
-
-              {/* Thin soft border */}
-              <div
-                className="pointer-events-none absolute rounded-2xl"
-                style={{
-                  inset: '0px',
-                  zIndex: 2,
-                  padding: '1.5px',
-                  background: `linear-gradient(160deg, ${selectedFaceColor.glowMid} 0%, ${selectedFaceColor.glowStrong} 50%, ${selectedFaceColor.glowMid} 100%)`,
-                  WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                  WebkitMaskComposite: 'xor',
-                  maskComposite: 'exclude',
-                }}
-              />
-
-              {/* Bottom pill badge â€” ASSO */}
-              <div
-                className={`pointer-events-none absolute left-1/2 -translate-x-1/2 ${isCardHovered ? 'asso-pill-hovered' : ''}`}
-                style={{ bottom: '5px', zIndex: 8 }}
-              >
-                <div
-                  className={`relative flex items-center justify-center overflow-full asso-pill-${mascotteExpression}`}
-                  style={{
-                    height: '14px',
-                    paddingInline: '8px',
-                    background: mascotteExpression === 'bugReport' || mascotteExpression === 'bugFocus'
-                      ? 'linear-gradient(180deg, #DC2626 0%, #EF4444 100%)'
-                      : mascotteExpression === 'coding'
-                        ? 'linear-gradient(180deg, #7C3AED 0%, #A78BFA 100%)'
-                        : mascotteExpression === 'sleeping'
-                          ? 'linear-gradient(180deg, #4B5563 0%, #9CA3AF 100%)'
-                          : mascotteExpression === 'wink'
-                            ? 'linear-gradient(180deg, #EC4899 0%, #F472B6 100%)'
-                            : 'linear-gradient(180deg, #FF7300 0%, #FF9A40 100%)',
-                    boxShadow: mascotteExpression === 'bugReport' || mascotteExpression === 'bugFocus'
-                      ? '0 -1px 4px rgba(220,38,38,0.3), inset 0 -1px 0 rgba(255,255,255,0.25)'
-                      : mascotteExpression === 'coding'
-                        ? '0 -1px 4px rgba(124,58,237,0.3), inset 0 -1px 0 rgba(255,255,255,0.25)'
-                        : mascotteExpression === 'sleeping'
-                          ? '0 -1px 4px rgba(75,85,99,0.2), inset 0 -1px 0 rgba(255,255,255,0.2)'
-                          : mascotteExpression === 'wink'
-                            ? '0 -1px 4px rgba(236,72,153,0.3), inset 0 -1px 0 rgba(255,255,255,0.25)'
-                            : '0 -1px 4px rgba(255,100,0,0.2), inset 0 -1px 0 rgba(255,255,255,0.25)',
-                    animation: 'asso-pulse 3s ease-in-out infinite',
-                    borderRadius: '9999px',
-                  }}
-                >
-                  <span
-                    className="font-comodo text-[7.5px] font-bold leading-none"
-                    style={{
-                      color: '#fff',
-                      textShadow: mascotteExpression === 'sleeping'
-                        ? '0 1px 1px rgba(30,30,30,0.35)'
-                        : '0 1px 1px rgba(100,30,0,0.45)',
-                      letterSpacing: '0.2em',
-                      marginLeft: '0.1em',
-                    }}
-                  >
-                    {mascotteExpression === 'sleeping' ? 'Zzz' : 'ASSO'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Face SVG â€” parallax offset on hover */}
-              <div
-                ref={faceContainerRef}
-                className={`absolute flex items-center justify-center ${isModalOpen ? 'face-glint-active' : ''} face-fixed-neon`}
-                style={{
-                  top: '4px',
-                  bottom: '4px',
-                  left: '3px',
-                  right: '3px',
-                  zIndex: 5,
-                  transition: 'transform 120ms ease-out, opacity 500ms ease-in-out',
-                  transform: mascotteExpression === 'wink'
-                    ? `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2 - 2}px) rotate(-2deg)`
-                    : `translate(${tilt.y * 0.25}px, ${tilt.x * -0.2}px)`,
-                  opacity: mascotteExpression === 'sleeping' ? 0.85 : 1,
-                  filter: 'none',
-                }}
-                dangerouslySetInnerHTML={{
-                  __html: mascotteExpression === 'bugFocus' ? faceBugFocusSVG :
-                    mascotteExpression === 'bugReport' ? faceBugReportSVG :
-                      mascotteExpression === 'wink' ? faceWinkSVG :
-                        mascotteExpression === 'coding' ? faceCodingSVG :
-                          mascotteExpression === 'sleeping' ? faceSleepSVG :
-                            mascotteExpression === 'shocked' ? faceShockedSVG :
-                              faceSVG
-                }}
-              />
-
-              {/* Wardrobe overlays aligned to 96x128 mascot base */}
-              {equippedWardrobeItems.map((item) => (
-                <div
-                  key={item.id}
-                  aria-hidden="true"
-                  style={getItemOverlayStyle(item, equippedItems.objects)}
-                >
-                  <div
-                    className={`equipped-item-layer ${item.category === 'objects'
-                        ? 'equipped-item-float'
-                        : item.category === 'accessories'
-                          ? 'equipped-item-breathe'
-                          : ''
-                      } ${getItemRenderClassName(item)}`}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      ...getItemRenderEnhancementStyle(item),
-                    }}
-                    dangerouslySetInnerHTML={{ __html: item.svg }}
-                  />
-                </div>
-              ))}
-
-              {/* Flip button: desktop on hover, mobile always visible when not flipped */}
-              {(isMobileView ? !isFlipped : isCardHovered && !isFlipped) && (
-                <button
-                  onClick={handleFlipButtonClick}
-                  className={`mascotte-flip-btn absolute z-[11] flex items-center justify-center rounded-full border text-white shadow-md backdrop-blur-sm transition-all hover:scale-110 hover:text-white ${isMobileView
-                      ? 'h-8 w-8 border-white/45 bg-black/55 text-white'
-                      : 'h-5 w-5 border-white/20 bg-zinc-900/60 text-white/70 hover:bg-zinc-800/80'
-                    }`}
-                  style={isMobileView ? { bottom: '6px', left: '6px' } : { bottom: '3px', left: '3px' }}
-                  title="Gira la carta"
-                  aria-label="Gira la carta"
-                >
-                  <svg
-                    width={isMobileView ? '14' : '10'}
-                    height={isMobileView ? '14' : '10'}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={isMobileView ? '2.2' : '2.5'}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" />
-                  </svg>
-                </button>
-              )}
-
-              {/* Shrink / Expand button: bottom-right of the card */}
-              {(isMobileView || isCardHovered || isAssoMini) && (
-                <button
-                  onClick={toggleAssoMini}
-                  className={`mascotte-shrink-btn absolute z-[11] flex items-center justify-center rounded-full border text-white shadow-md backdrop-blur-sm transition-all hover:scale-110 hover:text-white ${isMobileView
-                      ? 'h-7 w-7 border-white/45 bg-black/55 text-white'
-                      : 'h-6 w-6 border-white/20 bg-zinc-900/60 text-white/70 hover:bg-zinc-800/80'
-                    }`}
-                  style={isMobileView ? { bottom: '6px', right: '6px' } : { bottom: '2px', right: '2px' }}
-                  title={isAssoMini ? 'Ingrandisci Asso' : 'Rimpicciolisci Asso'}
-                  aria-label={isAssoMini ? 'Ingrandisci Asso' : 'Rimpicciolisci Asso'}
-                >
-                  <svg
-                    width={isMobileView ? '16' : '14'}
-                    height={isMobileView ? '16' : '14'}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    shapeRendering="geometricPrecision"
-                  >
-                    {isAssoMini ? (
-                      <>
-                        <path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" />
-                      </>
-                    ) : (
-                      <>
-                        <path d="M4 14h6v6" /><path d="M20 10h-6V4" /><path d="M14 10l7-7" /><path d="M3 21l7-7" />
-                      </>
-                    )}
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>{/* end front face */}
-
-          {/* â”€â”€ BACK FACE â”€â”€ */}
-          <div
-            ref={backFaceRef}
-            className="mascotte-flip-face absolute inset-0"
-            style={{
-              backfaceVisibility: isMobileView ? 'visible' : 'hidden',
-              transform: isMobileView
-                ? (isFlipped ? 'translateX(0)' : 'translateX(120%)')
-                : 'rotateY(180deg)',
-              opacity: isMobileView ? (isFlipped ? 1 : 0) : 1,
-              pointerEvents: isFlipped ? 'auto' : 'none',
-              transition: isMobileView
-                ? 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 220ms ease'
-                : 'none',
-            }}
-          >
-            <div
-              className="relative h-full w-full overflow-hidden rounded-2xl"
-              style={{ background: BACK_VARIANTS[backVariant].gradient }}
-            >
-              {/* Holographic overlay â€” GOLD only */}
-              {BACK_VARIANTS[backVariant].label === 'GOLD' && (
-                <div
-                  className="pointer-events-none absolute inset-0 rounded-2xl holo-overlay"
-                  style={{
-                    background: `radial-gradient(circle at ${holoPos.x}% ${holoPos.y}%, rgba(255,255,255,0.35) 0%, rgba(168,85,247,0.2) 20%, rgba(59,130,246,0.2) 40%, rgba(16,185,129,0.15) 60%, rgba(245,158,11,0.1) 80%, transparent 100%)`,
-                    mixBlendMode: 'overlay',
-                    transition: 'background 150ms ease-out',
-                  }}
-                />
-              )}
-
-              {/* Flip counter badge (top-right) */}
-              <div className="absolute right-2 top-2 inline-flex h-6 min-w-[28px] items-center justify-center rounded-full bg-white/25 px-2 backdrop-blur-sm">
-                <span className="text-[9px] font-bold text-white">{flipCount}</span>
-              </div>
-
-              {/* Album button (top-left) */}
-              <button
-                onClick={handleAlbumToggle}
-                className={`absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full backdrop-blur-sm transition-all hover:scale-110 ${showAlbum ? 'bg-white/40' : 'bg-white/25'}`}
-                title="Collezione"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
-              </button>
-
-              {/* Title block */}
-              <div className="pointer-events-none absolute inset-x-2 top-8 flex flex-col items-center text-center">
-                <svg className="mascotte-back-sparkle mb-1" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" fill="white" fillOpacity="0.95" />
-                </svg>
-                <span className="font-comodo text-[12px] font-bold tracking-wide text-white/95">
-                  {BACK_VARIANTS[backVariant].label}
-                </span>
-                <span className="mt-0.5 text-[7px] font-medium uppercase tracking-[0.2em] text-white/70">
-                  {BACK_VARIANTS[backVariant].sub}
-                </span>
-              </div>
-
-              {/* Action buttons */}
-              <div className="absolute inset-x-2 bottom-2.5 flex items-center justify-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsWardrobeOpen((prev) => {
-                      const next = !prev;
-                      if (next) {
-                        setIsFlipping(true);
-                        setIsFlipped(false);
-                        window.setTimeout(() => setIsFlipping(false), 650);
-                        const palette = ['#FF7300', '#FFA246', '#FFB26B', '#fcd34d', '#ffffff'];
-                        const sparkles = Array.from({ length: 6 }, (_, i) => ({
-                          id: Date.now() + i,
-                          left: 18 + Math.random() * 60,
-                          top: 12 + Math.random() * 74,
-                          delay: i * 55 + Math.floor(Math.random() * 60),
-                          size: 9 + Math.random() * 7,
-                          color: palette[Math.floor(Math.random() * palette.length)],
-                        }));
-                        setDressingSparkles(sparkles);
-                        if (dressingSparklesTimeoutRef.current !== null) {
-                          window.clearTimeout(dressingSparklesTimeoutRef.current);
-                        }
-                        dressingSparklesTimeoutRef.current = window.setTimeout(() => {
-                          setDressingSparkles([]);
-                          dressingSparklesTimeoutRef.current = null;
-                        }, 1300);
-                      }
-                      return next;
-                    });
-                  }}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/35 text-white transition hover:scale-105 hover:bg-black/50"
-                  title="Apri guardaroba"
-                  aria-label="Apri guardaroba"
-                >
-                  <Shirt className="h-4 w-4" />
-                  <span className="sr-only">Apri guardaroba</span>
-                </button>
-
-              </div>
-            </div>
-          </div>{/* end back face */}
-
-        </div>{/* end flip inner */}
-
-        {/* PC Icon - appears when coding mode */}
-        {showCodingCompanion && (
-          <div
-            className="coding-companion absolute -left-[154px] top-1/2 z-[8] -translate-y-1/2"
-          >
-            <div className="w-36 rounded-xl border border-primary/45 bg-zinc-900/85 p-2 shadow-xl shadow-primary/20 backdrop-blur-sm">
-              <div className="mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-marquee" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
-                </div>
-                <span className={`text-[10px] font-medium ${codingStatus === 'received' ? 'text-emerald-300' : 'text-zinc-300'}`}>
-                  {codingStatus === 'received' ? 'Ricevuto' : 'Compilo...'}
-                </span>
-              </div>
-
-              <div className="rounded-md border border-white/10 bg-zinc-950/80 p-2">
-                {codingStatus === 'received' ? (
-                  <div className="coding-received rounded-md border border-emerald-400/30 bg-emerald-500/10 px-2 py-1.5">
-                    <div className="flex items-center gap-1.5 text-emerald-300">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      <span className="text-[10px] font-semibold">Report ricevuto</span>
-                    </div>
-                    <p className="mt-1 text-[9px] leading-relaxed text-zinc-200">
-                      push bugfix/report done â€¢ ticket creato
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="coding-line coding-line-1" />
-                    <div className="coding-line coding-line-2" />
-                    <div className="coding-line coding-line-3" />
-                    <div className="mt-1.5 flex items-center gap-1">
-                      <span className="text-[9px] text-zinc-500">$</span>
-                      <span className="coding-cursor h-2.5 w-1 rounded-[2px] bg-primary" />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="mx-auto mt-1.5 h-1.5 w-14 rounded-full bg-zinc-500/35" />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Bug Report Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" style={{ zIndex: Z_INDEX.modal, animation: `bugModalBackdropIn ${BUG_MODAL_FADE_MS}ms ease-out forwards` }}>
-          <div className="w-full max-w-md rounded-2xl border border-gray-200/60 bg-white/95 p-6 shadow-2xl backdrop-blur-xl" style={{ animation: `bugModalPanelIn ${BUG_MODAL_FADE_MS}ms cubic-bezier(0.22, 1, 0.36, 1) forwards` }}>
-            {/* Header */}
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  <Bug className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-comodo text-lg tracking-wide text-black">
-                    Segnala un bug
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    Aiutaci a migliorare BRX
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setScreenshot(null);
-                  setSubmitted(false);
-                  setShowConsoleLogs(false);
-                  setHasConsoleLogs(false);
-                  resetCodingCompanion();
-                }}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Form */}
-            {!submitted ? (
-              <form
-                onSubmit={handleSubmit}
-                onFocusCapture={() => setIsBugFormFocused(true)}
-                onBlurCapture={(e) => {
-                  const nextFocused = e.relatedTarget as Node | null;
-                  if (!nextFocused || !e.currentTarget.contains(nextFocused)) {
-                    setIsBugFormFocused(false);
-                  }
-                }}
-                className="max-h-[70vh] overflow-y-auto pr-2"
-              >
-                {/* Nome e Email */}
-                <div className="mb-3 grid gap-3 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Il tuo nome</label>
-                    <input
-                      type="text"
-                      required
-                      value={bugForm.name}
-                      onChange={(e) => setBugForm({ ...bugForm, name: e.target.value })}
-                      placeholder="Mario Rossi"
-                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Email</label>
-                    <input
-                      type="email"
-                      required
-                      value={bugForm.email}
-                      onChange={(e) => setBugForm({ ...bugForm, email: e.target.value })}
-                      placeholder="tua@email.com"
-                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                </div>
-
-                {/* Tipo e Priorità */}
-                <div className="mb-3 grid gap-3 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Tipo di problema</label>
-                    <select
-                      value={bugForm.bugType}
-                      onChange={(e) => setBugForm({ ...bugForm, bugType: e.target.value })}
-                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                      <option value="functional">Malfunzionamento</option>
-                      <option value="visual">Problema visivo/UI</option>
-                      <option value="performance">Performance lente</option>
-                      <option value="payment">Problema pagamento</option>
-                      <option value="other">Altro</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Priorità</label>
-                    <select
-                      value={bugForm.priority}
-                      onChange={(e) => setBugForm({ ...bugForm, priority: e.target.value })}
-                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                      <option value="low">Bassa - Miglioramento</option>
-                      <option value="medium">Media - Funzionalità limitata</option>
-                      <option value="high">Alta - Bloccante</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Oggetto */}
-                <div className="mb-3">
-                  <label className="mb-1 block text-xs font-medium text-gray-700">Oggetto</label>
-                  <input
-                    type="text"
-                    required
-                    value={bugForm.subject}
-                    onChange={(e) => setBugForm({ ...bugForm, subject: e.target.value })}
-                    placeholder="Descrivi brevemente il problema"
-                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-
-                {/* Descrizione */}
-                <div className="mb-3">
-                  <label className="mb-1 block text-xs font-medium text-gray-700">Descrizione dettagliata</label>
-                  <textarea
-                    required
-                    value={bugForm.message}
-                    onChange={(e) => setBugForm({ ...bugForm, message: e.target.value })}
-                    placeholder="Descrivi il problema in dettaglio: cosa stavi facendo, cosa ti aspettavi, cosa è successo invece..."
-                    rows={4}
-                    className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-
-                {/* URL */}
-                <div className="mb-3">
-                  <label className="mb-1 block text-xs font-medium text-gray-700">URL della pagina</label>
-                  <input
-                    type="url"
-                    value={bugForm.url}
-                    onChange={(e) => setBugForm({ ...bugForm, url: e.target.value })}
-                    placeholder="https://..."
-                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">L&apos;URL ci aiuta a identificare esattamente dove si è verificato il problema.</p>
-                </div>
-
-                {/* Screenshot preview */}
-                {screenshot && (
-                  <div className="mb-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4 text-primary" />
-                        <span className="text-xs font-medium text-gray-600">Screenshot allegato</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={removeScreenshot}
-                        className="text-xs text-red-500 hover:text-red-600"
-                      >
-                        Rimuovi
-                      </button>
-                    </div>
-                    <img src={screenshot} alt="Screenshot" className="max-h-32 rounded-lg object-contain" />
-                  </div>
-                )}
-
-                {/* Console logs */}
-                {hasConsoleLogs && (
-                  <div className="mb-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-blue-600" />
-                        <span className="text-xs font-medium text-blue-700">
-                          Log console disponibili ({getRecentLogs(60).length})
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowConsoleLogs(!showConsoleLogs)}
-                        className="text-xs font-medium text-blue-600 hover:text-blue-800"
-                      >
-                        {showConsoleLogs ? 'Nascondi' : 'Mostra'}
-                      </button>
-                    </div>
-                    {showConsoleLogs && capturedLogs.length > 0 && (
-                      <div className="mt-2 max-h-48 overflow-y-auto rounded border border-blue-200 bg-white p-2 font-mono text-xs">
-                        {getRecentLogs(60).map((log, i) => (
-                          <div
-                            key={i}
-                            className={`mb-1 border-b border-gray-100 pb-1 last:border-0 ${log.type === 'error' ? 'text-red-600' :
-                                log.type === 'warn' ? 'text-yellow-600' :
-                                  'text-gray-700'
-                              }`}
-                          >
-                            <span className="text-gray-400">[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
-                            <span className="opacity-75">[{log.type.toUpperCase()}]</span>{' '}
-                            {log.message}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Azioni */}
-                <div className="mb-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={captureScreenshot}
-                    disabled={isCapturing}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-primary hover:text-primary disabled:opacity-50"
-                  >
-                    <Camera className="h-3.5 w-3.5" />
-                    {isCapturing ? 'Catturando...' : 'Scatta screenshot'}
-                  </button>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsModalOpen(false);
-                      setSubmitted(false);
-                      setScreenshot(null);
-                      setHasConsoleLogs(false);
-                      setShowConsoleLogs(false);
-                      setBugForm({ name: '', email: '', subject: '', message: '', bugType: 'functional', priority: 'medium', url: '' });
-                      resetCodingCompanion();
-                    }}
-                    className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
-                  >
-                    Annulla
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={!bugForm.message.trim() || !bugForm.name.trim() || !bugForm.email.trim() || !bugForm.subject.trim()}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <Send className="h-4 w-4" />
-                    Invia segnalazione
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="py-8 text-center">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                  <Send className="h-6 w-6 text-green-600" />
-                </div>
-                <p className="font-medium text-black">Grazie per il feedback!</p>
-                <p className="text-sm text-gray-500">
-                  Esamineremo la segnalazione al più presto.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+        <BugReportModal
+          variant="desktop"
+          zIndex={Z_INDEX.modal}
+          t={t}
+          submitted={submitted}
+          bugForm={bugForm}
+          setBugForm={setBugForm}
+          onSubmit={handleSubmit}
+          onClose={handleBugModalClose}
+          onCancel={handleBugModalCancel}
+          screenshot={screenshot}
+          onRemoveScreenshot={removeScreenshot}
+          onCaptureScreenshot={captureScreenshot}
+          isCapturing={isCapturing}
+          hasConsoleLogs={hasConsoleLogs}
+          showConsoleLogs={showConsoleLogs}
+          setShowConsoleLogs={setShowConsoleLogs}
+          onFormFocusCapture={handleBugFormFocusCapture}
+          onFormBlurCapture={handleBugFormBlurCapture}
+        />
       )}
 
-      {/* Chat Modal - Asso Assistant */}
       {showChatModal && (
-        <div className="fixed inset-0 flex items-end justify-end p-4 sm:items-center sm:justify-center" style={{ zIndex: Z_INDEX.modal }}>
-          <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-            onClick={handleChatModalClose}
-          />
-          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-lg">
-            {/* Header - Clean, minimal, no animations */}
-            <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-1 rounded-full bg-primary" />
-                <div>
-                  <h3 className="font-comodo text-base font-medium text-zinc-900">Asso</h3>
-                  <p className="text-xs text-zinc-500">Assistente Ebartex</p>
-                </div>
-              </div>
-              <button
-                onClick={handleChatModalClose}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:text-zinc-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Chat Messages - Clean styling with fade-in animations */}
-            <div className="max-h-[360px] min-h-[320px] overflow-y-auto bg-zinc-50 p-4">
-              {chatMessages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`mb-3 flex chat-message-in ${msg.type === 'asso' ? 'justify-start' : 'justify-end'}`}
-                  style={{ animationDelay: `${idx * 80}ms` }}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${msg.type === 'asso'
-                        ? 'rounded-tl-none bg-white text-zinc-800 border border-zinc-200'
-                        : 'rounded-tr-none bg-primary text-white'
-                      }`}
-                  >
-                    {msg.text}
-                  </div>
-                </div>
-              ))}
-
-              {/* Typing Indicator - shows when Asso is typing */}
-              {isTyping && (
-                <div className="mb-3 flex justify-start chat-message-in">
-                  <div className="max-w-[85%] rounded-2xl rounded-tl-none bg-white border border-zinc-200 px-4 py-3">
-                    <div className="typing-indicator">
-                      <span></span>
-                      <span></span>
-                      <span></span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Typewriter effect - live text being typed */}
-              {chatTypewriter.isTyping && chatTypewriter.displayedText && (
-                <div
-                  className="mb-3 flex cursor-pointer justify-start chat-message-in"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => chatTypewriter.skip()}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') chatTypewriter.skip();
-                  }}
-                  title="Mostra tutto il messaggio"
-                >
-                  <div className="max-w-[85%] rounded-2xl rounded-tl-none border border-zinc-200 bg-white px-4 py-2.5 text-sm leading-relaxed text-zinc-800">
-                    {chatTypewriter.displayedText}
-                    <span className="asso-typewriter-cursor typing-cursor ml-0.5 inline-block h-4 w-0.5 bg-primary" />
-                  </div>
-                </div>
-              )}
-
-              {/* Menu Options - Animated staggered entrance */}
-              {chatStep === 'menu' && (
-                <div className="mt-4 space-y-2">
-                  <button
-                    onClick={() => {
-                      setChatMessages(prev => [...prev, { type: 'user', text: 'Voglio leggere le FAQ' }]);
-                      setTimeout(() => {
-                        handleChatModalClose();
-                        window.location.href = '/aiuto';
-                      }, 300);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50 menu-option-in"
-                    style={{ animationDelay: '0ms' }}
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                      <HelpCircle className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-zinc-900">FAQ</p>
-                      <p className="text-xs text-zinc-500">Risposte rapide</p>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setChatMessages(prev => [...prev, { type: 'user', text: 'Voglio segnalare un bug' }]);
-                      setChatStep('bug');
-                      setShowChatModal(false);
-                      setShowCodingCompanion(true);
-                      setCodingStatus('compiling');
-                      setIsCodingTransition(true);
-
-                      if (codingTransitionTimeoutRef.current !== null) {
-                        window.clearTimeout(codingTransitionTimeoutRef.current);
-                      }
-
-                      codingTransitionTimeoutRef.current = window.setTimeout(() => {
-                        setIsCodingTransition(false);
-                        setIsModalOpen(true);
-                        codingTransitionTimeoutRef.current = null;
-                      }, CODING_PREVIEW_MS);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50 menu-option-in"
-                    style={{ animationDelay: '80ms' }}
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                      <Bug className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-zinc-900">Bug</p>
-                      <p className="text-xs text-zinc-500">Segnala un problema</p>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setChatMessages(prev => [...prev, { type: 'user', text: 'Voglio contattare il supporto' }]);
-                      setChatStep('contact');
-                      setTimeout(() => {
-                        setShowChatModal(false);
-                        window.location.href = '/aiuto?tab=contact';
-                      }, 300);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left hover:bg-zinc-50 menu-option-in"
-                    style={{ animationDelay: '160ms' }}
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-600">
-                      <MessageSquare className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-zinc-900">Supporto</p>
-                      <p className="text-xs text-zinc-500">Scrivici</p>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Footer - Clean */}
-            <div className="border-t border-zinc-200 bg-white px-4 py-3">
-              <p className="text-center text-xs text-zinc-400">
-                Scegli un&apos;opzione.
-              </p>
-            </div>
-          </div>
-        </div>
+        <AssoChatModal
+          zIndex={Z_INDEX.modal}
+          t={t}
+          chatMessages={chatMessages}
+          isTyping={isTyping}
+          chatTypewriter={chatTypewriter}
+          chatStep={chatStep}
+          showFooter={!isMobileView}
+          onClose={handleChatModalClose}
+          onFaqClick={handleChatFaqClick}
+          onBugClick={handleChatBugClick}
+          onSupportClick={handleChatSupportClick}
+        />
       )}
 
-      {/* Float animation */}
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        @keyframes mascotteFloat {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          25% { transform: translateY(-4px) rotate(1deg); }
-          75% { transform: translateY(-2px) rotate(-1deg); }
-        }
-        @keyframes mascotteReappear {
-          0% { opacity: 0; transform: scale(0.5) translateY(20px); }
-          50% { opacity: 1; transform: scale(1.15) translateY(-8px); }
-          70% { transform: scale(0.95) translateY(2px); }
-          100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        @keyframes flashFade {
-          0% { opacity: 1; }
-          100% { opacity: 0; }
-        }
-        @keyframes previewSlideIn {
-          from { opacity: 0; transform: translateY(20px) scale(0.9); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes previewFadeOut {
-          from { opacity: 1; transform: translateY(0) scale(1); }
-          to { opacity: 0; transform: translateY(-10px) scale(0.95); }
-        }
-        @keyframes bugModalBackdropIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes bugModalPanelIn {
-          from { opacity: 0; transform: translateY(10px) scale(0.97); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes codingCompanionIn {
-          from { opacity: 0; transform: translateY(8px) scale(0.92); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes codingLine1 {
-          0%, 100% { width: 56%; opacity: 0.55; }
-          50% { width: 74%; opacity: 0.9; }
-        }
-        @keyframes codingLine2 {
-          0%, 100% { width: 72%; opacity: 0.5; }
-          50% { width: 52%; opacity: 0.9; }
-        }
-        @keyframes codingLine3 {
-          0%, 100% { width: 42%; opacity: 0.45; }
-          50% { width: 62%; opacity: 0.88; }
-        }
-        @keyframes codingCursor {
-          0%, 45% { opacity: 1; }
-          46%, 100% { opacity: 0.25; }
-        }
-        @keyframes codingReceivedIn {
-          from { opacity: 0; transform: translateY(4px) scale(0.96); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes bugGlintSweep {
-          0% { opacity: 0; transform: translateX(-3px); }
-          45% { opacity: 0.9; }
-          100% { opacity: 0; transform: translateX(4px); }
-        }
-        @keyframes codingMouthPulse {
-          0%, 100% { transform: translateY(0) scaleX(1); opacity: 0.92; }
-          50% { transform: translateY(-0.6px) scaleX(0.96); opacity: 1; }
-        }
-        @keyframes bugMouthSip {
-          0%, 100% { transform: translateY(0) scale(1, 1); opacity: 0.92; }
-          45% { transform: translateY(-0.4px) scale(0.9, 1.12); opacity: 1; }
-        }
-        .coding-companion {
-          animation: codingCompanionIn 280ms ease-out;
-        }
-        .coding-line {
-          height: 4px;
-          border-radius: 9999px;
-          margin-bottom: 6px;
-          background: linear-gradient(90deg, rgba(255, 115, 0, 0.92), rgba(243, 199, 106, 0.9));
-        }
-        .coding-line-1 {
-          animation: codingLine1 1800ms ease-in-out infinite;
-        }
-        .coding-line-2 {
-          animation: codingLine2 1700ms ease-in-out infinite;
-        }
-        .coding-line-3 {
-          margin-bottom: 0;
-          animation: codingLine3 1900ms ease-in-out infinite;
-        }
-        .coding-cursor {
-          animation: codingCursor 1200ms step-end infinite;
-        }
-        .coding-received {
-          animation: codingReceivedIn 220ms ease-out;
-        }
-        .bug-glint {
-          opacity: 0;
-          transform-box: fill-box;
-          transform-origin: center;
-        }
-        .face-fixed-neon svg {
-          filter: drop-shadow(0 0 1px ${selectedFaceColor.glowStrong}) drop-shadow(0 0 2px ${selectedFaceColor.glowMid});
-        }
-        .face-fixed-neon .face-halo {
-          opacity: 1;
-          stroke: #1e3a8a !important;
-          stroke-width: 0.9 !important;
-        }
-        .face-fixed-neon .face-line {
-          stroke: ${selectedFaceColor.line} !important;
-        }
-        .face-fixed-neon .pupil {
-          fill: ${selectedFaceColor.pupil} !important;
-          stroke: none !important;
-        }
-        .face-fixed-neon .pupil-highlight {
-          fill: ${selectedFaceColor.highlight} !important;
-          stroke: none !important;
-        }
-        .face-glint-active .bug-glint {
-          animation: bugGlintSweep 700ms ease-out 120ms 1 both;
-        }
-        .bug-glint-2 {
-          animation-delay: 260ms;
-        }
-        .coding-mouth {
-          transform-box: fill-box;
-          transform-origin: center;
-          animation: codingMouthPulse 1.1s ease-in-out infinite;
-        }
-        .bug-mouth {
-          transform-box: fill-box;
-          transform-origin: center;
-          animation: bugMouthSip 1.05s ease-in-out infinite;
-        }
-        @keyframes chatMessageIn {
-          from { opacity: 0; transform: translateY(10px) scale(0.96); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes typingBounce {
-          0%, 60%, 100% { transform: translateY(0); }
-          30% { transform: translateY(-4px); }
-        }
-        .chat-message-in {
-          animation: chatMessageIn 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-          opacity: 0;
-        }
-        .typing-indicator {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          height: 16px;
-        }
-        .typing-indicator span {
-          width: 6px;
-          height: 6px;
-          background: #a1a1aa;
-          border-radius: 50%;
-          animation: typingBounce 1.1s ease-in-out infinite;
-        }
-        .typing-indicator span:nth-child(1) { animation-delay: 0ms; }
-        .typing-indicator span:nth-child(2) { animation-delay: 150ms; }
-        .typing-indicator span:nth-child(3) { animation-delay: 300ms; }
-        @keyframes menuOptionIn {
-          from { opacity: 0; transform: translateX(-16px) scale(0.96); }
-          to { opacity: 1; transform: translateX(0) scale(1); }
-        }
-        .menu-option-in {
-          animation: menuOptionIn 350ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-          opacity: 0;
-        }
-        @keyframes hintPopIn {
-          0% { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.92); }
-          70% { opacity: 1; transform: translateX(-50%) translateY(-3px) scale(1.02); }
-          100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-        }
-        @keyframes assoHintPopIn {
-          0% { opacity: 0; transform: translateY(8px) scale(0.92); }
-          70% { opacity: 1; transform: translateY(-3px) scale(1.02); }
-          100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .hint-bubble {
-          animation: hintPopIn 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-        .asso-hint-bubble-enter {
-          animation: assoHintPopIn 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-        @keyframes assoCursorBlink {
-          0%, 45% { opacity: 1; }
-          50%, 100% { opacity: 0.15; }
-        }
-        .asso-typewriter-cursor {
-          animation: assoCursorBlink 0.95s step-end infinite;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .asso-typewriter-cursor,
-          .asso-hint-bubble-enter,
-          .typing-cursor,
-          .typing-indicator span {
-            animation: none !important;
-          }
-        }
-        @keyframes backSparkleRotate {
-          0% { transform: rotate(0deg) scale(1); }
-          50% { transform: rotate(180deg) scale(1.15); }
-          100% { transform: rotate(360deg) scale(1); }
-        }
-        .mascotte-back-sparkle {
-          animation: backSparkleRotate 4s ease-in-out infinite;
-          filter: drop-shadow(0 0 6px rgba(255,255,255,0.5));
-        }
-        .mascotte-flip-face {
-          -webkit-backface-visibility: hidden;
-          backface-visibility: hidden;
-        }
-        @keyframes flipParticleBurst {
-          0% {
-            opacity: 1;
-            transform: translate(0, 0) scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: translate(var(--particle-dx), var(--particle-dy)) scale(0);
-          }
-        }
-        .flip-particle {
-          border-radius: 50%;
-          animation: flipParticleBurst 600ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-          filter: blur(0.5px);
-          box-shadow: 0 0 4px currentColor;
-        }
-        @keyframes dressingSparkle {
-          0% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(0deg); }
-          20% { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(90deg); }
-          65% { opacity: 1; transform: translate(-50%, -50%) scale(0.9) rotate(200deg); }
-          100% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(320deg); }
-        }
-        .dressing-sparkle {
-          animation: dressingSparkle 950ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-          filter: drop-shadow(0 0 5px currentColor) drop-shadow(0 0 10px currentColor);
-          transform-origin: center;
-          opacity: 0;
-          will-change: transform, opacity;
-        }
-        @keyframes achievementIn {
-          0% { opacity: 0; transform: translateY(12px) scale(0.9); }
-          100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes achievementOut {
-          0% { opacity: 1; transform: translateY(0) scale(1); }
-          100% { opacity: 0; transform: translateY(-8px) scale(0.95); }
-        }
-        @keyframes comboPopIn {
-          0% { opacity: 0; transform: scale(0.5) rotate(-10deg); }
-          60% { opacity: 1; transform: scale(1.15) rotate(3deg); }
-          100% { opacity: 1; transform: scale(1) rotate(0deg); }
-        }
-        @keyframes flipBtnIn {
-          0% { opacity: 0; transform: scale(0.6); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-        .mascotte-flip-btn {
-          animation: flipBtnIn 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-        @keyframes unlockFlash {
-          0% { opacity: 0; transform: scale(0.7) translateY(10px); filter: brightness(2); }
-          15% { opacity: 1; transform: scale(1.08) translateY(-2px); filter: brightness(1.5); }
-          30% { opacity: 1; transform: scale(1) translateY(0); filter: brightness(1); }
-          80% { opacity: 1; transform: scale(1) translateY(0); }
-          100% { opacity: 0; transform: scale(0.95) translateY(-12px); }
-        }
-        .unlock-badge {
-          box-shadow: 0 0 20px rgba(251,191,36,0.5), 0 0 40px rgba(251,191,36,0.2);
-        }
-        @keyframes albumSlideIn {
-          0% { opacity: 0; transform: translateY(12px) scale(0.92); }
-          100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .holo-overlay {
-          animation: holoShimmer 3s ease-in-out infinite;
-        }
-        @keyframes holoShimmer {
-          0%, 100% { opacity: 0.6; }
-          50% { opacity: 1; }
-        }
-        @keyframes mascotteBackflip {
-          0% { transform: rotateY(0deg) scale(1); filter: drop-shadow(0 12px 32px rgba(255,115,0,0.35)); }
-          20% { transform: rotateY(0deg) translateY(-30px) scale(1.1); filter: drop-shadow(0 20px 40px rgba(255,215,0,0.6)); }
-          50% { transform: rotateY(180deg) translateY(-40px) scale(1.15); filter: drop-shadow(0 24px 48px rgba(255,215,0,0.8)); }
-          80% { transform: rotateY(360deg) translateY(-15px) scale(1.05); filter: drop-shadow(0 16px 36px rgba(255,215,0,0.5)); }
-          100% { transform: rotateY(360deg) translateY(0) scale(1); filter: drop-shadow(0 12px 32px rgba(255,115,0,0.35)); }
-        }
-        .mascotte-backflip {
-          animation: mascotteBackflip 1.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
-        }
-        @keyframes goldenConfettiFall {
-          0% { opacity: 0; transform: translateY(0) rotate(0deg) scale(0.5); }
-          10% { opacity: 1; transform: translateY(-20px) rotate(40deg) scale(1); }
-          100% { opacity: 0; transform: translateY(-220px) rotate(720deg) scale(0.3); }
-        }
-        .golden-confetti {
-          animation: goldenConfettiFall 2s ease-out forwards;
-        }
-        @property --shiny-angle {
-          syntax: '<angle>';
-          initial-value: 0deg;
-          inherits: false;
-        }
-        @keyframes shinyBorderSpin {
-          to { --shiny-angle: 360deg; }
-        }
-        .shiny-border-anim {
-          animation: shinyBorderSpin 1.5s linear infinite, shinyPulse 0.8s ease-in-out infinite alternate;
-        }
-        @keyframes shinyPulse {
-          0% { opacity: 0.7; }
-          100% { opacity: 1; }
-        }
-        .mascotte-shiny {
-          filter: drop-shadow(0 12px 32px rgba(168,85,247,0.4)) drop-shadow(0 0 20px rgba(236,72,153,0.3)) drop-shadow(0 4px 12px rgba(59,130,246,0.3)) !important;
-        }
-        @keyframes bandSheenSweep {
-          0% { transform: translateX(-120%); opacity: 0; }
-          30% { opacity: 1; }
-          100% { transform: translateX(120%); opacity: 0; }
-        }
-        .mascotte-band-sheen {
-          background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.45) 46%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0.45) 54%, transparent 70%);
-          opacity: 0;
-          transform: translateX(-120%);
-        }
-        [aria-label="Segnala un bug"]:hover .mascotte-band-sheen {
-          animation: bandSheenSweep 700ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-        }
-        /* Sleep Bubbles animation */
-        @keyframes sleepBubbleFloat {
-          0% {
-            opacity: 0;
-            transform: translateY(0) translateX(0) scale(0.7);
-          }
-          20% {
-            opacity: 0.55;
-          }
-          50% {
-            opacity: 0.65;
-          }
-          80% {
-            opacity: 0.4;
-          }
-          100% {
-            opacity: 0;
-            transform: translateY(-30px) translateX(6px) scale(1.02);
-          }
-        }
-        @keyframes sleepBubbleWobble {
-          0%, 100% {
-            transform: rotate(-2deg);
-          }
-          50% {
-            transform: rotate(2deg);
-          }
-        }
-        .sleep-bubbles-container {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 6px;
-        }
-        .sleep-bubble {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(145deg, #e0e7ff 0%, #c7d2fe 50%, #a5b4fc 100%);
-          border: 1.5px solid rgba(99, 102, 241, 0.25);
-          box-shadow: 
-            0 2px 6px rgba(99, 102, 241, 0.15),
-            inset 0 1px 2px rgba(255, 255, 255, 0.5);
-          animation: sleepBubbleFloat 5s ease-in-out infinite;
-        }
-        .sleep-bubble-large {
-          width: 42px;
-          height: 28px;
-          border-radius: 20px 20px 20px 8px;
-          animation-delay: 0ms;
-        }
-        .sleep-bubble-large::after {
-          content: '';
-          position: absolute;
-          bottom: -4px;
-          left: 6px;
-          width: 8px;
-          height: 6px;
-          background: linear-gradient(145deg, #e0e7ff 0%, #c7d2fe 100%);
-          border-radius: 50%;
-        }
-        .sleep-bubble-small {
-          width: 22px;
-          height: 16px;
-          border-radius: 12px 12px 12px 4px;
-          margin-left: 18px;
-          animation-delay: 2.5s;
-          opacity: 0.7;
-        }
-        .sleep-bubble-small::after {
-          content: '';
-          position: absolute;
-          bottom: -3px;
-          left: 4px;
-          width: 5px;
-          height: 4px;
-          background: linear-gradient(145deg, #e0e7ff 0%, #c7d2fe 100%);
-          border-radius: 50%;
-        }
-        .sleep-bubble-text {
-          font-weight: 700;
-          color: #4f46e5;
-          text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
-        }
-        .sleep-bubble-large .sleep-bubble-text {
-          font-size: 11px;
-          letter-spacing: -0.3px;
-        }
-        .sleep-bubble-small .sleep-bubble-text {
-          font-size: 9px;
-        }
-        /* ASSO pill badge animations */
-        @keyframes asso-pulse {
-          0%, 100% { box-shadow: 0 -1px 4px rgba(0,0,0,0.15), inset 0 -1px 0 rgba(255,255,255,0.25); }
-          50% { box-shadow: 0 -1px 6px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(255,255,255,0.35), 0 0 8px rgba(255,255,255,0.2); }
-        }
-        @keyframes asso-pulse-intense-orange {
-          0%, 100% { box-shadow: 0 -1px 6px rgba(255,100,0,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(255,154,64,0.5); }
-          50% { box-shadow: 0 -1px 10px rgba(255,100,0,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(255,154,64,0.7), 0 0 24px rgba(255,115,0,0.3); }
-        }
-        @keyframes asso-pulse-intense-red {
-          0%, 100% { box-shadow: 0 -1px 6px rgba(220,38,38,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(239,68,68,0.5); }
-          50% { box-shadow: 0 -1px 10px rgba(220,38,38,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(239,68,68,0.7), 0 0 24px rgba(220,38,38,0.3); }
-        }
-        @keyframes asso-pulse-intense-purple {
-          0%, 100% { box-shadow: 0 -1px 6px rgba(124,58,237,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(167,139,250,0.5); }
-          50% { box-shadow: 0 -1px 10px rgba(124,58,237,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(167,139,250,0.7), 0 0 24px rgba(124,58,237,0.3); }
-        }
-        @keyframes asso-pulse-intense-gray {
-          0%, 100% { box-shadow: 0 -1px 6px rgba(75,85,99,0.3), inset 0 -1px 0 rgba(255,255,255,0.3), 0 0 12px rgba(156,163,175,0.4); }
-          50% { box-shadow: 0 -1px 10px rgba(75,85,99,0.5), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 18px rgba(156,163,175,0.6), 0 0 24px rgba(75,85,99,0.25); }
-        }
-        @keyframes asso-text-glow {
-          0%, 100% { text-shadow: 0 0 2px rgba(255, 255, 255, 0.4), 0 0 4px rgba(255, 255, 255, 0.2); }
-          50% { text-shadow: 0 0 6px rgba(255, 255, 255, 0.9), 0 0 12px rgba(255, 255, 255, 0.7); }
-        }
-        .animate-asso-text {
-          animation: asso-text-glow 2.5s ease-in-out infinite;
-        }
-        @keyframes asso-pulse-intense-pink {
-          0%, 100% { box-shadow: 0 -1px 6px rgba(236,72,153,0.4), inset 0 -1px 0 rgba(255,255,255,0.4), 0 0 12px rgba(244,114,182,0.5); }
-          50% { box-shadow: 0 -1px 10px rgba(236,72,153,0.6), inset 0 -1px 0 rgba(255,255,255,0.5), 0 0 18px rgba(244,114,182,0.7), 0 0 24px rgba(236,72,153,0.3); }
-        }
-        @keyframes asso-shimmer-fast {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        .asso-pill-hovered > div {
-          transform: scale(1.08);
-          transition: transform 200ms ease-out;
-        }
-        .asso-pill-hovered > div > div:first-child {
-          animation: asso-shimmer-fast 1s ease-in-out infinite !important;
-        }
-        /* State-specific hover pulse animations */
-        .asso-pill-hovered .asso-pill-normal { animation: asso-pulse-intense-orange 0.8s ease-in-out infinite !important; }
-        .asso-pill-hovered .asso-pill-bugReport,
-        .asso-pill-hovered .asso-pill-bugFocus { animation: asso-pulse-intense-red 0.8s ease-in-out infinite !important; }
-        .asso-pill-hovered .asso-pill-coding { animation: asso-pulse-intense-purple 0.8s ease-in-out infinite !important; }
-        .asso-pill-hovered .asso-pill-sleeping { animation: asso-pulse-intense-gray 0.8s ease-in-out infinite !important; }
-        .asso-pill-hovered .asso-pill-wink { animation: asso-pulse-intense-pink 0.8s ease-in-out infinite !important; }
-        /* Promotional hint premium animations */
-        @keyframes promoPulse {
-          0%, 100% { opacity: 0.5; transform: scale(0.98); }
-          50% { opacity: 0.8; transform: scale(1.02); }
-        }
-        @keyframes promoFloat {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
-        }
-        @keyframes promoShine {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        @keyframes promoSparkle {
-          0%, 100% { opacity: 0.6; transform: scale(0.9) rotate(0deg); }
-          50% { opacity: 1; transform: scale(1.1) rotate(15deg); }
-        }
-        @keyframes promoGlow {
-          0%, 100% { box-shadow: 0 8px 32px rgba(255,115,0,0.4), 0 4px 16px rgba(0,0,0,0.2); }
-          50% { box-shadow: 0 12px 40px rgba(255,115,0,0.6), 0 6px 20px rgba(0,0,0,0.25), 0 0 30px rgba(255,154,64,0.3); }
-        }
-        /* Sleep mode dreamy animations */
-        @keyframes sleepGlow {
-          0%, 100% { opacity: 0.4; transform: scale(0.98); }
-          50% { opacity: 0.7; transform: scale(1.03); }
-        }
-        @keyframes sleepFloat {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          25% { transform: translateY(-4px) rotate(0.5deg); }
-          75% { transform: translateY(-2px) rotate(-0.5deg); }
-        }
-        @keyframes sleepShine {
-          0% { transform: translateX(-100%); opacity: 0; }
-          50% { opacity: 0.3; }
-          100% { transform: translateX(100%); opacity: 0; }
-        }
-        @keyframes sleepTwinkle {
-          0%, 100% { opacity: 0.5; transform: scale(0.9); }
-          50% { opacity: 1; transform: scale(1.1); }
-        }
-        /* Equipped wardrobe realism layers */
-        .equipped-item-layer {
-          position: relative;
-          transition: filter 220ms ease, transform 220ms ease, opacity 220ms ease;
-        }
-        .equipped-item-layer::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          border-radius: 10px;
-          background:
-            radial-gradient(circle at 22% 16%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.08) 20%, rgba(255,255,255,0) 52%),
-            linear-gradient(165deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 35%, rgba(0,0,0,0.07) 100%);
-          mix-blend-mode: screen;
-          opacity: 0.62;
-        }
-        .equipped-item-layer::after {
-          content: '';
-          position: absolute;
-          inset: -1px;
-          pointer-events: none;
-          border-radius: 11px;
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.24),
-            inset 0 -1px 0 rgba(0,0,0,0.2);
-          opacity: 0.6;
-        }
-        @keyframes equippedItemFloat {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-1.8px); }
-        }
-        @keyframes equippedItemBreathe {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.015); }
-        }
-        .equipped-item-float {
-          animation: equippedItemFloat 3.8s ease-in-out infinite;
-        }
-        .equipped-item-breathe {
-          animation: equippedItemBreathe 4.6s ease-in-out infinite;
-        }
-        .equipped-item-metallic::before {
-          opacity: 0.78;
-          background:
-            linear-gradient(130deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.04) 42%, rgba(0,0,0,0.12) 100%),
-            radial-gradient(circle at 28% 18%, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0) 70%);
-        }
-        .equipped-item-glass::before {
-          opacity: 0.74;
-          background:
-            linear-gradient(150deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.07) 30%, rgba(255,255,255,0.01) 55%, rgba(0,0,0,0.14) 100%);
-        }
-        .equipped-item-tech::after {
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.18),
-            inset 0 -1px 0 rgba(0,0,0,0.24),
-            0 0 0 1px rgba(34,211,238,0.15);
-        }
-        /* Peek animation for hidden mascot on mobile */
-        @keyframes peekPulse {
-          0%, 100% { opacity: 0.6; width: 8px; }
-          50% { opacity: 1; width: 12px; }
-        }
-        /* â”€â”€ ASSO Liquid Gradient Orb â”€â”€ */
-        @keyframes assoOrbMorph1 {
-          0%   { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; transform: translate(-8px, -6px) scale(1); opacity: 0.6; }
-          25%  { border-radius: 65% 35% 30% 70% / 60% 70% 30% 40%; transform: translate(12px, -2px) scale(1.15); opacity: 0.75; }
-          50%  { border-radius: 40% 60% 70% 30% / 40% 40% 60% 60%; transform: translate(4px, 12px) scale(0.9); opacity: 0.55; }
-          75%  { border-radius: 70% 30% 40% 60% / 30% 60% 40% 70%; transform: translate(-10px, 8px) scale(1.1); opacity: 0.7; }
-          100% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; transform: translate(-8px, -6px) scale(1); opacity: 0.6; }
-        }
-        @keyframes assoOrbMorph2 {
-          0%   { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: translate(10px, 8px) scale(1); opacity: 0.45; }
-          25%  { border-radius: 30% 70% 70% 30% / 30% 60% 40% 70%; transform: translate(-12px, 4px) scale(1.1); opacity: 0.6; }
-          50%  { border-radius: 70% 30% 40% 60% / 60% 40% 60% 40%; transform: translate(-4px, -12px) scale(0.85); opacity: 0.4; }
-          75%  { border-radius: 40% 60% 60% 40% / 30% 70% 30% 70%; transform: translate(12px, -6px) scale(1.05); opacity: 0.55; }
-          100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: translate(10px, 8px) scale(1); opacity: 0.45; }
-        }
-      `}} />
+      <CardMascotteStyles selectedFaceColor={selectedFaceColor} />
     </>
   );
 }

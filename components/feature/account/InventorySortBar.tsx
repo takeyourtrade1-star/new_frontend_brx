@@ -1,7 +1,9 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Grid3X3, List } from 'lucide-react';
 import type { InventoryFilters } from '@/components/feature/account/InventoryFiltersPanel';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 type SortBy = InventoryFilters['sortBy'];
 
@@ -9,15 +11,6 @@ interface SortPill {
   value: SortBy;
   label: string;
 }
-
-const SORT_PILLS: SortPill[] = [
-  { value: 'price-desc', label: 'Prezzo ↓' },
-  { value: 'price-asc', label: 'Prezzo ↑' },
-  { value: 'condition-desc', label: 'Cond. ↓' },
-  { value: 'condition-asc', label: 'Cond. ↑' },
-  { value: 'name-asc', label: 'Nome A→Z' },
-  { value: 'date-desc', label: 'Recenti' },
-];
 
 interface InventorySortBarProps {
   sortBy: SortBy;
@@ -37,11 +30,25 @@ export function InventorySortBar({
   itemCount,
   compact = false,
 }: InventorySortBarProps) {
+  const { t } = useTranslation();
+
+  const SORT_PILLS: SortPill[] = useMemo(
+    () => [
+      { value: 'price-desc', label: t('search.sort.priceDesc') },
+      { value: 'price-asc', label: t('search.sort.priceAsc') },
+      { value: 'condition-desc', label: t('search.sort.conditionDesc') },
+      { value: 'condition-asc', label: t('search.sort.conditionAsc') },
+      { value: 'name-asc', label: t('search.sort.nameAsc') },
+      { value: 'date-desc', label: t('search.sort.dateDesc') },
+    ],
+    [t]
+  );
+
   if (compact) {
     return (
       <div className="mb-3 flex items-center gap-2 md:hidden">
         <label className="sr-only" htmlFor="inventory-sort-mobile">
-          Ordina per
+          {t('common.sortBy')}
         </label>
         <select
           id="inventory-sort-mobile"
@@ -69,7 +76,7 @@ export function InventorySortBar({
           <span className="font-semibold tabular-nums text-gray-900">
             {itemCount.toLocaleString('it-IT')}
           </span>{' '}
-          <span>carte trovate</span>
+          <span>{t('accountPage.itemsCardsFound', { count: itemCount })}</span>
         </span>
 
         <div className="hidden items-center rounded-lg bg-gray-100 p-1 md:flex">
@@ -81,8 +88,8 @@ export function InventorySortBar({
                 ? 'bg-white text-primary shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
-            aria-label="Vista lista"
-            title="Vista lista"
+            aria-label={t('accountPage.itemsViewTableAria')}
+            title={t('accountPage.itemsViewTableAria')}
           >
             <List className="h-4 w-4" />
           </button>
@@ -94,8 +101,8 @@ export function InventorySortBar({
                 ? 'bg-white text-primary shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
-            aria-label="Vista card"
-            title="Vista card"
+            aria-label={t('accountPage.itemsViewCardsAria')}
+            title={t('accountPage.itemsViewCardsAria')}
           >
             <Grid3X3 className="h-4 w-4" />
           </button>

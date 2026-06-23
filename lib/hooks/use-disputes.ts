@@ -10,6 +10,15 @@ export const disputeKeys = {
   messages: (id: number) => [...disputeKeys.all, 'messages', id] as const,
 };
 
+export function useMyDisputes(enabled = true, limit = 50, offset = 0) {
+  return useQuery({
+    queryKey: [...disputeKeys.mine(), limit, offset],
+    queryFn: () => disputesApi.listMine(limit, offset),
+    enabled,
+    staleTime: 10_000,
+  });
+}
+
 export function useOpenDisputeByOrder(orderId: number, enabled = true) {
   return useQuery({
     queryKey: disputeKeys.openByOrder(orderId),

@@ -26,7 +26,6 @@ export default function CartPage() {
   const removeItem = useCartStore((s) => s.removeItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const clearCart = useCartStore((s) => s.clearCart);
-  const getTotal = useCartStore((s) => s.getTotal);
   const createFromCartLines = useMockPurchaseStore((s) => s.createFromCartLines);
   const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -45,7 +44,14 @@ export default function CartPage() {
     () => items.reduce((acc, item) => acc + item.quantity, 0),
     [items],
   );
-  const cartTotal = getTotal();
+  const cartTotal = useMemo(
+    () =>
+      items.reduce(
+        (acc, item) => acc + (item.priceCents / 100) * item.quantity,
+        0,
+      ),
+    [items],
+  );
   const { selectedGame } = useGame();
   const intlLocale = LOCALE_TO_INTL[locale as UiLocale] ?? 'it-IT';
 

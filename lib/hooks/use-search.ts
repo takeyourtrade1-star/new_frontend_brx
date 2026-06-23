@@ -1,5 +1,6 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import type { SearchApiResponse, SearchHit } from '@/app/api/search/route';
+import type { SetResult } from '@/lib/search/global-search-types';
 
 export type { SearchApiResponse, SearchHit };
 
@@ -46,6 +47,37 @@ export function useSearchCards(
   return useQuery<SearchApiResponse>({
     queryKey: ['search', 'cards', params],
     queryFn: () => fetchSearch(params),
+    staleTime: 60_000,
+    ...options,
+  });
+}
+
+export interface SetSearchParams {
+  q?: string;
+  game?: string;
+  limit?: number;
+}
+
+async function fetchSets(params: SetSearchParams): Promise<SetResult[]> {
+  const sp = new URLSearchParams({ q: params.q ?? '', limit: String(params.limit ?? 8) });
+  if (params.game) sp.set('game', params.game);
+  const res = await fetch(`/api/sets?${sp.toString()}`);
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({})) as { error?: string; detail?: string };
+    throw new Error(j?.error ?? j?.detail ?? `HTTP ${res.status}`);
+  }
+  const data: unknown = await res.json();
+  return Array.isArray(data) ? (data as SetResult[]) : [];
+}
+
+/** Set/espansione autocomplete (modalità "sets" della search bar). */
+export function useSetSearch(
+  params: SetSearchParams,
+  options?: Partial<UseQueryOptions<SetResult[]>>,
+) {
+  return useQuery<SetResult[]>({
+    queryKey: ['search', 'sets', params.q ?? '', params.game ?? ''],
+    queryFn: () => fetchSets(params),
     staleTime: 60_000,
     ...options,
   });

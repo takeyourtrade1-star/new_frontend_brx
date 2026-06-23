@@ -5,33 +5,25 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Camera, Loader2, Search } from 'lucide-react';
 import { ScannerModal } from '@/components/feature/scanner/ScannerModal';
 import type { SearchHit } from '@/app/api/search/route';
+import { useSearchCards } from '@/lib/hooks/use-search';
 import {
   auctionGameToSearchParam,
   moneyInputStringFromNumber,
   type AuctionCreateCardSelection,
 } from '@/lib/auction/auction-create-draft';
 import type { AuctionGame } from '@/components/feature/aste/mock-auctions';
-import type { InventoryItemResponse } from '@/lib/api/sync-client';
-import { syncClient } from '@/lib/api/sync-client';
-import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
 import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { getCardImageUrl } from '@/lib/assets';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import {
+  useAuctionPickerInventory,
+  type InventoryWithCard,
+} from '@/lib/hooks/use-auction-picker-inventory';
 import { cn } from '@/lib/utils';
 import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';
 import { AuctionCardImagePeek } from '@/components/feature/aste/create/AuctionCardImagePeek';
-
-type SearchApiResponse = {
-  hits: SearchHit[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-};
-
-type InventoryWithCard = InventoryItemResponse & { card?: CardCatalogHit | null };
 
 function hitToSelection(hit: SearchHit): AuctionCreateCardSelection {
   return {
@@ -70,14 +62,6 @@ function inventoryToSelection(item: InventoryWithCard): AuctionCreateCardSelecti
   };
 }
 
-/** Solo singole (carte), come in OggettiContent. */
-function isSingoleItem(item: InventoryWithCard): boolean {
-  const id = item.card?.id;
-  const gameSlug = item.card?.game_slug;
-  if (typeof id === 'string' && id.startsWith('sealed_')) return false;
-  if (gameSlug === 'sealed' || gameSlug === 'sealed_products') return false;
-  return true;
-}
 
 function normalizeForSearch(s: string): string {
   return s
@@ -136,19 +120,18 @@ export function AuctionCreateCardPicker({
   const [debounced, setDebounced] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [collectionQuery, setCollectionQuery] = useState('');
-  const [hits, setHits] = useState<SearchHit[]>([]);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [inventoryItems, setInventoryItems] = useState<InventoryWithCard[]>([]);
-  const [loadingCollection, setLoadingCollection] = useState(true);
-  const [collectionError, setCollectionError] = useState<string | null>(null);
   const [scannerTarget, setScannerTarget] = useState<'catalog' | 'collection' | null>(null);
 
   const isWizardInventory = variant === 'wizard-step1-inventory';
-  // Variante inventario ("Sì, è nell'inventario"): mostriamo SOLO la barra
-  // dell'inventario, mai la ricerca a catalogo. Negli altri casi la sezione
-  // collezione resta visibile finché non è stata scelta una carta.
   const showCollectionSection = !selectedId;
+  const shouldLoadInventory = !(isWizardInventory && !showCollectionSection);
+
+  const {
+    inventoryItems,
+    isLoading: loadingCollection,
+    error: collectionErrorRaw,
+  } = useAuctionPickerInventory(user?.id, accessToken, shouldLoadInventory);
+  const collectionError = collectionErrorRaw;
 
   const handleSelect = useCallback(
     (sel: AuctionCreateCardSelection) => {
@@ -166,89 +149,19 @@ export function AuctionCreateCardPicker({
 
   const apiGame = useMemo(() => auctionGameToSearchParam(searchGame), [searchGame]);
 
-  const fetchSearch = useCallback(async () => {
-    if (!debounced) {
-      setHits([]);
-      setSearchError(null);
-      setLoadingSearch(false);
-      return;
-    }
-    setLoadingSearch(true);
-    setSearchError(null);
-    const params = new URLSearchParams();
-    params.set('q', debounced);
-    params.set('limit', '12');
-    params.set('page', '1');
-    if (apiGame) params.set('game', apiGame);
-    try {
-      const res = await fetch(`/api/search?${params.toString()}`);
-      const json = (await res.json().catch(() => ({}))) as SearchApiResponse & { error?: string; detail?: string };
-      if (!res.ok) {
-        const msg =
-          (typeof json?.error === 'string' && json.error) ||
-          (typeof json?.detail === 'string' && json.detail) ||
-          t('auctions.createSearchError');
-        throw new Error(msg);
-      }
-      setHits(Array.isArray(json.hits) ? json.hits : []);
-    } catch (e) {
-      setHits([]);
-      setSearchError(e instanceof Error ? e.message : t('auctions.createSearchError'));
-    } finally {
-      setLoadingSearch(false);
-    }
-  }, [debounced, apiGame, t]);
-
-  useEffect(() => {
-    void fetchSearch();
-  }, [fetchSearch]);
-
-  const loadInventory = useCallback(async () => {
-    if (!user?.id || !accessToken) {
-      setInventoryItems([]);
-      setLoadingCollection(false);
-      return;
-    }
-    setLoadingCollection(true);
-    setCollectionError(null);
-    try {
-      const allItems: InventoryItemResponse[] = [];
-      const pageSize = 500;
-      let offset = 0;
-      let totalFromApi = 0;
-      do {
-        const res = await syncClient.getInventory(user.id, accessToken, pageSize, offset);
-        const items = res.items ?? [];
-        totalFromApi = res.total ?? allItems.length + items.length;
-        allItems.push(...items);
-        offset += items.length;
-        if (items.length < pageSize || offset >= totalFromApi) break;
-      } while (true);
-
-      const blueprintIds = [...new Set(allItems.map((i) => i.blueprint_id).filter(Boolean))] as number[];
-      let blueprintToCard: Record<number, CardCatalogHit> = {};
-      if (blueprintIds.length > 0) {
-        blueprintToCard = await fetchCardsByBlueprintIds(blueprintIds);
-      }
-
-      const merged: InventoryWithCard[] = allItems.map((item) => ({
-        ...item,
-        card: blueprintToCard[item.blueprint_id],
-      }));
-
-      setInventoryItems(merged.filter(isSingoleItem));
-    } catch (e) {
-      setCollectionError(e instanceof Error ? e.message : t('auctions.createSearchError'));
-      setInventoryItems([]);
-    } finally {
-      setLoadingCollection(false);
-    }
-  }, [user?.id, accessToken, t]);
-
-  useEffect(() => {
-    if (isWizardInventory && !showCollectionSection) return;
-    void loadInventory();
-  }, [loadInventory, isWizardInventory, showCollectionSection]);
+  // Ricerca a catalogo via React Query (regola §2) invece di useEffect+fetch+useState.
+  const {
+    data: searchData,
+    isLoading: loadingSearch,
+    error: searchErr,
+  } = useSearchCards(
+    { q: debounced || undefined, game: apiGame || undefined, limit: 12, page: 1 },
+    { enabled: Boolean(debounced) },
+  );
+  const hits = searchData?.hits ?? [];
+  const searchError = searchErr
+    ? (searchErr instanceof Error ? searchErr.message : t('auctions.createSearchError'))
+    : null;
 
   const filteredCollection = useMemo(() => {
     return inventoryItems.filter((item) => matchCollectionQuery(item, collectionQuery));

@@ -12,6 +12,7 @@ import { getCdnImageUrl } from '@/lib/config';
 import { useGame } from '@/lib/contexts/GameContext';
 import type { GameSlug } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useTimeouts } from '@/lib/hooks/use-timeout-fn';
 import { SignedAlteredShowcase } from './SignedAlteredShowcase';
 import { motion } from 'framer-motion';
 import { LandingHeroCarousel } from '@/components/home/LandingHeroCarousel';
@@ -172,20 +173,22 @@ export function LandingWelcome() {
   );
 
   /* ─── handlers ─── */
+  const schedule = useTimeouts();
+
   const handleCloseFullscreen = useCallback(() => {
     setIsFullscreenClosing(true);
-    setTimeout(() => {
+    schedule(() => {
       setFullscreenGame(null);
       setIsFullscreenClosing(false);
       setIsNotifySuccess(false);
       setEmail('');
     }, 400);
-  }, []);
+  }, [schedule]);
 
   const handleNotifySubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    setTimeout(() => {
+    schedule(() => {
       setIsNotifySuccess(true);
       if (notifyGame) {
         setWaitlistCounts((prev) => ({
@@ -193,18 +196,18 @@ export function LandingWelcome() {
           [notifyGame.alt]: (prev[notifyGame.alt] ?? notifyGame.waitlistCount) + 1,
         }));
       }
-      setTimeout(() => {
+      schedule(() => {
         setNotifyGame(null);
         setIsNotifySuccess(false);
         setEmail('');
       }, 2000);
     }, 800);
-  }, [email, notifyGame]);
+  }, [email, notifyGame, schedule]);
 
   const handleFullscreenNotifySubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    setTimeout(() => {
+    schedule(() => {
       setIsNotifySuccess(true);
       if (fullscreenGame) {
         setWaitlistCounts((prev) => ({
@@ -212,11 +215,11 @@ export function LandingWelcome() {
           [fullscreenGame.alt]: (prev[fullscreenGame.alt] ?? fullscreenGame.waitlistCount) + 1,
         }));
       }
-      setTimeout(() => {
+      schedule(() => {
         handleCloseFullscreen();
       }, 2000);
     }, 800);
-  }, [email, handleCloseFullscreen, fullscreenGame]);
+  }, [email, handleCloseFullscreen, fullscreenGame, schedule]);
 
   /* ─── memoised data ─── */
   const FEATURES = useMemo(
@@ -301,10 +304,12 @@ export function LandingWelcome() {
 
                   <div className="relative flex shrink-0 items-center justify-center">
                     <div className="relative h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 lg:h-36 lg:w-64 transition-transform duration-500 group-hover:scale-105">
-                      <img
+                      <Image
                         src={MAIN_GAMES[0].src}
                         alt={MAIN_GAMES[0].alt}
-                        className="h-full w-full object-contain drop-shadow-[0_0_16px_rgba(239,68,68,0.15)]"
+                        fill
+                        sizes="(max-width: 640px) 144px, (max-width: 768px) 176px, (max-width: 1024px) 208px, 256px"
+                        className="object-contain drop-shadow-[0_0_16px_rgba(239,68,68,0.15)]"
                       />
                     </div>
                   </div>
@@ -340,11 +345,15 @@ export function LandingWelcome() {
                           className={`pointer-events-none absolute inset-0 bg-gradient-to-br opacity-70 transition-opacity duration-300 group-hover/game:opacity-100 ${GAME_GRADIENTS[game.alt] ?? ''}`}
                         />
                         <div className="relative z-10 flex flex-1 min-h-0 w-full items-center justify-center">
-                          <img
-                            src={game.src}
-                            alt=""
-                            className="max-h-[52%] max-w-[58%] object-contain"
-                          />
+                          <div className="relative h-full max-h-[52%] w-full max-w-[58%]">
+                            <Image
+                              src={game.src}
+                              alt=""
+                              fill
+                              sizes="(max-width: 640px) 18vw, 100px"
+                              className="object-contain"
+                            />
+                          </div>
                         </div>
                         <span className="relative z-10 shrink-0 text-center text-[8px] font-medium leading-tight text-white/80 sm:text-[9px]">
                           {game.label}
@@ -479,7 +488,7 @@ export function LandingWelcome() {
             {!isNotifySuccess ? (
               <div className="flex flex-col items-center text-center">
                 <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#FF7300]/20 text-[#FF7300] shadow-[0_0_20px_rgba(255,115,0,0.2)]">
-                  <img src={notifyGame.src} alt="" className="h-10 w-10 object-contain" />
+                  <Image src={notifyGame.src} alt="" width={40} height={40} className="object-contain" />
                 </div>
 
                 <div className="mb-3 flex items-center gap-2 rounded-full bg-[#FF7300]/90 px-4 py-2 text-white shadow-lg">

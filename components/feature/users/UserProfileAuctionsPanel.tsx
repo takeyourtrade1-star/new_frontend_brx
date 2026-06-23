@@ -12,21 +12,13 @@ import {
 } from '@/components/feature/aste/auctions-browse-shared';
 import { getStoredAsteViewMode, setStoredAsteViewMode, type AsteViewMode } from '@/lib/auction/aste-view-storage';
 import { apiToAuctionUI } from '@/lib/auction/auction-adapter';
-import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
+import { useEnrichedAuctions } from '@/lib/hooks/use-enriched-auctions';
+import { useNowTick } from '@/lib/hooks/use-now-tick';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { AuctionUI } from '@/lib/auction/auction-adapter';
 
 const STORAGE_KEY = 'profile';
-
-function useNowTick(intervalMs = 1000): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-  return now;
-}
 
 interface UserProfileAuctionsPanelProps {
   userId: string;
@@ -48,23 +40,7 @@ export function UserProfileAuctionsPanel({ userId, username }: UserProfileAuctio
     return data.data.map((a) => apiToAuctionUI(a));
   }, [data]);
 
-  const [auctions, setAuctions] = useState<AuctionUI[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const resolve = async () => {
-      if (baseAuctions.length === 0) {
-        setAuctions([]);
-        return;
-      }
-      const enriched = await enrichAuctionsWithPublicUsers(baseAuctions);
-      if (!cancelled) setAuctions(enriched);
-    };
-    resolve();
-    return () => {
-      cancelled = true;
-    };
-  }, [baseAuctions]);
+  const auctions = useEnrichedAuctions(baseAuctions);
 
   useEffect(() => {
     setViewMode(getStoredAsteViewMode(STORAGE_KEY));

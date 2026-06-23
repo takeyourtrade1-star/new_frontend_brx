@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, Printer, Package } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCdnImageUrl } from '@/lib/config';
 import { Header } from '@/components/layout/Header';

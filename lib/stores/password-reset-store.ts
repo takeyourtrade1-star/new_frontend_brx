@@ -33,6 +33,11 @@ interface PasswordResetState {
   clearError: () => void;
 }
 
+function getErrorStatus(err: unknown): number | undefined {
+  const axiosError = err as { response?: { status?: number } } | undefined;
+  return axiosError?.response?.status;
+}
+
 function getErrorMessage(status: number | undefined, defaultMsg: string): string {
   switch (status) {
     case 401:
@@ -69,8 +74,8 @@ export const usePasswordResetStore = create<PasswordResetState>((set, get) => ({
         expiresAt: Date.now() + 5 * 60 * 1000, // 5 min fallback se manca expires_in_seconds
         error: null,
       });
-    } catch (err: any) {
-      const status = err?.response?.status;
+    } catch (err) {
+      const status = getErrorStatus(err);
       set({
         step: 'error',
         isLoading: false,
@@ -83,6 +88,7 @@ export const usePasswordResetStore = create<PasswordResetState>((set, get) => ({
   },
 
   verifyOTP1: async (code) => {
+    if (get().isLoading) return; // guard re-entrancy: doppio tap non spara 2 richieste OTP
     set({ isLoading: true, error: null });
     try {
       const res = await authApi.verifyPasswordResetCode(get().email, code);
@@ -93,8 +99,8 @@ export const usePasswordResetStore = create<PasswordResetState>((set, get) => ({
         expiresAt: Date.now() + res.expires_in_seconds * 1000,
         error: null,
       });
-    } catch (err: any) {
-      const status = err?.response?.status;
+    } catch (err) {
+      const status = getErrorStatus(err);
       set({
         step: 'error',
         isLoading: false,
@@ -107,6 +113,7 @@ export const usePasswordResetStore = create<PasswordResetState>((set, get) => ({
   },
 
   confirmInit: async (newPassword) => {
+    if (get().isLoading) return; // guard re-entrancy
     set({ isLoading: true, error: null });
     const token = get().resetToken;
     if (!token) {
@@ -126,8 +133,8 @@ export const usePasswordResetStore = create<PasswordResetState>((set, get) => ({
         expiresAt: Date.now() + res.expires_in_seconds * 1000,
         error: null,
       });
-    } catch (err: any) {
-      const status = err?.response?.status;
+    } catch (err) {
+      const status = getErrorStatus(err);
       set({
         step: 'error',
         isLoading: false,
@@ -140,6 +147,7 @@ export const usePasswordResetStore = create<PasswordResetState>((set, get) => ({
   },
 
   confirmFinal: async (code) => {
+    if (get().isLoading) return; // guard re-entrancy
     set({ isLoading: true, error: null });
     const token = get().confirmToken;
     if (!token) {
@@ -158,8 +166,8 @@ export const usePasswordResetStore = create<PasswordResetState>((set, get) => ({
         isLoading: false,
         error: null,
       });
-    } catch (err: any) {
-      const status = err?.response?.status;
+    } catch (err) {
+      const status = getErrorStatus(err);
       set({
         step: 'error',
         isLoading: false,

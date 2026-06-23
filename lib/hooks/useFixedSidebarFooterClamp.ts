@@ -19,10 +19,11 @@ export function useFixedSidebarFooterClamp(
   defaultTop: number,
   footerGap = FOOTER_GAP_PX
 ): FixedSidebarClampStyle {
-  const [style, setStyle] = useState<FixedSidebarClampStyle>(() => ({
+  // Init deterministico (no window): evita hydration mismatch; effect sotto corregge a mount.
+  const [style, setStyle] = useState<FixedSidebarClampStyle>({
     top: defaultTop,
-    maxHeight: typeof window !== 'undefined' ? window.innerHeight - defaultTop : 600,
-  }));
+    maxHeight: 600,
+  });
 
   useEffect(() => {
     setStyle((prev) => ({
@@ -33,6 +34,10 @@ export function useFixedSidebarFooterClamp(
   }, [defaultTop]);
 
   useEffect(() => {
+    // FE-REV-019: ogni scroll/resize legge il layout (getBoundingClientRect) e fa setStyle.
+    // Coalesciamo gli eventi in un singolo update per frame con requestAnimationFrame per evitare jank.
+    let rafId: number | null = null;
+
     const update = () => {
       const panel = panelRef.current;
       const viewportMax = window.innerHeight - defaultTop;
@@ -71,19 +76,28 @@ export function useFixedSidebarFooterClamp(
       setStyle({ top, maxHeight });
     };
 
-    update();
-    window.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
+    const scheduleUpdate = () => {
+      if (rafId != null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        update();
+      });
+    };
 
-    const ro = new ResizeObserver(update);
+    update();
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+
+    const ro = new ResizeObserver(scheduleUpdate);
     const panel = panelRef.current;
     if (panel) ro.observe(panel);
     const footer = document.querySelector(FOOTER_SELECTOR);
     if (footer) ro.observe(footer);
 
     return () => {
-      window.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
+      if (rafId != null) window.cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
       ro.disconnect();
     };
   }, [defaultTop, footerGap, panelRef]);

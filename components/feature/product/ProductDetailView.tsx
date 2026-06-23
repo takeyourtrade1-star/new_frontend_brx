@@ -1,44 +1,22 @@
 ﻿'use client';
 
 import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, Suspense } from 'react';
-import dynamic from 'next/dynamic';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import {
-  Loader2,
-  Minus,
-  Pencil,
-  Plus,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Heart,
-  Eye,
-  EyeOff,
-  Zap,
-  Bookmark,
-  Share2,
-  ShoppingCart,
-  Info,
-  Tag,
-  LineChart,
-  type LucideIcon,
-} from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Loader2, Info, Tag, LineChart } from 'lucide-react';
 import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
-import { getCardImageUrl, getSetIconUrl } from '@/lib/assets';
+import { getCardImageUrl } from '@/lib/assets';
 import { getCardDisplayNames } from '@/lib/card-display-name';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { getGameLabel, buildBreadcrumbsFromCard } from '@/lib/product-detail';
-import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
-import { syncClient, type InventoryItemResponse, type ListingItem } from '@/lib/api/sync-client';
+import { resolveSetPageGameSlug } from '@/lib/search/set-page-url';
+import { syncClient, type ListingItem } from '@/lib/api/sync-client';
 import {
   MarketplaceApiError,
   cancelListing,
-  getPublicListingsByBlueprint,
   updateListing,
 } from '@/lib/api/marketplace-client';
 import { buildCartLineFromListingItem } from '@/lib/marketplace/cart-line';
@@ -46,496 +24,60 @@ import { useMockPurchaseStore } from '@/lib/stores/mock-purchase-store';
 import {
   isMarketplaceListingItem,
   listingRowKey,
-  mapPublicListingToListingItem,
 } from '@/lib/marketplace/listing-map';
-
-const MARKETPLACE_LISTINGS_TIMEOUT_MS = 8000;
-
-function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((resolve) => {
-      setTimeout(() => resolve(fallback), ms);
-    }),
-  ]);
-}
 import { MarketplaceListingEditModal } from '@/components/feature/vendite/MarketplaceListingEditModal';
-import { fetchPublicUserProfiles } from '@/lib/api/user-names-cache';
-import { prefetchListingCoverPhotos } from '@/lib/api/listing-photo-client';
-import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
-import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { buildPriceHistoryPoints } from '@/lib/product-detail/build-price-history-points';
 import type { ProductPriceStats } from '@/components/feature/product/ProductPriceChart';
 import { listingToInventoryEditItem } from '@/lib/product-detail/listing-to-inventory-item';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCdnImageUrl } from '@/lib/config';
-import { shouldFetchReprints, type ReprintSearchHit } from '@/lib/reprints-search';
-import type { CardDocument } from '@/lib/product-detail';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { COUNTRIES } from '@/lib/registrati/schema';
 import { InventoryEditModal } from '@/components/feature/sync/InventoryEditModal';
-import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
-import { FlagIcon } from '@/components/ui/FlagIcon';
-import { CountrySelect, type CountryOption } from '@/components/ui/CountrySelect';
+import type { AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
+import { type CountryOption } from '@/components/ui/CountrySelect';
 import { useUserCountry } from '@/lib/hooks/use-user-country';
+import { useTimeoutFn } from '@/lib/hooks/use-timeout-fn';
 import { useFlyToCart } from '@/lib/hooks/use-fly-to-cart';
 import { useCartStore } from '@/lib/stores/cart-store';
-import { ProductAuctionsPanel } from '@/components/feature/product/ProductAuctionsPanel';
-import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
-import { RarityIndicator } from '@/components/ui/RarityIndicator';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
-import { ModernSellerTable } from '@/components/feature/product/ModernSellerTable';
-import { CardLanguageFlags } from '@/components/ui/CardLanguageFlags';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI } from '@/lib/auction/auction-adapter';
-import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
-import type { AuctionUI } from '@/lib/auction/auction-adapter';
 import {
   buildMarketplaceRows,
   filterMarketplaceRows,
   sortMarketplaceRows,
   listingConditionCode,
-  CONDITION_FILTER_OPTIONS,
-  MARKETPLACE_LANGUAGE_FILTER_OPTIONS,
   type MarketplaceFilterState,
   type MarketplaceSort,
   type SellerTypeFilter,
 } from '@/lib/product-detail/marketplace-rows';
-import { ConditionBadge, type ConditionCode } from '@/components/ui/ConditionBadge';
+import { type ConditionCode } from '@/components/ui/ConditionBadge';
 import { shouldOpenVendiTab } from '@/lib/sell-flow/sell-flow';
 import { setTradeProposalContext } from '@/lib/scambi/trade-proposal-context';
-
-// PERF: lazy-load heavy tab panels to keep product page initial bundle smaller.
-const AuctionCreateWizard = dynamic(
-  () => import('@/components/feature/aste/create/AuctionCreateWizard').then((mod) => mod.AuctionCreateWizard),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex min-h-[200px] flex-col items-center justify-center gap-2.5 text-xs text-zinc-500">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
-      </div>
-    ),
-  }
-);
-
-const SellSingleWizard = dynamic(
-  () => import('@/components/feature/vendi/singles/SellSingleWizard').then((mod) => mod.SellSingleWizard),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex min-h-[160px] flex-col items-center justify-center gap-2.5 text-xs text-zinc-500">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
-      </div>
-    ),
-  }
-);
-
-const ProductPriceChart = dynamic(
-  () => import('@/components/feature/product/ProductPriceChart').then((mod) => mod.ProductPriceChart),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full min-h-[200px] w-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
-      </div>
-    ),
-  }
-);
-
-const PRIMARY_BLUE = '#1D3160';
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
-const ACCENT_ORANGE = '#f97316';
-
-type ProductDetailViewProps =
-  | { card: CardDocument; slug?: string; title?: string; subtitle?: string; breadcrumbs?: { label: string; href?: string }[]; imageSrc?: string }
-  | { card?: never; slug: string; title?: string; subtitle?: string; breadcrumbs?: { label: string; href?: string }[]; imageSrc?: string };
-
-type ReprintCard = {
-  id: string;
-  imageSrc: string | null;
-  setName: string;
-  rarity: string;
-  setIconSrc: string | null;
-  setCode: string;
-  gameSlug?: string;
-};
-
-/** 2 colonne × 3 righe = 6 ristampe visibili; celle h-20 fisse (non si schiacciano). */
-const REPRINT_TILE_CLASS = 'h-20 min-h-20 shrink-0';
-const REPRINT_GRID_SCROLL_CLASS =
-  'max-h-[calc(5rem*3+0.5rem*2)] min-h-[calc(5rem*3+0.5rem*2)]';
-const REPRINT_LIST_SCROLL_CLASS =
-  'max-h-[calc(3.5rem*6+0.25rem*5)] min-h-[calc(3.5rem*6+0.25rem*5)]';
-
-type ProductDetailTabId = 'INFO' | 'VENDI' | 'ASTA' | 'GRAFICO';
-
-type ProductDetailTabConfig = {
-  id: ProductDetailTabId;
-  label: string;
-  mobileLabel: string;
-  icon: LucideIcon | typeof AuctionGavelIcon;
-};
-
-function ProductDetailIconTabBar({
-  tabs,
-  activeTab,
-  onTabChange,
-  className,
-  compact = false,
-}: {
-  tabs: ProductDetailTabConfig[];
-  activeTab: ProductDetailTabId;
-  onTabChange: (id: ProductDetailTabId) => void;
-  className?: string;
-  compact?: boolean;
-}) {
-  return (
-    <div className={cn('flex border-b border-zinc-200/80 bg-white', className)} role="tablist" aria-label="Azioni carta">
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        const isAuctionIcon = tab.id === 'ASTA';
-        const isActive = activeTab === tab.id;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            aria-label={tab.label}
-            onClick={() => onTabChange(tab.id)}
-            className={cn(
-              'group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-colors',
-              compact ? 'px-0.5 py-2' : 'px-1 py-2 sm:py-2.5',
-              isActive
-                ? 'text-primary after:absolute after:bottom-0 after:left-1 after:right-1 after:h-0.5 after:rounded-full after:bg-primary sm:after:left-2 sm:after:right-2'
-                : 'text-zinc-500 hover:bg-zinc-50/80 hover:text-zinc-700'
-            )}
-          >
-            {isAuctionIcon ? (
-              <AuctionGavelIcon
-                className={cn('shrink-0', compact ? 'h-4 w-4' : 'h-4 w-4 sm:h-[18px] sm:w-[18px]')}
-                animated
-              />
-            ) : (
-              <Icon className={cn('shrink-0', compact ? 'h-4 w-4' : 'h-4 w-4 sm:h-[18px] sm:w-[18px]')} aria-hidden />
-            )}
-            <span
-              className={cn(
-                'truncate font-bold uppercase tracking-wide',
-                compact ? 'text-[8px]' : 'text-[8px] sm:text-[10px]'
-              )}
-            >
-              {tab.mobileLabel}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function MobileCardGeneralInfo({
-  card,
-  setCatalogHref,
-  cardsInSaleLabel,
-}: {
-  card?: CardDocument;
-  setCatalogHref: string | null;
-  cardsInSaleLabel: string;
-}) {
-  return (
-    <div className="border-b border-zinc-100 bg-white px-2.5 py-2">
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-        <div className="flex min-w-0 items-center justify-between gap-1">
-          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Rarità</dt>
-          <dd className="min-w-0 text-right">
-            <RarityIndicator rarity={card?.rarity} showLabel size="sm" />
-          </dd>
-        </div>
-        <div className="flex min-w-0 items-center justify-between gap-1">
-          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Numero</dt>
-          <dd className="truncate text-[11px] font-bold tabular-nums text-zinc-900">{card?.collector_number ?? '—'}</dd>
-        </div>
-        <div className="col-span-2 flex min-w-0 items-center justify-between gap-1">
-          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Set</dt>
-          <dd className="min-w-0 truncate text-right">
-            {setCatalogHref ? (
-              <Link
-                href={setCatalogHref}
-                className="text-[11px] font-bold text-primary underline-offset-2 hover:underline"
-              >
-                {card?.set_name ?? '—'}
-              </Link>
-            ) : (
-              <span className="text-[11px] font-bold text-zinc-900">{card?.set_name ?? '—'}</span>
-            )}
-          </dd>
-        </div>
-        <div className="col-span-2 flex min-w-0 items-start justify-between gap-1">
-          <dt className="shrink-0 pt-0.5 text-[9px] font-bold uppercase tracking-wide text-zinc-400">Lingue</dt>
-          <dd className="min-w-0">
-            {card?.game_slug === 'mtg' ? (
-              <CardLanguageFlags languages={card?.available_languages} size="xs" showActiveLabel />
-            ) : (
-              <span className="text-[10px] font-medium text-zinc-500">N/D</span>
-            )}
-          </dd>
-        </div>
-        <div className="col-span-2 flex min-w-0 items-center justify-between gap-1">
-          <dt className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-zinc-400">In vendita</dt>
-          <dd className="text-[12px] font-extrabold tabular-nums text-primary">{cardsInSaleLabel}</dd>
-        </div>
-      </dl>
-    </div>
-  );
-}
-
-function MobileChartKpiRow({
-  formatEuro,
-  trendPriceValue,
-  soldCopiesValue,
-  averageSalePriceValue,
-}: {
-  formatEuro: (n: number) => string;
-  trendPriceValue: number;
-  soldCopiesValue: number;
-  averageSalePriceValue: number;
-}) {
-  return (
-    <div className="flex flex-wrap gap-1.5 text-[10px] font-bold tabular-nums">
-      <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-amber-700">{formatEuro(trendPriceValue)}</span>
-      <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-sky-700">
-        {new Intl.NumberFormat('it-IT').format(soldCopiesValue)} vend.
-      </span>
-      <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-zinc-800">{formatEuro(averageSalePriceValue)}</span>
-    </div>
-  );
-}
-
-function mapReprintHit(hit: ReprintSearchHit, cardGameSlug?: string): ReprintCard | null {
-  if (!hit.id) return null;
-  const rawImage = hit.image ?? hit.image_uri_normal ?? hit.image_uri_small ?? hit.image_path ?? null;
-  const setName = hit.set_name ?? 'Set sconosciuto';
-  const setCode =
-    hit.set_code ??
-    setName
-      .split(' ')
-      .filter(Boolean)
-      .map((token) => token[0])
-      .join('')
-      .slice(0, 3)
-      .toUpperCase();
-  return {
-    id: hit.id,
-    imageSrc: getCardImageUrl(rawImage),
-    setName,
-    rarity: hit.rarity ?? 'N/D',
-    setIconSrc: getSetIconUrl(hit.set_icon_uri ?? hit.icon_svg_uri, {
-      gameSlug: hit.game_slug ?? cardGameSlug,
-      setCode: hit.set_code ?? undefined,
-    }),
-    setCode,
-    gameSlug: hit.game_slug ?? cardGameSlug,
-  };
-}
-
-function ReprintSetIconLink({
-  setName,
-  setIconSrc,
-  gameSlug,
-  size = 'md',
-}: {
-  setName: string;
-  setIconSrc: string | null;
-  gameSlug?: string;
-  size?: 'md' | 'sm';
-}) {
-  const safeIcon = setIconSrc?.startsWith('https://') ? setIconSrc : null;
-  const setHref = setName.trim()
-    ? buildSetPageUrl(resolveSetPageGameSlug(gameSlug), setName.trim())
-    : null;
-  if (!safeIcon || !setHref) return null;
-
-  const circleClass = size === 'sm' ? 'h-6 w-6' : 'h-7 w-7';
-  const iconClass = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
-
-  return (
-    <div
-      className="group/seticon relative z-20"
-      onClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.preventDefault()}
-    >
-      <Link
-        href={setHref}
-        className={cn(
-          'flex items-center justify-center rounded-full bg-white/95 shadow-sm backdrop-blur-sm transition-colors hover:bg-white hover:ring-1 hover:ring-primary/25',
-          circleClass
-        )}
-        aria-label={`Apri set: ${setName}`}
-      >
-        <Image
-          src={safeIcon}
-          alt=""
-          width={size === 'sm' ? 14 : 16}
-          height={size === 'sm' ? 14 : 16}
-          className={cn(iconClass, 'object-contain')}
-          unoptimized
-        />
-      </Link>
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute bottom-full right-0 z-30 mb-1 hidden max-w-[140px] truncate rounded-md bg-zinc-900/95 px-2 py-1 text-[10px] font-medium text-white shadow-lg group-hover/seticon:block"
-      >
-        {setName}
-      </span>
-    </div>
-  );
-}
-
-/** Reprint card with top artwork crop and overlaid icons */
-function ReprintCardPreview({
-  imageSrc,
-  alt,
-  className,
-}: {
-  imageSrc: string | null;
-  alt: string;
-  className?: string;
-}) {
-  if (!imageSrc) {
-    return (
-      <div
-        className={cn(
-          'flex h-20 w-full items-center justify-center rounded-lg bg-zinc-100 text-[11px] font-semibold text-zinc-400',
-          className
-        )}
-      >
-        Immagine N/A
-      </div>
-    );
-  }
-  return (
-    <div className={cn('relative h-20 w-full overflow-hidden rounded-lg bg-zinc-900/[0.04]', className)}>
-      <Image
-        src={imageSrc}
-        alt={alt}
-        fill
-        className="object-cover object-top"
-        sizes="240px"
-        unoptimized
-      />
-    </div>
-  );
-}
-
-function ReprintThumbnail({
-  reprint,
-  columnIndex,
-  className,
-}: {
-  reprint: ReprintCard;
-  columnIndex: number;
-  className?: string;
-}) {
-  const previewSide = columnIndex % 2 === 0 ? 'left' : 'right';
-
-  return (
-    <div
-      className={cn(
-        'group relative overflow-hidden rounded-lg shadow-sm ring-1 ring-zinc-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-primary/30',
-        REPRINT_TILE_CLASS,
-        className
-      )}
-    >
-      <Link
-        href={`/products/${reprint.id}`}
-        className="absolute inset-0 z-0 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
-        title={`${reprint.setName} • ${reprint.rarity}`}
-      >
-        <ReprintCardPreview imageSrc={reprint.imageSrc} alt={reprint.setName} className="h-full min-h-20" />
-      </Link>
-
-      {reprint.imageSrc && (
-        <div
-          className="absolute left-1.5 top-1.5 z-10"
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm">
-            <CardImageCameraPeek
-              imageUrl={reprint.imageSrc}
-              name={reprint.setName}
-              previewSide={previewSide}
-              className="!h-4 !w-4"
-              ariaLabel={`Anteprima ${reprint.setName}`}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="absolute right-1.5 top-1.5">
-        <ReprintSetIconLink
-          setName={reprint.setName}
-          setIconSrc={reprint.setIconSrc}
-          gameSlug={reprint.gameSlug}
-        />
-      </div>
-    </div>
-  );
-}
-
-/** Compact horizontal row for chart mode: thumbnail + set icon + camera peek (scrollable list). */
-function ReprintListRow({
-  reprint,
-  rowIndex,
-  totalRows,
-}: {
-  reprint: ReprintCard;
-  rowIndex: number;
-  totalRows: number;
-}) {
-  const previewSide: 'left' | 'right' = rowIndex < Math.ceil(totalRows / 2) ? 'right' : 'left';
-
-  return (
-    <div className="group relative h-14 min-h-14 shrink-0 overflow-hidden rounded-md shadow-sm ring-1 ring-zinc-200/70 transition-all hover:ring-primary/30">
-      <Link
-        href={`/products/${reprint.id}`}
-        className="absolute inset-0 z-0 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
-        title={`${reprint.setName} • ${reprint.rarity}`}
-      >
-        <ReprintCardPreview imageSrc={reprint.imageSrc} alt={reprint.setName} className="h-full min-h-14" />
-      </Link>
-
-      {reprint.imageSrc && (
-        <div
-          className="absolute left-1 top-1 z-10"
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/90 shadow-sm">
-            <CardImageCameraPeek
-              imageUrl={reprint.imageSrc}
-              name={reprint.setName}
-              previewSide={previewSide}
-              className="!h-3.5 !w-3.5"
-              ariaLabel={`Anteprima ${reprint.setName}`}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="absolute right-1 top-1">
-        <ReprintSetIconLink
-          setName={reprint.setName}
-          setIconSrc={reprint.setIconSrc}
-          gameSlug={reprint.gameSlug}
-          size="sm"
-        />
-      </div>
-    </div>
-  );
-}
+import {
+  EBARTEX_LOGO_PLACEHOLDER,
+  ONE_DAY_MS,
+  type ProductDetailTabConfig,
+  type ProductDetailTabId,
+  type ProductDetailViewProps,
+} from '@/lib/product-detail/product-detail-view-types';
+import { parseBlueprintId } from '@/lib/product-detail/parse-blueprint-id';
+import { useProductReprints } from '@/lib/hooks/use-product-reprints';
+import { useMarketplaceListings } from '@/lib/hooks/use-marketplace-listings';
+import { useAuctionBlueprintInventory } from '@/lib/hooks/use-auction-blueprint-inventory';
+import { useEnrichedCardAuctions } from '@/lib/hooks/use-enriched-card-auctions';
+import { ProductDetailIconTabBar } from '@/components/feature/product/detail/ProductDetailIconTabBar';
+import { ProductDetailTitleSection } from '@/components/feature/product/detail/ProductDetailTitleSection';
+import { ProductDetailMobileLayout } from '@/components/feature/product/detail/ProductDetailMobileLayout';
+import { ProductDetailInfoTab } from '@/components/feature/product/detail/ProductDetailInfoTab';
+import { ProductDetailSellTab } from '@/components/feature/product/detail/ProductDetailSellTab';
+import { ProductDetailAuctionTab } from '@/components/feature/product/detail/ProductDetailAuctionTab';
+import { ProductDetailChartTab } from '@/components/feature/product/detail/ProductDetailChartTab';
+import { ProductDetailMarketplaceSection } from '@/components/feature/product/detail/ProductDetailMarketplaceSection';
+import { ProductDetailHoverPreview } from '@/components/feature/product/detail/ProductDetailHoverPreview';
+import { ProductDetailLightbox } from '@/components/feature/product/detail/ProductDetailLightbox';
+import { ProductDetailQtyPopup } from '@/components/feature/product/detail/ProductDetailQtyPopup';
 
 export function ProductDetailView(props: ProductDetailViewProps) {
   const { card } = props;
@@ -550,7 +92,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const slug = props.slug ?? card?.id ?? '';
   const title =
     props.title ??
-    (displayNames ? displayNames.primary.toUpperCase() : card ? card.name.toUpperCase() : "MOWGLI - CUCCIOLO D'UOMO");
+    (displayNames ? displayNames.primary.toUpperCase() : card?.name?.trim() ? card.name.toUpperCase() : "MOWGLI - CUCCIOLO D'UOMO");
   const subtitle =
     props.subtitle ??
     (card && displayNames
@@ -587,6 +129,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       setActiveTab('VENDI');
     }
   }, [searchParams]);
+
   const [mobileReprintsOpen, setMobileReprintsOpen] = useState(false);
   const [sellerSubTab, setSellerSubTab] = useState<'VENDITORI' | 'ASTE' | 'TCG_EXPRESS'>('VENDITORI');
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -598,7 +141,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [quantita, setQuantita] = useState(1);
   const [hideAuctions, setHideAuctions] = useState(false);
   const [posizioneVenditore, setPosizioneVenditore] = useState('');
-
   const [headerHeight, setHeaderHeight] = useState(0);
 
   useLayoutEffect(() => {
@@ -627,99 +169,52 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const addToCartStore = useCartStore((s) => s.addItem);
   const detectedCountry = useUserCountry();
 
-  // Popup quantità per aggiunta al carrello
   const [qtyPopup, setQtyPopup] = useState<{ open: boolean; item?: ListingItem; sourceEl?: HTMLElement; imageSrc?: string }>({ open: false });
   const [qtyValue, setQtyValue] = useState(1);
   const qtyInputRef = useRef<HTMLInputElement>(null);
+  const setFocusTimeout = useTimeoutFn();
 
-  const openQtyPopup = useCallback((item: ListingItem, sourceEl: HTMLElement, imageSrc?: string) => {
-    setQtyPopup({ open: true, item, sourceEl, imageSrc });
+  const openQtyPopup = useCallback((item: ListingItem, sourceEl: HTMLElement, popupImageSrc?: string) => {
+    setQtyPopup({ open: true, item, sourceEl, imageSrc: popupImageSrc });
     setQtyValue(1);
-    setTimeout(() => qtyInputRef.current?.focus(), 50);
-  }, []);
+    setFocusTimeout(() => qtyInputRef.current?.focus(), 50);
+  }, [setFocusTimeout]);
 
   const confirmQty = useCallback(() => {
     if (!qtyPopup.item || !qtyPopup.sourceEl) return;
     flyToCart(qtyPopup.sourceEl, { imageSrc: qtyPopup.imageSrc });
     if (qtyPopup.item.item_id > 0 && qtyPopup.item.seller_id !== 'lightbox') {
-      const rawBp = card?.cardtrader_id;
-      const bp =
-        typeof rawBp === 'number'
-          ? rawBp
-          : rawBp != null
-            ? parseInt(String(rawBp).includes(':') ? String(rawBp).split(':')[0] : String(rawBp), 10)
-            : undefined;
+      const bp = parseBlueprintId(card?.cardtrader_id);
       addToCartStore(
         buildCartLineFromListingItem(qtyPopup.item, qtyValue, {
           title: card?.name ?? qtyPopup.item.seller_display_name,
           imageUrl: qtyPopup.imageSrc ?? imageSrc ?? '',
-          blueprintId: Number.isFinite(bp) && (bp as number) >= 1 ? (bp as number) : undefined,
+          blueprintId: bp ?? undefined,
         }),
       );
     }
     setQtyPopup({ open: false });
   }, [qtyPopup, qtyValue, flyToCart, addToCartStore, card, imageSrc]);
 
-  const blueprintIdForAuction = useMemo(() => {
-    const raw = card?.cardtrader_id;
-    if (raw == null) return null;
-    const n =
-      typeof raw === 'number'
-        ? raw
-        : parseInt(String(raw).includes(':') ? String(raw).split(':')[0] : String(raw), 10);
-    return Number.isFinite(n) && n >= 1 ? n : null;
-  }, [card?.cardtrader_id]);
+  const blueprintIdForAuction = useMemo(
+    () => parseBlueprintId(card?.cardtrader_id),
+    [card?.cardtrader_id]
+  );
 
-  const [auctionInventoryItems, setAuctionInventoryItems] = useState<InventoryItemWithCatalog[]>([]);
-  const [auctionInventoryLoading, setAuctionInventoryLoading] = useState(false);
+  const { auctionInventoryItems, auctionInventoryLoading } = useAuctionBlueprintInventory(
+    user?.id,
+    accessToken,
+    blueprintIdForAuction
+  );
 
-  useEffect(() => {
-    if (!user?.id || !accessToken || !blueprintIdForAuction) {
-      setAuctionInventoryItems([]);
-      setAuctionInventoryLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setAuctionInventoryLoading(true);
-    (async () => {
-      try {
-        const allItems: InventoryItemResponse[] = [];
-        const pageSize = 500;
-        let offset = 0;
-        let totalFromApi = 0;
-        do {
-          const res = await syncClient.getInventory(user.id, accessToken, pageSize, offset);
-          const items = res.items ?? [];
-          totalFromApi = res.total ?? allItems.length + items.length;
-          allItems.push(...items);
-          offset += items.length;
-          if (items.length < pageSize || offset >= totalFromApi) break;
-        } while (true);
-        const filtered = allItems.filter((i) => i.blueprint_id === blueprintIdForAuction);
-        let blueprintToCard: Record<number, CardCatalogHit> = {};
-        if (filtered.length > 0) {
-          const map = await fetchCardsByBlueprintIds([blueprintIdForAuction]);
-          blueprintToCard = { ...map };
-        }
-        const merged: InventoryItemWithCatalog[] = filtered.map((item) => ({
-          ...item,
-          card: blueprintToCard[item.blueprint_id],
-        }));
-        if (!cancelled) setAuctionInventoryItems(merged);
-      } catch {
-        if (!cancelled) setAuctionInventoryItems([]);
-      } finally {
-        if (!cancelled) setAuctionInventoryLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, accessToken, blueprintIdForAuction]);
+  const {
+    listings,
+    listingsLoading,
+    listingsError,
+    refetchListings,
+    pollSyncTaskThenRefresh,
+  } = useMarketplaceListings(blueprintIdForAuction, card?.id);
 
-  const [listings, setListings] = useState<ListingItem[]>([]);
-  const [listingsLoading, setListingsLoading] = useState(false);
-  const [listingsError, setListingsError] = useState<string | null>(null);
   const [listingsSort, setListingsSort] = useState<MarketplaceSort>('price_asc');
   const [condizioneMinima, setCondizioneMinima] = useState<ConditionCode | null>(null);
   const [linguaCarta, setLinguaCarta] = useState<string | null>(null);
@@ -737,37 +232,31 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const [purchaseQty, setPurchaseQty] = useState(1);
   const [purchaseSubmitting, setPurchaseSubmitting] = useState(false);
 
-  /* Lightbox per immagine carta fullscreen */
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
   const lightboxRef = useRef<HTMLDivElement>(null);
 
-  /* Toggle grafico - nascosto di default su tutti i device */
   const [showChart, setShowChart] = useState(false);
   const [chartStats, setChartStats] = useState<ProductPriceStats | null>(null);
   const [hoverPreviewOpen, setHoverPreviewOpen] = useState(false);
   const hoverPreviewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [reprints, setReprints] = useState<ReprintCard[]>([]);
-  const [reprintsLoading, setReprintsLoading] = useState(false);
-  const [reprintsDegraded, setReprintsDegraded] = useState(false);
 
-  const LINGUA_CARTA = [
-    { code: 'IT', label: 'Italia' },
-    { code: 'JP', label: 'Giappone' },
-    { code: 'GB', label: 'Regno Unito' },
-    { code: 'ES', label: 'Spagna' },
-    { code: 'DE', label: 'Germania' },
-    { code: 'FR', label: 'Francia' },
-  ] as const;
+  const { reprints, reprintsLoading, reprintsDegraded } = useProductReprints(card);
 
   useEffect(() => {
-    const t = setTimeout(() => setFiltersOpen(false), 1000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setFiltersOpen(false), 1000);
+    return () => clearTimeout(timer);
   }, []);
 
-  /** Opzioni paese con bandiere SVG per il select Posizione venditore */
+  // FE-REV-010: il timeout di chiusura hover preview va pulito allo smontaggio per evitare setState post-unmount.
+  useEffect(() => {
+    return () => {
+      if (hoverPreviewTimeoutRef.current) clearTimeout(hoverPreviewTimeoutRef.current);
+    };
+  }, []);
+
   const countryOptions: CountryOption[] = useMemo(
     () => [
       { code: '', label: t('productDetail.filters.allCountries'), flagCode: 'EU' },
@@ -778,175 +267,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       })),
     ],
     [t]
-  );
-
-  const refreshListings = useCallback(async () => {
-    const raw = card?.cardtrader_id;
-    if (raw == null) {
-      setListings([]);
-      setListingsLoading(false);
-      setListingsError(null);
-      return;
-    }
-    const blueprintId =
-      typeof raw === 'number'
-        ? raw
-        : parseInt(String(raw).includes(':') ? String(raw).split(':')[0] : String(raw), 10);
-    if (!Number.isFinite(blueprintId) || blueprintId < 1) {
-      setListings([]);
-      setListingsLoading(false);
-      setListingsError(null);
-      return;
-    }
-    setListingsLoading(true);
-    setListingsError(null);
-    try {
-      const emptyMarketplace = {
-        blueprint_id: blueprintId,
-        items: [] as const,
-        total: 0,
-      };
-
-      const [syncResult, mktResult] = await Promise.allSettled([
-        syncClient.getListingsByBlueprint(blueprintId),
-        withTimeout(
-          getPublicListingsByBlueprint(blueprintId, card?.id).catch(() => emptyMarketplace),
-          MARKETPLACE_LISTINGS_TIMEOUT_MS,
-          emptyMarketplace,
-        ),
-      ]);
-
-      const syncListings: ListingItem[] =
-        syncResult.status === 'fulfilled'
-          ? (syncResult.value.listings ?? []).map((l) => ({ ...l, listing_source: 'sync' as const }))
-          : [];
-
-      const marketplaceListings: ListingItem[] =
-        mktResult.status === 'fulfilled'
-          ? (mktResult.value.items ?? []).map(mapPublicListingToListingItem)
-          : [];
-
-      const rawListings = [...syncListings, ...marketplaceListings];
-
-      if (syncResult.status === 'rejected' && marketplaceListings.length === 0) {
-        throw syncResult.reason;
-      }
-
-      // Show rows immediately; enrich seller display names + photos in the background.
-      setListings(rawListings);
-      setListingsLoading(false);
-
-      const marketplaceIds = marketplaceListings
-        .map((l) => l.marketplace_listing_id)
-        .filter((id): id is string => Boolean(id));
-      if (marketplaceIds.length > 0) {
-        void prefetchListingCoverPhotos(marketplaceIds);
-      }
-
-      const sellerIds = [...new Set(rawListings.map((l) => l.seller_id).filter(Boolean))];
-      if (sellerIds.length === 0) return;
-
-      const profiles = await fetchPublicUserProfiles(sellerIds);
-      setListings((prev) =>
-        prev.map((l) => {
-          const profile = profiles[l.seller_id];
-          if (!profile) return l;
-          return {
-            ...l,
-            seller_display_name: profile.username ?? l.seller_display_name,
-            country: profile.country_code ?? l.country ?? null,
-            seller_account_type: profile.account_type ?? null,
-          };
-        }),
-      );
-      return;
-    } catch (err) {
-      setListings([]);
-      setListingsError(err instanceof Error ? err.message : 'Errore caricamento venditori');
-      setListingsLoading(false);
-    }
-  }, [card?.cardtrader_id, card?.id]);
-
-  useEffect(() => {
-    void refreshListings();
-  }, [refreshListings]);
-
-  useEffect(() => {
-    if (!shouldFetchReprints(card)) {
-      setReprints([]);
-      setReprintsDegraded(false);
-      setReprintsLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setReprintsLoading(true);
-    setReprintsDegraded(false);
-
-    (async () => {
-      try {
-        const res = await fetch(
-          `/api/reprints?card_id=${encodeURIComponent(card!.id)}`,
-          { cache: 'no-store' }
-        );
-        if (!res.ok) {
-          if (!cancelled) {
-            setReprints([]);
-            setReprintsDegraded(true);
-          }
-          return;
-        }
-        const data = (await res.json()) as { hits?: ReprintSearchHit[]; error?: string };
-        if (data.error) {
-          if (!cancelled) {
-            setReprints([]);
-            setReprintsDegraded(true);
-          }
-          return;
-        }
-        const hits = Array.isArray(data.hits) ? data.hits : [];
-        const mapped = hits
-          .map((hit) => mapReprintHit(hit, card!.game_slug))
-          .filter((item): item is ReprintCard => item != null);
-        const dedup = Array.from(new Map(mapped.map((item) => [item.id, item])).values());
-        if (!cancelled) {
-          setReprints(dedup);
-          setReprintsDegraded(false);
-        }
-      } catch {
-        if (!cancelled) {
-          setReprints([]);
-          setReprintsDegraded(true);
-        }
-      } finally {
-        if (!cancelled) setReprintsLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [card?.id, card?.name, card?.game_slug, card?.oracle_id, card?.card_id, card?.category_id]);
-
-  const pollSyncTaskThenRefresh = useCallback(
-    async (taskId: string) => {
-      const maxPolls = 60;
-      const intervalMs = 1500;
-      if (!accessToken) return;
-      for (let i = 0; i < maxPolls; i++) {
-        await new Promise((r) => setTimeout(r, intervalMs));
-        try {
-          const status = await syncClient.getTaskStatus(taskId, accessToken);
-          if (status.ready) {
-            await refreshListings();
-            return;
-          }
-        } catch {
-          // transient
-        }
-      }
-    },
-    [accessToken, refreshListings]
   );
 
   const isOwnListing = useCallback(
@@ -978,7 +298,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             if (nextQty < 1) return;
             await updateListing(item.marketplace_listing_id, { quantity: nextQty });
           }
-          await refreshListings();
+          await refetchListings();
           return;
         }
 
@@ -991,9 +311,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             return;
           }
           const res = await syncClient.deleteInventoryItem(user.id, item.item_id, accessToken);
-          await refreshListings();
+          await refetchListings();
           if (res.sync_queue_error) setListingActionMessage(res.sync_queue_error);
-          else if (res.sync_task_id) void pollSyncTaskThenRefresh(res.sync_task_id);
+          else if (res.sync_task_id) void pollSyncTaskThenRefresh(res.sync_task_id, accessToken);
         } else {
           const nextQty = Math.max(0, item.quantity + delta);
           if (nextQty < 1) return;
@@ -1003,9 +323,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
             { quantity: nextQty },
             accessToken
           );
-          await refreshListings();
+          await refetchListings();
           if (res.sync_queue_error) setListingActionMessage(res.sync_queue_error);
-          else if (res.sync_task_id) void pollSyncTaskThenRefresh(res.sync_task_id);
+          else if (res.sync_task_id) void pollSyncTaskThenRefresh(res.sync_task_id, accessToken);
         }
       } catch (e) {
         setListingActionMessage(e instanceof Error ? e.message : 'Operazione non riuscita');
@@ -1013,7 +333,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         setRowBusyId(null);
       }
     },
-    [user?.id, accessToken, refreshListings, pollSyncTaskThenRefresh]
+    [user?.id, accessToken, refetchListings, pollSyncTaskThenRefresh]
   );
 
   const handleMarketplaceEditSubmit = useCallback(
@@ -1027,7 +347,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           quantity: form.quantity,
         });
         setEditingMarketplace(null);
-        await refreshListings();
+        await refetchListings();
       } catch (e) {
         const msg =
           e instanceof MarketplaceApiError
@@ -1040,7 +360,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         setSavingEdit(false);
       }
     },
-    [editingMarketplace, refreshListings],
+    [editingMarketplace, refetchListings],
   );
 
   const handleEditSubmit = useCallback(
@@ -1080,16 +400,16 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           accessToken
         );
         setEditingItem(null);
-        await refreshListings();
+        await refetchListings();
         if (res.sync_queue_error) setListingActionMessage(res.sync_queue_error);
-        else if (res.sync_task_id) void pollSyncTaskThenRefresh(res.sync_task_id);
+        else if (res.sync_task_id) void pollSyncTaskThenRefresh(res.sync_task_id, accessToken);
       } catch (e) {
         setListingActionMessage(e instanceof Error ? e.message : 'Salvataggio non riuscito');
       } finally {
         setSavingEdit(false);
       }
     },
-    [editingItem, user?.id, accessToken, refreshListings, pollSyncTaskThenRefresh]
+    [editingItem, user?.id, accessToken, refetchListings, pollSyncTaskThenRefresh]
   );
 
   const handleConfirmPurchase = useCallback(async () => {
@@ -1126,13 +446,15 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     router,
   ]);
 
-  /* Quando l'utente loggato ha un paese, usa quello; altrimenti usa la geolocalizzazione. */
+  // FE-REV-003: imposta il default paese una sola volta, al primo valore disponibile (user o geo).
+  // Senza questo guard, la risoluzione tardiva di user/geo sovrascriveva la scelta manuale dell'utente.
+  const countryInitializedRef = useRef(false);
   useEffect(() => {
-    if (user?.country) {
-      setPosizioneVenditore(user.country);
-    } else if (detectedCountry) {
-      setPosizioneVenditore(detectedCountry);
-    }
+    if (countryInitializedRef.current) return;
+    const next = user?.country || detectedCountry;
+    if (!next) return;
+    countryInitializedRef.current = true;
+    setPosizioneVenditore(next);
   }, [user?.country, detectedCountry]);
 
   const showImagePlaceholder = imageError || !imageSrc;
@@ -1140,7 +462,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const isLocalImage = effectiveImageSrc.startsWith('/') && !effectiveImageSrc.startsWith('//');
   const gameLabel = card ? getGameLabel(card.game_slug) : null;
 
-  /** Pagina dedicata al set (`/set`) con tutte le stampe / oggetti Meilisearch per quel set. */
   const setCatalogHref = useMemo(() => {
     if (!card) return null;
     const name = card.set_name?.trim();
@@ -1160,29 +481,17 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     return `/search?${params.toString()}`;
   }, [card]);
 
-  const EBARTEX_LOGO_PLACEHOLDER = '/images/Logo%20Principale%20EBARTEX.png';
-
   const cardNameForAuctions = card?.name?.trim() ?? '';
   const cardAuctionsQuery = useAuctionList(
     { q: cardNameForAuctions || undefined, status: 'ACTIVE', limit: 20 },
     { enabled: cardNameForAuctions.length > 0 }
   );
 
-  const [enrichedCardAuctions, setEnrichedCardAuctions] = useState<AuctionUI[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    const base = (cardAuctionsQuery.data?.data ?? []).map((a) => apiToAuctionUI(a));
-    if (base.length === 0) {
-      if (!cancelled) setEnrichedCardAuctions([]);
-      return;
-    }
-    void enrichAuctionsWithPublicUsers(base).then((next) => {
-      if (!cancelled) setEnrichedCardAuctions(next);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [cardAuctionsQuery.data]);
+  const baseCardAuctions = useMemo(
+    () => (cardAuctionsQuery.data?.data ?? []).map((a) => apiToAuctionUI(a)),
+    [cardAuctionsQuery.data]
+  );
+  const enrichedCardAuctions = useEnrichedCardAuctions(baseCardAuctions);
 
   const marketplaceFilters: MarketplaceFilterState = useMemo(
     () => ({
@@ -1232,6 +541,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     [listings]
   );
   const cardsInSaleLabel = listingsLoading ? '…' : new Intl.NumberFormat('it-IT').format(cardsInSaleCount);
+
   const defaultTrendStats = useMemo<ProductPriceStats>(() => {
     const points = buildPriceHistoryPoints(slug);
     const end = points[points.length - 1]?.t ?? Date.now();
@@ -1257,38 +567,34 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const soldCopiesValue = effectiveTrendStats.soldCopies;
   const averageSalePriceValue = effectiveTrendStats.averageSalePrice;
   const trendRangeLabel = effectiveTrendStats.rangeLabel;
+
   const handleSellSinglePublished = useCallback(async () => {
     setListingActionMessage('Inserzione pubblicata con successo.');
     setSellerSubTab('VENDITORI');
-    await refreshListings();
+    await refetchListings();
     requestAnimationFrame(() => {
       document
         .getElementById('pd-market-panel-VENDITORI')
         ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
-  }, [refreshListings]);
+  }, [refetchListings]);
 
-  // Mock multiple images for swipe demo (front/back of card)
   const cardImages = useMemo(() => {
-    const images = [effectiveImageSrc];
-    // If card has back image or alternate views, add them here
-    // For now, single image
-    return images;
+    return [effectiveImageSrc];
   }, [effectiveImageSrc]);
 
-  // PERF: stable marketplace callbacks prevent ModernSellerTable row memo busting.
   const handleMarketplaceAddToCart = useCallback(
     (item: ListingItem, quantity: number, sourceEl: HTMLElement) => {
       if (!user || !accessToken) {
         setListingActionMessage('Accedi per aggiungere al carrello.');
         return;
       }
-      const imageSrc = cardImages[currentImageIndex] || effectiveImageSrc;
-      flyToCart(sourceEl, { imageSrc });
+      const rowImageSrc = cardImages[currentImageIndex] || effectiveImageSrc;
+      flyToCart(sourceEl, { imageSrc: rowImageSrc });
       addToCartStore(
         buildCartLineFromListingItem(item, quantity, {
           title: card?.name ?? item.seller_display_name,
-          imageUrl: imageSrc,
+          imageUrl: rowImageSrc,
           blueprintId: blueprintIdForAuction ?? undefined,
         }),
       );
@@ -1323,7 +629,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const handleProposeTrade = useCallback(
     (item: ListingItem) => {
       if (!card) return;
-      const imageSrc = cardImages[currentImageIndex] || effectiveImageSrc;
+      const rowImageSrc = cardImages[currentImageIndex] || effectiveImageSrc;
       setTradeProposalContext({
         seller: {
           name: item.seller_display_name,
@@ -1333,7 +639,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         card: {
           id: `product-${card.id}`,
           name: card.name,
-          image: imageSrc,
+          image: rowImageSrc,
           condition: listingConditionCode(item.condition),
           priceEur: item.price_cents / 100,
           game: card.game_slug ?? null,
@@ -1391,7 +697,6 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setCurrentImageIndex((prev: number) => (prev === cardImages.length - 1 ? 0 : prev + 1));
   };
 
-  // Web Share API handler
   const handleShare = async () => {
     const shareData = {
       title: title,
@@ -1402,21 +707,19 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch (err) {
+      } catch {
         // User cancelled or share failed
       }
     } else if (navigator.clipboard) {
-      // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(shareData.url);
         alert('Link copiato negli appunti!');
-      } catch (err) {
+      } catch {
         // Clipboard failed
       }
     }
   };
 
-  // Swipe handlers for lightbox
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStartX(e.targetTouches[0].clientX);
     setTouchEndX(null);
@@ -1427,7 +730,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   };
 
   const handleTouchEnd = () => {
-    if (!touchStartX || !touchEndX) return;
+    // FE-REV-011: usa null-check esplicito così uno swipe che parte dal bordo (clientX === 0) non viene scartato.
+    if (touchStartX == null || touchEndX == null) return;
     const distance = touchStartX - touchEndX;
     const minSwipeDistance = 50;
 
@@ -1449,1322 +753,362 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
   return (
     <RarityLegendProvider>
-    <div className="min-h-screen font-sans bg-[#F0F0F0] text-gray-900">
-      <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
-        <Header />
-      </Suspense>
+      <div className="min-h-screen font-sans bg-[#F0F0F0] text-gray-900">
+        <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
+          <Header />
+        </Suspense>
 
-      {/* Sezione titolo: MOBILE - titolo più grande, edizione sotto, aiuto in fondo; DESKTOP - layout originale */}
-      <section className="w-full bg-[#F0F0F0] border-b border-gray-300">
-        <div className="container-content container-content-card-detail py-3 sm:py-2.5 lg:py-3">
-          {/* MOBILE: Titolo grande, edizione sotto, aiuto in fondo - in colonna */}
-          <div className="flex flex-col gap-2 sm:hidden">
-            <h1 className="text-xl font-extrabold uppercase tracking-tight text-gray-900 break-words leading-tight">
-              {title}
-            </h1>
-            <p className="text-sm font-bold uppercase tracking-tight text-gray-700 break-words">
-              {card?.set_name ?? subtitle.split(' – ').pop()?.split(' - ').pop() ?? 'SUSSURRI NEL POZZO'}
-            </p>
-            <Link href="/aiuto" className="text-xs font-medium text-gray-500 hover:text-[#FF8800] mt-1">
-              HAI BISOGNO DI AIUTO?
-            </Link>
-          </div>
+        <ProductDetailTitleSection
+          title={title}
+          subtitle={subtitle}
+          card={card}
+          breadcrumbItems={breadcrumbItems}
+          onShare={handleShare}
+        />
 
-          {/* DESKTOP: Layout originale con bottoni azione a destra del titolo */}
-          <div className="hidden sm:flex flex-wrap items-center justify-between gap-2 mb-1.5">
-            <AppBreadcrumb
-              items={breadcrumbItems}
-              ariaLabel="Breadcrumb"
-              variant="default"
-              className="w-auto text-xs font-medium sm:text-sm min-w-0"
-            />
-            <Link href="/aiuto" className="text-xs font-medium text-gray-600 hover:text-gray-900 sm:text-sm shrink-0">
-              HAI BISOGNO DI AIUTO?
-            </Link>
-          </div>
-          <div className="hidden sm:flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0 text-left">
-              <h1 className="text-lg font-bold uppercase tracking-tight text-gray-900 sm:text-xl md:text-2xl lg:text-3xl break-words">
-                {title}
-            </h1>
-            <p className="mt-1 text-xs sm:text-sm font-bold uppercase tracking-tight text-gray-700 break-words">
-                {subtitle}
-            </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 transition-colors hover:border-[#FF8800] hover:text-[#FF8800] shadow-sm"
-                aria-label="Aggiungi ai preferiti"
-              >
-                <Heart className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={handleShare}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 transition-colors hover:border-[#FF8800] hover:text-[#FF8800] shadow-sm"
-                aria-label="Condividi"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="18" cy="5" r="3" />
-                  <circle cx="6" cy="12" r="3" />
-                  <circle cx="18" cy="19" r="3" />
-                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Contenuto principale: card bianca su sfondo grigio – responsive padding e layout */}
-      <section className="w-full bg-[#F0F0F0] px-0 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 pb-4 sm:pb-6 min-h-0">
-        <div className="container-content container-content-card-detail">
-          <div
-            className={cn(
-              'flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-[2px] shadow-[0_1px_4px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] sm:flex-row',
-              activeTab === 'ASTA'
-                ? 'sm:min-h-[420px]'
-                : activeTab === 'INFO' || activeTab === 'GRAFICO' || activeTab === 'VENDI'
-                  ? 'sm:min-h-[320px] sm:h-auto'
-                  : 'sm:h-[320px]'
-            )}
-          >
-            {/* MOBILE: tab, slot hero (immagine o azione), info compatte, ristampe collassabili */}
-            <div className="flex w-full flex-col sm:hidden">
-              <ProductDetailIconTabBar tabs={tabs} activeTab={activeTab} onTabChange={handleTabChange} compact />
-              <div
-                className={cn(
-                  'bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60',
-                  activeTab === 'INFO'
-                    ? 'flex justify-center px-0.5 py-2.5'
-                    : activeTab === 'VENDI'
-                      ? 'p-2'
-                      : 'min-h-[200px] overflow-y-auto p-2.5',
-                  activeTab === 'ASTA' && 'min-h-[280px]'
-                )}
-              >
-                {activeTab === 'INFO' && (
-                  <div
-                    className="relative w-[min(62vw,11.5rem)] cursor-pointer overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-transform active:scale-[0.99]"
-                    style={{ aspectRatio: '63/88' }}
-                    onClick={handleLightboxOpen}
-                    role="button"
-                    aria-label="Clicca per ingrandire l'immagine"
-                  >
-                    {showImagePlaceholder ? (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
-                        <img src={EBARTEX_LOGO_PLACEHOLDER} alt="Ebartex" className="h-14 w-14 shrink-0 object-contain" />
-                        <p className="mt-2 text-[10px] font-medium leading-tight text-gray-600">Immagine non disponibile</p>
-                      </div>
-                    ) : isLocalImage ? (
-                      <img
-                        src={effectiveImageSrc}
-                        alt={card?.name ?? title}
-                        className="h-full w-full object-contain"
-                        onError={() => setImageError(true)}
-                      />
-                    ) : (
-                      <Image
-                        src={effectiveImageSrc}
-                        alt={card?.name ?? title}
-                        fill
-                        className="object-contain"
-                        sizes="(max-width: 640px) 62vw, 200px"
-                        unoptimized
-                        onError={() => setImageError(true)}
-                        priority
-                      />
-                    )}
-                  </div>
-                )}
-
-                {activeTab === 'VENDI' && card && (
-                  <SellSingleWizard
-                    key={`mobile-sell-${card.id}`}
-                    variant="embedded"
-                    embeddedCard={card}
-                    blueprintId={blueprintIdForAuction}
-                    onPublished={handleSellSinglePublished}
-                    className="!max-w-full"
-                  />
-                )}
-                {activeTab === 'VENDI' && !card && (
-                  <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl bg-white p-4 text-center text-xs text-zinc-400">
-                    Seleziona un prodotto dal catalogo per vendere.
-                  </div>
-                )}
-
-                {activeTab === 'ASTA' && card && blueprintIdForAuction && (
-                  <div className="rounded-xl bg-white p-2 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                    {auctionInventoryLoading ? (
-                      <div className="flex min-h-[200px] flex-col items-center justify-center gap-2.5 text-xs text-zinc-500">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
-                        <span>{t('accountPage.itemsLoadingInventory')}</span>
-                      </div>
-                    ) : (
-                      <AuctionCreateWizard
-                        key={`mobile-${card.id}-${auctionInventoryItems.length}`}
-                        variant="embedded"
-                        embeddedCard={card}
-                        embeddedInventoryItems={auctionInventoryItems}
-                        onEmbeddedCancel={() => setActiveTab('INFO')}
-                        className="!max-w-full"
-                      />
-                    )}
-                  </div>
-                )}
-                {activeTab === 'ASTA' && (!card || !blueprintIdForAuction) && (
-                  <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl bg-white p-4">
-                    <p className="max-w-[260px] text-center text-xs leading-relaxed text-zinc-400">
-                      {!card
-                        ? 'Seleziona un prodotto dal catalogo per creare un’asta.'
-                        : 'Identificativo prodotto non disponibile per questo articolo: usa la pagina Nuova asta dal menu Aste.'}
-                    </p>
-                  </div>
-                )}
-
-                {activeTab === 'GRAFICO' && (
-                  <div className="flex w-full flex-col gap-2 rounded-xl bg-white p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">{trendRangeLabel}</h3>
-                      <MobileChartKpiRow
-                        formatEuro={formatEuro}
-                        trendPriceValue={trendPriceValue}
-                        soldCopiesValue={soldCopiesValue}
-                        averageSalePriceValue={averageSalePriceValue}
-                      />
-                    </div>
-                    <div className="min-h-[200px] rounded-lg bg-white/60">
-                      <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <MobileCardGeneralInfo
-                card={card}
-                setCatalogHref={setCatalogHref}
-                cardsInSaleLabel={cardsInSaleLabel}
-              />
-
-              {activeTab === 'INFO' && (
-                <div className="border-b border-zinc-100 bg-white px-2.5 py-2">
-                  <button
-                    type="button"
-                    onClick={() => setMobileReprintsOpen((open) => !open)}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200/80 bg-zinc-50/80 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-zinc-700 transition-colors hover:bg-zinc-100/80"
-                    aria-expanded={mobileReprintsOpen}
-                  >
-                    {mobileReprintsOpen ? (
-                      <>
-                        <X className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        {t('productDetail.mobile.hideReprints')}
-                      </>
-                    ) : (
-                      <>
-                        {t('productDetail.mobile.showReprints')}
-                        {reprints.length > 0 && (
-                          <span className="rounded-full bg-zinc-200/80 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-zinc-500">
-                            {reprints.length}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </button>
-                  {mobileReprintsOpen && (
-                    <div className="mt-2 rounded-xl bg-white p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Ristampe</span>
-                        {reprints.length > 0 && reprintsAllHref && (
-                          <Link
-                            href={reprintsAllHref}
-                            className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[9px] font-semibold text-primary hover:bg-primary/10"
-                          >
-                            Vedi tutte
-                          </Link>
-                        )}
-                      </div>
-                      {reprintsLoading ? (
-                        <div
-                          className={cn(
-                            'grid shrink-0 grid-cols-2 gap-2 overflow-hidden',
-                            REPRINT_GRID_SCROLL_CLASS
-                          )}
-                        >
-                          {[...Array(6)].map((_, i) => (
-                            <div key={i} className={cn(REPRINT_TILE_CLASS, 'rounded-lg bg-zinc-100 animate-pulse')} />
-                          ))}
-                        </div>
-                      ) : reprints.length > 0 ? (
-                        <div
-                          className={cn(
-                            'grid shrink-0 grid-cols-2 auto-rows-min gap-2 overflow-y-auto overscroll-contain pr-0.5',
-                            REPRINT_GRID_SCROLL_CLASS
-                          )}
-                        >
-                          {reprints.map((r, i) => (
-                            <ReprintThumbnail key={r.id} reprint={r} columnIndex={i} />
-                          ))}
-                        </div>
-                      ) : reprintsDegraded ? (
-                        <p className="text-[11px] text-amber-700">Ristampe non disponibili.</p>
-                      ) : (
-                        <p className="text-[11px] text-zinc-400">Nessuna ristampa.</p>
-                      )}
-                    </div>
-                  )}
-                </div>
+        <section className="w-full bg-[#F0F0F0] px-0 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 pb-4 sm:pb-6 min-h-0">
+          <div className="container-content container-content-card-detail">
+            <div
+              className={cn(
+                'flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-[2px] shadow-[0_1px_4px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] sm:flex-row',
+                activeTab === 'ASTA'
+                  ? 'sm:min-h-[420px]'
+                  : activeTab === 'INFO' || activeTab === 'GRAFICO' || activeTab === 'VENDI'
+                    ? 'sm:min-h-[320px] sm:h-auto'
+                    : 'sm:h-[320px]'
               )}
-            </div>
-
-            {/* DESKTOP: colonna immagine */}
-            <aside className="hidden w-[180px] flex-shrink-0 flex-col items-center justify-center border-r border-zinc-200/50 bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60 p-4 sm:flex sm:h-full md:w-[200px] lg:w-[220px]">
-              <div
-                className="relative flex w-full max-w-[180px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md md:max-w-[200px] md:max-h-[360px] lg:max-w-[220px] lg:max-h-[420px] sm:max-h-[300px]"
-                style={{ aspectRatio: '63/88' }}
-                onClick={handleLightboxOpen}
-                onMouseEnter={handleHoverPreviewOpen}
-                onMouseLeave={handleHoverPreviewClose}
-                role="button"
-                aria-label="Clicca per ingrandire l'immagine"
-              >
-                {showImagePlaceholder ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
-                    <img src={EBARTEX_LOGO_PLACEHOLDER} alt="Ebartex" className="h-14 w-14 shrink-0 object-contain" />
-                    <p className="mt-2 text-[10px] font-medium leading-tight text-gray-600">Immagine non disponibile</p>
-                  </div>
-                ) : isLocalImage ? (
-                  <img
-                    src={effectiveImageSrc}
-                    alt={card?.name ?? title}
-                    className="h-full w-full object-contain"
-                    onError={() => setImageError(true)}
-                  />
-                ) : (
-                  <Image
-                    src={effectiveImageSrc}
-                    alt={card?.name ?? title}
-                    fill
-                    className="object-contain"
-                    sizes="220px"
-                    unoptimized
-                    onError={() => setImageError(true)}
-                    priority
-                  />
-                )}
-              </div>
-            </aside>
-
-            {/* Contenuto tab */}
-            <div id="product-detail-tab-panel" className="hidden min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 sm:flex sm:h-full">
-              <ProductDetailIconTabBar
+            >
+              <ProductDetailMobileLayout
                 tabs={tabs}
                 activeTab={activeTab}
                 onTabChange={handleTabChange}
-                className="hidden sm:flex"
+                card={card}
+                title={title}
+                slug={slug}
+                blueprintIdForAuction={blueprintIdForAuction}
+                showImagePlaceholder={showImagePlaceholder}
+                effectiveImageSrc={effectiveImageSrc}
+                isLocalImage={isLocalImage}
+                onImageError={() => setImageError(true)}
+                onLightboxOpen={handleLightboxOpen}
+                onSellSinglePublished={() => void handleSellSinglePublished()}
+                auctionInventoryLoading={auctionInventoryLoading}
+                auctionInventoryItems={auctionInventoryItems}
+                onAuctionCancel={() => setActiveTab('INFO')}
+                inventoryLoadingLabel={t('accountPage.itemsLoadingInventory')}
+                trendRangeLabel={trendRangeLabel}
+                formatEuro={formatEuro}
+                trendPriceValue={trendPriceValue}
+                soldCopiesValue={soldCopiesValue}
+                averageSalePriceValue={averageSalePriceValue}
+                onChartStatsChange={setChartStats}
+                setCatalogHref={setCatalogHref}
+                cardsInSaleLabel={cardsInSaleLabel}
+                mobileReprintsOpen={mobileReprintsOpen}
+                onMobileReprintsToggle={() => setMobileReprintsOpen((open) => !open)}
+                hideReprintsLabel={t('productDetail.mobile.hideReprints')}
+                showReprintsLabel={t('productDetail.mobile.showReprints')}
+                reprints={reprints}
+                reprintsLoading={reprintsLoading}
+                reprintsDegraded={reprintsDegraded}
+                reprintsAllHref={reprintsAllHref}
               />
 
-            {/* Contenuto tab INFO: MOBILE compatta con espansione grafico; DESKTOP layout completo */}
-            {activeTab === 'INFO' && (
-              <>
-                {/* DESKTOP: Layout ottimizzato - Dati prioritari | Ristampe compatte | KPI verticali */}
-                <div className={cn(
-                  'hidden sm:grid min-w-0 w-full items-stretch transition-all duration-500',
-                  showChart
-                    ? 'gap-2.5 p-2.5 grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.22fr_0.28fr_1.5fr]'
-                    : 'gap-2.5 p-2.5 grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.35fr_0.7fr_0.95fr]'
-                )}>
-                  {/* Colonna 1: Dati carta più densi e meglio distribuiti */}
-                  <div className="flex min-h-0 flex-col rounded-xl bg-white/85 p-3 lg:min-h-[280px]">
-                    <div className="mb-2 flex items-center justify-between">
-                      <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800">Dati carta</h3>
-                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-zinc-500">
-                        {gameLabel ?? 'Gioco N/D'}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Rarità</p>
-                        <div className="mt-1">
-                          <RarityIndicator rarity={card?.rarity} showLabel size="md" />
-                        </div>
-                      </div>
-                      <div className="rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2 text-right">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Numero</p>
-                        <p className="mt-1 text-sm font-extrabold tabular-nums text-zinc-900">{card?.collector_number ?? '015'}</p>
-                      </div>
-                      {setCatalogHref ? (
-                        <Link
-                          href={setCatalogHref}
-                          className="col-span-2 block rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2 transition-colors hover:border-primary/45 hover:bg-primary/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                          aria-label={`Apri pagina set: ${card?.set_name ?? ''}`}
-                        >
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Set</p>
-                          <p className="mt-1 truncate text-sm font-extrabold text-primary">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
-                        </Link>
-                      ) : (
-                        <div className="col-span-2 rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Set</p>
-                          <p className="mt-1 truncate text-sm font-extrabold text-zinc-900">{card?.set_name ?? 'SUSSURRI NEL POZZO'}</p>
-                        </div>
-                      )}
-                      <div className="col-span-2 rounded-lg border border-zinc-200/70 bg-zinc-50/60 px-2.5 py-2">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Lingue disponibili</p>
-                        <div className="mt-1.5">
-                          {card?.game_slug === 'mtg' ? (
-                            <CardLanguageFlags languages={card?.available_languages} size="sm" showActiveLabel />
-                          ) : (
-                            <span className="text-[12px] font-semibold text-zinc-500">N/D</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="col-span-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-2">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-primary/70">In vendita</p>
-                        <p className="mt-1 text-xl font-extrabold tabular-nums text-primary">{cardsInSaleLabel}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Colonna 2: Ristampe — altezza fissa scroll (max 8 visibili in griglia) */}
-                  <div
-                    className={cn(
-                      'flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-white/85 lg:min-h-[280px]',
-                      showChart ? 'p-1' : 'p-3'
-                    )}
-                  >
-                    <div className={cn('flex shrink-0 items-center justify-between gap-1', showChart ? 'mb-1' : 'mb-2')}>
-                      <h3 className={cn('font-extrabold uppercase tracking-wider text-zinc-800 truncate', showChart ? 'text-[9px]' : 'text-[10px]')}>Ristampe</h3>
-                      <div className="flex items-center gap-1.5">
-                        <span className={cn('rounded-full bg-zinc-100 font-bold text-zinc-400 tabular-nums', showChart ? 'px-1 py-0 text-[8px]' : 'px-1.5 py-0.5 text-[9px]')}>{reprints.length}</span>
-                        {reprints.length > 0 && reprintsAllHref && (
-                          <Link
-                            href={reprintsAllHref}
-                            className={cn(
-                              'rounded-full border border-primary/20 bg-primary/5 font-semibold text-primary transition-colors hover:bg-primary/10',
-                              showChart ? 'px-1.5 py-0 text-[8px]' : 'px-2 py-0.5 text-[9px]'
-                            )}
-                          >
-                            Vedi tutte
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-
-                    {reprintsLoading ? (
-                      showChart ? (
-                        <div
-                          className={cn(
-                            'flex shrink-0 flex-col gap-1 overflow-hidden',
-                            REPRINT_LIST_SCROLL_CLASS
-                          )}
-                        >
-                          {[...Array(6)].map((_, i) => (
-                            <div key={i} className="h-14 min-h-14 shrink-0 rounded-md bg-zinc-100 animate-pulse" />
-                          ))}
-                        </div>
-                      ) : (
-                        <div
-                          className={cn(
-                            'grid shrink-0 grid-cols-2 gap-2 overflow-hidden',
-                            REPRINT_GRID_SCROLL_CLASS
-                          )}
-                        >
-                          {[...Array(6)].map((_, i) => (
-                            <div key={i} className={cn(REPRINT_TILE_CLASS, 'rounded-lg bg-zinc-100 animate-pulse')} />
-                          ))}
-                        </div>
-                      )
-                    ) : reprints.length > 0 ? (
-                      showChart ? (
-                        <div
-                          className={cn(
-                            'flex shrink-0 flex-col gap-1 overflow-y-auto overscroll-contain pr-0.5',
-                            REPRINT_LIST_SCROLL_CLASS
-                          )}
-                        >
-                          {reprints.map((reprint, i) => (
-                            <ReprintListRow
-                              key={reprint.id}
-                              reprint={reprint}
-                              rowIndex={i}
-                              totalRows={reprints.length}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <div
-                          className={cn(
-                            'grid shrink-0 grid-cols-2 auto-rows-min gap-2 overflow-y-auto overscroll-contain pr-0.5',
-                            REPRINT_GRID_SCROLL_CLASS
-                          )}
-                        >
-                          {reprints.map((reprint, i) => (
-                            <ReprintThumbnail key={reprint.id} reprint={reprint} columnIndex={i} />
-                          ))}
-                        </div>
-                      )
-                    ) : reprintsDegraded ? (
-                      <div className={cn('flex flex-1 items-center justify-center rounded-lg border border-dashed border-amber-200/80 bg-amber-50/40 text-center', showChart ? 'px-1.5 py-2' : 'px-2 py-3')}>
-                        <p className={cn('text-amber-800', showChart ? 'text-[9px] leading-tight' : 'text-xs')}>Ristampe non disponibili.</p>
-                      </div>
-                    ) : (
-                      <div className={cn('flex flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 text-center', showChart ? 'px-1.5 py-2' : 'px-2 py-3')}>
-                        <p className={cn('text-zinc-400', showChart ? 'text-[9px] leading-tight' : 'text-xs')}>Nessuna ristampa trovata.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Colonna 3: KPI in verticale + grafico */}
-                  <div className={cn('flex min-h-0 flex-col rounded-xl bg-white/85 sm:col-span-2 md:col-span-2 lg:col-span-1', showChart ? 'p-2.5' : 'p-3')}>
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{trendRangeLabel}</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowChart((v) => !v)}
-                        className="flex items-center gap-1 rounded-full bg-zinc-100/80 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10"
-                      >
-                        {showChart ? <><EyeOff className="h-3 w-3" /> Nascondi</> : <><Eye className="h-3 w-3" /> Grafico</>}
-                      </button>
-                    </div>
-
-                    {showChart ? (
-                      <div key="stats-row" className="grid grid-cols-3 gap-1 animate-in fade-in duration-300">
-                        <div className="flex items-center justify-between gap-1 rounded-md border border-[#FF7300]/25 bg-orange-50/70 px-1.5 py-1">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-[#e86800]/80">Trend</span>
-                          <span className="text-[11px] font-extrabold tabular-nums text-[#e86800]">{formatEuro(trendPriceValue)}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-1 rounded-md border border-[#1D3160]/15 bg-[#1D3160]/[0.06] px-1.5 py-1">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-[#1D3160]/70">Vendute</span>
-                          <span className="text-[11px] font-extrabold tabular-nums text-[#1D3160]">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-1 rounded-md border border-emerald-200/70 bg-emerald-50/60 px-1.5 py-1">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-700/80">Prezzo medio</span>
-                          <span className="text-[11px] font-extrabold tabular-nums text-emerald-700">{formatEuro(averageSalePriceValue)}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div key="stats-stack" className="space-y-1.5 animate-in fade-in duration-300">
-                        <div className="flex items-center justify-between gap-2 rounded-lg border border-[#FF7300]/25 bg-orange-50/70 px-3 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-[#e86800]/80">Trend</p>
-                          <p className="text-base font-extrabold tabular-nums text-[#e86800]">{formatEuro(trendPriceValue)}</p>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 rounded-lg border border-[#1D3160]/15 bg-[#1D3160]/[0.06] px-3 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-[#1D3160]/70">Vendute</p>
-                          <p className="text-base font-extrabold tabular-nums text-[#1D3160]">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</p>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-200/70 bg-emerald-50/60 px-3 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-700/80">Prezzo medio</p>
-                          <p className="text-base font-extrabold tabular-nums text-emerald-700">{formatEuro(averageSalePriceValue)}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    <div
-                      className={cn(
-                        'overflow-hidden transition-[max-height,opacity,margin] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
-                        showChart ? 'mt-1.5 max-h-[270px] opacity-100' : 'mt-0 max-h-0 opacity-0'
-                      )}
-                    >
-                      {showChart && (
-                        <div className="animate-in fade-in slide-in-from-top-2 duration-500">
-                          <div className="h-[250px] w-full rounded-lg bg-white/60">
-                            <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Tab VENDI: wizard vendita singola + contesto prezzi */}
-            {activeTab === 'VENDI' && card && (
-              <>
+              <aside className="hidden w-[180px] flex-shrink-0 flex-col items-center justify-center border-r border-zinc-200/50 bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60 p-4 sm:flex sm:h-full md:w-[200px] lg:w-[220px]">
                 <div
-                  className={cn(
-                    // fr↔fr: i browser interpolano le track frazionarie (px↔fr invece scattano).
-                    'hidden h-full min-h-0 w-full min-w-0 gap-3 p-3 sm:grid sm:grid-cols-1 transition-[grid-template-columns] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
-                    showChart ? 'lg:grid-cols-[1.3fr_1fr]' : 'lg:grid-cols-[2.8fr_1fr]'
-                  )}
+                  className="relative flex w-full max-w-[180px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md md:max-w-[200px] md:max-h-[360px] lg:max-w-[220px] lg:max-h-[420px] sm:max-h-[300px]"
+                  style={{ aspectRatio: '63/88' }}
+                  onClick={handleLightboxOpen}
+                  onMouseEnter={handleHoverPreviewOpen}
+                  onMouseLeave={handleHoverPreviewClose}
+                  role="button"
+                  aria-label="Clicca per ingrandire l'immagine"
                 >
-                  <div className="min-h-0">
-                    <SellSingleWizard
-                      key={`desktop-sell-${card.id}`}
-                      variant="embedded"
-                      embeddedCard={card}
-                      blueprintId={blueprintIdForAuction}
-                      onPublished={handleSellSinglePublished}
-                      className="!max-w-full"
+                  {showImagePlaceholder ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
+                      <Image src={EBARTEX_LOGO_PLACEHOLDER} alt="Ebartex" width={56} height={56} className="h-14 w-14 shrink-0 object-contain" unoptimized={false} />
+                      <p className="mt-2 text-[10px] font-medium leading-tight text-gray-600">Immagine non disponibile</p>
+                    </div>
+                  ) : isLocalImage ? (
+                    <Image
+                      src={effectiveImageSrc}
+                      alt={card?.name ?? title}
+                      fill
+                      className="object-contain"
+                      sizes="220px"
+                      unoptimized={false}
+                      onError={() => setImageError(true)}
+                      priority
                     />
-                  </div>
-
-                  {/* RIGHT: Market pricing context — rail compatto a grafico nascosto, espanso a grafico visibile */}
-                  <div className={cn('flex min-h-0 w-full flex-col rounded-xl bg-white/85 p-2.5 sm:col-span-2 md:col-span-2 lg:col-span-1', !showChart && 'lg:self-start')}>
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{trendRangeLabel}</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowChart((v) => !v)}
-                        className="flex shrink-0 items-center gap-1 rounded-full bg-zinc-100/80 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10"
-                      >
-                        {showChart ? <><EyeOff className="h-3 w-3" /> Nascondi</> : <><Eye className="h-3 w-3" /> Grafico</>}
-                      </button>
-                    </div>
-
-                    {showChart ? (
-                      <div key="stats-row" className="grid grid-cols-3 gap-1 animate-in fade-in duration-300">
-                        <div className="flex items-center justify-between gap-1 rounded-md border border-[#FF7300]/25 bg-orange-50/70 px-1.5 py-1">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-[#e86800]/80">Trend</span>
-                          <span className="text-[11px] font-extrabold tabular-nums text-[#e86800]">{formatEuro(trendPriceValue)}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-1 rounded-md border border-[#1D3160]/15 bg-[#1D3160]/[0.06] px-1.5 py-1">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-[#1D3160]/70">Vendute</span>
-                          <span className="text-[11px] font-extrabold tabular-nums text-[#1D3160]">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-1 rounded-md border border-emerald-200/70 bg-emerald-50/60 px-1.5 py-1">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-700/80">Prezzo medio</span>
-                          <span className="text-[11px] font-extrabold tabular-nums text-emerald-700">{formatEuro(averageSalePriceValue)}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div key="stats-stack" className="space-y-1 animate-in fade-in duration-300">
-                        <div className="flex items-center justify-between gap-2 rounded-md border border-[#FF7300]/25 bg-orange-50/70 px-2.5 py-1.5">
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-[#e86800]/80">Trend</span>
-                          <span className="text-[13px] font-extrabold tabular-nums text-[#e86800]">{formatEuro(trendPriceValue)}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 rounded-md border border-[#1D3160]/15 bg-[#1D3160]/[0.06] px-2.5 py-1.5">
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-[#1D3160]/70">Vendute</span>
-                          <span className="text-[13px] font-extrabold tabular-nums text-[#1D3160]">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 rounded-md border border-emerald-200/70 bg-emerald-50/60 px-2.5 py-1.5">
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700/80">Prezzo medio</span>
-                          <span className="text-[13px] font-extrabold tabular-nums text-emerald-700">{formatEuro(averageSalePriceValue)}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    <div
-                      className={cn(
-                        'overflow-hidden transition-[max-height,opacity,margin] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
-                        showChart ? 'mt-1.5 max-h-[270px] opacity-100' : 'mt-0 max-h-0 opacity-0'
-                      )}
-                    >
-                      {showChart && (
-                        <div className="animate-in fade-in slide-in-from-top-2 duration-500">
-                          <div className="h-[250px] w-full rounded-lg bg-white/60">
-                            <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  ) : (
+                    <Image
+                      src={effectiveImageSrc}
+                      alt={card?.name ?? title}
+                      fill
+                      className="object-contain"
+                      sizes="220px"
+                      unoptimized
+                      onError={() => setImageError(true)}
+                      priority
+                    />
+                  )}
                 </div>
-              </>
-            )}
-            {activeTab === 'VENDI' && !card && (
-              <div className="hidden flex-1 flex-col items-center justify-center p-6 min-w-0 w-full sm:flex">
-                <p className="text-xs text-zinc-400 text-center max-w-[260px] leading-relaxed">
-                  Seleziona un prodotto dal catalogo per vendere.
-                </p>
-              </div>
-            )}
+              </aside>
 
-            {/* Tab METTI ALL'ASTA: flusso creazione asta compatta */}
-            {activeTab === 'ASTA' && card && blueprintIdForAuction && (
-              <div className="hidden min-h-0 bg-zinc-50/30 p-2 sm:block sm:p-2.5">
-                {auctionInventoryLoading ? (
-                  <div className="flex min-h-[200px] flex-col items-center justify-center gap-2.5 text-xs text-zinc-500">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
-                    <span>{t('accountPage.itemsLoadingInventory')}</span>
-                  </div>
-                ) : (
-                  <AuctionCreateWizard
-                    key={`${card.id}-${auctionInventoryItems.length}`}
-                    variant="embedded"
-                    embeddedCard={card}
-                    embeddedInventoryItems={auctionInventoryItems}
-                    onEmbeddedCancel={() => setActiveTab('INFO')}
-                    className="!max-w-full"
+              <div id="product-detail-tab-panel" className="hidden min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 sm:flex sm:h-full">
+                <ProductDetailIconTabBar
+                  tabs={tabs}
+                  activeTab={activeTab}
+                  onTabChange={handleTabChange}
+                  className="hidden sm:flex"
+                />
+
+                {activeTab === 'INFO' && (
+                  <ProductDetailInfoTab
+                    card={card}
+                    slug={slug}
+                    gameLabel={gameLabel}
+                    setCatalogHref={setCatalogHref}
+                    cardsInSaleLabel={cardsInSaleLabel}
+                    reprints={reprints}
+                    reprintsLoading={reprintsLoading}
+                    reprintsDegraded={reprintsDegraded}
+                    reprintsAllHref={reprintsAllHref}
+                    showChart={showChart}
+                    onShowChartToggle={() => setShowChart((v) => !v)}
+                    trendRangeLabel={trendRangeLabel}
+                    formatEuro={formatEuro}
+                    trendPriceValue={trendPriceValue}
+                    soldCopiesValue={soldCopiesValue}
+                    averageSalePriceValue={averageSalePriceValue}
+                    onChartStatsChange={setChartStats}
+                  />
+                )}
+
+                {activeTab === 'VENDI' && (
+                  <ProductDetailSellTab
+                    card={card}
+                    slug={slug}
+                    blueprintIdForAuction={blueprintIdForAuction}
+                    showChart={showChart}
+                    onShowChartToggle={() => setShowChart((v) => !v)}
+                    trendRangeLabel={trendRangeLabel}
+                    formatEuro={formatEuro}
+                    trendPriceValue={trendPriceValue}
+                    soldCopiesValue={soldCopiesValue}
+                    averageSalePriceValue={averageSalePriceValue}
+                    onChartStatsChange={setChartStats}
+                    onSellSinglePublished={() => void handleSellSinglePublished()}
+                  />
+                )}
+
+                {activeTab === 'ASTA' && (
+                  <ProductDetailAuctionTab
+                    card={card}
+                    blueprintIdForAuction={blueprintIdForAuction}
+                    auctionInventoryLoading={auctionInventoryLoading}
+                    auctionInventoryItems={auctionInventoryItems}
+                    inventoryLoadingLabel={t('accountPage.itemsLoadingInventory')}
+                    onAuctionCancel={() => setActiveTab('INFO')}
+                  />
+                )}
+
+                {activeTab === 'GRAFICO' && (
+                  <ProductDetailChartTab
+                    slug={slug}
+                    trendRangeLabel={trendRangeLabel}
+                    formatEuro={formatEuro}
+                    trendPriceValue={trendPriceValue}
+                    soldCopiesValue={soldCopiesValue}
+                    onChartStatsChange={setChartStats}
                   />
                 )}
               </div>
-            )}
-            {activeTab === 'ASTA' && (!card || !blueprintIdForAuction) && (
-              <div className="hidden flex-1 flex-col items-center justify-center p-6 min-w-0 w-full sm:flex">
-                <p className="text-xs text-zinc-400 text-center max-w-[260px] leading-relaxed">
-                  {!card
-                    ? 'Seleziona un prodotto dal catalogo per creare un’asta.'
-                    : 'Identificativo prodotto non disponibile per questo articolo: usa la pagina Nuova asta dal menu Aste.'}
-                </p>
-              </div>
-            )}
-            {/* Tab GRAFICO: andamento prezzi */}
-            {activeTab === 'GRAFICO' && (
-              <div className="hidden min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto p-2.5 sm:flex sm:p-3">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-800 sm:text-xs">
-                    {trendRangeLabel}
-                  </h3>
-                  <div className="flex gap-1.5 text-[10px] font-bold tabular-nums">
-                    <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-amber-700">{formatEuro(trendPriceValue)}</span>
-                    <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-sky-700">
-                      {new Intl.NumberFormat('it-IT').format(soldCopiesValue)} vend.
-                    </span>
-                  </div>
-                </div>
-                <div className="min-h-[220px] flex-1 rounded-xl bg-white p-2 shadow-[0_1px_3px_rgba(0,0,0,0.05)] sm:min-h-[280px]">
-                  <ProductPriceChart slug={slug} onStatsChange={setChartStats} />
-                </div>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Sezione FILTRI a fianco della tabella (sinistra) + tab IN VENDITA | DISPONIBILI ALL'ASTA + tabella – filtri in striscia stretta quando chiusi, pannello pieno quando aperti */}
-      <section className="w-full bg-[#F0F0F0] border-t border-gray-300">
-        <div className="container-content container-content-card-detail py-2.5 sm:py-3 lg:py-4">
-          <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch">
-            {/* Sidebar FILTRI – subito a sinistra della tabella */}
-            <aside
-              className={cn(
-                'flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-out',
-                filtersOpen ? 'w-full lg:w-[280px] xl:w-[300px]' : 'w-full lg:w-14'
-              )}
-            >
-              {!filtersOpen ? (
+        <ProductDetailMarketplaceSection
+          filtersOpen={filtersOpen}
+          onFiltersOpen={() => setFiltersOpen(true)}
+          onFiltersClose={() => setFiltersOpen(false)}
+          sellerSubTab={sellerSubTab}
+          onSellerSubTabChange={setSellerSubTab}
+          hideAuctions={hideAuctions}
+          onHideAuctionsChange={setHideAuctions}
+          listingsSort={listingsSort}
+          onListingsSortChange={setListingsSort}
+          countryOptions={countryOptions}
+          posizioneVenditore={posizioneVenditore}
+          onPosizioneVenditoreChange={setPosizioneVenditore}
+          tipoVenditore={tipoVenditore}
+          onTipoVenditoreChange={setTipoVenditore}
+          condizioneMinima={condizioneMinima}
+          onCondizioneMinimaChange={setCondizioneMinima}
+          linguaCarta={linguaCarta}
+          onLinguaCartaChange={setLinguaCarta}
+          firmata={firmata}
+          onFirmataChange={setFirmata}
+          alterata={alterata}
+          onAlterataChange={setAlterata}
+          quantita={quantita}
+          onQuantitaChange={setQuantita}
+          soloFoil={soloFoil}
+          onSoloFoilChange={setSoloFoil}
+          sortLabel={t('productDetail.sort.label')}
+          sortPriceAsc={t('productDetail.sort.priceAsc')}
+          sortPriceDesc={t('productDetail.sort.priceDesc')}
+          sortSeller={t('productDetail.sort.seller')}
+          sortCondition={t('productDetail.sort.condition')}
+          hideAuctionsLabel={t('productDetail.filters.hideAuctions')}
+          minConditionLabel={t('productDetail.filters.minCondition')}
+          anyFilterLabel={t('productDetail.filters.any')}
+          cardLanguageLabel={t('productDetail.filters.cardLanguage')}
+          tabsAriaLabel={t('productDetail.tabs.ariaLabel')}
+          inVenditaLabel={t('productDetail.tabs.inVendita')}
+          asteLabel={t('productDetail.tabs.aste')}
+          brxExpressLabel={t('productDetail.tabs.brxExpress')}
+          brxNewLabel={t('productDetail.tabs.brxNew')}
+          tabsHint={t('productDetail.tabs.hint')}
+          listingActionMessage={listingActionMessage}
+          sortedMarketplaceRows={sortedMarketplaceRows}
+          listingsLoading={listingsLoading}
+          auctionsLoading={cardAuctionsQuery.isLoading}
+          listingsError={listingsError}
+          marketplaceEmptyMessage={marketplaceEmptyMessage}
+          card={card}
+          cardImageSrc={cardImages[currentImageIndex]}
+          onAddToCart={handleMarketplaceAddToCart}
+          onBuyNow={handleMarketplaceBuyNow}
+          onProposeTrade={handleProposeTrade}
+          isOwnListing={isOwnListing}
+          onOwnerEdit={handleMarketplaceOwnerEdit}
+          onOwnerQuantityChange={handleOwnerQtyDelta}
+          rowBusyId={rowBusyId}
+        />
+
+        {editingItem && (
+          <InventoryEditModal
+            item={editingItem}
+            onClose={() => {
+              setEditingItem(null);
+              setListingActionMessage(null);
+            }}
+            onSubmit={handleEditSubmit}
+            saving={savingEdit}
+          />
+        )}
+
+        {editingMarketplace && (
+          <MarketplaceListingEditModal
+            listing={editingMarketplace}
+            onClose={() => {
+              setEditingMarketplace(null);
+              setListingActionMessage(null);
+            }}
+            onSubmit={handleMarketplaceEditSubmit}
+            saving={savingEdit}
+          />
+        )}
+
+        {purchaseListing && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pd-purchase-modal-title"
+          >
+            <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-5 shadow-xl">
+              <h2 id="pd-purchase-modal-title" className="mb-1 text-lg font-semibold text-gray-900">
+                {t('mockCheckout.confirmOrder')}
+              </h2>
+              <div className="mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+                <span className="mr-1 inline-flex rounded-full bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">
+                  DEMO
+                </span>
+                {t('mockCheckout.demoDisclaimer')}
+              </div>
+              <p className="mb-4 text-sm text-gray-600">
+                {card?.name ?? purchaseListing.seller_display_name}
+              </p>
+              <div className="mb-3 text-sm text-gray-600">
+                Carte in vendita: <span className="font-semibold">{purchaseListing.quantity}</span>
+              </div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Quantità</label>
+              <input
+                type="number"
+                min={1}
+                max={purchaseListing.quantity}
+                value={purchaseQty}
+                onChange={(e) => setPurchaseQty(Number(e.target.value) || 1)}
+                className="mb-4 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+              />
+              <div className="flex justify-end gap-2 border-t border-gray-200 pt-3">
                 <button
                   type="button"
-                  onClick={() => setFiltersOpen(true)}
-                  className="w-full lg:h-full lg:min-h-[200px] flex items-center justify-center gap-2 lg:flex-col lg:gap-1.5 rounded-lg border border-gray-200 bg-white p-2 shadow-sm hover:bg-gray-50 transition-colors"
-                  aria-label="Apri filtri"
+                  onClick={() => setPurchaseListing(null)}
+                  className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  disabled={purchaseSubmitting}
                 >
-                  <svg className="h-4 w-4 text-gray-600 shrink-0 lg:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                  </svg>
-                  <span className="text-xs font-bold uppercase text-gray-600 lg:hidden">Filtri</span>
-                  <svg className="h-5 w-5 text-gray-600 shrink-0 hidden lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                  </svg>
-                  <span className="text-[10px] font-bold uppercase text-zinc-600 hidden lg:inline leading-none">FILTRI</span>
+                  Annulla
                 </button>
-              ) : (
-                <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm h-full min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold uppercase text-gray-900">Filtri</span>
-                      <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                      </svg>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setFiltersOpen(false)}
-                      className="flex items-center justify-center rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-                      aria-label="Chiudi filtri"
-                    >
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="space-y-4">
-                    {sellerSubTab === 'VENDITORI' && (
-                      <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                        <input
-                          type="checkbox"
-                          checked={hideAuctions}
-                          onChange={(e) => setHideAuctions(e.target.checked)}
-                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/30"
-                        />
-                        <span className="text-xs font-bold uppercase tracking-wide text-gray-700">
-                          {t('productDetail.filters.hideAuctions')}
-                        </span>
-                      </label>
-                    )}
-                    <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase text-gray-600">Ordina</label>
-                      <select
-                        value={listingsSort}
-                        onChange={(e) => setListingsSort(e.target.value as MarketplaceSort)}
-                        className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700"
-                      >
-                        <option value="price_asc">Prezzo: più basso</option>
-                        <option value="price_desc">Prezzo: più alto</option>
-                        <option value="seller">Venditore: A-Z</option>
-                        <option value="condition">Condizione: migliore</option>
-                      </select>
-                    </div>
-                    {sellerSubTab === 'VENDITORI' && (
-                      <>
-                        <div>
-                          <label className="mb-1 block text-[10px] font-bold uppercase text-gray-600">
-                            Posizione venditore
-                          </label>
-                          <CountrySelect
-                            options={countryOptions}
-                            value={posizioneVenditore}
-                            onChange={setPosizioneVenditore}
-                            size="sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-2 block text-[10px] font-bold uppercase text-gray-600">Tipo venditore</label>
-                          <div className="flex flex-wrap gap-2">
-                            {(['PRIVATO', 'PROFESSIONALE', 'POWERSELLER'] as const).map((tipo) => (
-                              <button
-                                key={tipo}
-                                type="button"
-                                onClick={() => setTipoVenditore(tipoVenditore === tipo ? null : tipo)}
-                                className={cn(
-                                  'rounded-full px-3 py-1.5 text-xs font-bold uppercase',
-                                  tipoVenditore === tipo ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                )}
-                              >
-                                {tipo}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <label className="mb-2 block text-[10px] font-bold uppercase text-gray-600">
-                            {t('productDetail.filters.minCondition')}
-                          </label>
-                          <div className="flex flex-wrap gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setCondizioneMinima(null)}
-                              className={cn(
-                                'rounded-full px-2 py-1 text-[10px] font-bold uppercase',
-                                condizioneMinima === null
-                                  ? 'bg-gray-700 text-white'
-                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                              )}
-                            >
-                              {t('productDetail.filters.any')}
-                            </button>
-                            {CONDITION_FILTER_OPTIONS.map((code) => (
-                              <button
-                                key={code}
-                                type="button"
-                                onClick={() => setCondizioneMinima(condizioneMinima === code ? null : code)}
-                                className={cn(
-                                  'rounded ring-2 ring-offset-1 transition',
-                                  condizioneMinima === code ? 'ring-[#FF8800]' : 'ring-transparent opacity-80 hover:opacity-100'
-                                )}
-                                aria-pressed={condizioneMinima === code}
-                              >
-                                <ConditionBadge condition={code} size="md" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <label className="mb-2 block text-[10px] font-bold uppercase text-gray-600">
-                            {t('productDetail.filters.cardLanguage')}
-                          </label>
-                          <div className="flex flex-wrap gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setLinguaCarta(null)}
-                              className={cn(
-                                'rounded-full px-2 py-1 text-[10px] font-bold',
-                                linguaCarta === null ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-600'
-                              )}
-                            >
-                              {t('productDetail.filters.any')}
-                            </button>
-                            {MARKETPLACE_LANGUAGE_FILTER_OPTIONS.map(({ code }) => (
-                              <button
-                                key={code}
-                                type="button"
-                                onClick={() => setLinguaCarta(linguaCarta === code ? null : code)}
-                                className={cn(
-                                  'flex h-8 w-10 items-center justify-center rounded border transition',
-                                  linguaCarta === code
-                                    ? 'border-[#FF8800] bg-orange-50 ring-1 ring-orange-300'
-                                    : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
-                                )}
-                                title={code}
-                              >
-                                <FlagIcon country={code} size="sm" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Firmata</label>
-                      <div className="flex flex-wrap gap-2">
-                        {(['SÌ', 'NO', 'ENTRAMBI'] as const).map((v) => (
-                          <button key={v} type="button" onClick={() => setFirmata(v)} className={cn('rounded-full px-3 py-1.5 text-xs font-bold', firmata === v ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300')}>{v}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">Alterata</label>
-                      <div className="flex flex-wrap gap-2">
-                        {(['SÌ', 'NO', 'ENTRAMBI'] as const).map((v) => (
-                          <button key={v} type="button" onClick={() => setAlterata(v)} className={cn('rounded-full px-3 py-1.5 text-xs font-bold', alterata === v ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300')}>{v}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1">Quantità</label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={quantita}
-                        onChange={(e) => setQuantita(Number(e.target.value) || 1)}
-                        className="w-full rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm"
-                        placeholder="Inserire quantità"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase text-gray-600">Solo foil?</span>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={soloFoil}
-                        onClick={() => setSoloFoil(!soloFoil)}
-                        className={cn(
-                          'relative inline-flex h-7 w-[52px] shrink-0 cursor-pointer items-center rounded-full transition-all duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8800]/40',
-                          soloFoil
-                            ? 'bg-[#FF8800] shadow-[inset_0_1px_2px_rgba(0,0,0,0.15),0_0_12px_rgba(255,136,0,0.45)]'
-                            : 'bg-gray-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]'
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'inline-block h-6 w-6 transform rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.22),0_0_2px_rgba(0,0,0,0.08)] transition-transform duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] will-change-transform',
-                            soloFoil ? 'translate-x-6' : 'translate-x-0.5'
-                          )}
-                          aria-hidden
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </aside>
-
-            {/* Marketplace: IN VENDITA | ASTE | BRX Express */}
-            <div className="flex-1 min-w-0 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-              <div
-                className="border-b border-gray-200 bg-white px-2 pt-2 sm:px-3 sm:pt-3"
-                role="tablist"
-                aria-label={t('productDetail.tabs.ariaLabel')}
-              >
-                <div className="flex flex-wrap items-center gap-2 overflow-x-auto scrollbar-hide pb-2">
-                  <div
-                    className="flex min-w-0 flex-1 rounded-xl bg-slate-100/80 p-1 ring-1 ring-inset ring-slate-200/70"
-                    role="presentation"
-                  >
-                  {(
-                    [
-                      { id: 'VENDITORI' as const, label: t('productDetail.tabs.inVendita'), icon: 'vendita' },
-                      { id: 'ASTE' as const, label: t('productDetail.tabs.aste'), icon: 'aste' },
-                    ] as const
-                  ).map((tab) => {
-                    const iconClass = 'h-4 w-4 sm:h-[18px] sm:w-[18px] shrink-0';
-                    const selected = sellerSubTab === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        role="tab"
-                        id={`pd-market-tab-${tab.id}`}
-                        aria-selected={selected}
-                        aria-controls={`pd-market-panel-${tab.id}`}
-                        onClick={() => setSellerSubTab(tab.id)}
-                        className={cn(
-                          'group flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[10px] font-bold uppercase tracking-wide transition-all duration-200 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs',
-                          selected
-                            ? 'bg-white text-[#FF7300] shadow-sm ring-1 ring-slate-200/90'
-                            : 'text-slate-500 hover:text-slate-700'
-                        )}
-                      >
-                        {tab.icon === 'vendita' && (
-                          <Tag className={iconClass} aria-hidden />
-                        )}
-                        {tab.icon === 'aste' && (
-                          <AuctionGavelIcon className={iconClass} animated />
-                        )}
-                        <span className="truncate">{tab.label}</span>
-                      </button>
-                    );
-                  })}
-                  </div>
-                  <button
-                    type="button"
-                    role="tab"
-                    id="pd-market-tab-TCG_EXPRESS"
-                    aria-selected={sellerSubTab === 'TCG_EXPRESS'}
-                    aria-controls="pd-market-panel-TCG_EXPRESS"
-                    onClick={() => setSellerSubTab('TCG_EXPRESS')}
-                    className={cn(
-                      'relative flex shrink-0 items-center justify-center gap-1 self-center rounded-full px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide transition-all',
-                      sellerSubTab === 'TCG_EXPRESS'
-                        ? 'bg-white text-[#FF7300] shadow-sm ring-2 ring-[#FF7300]/30'
-                        : 'bg-white text-orange-600/90 ring-1 ring-gray-200 hover:bg-orange-50/60'
-                    )}
-                  >
-                    <Zap className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    <span className="truncate">{t('productDetail.tabs.brxExpress')}</span>
-                    <span className="inline-flex items-center rounded-full bg-emerald-500 px-1 text-[7px] font-bold leading-[1.6] text-white">
-                      {t('productDetail.tabs.brxNew')}
-                    </span>
-                  </button>
-                </div>
-                <p className="pb-2 text-[11px] text-gray-500 sm:text-xs">{t('productDetail.tabs.hint')}</p>
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmPurchase()}
+                  disabled={purchaseSubmitting}
+                  className="rounded bg-[#FF7300] px-4 py-2 text-sm font-medium text-white hover:bg-[#e56500] disabled:opacity-50"
+                >
+                  {purchaseSubmitting ? <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> : null}
+                  {t('mockCheckout.confirmOrder')}
+                </button>
               </div>
-              {sellerSubTab === 'VENDITORI' && (
-                <div
-                  id="pd-market-panel-VENDITORI"
-                  role="tabpanel"
-                  aria-labelledby="pd-market-tab-VENDITORI"
-                  className="overflow-x-auto animate-in fade-in slide-in-from-bottom-2 duration-300"
-                >
-                  {listingActionMessage && (
-                    <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">{listingActionMessage}</div>
-                  )}
-                  <ModernSellerTable
-                    rows={sortedMarketplaceRows}
-                    loading={listingsLoading}
-                    auctionsLoading={cardAuctionsQuery.isLoading}
-                    error={listingsError}
-                    emptyMessage={marketplaceEmptyMessage}
-                    cardImageSrc={cardImages[currentImageIndex]}
-                    cardName={card?.name}
-                    cardLanguage={card?.available_languages?.[0] ?? null}
-                    onAddToCart={handleMarketplaceAddToCart}
-                    onBuyNow={handleMarketplaceBuyNow}
-                    onProposeTrade={handleProposeTrade}
-                    isOwnListing={isOwnListing}
-                    onOwnerEdit={handleMarketplaceOwnerEdit}
-                    onOwnerQuantityChange={handleOwnerQtyDelta}
-                    busyItemId={rowBusyId}
-                  />
-                </div>
-              )}
-              {sellerSubTab === 'ASTE' && card && (
-                <div
-                  id="pd-market-panel-ASTE"
-                  role="tabpanel"
-                  aria-labelledby="pd-market-tab-ASTE"
-                >
-                  <ProductAuctionsPanel card={card} />
-                </div>
-              )}
-              {sellerSubTab === 'TCG_EXPRESS' && (
-                <div
-                  id="pd-market-panel-TCG_EXPRESS"
-                  role="tabpanel"
-                  aria-labelledby="pd-market-tab-TCG_EXPRESS"
-                  className="p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300"
-                >
-                  <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50/60 p-6 text-center">
-                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-400 shadow-md shadow-orange-500/20">
-                      <Zap className="h-6 w-6 text-white" aria-hidden />
-                    </div>
-                    <p className="text-sm font-extrabold uppercase tracking-wide text-orange-700">BRX Express</p>
-                    <p className="mt-1 text-sm text-orange-600/80">Spedizione ultra-rapida per le tue carte. Presto disponibile.</p>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
-        </div>
-      </section>
+        )}
 
-      {editingItem && (
-        <InventoryEditModal
-          item={editingItem}
-          onClose={() => {
-            setEditingItem(null);
-            setListingActionMessage(null);
-          }}
-          onSubmit={handleEditSubmit}
-          saving={savingEdit}
-        />
-      )}
-
-      {editingMarketplace && (
-        <MarketplaceListingEditModal
-          listing={editingMarketplace}
-          onClose={() => {
-            setEditingMarketplace(null);
-            setListingActionMessage(null);
-          }}
-          onSubmit={handleMarketplaceEditSubmit}
-          saving={savingEdit}
-        />
-      )}
-
-      {purchaseListing && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="pd-purchase-modal-title"
-        >
-          <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-5 shadow-xl">
-            <h2 id="pd-purchase-modal-title" className="mb-1 text-lg font-semibold text-gray-900">
-              {t('mockCheckout.confirmOrder')}
-            </h2>
-            <div className="mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
-              <span className="mr-1 inline-flex rounded-full bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">
-                DEMO
-              </span>
-              {t('mockCheckout.demoDisclaimer')}
-            </div>
-            <p className="mb-4 text-sm text-gray-600">
-              {card?.name ?? purchaseListing.seller_display_name}
-            </p>
-            <div className="mb-3 text-sm text-gray-600">
-              Carte in vendita: <span className="font-semibold">{purchaseListing.quantity}</span>
-            </div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Quantità</label>
-            <input
-              type="number"
-              min={1}
-              max={purchaseListing.quantity}
-              value={purchaseQty}
-              onChange={(e) => setPurchaseQty(Number(e.target.value) || 1)}
-              className="mb-4 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-            />
-            <div className="flex justify-end gap-2 border-t border-gray-200 pt-3">
-              <button
-                type="button"
-                onClick={() => setPurchaseListing(null)}
-                className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                disabled={purchaseSubmitting}
-              >
-                Annulla
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleConfirmPurchase()}
-                disabled={purchaseSubmitting}
-                className="rounded bg-[#FF7300] px-4 py-2 text-sm font-medium text-white hover:bg-[#e56500] disabled:opacity-50"
-              >
-                {purchaseSubmitting ? <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> : null}
-                {t('mockCheckout.confirmOrder')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Desktop hover preview: immagine ingrandita al centro, sfondo trasparente */}
-      {hoverPreviewOpen && (
-        <div
-          className="hidden sm:flex fixed left-1/2 -translate-x-1/2 z-[60] items-center justify-center"
-          style={{ top: `calc(${headerHeight}px + 5vh)`, bottom: '5vh' }}
+        <ProductDetailHoverPreview
+          open={hoverPreviewOpen}
+          headerHeight={headerHeight}
+          showImagePlaceholder={showImagePlaceholder}
+          cardImages={cardImages}
+          currentImageIndex={currentImageIndex}
+          cardName={card?.name}
+          title={title}
           onMouseEnter={handleHoverPreviewCancelClose}
           onMouseLeave={handleHoverPreviewClose}
-        >
-          {!showImagePlaceholder && cardImages[currentImageIndex] && (
-            <img
-              src={cardImages[currentImageIndex]}
-              alt={card?.name ?? title}
-              className="h-full w-auto max-w-[85vw] object-contain rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
-              draggable={false}
-            />
-          )}
-          {showImagePlaceholder && (
-            <div className="flex flex-col items-center justify-center text-zinc-700">
-              <img
-                src={EBARTEX_LOGO_PLACEHOLDER}
-                alt="Ebartex"
-                className="w-24 h-24 object-contain opacity-50"
-                draggable={false}
-              />
-              <p className="mt-4 text-sm">Immagine non disponibile</p>
-            </div>
-          )}
-        </div>
-      )}
+        />
 
-      {/* Lightbox Modal per immagine carta fullscreen */}
-      {isLightboxOpen && (
-        <div
-          ref={lightboxRef}
-          className="fixed inset-0 z-50 bg-black/95"
-          onClick={handleLightboxClose}
+        <ProductDetailLightbox
+          isOpen={isLightboxOpen}
+          lightboxRef={lightboxRef}
+          headerHeight={headerHeight}
+          showImagePlaceholder={showImagePlaceholder}
+          cardImages={cardImages}
+          currentImageIndex={currentImageIndex}
+          cardName={card?.name}
+          title={title}
+          buyNowLabel={t('productDetail.buyNow')}
+          onClose={handleLightboxClose}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-        >
-          {/* X chiusura - visibile su tutti i device */}
-          <button
-            onClick={(e) => { e.stopPropagation(); handleLightboxClose(); }}
-            className="absolute top-5 right-5 p-2.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/40 text-white transition-colors z-[100] shadow-lg"
-            aria-label="Chiudi"
-          >
-            <X className="h-6 w-6 drop-shadow-md" />
-          </button>
+          onPrevImage={handlePrevImage}
+          onNextImage={handleNextImage}
+          onShare={handleShare}
+          onOpenQtyPopup={openQtyPopup}
+        />
 
-          {/* Desktop: stile preview, rispetta header + margini */}
-          <div
-            className="hidden sm:flex fixed left-1/2 -translate-x-1/2 items-center justify-center"
-            style={{ top: `calc(${headerHeight}px + 5vh)`, bottom: '5vh' }}
-            onClick={handleLightboxClose}
-          >
-            {cardImages.length > 1 && (
-              <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium">
-                {currentImageIndex + 1} / {cardImages.length}
-              </span>
-            )}
-            {!showImagePlaceholder && cardImages[currentImageIndex] && (
-              <img
-                src={cardImages[currentImageIndex]}
-                alt={card?.name ?? title}
-                className="h-full w-auto max-w-[85vw] object-contain rounded-sm shadow-2xl"
-                draggable={false}
-                onClick={(e) => e.stopPropagation()}
-              />
-            )}
-            {showImagePlaceholder && (
-              <div className="flex flex-col items-center justify-center text-white/70" onClick={(e) => e.stopPropagation()}>
-                <img
-                  src={EBARTEX_LOGO_PLACEHOLDER}
-                  alt="Ebartex"
-                  className="w-24 h-24 object-contain opacity-50"
-                  draggable={false}
-                />
-                <p className="mt-4 text-sm">Immagine non disponibile</p>
-              </div>
-            )}
-          </div>
-
-          {/* Mobile: lightbox con barra azioni glass bubble */}
-          <div
-            className="sm:hidden fixed inset-0 flex flex-col items-center justify-center"
-            onClick={handleLightboxClose}
-          >
-            <div className="flex flex-col items-center gap-5" onClick={(e) => e.stopPropagation()}>
-              {/* Immagine */}
-              {!showImagePlaceholder && cardImages[currentImageIndex] && (
-                <img
-                  src={cardImages[currentImageIndex]}
-                  alt={card?.name ?? title}
-                  className="max-w-[90vw] max-h-[72vh] w-auto h-auto object-contain rounded-sm shadow-2xl"
-                  draggable={false}
-                />
-              )}
-              {showImagePlaceholder && (
-                <div className="flex flex-col items-center justify-center text-white/70">
-                  <img
-                    src={EBARTEX_LOGO_PLACEHOLDER}
-                    alt="Ebartex"
-                    className="w-24 h-24 object-contain opacity-50"
-                    draggable={false}
-                  />
-                  <p className="mt-4 text-sm">Immagine non disponibile</p>
-                </div>
-              )}
-
-              {/* Barra azioni glass bubble */}
-              <div className="flex items-center gap-3">
-                <button
-                  className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/20 bg-white/10 ring-1 ring-white/10 backdrop-blur-xl text-white transition-all hover:bg-white/20 active:scale-95"
-                  aria-label="Salva"
-                >
-                  <Bookmark className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    openQtyPopup({ item_id: 0, seller_id: 'lightbox', seller_display_name: '', country: null, quantity: 1, price_cents: 0, condition: null, mtg_language: null }, e.currentTarget, cardImages[currentImageIndex]);
-                  }}
-                  className="flex h-12 items-center justify-center gap-2 rounded-full border-2 border-[#FF7300]/40 bg-[#FF7300]/20 px-6 text-sm font-bold uppercase tracking-wide text-white ring-1 ring-[#FF7300]/20 backdrop-blur-xl transition-all hover:bg-[#FF7300]/30 active:scale-95"
-                  aria-label="Compra"
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                  <span>Compra</span>
-                </button>
-                <button
-                  onClick={handleShare}
-                  className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/20 bg-white/10 ring-1 ring-white/10 backdrop-blur-xl text-white transition-all hover:bg-white/20 active:scale-95"
-                  aria-label="Condividi"
-                >
-                  <Share2 className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Controlli navigazione (visibili solo se più immagini) */}
-          {cardImages.length > 1 && (
-            <>
-              <button
-                onClick={(e) => { e.stopPropagation(); handlePrevImage(); }}
-                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                aria-label="Immagine precedente"
-              >
-                <ChevronLeft className="h-8 w-8" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleNextImage(); }}
-                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                aria-label="Immagine successiva"
-              >
-                <ChevronRight className="h-8 w-8" />
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Popup quantità */}
-      {qtyPopup.open && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setQtyPopup({ open: false })}>
-          <div
-            className="flex flex-col items-center gap-4 rounded-2xl border border-white/20 bg-white/10 px-6 py-5 backdrop-blur-xl shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="text-sm font-semibold uppercase tracking-wide text-white">Quantità</p>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setQtyValue((v) => Math.max(1, v - 1))}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <input
-                ref={qtyInputRef}
-                type="number"
-                min={1}
-                value={qtyValue}
-                onChange={(e) => setQtyValue(Math.max(1, parseInt(e.target.value || '1', 10)))}
-                onKeyDown={(e) => { if (e.key === 'Enter') confirmQty(); }}
-                className="h-10 w-16 rounded-lg border border-white/20 bg-white/5 text-center text-lg font-bold text-white outline-none focus:border-[#FF7300]/60"
-              />
-              <button
-                type="button"
-                onClick={() => setQtyValue((v) => v + 1)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={confirmQty}
-              className="mt-1 flex h-10 items-center justify-center rounded-full bg-[#FF7300] px-6 text-sm font-bold uppercase tracking-wide text-white shadow-lg transition hover:bg-[#FF8800] active:scale-95"
-            >
-              Conferma
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+        <ProductDetailQtyPopup
+          open={qtyPopup.open}
+          qtyValue={qtyValue}
+          qtyInputRef={qtyInputRef}
+          onClose={() => setQtyPopup({ open: false })}
+          onQtyChange={setQtyValue}
+          onDecrement={() => setQtyValue((v) => Math.max(1, v - 1))}
+          onIncrement={() => setQtyValue((v) => v + 1)}
+          onConfirm={confirmQty}
+        />
+      </div>
     </RarityLegendProvider>
   );
 }

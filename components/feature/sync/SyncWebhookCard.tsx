@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Copy, Check, Webhook, ExternalLink, Loader2, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTimeoutFn } from '@/lib/hooks/use-timeout-fn';
 import { cn } from '@/lib/utils';
 import type { WebhookUrlResponse } from '@/lib/api/sync-client';
 
@@ -19,6 +20,7 @@ export function SyncWebhookCard({
   onCopy?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const setTimeoutFn = useTimeoutFn();
 
   const handleCopy = async () => {
     const url = webhookData?.webhook_url ?? '';
@@ -27,7 +29,7 @@ export function SyncWebhookCard({
       await navigator.clipboard.writeText(url);
       setCopied(true);
       onCopy?.();
-      setTimeout(() => setCopied(false), 2500);
+      setTimeoutFn(() => setCopied(false), 2500);
     } catch {
       /* ignore */
     }

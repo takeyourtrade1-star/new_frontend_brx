@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState, type RefObject, type Ref } from 'react';
+import { useCallback, useState, type RefObject, type Ref } from 'react';
 import { Cropper, CropperRef, RectangleStencil } from 'react-advanced-cropper';
 import 'react-advanced-cropper/dist/style.css';
 import { RotateCcw, RotateCw, ZoomIn } from 'lucide-react';

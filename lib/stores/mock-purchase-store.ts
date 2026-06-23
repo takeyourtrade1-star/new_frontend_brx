@@ -37,8 +37,6 @@ interface MockPurchaseState {
   ) => string[];
   markPaid: (orderId: string) => void;
   markAllPaid: (orderIds: string[]) => void;
-  getPendingOrders: () => MockPurchaseOrder[];
-  getPaidOrders: () => MockPurchaseOrder[];
 }
 
 export const useMockPurchaseStore = create<MockPurchaseState>()(
@@ -85,11 +83,6 @@ export const useMockPurchaseStore = create<MockPurchaseState>()(
           ),
         }));
       },
-
-      getPendingOrders: () =>
-        get().orders.filter((o) => o.status === 'payment_pending'),
-
-      getPaidOrders: () => get().orders.filter((o) => o.status === 'paid'),
     }),
     {
       name: 'ebartex-mock-purchases',

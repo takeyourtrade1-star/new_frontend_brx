@@ -62,6 +62,8 @@ export function SincronizzazioneContent() {
   const [etaSeconds, setEtaSeconds] = useState<number | null>(null);
   const pollingSessionRef = useRef(0);
   const progressSampleRef = useRef<{ ts: number; pct: number } | null>(null);
+  // Timer del polling ricorsivo: tracciato per fermarlo allo smontaggio.
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const userId = user?.id;
 
@@ -110,6 +112,12 @@ export function SincronizzazioneContent() {
     if (!userId || !accessToken) return;
     void refreshAll();
   }, [userId, accessToken, refreshAll]);
+
+  // Ferma il polling ricorsivo allo smontaggio: evita timer orfani.
+  useEffect(() => () => {
+    pollingSessionRef.current += 1;
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+  }, []);
 
   const handleLinkToken = async (token: string) => {
     if (!userId || !accessToken) return;
@@ -194,12 +202,12 @@ export function SincronizzazioneContent() {
             void refreshAll();
             return;
           }
-          if (sessionId === pollingSessionRef.current) setTimeout(poll, pollIntervalMs);
+          if (sessionId === pollingSessionRef.current) pollTimerRef.current = setTimeout(poll, pollIntervalMs);
         } catch {
-          if (sessionId === pollingSessionRef.current) setTimeout(poll, pollIntervalMs);
+          if (sessionId === pollingSessionRef.current) pollTimerRef.current = setTimeout(poll, pollIntervalMs);
         }
       };
-      setTimeout(poll, pollIntervalMs);
+      pollTimerRef.current = setTimeout(poll, pollIntervalMs);
     } catch (err: unknown) {
       setLastSyncError(err instanceof Error ? err.message : t('accountPage.syncErrStart'));
       setLoadingStart(false);

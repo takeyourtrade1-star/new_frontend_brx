@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Home, ChevronRight, Loader2, LayoutGrid, Hourglass, PackageOpen, Truck, BadgeCheck, LifeBuoy } from 'lucide-react';
+import { Home, LayoutGrid, Hourglass, PackageOpen, Truck, BadgeCheck, LifeBuoy } from 'lucide-react';
 import { OrderTabs, type OrderTab } from '@/components/feature/ordini/OrderTabs';
 import { ordersWrapperClass } from '@/components/feature/ordini/OrderItemCard';
 import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';

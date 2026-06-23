@@ -12,7 +12,7 @@ import {
   fetchAndCacheOnnxModel,
   ONNX_LOAD_PROGRESS_IDLE,
   type OnnxLoadProgress,
-} from './useOnnxLoader';
+} from '@/lib/scanner/onnx-loader';
 
 import { resolveOnnxDownloadUrls } from './resolveOnnxUrls';
 import {
@@ -31,7 +31,7 @@ import {
   vectorSearchJson,
 } from '@/lib/scanner/preprocess';
 
-export type { OnnxLoadProgress } from './useOnnxLoader';
+export type { OnnxLoadProgress } from '@/lib/scanner/onnx-loader';
 
 // ---------------------------------------------------------------------------
 // Types

@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';

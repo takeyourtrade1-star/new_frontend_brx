@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -21,6 +21,8 @@ import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-sha
 import { getStoredAsteViewMode, setStoredAsteViewMode, type AsteViewMode } from '@/lib/auction/aste-view-storage';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { useBuyerOrders, useMarkOrderPaid } from '@/lib/hooks/use-orders';
+import { useMyMarketplaceOrders } from '@/lib/hooks/use-marketplace-orders';
+import { useMyDisputes } from '@/lib/hooks/use-disputes';
 import {
   ORDER_STATUSES_PAID,
   ORDER_STATUSES_TO_PAY,
@@ -29,7 +31,6 @@ import {
   type OrderStatus,
 } from '@/types/order';
 import {
-  getMyOrders,
   MarketplaceApiError,
   type OrderResponse,
   type OrderStatus as MarketplaceStatus,
@@ -41,8 +42,6 @@ import {
 } from '@/lib/stores/mock-purchase-store';
 import { useMockSupportStore } from '@/lib/stores/mock-support-store';
 import { useCartStore } from '@/lib/stores/cart-store';
-import { disputesApi } from '@/lib/api/disputes-client';
-import type { DisputeAPI } from '@/types/dispute';
 import { OrderCard } from './OrderCard';
 import { MarketplaceOrderCard } from './MarketplaceOrderCard';
 import { PaymentConfirmModal } from './PaymentConfirmModal';
@@ -193,30 +192,34 @@ export function AcquistiContent() {
   const markPaid = useMockPurchaseStore((s) => s.markPaid);
   const cartItems = useCartStore((s) => s.items);
 
-  const [mockShippingOrders, setMockShippingOrders] = useState<MockShippingOrder[]>([
-    {
-      id: 'mock-ship-1',
-      title: 'Black Lotus (Alpha)',
-      quantity: 1,
-      priceCents: 150000,
-      sellerDisplayName: 'Collezione MTG Vintage',
-      imageUrl: '',
-      shippedAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-      shippingDays: 5,
-      status: 'in_transit',
-    },
-    {
-      id: 'mock-ship-2',
-      title: 'Mox Pearl (Beta)',
-      quantity: 1,
-      priceCents: 85000,
-      sellerDisplayName: 'Rarità Vintage Shop',
-      imageUrl: '',
-      shippedAt: new Date(Date.now() - 18 * 86400000).toISOString(),
-      shippingDays: 18,
-      status: 'in_transit',
-    },
-  ]);
+  // Date.now() spostato in useEffect: evita hydration mismatch (server T vs client T+δ).
+  const [mockShippingOrders, setMockShippingOrders] = useState<MockShippingOrder[]>([]);
+  useEffect(() => {
+    setMockShippingOrders([
+      {
+        id: 'mock-ship-1',
+        title: 'Black Lotus (Alpha)',
+        quantity: 1,
+        priceCents: 150000,
+        sellerDisplayName: 'Collezione MTG Vintage',
+        imageUrl: '',
+        shippedAt: new Date(Date.now() - 5 * 86400000).toISOString(),
+        shippingDays: 5,
+        status: 'in_transit',
+      },
+      {
+        id: 'mock-ship-2',
+        title: 'Mox Pearl (Beta)',
+        quantity: 1,
+        priceCents: 85000,
+        sellerDisplayName: 'Rarità Vintage Shop',
+        imageUrl: '',
+        shippedAt: new Date(Date.now() - 18 * 86400000).toISOString(),
+        shippingDays: 18,
+        status: 'in_transit',
+      },
+    ]);
+  }, []);
 
   const [supportModalOpen, setSupportModalOpen] = useState(false);
   const [supportModalOrder, setSupportModalOrder] = useState<MockShippingOrder | null>(null);
@@ -263,35 +266,18 @@ export function AcquistiContent() {
   );
   const payMutation = useMarkOrderPaid();
 
-  const [marketplaceOrders, setMarketplaceOrders] = useState<OrderResponse[]>([]);
-  const [marketplaceTotal, setMarketplaceTotal] = useState(0);
-  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
-  const [marketplaceError, setMarketplaceError] = useState<string | null>(null);
-
-  const loadMarketplaceOrders = useCallback(async () => {
-    setMarketplaceLoading(true);
-    setMarketplaceError(null);
-    try {
-      const res = await getMyOrders({ page: 1, page_size: 50 });
-      setMarketplaceOrders(res.items);
-      setMarketplaceTotal(res.total);
-    } catch (e) {
-      const msg =
-        e instanceof MarketplaceApiError
-          ? e.detail
-          : e instanceof Error
-            ? e.message
-            : 'Impossibile caricare gli ordini marketplace.';
-      setMarketplaceError(msg);
-    } finally {
-      setMarketplaceLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isSupportoTab) return;
-    void loadMarketplaceOrders();
-  }, [isSupportoTab, loadMarketplaceOrders]);
+  // Ordini marketplace via React Query (regola §2) invece di useState+useEffect+fetch.
+  const marketplaceQuery = useMyMarketplaceOrders(!isSupportoTab);
+  const marketplaceOrders = marketplaceQuery.data?.items ?? [];
+  const marketplaceLoading = marketplaceQuery.isLoading;
+  const marketplaceError = marketplaceQuery.error
+    ? (marketplaceQuery.error instanceof MarketplaceApiError
+        ? marketplaceQuery.error.detail
+        : marketplaceQuery.error instanceof Error
+          ? marketplaceQuery.error.message
+          : 'Impossibile caricare gli ordini marketplace.')
+    : null;
+  const loadMarketplaceOrders = marketplaceQuery.refetch;
 
   const filteredMarketplaceOrders = useMemo(
     () => filterMarketplaceByTab(marketplaceOrders, activeTab),
@@ -308,28 +294,14 @@ export function AcquistiContent() {
     [mockShippingOrders, activeTab],
   );
 
-  const [disputes, setDisputes] = useState<DisputeAPI[]>([]);
-  const [disputesLoading, setDisputesLoading] = useState(false);
-  const [disputesError, setDisputesError] = useState<string | null>(null);
-
-  const loadDisputes = useCallback(async () => {
-    setDisputesLoading(true);
-    setDisputesError(null);
-    try {
-      const res = await disputesApi.listMine(50, 0);
-      setDisputes(res.data);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Impossibile caricare le segnalazioni.';
-      setDisputesError(msg);
-    } finally {
-      setDisputesLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isSupportoTab) return;
-    void loadDisputes();
-  }, [isSupportoTab, loadDisputes]);
+  // Segnalazioni via React Query (regola §2) invece di useState+useEffect+fetch.
+  const disputesQuery = useMyDisputes(isSupportoTab);
+  const disputes = disputesQuery.data?.data ?? [];
+  const disputesLoading = disputesQuery.isLoading;
+  const disputesError = disputesQuery.error
+    ? (disputesQuery.error instanceof Error ? disputesQuery.error.message : 'Impossibile caricare le segnalazioni.')
+    : null;
+  const loadDisputes = disputesQuery.refetch;
 
   const mockSupportTickets = useMockSupportStore((s) => s.tickets);
 

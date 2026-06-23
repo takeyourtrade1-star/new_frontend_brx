@@ -10,7 +10,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, isAuctionEndedUI, isEndingSoonUI, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { MoneyWithSmallCents } from '@/components/feature/aste/auctions-browse-shared';
-import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
+import { useEnrichedAuctions } from '@/lib/hooks/use-enriched-auctions';
 
 /* ─────────────────────────────────────────────────────── */
 /*  Constants                                              */
@@ -172,25 +172,7 @@ export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: b
       .filter((a) => !isAuctionEndedUI(a));
     return rows.sort((a, b) => a.hoursFromNow - b.hoursFromNow);
   }, [listData]);
-  const [liveAuctions, setLiveAuctions] = useState<AuctionUI[]>([]);
-
-  useEffect(() => {
-    let isCancelled = false;
-    const resolveSellers = async () => {
-      if (liveAuctionsBase.length === 0) {
-        setLiveAuctions([]);
-        return;
-      }
-      const resolved = await enrichAuctionsWithPublicUsers(liveAuctionsBase);
-      if (!isCancelled) {
-        setLiveAuctions(resolved);
-      }
-    };
-    resolveSellers();
-    return () => {
-      isCancelled = true;
-    };
-  }, [liveAuctionsBase]);
+  const liveAuctions = useEnrichedAuctions(liveAuctionsBase);
 
   const featuredAuctionIds = useMemo(() => {
     return liveAuctions

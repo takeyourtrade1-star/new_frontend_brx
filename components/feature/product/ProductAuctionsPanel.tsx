@@ -1,25 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, type AuctionUI } from '@/lib/auction/auction-adapter';
-import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
+import { useEnrichedAuctions } from '@/lib/hooks/use-enriched-auctions';
+import { useNowTick } from '@/lib/hooks/use-now-tick';
 import { AuctionResultsGrid } from '@/components/feature/aste/auctions-browse-shared';
 import type { CardDocument } from '@/lib/product-detail';
 
 const PRIMARY = '#FF7300';
-
-function useNowTick(intervalMs = 1000): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-  return now;
-}
 
 export type ProductAuctionsPanelProps = {
   card: CardDocument;
@@ -46,21 +38,7 @@ export function ProductAuctionsPanel({
     [cardQuery.data]
   );
 
-  const [enrichedCard, setEnrichedCard] = useState<AuctionUI[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (baseCardAuctions.length === 0) {
-        if (!cancelled) setEnrichedCard([]);
-        return;
-      }
-      const next = await enrichAuctionsWithPublicUsers(baseCardAuctions);
-      if (!cancelled) setEnrichedCard(next);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [baseCardAuctions]);
+  const enrichedCard = useEnrichedAuctions(baseCardAuctions);
 
   const shownIds = useMemo(
     () => new Set(enrichedCard.map((a) => a.numericId)),
@@ -77,21 +55,7 @@ export function ProductAuctionsPanel({
     return raw.filter((a) => !shownIds.has(a.numericId)).slice(0, 6);
   }, [recommendedQuery.data, shownIds]);
 
-  const [enrichedRecommended, setEnrichedRecommended] = useState<AuctionUI[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (baseRecommended.length === 0) {
-        if (!cancelled) setEnrichedRecommended([]);
-        return;
-      }
-      const next = await enrichAuctionsWithPublicUsers(baseRecommended);
-      if (!cancelled) setEnrichedRecommended(next);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [baseRecommended]);
+  const enrichedRecommended = useEnrichedAuctions(baseRecommended);
 
   const loading = cardQuery.isLoading;
   const hasCardAuctions = enrichedCard.length > 0;

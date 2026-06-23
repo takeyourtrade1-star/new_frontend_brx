@@ -79,7 +79,7 @@ export function CreditoContent() {
   });
 
   function onSubmitConto(_data: ContoBancarioValues) {
-    // TODO: invio dati conto bancario all'API
+    // FE-TODO-003: invio dati conto bancario all'API (vedi docs/backlog/fe-open-todos.md)
   }
 
   return (

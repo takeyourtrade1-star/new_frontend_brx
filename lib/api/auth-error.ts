@@ -3,6 +3,8 @@
  * Gestisce formati: { detail: string }, 422 errors[], 409 conflicts, 429 rate-limit
  */
 
+import { AxiosError } from 'axios';
+
 export interface ParsedAuthError {
   status?: number;
   message: string;
@@ -99,18 +101,22 @@ function detectConflictField(detail: string): { field: string; message: string }
 /**
  * Parsa un errore Axios/HTTP dal microservizio auth
  */
-export function parseAuthError(error: any): ParsedAuthError {
-  const status = error?.response?.status;
-  const data = error?.response?.data;
-  
+export function parseAuthError(error: unknown): ParsedAuthError {
+  const axiosError = error as AxiosError | undefined;
+  const status = axiosError?.response?.status;
+  const data = axiosError?.response?.data as
+    | Record<string, unknown>
+    | undefined;
+
   // Default fallback
   let message = 'Errore di comunicazione. Riprova più tardi.';
   let fieldErrors: Record<string, string> | undefined;
   let retryAfterSeconds: number | undefined;
 
   // Se non c'è response, è un errore di rete
-  if (!error?.response) {
-    message = error?.message || 'Errore di comunicazione. Riprova più tardi.';
+  if (!axiosError?.response) {
+    message =
+      (error instanceof Error ? error.message : String(error)) || message;
     return { message };
   }
 
@@ -118,22 +124,28 @@ export function parseAuthError(error: any): ParsedAuthError {
   if (status === 422 && Array.isArray(data?.errors)) {
     fieldErrors = {};
     let firstMessage = '';
-    
+
     for (const err of data.errors) {
-      const field = extractFieldFromLoc(err?.loc);
-      const msg = err?.msg;
-      
-      if (field && msg && !fieldErrors[field]) {
+      const e =
+        typeof err === 'object' && err !== null
+          ? (err as Record<string, unknown>)
+          : {};
+      const field = extractFieldFromLoc(e.loc as string[] | undefined);
+      const msg = e.msg;
+
+      if (field && typeof msg === 'string' && !fieldErrors[field]) {
         fieldErrors[field] = msg;
         if (!firstMessage) {
           firstMessage = msg;
         }
       }
     }
-    
-    message = data?.detail || firstMessage || 'Controlla i campi e riprova';
+
+    message =
+      (typeof data?.detail === 'string' ? data.detail : firstMessage) ||
+      'Controlla i campi e riprova';
     message = translateErrorMessage(message);
-    
+
     return { status, message, fieldErrors };
   }
 
@@ -151,15 +163,18 @@ export function parseAuthError(error: any): ParsedAuthError {
 
   // 429 Too Many Requests - Rate limit
   if (status === 429) {
-    const detail = data?.detail || 'Troppi tentativi. Riprova più tardi.';
+    const detail =
+      typeof data?.detail === 'string'
+        ? data.detail
+        : 'Troppi tentativi. Riprova più tardi.';
     message = translateErrorMessage(detail);
-    
+
     // Estrai retry_after se presente
     if (data?.retry_after && typeof data.retry_after === 'number') {
       retryAfterSeconds = data.retry_after;
       message += ` Riprova tra ${retryAfterSeconds} secondi.`;
     }
-    
+
     return { status, message, retryAfterSeconds };
   }
 
@@ -175,9 +190,10 @@ export function parseAuthError(error: any): ParsedAuthError {
 
   // 502 Bad Gateway - Proxy error
   if (status === 502) {
-    message = data?.detail 
-      ? translateErrorMessage(data.detail)
-      : 'Errore di comunicazione con il servizio auth. Riprova più tardi.';
+    message =
+      typeof data?.detail === 'string'
+        ? translateErrorMessage(data.detail)
+        : 'Errore di comunicazione con il servizio auth. Riprova più tardi.';
     return { status, message };
   }
 
@@ -212,17 +228,20 @@ export function parseAuthError(error: any): ParsedAuthError {
 
   // Formato array: { detail: [{ msg, ... }] } (compatibilità legacy)
   if (Array.isArray(data?.detail) && data.detail.length > 0) {
-    const firstErr = data.detail[0];
-    if (firstErr?.msg) {
+    const firstErr =
+      typeof data.detail[0] === 'object' && data.detail[0] !== null
+        ? (data.detail[0] as Record<string, unknown>)
+        : {};
+    if (typeof firstErr.msg === 'string') {
       message = translateErrorMessage(firstErr.msg);
-    } else if (firstErr?.message) {
+    } else if (typeof firstErr.message === 'string') {
       message = translateErrorMessage(firstErr.message);
     }
     return { status, message };
   }
 
   // Fallback su error.message
-  if (error?.message) {
+  if (error instanceof Error && error.message) {
     message = translateErrorMessage(error.message);
   }
 
@@ -232,6 +251,6 @@ export function parseAuthError(error: any): ParsedAuthError {
 /**
  * Helper per ottenere solo il messaggio (caso d'uso semplice)
  */
-export function getAuthErrorMessage(error: any): string {
+export function getAuthErrorMessage(error: unknown): string {
   return parseAuthError(error).message;
 }

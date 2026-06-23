@@ -825,6 +825,7 @@ export function ScreenshotAnnotator({ screenshots: initialScreenshots, onSave, o
                 index === activeIndex ? 'border-primary' : 'border-transparent hover:border-zinc-600'
               }`}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element -- data URL screenshot preview */}
               <img
                 src={screenshot.dataUrl}
                 alt={`Screenshot ${index + 1}`}

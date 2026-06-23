@@ -208,6 +208,29 @@ export interface UserResponse {
   show_scambi?: boolean;
 }
 
+/** User data as returned by GET /api/auth/me (may include extra display fields). */
+export type AuthMeUser = UserResponse & {
+  name?: string | null;
+  username?: string | null;
+  image?: string | null;
+  country?: string;
+};
+
+/** Response shape for GET /api/auth/me: flat, wrapped in user, or wrapped in data. */
+export type AuthMeResponse =
+  | AuthMeUser
+  | { user: AuthMeUser }
+  | { data: AuthMeUser | { user: AuthMeUser } };
+
+/** Generic auth API response that may be flat or wrapped in data. */
+export type AuthApiResponse<T> = T | { data: T };
+
+/** Login response: direct tokens, pre-auth MFA, or wrapped in data. */
+export type LoginResponse =
+  | TokenResponse
+  | PreAuthTokenResponse
+  | { data: TokenResponse | PreAuthTokenResponse };
+
 export interface RefreshTokenRequest {
   refresh_token: string;
 }

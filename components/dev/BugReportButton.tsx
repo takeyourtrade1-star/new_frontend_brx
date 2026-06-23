@@ -1,74 +1,18 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Bug, X, Send, ExternalLink, Camera, ImageIcon, FileText, Pencil } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { ScreenshotAnnotator } from './ScreenshotAnnotator';
+import { getRecentLogs, startConsoleCapture } from '@/lib/dev/log-capture';
 
-// Storage keys for bug report data
 const BUG_REPORT_STORAGE = {
   SCREENSHOT: 'brx_bug_screenshot',
   CONSOLE_LOGS: 'brx_bug_console_logs',
   CATEGORY: 'brx_bug_category',
   TIMESTAMP: 'brx_bug_timestamp',
 };
-
-// Console log capture
-interface ConsoleLog {
-  type: 'log' | 'error' | 'warn';
-  message: string;
-  timestamp: number;
-}
-
-let capturedLogs: ConsoleLog[] = [];
-let originalConsole = {
-  log: console.log,
-  error: console.error,
-  warn: console.warn,
-};
-
-// Start capturing console logs
-function startConsoleCapture() {
-  capturedLogs = [];
-  const MAX_LOGS = 100;
-  
-  console.log = (...args: unknown[]) => {
-    originalConsole.log(...args);
-    capturedLogs.push({
-      type: 'log',
-      message: args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '),
-      timestamp: Date.now(),
-    });
-    if (capturedLogs.length > MAX_LOGS) capturedLogs.shift();
-  };
-  
-  console.error = (...args: unknown[]) => {
-    originalConsole.error(...args);
-    capturedLogs.push({
-      type: 'error',
-      message: args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '),
-      timestamp: Date.now(),
-    });
-    if (capturedLogs.length > MAX_LOGS) capturedLogs.shift();
-  };
-  
-  console.warn = (...args: unknown[]) => {
-    originalConsole.warn(...args);
-    capturedLogs.push({
-      type: 'warn',
-      message: args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '),
-      timestamp: Date.now(),
-    });
-    if (capturedLogs.length > MAX_LOGS) capturedLogs.shift();
-  };
-}
-
-// Get recent logs (last 30 seconds)
-function getRecentLogs(seconds: number = 30): ConsoleLog[] {
-  const cutoff = Date.now() - (seconds * 1000);
-  return capturedLogs.filter(log => log.timestamp >= cutoff);
-}
 
 // Infer bug category from URL
 function inferBugCategory(url: string): string {
@@ -314,6 +258,7 @@ export function BugReportButton() {
                         </button>
                       </div>
                     </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- data URL screenshot preview */}
                     <img src={screenshot} alt="Screenshot" className="max-h-32 rounded-lg object-contain" />
                   </div>
                 )}

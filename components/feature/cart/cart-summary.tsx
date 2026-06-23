@@ -6,7 +6,9 @@ import { ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 
 export function CartSummary() {
-  const itemCount = useCartStore((s) => s.getItemCount());
+  const itemCount = useCartStore((s) =>
+    s.items.reduce((acc, item) => acc + item.quantity, 0),
+  );
 
   return (
     <Link href="/cart">

@@ -22,19 +22,11 @@ import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadc
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { isAuctionEndedUI } from '@/lib/auction/auction-adapter';
 import { formatHMS } from '@/components/feature/aste/auctions-browse-shared';
-import { enrichAuctionsWithPublicUsers } from '@/lib/auction/public-user-enrichment';
+import { useEnrichedAuctions } from '@/lib/hooks/use-enriched-auctions';
+import { useNowTick } from '@/lib/hooks/use-now-tick';
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'mie';
-
-function useNowTick(intervalMs = 1000): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-  return now;
-}
 
 export function AsteMyListingsPage() {
   const { t } = useTranslation();
@@ -56,25 +48,7 @@ export function AsteMyListingsPage() {
       .filter((a) => a.created_by_user_id === userId)
       .map((a) => apiToAuctionUI(a));
   }, [listData, userId]);
-  const [mine, setMine] = useState<AuctionUI[]>([]);
-
-  useEffect(() => {
-    let isCancelled = false;
-    const resolveSellers = async () => {
-      if (mineBase.length === 0) {
-        setMine([]);
-        return;
-      }
-      const resolved = await enrichAuctionsWithPublicUsers(mineBase);
-      if (!isCancelled) {
-        setMine(resolved);
-      }
-    };
-    resolveSellers();
-    return () => {
-      isCancelled = true;
-    };
-  }, [mineBase]);
+  const mine = useEnrichedAuctions(mineBase);
 
   const { ongoingAuctions, endedAuctions } = useMemo(() => {
     const ongoing: AuctionUI[] = [];

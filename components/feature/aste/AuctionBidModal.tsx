@@ -10,6 +10,7 @@ import { X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { minNextBidEur, parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
+import { formatEur } from '@/lib/utils';
 import { usePlaceBid } from '@/lib/hooks/use-auctions';
 
 const ORANGE = '#FF7300';
@@ -199,7 +200,7 @@ export function AuctionBidModal({
 
   if (!open) return null;
 
-  const fmtEur = (n: number) => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+  const fmtEur = formatEur;
 
   const dateLine = endsAt.toLocaleString('it-IT', {
     weekday: 'long',

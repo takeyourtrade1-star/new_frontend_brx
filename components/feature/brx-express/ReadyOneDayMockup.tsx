@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Camera, RefreshCw, Crown, PackageOpen, Layers, Shield, MessageSquare, CheckCircle2, Users, Maximize2, Minimize2, Plus, Bell, Mic, MicOff, Video, VideoOff, X } from "lucide-react";
 import { motion } from "framer-motion";
 

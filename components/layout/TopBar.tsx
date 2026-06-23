@@ -7,7 +7,7 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
+import { ChevronDown, Eye, EyeOff, LogIn } from 'lucide-react';
 import { TournamentsPortalLink } from './TournamentsPortalButton';
 import { CartDropdown } from './CartDropdown';
 import { MobileHeaderNavIcon, MOBILE_HEADER_ICON_CLASS } from './MobileHeaderNavIcon';
@@ -130,7 +130,7 @@ export function TopBar() {
       reset();
       
       // L'header si aggiornerà automaticamente perché isAuthenticated e user cambiano nello store
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[TopBar] Login error:', err);
       setFlashMessage(null);
       const parsed = parseAuthError(err);
@@ -176,6 +176,18 @@ export function TopBar() {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [vendiMenuOpen]);
+
+  // FE-REV-005: il menu giochi mancava del listener click-outside presente sugli altri menu.
+  useEffect(() => {
+    if (!gamesMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (gamesMenuRef.current && !gamesMenuRef.current.contains(e.target as Node)) {
+        setGamesMenuOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [gamesMenuOpen]);
 
   /** Mostra nome utente: preferisce la parte prima della @ dell'email, poi il nome, poi il fallback */
   const shortLabel = (() => {
