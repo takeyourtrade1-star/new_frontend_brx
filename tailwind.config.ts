@@ -85,6 +85,19 @@ const config: Config = {
         'footer-end': '#291442',
         marquee: '#F3C76A',
       },
+      // Scala z-index tokenizzata (Piano 2.5). Additiva: i default Tailwind
+      // (0/10/20/30/40/50/auto) restano disponibili. Gli usi `z-[N]` arbitrari
+      // andranno migrati a questi token in un passo successivo verificato a runtime.
+      zIndex: {
+        base: '0',
+        dropdown: '100',
+        sticky: '200',
+        'modal-backdrop': '240',
+        modal: '300',
+        toast: '400',
+        tooltip: '500',
+        devtools: '9999',
+      },
       keyframes: {
         'caret-blink': {
           '0%,70%,100%': { opacity: '1' },

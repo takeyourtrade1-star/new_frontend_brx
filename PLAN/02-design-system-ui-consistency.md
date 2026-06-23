@@ -87,6 +87,12 @@ Azioni:
 - Aggiungere variante `variant="orange"` per CTA brand
 - Rimuovere `btn-orange-glow` animazione infinita, run on hover + `prefers-reduced-motion`
 
+> 🟡 **PARZIALMENTE RIMANDATO.** File reale: `components/ui/button.tsx` (kebab-case),
+> usa già `cva` + `bg-primary`. La prop `loading` è additiva e sicura, ma le altre
+> azioni sono legate alla migrazione colori (2.4) e alla rimozione di `btn-orange-glow`
+> (animazione condivisa da `button-orange`): cambi visivi/comportamentali da verificare
+> a runtime. Da fare insieme a 2.4, non isolato.
+
 ---
 
 ## 2.4 Mappare colori brand in token HSL
@@ -121,6 +127,18 @@ Find/replace `bg-[#FF7300]` → `bg-brand-orange`, `text-[#1D3160]` → `text-br
 
 **Target:** Eliminare 471+ hex hardcoded.
 
+> 🛑 **RIMANDATO.** Stima del piano molto sottodimensionata: nei `.tsx` ci sono
+> **~819** `#FF7300`, **~327** `#1D3160`, ~22 `#0F172A` (≈2000 hex totali a 6 cifre),
+> non 471. Definire i token in `tailwind.config.ts` è sicuro e additivo, ma il
+> find/replace di ~1100+ occorrenze è ad alto rischio (sfumature, opacità tipo
+> `#FF7300]/90`, gradient, shadow) e va fatto in batch verificati visivamente — non
+> in un colpo solo.
+> ⚠️ **Inoltre i token del piano sono imprecisi:** il repo ha già token equivalenti
+> (`primary` = `#FF7300`, `header-bg` = `#0F172A`, `global-bg-end` = `#1D3160`). Gli
+> HSL proposti (es. `--brand-deep: 222 49% 28%`) **non coincidono** con gli hex esistenti
+> → introdurli creerebbe drift di colore e duplicati. Quando si farà 2.4, definire i
+> token sui **valori esatti già in uso**, non sugli HSL approssimati. **Non eseguito.**
+
 ---
 
 ## 2.5 Definire scala z-index tokenizzata
@@ -142,6 +160,13 @@ zIndex: {
 
 Sostituire tutti gli `z-[60]`, `z-[200]`, `z-[8000]`, `z-[10050]` arbitrari con token.
 
+> 🟢 **PASSO ADDITIVO FATTO (2026-06-23).** Aggiunta la scala `zIndex` in
+> `tailwind.config.ts` (`base/dropdown/sticky/modal-backdrop/modal/toast/tooltip/
+> devtools`), additiva: i default Tailwind restano. **Nessun uso ancora migrato.**
+> Confermati ~35 valori `z-[N]` distinti molto dispersi (`z-[1]`…`z-[10050]`): il
+> rimappaggio cambia l'ordine di stacking → **RIMANDATO**, va fatto con una mappatura
+> valore→token concordata e verificata a runtime (modali/dropdown/toast).
+
 ---
 
 ## 2.6 Centralizzare body scroll lock
@@ -149,6 +174,11 @@ Sostituire tutti gli `z-[60]`, `z-[200]`, `z-[8000]`, `z-[10050]` arbitrari con 
 Estrarre `hooks/useBodyScrollLock.ts` con counter (se 2 modali aperti, sblocca solo quando entrambi chiusi).
 
 Refactor tutti i 10+ modali che fanno `document.body.style.overflow = 'hidden'` inline.
+
+> 🛑 **RIMANDATO.** Creare l'hook con counter è utile, ma serve adottarlo in 10+
+> modali (altrimenti è dead code): refactor comportamentale del lock scroll, da
+> verificare a runtime (modali sovrapposti). Da fare insieme alla migrazione modali
+> di 2.2, non isolato.
 
 ---
 
@@ -158,6 +188,11 @@ Refactor tutti i 10+ modali che fanno `document.body.style.overflow = 'hidden'` 
 
 Rimuovere `background-attachment: fixed` (bug iOS Safari), usare `<div fixed inset-0 -z-10>` in `app/layout.tsx`.
 
+> 🟡 **RIMANDATO (cambio visivo).** Confermato: 3 occorrenze in `app/globals.css`
+> (righe 91, 101, 111). Intervento piccolo e mirato, ma cambia il rendering dello
+> sfondo su tutte le pagine → richiede smoke-test visivo (desktop + iOS) prima di
+> chiudere. Eseguibile in autonomia se accetti la verifica runtime.
+
 ---
 
 ## 2.8 Rimuovere `'use client'` da componenti presentazionali
@@ -165,6 +200,27 @@ Rimuovere `background-attachment: fixed` (bug iOS Safari), usare `<div fixed ins
 **File:** 30+ file (lista completa in appendice B del report)
 
 Rimuovere `'use client'` da: `AuthCard`, `AuthSubmitButton`, `AuthSecondaryButton`, `AuthFooterLinks`, `AuthPageHeader`, `AuthStepIndicator`, `AuthField`, `AuthBackLink`, `AuthSplitHeader`, `AssoHintBubble`, `BuildInfoBadge`, `CardMascotteStyles`, `WardrobePanel`, `BugReportModal`, `AssoChatModal`, `CardMascotteOverlays`, `CardMascotteWidget`, `CategoriesGrid`, `EbartexProductsSection`, `GameHomeLayout`, `GridCardTitle`, `ResponsiveGrid`, `MarketplaceOrderCard`, `MockShippingOrderCard`, `SupportTicketCard`, `AsteMineViewBar`, `PhotoPairingInlinePanel`, `AuctionCreateStepPanel`, `OrderItemCard`, `cart-summary`.
+
+> 🛑 **RIMANDATO (dipende dall'appendice B mancante).** L'elenco si appoggia a un
+> "report" non presente nel repo. Ogni rimozione va verificata file-per-file (no
+> hook/handler/`window`; e che il genitore sia Server Component, altrimenti la
+> rimozione non cambia nulla). Va fatto a piccoli batch verificati con build, non
+> in blocco su 30 file. Candidato a un mini-piano dedicato dopo 2.1.
+
+---
+
+> ## ✅ Stato esecuzione (2026-06-23)
+>
+> **Eseguito (sicuro, verificato):**
+> - 2.1 — rimossi 3 componenti morti (`orange-button.tsx`,
+>   `floating-label-input.tsx`, `floating-input.tsx`).
+> - 2.5 (parziale) — aggiunta la scala `zIndex` additiva in `tailwind.config.ts`
+>   (nessun uso ancora migrato).
+>
+> typecheck + lint a 0 errori.
+>
+> **Rimandato (non minimale/comportamentale, da staged + runtime):** OTP di 2.1,
+> 2.2, 2.3, 2.4, migrazione usi 2.5, 2.6, 2.7, 2.8. Vedi note per sezione.
 
 ---
 
