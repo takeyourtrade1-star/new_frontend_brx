@@ -33,9 +33,17 @@ Comporre `useBrxScanner = useOnnxSession + useCameraCapture + useScanLoop`.
 > `hooks/scanner/useOnnxSession.ts` (load modello + worker + `runOnnxEmbed` +
 > retry/standard, ~300 righe). `useBrxScanner` 986 → 761 righe. Logica identica,
 > behavior-preserving. typecheck + lint + **build** verdi.
-> ⏳ Manca: smoke-test runtime scanner; passo 2 (`useScanLoop`) e passo 3
-> (`useCameraCapture`) — più accoppiati, da fare dopo la verifica runtime del
-> passo 1. Test unit `useOnnxSession` ancora da scrivere (mock worker/onnx).
+> ✅ **Test:** `__tests__/hooks/useOnnxSession.test.ts` (3 test verdi: failure
+> path, success InferenceSession, continueWithStandardMode). Criterio test del
+> piano soddisfatto per il passo 1.
+>
+> 🛑 **Passo 2-3 NON mechanical:** camera e scan loop condividono stato
+> bidirezionale (`state` settato da entrambi, `stopScanning` coordina camera+loop+
+> countdown, `openCamera`/`restartScanning` resettano refs del loop). Splittarli =
+> ricucire `setState`/reset tra hook = **ristrutturazione**, non move. Su feature
+> core senza rete di test, verificabile solo a runtime → rischio regressione
+> silenziosa alto. Raccomandazione: NON procedere a 2-3 senza (a) smoke-test
+> runtime del passo 1, o (b) test scanner del Piano 08 come rete.
 
 ---
 
