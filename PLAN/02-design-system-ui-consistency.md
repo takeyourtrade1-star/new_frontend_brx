@@ -69,6 +69,18 @@ Mantenere solo `input-otp` (Radix), rimuovere `otp-six-boxes`.
 > "featured" pulsa). Migrazione **incrementale**: fatto `AuthSkeleton.tsx` (8 blocchi)
 > come pattern di riferimento, look invariato (tailwind-merge risolve gli override).
 > Gli altri file adottano `Skeleton` man mano. typecheck + lint a 0 errori.
+>
+> 🟢 **`empty-state.tsx` FATTO (2026-06-23).** Creato `components/ui/empty-state.tsx`
+> (`EmptyState`: icona soft in cerchio + titolo/descrizione/azione, default
+> sovrascrivibili, server-compatible). Default allineati a `OrdersEmptyState`, che è
+> stato **reimplementato sopra `EmptyState`** mantenendo identico look e API
+> (icona/messaggio/cta). `CartEmptyState` (forma diversa + i18n) potrà adottarlo dopo.
+> typecheck + lint a 0 errori.
+>
+> ▶️ **Prossimi (decisione dipendenze):** `table` (dep-free, ma migrare
+> `OggettiTable`/`SearchResultsTable`/`ModernSellerTable` è grosso); `dialog/select/
+> tabs/dropdown-menu` (richiedono `@radix-ui/*`); `toast` (richiede `sonner`). Da
+> fare come lavori dedicati, staged e verificati a runtime.
 
 Aggiungere in `components/ui/`:
 
