@@ -6,15 +6,9 @@ import {
   useRef,
   useState,
 } from 'react';
-import type * as OrtLib from 'onnxruntime-web';
 
-import {
-  fetchAndCacheOnnxModel,
-  ONNX_LOAD_PROGRESS_IDLE,
-  type OnnxLoadProgress,
-} from '@/lib/scanner/onnx-loader';
+import { type OnnxLoadProgress } from '@/lib/scanner/onnx-loader';
 
-import { resolveOnnxDownloadUrls } from './resolveOnnxUrls';
 import {
   BALANCED,
   hintStreakRequired,
@@ -24,14 +18,14 @@ import {
 } from '@/lib/scanner/balancedProfile';
 import {
   captureFrame224,
-  createTensorBuffer,
   frameFingerprint,
   imageDataToTensor,
-  isIosDevice,
   vectorSearchJson,
 } from '@/lib/scanner/preprocess';
+import { useOnnxSession, type ModelStatus } from './scanner/useOnnxSession';
 
 export type { OnnxLoadProgress } from '@/lib/scanner/onnx-loader';
+export type { ModelStatus } from './scanner/useOnnxSession';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,9 +39,6 @@ export type ScannerState =
   | 'matched'
   | 'no_match'
   | 'error';
-
-/** ONNX model load status for the edge pipeline. */
-export type ModelStatus = 'loading' | 'ready' | 'failed';
 
 export interface ScanResult {
   card_name: string;
@@ -132,7 +123,6 @@ export interface UseBrxScannerReturn {
 // Constants
 // ---------------------------------------------------------------------------
 
-const ONNX_SIZE = 224;
 const TURBO_MAX_INFLIGHT = 1;
 
 async function blobToBase64Strip(blob: Blob): Promise<string> {
@@ -173,6 +163,21 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const effectiveConf = Math.max(rawConf, BALANCED.confFloor);
   const effectiveHint = Math.max(rawHint, BALANCED.hintConfFloor);
 
+  // ONNX edge pipeline: model load, worker, embedding, retry/standard controls.
+  const {
+    modelStatus,
+    modelProgress,
+    modelError,
+    turboSkipped,
+    retryModelDownload,
+    continueWithStandardMode,
+    runOnnxEmbed,
+    isTurboReady,
+    onnxCanvasRef,
+    onnxCtxRef,
+    tensorBufferRef,
+  } = useOnnxSession({ apiBaseUrl });
+
   // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------
@@ -182,11 +187,6 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const [isBusy, setIsBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
-  const [modelStatus, setModelStatus] = useState<ModelStatus>('loading');
-  const [modelProgress, setModelProgress] = useState<OnnxLoadProgress>(ONNX_LOAD_PROGRESS_IDLE);
-  const [modelError, setModelError] = useState<string | null>(null);
-  const [modelLoadAttempt, setModelLoadAttempt] = useState(0);
-  const [turboSkipped, setTurboSkipped] = useState(false);
   const cameraOpenedRef = useRef(false);
   const [debug, setDebug] = useState<DebugInfo>({
     framesSent: 0,
@@ -202,22 +202,12 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   // ---------------------------------------------------------------------------
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  /** Hidden 224×224 canvas for ONNX frame capture — never exposed to page. */
-  const onnxCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scanLoopActiveRef = useRef(false);
   const scanLoopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scanGapMsRef = useRef(captureIntervalMs);
   const lastFrameFpRef = useRef(0);
-  const tensorBufferRef = useRef<Float32Array | null>(null);
-  const onnxCtxRef = useRef<CanvasRenderingContext2D | null>(null);
-  const embedWorkerRef = useRef<Worker | null>(null);
-  const workerReadyRef = useRef(false);
-  const embedPendingRef = useRef<{
-    resolve: (v: Float32Array) => void;
-    reject: (e: Error) => void;
-  } | null>(null);
   const lastHintKeyRef = useRef('');
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inflightRef = useRef(0);
@@ -226,218 +216,6 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const hintStaleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** {name, count} — consecutive frames with the same card name, for hint gating. */
   const hintStreakRef = useRef<{ name: string; count: number }>({ name: '', count: 0 });
-
-  /** ONNX InferenceSession (set once after model loads). */
-  const sessionRef = useRef<OrtLib.InferenceSession | null>(null);
-  /** Cached onnxruntime-web module reference (avoids repeated dynamic import). */
-  const ortRef = useRef<typeof OrtLib | null>(null);
-
-  // ---------------------------------------------------------------------------
-  // ONNX model loading (runs once after mount)
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (turboSkipped) return;
-
-    let cancelled = false;
-
-    // Create the hidden 224×224 canvas used for ONNX frame capture
-    if (!onnxCanvasRef.current && typeof document !== 'undefined') {
-      const c = document.createElement('canvas');
-      c.width = ONNX_SIZE;
-      c.height = ONNX_SIZE;
-      onnxCanvasRef.current = c;
-      onnxCtxRef.current = c.getContext('2d', {
-        alpha: false,
-        desynchronized: true,
-        willReadFrequently: true,
-      });
-      tensorBufferRef.current = createTensorBuffer();
-    }
-
-    async function loadOnnxModel() {
-      setModelError(null);
-      setModelProgress({ loaded: 0, total: 0, percent: -1, phase: 'downloading' });
-
-      try {
-        const modelUrls = await resolveOnnxDownloadUrls(apiBaseUrl);
-        const modelData = await fetchAndCacheOnnxModel(modelUrls, (progress) => {
-          if (!cancelled) setModelProgress(progress);
-        });
-        if (cancelled) return;
-
-        if (!cancelled) {
-          setModelProgress({
-            loaded: modelData.byteLength,
-            total: modelData.byteLength,
-            percent: 100,
-            phase: 'initializing',
-            reason: 'Avvio motore AI…',
-          });
-        }
-
-        const ort = await import('onnxruntime-web');
-        if (cancelled) return;
-
-        ort.env.wasm.numThreads = 1;
-        ort.env.wasm.simd = true;
-        ort.env.wasm.wasmPaths = '/ort-wasm/';
-
-        const wasmBase =
-          typeof window !== 'undefined' ? `${window.location.origin}/ort-wasm/` : '/ort-wasm/';
-        const useWebGl = !isIosDevice();
-        let workerOk = false;
-
-        if (typeof Worker !== 'undefined') {
-          try {
-            const worker = new Worker(
-              new URL('./scannerEmbed.worker.ts', import.meta.url),
-              { type: 'module' },
-            );
-            workerOk = await new Promise<boolean>((resolve) => {
-              const t = setTimeout(() => resolve(false), 45_000);
-              worker.onmessage = (ev: MessageEvent<{ type: string; vector?: Float32Array; message?: string }>) => {
-                if (ev.data.type === 'ready') {
-                  clearTimeout(t);
-                  workerReadyRef.current = true;
-                  embedWorkerRef.current = worker;
-                  resolve(true);
-                } else if (ev.data.type === 'vector' && ev.data.vector && embedPendingRef.current) {
-                  embedPendingRef.current.resolve(ev.data.vector);
-                  embedPendingRef.current = null;
-                } else if (ev.data.type === 'error') {
-                  if (embedPendingRef.current) {
-                    embedPendingRef.current.reject(new Error(ev.data.message ?? 'worker embed failed'));
-                    embedPendingRef.current = null;
-                  }
-                }
-              };
-              worker.onerror = () => {
-                clearTimeout(t);
-                resolve(false);
-              };
-              const modelCopy = modelData.slice(0);
-              worker.postMessage(
-                { type: 'init', model: modelCopy, wasmBase, useWebGl },
-                [modelCopy],
-              );
-            });
-            if (!workerOk) {
-              worker.terminate();
-              embedWorkerRef.current = null;
-              workerReadyRef.current = false;
-            }
-          } catch {
-            workerOk = false;
-          }
-        }
-
-        if (!workerOk) {
-          let session: OrtLib.InferenceSession;
-          try {
-            session = await ort.InferenceSession.create(modelData, {
-              executionProviders: useWebGl ? ['webgl', 'wasm'] : ['wasm'],
-              graphOptimizationLevel: 'all',
-            });
-          } catch {
-            session = await ort.InferenceSession.create(modelData, {
-              executionProviders: ['wasm'],
-              graphOptimizationLevel: 'all',
-            });
-          }
-          if (cancelled) return;
-          const warmup = new ort.Tensor(
-            'float32',
-            new Float32Array(3 * ONNX_SIZE * ONNX_SIZE),
-            [1, 3, ONNX_SIZE, ONNX_SIZE],
-          );
-          await session.run({ [session.inputNames[0]]: warmup });
-          if (cancelled) return;
-          ortRef.current = ort as unknown as typeof OrtLib;
-          sessionRef.current = session;
-        } else {
-          ortRef.current = { Tensor: ort.Tensor } as unknown as typeof OrtLib;
-          sessionRef.current = {} as OrtLib.InferenceSession;
-        }
-
-        setModelError(null);
-        setModelStatus('ready');
-      } catch (err) {
-        if (!cancelled) {
-          const msg =
-            err instanceof Error ? err.message : 'Download modello ONNX non riuscito';
-          console.warn('[BrxScanner] ONNX model load failed — falling back to /scan:', msg);
-          setModelError(msg);
-          setModelProgress((p) => ({
-            ...p,
-            phase: 'failed',
-            percent: 0,
-            reason: msg,
-          }));
-          setModelStatus('failed');
-        }
-      }
-    }
-
-    loadOnnxModel();
-    return () => {
-      cancelled = true;
-      embedWorkerRef.current?.terminate();
-      embedWorkerRef.current = null;
-      workerReadyRef.current = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiBaseUrl, modelLoadAttempt, turboSkipped]);
-
-  const retryModelDownload = useCallback(() => {
-    embedWorkerRef.current?.terminate();
-    embedWorkerRef.current = null;
-    workerReadyRef.current = false;
-    sessionRef.current = null;
-    ortRef.current = null;
-    setModelError(null);
-    setModelStatus('loading');
-    setModelProgress({ loaded: 0, total: 0, percent: -1, phase: 'downloading' });
-    setModelLoadAttempt((n) => n + 1);
-  }, []);
-
-  const continueWithStandardMode = useCallback(() => {
-    setTurboSkipped(true);
-    setModelError(null);
-    setModelStatus('failed');
-    embedWorkerRef.current?.terminate();
-    embedWorkerRef.current = null;
-    workerReadyRef.current = false;
-    sessionRef.current = null;
-    ortRef.current = null;
-  }, []);
-
-  const runOnnxEmbed = useCallback(
-    async (tensor: Float32Array): Promise<Float32Array> => {
-      if (workerReadyRef.current && embedWorkerRef.current) {
-        const worker = embedWorkerRef.current;
-        const payload = tensor.slice();
-        return new Promise((resolve, reject) => {
-          embedPendingRef.current = { resolve, reject };
-          worker.postMessage({ type: 'embed', tensor: payload }, [payload.buffer]);
-        });
-      }
-      const ort = ortRef.current;
-      const session = sessionRef.current;
-      if (!ort?.Tensor || !session?.run) {
-        throw new Error('ONNX session not ready');
-      }
-      const t = new ort.Tensor('float32', tensor, [1, 3, ONNX_SIZE, ONNX_SIZE]);
-      const outputs = await session.run({ [session.inputNames[0]]: t });
-      const raw = outputs[session.outputNames[0]].data as Float32Array;
-      const out = new Float32Array(raw.buffer, raw.byteOffset, 384);
-      let sumSq = 0;
-      for (let i = 0; i < out.length; i++) sumSq += out[i] * out[i];
-      const norm = Math.sqrt(sumSq);
-      if (norm > 1e-8) for (let i = 0; i < out.length; i++) out[i] /= norm;
-      return out;
-    },
-    [],
-  );
 
   // ---------------------------------------------------------------------------
   // Helpers
@@ -864,12 +642,9 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   // ---------------------------------------------------------------------------
 
   const sendFrame = useCallback(async (): Promise<void> => {
-    const turboReady =
-      workerReadyRef.current ||
-      Boolean(sessionRef.current && typeof sessionRef.current.run === 'function');
-    if (turboReady) return sendFrameOnnx();
+    if (isTurboReady()) return sendFrameOnnx();
     return sendFrameLegacy();
-  }, [sendFrameOnnx, sendFrameLegacy]);
+  }, [isTurboReady, sendFrameOnnx, sendFrameLegacy]);
 
   const startScanLoop = useCallback(() => {
     clearScanLoop();
