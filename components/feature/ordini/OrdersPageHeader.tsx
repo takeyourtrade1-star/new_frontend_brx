@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { HelpCircle, Info } from 'lucide-react';

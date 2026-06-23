@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import type { CardDocument } from '@/lib/product-detail';
 import { RarityIndicator } from '@/components/ui/RarityIndicator';

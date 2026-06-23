@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Bug, X, Send, ExternalLink, Camera, ImageIcon, FileText, Pencil } from 'lucide-react';
-import html2canvas from 'html2canvas';
 import { ScreenshotAnnotator } from './ScreenshotAnnotator';
 import { getRecentLogs, startConsoleCapture } from '@/lib/dev/log-capture';
 
@@ -108,6 +107,9 @@ export function BugReportButton() {
 
       // Wait for UI to update
       await new Promise(resolve => setTimeout(resolve, 400));
+
+      // Lazy-load html2canvas: pesante (~60-100kB), serve solo allo scatto
+      const html2canvas = (await import('html2canvas')).default;
 
       // Capture screenshot
       const canvas = await html2canvas(document.body, {

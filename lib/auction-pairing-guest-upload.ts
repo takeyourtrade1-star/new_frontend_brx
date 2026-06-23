@@ -9,7 +9,6 @@
  * desktop `compressImage` (2048px + web worker) unless the file is still large.
  */
 
-import imageCompression from 'browser-image-compression';
 import type { UploadedPhoto } from '@/lib/api/auction-photo-client';
 
 /** Skip re-encoding when under this size (typical after capped canvas crop). */
@@ -28,6 +27,8 @@ async function prepareGuestUploadFile(file: File): Promise<File> {
   if (file.size <= GUEST_SKIP_COMPRESS_BYTES && file.type === 'image/webp') {
     return file;
   }
+  // Lazy-load: ~25-35kB, solo quando la foto va davvero ricompressa.
+  const { default: imageCompression } = await import('browser-image-compression');
   const out = await imageCompression(file, GUEST_HEAVY_COMPRESSION);
   if (out instanceof File) return out;
   return new File([out], file.name.replace(/\.[a-z0-9]+$/i, '.webp'), {

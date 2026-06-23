@@ -13,7 +13,6 @@
  * steps 3 and 4 (rare but possible on slow networks).
  */
 
-import imageCompression from 'browser-image-compression';
 import { tokenManager } from '@/lib/api/refresh-token';
 
 export interface UploadedPhoto {
@@ -157,6 +156,8 @@ async function readImageDimensions(
 export async function compressImage(file: File): Promise<File> {
   // browser-image-compression respects EXIF orientation and strips metadata
   // when fileType is set explicitly (it re-encodes via canvas).
+  // Lazy-load: ~25-35kB, serve solo al momento dell'upload foto.
+  const { default: imageCompression } = await import('browser-image-compression');
   const compressed = await imageCompression(file, COMPRESSION_TARGET);
   // Ensure we hand a `File` (the lib already returns one in modern envs).
   if (compressed instanceof File) return compressed;

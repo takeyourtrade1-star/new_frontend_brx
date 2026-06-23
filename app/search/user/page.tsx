@@ -2,27 +2,24 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ArrowRight, ChevronRight, Loader2, Search } from 'lucide-react';
 
 import { Header } from '@/components/layout/Header';
 import { authApi } from '@/lib/api/auth-client';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import type { PublicUserProfile, PublicUsersSearchResponse } from '@/types';
+import type { PublicUsersSearchResponse } from '@/types';
+
+const LIMIT = 20;
 
 export default function UserSearchPage() {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
+  // Debounce: solo stato locale (no fetch nell'effetto), per limitare le richieste.
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [items, setItems] = useState<PublicUserProfile[]>([]);
-  const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const limit = 20;
-  const canSearch = debouncedQuery.trim().length >= 2;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-  const currentPage = Math.floor(offset / limit) + 1;
+  const canSearch = debouncedQuery.length >= 2;
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -32,54 +29,37 @@ export default function UserSearchPage() {
     return () => window.clearTimeout(id);
   }, [query]);
 
-  useEffect(() => {
-    let isCancelled = false;
-    const fetchUsers = async () => {
-      if (!canSearch) {
-        setItems([]);
-        setTotal(0);
-        setError(null);
-        return;
-      }
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await authApi.get<PublicUsersSearchResponse>(
-          '/api/auth/users/search',
-          {
-            q: debouncedQuery,
-            limit,
-            offset,
-          }
-        );
-        if (isCancelled) return;
-        setItems(response?.data?.items ?? []);
-        setTotal(response?.data?.total ?? 0);
-      } catch (err) {
-        if (isCancelled) return;
-        setError('Impossibile caricare i risultati. Riprova.');
-        setItems([]);
-        setTotal(0);
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-    fetchUsers();
-    return () => {
-      isCancelled = true;
-    };
-  }, [canSearch, debouncedQuery, limit, offset]);
+  const { data, isFetching, isError } = useQuery({
+    queryKey: ['user-search', debouncedQuery, offset],
+    queryFn: async () => {
+      const response = await authApi.get<PublicUsersSearchResponse>(
+        '/api/auth/users/search',
+        { q: debouncedQuery, limit: LIMIT, offset }
+      );
+      return {
+        items: response?.data?.items ?? [],
+        total: response?.data?.total ?? 0,
+      };
+    },
+    enabled: canSearch,
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
+
+  const items = canSearch ? data?.items ?? [] : [];
+  const total = canSearch ? data?.total ?? 0 : 0;
+  const isLoading = canSearch && isFetching;
+  const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+  const currentPage = Math.floor(offset / LIMIT) + 1;
 
   const helperText = useMemo(() => {
     if (query.trim().length === 0) return 'Cerca per username';
     if (query.trim().length < 2) return 'Inserisci almeno 2 caratteri';
     if (isLoading) return 'Ricerca in corso...';
-    if (error) return error;
+    if (isError) return 'Impossibile caricare i risultati. Riprova.';
     if (canSearch && items.length === 0) return 'Nessun utente trovato';
     return `${total} risultati`;
-  }, [canSearch, error, isLoading, items.length, query, total]);
+  }, [canSearch, isError, isLoading, items.length, query, total]);
 
   return (
     <main className="min-h-screen bg-slate-50 font-sans selection:bg-[#ff7300]/20">
@@ -153,12 +133,12 @@ export default function UserSearchPage() {
                   </Link>
                 ))}
 
-                {total > limit && (
+                {total > LIMIT && (
                   <div className="mt-6 flex items-center justify-between">
                     <button
                       type="button"
                       disabled={offset === 0 || isLoading}
-                      onClick={() => setOffset((prev) => Math.max(0, prev - limit))}
+                      onClick={() => setOffset((prev) => Math.max(0, prev - LIMIT))}
                       className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Precedente
@@ -168,8 +148,8 @@ export default function UserSearchPage() {
                     </p>
                     <button
                       type="button"
-                      disabled={offset + limit >= total || isLoading}
-                      onClick={() => setOffset((prev) => prev + limit)}
+                      disabled={offset + LIMIT >= total || isLoading}
+                      onClick={() => setOffset((prev) => prev + LIMIT)}
                       className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Successiva
