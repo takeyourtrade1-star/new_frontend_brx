@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 
 const VIDEO_VERSION = 'v=3';
@@ -20,9 +22,11 @@ export function TournamentVideoOverlay({
 }: TournamentVideoOverlayProps) {
   const [visible, setVisible] = useState(true);
   const [fadingOut, setFadingOut] = useState(false);
+  const [canSkip, setCanSkip] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const doneRef = useRef(false);
   const startedRef = useRef(false);
+  const { t } = useTranslation();
 
   const handleEnded = useCallback(() => {
     if (doneRef.current) return;
@@ -52,6 +56,7 @@ export function TournamentVideoOverlay({
 
     const onPlaying = () => {
       startedRef.current = true;
+      setCanSkip(true);
     };
     el.addEventListener('playing', onPlaying);
 
@@ -63,7 +68,11 @@ export function TournamentVideoOverlay({
 
     // Rete di sicurezza: se entro 8s il video non è mai partito, salta.
     const safety = window.setTimeout(() => {
-      if (!startedRef.current) handleSkip();
+      if (!startedRef.current) {
+        handleSkip();
+      } else {
+        setCanSkip(true);
+      }
     }, 8000);
 
     return () => {
@@ -102,6 +111,23 @@ export function TournamentVideoOverlay({
             <source src={VIDEO_WEBM} type="video/webm" />
             <source src={VIDEO_MP4} type="video/mp4" />
           </video>
+          {canSkip && (
+            <button
+              type="button"
+              onClick={handleSkip}
+              aria-label={t('tournaments.videoOverlay.skip')}
+              className={cn(
+                'absolute right-4 top-4 z-10 flex items-center gap-2 rounded-full',
+                'bg-black/60 px-4 py-2 text-sm font-medium text-white',
+                'border border-white/20 backdrop-blur-sm',
+                'transition hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white/50',
+                'md:right-6 md:top-6 md:px-5 md:py-2.5 md:text-base'
+              )}
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+              <span>{t('tournaments.videoOverlay.skip')}</span>
+            </button>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

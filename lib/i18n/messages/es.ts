@@ -2160,6 +2160,7 @@ export const es: Record<MessageKey, string> = {
   'tournaments.organizers.title': 'Quién organiza',
   'tournaments.organizers.desc': 'Torneos creados por Ebartex o por los vendedores para promocionarse. La comunidad crece juntos, torneo tras torneo.',
   'tournaments.ctaButton': 'Ir al portal de torneos',
+  'tournaments.videoOverlay.skip': 'Saltar vídeo',
 
   // Asso mascot
   'asso.reportBugAria': 'Reportar un bug',

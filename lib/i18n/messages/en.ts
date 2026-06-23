@@ -2165,6 +2165,7 @@ export const en = {
   'tournaments.organizers.title': 'Who organizes',
   'tournaments.organizers.desc': 'Tournaments created by Ebartex or by sellers to sponsor themselves. The community grows together, tournament after tournament.',
   'tournaments.ctaButton': 'Go to tournament portal',
+  'tournaments.videoOverlay.skip': 'Skip video',
 
   // Asso mascot
   'asso.reportBugAria': 'Report a bug',
