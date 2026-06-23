@@ -36,12 +36,10 @@ import { useEnrichedAuction, useEnrichedAuctions, useEnrichedBidRows } from '@/l
 import {
   formatAuctionEur,
   resolveShippingCost,
-  formatIcsDateUtc,
-  escapeIcsText,
-  formatGoogleDateUtc,
   sameUserId,
   HEADER_OFFSET,
 } from '@/lib/auction/auction-detail-utils';
+import { buildAuctionExpiryIcs, buildGoogleCalendarUrl } from '@/lib/auction/calendar';
 import { AuctionCollapsibleRow } from '@/components/feature/aste/detail/AuctionCollapsibleRow';
 import { AuctionProductMeta } from '@/components/feature/aste/detail/AuctionProductMeta';
 import { AuctionGallery } from '@/components/feature/aste/detail/AuctionGallery';
@@ -298,31 +296,12 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     const eventStart = new Date(endsAt);
     if (Number.isNaN(eventStart.getTime())) return;
 
-    const eventEnd = new Date(eventStart.getTime() + 30 * 60 * 1000);
-    const nowUtc = formatIcsDateUtc(new Date());
-    const eventStartUtc = formatIcsDateUtc(eventStart);
-    const eventEndUtc = formatIcsDateUtc(eventEnd);
-    const eventTitle = `Scadenza asta: ${detailTitle}`;
-    const eventUrl = window.location.href;
-    const eventDescription = `L'asta "${detailTitle}" scade in questo momento.\\n${eventUrl}`;
-    const uid = `auction-${numericId}-${eventStart.getTime()}@ebartex`;
-    const icsContent = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//EBARTEX//Auction Calendar//IT',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      'BEGIN:VEVENT',
-      `UID:${uid}`,
-      `DTSTAMP:${nowUtc}`,
-      `DTSTART:${eventStartUtc}`,
-      `DTEND:${eventEndUtc}`,
-      `SUMMARY:${escapeIcsText(eventTitle)}`,
-      `DESCRIPTION:${escapeIcsText(eventDescription)}`,
-      `URL:${eventUrl}`,
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\r\n');
+    const icsContent = buildAuctionExpiryIcs({
+      auctionId: numericId,
+      title: detailTitle,
+      url: window.location.href,
+      start: eventStart,
+    });
 
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const fileUrl = window.URL.createObjectURL(blob);
@@ -339,16 +318,12 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     if (typeof window === 'undefined') return;
     const eventStart = new Date(endsAt);
     if (Number.isNaN(eventStart.getTime())) return;
-    const eventEnd = new Date(eventStart.getTime() + 30 * 60 * 1000);
-    const eventTitle = `Scadenza asta: ${detailTitle}`;
-    const eventDetails = `L'asta "${detailTitle}" scade in questo momento.`;
-    const url = new URL('https://calendar.google.com/calendar/render');
-    url.searchParams.set('action', 'TEMPLATE');
-    url.searchParams.set('text', eventTitle);
-    url.searchParams.set('details', eventDetails);
-    url.searchParams.set('location', window.location.href);
-    url.searchParams.set('dates', `${formatGoogleDateUtc(eventStart)}/${formatGoogleDateUtc(eventEnd)}`);
-    window.open(url.toString(), '_blank', 'noopener,noreferrer');
+    const url = buildGoogleCalendarUrl({
+      title: detailTitle,
+      url: window.location.href,
+      start: eventStart,
+    });
+    window.open(url, '_blank', 'noopener,noreferrer');
   }, [detailTitle, endsAt]);
 
   const handleAddToIosCalendar = useCallback(() => {
