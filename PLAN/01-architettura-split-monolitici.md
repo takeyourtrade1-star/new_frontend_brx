@@ -37,13 +37,25 @@ Comporre `useBrxScanner = useOnnxSession + useCameraCapture + useScanLoop`.
 > path, success InferenceSession, continueWithStandardMode). Criterio test del
 > piano soddisfatto per il passo 1.
 >
-> 🛑 **Passo 2-3 NON mechanical:** camera e scan loop condividono stato
-> bidirezionale (`state` settato da entrambi, `stopScanning` coordina camera+loop+
-> countdown, `openCamera`/`restartScanning` resettano refs del loop). Splittarli =
-> ricucire `setState`/reset tra hook = **ristrutturazione**, non move. Su feature
-> core senza rete di test, verificabile solo a runtime → rischio regressione
-> silenziosa alto. Raccomandazione: NON procedere a 2-3 senza (a) smoke-test
-> runtime del passo 1, o (b) test scanner del Piano 08 come rete.
+> ✅ **Passo 2/3 FATTO** (dopo smoke-test runtime del passo 1, OK): estratto
+> `useScanLoop` in `hooks/scanner/useScanLoop.ts` (ONNX + legacy pipeline, dedup,
+> voting, hint gating, match countdown). Tipi condivisi in
+> `hooks/scanner/scanner-types.ts` (`ScannerState`/`ScanResult`/`DebugInfo`). Il
+> `setState` del parent passato come `setScannerState`; lifecycle via
+> `beginScan`/`startScanLoop`/`stopLoop`/`restartScan`/`isLoopActive`. Copia
+> fedele dei corpi. **`useBrxScanner` 986 → 260 righe.** typecheck + lint + build
+> verdi; test `useOnnxSession` verde.
+>
+> 🟡 **Residuo:** `useScanLoop` = 612 righe (poco sopra i 600 del criterio) —
+> sono le due pipeline coese, non spezzate oltre per non aumentare il rischio.
+>
+> 🛑 **Passo 3 (`useCameraCapture`) NON eseguito — scelta:** estrarrebbe solo
+> `getUserMedia`/`streamRef`/`errorMessage` (~40 righe) ma l'orchestrazione
+> (ScannerState, `beginScan`/`startScanLoop`, autoOpen, stop/restart) resta nel
+> parent → churn senza guadagno. Parent già 260 righe, leggibile. 1.1 chiuso qui.
+>
+> Esito 1.1: `useBrxScanner` 986 → 260 + `useOnnxSession` 302 + `useScanLoop` 612
+> + tipi 32. Da ri-verificare a runtime match/restart/stop dopo il passo 2.
 
 ---
 
