@@ -6,13 +6,11 @@
 
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Eye, Package, TrendingUp, Users, Bookmark, ArrowLeft, ChevronDown, PlusCircle, Globe } from 'lucide-react';
+import { Package, TrendingUp, Users, ChevronDown, Globe } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { minNextBidEur, roundMoney } from '@/lib/auction/bid-math';
 import { AuctionBidPanel } from '@/components/feature/aste/AuctionBidPanel';
-import { AuctionShareButton } from '@/components/feature/aste/AuctionShareButton';
-import { AuctionQrButton } from '@/components/feature/aste/AuctionQrButton';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { LoginGateModal } from '@/components/feature/auth/LoginGateModal';
 import { auctionConditionLabelKey } from '@/lib/auction/auction-create-draft';
@@ -47,6 +45,8 @@ import { AuctionBidHistory } from '@/components/feature/aste/detail/AuctionBidHi
 import { SimilarAuctionsSections } from '@/components/feature/aste/detail/SimilarAuctionsSections';
 import { ProxyLimitModal } from '@/components/feature/aste/detail/ProxyLimitModal';
 import { AuctionImageLightbox } from '@/components/feature/aste/detail/AuctionImageLightbox';
+import { AuctionHero } from '@/components/feature/aste/detail/AuctionHero';
+import { AuctionMobileActionsBar } from '@/components/feature/aste/detail/AuctionMobileActionsBar';
 
 export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const { t } = useTranslation();
@@ -376,6 +376,15 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     );
   }
 
+  const handleToggleSave = () => {
+    if (!isAuthenticated) {
+      setPendingSaveAfterLogin(true);
+      setLoginGateOpen(true);
+      return;
+    }
+    void setSaved(!isSaved);
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
       <div 
@@ -405,139 +414,31 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       )}
 
       {/* Hero — Priorità al nome prodotto */}
-      <section className="w-full border-b border-gray-200 bg-white">
-        <div className="container-content container-content-card-detail py-2 sm:py-2.5 lg:py-3">
-          {/* Back link */}
-          <Link
-            href="/aste"
-            className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 transition hover:text-[#FF7300] sm:text-sm"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t('auctions.backToAuctions')}
-          </Link>
-
-          {/* Titolo prodotto + azioni */}
-          <div ref={heroTitleRef} className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex-1">
-              {/* Riga Titolo + Azioni Compatte dentro una singola Pill */}
-              <div className="flex w-full items-center justify-between gap-2 rounded-[1.75rem] border border-gray-100/80 bg-gray-50/80 p-1 pl-3 shadow-sm backdrop-blur-sm sm:pl-4">
-                <div className="min-w-0 flex-1">
-                  <h1 className="break-words py-0.5 text-[20px] font-black uppercase leading-[1.05] tracking-tight text-gray-900 sm:text-[22px] md:text-[26px] lg:text-[28px]">
-                    {detail.title}
-                  </h1>
-                </div>
-
-                {/* Salva per dopo + Condividi (Icon-only compatte a destra) */}
-                <div className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5">
-                  {!isOwner && (
-                    <button 
-                      type="button" 
-                      onClick={() => {
-                        if (!isAuthenticated) {
-                          setPendingSaveAfterLogin(true);
-                          setLoginGateOpen(true);
-                          return;
-                        }
-                        void setSaved(!isSaved);
-                      }}
-                      className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:shadow-md ${isSaved ? 'text-[#FF7300]' : 'text-gray-400 hover:text-[#FF7300]'}`}
-                      aria-label={t('auctions.detailSaveLater')}
-                    >
-                      <Bookmark className="h-4 w-4" />
-                    </button>
-                  )}
-                  <AuctionQrButton auctionTitle={detail.title} compact />
-                  <AuctionShareButton auctionTitle={detail.title} compact />
-                </div>
-              </div>
-
-              {/* Venditore / Meta & Stats */}
-              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-                {isOwner ? (
-                  <p className="inline-flex max-w-fit items-center rounded bg-[#FFF4EC] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#9a3412]">
-                    {t('auctions.sellerBanner')}
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-gray-500 sm:text-xs">
-                    <span>{t('auctions.detailSoldBy')}: <span className="font-bold text-gray-900">{detail.sellerDisplayName}</span></span>
-                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-600">
-                      {detail.sellerAccountType === 'business' ? 'Business' : 'Privato'}
-                    </span>
-                    <FlagIcon country={detail.sellerCountry} size="sm" />
-                    <span className="text-gray-300">|</span>
-                    <div className="flex items-center">
-                      <span className="text-[12px] tracking-[0.1em] text-[#FFB800] drop-shadow-[0_1px_1px_rgba(255,184,0,0.5)]">{'★'.repeat(Math.min(5, Math.round((detail.sellerRating / 100) * 5)))}</span>
-                      <span className="ml-[2px] font-bold text-gray-700">{detail.sellerRating}%</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Statistiche visualizzazioni & live */}
-                <div className="flex items-center gap-3 text-[11px] sm:text-xs">
-                  <div className="flex items-center gap-1.5" title={t('auctions.statsViews', { count: statsViewsCount })}>
-                    <Eye className="h-4 w-4 text-gray-400" aria-hidden />
-                    <span className="font-bold text-gray-700">{statsViewsCount}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 font-bold text-[#FF7300]" title={t('auctions.statsWatching', { count: statsWatchingCount })}>
-                    <Users className="h-4 w-4" aria-hidden />
-                    <span>{statsWatchingCount} Live</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <AuctionHero
+        title={detail.title}
+        isOwner={isOwner}
+        isSaved={isSaved}
+        sellerDisplayName={detail.sellerDisplayName}
+        sellerAccountType={detail.sellerAccountType}
+        sellerCountry={detail.sellerCountry}
+        sellerRating={detail.sellerRating}
+        statsViewsCount={statsViewsCount}
+        statsWatchingCount={statsWatchingCount}
+        heroTitleRef={heroTitleRef}
+        onToggleSave={handleToggleSave}
+        t={t}
+      />
 
       {/* Fixed Mobile Actions - tre pillole glass (titolo, azioni, watching) */}
-      <div
-        className={`fixed left-0 right-0 z-50 transition-all duration-200 lg:hidden ${
-          showStickyHeader
-            ? 'pointer-events-auto translate-y-0 opacity-100'
-            : 'pointer-events-none -translate-y-2 opacity-0'
-        }`}
-        style={{ top: mobileActionTop }}
-      >
-        <div className="container-content container-content-card-detail py-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0 max-w-[46vw] rounded-full border border-white/60 bg-white/70 px-3 py-2 shadow-[0_10px_24px_rgba(29,49,96,0.15)] backdrop-blur-xl backdrop-saturate-150">
-              <h2 className="truncate text-[12px] font-bold uppercase tracking-wide text-[#1D3160]">
-                {detail.title}
-              </h2>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <div className="flex items-center gap-1.5 rounded-full border border-white/60 bg-white/70 px-1.5 py-1 shadow-[0_10px_24px_rgba(29,49,96,0.15)] backdrop-blur-xl backdrop-saturate-150">
-                {!isOwner && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        setPendingSaveAfterLogin(true);
-                        setLoginGateOpen(true);
-                        return;
-                      }
-                      void setSaved(!isSaved);
-                    }}
-                    className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-white/70 ${isSaved ? 'text-[#FF7300]' : 'text-gray-600 hover:text-[#FF7300]'}`}
-                    aria-label={t('auctions.detailSaveLater')}
-                  >
-                    <Bookmark className="h-4 w-4" />
-                  </button>
-                )}
-                <AuctionQrButton auctionTitle={detail.title} compact />
-                <AuctionShareButton auctionTitle={detail.title} compact />
-              </div>
-              <Link
-                href="/aste/nuova"
-                className="flex h-10 items-center gap-1.5 rounded-full border border-white/60 bg-white/70 px-3 shadow-[0_10px_24px_rgba(29,49,96,0.15)] backdrop-blur-xl backdrop-saturate-150"
-                aria-label={t('auctions.navCreate')}
-              >
-                <PlusCircle className="h-4 w-4 text-[#FF7300]" aria-hidden />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AuctionMobileActionsBar
+        title={detail.title}
+        isOwner={isOwner}
+        isSaved={isSaved}
+        showStickyHeader={showStickyHeader}
+        mobileActionTop={mobileActionTop}
+        onToggleSave={handleToggleSave}
+        t={t}
+      />
 
       <section className="w-full bg-white px-0 py-2 sm:px-6 sm:py-3 lg:px-8 lg:py-4">
         <div className="container-content container-content-card-detail">
