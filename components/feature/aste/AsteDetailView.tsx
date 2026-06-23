@@ -6,9 +6,8 @@
 
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Package, TrendingUp, Users, ChevronDown, Globe } from 'lucide-react';
+import { Package, TrendingUp, Users, ChevronDown } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { FlagIcon } from '@/components/ui/FlagIcon';
 import { minNextBidEur, roundMoney } from '@/lib/auction/bid-math';
 import { AuctionBidPanel } from '@/components/feature/aste/AuctionBidPanel';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
@@ -47,6 +46,7 @@ import { ProxyLimitModal } from '@/components/feature/aste/detail/ProxyLimitModa
 import { AuctionImageLightbox } from '@/components/feature/aste/detail/AuctionImageLightbox';
 import { AuctionHero } from '@/components/feature/aste/detail/AuctionHero';
 import { AuctionMobileActionsBar } from '@/components/feature/aste/detail/AuctionMobileActionsBar';
+import { AuctionShippingDetails } from '@/components/feature/aste/detail/AuctionShippingDetails';
 
 export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const { t } = useTranslation();
@@ -496,58 +496,15 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                     expanded={shippingExpanded}
                     onToggle={() => setShippingExpanded((open) => !open)}
                   >
-                    <p className="text-sm font-semibold text-gray-900">
-                      {shippingInfo.included ? 'Spedizione inclusa' : shippingInfo.label}
-                    </p>
-                    {!shippingInfo.included ? (
-                      <p className="mt-1 text-xs text-gray-500">Tariffe per area di consegna</p>
-                    ) : null}
-                    <div className="mt-2 space-y-1.5">
-                      {detail.shippingOriginCountry ? (
-                        <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs">
-                          <div className="flex items-center gap-2">
-                            <FlagIcon country={detail.shippingOriginCountry} size="sm" />
-                            <span className="font-medium text-gray-600">Nazionale</span>
-                          </div>
-                          <span className="font-semibold text-gray-900">
-                            {detail.shippingNationalEur != null ? fmtEur(detail.shippingNationalEur) : '—'}
-                          </span>
-                        </div>
-                      ) : null}
-                      <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs">
-                        <span className="font-medium text-gray-600">Resto Europa (default)</span>
-                        <span className="font-semibold text-gray-900">
-                          {detail.shippingEuDefaultEur != null ? fmtEur(detail.shippingEuDefaultEur) : '—'}
-                        </span>
-                      </div>
-                      {restOfWorldPriceRow ? (
-                        <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs">
-                          <div className="flex items-center gap-2">
-                            <Globe className="h-3.5 w-3.5 text-gray-500" aria-hidden />
-                            <span className="font-medium text-gray-600">Resto del mondo</span>
-                          </div>
-                          <span className="font-semibold text-gray-900">{fmtEur(restOfWorldPriceRow.price_eur)}</span>
-                        </div>
-                      ) : null}
-                      {shippingCountryRows.length > 0 ? (
-                        <div className="rounded-lg border border-gray-200 bg-white px-2.5 py-2">
-                          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                            Tariffe specifiche per paese
-                          </p>
-                          <div className="space-y-1.5">
-                            {shippingCountryRows.map((row) => (
-                              <div key={row.country_iso} className="flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-2">
-                                  <FlagIcon country={row.country_iso} size="sm" />
-                                  <span className="font-medium text-gray-600">{row.country_iso}</span>
-                                </div>
-                                <span className="font-semibold text-gray-900">{fmtEur(row.price_eur)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
+                    <AuctionShippingDetails
+                      shippingInfo={shippingInfo}
+                      shippingOriginCountry={detail.shippingOriginCountry}
+                      shippingNationalEur={detail.shippingNationalEur}
+                      shippingEuDefaultEur={detail.shippingEuDefaultEur}
+                      restOfWorldPriceEur={restOfWorldPriceRow?.price_eur ?? null}
+                      shippingCountryRows={shippingCountryRows}
+                      fmtEur={fmtEur}
+                    />
                   </AuctionCollapsibleRow>
                 </div>
               </div>
