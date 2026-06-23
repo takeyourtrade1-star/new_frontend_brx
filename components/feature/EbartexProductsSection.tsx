@@ -1,5 +1,3 @@
-'use client';
-
 import { getCdnImageUrl } from '@/lib/config';
 import { ResponsiveGrid, type GridItem } from './ResponsiveGrid';
 import { ScrollMarquee } from './ScrollMarquee';

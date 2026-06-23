@@ -1,5 +1,3 @@
-'use client';
-
 import type { CSSProperties, ReactNode } from 'react';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import {

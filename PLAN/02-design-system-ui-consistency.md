@@ -214,10 +214,18 @@ Rimuovere `'use client'` da: `AuthCard`, `AuthSubmitButton`, `AuthSecondaryButto
 > - `AuthField` → `forwardRef` (ref non supportate in RSC).
 > - `AuthSubmitButton`/`AuthSecondaryButton` → spread di props handler su `<button>`.
 > - `AuthBackLink`/`AssoHintBubble`/`MockShippingOrderCard`/`OrderItemCard` → `onClick`.
-> - `WardrobePanel`/`BugReportModal`/`AssoChatModal`/`CardMascotteOverlays`/
->   `CardMascotteWidget`/`AsteMineViewBar`/`PhotoPairingInlinePanel`/
->   `AuctionCreateStepPanel`/`EbartexProductsSection`/`cart-summary` → da verificare
->   in un batch successivo (probabile stato/effetti).
+>
+> 🟢 **BATCH 2 FATTO (2026-06-23) — 2 file puri, gated da `npm run build`.**
+> Rimosso `'use client'` da `EbartexProductsSection` (gemello di `CategoriesGrid`)
+> e `CardMascotteOverlays` (overlay puramente presentazionali, props → JSX).
+> Build di produzione (87 pagine) a 0 errori.
+>
+> ⚠️ **Restano client per necessità (lista del piano sovradimensionata):**
+> - `cart-summary` → usa `useCartStore` (Zustand).
+> - `WardrobePanel`/`BugReportModal`/`AssoChatModal`/`CardMascotteWidget`/
+>   `AsteMineViewBar`/`PhotoPairingInlinePanel` → `onClick`/`onChange`/`window`.
+> - `AuctionCreateStepPanel` → switch puro, ma vive dentro il wizard interattivo
+>   (riceve ref/handler): convertirlo sarebbe no-op senza guadagno → lasciato.
 >
 > Nota: per i componenti già usati sotto un boundary client la rimozione è neutra
 > (restano nel bundle client); il guadagno reale è solo dove il genitore è un Server
@@ -232,13 +240,15 @@ Rimuovere `'use client'` da: `AuthCard`, `AuthSubmitButton`, `AuthSecondaryButto
 >   `floating-label-input.tsx`, `floating-input.tsx`).
 > - 2.5 (parziale) — aggiunta la scala `zIndex` additiva in `tailwind.config.ts`
 >   (nessun uso ancora migrato).
-> - 2.8 (batch 1) — rimosso `'use client'` da 11 componenti puramente
->   presentazionali (verifica `npm run build`).
+> - 2.8 (batch 1+2) — rimosso `'use client'` da 13 componenti puramente
+>   presentazionali (verifica `npm run build`). Il resto della lista del piano
+>   resta client per necessità (store/handler/window/ref).
 >
 > typecheck + lint + build a 0 errori.
 >
 > **Rimandato (non minimale/comportamentale, da staged + runtime):** OTP di 2.1,
-> 2.2, 2.3, 2.4, migrazione usi 2.5, 2.6, 2.7, batch successivi 2.8. Vedi note per sezione.
+> 2.2, 2.3, 2.4, migrazione usi 2.5, 2.6, 2.7. La sez. 2.8 è di fatto chiusa per
+> i componenti convertibili. Vedi note per sezione.
 
 ---
 
