@@ -84,9 +84,17 @@ Mantenere in `AsteDetailView` solo composition + WebSocket + fetch.
 > verdi. Da ri-verificare a runtime: modale proxy (apri/aumenta/stop) e bottone
 > salva, perché il loro cablaggio è cambiato.
 >
-> 🟡 **Residuo:** split presentazionale (`<AuctionHeader>` ecc.) NON fatto — è
-> ~490 righe di JSX nel render, refactor UI più rischioso (prop threading, no
-> test, verifica solo runtime). `SimilarAuctionsSections` già estratto in precedenza.
+> ✅ **Split presentazionale FATTO:** estratti in `aste/detail/` →
+> `AuctionHero`, `AuctionMobileActionsBar`, `AuctionShippingDetails`,
+> `AuctionStatusPanels`, `AuctionDetailsSummary` (con `mobileSection` interno),
+> `AuctionSellerStats`, `AuctionFloatingNotice`. JSX spostato verbatim, prop
+> tipizzate (typecheck verifica il threading). Logica salva unificata in
+> `handleToggleSave`.
+>
+> **`AsteDetailView` 1018 → 596 righe (< 600, criterio soddisfatto).** typecheck +
+> lint verdi a ogni passo. `SimilarAuctionsSections` già estratto in precedenza.
+> Da ri-verificare a runtime il dettaglio asta (layout invariato, ma molti blocchi
+> spostati): hero, barra mobile sticky, spedizioni, pannelli stato, accordion.
 
 ---
 
