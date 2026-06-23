@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Camera, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import {
@@ -18,6 +19,7 @@ import {
   CARD_PREVIEW_WIDTH_MOBILE,
   getCardImagePreviewLayout,
 } from '@/lib/cardImagePreviewLayout';
+import { CardImageActionContent } from '@/components/ui/CardImageActionContent';
 
 const HOVER_HIDE_MS = 140;
 
@@ -39,6 +41,9 @@ export function CardImageCameraPeek({
   closeModalLabelKey = 'search.closePreviewModal',
   onImageClick,
   onModalOpenChange,
+  enableActions = false,
+  buyHref,
+  buyLabel,
 }: {
   imageUrl: string | null;
   name: string;
@@ -50,8 +55,15 @@ export function CardImageCameraPeek({
   closeModalLabelKey?: MessageKey;
   onImageClick?: () => void;
   onModalOpenChange?: (open: boolean) => void;
+  /** Mostra il lightbox con immagine ingrandita + 3 bottoni (salva/compra/condividi). */
+  enableActions?: boolean;
+  /** Destinazione del bottone COMPRA (pagina prodotto). Richiesto se enableActions. */
+  buyHref?: string;
+  /** Etichetta del bottone COMPRA. */
+  buyLabel?: string;
 }) {
   const { t } = useTranslation();
+  const router = useRouter();
   const triggerAriaLabel = ariaLabel ?? t(ariaLabelKey);
   const [mounted, setMounted] = useState(false);
   const [hoverPreview, setHoverPreview] = useState<HoverPreview | null>(null);
@@ -126,6 +138,32 @@ export function CardImageCameraPeek({
     };
   }, [modalOpen]);
 
+  const handleBuy = useCallback(() => {
+    setModalOpen(false);
+    if (buyHref) router.push(buyHref);
+  }, [buyHref, router]);
+
+  const handleShare = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    const url = buyHref
+      ? new URL(buyHref, window.location.origin).toString()
+      : window.location.href;
+    const shareData = { title: name, text: `${name} su Ebartex`, url };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        /* annullato dall'utente */
+      }
+    } else if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        /* clipboard non disponibile */
+      }
+    }
+  }, [buyHref, name]);
+
   const hoverPortal =
     mounted &&
     hoverPreview &&
@@ -153,6 +191,40 @@ export function CardImageCameraPeek({
             />
           </div>
         </div>
+      </div>,
+      document.body
+    );
+
+  const actionModalPortal =
+    mounted &&
+    modalOpen &&
+    imageUrl &&
+    createPortal(
+      <div
+        className="fixed inset-0 z-[300] flex flex-col items-center justify-center bg-black/95 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t(ariaLabelKey)}
+        onClick={() => setModalOpen(false)}
+      >
+        <button
+          type="button"
+          className="absolute right-5 top-5 z-[1] rounded-full border border-white/30 bg-white/20 p-2.5 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-white/40"
+          aria-label={t(closeModalLabelKey)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setModalOpen(false);
+          }}
+        >
+          <X className="h-6 w-6 drop-shadow-md" aria-hidden />
+        </button>
+        <CardImageActionContent
+          imageUrl={imageUrl}
+          name={name}
+          buyLabel={buyLabel ?? t('productDetail.buyNow')}
+          onBuy={handleBuy}
+          onShare={handleShare}
+        />
       </div>,
       document.body
     );
@@ -225,7 +297,7 @@ export function CardImageCameraPeek({
         />
       </button>
       {hoverPortal}
-      {modalPortal}
+      {enableActions ? actionModalPortal : modalPortal}
     </>
   );
 }

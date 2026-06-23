@@ -119,6 +119,9 @@ export function SearchResultsTable({
                         name={nameOriginal}
                         previewSide="left"
                         onModalOpenChange={onImagePreviewOpenChange}
+                        enableActions
+                        buyHref={productHref}
+                        buyLabel={t('productDetail.buyNow')}
                       />
                       {editionVariant === 'icon' &&
                         (setPageHref || setName || hit.set_code) &&
@@ -235,6 +238,9 @@ export function SearchResultsTable({
                   name={nameOriginal}
                   previewSide="left"
                   onModalOpenChange={onImagePreviewOpenChange}
+                  enableActions
+                  buyHref={productHref}
+                  buyLabel={t('productDetail.buyNow')}
                 />
                 {editionVariant === 'icon' &&
                   (setPageHref || setName || hit.set_code) &&

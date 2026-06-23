@@ -2,9 +2,10 @@
 
 import type { Ref } from 'react';
 import Image from 'next/image';
-import { X, ChevronLeft, ChevronRight, Bookmark, ShoppingCart, Share2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ListingItem } from '@/lib/api/sync-client';
 import { EBARTEX_LOGO_PLACEHOLDER } from '@/lib/product-detail/product-detail-view-types';
+import { CardImageActionContent } from '@/components/ui/CardImageActionContent';
 
 export interface ProductDetailLightboxProps {
   isOpen: boolean;
@@ -110,65 +111,20 @@ export function ProductDetailLightbox({
         className="sm:hidden fixed inset-0 flex flex-col items-center justify-center"
         onClick={onClose}
       >
-        <div className="flex flex-col items-center gap-5" onClick={(e) => e.stopPropagation()}>
-          {!showImagePlaceholder && cardImages[currentImageIndex] && (
-            <div className="relative aspect-[63/88] w-[min(90vw,calc(72vh*63/88))] max-h-[72vh]">
-              <Image
-                src={cardImages[currentImageIndex]}
-                alt={cardName ?? title}
-                fill
-                className="object-contain rounded-sm shadow-2xl"
-                sizes="90vw"
-                unoptimized
-                draggable={false}
-              />
-            </div>
-          )}
-          {showImagePlaceholder && (
-            <div className="flex flex-col items-center justify-center text-white/70">
-              <Image
-                src={EBARTEX_LOGO_PLACEHOLDER}
-                alt="Ebartex"
-                width={96}
-                height={96}
-                className="w-24 h-24 object-contain opacity-50"
-                draggable={false}
-                unoptimized={false}
-              />
-              <p className="mt-4 text-sm">Immagine non disponibile</p>
-            </div>
-          )}
-
-          <div className="flex items-center gap-3">
-            <button
-              className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/20 bg-white/10 ring-1 ring-white/10 backdrop-blur-xl text-white transition-all hover:bg-white/20 active:scale-95"
-              aria-label="Salva"
-            >
-              <Bookmark className="h-5 w-5" />
-            </button>
-            <button
-              onClick={(e) => {
-                onOpenQtyPopup(
-                  { item_id: 0, seller_id: 'lightbox', seller_display_name: '', country: null, quantity: 1, price_cents: 0, condition: null, mtg_language: null },
-                  e.currentTarget,
-                  cardImages[currentImageIndex],
-                );
-              }}
-              className="flex h-12 items-center justify-center gap-2 rounded-full border-2 border-[#FF7300]/40 bg-[#FF7300]/20 px-6 text-sm font-bold uppercase tracking-wide text-white ring-1 ring-[#FF7300]/20 backdrop-blur-xl transition-all hover:bg-[#FF7300]/30 active:scale-95"
-              aria-label={buyNowLabel}
-            >
-              <ShoppingCart className="h-4 w-4" />
-              <span>{buyNowLabel}</span>
-            </button>
-            <button
-              onClick={onShare}
-              className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/20 bg-white/10 ring-1 ring-white/10 backdrop-blur-xl text-white transition-all hover:bg-white/20 active:scale-95"
-              aria-label="Condividi"
-            >
-              <Share2 className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
+        <CardImageActionContent
+          imageUrl={cardImages[currentImageIndex]}
+          showPlaceholder={showImagePlaceholder}
+          name={cardName ?? title}
+          buyLabel={buyNowLabel}
+          onBuy={(e) => {
+            onOpenQtyPopup(
+              { item_id: 0, seller_id: 'lightbox', seller_display_name: '', country: null, quantity: 1, price_cents: 0, condition: null, mtg_language: null },
+              e.currentTarget,
+              cardImages[currentImageIndex],
+            );
+          }}
+          onShare={onShare}
+        />
       </div>
 
       {cardImages.length > 1 && (
