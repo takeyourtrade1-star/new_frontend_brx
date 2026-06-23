@@ -21,9 +21,8 @@ import { AsteMineViewBar, type MyListingsTab } from '@/components/feature/aste/A
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { isAuctionEndedUI } from '@/lib/auction/auction-adapter';
-import { formatHMS } from '@/components/feature/aste/auctions-browse-shared';
+import { AuctionHmsText } from '@/components/feature/aste/auctions-browse-shared';
 import { useEnrichedAuctions } from '@/lib/hooks/use-enriched-auctions';
-import { useNowTick } from '@/lib/hooks/use-now-tick';
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'mie';
@@ -32,7 +31,6 @@ export function AsteMyListingsPage() {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
-  const now = useNowTick();
   const { data: listData, isLoading } = useAuctionList({ limit: 100 });
   const deleteAuctionMutation = useDeleteAuction();
   const userId = user?.id;
@@ -178,9 +176,9 @@ export function AsteMyListingsPage() {
           {visibleAuctions.length === 0 ? (
             <div className="p-16 text-center text-gray-500">{emptyMessage}</div>
           ) : viewMode === 'grid' ? (
-            <MyAuctionGrid auctions={visibleAuctions} now={now} t={t} confirmDeleteId={confirmDeleteId} onConfirmDelete={setConfirmDeleteId} onDelete={handleDelete} deletingId={deletingId} />
+            <MyAuctionGrid auctions={visibleAuctions} t={t} confirmDeleteId={confirmDeleteId} onConfirmDelete={setConfirmDeleteId} onDelete={handleDelete} deletingId={deletingId} />
           ) : (
-            <MyAuctionTable auctions={visibleAuctions} now={now} t={t} confirmDeleteId={confirmDeleteId} onConfirmDelete={setConfirmDeleteId} onDelete={handleDelete} deletingId={deletingId} />
+            <MyAuctionTable auctions={visibleAuctions} t={t} confirmDeleteId={confirmDeleteId} onConfirmDelete={setConfirmDeleteId} onDelete={handleDelete} deletingId={deletingId} />
           )}
         </div>
       </div>
@@ -190,7 +188,6 @@ export function AsteMyListingsPage() {
 
 function MyAuctionGrid({
   auctions,
-  now,
   t,
   confirmDeleteId,
   onConfirmDelete,
@@ -198,7 +195,6 @@ function MyAuctionGrid({
   deletingId,
 }: {
   auctions: AuctionUI[];
-  now: number;
   t: AuctionTranslate;
   confirmDeleteId: string | null;
   onConfirmDelete: (id: string | null) => void;
@@ -209,7 +205,6 @@ function MyAuctionGrid({
     <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {auctions.map((a) => {
         const ended = isAuctionEndedUI(a);
-        const ms = new Date(a.endsAt).getTime() - now;
         const isConfirming = confirmDeleteId === a.id;
         const isDeleting = deletingId === a.id;
         return (
@@ -220,7 +215,7 @@ function MyAuctionGrid({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                 <div className="absolute bottom-2 left-2 right-2 rounded-full border border-white/30 bg-white/20 p-1.5 text-center backdrop-blur-md shadow-lg">
                   <p className="font-mono text-sm font-bold tabular-nums text-white" suppressHydrationWarning>
-                    {ended ? '—' : formatHMS(ms)}
+                    {ended ? '—' : <AuctionHmsText endsAt={a.endsAt} />}
                   </p>
                 </div>
               </div>
@@ -272,7 +267,6 @@ function MyAuctionGrid({
 
 function MyAuctionTable({
   auctions,
-  now,
   t,
   confirmDeleteId,
   onConfirmDelete,
@@ -280,7 +274,6 @@ function MyAuctionTable({
   deletingId,
 }: {
   auctions: AuctionUI[];
-  now: number;
   t: AuctionTranslate;
   confirmDeleteId: string | null;
   onConfirmDelete: (id: string | null) => void;
@@ -292,7 +285,6 @@ function MyAuctionTable({
       <ul className="divide-y divide-gray-100 bg-white md:hidden">
         {auctions.map((a) => {
           const ended = isAuctionEndedUI(a);
-          const ms = new Date(a.endsAt).getTime() - now;
           const isConfirming = confirmDeleteId === a.id;
           const isDeleting = deletingId === a.id;
           return (
@@ -321,7 +313,7 @@ function MyAuctionTable({
 
               <div className="mt-3 flex items-center justify-between gap-2">
                 <span className="inline-flex min-h-9 items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-center font-mono text-xs font-bold tabular-nums text-primary" suppressHydrationWarning>
-                  {ended ? t('auctions.ended') : formatHMS(ms)}
+                  {ended ? t('auctions.ended') : <AuctionHmsText endsAt={a.endsAt} />}
                 </span>
                 {isConfirming ? (
                   <div className="flex items-center gap-1.5 rounded-lg bg-red-50 p-1.5 animate-[fadeIn_0.2s_ease-out]">
@@ -371,7 +363,6 @@ function MyAuctionTable({
           <tbody>
             {auctions.map((a) => {
               const ended = isAuctionEndedUI(a);
-              const ms = new Date(a.endsAt).getTime() - now;
               const isConfirming = confirmDeleteId === a.id;
               const isDeleting = deletingId === a.id;
               return (
@@ -390,7 +381,7 @@ function MyAuctionTable({
                   <td className="p-3 font-semibold text-gray-800">{a.bidCount}</td>
                   <td className="p-3">
                     <span className="inline-block min-w-[7rem] rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-center font-mono text-sm font-bold tabular-nums text-primary shadow-lg backdrop-blur-md" suppressHydrationWarning>
-                      {ended ? t('auctions.ended') : formatHMS(ms)}
+                      {ended ? t('auctions.ended') : <AuctionHmsText endsAt={a.endsAt} />}
                     </span>
                   </td>
                   <td className="p-3">

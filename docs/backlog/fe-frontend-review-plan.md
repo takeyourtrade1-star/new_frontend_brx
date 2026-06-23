@@ -364,7 +364,7 @@ Per ogni issue chiuso:
 
 | ID | Severità | Stato | PR / note |
 |----|----------|-------|-----------|
-| FE-REV-001 | HIGH | ✅ Fatto | Tick isolato in `<AuctionCountdown>`; `useNowTick` rimosso dal parent e da `SimilarAuctionsSections` |
+| FE-REV-001 | HIGH | ✅ Fatto | Tick isolato in `<AuctionCountdown>`; `useNowTick` rimosso dal parent e da `SimilarAuctionsSections`. **Esteso** alla griglia condivisa `auctions-browse-shared` (leaf `AuctionGridTimerBadge`/`AuctionHmsText`): rimosso `now` da 5 pagine browse/hub |
 | FE-REV-002 | HIGH | ✅ Fatto | Cleanup `typingTimeoutRef`/`energyDecayRef` allo smontaggio |
 | FE-REV-003 | HIGH | ✅ Fatto | `countryInitializedRef`: default paese impostato una sola volta |
 | FE-REV-004 | HIGH | ✅ Fatto | Intersezione `selectedIds` con vista filtrata al cambio filtri |
@@ -381,9 +381,9 @@ Per ogni issue chiuso:
 | FE-REV-015 | MEDIUM | ✅ Fatto | `totalSleepMsRef`; rimosso `totalSleepMs` dalle deps dell'effect inattività |
 | FE-REV-016 | MEDIUM | ✅ Fatto | `setTimeout` raw (flip/confetti/chat/flash/preview) migrati a `useTimeouts()` |
 | FE-REV-017 | MEDIUM | ✅ Fatto | `onOpenChangeRef`; effect con dep solo `[isOpen]` |
-| FE-REV-018 | MEDIUM | ✅ Fatto | Selector Zustand puro; fallback localStorage in `useMemo` |
+| FE-REV-018 | MEDIUM | ✅ Fatto | Selector Zustand puro; fallback localStorage in `useMemo`. **Esteso** a `SincronizzazioneContent`, `AuctionCreateCardPicker`, `ScambiProponiModal` (stesso anti-pattern) |
 | FE-REV-019 | MEDIUM | ✅ Fatto | Scroll/resize/RO coalescenti via `requestAnimationFrame` |
-| FE-REV-020 | MEDIUM | ⏭️ Rimandato | Refactor architetturale ~1100 LOC: PR separato (vedi nota "P5") |
+| FE-REV-020 | MEDIUM | ✅ Fatto | Obiettivo perf raggiunto via `React.memo` sui figli pesanti indipendenti dai filtri (mobile layout, 4 tab, titolo, icon-tab-bar) + props stabilizzate (`useCallback`/`useMemo`). Alias memo a livello modulo: nessuna modifica ai file figli. MarketplaceSection lasciata reattiva ai filtri. Il context `ProductDetailUiContext` (solo riduzione boilerplate) resta polish opzionale |
 | FE-REV-021 | LOW | ⏭️ Rimandato | SVG statici/fidati (no XSS oggi); `<img>` data-URI romperebbe animazioni/`currentColor`, parità visiva non verificabile staticamente |
 | FE-REV-022 | LOW | ✅ Fatto | Effect su `embeddedCard?.id` riallinea step/draft al cambio card |
 | FE-REV-023 | LOW | ✅ Fatto | Helper `isSelected(id)` al posto di `selectedIds!` |

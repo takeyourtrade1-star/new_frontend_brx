@@ -7,7 +7,6 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, type AuctionUI } from '@/lib/auction/auction-adapter';
 import { useEnrichedAuctions } from '@/lib/hooks/use-enriched-auctions';
-import { useNowTick } from '@/lib/hooks/use-now-tick';
 import { AuctionResultsGrid } from '@/components/feature/aste/auctions-browse-shared';
 import type { CardDocument } from '@/lib/product-detail';
 
@@ -21,7 +20,6 @@ export function ProductAuctionsPanel({
   card,
 }: ProductAuctionsPanelProps) {
   const { t } = useTranslation();
-  const now = useNowTick();
   const cardName = card.name?.trim() ?? '';
 
   const cardQuery = useAuctionList(
@@ -80,7 +78,7 @@ export function ProductAuctionsPanel({
           <h3 id="pd-auctions-for-card" className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-700">
             {t('productDetail.auctions.forThisCard')}
           </h3>
-          <AuctionResultsGrid auctions={enrichedCard} now={now} t={t} />
+          <AuctionResultsGrid auctions={enrichedCard} t={t} />
         </section>
       )}
 
@@ -107,7 +105,7 @@ export function ProductAuctionsPanel({
           <p className="text-sm text-gray-500">{t('auctions.noResults')}</p>
         )}
         {enrichedRecommended.length > 0 && (
-          <AuctionResultsGrid auctions={enrichedRecommended} now={now} t={t} />
+          <AuctionResultsGrid auctions={enrichedRecommended} t={t} />
         )}
       </section>
     </div>

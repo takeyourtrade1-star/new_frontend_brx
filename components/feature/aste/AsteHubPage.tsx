@@ -17,7 +17,7 @@ import {
   AuctionListTable,
   AuctionResultsGrid,
   AuctionViewToggle,
-  formatHMS,
+  AuctionHmsText,
 } from '@/components/feature/aste/auctions-browse-shared';
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { MascotteLoader } from '@/components/dev/MascotteLoader';
@@ -31,7 +31,6 @@ import {
 } from '@/lib/auction/auction-adapter';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { useEnrichedAuctions } from '@/lib/hooks/use-enriched-auctions';
-import { useNowTick } from '@/lib/hooks/use-now-tick';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import {
   auctionMatchesSearchTerms,
@@ -229,7 +228,6 @@ function AsteHubToolbar({
 export function AsteHubPage() {
   const { t } = useTranslation();
   const { selectedLang } = useLanguage();
-  const now = useNowTick();
 
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const [apiBatchCount, setApiBatchCount] = useState(1);
@@ -413,7 +411,7 @@ export function AsteHubPage() {
                     </h3>
                     <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2">
                       {endingSoon.slice(0, 3).map((a) => (
-                        <EndingSoonCard key={a.id} auction={a} now={now} featured />
+                        <EndingSoonCard key={a.id} auction={a} featured />
                       ))}
                     </div>
                   </div>
@@ -424,7 +422,7 @@ export function AsteHubPage() {
                     </h3>
                     <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2">
                       {endingSoon.slice(3, 6).map((a) => (
-                        <EndingSoonCard key={a.id} auction={a} now={now} />
+                        <EndingSoonCard key={a.id} auction={a} />
                       ))}
                     </div>
                   </div>
@@ -475,10 +473,10 @@ export function AsteHubPage() {
               {displayed.length === 0 ? (
                 <div className="p-8 text-center text-gray-500 sm:p-16">{t('auctions.noResults')}</div>
               ) : viewMode === 'grid' ? (
-                <AuctionResultsGrid auctions={displayed} now={now} t={t} />
+                <AuctionResultsGrid auctions={displayed} t={t} />
               ) : (
                 <div className="overflow-x-auto">
-                  <AuctionListTable auctions={displayed} now={now} t={t} />
+                  <AuctionListTable auctions={displayed} t={t} />
                 </div>
               )}
             </div>
@@ -525,14 +523,11 @@ export function AsteHubPage() {
 
 function EndingSoonCard({
   auction,
-  now,
   featured = false,
 }: {
   auction: AuctionUI;
-  now: number;
   featured?: boolean;
 }) {
-  const ms = new Date(auction.endsAt).getTime() - now;
   return (
     <Link
       href={auctionDetailPath(auction.id)}
@@ -555,7 +550,7 @@ function EndingSoonCard({
             className={`mb-2 rounded-full border bg-white/20 p-1.5 text-center shadow-lg backdrop-blur-md ${featured ? 'border-amber-400/60' : 'animate-pulse border-red-400/60'}`}
           >
             <p className="font-mono text-sm font-bold tabular-nums text-white" suppressHydrationWarning>
-              {formatHMS(ms)}
+              <AuctionHmsText endsAt={auction.endsAt} />
             </p>
           </div>
           <p className="line-clamp-2 text-xs font-bold text-white drop-shadow-md">{auction.title}</p>

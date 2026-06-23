@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, Suspense } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, Suspense, memo } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Info, Tag, LineChart } from 'lucide-react';
@@ -79,6 +79,21 @@ import { ProductDetailHoverPreview } from '@/components/feature/product/detail/P
 import { ProductDetailLightbox } from '@/components/feature/product/detail/ProductDetailLightbox';
 import { ProductDetailQtyPopup } from '@/components/feature/product/detail/ProductDetailQtyPopup';
 
+/**
+ * FE-REV-020: la pagina dettaglio è un monolite che ri-renderizza a ogni cambio di stato
+ * (es. ogni tasto nei filtri marketplace). Memoizzando i figli "pesanti" indipendenti dai filtri
+ * e stabilizzando le loro props (useCallback/useMemo), un cambio filtro non ri-renderizza più
+ * la sezione superiore (mobile layout, tab, titolo). La MarketplaceSection NON è memoizzata:
+ * è corretto che reagisca ai filtri.
+ */
+const MemoTitleSection = memo(ProductDetailTitleSection);
+const MemoMobileLayout = memo(ProductDetailMobileLayout);
+const MemoIconTabBar = memo(ProductDetailIconTabBar);
+const MemoInfoTab = memo(ProductDetailInfoTab);
+const MemoSellTab = memo(ProductDetailSellTab);
+const MemoAuctionTab = memo(ProductDetailAuctionTab);
+const MemoChartTab = memo(ProductDetailChartTab);
+
 export function ProductDetailView(props: ProductDetailViewProps) {
   const { card } = props;
   const router = useRouter();
@@ -100,21 +115,24 @@ export function ProductDetailView(props: ProductDetailViewProps) {
       : card
         ? card.set_name
         : "SUSSURRI NEL POZZO - MOWGLI - MAN CUB - SINGLES");
-  const breadcrumbs =
-    props.breadcrumbs ??
-    (card
-      ? buildBreadcrumbsFromCard(card)
-      : [
-          { label: 'MAGIC: THE GATHERING', href: '#' },
-          { label: 'SINGLES', href: '#' },
-          { label: 'ECLISSI DI QUALCOSA', href: '#' },
-          { label: 'STORMO DELLA SCISSIONE', href: '#' },
-        ]);
-  const breadcrumbItems: AppBreadcrumbItem[] = breadcrumbs.map((item, index) => ({
-    href: item.href,
-    label: item.label,
-    isCurrent: index === breadcrumbs.length - 1,
-  }));
+  // FE-REV-020: ref stabile così i figli memoizzati che lo ricevono non si ri-renderizzano inutilmente.
+  const breadcrumbItems: AppBreadcrumbItem[] = useMemo(() => {
+    const breadcrumbs =
+      props.breadcrumbs ??
+      (card
+        ? buildBreadcrumbsFromCard(card)
+        : [
+            { label: 'MAGIC: THE GATHERING', href: '#' },
+            { label: 'SINGLES', href: '#' },
+            { label: 'ECLISSI DI QUALCOSA', href: '#' },
+            { label: 'STORMO DELLA SCISSIONE', href: '#' },
+          ]);
+    return breadcrumbs.map((item, index) => ({
+      href: item.href,
+      label: item.label,
+      isCurrent: index === breadcrumbs.length - 1,
+    }));
+  }, [props.breadcrumbs, card]);
   const imageSrc = props.imageSrc ?? (card?.image != null ? getCardImageUrl(card.image) : null) ?? getCdnImageUrl('kyurem.png');
   const [activeTab, setActiveTab] = useState<ProductDetailTabId>('INFO');
 
@@ -534,7 +552,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     return undefined;
   }, [listings.length, enrichedCardAuctions.length, sortedMarketplaceRows.length, t]);
 
-  const formatEuro = (n: number) => formatEuroNoSpace(n, 'it-IT');
+  const formatEuro = useCallback((n: number) => formatEuroNoSpace(n, 'it-IT'), []);
 
   const cardsInSaleCount = useMemo(
     () => listings.reduce((total, item) => total + Math.max(0, item.quantity || 0), 0),
@@ -666,8 +684,17 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     [card],
   );
 
-  const handleLightboxOpen = () => setIsLightboxOpen(true);
-  const handleLightboxClose = () => setIsLightboxOpen(false);
+  const handleLightboxOpen = useCallback(() => setIsLightboxOpen(true), []);
+  const handleLightboxClose = useCallback(() => setIsLightboxOpen(false), []);
+  // FE-REV-020: handler stabili per le props dei figli memoizzati (evitano di romperne la memo).
+  const handleImageError = useCallback(() => setImageError(true), []);
+  const handleAuctionCancel = useCallback(() => setActiveTab('INFO'), []);
+  const handleMobileReprintsToggle = useCallback(() => setMobileReprintsOpen((open) => !open), []);
+  const handleShowChartToggle = useCallback(() => setShowChart((v) => !v), []);
+  const handleSellSinglePublishedSafe = useCallback(
+    () => void handleSellSinglePublished(),
+    [handleSellSinglePublished]
+  );
   const handleHoverPreviewOpen = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 640) return;
     if (hoverPreviewTimeoutRef.current) {
@@ -697,7 +724,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setCurrentImageIndex((prev: number) => (prev === cardImages.length - 1 ? 0 : prev + 1));
   };
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     const shareData = {
       title: title,
       text: `Check out ${title} on Ebartex!`,
@@ -718,7 +745,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
         // Clipboard failed
       }
     }
-  };
+  }, [title]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStartX(e.targetTouches[0].clientX);
@@ -744,12 +771,15 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setTouchEndX(null);
   };
 
-  const tabs: ProductDetailTabConfig[] = [
-    { id: 'INFO', label: 'INFO', mobileLabel: 'INFO', icon: Info },
-    { id: 'VENDI', label: 'VENDI', mobileLabel: 'VENDI', icon: Tag },
-    { id: 'ASTA', label: "METTI ALL'ASTA", mobileLabel: "METTI ALL'ASTA", icon: AuctionGavelIcon },
-    { id: 'GRAFICO', label: 'GRAFICO PREZZI', mobileLabel: 'GRAFICO', icon: LineChart },
-  ];
+  const tabs: ProductDetailTabConfig[] = useMemo(
+    () => [
+      { id: 'INFO', label: 'INFO', mobileLabel: 'INFO', icon: Info },
+      { id: 'VENDI', label: 'VENDI', mobileLabel: 'VENDI', icon: Tag },
+      { id: 'ASTA', label: "METTI ALL'ASTA", mobileLabel: "METTI ALL'ASTA", icon: AuctionGavelIcon },
+      { id: 'GRAFICO', label: 'GRAFICO PREZZI', mobileLabel: 'GRAFICO', icon: LineChart },
+    ],
+    []
+  );
 
   return (
     <RarityLegendProvider>
@@ -758,7 +788,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           <Header />
         </Suspense>
 
-        <ProductDetailTitleSection
+        <MemoTitleSection
           title={title}
           subtitle={subtitle}
           card={card}
@@ -778,7 +808,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     : 'sm:h-[320px]'
               )}
             >
-              <ProductDetailMobileLayout
+              <MemoMobileLayout
                 tabs={tabs}
                 activeTab={activeTab}
                 onTabChange={handleTabChange}
@@ -789,12 +819,12 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 showImagePlaceholder={showImagePlaceholder}
                 effectiveImageSrc={effectiveImageSrc}
                 isLocalImage={isLocalImage}
-                onImageError={() => setImageError(true)}
+                onImageError={handleImageError}
                 onLightboxOpen={handleLightboxOpen}
-                onSellSinglePublished={() => void handleSellSinglePublished()}
+                onSellSinglePublished={handleSellSinglePublishedSafe}
                 auctionInventoryLoading={auctionInventoryLoading}
                 auctionInventoryItems={auctionInventoryItems}
-                onAuctionCancel={() => setActiveTab('INFO')}
+                onAuctionCancel={handleAuctionCancel}
                 inventoryLoadingLabel={t('accountPage.itemsLoadingInventory')}
                 trendRangeLabel={trendRangeLabel}
                 formatEuro={formatEuro}
@@ -805,7 +835,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 setCatalogHref={setCatalogHref}
                 cardsInSaleLabel={cardsInSaleLabel}
                 mobileReprintsOpen={mobileReprintsOpen}
-                onMobileReprintsToggle={() => setMobileReprintsOpen((open) => !open)}
+                onMobileReprintsToggle={handleMobileReprintsToggle}
                 hideReprintsLabel={t('productDetail.mobile.hideReprints')}
                 showReprintsLabel={t('productDetail.mobile.showReprints')}
                 reprints={reprints}
@@ -856,7 +886,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
               </aside>
 
               <div id="product-detail-tab-panel" className="hidden min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 sm:flex sm:h-full">
-                <ProductDetailIconTabBar
+                <MemoIconTabBar
                   tabs={tabs}
                   activeTab={activeTab}
                   onTabChange={handleTabChange}
@@ -864,7 +894,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 />
 
                 {activeTab === 'INFO' && (
-                  <ProductDetailInfoTab
+                  <MemoInfoTab
                     card={card}
                     slug={slug}
                     gameLabel={gameLabel}
@@ -875,7 +905,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                     reprintsDegraded={reprintsDegraded}
                     reprintsAllHref={reprintsAllHref}
                     showChart={showChart}
-                    onShowChartToggle={() => setShowChart((v) => !v)}
+                    onShowChartToggle={handleShowChartToggle}
                     trendRangeLabel={trendRangeLabel}
                     formatEuro={formatEuro}
                     trendPriceValue={trendPriceValue}
@@ -886,35 +916,35 @@ export function ProductDetailView(props: ProductDetailViewProps) {
                 )}
 
                 {activeTab === 'VENDI' && (
-                  <ProductDetailSellTab
+                  <MemoSellTab
                     card={card}
                     slug={slug}
                     blueprintIdForAuction={blueprintIdForAuction}
                     showChart={showChart}
-                    onShowChartToggle={() => setShowChart((v) => !v)}
+                    onShowChartToggle={handleShowChartToggle}
                     trendRangeLabel={trendRangeLabel}
                     formatEuro={formatEuro}
                     trendPriceValue={trendPriceValue}
                     soldCopiesValue={soldCopiesValue}
                     averageSalePriceValue={averageSalePriceValue}
                     onChartStatsChange={setChartStats}
-                    onSellSinglePublished={() => void handleSellSinglePublished()}
+                    onSellSinglePublished={handleSellSinglePublishedSafe}
                   />
                 )}
 
                 {activeTab === 'ASTA' && (
-                  <ProductDetailAuctionTab
+                  <MemoAuctionTab
                     card={card}
                     blueprintIdForAuction={blueprintIdForAuction}
                     auctionInventoryLoading={auctionInventoryLoading}
                     auctionInventoryItems={auctionInventoryItems}
                     inventoryLoadingLabel={t('accountPage.itemsLoadingInventory')}
-                    onAuctionCancel={() => setActiveTab('INFO')}
+                    onAuctionCancel={handleAuctionCancel}
                   />
                 )}
 
                 {activeTab === 'GRAFICO' && (
-                  <ProductDetailChartTab
+                  <MemoChartTab
                     slug={slug}
                     trendRangeLabel={trendRangeLabel}
                     formatEuro={formatEuro}

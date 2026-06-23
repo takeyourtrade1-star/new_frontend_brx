@@ -15,10 +15,51 @@ import type { MessageKey } from '@/lib/i18n/messages/en';
 import { isAuctionEndedUI, type AuctionUI, type AuctionGame } from '@/lib/auction/auction-adapter';
 import { roundUpToHalfStep } from '@/lib/auction/bid-math';
 import { formatAuctionCountdown, formatHMS } from '@/lib/auction/auction-countdown';
+import { useNowTick } from '@/lib/hooks/use-now-tick';
 
 export { formatAuctionCountdown, formatHMS };
 
 export type EnrichedAuction = AuctionUI;
+
+/**
+ * FE-REV-001 (esteso alla griglia condivisa): il tick "now" vive nelle leaf di countdown,
+ * non nelle pagine browse. Così ogni secondo si ri-renderizza solo il testo del timer e non
+ * l'intera card/riga (né le altre N card della lista). `ended` deriva da `hoursFromNow`
+ * (snapshot dell'adapter), quindi isolare il tick non altera il comportamento.
+ */
+function useAuctionMsLeft(endsAt: string): number {
+  const now = useNowTick();
+  return new Date(endsAt).getTime() - now;
+}
+
+/** Badge timer della grid card (solo aste non concluse): aggiorna testo + stile "urgente" da solo. */
+function AuctionGridTimerBadge({ endsAt, t }: { endsAt: string; t: AuctionTranslate }) {
+  const ms = useAuctionMsLeft(endsAt);
+  const isTimerUrgent = ms > 0 && ms < 2 * 60 * 60 * 1000;
+  return (
+    <div
+      className={`w-full max-w-[min(100%,14rem)] rounded-lg border px-2.5 py-1.5 text-center shadow-lg backdrop-blur-md ${
+        isTimerUrgent
+          ? 'border-red-400/45 bg-red-950/90 ring-1 ring-red-500/30'
+          : 'border-white/20 bg-black/78 ring-1 ring-black/20'
+      }`}
+    >
+      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/80">Scade tra</p>
+      <p
+        className="mt-0.5 text-sm font-bold tabular-nums tracking-tight text-white sm:text-[15px]"
+        suppressHydrationWarning
+      >
+        {formatAuctionCountdown(ms)}
+      </p>
+    </div>
+  );
+}
+
+/** Solo il testo HH:MM:SS (countdown live isolato): aggiorna se stesso senza re-render del contenitore. */
+export function AuctionHmsText({ endsAt }: { endsAt: string }) {
+  const ms = useAuctionMsLeft(endsAt);
+  return <>{formatHMS(ms)}</>;
+}
 
 const EURO_PARTS_FORMATTER = new Intl.NumberFormat('it-IT', {
   minimumFractionDigits: 2,
@@ -189,16 +230,12 @@ export function AuctionViewToggle({
 
 export function AuctionGridCard({
   auction,
-  now,
   t,
 }: {
   auction: EnrichedAuction;
-  now: number;
   t: AuctionTranslate;
 }) {
   const ended = isAuctionEndedUI(auction);
-  const ms = new Date(auction.endsAt).getTime() - now;
-  const isTimerUrgent = !ended && ms > 0 && ms < 2 * 60 * 60 * 1000;
   return (
     <Link
       href={auctionDetailPath(auction.id)}
@@ -222,27 +259,13 @@ export function AuctionGridCard({
           aria-hidden
         />
         <div className="absolute inset-x-0 bottom-0 flex justify-center px-2 pb-2 pt-6">
-          <div
-            className={`w-full max-w-[min(100%,14rem)] rounded-lg border px-2.5 py-1.5 text-center shadow-lg backdrop-blur-md ${
-              isTimerUrgent
-                ? 'border-red-400/45 bg-red-950/90 ring-1 ring-red-500/30'
-                : 'border-white/20 bg-black/78 ring-1 ring-black/20'
-            }`}
-          >
-            {ended ? (
+          {ended ? (
+            <div className="w-full max-w-[min(100%,14rem)] rounded-lg border border-white/20 bg-black/78 px-2.5 py-1.5 text-center shadow-lg ring-1 ring-black/20 backdrop-blur-md">
               <p className="text-[11px] font-bold uppercase tracking-wide text-white">{t('auctions.ended')}</p>
-            ) : (
-              <>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/80">Scade tra</p>
-                <p
-                  className="mt-0.5 text-sm font-bold tabular-nums tracking-tight text-white sm:text-[15px]"
-                  suppressHydrationWarning
-                >
-                  {formatAuctionCountdown(ms)}
-                </p>
-              </>
-            )}
-          </div>
+            </div>
+          ) : (
+            <AuctionGridTimerBadge endsAt={auction.endsAt} t={t} />
+          )}
         </div>
       </div>
 
@@ -288,12 +311,10 @@ export function AuctionGridCard({
 
 export function AuctionListTable({
   auctions,
-  now,
   t,
   myBidById,
 }: {
   auctions: EnrichedAuction[];
-  now: number;
   t: AuctionTranslate;
   /** Se presente, colonna aggiuntiva “La tua offerta”. */
   myBidById?: Record<string, number>;
@@ -305,7 +326,6 @@ export function AuctionListTable({
       <ul className="divide-y divide-gray-100 bg-white md:hidden">
         {auctions.map((a) => {
           const ended = isAuctionEndedUI(a);
-          const ms = new Date(a.endsAt).getTime() - now;
           const myBid = myBidById?.[a.id];
           return (
             <li key={a.id} className="p-3">
@@ -355,7 +375,7 @@ export function AuctionListTable({
               </div>
               <div className="mt-3 flex items-center justify-between gap-2">
                 <span className="inline-flex min-h-9 items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-center font-mono text-xs font-bold tabular-nums text-primary" suppressHydrationWarning>
-                  {ended ? t('auctions.ended') : formatHMS(ms)}
+                  {ended ? t('auctions.ended') : <AuctionHmsText endsAt={a.endsAt} />}
                 </span>
                 <Link
                   href={auctionDetailPath(a.id)}
@@ -387,7 +407,6 @@ export function AuctionListTable({
           <tbody>
             {auctions.map((a) => {
               const ended = isAuctionEndedUI(a);
-              const ms = new Date(a.endsAt).getTime() - now;
               const myBid = myBidById?.[a.id];
               return (
                 <tr
@@ -436,7 +455,7 @@ export function AuctionListTable({
                   <td className="p-3 font-semibold text-gray-800">{a.bidCount}</td>
                   <td className="p-3">
                     <span className="inline-block min-w-[7rem] rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-center font-mono text-sm font-bold tabular-nums text-primary shadow-lg backdrop-blur-md" suppressHydrationWarning>
-                      {ended ? t('auctions.ended') : formatHMS(ms)}
+                      {ended ? t('auctions.ended') : <AuctionHmsText endsAt={a.endsAt} />}
                     </span>
                   </td>
                   <td className="p-3">
@@ -461,17 +480,15 @@ export function AuctionListTable({
 
 export function AuctionResultsGrid({
   auctions,
-  now,
   t,
 }: {
   auctions: EnrichedAuction[];
-  now: number;
   t: AuctionTranslate;
 }) {
   return (
     <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-2.5 sm:p-3.5">
       {auctions.map((a) => (
-        <AuctionGridCard key={a.id} auction={a} now={now} t={t} />
+        <AuctionGridCard key={a.id} auction={a} t={t} />
       ))}
     </div>
   );

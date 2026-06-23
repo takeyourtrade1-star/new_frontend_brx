@@ -17,7 +17,6 @@ import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { AsteMineViewBar, type MyListingsTab } from '@/components/feature/aste/AsteMineViewBar';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { useEnrichedAuctions } from '@/lib/hooks/use-enriched-auctions';
-import { useNowTick } from '@/lib/hooks/use-now-tick';
 
 const STORAGE_KEY = 'partecipazioni';
 
@@ -25,7 +24,6 @@ export function AsteParticipationsPage() {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
-  const now = useNowTick();
   const userId = user?.id;
   const { data: listData, isLoading } = useAuctionList({ limit: 100 });
 
@@ -146,9 +144,9 @@ export function AsteParticipationsPage() {
           {visibleRows.length === 0 ? (
             <div className="p-16 text-center text-gray-500">{emptyMessage}</div>
           ) : viewMode === 'grid' ? (
-            <AuctionResultsGrid auctions={visibleRows} now={now} t={t} />
+            <AuctionResultsGrid auctions={visibleRows} t={t} />
           ) : (
-            <AuctionListTable auctions={visibleRows} now={now} t={t} myBidById={myBidById} />
+            <AuctionListTable auctions={visibleRows} t={t} myBidById={myBidById} />
           )}
         </div>
       </div>

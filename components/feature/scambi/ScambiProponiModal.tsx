@@ -542,8 +542,13 @@ function SearchBar({
 export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, initialCatalogSearch }: Props) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const accessToken = useAuthStore(
-    (s) => s.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
+  // FE-REV-018 (pattern): selector puro; fallback localStorage in useMemo, non dentro il selector Zustand.
+  const accessTokenFromStore = useAuthStore((s) => s.accessToken);
+  const accessToken = useMemo(
+    () =>
+      accessTokenFromStore ??
+      (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null),
+    [accessTokenFromStore]
   );
 
   const mockAProposal = useMemo(

@@ -13,7 +13,6 @@ import {
 import { getStoredAsteViewMode, setStoredAsteViewMode, type AsteViewMode } from '@/lib/auction/aste-view-storage';
 import { apiToAuctionUI } from '@/lib/auction/auction-adapter';
 import { useEnrichedAuctions } from '@/lib/hooks/use-enriched-auctions';
-import { useNowTick } from '@/lib/hooks/use-now-tick';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { AuctionUI } from '@/lib/auction/auction-adapter';
@@ -27,7 +26,6 @@ interface UserProfileAuctionsPanelProps {
 
 export function UserProfileAuctionsPanel({ userId, username }: UserProfileAuctionsPanelProps) {
   const { t } = useTranslation();
-  const now = useNowTick();
   const [viewMode, setViewMode] = useState<AsteViewMode>('grid');
 
   const { data, isLoading, isError, refetch } = useAuctionList(
@@ -107,9 +105,9 @@ export function UserProfileAuctionsPanel({ userId, username }: UserProfileAuctio
 
       <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/55 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-xl">
         {viewMode === 'grid' ? (
-          <AuctionResultsGrid auctions={auctions} now={now} t={t} />
+          <AuctionResultsGrid auctions={auctions} t={t} />
         ) : (
-          <AuctionListTable auctions={auctions} now={now} t={t} />
+          <AuctionListTable auctions={auctions} t={t} />
         )}
       </div>
     </div>

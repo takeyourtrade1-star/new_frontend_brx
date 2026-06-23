@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { RefreshCw, Loader2, Play, Package } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -25,10 +25,13 @@ import {
 export function SincronizzazioneContent() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const accessToken = useAuthStore(
-    (s) =>
-      s.accessToken ??
-      (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null)
+  // FE-REV-018 (pattern): selector puro; fallback localStorage in useMemo, non dentro il selector Zustand.
+  const accessTokenFromStore = useAuthStore((s) => s.accessToken);
+  const accessToken = useMemo(
+    () =>
+      accessTokenFromStore ??
+      (typeof window !== 'undefined' ? localStorage.getItem('ebartex_access_token') : null),
+    [accessTokenFromStore]
   );
 
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
