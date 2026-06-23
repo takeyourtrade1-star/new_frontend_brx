@@ -6,16 +6,18 @@ import { CardLoader } from '@/components/dev/CardLoader';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
-  ACCESSORY_ITEMS,
-  ALL_WARDROBE_ITEMS,
-  CLOTHING_ITEMS,
   DEFAULT_FACE_COLOR_ID,
   FACE_COLOR_OPTIONS,
-  OBJECT_ITEMS,
   type Category,
   type EquippedItems,
   type WardrobeItem,
 } from './mascotte-wardrobe';
+import {
+  ACCESSORY_ITEMS,
+  ALL_WARDROBE_ITEMS,
+  CLOTHING_ITEMS,
+  OBJECT_ITEMS,
+} from './mascotte-wardrobe-items';
 import { AssoHintBubble } from '@/components/dev/AssoHintBubble';
 import { AssoMobileHelpButton } from '@/components/dev/AssoMobileHelpButton';
 import { useAssoBubbleQueue } from '@/hooks/useAssoBubbleQueue';
