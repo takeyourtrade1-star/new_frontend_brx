@@ -8,6 +8,7 @@ import {
   List,
   Loader2,
   RefreshCw,
+  SlidersHorizontal,
   X,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -286,42 +287,106 @@ export function OggettiContent() {
         inventoryItems={inventoryItems}
       />
       <main className="w-full min-w-0 max-w-full flex-1 overflow-x-clip p-0 md:p-6">
-        <div className="mb-3 flex flex-col gap-2 md:mb-4 md:flex-row md:items-center md:gap-3">
-          <InventorySearchBar
-            value={searchValue}
-            onChange={setSearchValue}
-            onClear={clearSearch}
-            disabled={loading}
-            inputClassName="rounded-lg border-gray-200 bg-white py-1.5 pl-9 pr-9 text-sm shadow-none backdrop-blur-none md:py-2 md:text-sm"
-            className="md:max-w-xs md:flex-1"
-          />
-          <div className="flex shrink-0 items-center gap-2 md:ml-auto">
-            {!syncStatusLoading && (
+        {/* Barra ricerca + azioni in un unico container */}
+        <div className="mb-3 md:mb-4">
+          <div className="flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-sm md:gap-2">
+            <div className="min-w-0 flex-1">
+              <InventorySearchBar
+                value={searchValue}
+                onChange={setSearchValue}
+                onClear={clearSearch}
+                disabled={loading}
+                inputClassName="rounded-xl border-0 bg-gray-50 py-2 pl-9 pr-9 text-sm shadow-none backdrop-blur-none md:rounded-lg md:py-2.5"
+                className="w-full"
+              />
+            </div>
+
+            <div className="hidden h-6 w-px bg-gray-200 md:block" />
+
+            <div className="flex shrink-0 items-center gap-1 md:gap-1.5">
               <button
                 type="button"
-                onClick={() => void handleSyncNow()}
-                disabled={!integrationConnected || !canSyncNow || syncAnyPending}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-2.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
-                aria-label="Sync"
+                onClick={() => setMobileFiltersOpen(true)}
+                disabled={loading}
+                className="inline-flex h-8 items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50 md:h-9 md:px-2.5"
+                aria-label={t('accountPage.itemsFiltersPanelTitle')}
               >
-                {syncNowPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-3.5 w-3.5" />
+                <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                <span className="hidden sm:inline">{t('accountPage.itemsFiltersPanelTitle')}</span>
+                {activeFilterCount > 0 && (
+                  <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+                    {activeFilterCount}
+                  </span>
                 )}
-                Sync
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setExportModalOpen(true)}
-              disabled={loading || filteredInventoryItems.length === 0}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50"
-              aria-label={t('accountPage.itemsExport')}
-            >
-              <Download className="h-3.5 w-3.5" />
-              {t('accountPage.itemsExport')}
-            </button>
+
+              {!syncStatusLoading && (
+                <button
+                  type="button"
+                  onClick={() => void handleSyncNow()}
+                  disabled={!integrationConnected || !canSyncNow || syncAnyPending}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-2 text-xs font-medium text-white shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 md:h-9 md:px-2.5"
+                  aria-label="Sync"
+                >
+                  {syncNowPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  <span className="hidden sm:inline">Sync</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setExportModalOpen(true)}
+                disabled={loading || filteredInventoryItems.length === 0}
+                className="inline-flex h-8 items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50 md:h-9 md:px-2.5"
+                aria-label={t('accountPage.itemsExport')}
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{t('accountPage.itemsExport')}</span>
+              </button>
+
+              <div className="hidden shrink-0 items-center rounded-lg bg-gray-100 p-1 md:flex">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
+                    viewMode === 'table' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  aria-label="Tabella"
+                  title="Tabella"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('cards')}
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
+                    viewMode === 'cards' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  aria-label="Griglia"
+                  title="Griglia"
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2 md:mt-3">
+            <InventoryMobileQuickBar
+              filters={filters}
+              onFiltersChange={setFilters}
+              facets={facets}
+              itemCount={filteredInventoryItems.length}
+              activeFilterCount={activeFilterCount}
+              onOpenFilters={() => setMobileFiltersOpen(true)}
+              disabled={loading}
+              className="min-w-0 flex-1"
+              showFilterButton={false}
+            />
           </div>
         </div>
 
@@ -339,43 +404,6 @@ export function OggettiContent() {
         {syncBanner && (
           <OggettiSyncBanner banner={syncBanner} onClose={() => setSyncBanner(null)} />
         )}
-
-        <div className="mb-3 flex items-center gap-2 md:mb-4">
-          <InventoryMobileQuickBar
-            filters={filters}
-            onFiltersChange={setFilters}
-            facets={facets}
-            itemCount={filteredInventoryItems.length}
-            activeFilterCount={activeFilterCount}
-            onOpenFilters={() => setMobileFiltersOpen(true)}
-            disabled={loading}
-            className="min-w-0 flex-1"
-          />
-          <div className="hidden shrink-0 items-center rounded-lg bg-gray-100 p-1 md:flex">
-            <button
-              type="button"
-              onClick={() => setViewMode('table')}
-              className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
-                viewMode === 'table' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-              aria-label="Tabella"
-              title="Tabella"
-            >
-              <List className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('cards')}
-              className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
-                viewMode === 'cards' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-              aria-label="Griglia"
-              title="Griglia"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
 
       {error && (
         <div className="mb-6 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -480,49 +508,105 @@ export function OggettiContent() {
 
       {showFloatingBar && (
         <div className="animate-slide-up-bounce fixed bottom-0 left-0 right-0 z-40 overflow-x-clip border-t border-gray-200 bg-white/95 backdrop-blur-md">
-          <div className="mx-auto flex max-w-screen-xl flex-col gap-2 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 md:flex-row md:items-center md:gap-3 md:px-6">
-            <InventorySearchBar
-              value={searchValue}
-              onChange={setSearchValue}
-              onClear={clearSearch}
-              disabled={loading}
-              inputClassName="rounded-lg border-gray-200 bg-white py-1.5 pl-9 pr-9 text-sm shadow-none backdrop-blur-none md:py-2 md:text-sm"
-              className="md:max-w-xs md:flex-1"
-            />
-            <InventoryMobileQuickBar
-              filters={filters}
-              onFiltersChange={setFilters}
-              facets={facets}
-              itemCount={filteredInventoryItems.length}
-              activeFilterCount={activeFilterCount}
-              onOpenFilters={() => setMobileFiltersOpen(true)}
-              disabled={loading}
-            />
-            <div className="flex shrink-0 items-center gap-2 md:ml-auto">
-              {!syncStatusLoading && (
+          <div className="mx-auto flex max-w-screen-xl flex-col gap-2 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 md:gap-3 md:px-6">
+            <div className="flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-sm md:gap-2">
+              <div className="min-w-0 flex-1">
+                <InventorySearchBar
+                  value={searchValue}
+                  onChange={setSearchValue}
+                  onClear={clearSearch}
+                  disabled={loading}
+                  inputClassName="rounded-xl border-0 bg-gray-50 py-2 pl-9 pr-9 text-sm shadow-none backdrop-blur-none md:rounded-lg md:py-2.5"
+                  className="w-full"
+                />
+              </div>
+
+              <div className="hidden h-6 w-px bg-gray-200 md:block" />
+
+              <div className="flex shrink-0 items-center gap-1 md:gap-1.5">
                 <button
                   type="button"
-                  onClick={() => void handleSyncNow()}
-                  disabled={!integrationConnected || !canSyncNow || syncAnyPending}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-2.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+                  onClick={() => setMobileFiltersOpen(true)}
+                  disabled={loading}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50 md:h-9 md:px-2.5"
+                  aria-label={t('accountPage.itemsFiltersPanelTitle')}
                 >
-                  {syncNowPending ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3.5 w-3.5" />
+                  <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                  <span className="hidden sm:inline">{t('accountPage.itemsFiltersPanelTitle')}</span>
+                  {activeFilterCount > 0 && (
+                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+                      {activeFilterCount}
+                    </span>
                   )}
-                  Sync
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setExportModalOpen(true)}
-                disabled={loading || filteredInventoryItems.length === 0}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50"
-              >
-                <Download className="h-3.5 w-3.5" />
-                {t('accountPage.itemsExport')}
-              </button>
+
+                {!syncStatusLoading && (
+                  <button
+                    type="button"
+                    onClick={() => void handleSyncNow()}
+                    disabled={!integrationConnected || !canSyncNow || syncAnyPending}
+                    className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-2 text-xs font-medium text-white shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 md:h-9 md:px-2.5"
+                    aria-label="Sync"
+                  >
+                    {syncNowPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    )}
+                    <span className="hidden sm:inline">Sync</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setExportModalOpen(true)}
+                  disabled={loading || filteredInventoryItems.length === 0}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50 md:h-9 md:px-2.5"
+                  aria-label={t('accountPage.itemsExport')}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{t('accountPage.itemsExport')}</span>
+                </button>
+
+                <div className="hidden shrink-0 items-center rounded-lg bg-gray-100 p-1 md:flex">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('table')}
+                    className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
+                      viewMode === 'table' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                    aria-label="Tabella"
+                    title="Tabella"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('cards')}
+                    className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
+                      viewMode === 'cards' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                    aria-label="Griglia"
+                    title="Griglia"
+                  >
+                    <Grid3X3 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <InventoryMobileQuickBar
+                filters={filters}
+                onFiltersChange={setFilters}
+                facets={facets}
+                itemCount={filteredInventoryItems.length}
+                activeFilterCount={activeFilterCount}
+                onOpenFilters={() => setMobileFiltersOpen(true)}
+                disabled={loading}
+                className="min-w-0 flex-1"
+                showFilterButton={false}
+              />
             </div>
           </div>
         </div>

@@ -95,6 +95,12 @@ Mantenere in `AsteDetailView` solo composition + WebSocket + fetch.
 > lint verdi a ogni passo. `SimilarAuctionsSections` già estratto in precedenza.
 > Da ri-verificare a runtime il dettaglio asta (layout invariato, ma molti blocchi
 > spostati): hero, barra mobile sticky, spedizioni, pannelli stato, accordion.
+>
+> ✅ **Residuo chiuso (2026-06-23):** dopo verifica il file era risalito a 638 righe
+> (logica menu calendario ancora inline). Estratto
+> `hooks/aste/useAuctionCalendarMenu.ts` (stato + ICS/Google + click-outside su due
+> ref + Escape) + test (3). **`AsteDetailView` 638 → 584 righe.** typecheck + lint
+> verdi.
 
 ---
 
@@ -336,11 +342,32 @@ Aggiungere `__tests__/lib/brx-express/smooth-path.test.ts` con unit test.
 > `lib/brx-express/smooth-path.ts`. Componente: 1654 → 1263 righe. Aggiunto
 > `__tests__/lib/brx-express/smooth-path.test.ts` (16 test, verde). Zero cambi
 > di comportamento. `typecheck` e `lint` a 0 errori.
+>
+> ✅ **Split componente FATTO (2026-06-23):** il solo math non bastava (1263 righe).
+> Estratti in due passi behavior-preserving:
+> - `components/feature/brx-express/landing/BrxExpressLandingFx.tsx` — FX SVG
+>   (`GlyphHighlight`, `CardBorderFx`, `StarFx`, …).
+> - `lib/brx-express/build-landing-path.ts` + `hooks/brx-express/useBrxExpressLandingPath.ts`
+>   — geometria pura + misura DOM/ResizeObserver.
+> - `components/feature/brx-express/landing/BrxExpressLandingScene.tsx` +
+>   `brx-express-landing.module.css` — finale gradient, moon easter egg, SVG fiume
+>   e card reveal.
+> - Test: `__tests__/lib/brx-express/build-landing-path.test.ts` (3 test, verde).
+>
+> **`BrxExpressLanding` 1263 → 265 righe** (orchestratore: scroll spring, reveal
+> card, hero + sezione card + termini). typecheck + lint verdi. Da ri-verificare a
+> runtime su `/brx-express`: resize desktop/mobile, scroll fiume, reveal card,
+> finale gradient latch, `prefers-reduced-motion`.
 
 ---
 
 ## Criteri di accettazione
 
-- Nessun file `.tsx`/`ts` superiore a 600 righe (eccetto `i18n/messages/*.ts` e store con `partialize`)
+- Nessun file `.tsx`/`ts` superiore a 600 righe (eccetto `i18n/messages/*.ts`, store con
+  `partialize`, e **eccezioni pragmatiche documentate**: `useScanLoop` 612,
+  `mascotte-wardrobe-items` 1865)
 - Ogni hook estratto ha almeno un test unit
 - `npm run typecheck` e `npm run lint` restano a 0 errori dopo ogni step
+
+> ✅ **Piano 1 chiuso (2026-06-23):** voci 1.2–1.8 sotto soglia o eccezione
+> documentata; 1.1 chiuso con `useScanLoop` come eccezione coesa.

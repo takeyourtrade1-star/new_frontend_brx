@@ -1,0 +1,168 @@
+.finaleGradient {
+  background: linear-gradient(
+    125deg,
+    #0F172A 0%,
+    #1D3160 22%,
+    #2E4A8C 40%,
+    #F97316 58%,
+    #FBBF24 68%,
+    #F97316 76%,
+    #1D3160 92%,
+    #0F172A 100%
+  );
+  animation: finaleDrift 16s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes finaleDrift {
+  from { transform: translate3d(-12%, -10%, 0); }
+  to { transform: translate3d(12%, 10%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finaleGradient { animation: none; }
+}
+
+.cardBirth {
+  animation: cardBirth 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cardBirth {
+  0% { opacity: 0; transform: scale(0.93); filter: blur(7px) brightness(1.9) saturate(1.5); }
+  55% { opacity: 1; transform: scale(1.012); filter: blur(0px) brightness(1.22) saturate(1.18); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0px) brightness(1) saturate(1); }
+}
+
+.cardBirth::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(130% 90% at 50% -10%, rgba(251, 146, 60, 0.22), rgba(251, 191, 36, 0.07) 45%, transparent 72%),
+    radial-gradient(120% 80% at 50% 115%, rgba(249, 115, 22, 0.14), transparent 60%);
+  animation: cardFlare 1.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cardFlare {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardBirth { animation: none; }
+  .cardBirth::after { animation: none; opacity: 0.55; }
+}
+
+.star {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: starTwinkle 2.6s ease-in-out infinite alternate;
+}
+
+@keyframes starTwinkle {
+  from { opacity: 0.14; transform: scale(0.8); }
+  to { opacity: 0.5; transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star { animation: none; opacity: 0.3; }
+}
+
+.moonEgg {
+  animation: moonFloat 5s ease-in-out infinite alternate;
+}
+
+@keyframes moonFloat {
+  from { transform: translateY(0); }
+  to { transform: translateY(-7px); }
+}
+
+.moonPill {
+  border: 1px solid transparent;
+  background:
+    radial-gradient(1.5px 1.5px at 15% 25%, rgba(255,255,255,0.85), transparent 100%),
+    radial-gradient(1px 1px at 35% 70%, rgba(255,255,255,0.55), transparent 100%),
+    radial-gradient(1px 1px at 58% 30%, rgba(255,255,255,0.65), transparent 100%),
+    radial-gradient(1.5px 1.5px at 78% 65%, rgba(255,255,255,0.5), transparent 100%),
+    radial-gradient(1px 1px at 92% 35%, rgba(255,255,255,0.7), transparent 100%),
+    linear-gradient(rgba(8, 12, 26, 0.92), rgba(8, 12, 26, 0.92)) padding-box,
+    linear-gradient(120deg, #6366F1, #C084FC, #FBBF24, #F472B6, #6366F1) border-box;
+  box-shadow: 0 0 26px -6px rgba(129, 140, 248, 0.5);
+}
+
+.moonAura {
+  background: radial-gradient(closest-side, rgba(129, 140, 248, 0.3), rgba(244, 114, 182, 0.12) 55%, transparent 78%);
+  filter: blur(6px);
+  animation: auraPulse 3.5s ease-in-out infinite alternate;
+}
+
+@keyframes auraPulse {
+  from { opacity: 0.55; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1.06); }
+}
+
+.moonOrbit {
+  animation: moonOrbit 7s linear infinite;
+}
+
+@keyframes moonOrbit {
+  to { transform: rotate(360deg); }
+}
+
+.moonSat {
+  position: absolute;
+  top: 50%;
+  left: -10px;
+  margin-top: -2.5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: #BFDBFE;
+  box-shadow: 0 0 8px 1px rgba(147, 197, 253, 0.9);
+}
+
+.eggStar {
+  position: absolute;
+  color: #FDE68A;
+  line-height: 1;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.9);
+  animation: eggTwinkle 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes eggTwinkle {
+  from { opacity: 0.25; transform: scale(0.7) rotate(0deg); }
+  to { opacity: 1; transform: scale(1.15) rotate(45deg); }
+}
+
+.shootingStar {
+  position: absolute;
+  top: -16px;
+  left: -36px;
+  width: 64px;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, #fff 60%, transparent);
+  opacity: 0;
+  animation: shootingStar 7s ease-in 2s infinite;
+}
+
+@keyframes shootingStar {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(18deg); }
+  3% { opacity: 0.95; }
+  10% { opacity: 0; transform: translate3d(150px, 48px, 0) rotate(18deg); }
+  100% { opacity: 0; transform: translate3d(150px, 48px, 0) rotate(18deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moonEgg,
+  .moonAura,
+  .moonOrbit,
+  .eggStar,
+  .shootingStar {
+    animation: none;
+  }
+  .moonSat { display: none; }
+}

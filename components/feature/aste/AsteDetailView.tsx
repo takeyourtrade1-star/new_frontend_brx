@@ -4,7 +4,7 @@
  * Dettaglio asta — light mode (sfondo bianco) come Figma: card bianca, testi scuri, accenti arancioni.
  */
 
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { minNextBidEur, roundMoney } from '@/lib/auction/bid-math';
 import { AuctionBidPanel } from '@/components/feature/aste/AuctionBidPanel';
@@ -31,8 +31,8 @@ import {
   sameUserId,
   HEADER_OFFSET,
 } from '@/lib/auction/auction-detail-utils';
-import { buildAuctionExpiryIcs, buildGoogleCalendarUrl } from '@/lib/auction/calendar';
 import { useAuctionProxyBidding } from '@/hooks/aste/useAuctionProxyBidding';
+import { useAuctionCalendarMenu } from '@/hooks/aste/useAuctionCalendarMenu';
 import { AuctionCollapsibleRow } from '@/components/feature/aste/detail/AuctionCollapsibleRow';
 import { AuctionProductMeta } from '@/components/feature/aste/detail/AuctionProductMeta';
 import { AuctionGallery } from '@/components/feature/aste/detail/AuctionGallery';
@@ -104,7 +104,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const [bidsExpanded, setBidsExpanded] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [shippingExpanded, setShippingExpanded] = useState(false);
-  const [calendarMenuOpen, setCalendarMenuOpen] = useState(false);
   const calendarMenuMobileRef = useRef<HTMLDivElement>(null);
   const calendarMenuDesktopRef = useRef<HTMLDivElement>(null);
   const [pendingSaveAfterLogin, setPendingSaveAfterLogin] = useState(false);
@@ -289,72 +288,19 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     detail?.description?.trim() || t('auctions.detailDescriptionEmpty');
   const proxyBidIsWinning = !isOwner && !isEnded && myMaxBidEur != null && isWinning && myMaxBidEur >= effectiveCurrentBidEur;
   const proxyBidOutbid = !isOwner && !isEnded && myMaxBidEur != null && !proxyBidIsWinning;
-  const downloadCalendarIcs = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const eventStart = new Date(endsAt);
-    if (Number.isNaN(eventStart.getTime())) return;
 
-    const icsContent = buildAuctionExpiryIcs({
-      auctionId: numericId,
-      title: detailTitle,
-      url: window.location.href,
-      start: eventStart,
-    });
-
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const fileUrl = window.URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = fileUrl;
-    anchor.download = `asta-${numericId}-scadenza.ics`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    window.URL.revokeObjectURL(fileUrl);
-  }, [detailTitle, endsAt, numericId]);
-
-  const openGoogleCalendar = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const eventStart = new Date(endsAt);
-    if (Number.isNaN(eventStart.getTime())) return;
-    const url = buildGoogleCalendarUrl({
-      title: detailTitle,
-      url: window.location.href,
-      start: eventStart,
-    });
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }, [detailTitle, endsAt]);
-
-  const handleAddToIosCalendar = useCallback(() => {
-    downloadCalendarIcs();
-    setCalendarMenuOpen(false);
-  }, [downloadCalendarIcs]);
-
-  const handleAddToGoogleCalendar = useCallback(() => {
-    openGoogleCalendar();
-    setCalendarMenuOpen(false);
-  }, [openGoogleCalendar]);
-
-  useEffect(() => {
-    if (!calendarMenuOpen) return;
-    const onPointerDown = (event: MouseEvent | PointerEvent) => {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (calendarMenuMobileRef.current?.contains(target)) return;
-      if (calendarMenuDesktopRef.current?.contains(target)) return;
-      setCalendarMenuOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setCalendarMenuOpen(false);
-      }
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [calendarMenuOpen]);
+  const {
+    calendarMenuOpen,
+    setCalendarMenuOpen,
+    handleAddToIosCalendar,
+    handleAddToGoogleCalendar,
+  } = useAuctionCalendarMenu({
+    numericId,
+    detailTitle,
+    endsAt,
+    calendarMenuMobileRef,
+    calendarMenuDesktopRef,
+  });
 
   useEffect(() => {
     if (proxyBidOutbid && !previousProxyBidOutbidRef.current) {
