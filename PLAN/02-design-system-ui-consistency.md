@@ -107,11 +107,15 @@ Azioni:
 - Aggiungere variante `variant="orange"` per CTA brand
 - Rimuovere `btn-orange-glow` animazione infinita, run on hover + `prefers-reduced-motion`
 
-> 🟡 **PARZIALMENTE RIMANDATO.** File reale: `components/ui/button.tsx` (kebab-case),
-> usa già `cva` + `bg-primary`. La prop `loading` è additiva e sicura, ma le altre
-> azioni sono legate alla migrazione colori (2.4) e alla rimozione di `btn-orange-glow`
-> (animazione condivisa da `button-orange`): cambi visivi/comportamentali da verificare
-> a runtime. Da fare insieme a 2.4, non isolato.
+> 🟢 **Prop `loading` FATTA (2026-06-23).** Aggiunta a `components/ui/button.tsx`:
+> `loading?: boolean` → spinner `<Loader2 aria-hidden className="animate-spin">` +
+> `aria-busy` + `disabled`. Backward-compatible (default `false` = comportamento
+> identico). Ignorata con `asChild` (Slot richiede figlio singolo) → documentato nel
+> tipo. typecheck + lint a 0 errori.
+>
+> 🟡 **RESTANO (cambi visivi/comportamentali, da fare con 2.4 + runtime):** conversione
+> `primary` a HSL, variante `variant="orange"`, rimozione `btn-orange-glow` (animazione
+> infinita condivisa da `button-orange`). Non isolabili dalla migrazione colori.
 
 ---
 
@@ -263,18 +267,31 @@ Rimuovere `'use client'` da: `AuthCard`, `AuthSubmitButton`, `AuthSecondaryButto
 > - 2.8 (batch 1+2) — rimosso `'use client'` da 13 componenti puramente
 >   presentazionali (verifica `npm run build`). Il resto della lista del piano
 >   resta client per necessità (store/handler/window/ref).
+> - 2.2 (avviato) — primitivi `Skeleton` + `EmptyState` (dep-free) con una
+>   migrazione di riferimento ciascuno.
+> - 2.3 (parziale) — prop `loading` additiva su `Button`.
 >
 > typecheck + lint + build a 0 errori.
 >
 > **Rimandato (non minimale/comportamentale, da staged + runtime):** OTP di 2.1,
-> 2.2, 2.3, 2.4, migrazione usi 2.5, 2.6, 2.7. La sez. 2.8 è di fatto chiusa per
-> i componenti convertibili. Vedi note per sezione.
+> resto di 2.2 (Radix/sonner/table), parte colore di 2.3, 2.4, migrazione usi 2.5,
+> 2.6, 2.7. La sez. 2.8 è di fatto chiusa per i componenti convertibili. Vedi note
+> per sezione.
 
 ---
 
 ## Criteri di accettazione
 
-- `npm run lint` e `npm run typecheck` restano a 0 errori
+- `npm run lint` e `npm run typecheck` restano a 0 errori ✅ (mantenuto)
 - `grep -r "focus:ring-0\|focus:outline-none" components/ui/` limitato ai casi giustificati
 - Nessun hex `#FF7300`/`#1D3160`/`#0F172A` in `className` (eccetto `globals.css`)
 - Nessun `z-[NNN]` arbitrario sopra 100 (solo token)
+
+> 🔎 **Audit focus-ring (2026-06-23).** 9 match in `components/ui/`. **Giustificati (6):**
+> `ToggleControlColumn`, `CustomSelect`, `ErrorBoundary`, `AuthErrorAlert`,
+> `CountrySelect`, `otp-six-boxes` — abbinano `outline-none` a un `ring`/`focus-visible`
+> visibile. ⚠️ **Da sistemare (4, in `SearchBar.tsx` righe 50/63/80/89):**
+> `focus:outline-none focus:ring-0` **senza** indicatore di focus sostitutivo → gap
+> a11y. Non corretto qui: aggiungere un focus ring è un cambio visivo su un componente
+> condiviso → da fare con verifica. Gli altri criteri (hex/z-index) restano aperti
+> (vedi 2.4/2.5).
