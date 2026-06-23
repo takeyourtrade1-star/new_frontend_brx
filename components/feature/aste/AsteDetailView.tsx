@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { Eye, Package, TrendingUp, Users, Bookmark, ArrowLeft, ChevronDown, PlusCircle, Globe } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
-import { minNextBidEur, parseLocaleMoneyInput, roundMoney, roundUpToHalfStep } from '@/lib/auction/bid-math';
+import { minNextBidEur, roundMoney } from '@/lib/auction/bid-math';
 import { AuctionBidPanel } from '@/components/feature/aste/AuctionBidPanel';
 import { AuctionShareButton } from '@/components/feature/aste/AuctionShareButton';
 import { AuctionQrButton } from '@/components/feature/aste/AuctionQrButton';
@@ -23,8 +23,6 @@ import {
   useAuctionBids,
   useAuctionList,
   useAuctionWebSocket,
-  useCancelProxyLimit,
-  useUpdateProxyLimit,
 } from '@/lib/hooks/use-auctions';
 import { apiToAuctionUI, apiBidToBidRow, type AuctionUI, type BidRowUI } from '@/lib/auction/auction-adapter';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -40,6 +38,7 @@ import {
   HEADER_OFFSET,
 } from '@/lib/auction/auction-detail-utils';
 import { buildAuctionExpiryIcs, buildGoogleCalendarUrl } from '@/lib/auction/calendar';
+import { useAuctionProxyBidding } from '@/hooks/aste/useAuctionProxyBidding';
 import { AuctionCollapsibleRow } from '@/components/feature/aste/detail/AuctionCollapsibleRow';
 import { AuctionProductMeta } from '@/components/feature/aste/detail/AuctionProductMeta';
 import { AuctionGallery } from '@/components/feature/aste/detail/AuctionGallery';
@@ -92,9 +91,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const [thumbStart, setThumbStart] = useState(0);
   const [myLastOfferEur, setMyLastOfferEur] = useState<number | null>(null);
   const [myMaxBidEur, setMyMaxBidEur] = useState<number | null>(null);
-  const [proxyModalOpen, setProxyModalOpen] = useState(false);
-  const [proxyInput, setProxyInput] = useState('');
-  const [proxyInputError, setProxyInputError] = useState<string | null>(null);
   const [floatingNotice, setFloatingNotice] = useState<{
     kind: 'success' | 'warning';
     message: string;
@@ -112,8 +108,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const [calendarMenuOpen, setCalendarMenuOpen] = useState(false);
   const calendarMenuMobileRef = useRef<HTMLDivElement>(null);
   const calendarMenuDesktopRef = useRef<HTMLDivElement>(null);
-  const updateProxyLimitMutation = useUpdateProxyLimit(Number.isNaN(numericId) ? 0 : numericId);
-  const cancelProxyLimitMutation = useCancelProxyLimit(Number.isNaN(numericId) ? 0 : numericId);
   const [pendingSaveAfterLogin, setPendingSaveAfterLogin] = useState(false);
 
   const savedStatusQuery = useQuery({
@@ -132,6 +126,26 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       queryClient.invalidateQueries({ queryKey: ['saved-auctions', 'status', numericId, currentUserId] });
       queryClient.invalidateQueries({ queryKey: ['saved-auctions', 'list', currentUserId] });
     },
+  });
+
+  const {
+    proxyModalOpen,
+    proxyInput,
+    setProxyInput,
+    proxyInputError,
+    setProxyInputError,
+    openProxyModal,
+    closeProxyModal,
+    stopProxyBidding,
+    increaseProxyLimit,
+    resetProxyModal,
+    isUpdating: isProxyUpdating,
+    isCancelling: isProxyCancelling,
+  } = useAuctionProxyBidding({
+    numericId: Number.isNaN(numericId) ? 0 : numericId,
+    myMaxBidEur,
+    setMyMaxBidEur,
+    onNotice: setFloatingNotice,
   });
 
   useEffect(() => {
@@ -175,11 +189,9 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     // altrimenti modale e toast mostrano dati dell'asta precedente.
     setMyMaxBidEur(null);
     setMyLastOfferEur(null);
-    setProxyModalOpen(false);
-    setProxyInput('');
-    setProxyInputError(null);
+    resetProxyModal();
     previousProxyBidOutbidRef.current = false;
-  }, [numericId]);
+  }, [numericId, resetProxyModal]);
 
   useEffect(() => {
     if (imgIdx < thumbStart) {
@@ -378,62 +390,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       </div>
     );
   }
-
-  const openProxyModal = () => {
-    if (myMaxBidEur == null) return;
-    const normalized = roundUpToHalfStep(myMaxBidEur);
-    setProxyInput(
-      Number.isInteger(normalized)
-        ? String(normalized)
-        : normalized.toFixed(1).replace('.', ',')
-    );
-    setProxyInputError(null);
-    setProxyModalOpen(true);
-  };
-
-  const closeProxyModal = () => {
-    setProxyModalOpen(false);
-    setProxyInputError(null);
-  };
-
-  const stopProxyBidding = async () => {
-    try {
-      await cancelProxyLimitMutation.mutateAsync();
-      setMyMaxBidEur(null);
-      setFloatingNotice({
-        kind: 'success',
-        message: 'Proxy bidding disattivato.',
-      });
-      closeProxyModal();
-    } catch (err) {
-      setProxyInputError(err instanceof Error ? err.message : 'Impossibile disattivare il proxy bidding.');
-    }
-  };
-
-  const increaseProxyLimit = async () => {
-    if (myMaxBidEur == null) return;
-    const parsed = parseLocaleMoneyInput(proxyInput);
-    if (!Number.isFinite(parsed)) {
-      setProxyInputError('Inserisci un importo valido.');
-      return;
-    }
-    const nextLimit = roundUpToHalfStep(parsed);
-    if (nextLimit <= myMaxBidEur) {
-      setProxyInputError(`Il nuovo limite deve essere superiore a ${fmtEur(myMaxBidEur)}.`);
-      return;
-    }
-    try {
-      const res = await updateProxyLimitMutation.mutateAsync({ maxAmount: nextLimit });
-      setMyMaxBidEur(res.data.proxy_limit);
-      setFloatingNotice({
-        kind: 'success',
-        message: `Proxy bidding impostato a ${fmtEur(res.data.proxy_limit)}.`,
-      });
-      closeProxyModal();
-    } catch (err) {
-      setProxyInputError(err instanceof Error ? err.message : 'Impossibile aggiornare il limite proxy.');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
@@ -984,8 +940,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
           onIncrease={increaseProxyLimit}
           onStop={stopProxyBidding}
           onClose={closeProxyModal}
-          isUpdating={updateProxyLimitMutation.isPending}
-          isCancelling={cancelProxyLimitMutation.isPending}
+          isUpdating={isProxyUpdating}
+          isCancelling={isProxyCancelling}
         />
       )}
     </div>
