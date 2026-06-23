@@ -72,6 +72,22 @@ Estrarre:
 
 Mantenere in `AsteDetailView` solo composition + WebSocket + fetch.
 
+> ✅ **Seam logici FATTI (2026-06-23):**
+> - `lib/auction/calendar.ts` (`buildAuctionExpiryIcs`, `buildGoogleCalendarUrl`) +
+>   test (6) — gli helper ICS puri erano già in `auction-detail-utils`, qui spostata
+>   la composizione, lasciando Blob/anchor/window.open nel componente.
+> - `hooks/aste/useAuctionProxyBidding.ts` — modale + validazione + mutazioni
+>   update/cancel (`myMaxBidEur` resta nel componente).
+> - `hooks/aste/useAuctionSaved.ts` — query stato + mutazione save/unsave.
+>
+> **`AsteDetailView` 1018 → 883 righe.** Comportamento identico; typecheck + lint
+> verdi. Da ri-verificare a runtime: modale proxy (apri/aumenta/stop) e bottone
+> salva, perché il loro cablaggio è cambiato.
+>
+> 🟡 **Residuo:** split presentazionale (`<AuctionHeader>` ecc.) NON fatto — è
+> ~490 righe di JSX nel render, refactor UI più rischioso (prop threading, no
+> test, verifica solo runtime). `SimilarAuctionsSections` già estratto in precedenza.
+
 ---
 
 ## 1.3 Split `ProductDetailView` (1144 righe)
