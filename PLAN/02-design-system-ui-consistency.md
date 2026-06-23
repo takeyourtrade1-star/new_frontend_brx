@@ -55,12 +55,20 @@ Mantenere solo `input-otp` (Radix), rimuovere `otp-six-boxes`.
 
 ## 2.2 Introdurre componenti shadcn mancanti
 
-> 🛑 **RIMANDATO.** I 9 componenti (`dialog/select/tabs/dropdown-menu/toast/table/
-> form/field/skeleton/empty-state`) **non esistono** in `components/ui/` (confermato),
-> ma "aggiungere + refactorare a tappeto" tocca decine di componenti con API e
-> comportamenti diversi (focus trap, scroll lock, markup tabella/select) → alto
-> churn e rischio regressioni, non eseguibile alla cieca. Da affrontare un
-> componente alla volta con migrazione verificata, non in blocco.
+> 🟡 **IN CORSO — un componente alla volta.** I 9 componenti non esistono
+> (confermato). ⚠️ **Vincolo dipendenze:** è installato solo `@radix-ui/react-slot`;
+> mancano `react-dialog/select/tabs/dropdown-menu` e `sonner` → **4 componenti su 9
+> (dialog/select/tabs/dropdown-menu) + toast richiedono nuove dipendenze** (decisione
+> da prendere, non aggiunte unilateralmente). I dep-free (`skeleton`, `empty-state`,
+> `table`) si possono fare subito.
+>
+> 🟢 **`skeleton.tsx` FATTO (2026-06-23).** Creato `components/ui/skeleton.tsx`
+> (primitivo shadcn: `animate-pulse rounded-md bg-muted`, override via `className`,
+> niente `'use client'`). ⚠️ Il piano diceva "4 implementazioni": in realtà
+> `animate-pulse` compare in **18 file** (e non tutte sono skeleton — es. un badge
+> "featured" pulsa). Migrazione **incrementale**: fatto `AuthSkeleton.tsx` (8 blocchi)
+> come pattern di riferimento, look invariato (tailwind-merge risolve gli override).
+> Gli altri file adottano `Skeleton` man mano. typecheck + lint a 0 errori.
 
 Aggiungere in `components/ui/`:
 
