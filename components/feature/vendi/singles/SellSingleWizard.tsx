@@ -1,32 +1,20 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
 
-import { QRCodeSVG } from 'qrcode.react';
-import { Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Loader2, QrCode, Tag } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Loader2, Tag } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   AUCTION_LISTING_PHOTO_MAX,
   MARKETPLACE_LISTING_PHOTO_MIN,
-  type ListingPhotoSlot,
 } from '@/lib/auction/auction-create-draft';
 import { createListing, MarketplaceApiError } from '@/lib/api/marketplace-client';
-import {
-  attachListingPhotos,
-  deletePhoto as deleteUploadedPhoto,
-  uploadPhoto,
-  type UploadedPhoto,
-} from '@/lib/api/listing-photo-client';
+import { attachListingPhotos } from '@/lib/api/listing-photo-client';
 import { usePhotoPairingSession } from '@/lib/hooks/use-photo-pairing-session';
 import {
   syncConditionToMarketplace,
   syncLanguageToMarketplace,
 } from '@/lib/marketplace/condition-map';
-import {
-  SELL_SINGLE_CONDITION_IMAGES,
-  sellSingleConditionLabel,
-} from '@/lib/marketplace/sell-single-conditions';
 import {
   createSellSingleDraftFromCard,
   parseSellSinglePriceInput,
@@ -36,27 +24,14 @@ import { buildCardLanguageOptions, type CardLanguageOption } from '@/lib/card-la
 import type { CardDocument } from '@/lib/product-detail';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
-import {
-  ListingPhotoUpload,
-  ListingPhotoThumbnailsRow,
-  listingPhotosReady,
-  type ListingPhotoUploadStatus,
-} from './ListingPhotoUpload';
-import { PhotoPairingInlinePanel } from '@/components/feature/aste/create/PhotoPairingInlinePanel';
-import { CompactPhotoGallery } from '@/components/feature/aste/create/CompactPhotoGallery';
-import { ImageLightbox } from '@/components/ui/ImageLightbox';
+import { useSellSinglePhotos } from '@/hooks/vendi/useSellSinglePhotos';
 import { SellSingleDetailsStep } from './SellSingleDetailsStep';
 import { SellSingleConfirmStep } from './SellSingleConfirmStep';
-import { SellWizardLightbox, SellWizardModal } from './SellWizardModal';
+import { SellSinglePhotoStep } from './SellSinglePhotoStep';
+import { SellSingleWizardModals } from './SellSingleWizardModals';
 
 type WizardStepId = 'details' | 'confirm';
 
-function slotIncludedIn(slots: ListingPhotoSlot[], s: ListingPhotoSlot): boolean {
-  if (s.kind === 'local') {
-    return slots.some((x) => x.kind === 'local' && x.file === s.file);
-  }
-  return slots.some((x) => x.kind === 'remote' && x.photo.id === s.photo.id);
-}
 
 export type SellSingleWizardProps = {
   variant?: 'standalone' | 'embedded';
@@ -91,14 +66,6 @@ export function SellSingleWizard({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  type PhotoUploadEntry = {
-    status: 'uploading' | 'done' | 'error';
-    progress: number;
-    photo?: UploadedPhoto;
-    error?: string;
-    abort: AbortController;
-  };
-  const [photoUploads, setPhotoUploads] = useState<Map<File, PhotoUploadEntry>>(() => new Map());
   const [qrCodeSize, setQrCodeSize] = useState(168);
 
   /** Input nascosti per la riga azioni foto unificata (come nel tab Asta). */
@@ -145,82 +112,17 @@ export function SellSingleWizard({
     setActionMessage(null);
   }, []);
 
-  const startUploadFor = useCallback((file: File) => {
-    const abort = new AbortController();
-    setPhotoUploads((prev) => {
-      const next = new Map(prev);
-      next.set(file, { status: 'uploading', progress: 0, abort });
-      return next;
-    });
-
-    uploadPhoto(file, {
-      signal: abort.signal,
-      onProgress: (pct) => {
-        setPhotoUploads((prev) => {
-          const entry = prev.get(file);
-          if (!entry || entry.status !== 'uploading') return prev;
-          const next = new Map(prev);
-          next.set(file, { ...entry, progress: pct });
-          return next;
-        });
-      },
-    })
-      .then((photo) => {
-        setPhotoUploads((prev) => {
-          if (!prev.has(file)) return prev;
-          const next = new Map(prev);
-          next.set(file, { status: 'done', progress: 100, photo, abort });
-          return next;
-        });
-      })
-      .catch((err: unknown) => {
-        if (abort.signal.aborted) return;
-        const message = err instanceof Error ? err.message : 'Upload fallito. Riprova.';
-        setPhotoUploads((prev) => {
-          if (!prev.has(file)) return prev;
-          const next = new Map(prev);
-          next.set(file, { status: 'error', progress: 0, error: message, abort });
-          return next;
-        });
-      });
-  }, []);
-
-  const setListingPhotos = useCallback(
-    (next: ListingPhotoSlot[]) => {
-      setDraft((d) => {
-        const previous = d.listingPhotos;
-
-        for (const old of previous) {
-          if (slotIncludedIn(next, old)) continue;
-          if (old.kind === 'local') {
-            const entry = photoUploads.get(old.file);
-            if (!entry) continue;
-            entry.abort.abort();
-            if (entry.status === 'done' && entry.photo) {
-              void deleteUploadedPhoto(entry.photo.id).catch(() => {});
-            }
-            setPhotoUploads((prev) => {
-              if (!prev.has(old.file)) return prev;
-              const m = new Map(prev);
-              m.delete(old.file);
-              return m;
-            });
-          } else {
-            void deleteUploadedPhoto(old.photo.id).catch(() => {});
-          }
-        }
-
-        for (const s of next) {
-          if (slotIncludedIn(previous, s)) continue;
-          if (s.kind === 'local') startUploadFor(s.file);
-        }
-
-        return { ...d, listingPhotos: next };
-      });
-      setError(null);
-    },
-    [photoUploads, startUploadFor],
-  );
+  const {
+    setListingPhotos,
+    retryFailedUpload,
+    appendListingPhotos,
+    photoUploadStatuses,
+    allPhotosUploaded,
+    failedUploadFiles,
+    lightboxUrls,
+    collectPhotoIds,
+    resetUploads,
+  } = useSellSinglePhotos({ listingPhotos: draft.listingPhotos, setDraft, setError });
 
   const pairing = usePhotoPairingSession({
     stepId,
@@ -234,76 +136,12 @@ export function SellSingleWizard({
     autoCloseOnFirstRemotePhoto: isEmbedded,
   });
 
-  const retryFailedUpload = useCallback(
-    (file: File) => {
-      setPhotoUploads((prev) => {
-        if (!prev.has(file)) return prev;
-        const m = new Map(prev);
-        m.delete(file);
-        return m;
-      });
-      startUploadFor(file);
-    },
-    [startUploadFor],
-  );
 
-  /** Aggiunge foto dalla riga azioni unificata, rispettando il massimo. */
-  const appendListingPhotos = useCallback(
-    (fileList: FileList | null) => {
-      if (!fileList?.length) return;
-      const next = [...draft.listingPhotos];
-      for (const f of Array.from(fileList)) {
-        if (!f.type.startsWith('image/')) continue;
-        if (next.length >= AUCTION_LISTING_PHOTO_MAX) break;
-        next.push({ kind: 'local', file: f });
-      }
-      if (next.length > draft.listingPhotos.length) setListingPhotos(next);
-    },
-    [draft.listingPhotos, setListingPhotos],
-  );
 
-  const photoUploadStatuses = useMemo<ListingPhotoUploadStatus[]>(
-    () =>
-      draft.listingPhotos.map((slot) => {
-        if (slot.kind === 'remote') return { kind: 'done', cdnUrl: slot.photo.cdn_url };
-        const entry = photoUploads.get(slot.file);
-        if (!entry) return { kind: 'idle' };
-        if (entry.status === 'uploading') return { kind: 'uploading', progress: entry.progress };
-        if (entry.status === 'done' && entry.photo) return { kind: 'done', cdnUrl: entry.photo.cdn_url };
-        return { kind: 'error', message: entry.error || 'Upload fallito' };
-      }),
-    [draft.listingPhotos, photoUploads],
-  );
 
-  const allPhotosUploaded = useMemo(
-    () => listingPhotosReady(draft.listingPhotos, photoUploadStatuses),
-    [draft.listingPhotos, photoUploadStatuses],
-  );
 
-  const failedUploadFiles = useMemo(
-    () =>
-      draft.listingPhotos
-        .filter(
-          (s): s is Extract<ListingPhotoSlot, { kind: 'local' }> =>
-            s.kind === 'local' && photoUploads.get(s.file)?.status === 'error',
-        )
-        .map((s) => s.file),
-    [draft.listingPhotos, photoUploads],
-  );
 
-  const lightboxUrls = useMemo(
-    () => draft.listingPhotos.map((slot) => (slot.kind === 'local' ? URL.createObjectURL(slot.file) : slot.photo.cdn_url)),
-    [draft.listingPhotos],
-  );
 
-  useEffect(() => {
-    return () => {
-      draft.listingPhotos.forEach((slot, i) => {
-        if (slot.kind === 'local') URL.revokeObjectURL(lightboxUrls[i]!);
-      });
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lightboxUrls]);
 
   useEffect(() => {
     if (!pairing.phoneUploadModalOpen) return;
@@ -369,18 +207,6 @@ export function SellSingleWizard({
     }
   };
 
-  const collectPhotoIds = useCallback((): number[] => {
-    const ids: number[] = [];
-    for (const slot of draft.listingPhotos) {
-      if (slot.kind === 'remote') {
-        ids.push(slot.photo.id);
-        continue;
-      }
-      const entry = photoUploads.get(slot.file);
-      if (entry?.status === 'done' && entry.photo) ids.push(entry.photo.id);
-    }
-    return ids;
-  }, [draft.listingPhotos, photoUploads]);
 
   const publish = async () => {
     if (!validateDetails()) {
@@ -478,7 +304,7 @@ export function SellSingleWizard({
     setDone(false);
     setStepId('details');
     setDraft(createSellSingleDraftFromCard(embeddedCard));
-    setPhotoUploads(new Map());
+    resetUploads();
     setError(null);
     setActionMessage(null);
   };
@@ -612,195 +438,20 @@ export function SellSingleWizard({
                 totalPrice={totalPrice}
                 compact={isEmbedded}
               >
-                <div
-                  className={cn(
-                    'space-y-2',
-                    isEmbedded && 'space-y-1.5',
-                    draft.listingPhotos.length > 0 && 'sm:flex sm:flex-row sm:items-start sm:gap-4 sm:space-y-0',
-                  )}
-                >
-                  <input
-                    ref={sellGalleryInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="sr-only"
-                    onChange={(e) => {
-                      appendListingPhotos(e.target.files);
-                      e.target.value = '';
-                    }}
-                  />
-                  <input
-                    ref={sellCameraInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="sr-only"
-                    onChange={(e) => {
-                      appendListingPhotos(e.target.files);
-                      e.target.value = '';
-                    }}
-                  />
-                  <div
-                    className={cn(
-                      'flex items-stretch gap-1.5',
-                      draft.listingPhotos.length > 0
-                        ? 'sm:flex sm:flex-col sm:w-1/3 sm:gap-2'
-                        : 'sm:grid sm:grid-cols-2',
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => sellGalleryInputRef.current?.click()}
-                      disabled={draft.listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX}
-                      className={cn(
-                        'group flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40',
-                        draft.listingPhotos.length > 0 ? 'sm:w-full' : 'sm:flex-none',
-                      )}
-                    >
-                      <ImageIcon className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
-                      Carica
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => sellCameraInputRef.current?.click()}
-                      disabled={draft.listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX}
-                      className="group flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:hidden"
-                    >
-                      <Camera className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
-                      Scatta da telefono
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        pairing.phoneUploadModalOpen
-                          ? pairing.closePhoneUploadModal()
-                          : void pairing.openPhoneUploadModal()
-                      }
-                      disabled={pairing.pairingActionLoading}
-                      aria-label="Carica da telefono con QR"
-                      title="Carica da telefono con QR"
-                      className={cn(
-                        'group hidden flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:flex',
-                        draft.listingPhotos.length > 0 && 'sm:w-full',
-                      )}
-                    >
-                      <QrCode className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
-                      Scatta da telefono
-                    </button>
-                  </div>
-                  <div
-                    className={cn(
-                      draft.listingPhotos.length > 0 && 'flex-1 sm:w-2/3 space-y-2',
-                      !pairing.phoneUploadModalOpen && draft.listingPhotos.length > 0 && 'sm:mt-0',
-                    )}
-                  >
-                    {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
-                      <div className="rounded-xl border border-[#1D3160]/10 bg-[#1D3160]/5 p-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#1D3160]">
-                            Collegamento telefono attivo
-                          </span>
-                        </div>
-                        <div className="text-xs text-zinc-700 font-medium">
-                          {t('vendi.sell.photoPairingSessionActive', {
-                            count: String(pairing.remotePhotoCount),
-                            max: String(pairing.maxPhotos),
-                            minutes: String(pairing.expiresInMinutes ?? '—'),
-                          })}
-                        </div>
-                        <p className="text-[10px] text-zinc-500 leading-snug">
-                          {t('vendi.sell.photoFromPhonePollingHint')}
-                        </p>
-                        <div className="flex gap-3 pt-1 text-[10px] font-semibold">
-                          <button
-                            type="button"
-                            onClick={() => void pairing.regenerateQr()}
-                            className="text-[#1D3160] hover:text-[#FF7300] transition-colors underline"
-                          >
-                            {t('vendi.sell.photoPairingRegenerateQr')}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void pairing.revokePairing()}
-                            className="text-zinc-500 hover:text-red-600 transition-colors underline"
-                          >
-                            {t('vendi.sell.photoPairingCloseSession')}
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                    {isEmbedded && pairing.phoneUploadModalOpen && pairing.phonePairingQrUrl ? (
-                      <div className="flex flex-col gap-2 sm:flex-row">
-                        <div className={cn(draft.listingPhotos.length > 0 ? 'sm:w-1/3' : 'w-full')}>                        
-                          <PhotoPairingInlinePanel
-                            compact
-                            qrUrl={pairing.phonePairingQrUrl}
-                            body={t('vendi.sell.photoFromPhoneModalBody')}
-                            regenerateLabel={t('vendi.sell.photoPairingRegenerateQr')}
-                            closeSessionLabel={t('vendi.sell.photoPairingCloseSession')}
-                            onRegenerate={pairing.regenerateQr}
-                            onCloseSession={pairing.revokePairing}
-                          />
-                        </div>
-                        {draft.listingPhotos.length > 0 ? (
-                          <div className="sm:w-2/3">                          
-                            <CompactPhotoGallery
-                              photos={draft.listingPhotos}
-                              uploadStatuses={photoUploadStatuses}
-                              onRemove={(index) => {
-                                const next = draft.listingPhotos.filter((_, i) => i !== index);
-                                setListingPhotos(next);
-                              }}
-                              highlightPhotoId={pairing.flashPhotoId}
-                              onPhotoClick={(index) => {
-                                setLightboxIndex(index);
-                                setLightboxOpen(true);
-                              }}
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {pairing.phonePhotoToast ? (
-                      <p className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-medium text-emerald-900">
-                        {pairing.phonePhotoToast}
-                      </p>
-                    ) : null}
-                    {pairing.pairingActionError ? (
-                      <p className="text-[11px] text-red-700">{pairing.pairingActionError}</p>
-                    ) : null}
-
-                    {!pairing.phoneUploadModalOpen ? (
-                      <ListingPhotoUpload
-                        photos={draft.listingPhotos}
-                        onPhotosChange={setListingPhotos}
-                        compact={draft.listingPhotos.length === 0}
-                        hideAddTile
-                        uploadStatuses={photoUploadStatuses}
-                        highlightPhotoId={pairing.flashPhotoId}
-                      />
-                    ) : null}
-                    {failedUploadFiles.length > 0 && (
-                      <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-900">
-                        <p className="font-semibold">Alcune foto non sono state caricate.</p>
-                        <div className="mt-1.5 flex flex-wrap gap-1.5">
-                          {failedUploadFiles.map((file, i) => (
-                            <button
-                              key={`${file.name}-${i}`}
-                              type="button"
-                              onClick={() => retryFailedUpload(file)}
-                              className="rounded border border-red-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-red-800 hover:bg-red-100"
-                            >
-                              Riprova
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <SellSinglePhotoStep
+                  listingPhotos={draft.listingPhotos}
+                  isEmbedded={isEmbedded}
+                  galleryInputRef={sellGalleryInputRef}
+                  cameraInputRef={sellCameraInputRef}
+                  onAppendPhotos={appendListingPhotos}
+                  pairing={pairing}
+                  photoUploadStatuses={photoUploadStatuses}
+                  onListingPhotosChange={setListingPhotos}
+                  onPhotoClick={(index) => { setLightboxIndex(index); setLightboxOpen(true); }}
+                  failedUploadFiles={failedUploadFiles}
+                  onRetryUpload={retryFailedUpload}
+                  t={t}
+                />
               </SellSingleConfirmStep>
             )}
           </div>
@@ -854,243 +505,28 @@ export function SellSingleWizard({
         </div>
       </div>
 
-      {!isEmbedded ? (
-        <SellWizardModal
-          open={Boolean(pairing.phoneUploadModalOpen && pairing.pairingSessionId && pairing.phonePairingQrUrl)}
-          onClose={pairing.closePhoneUploadModal}
-          title={t('vendi.sell.photoFromPhoneModalTitle')}
-          titleId="sell-phone-upload-qr-title"
-          footer={
-            <button
-              type="button"
-              onClick={() => pairing.closePhoneUploadModal()}
-              className="w-full rounded-xl bg-[#1D3160] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1D3160]/90"
-            >
-              {t('vendi.sell.photoFromPhoneModalClose')}
-            </button>
-          }
-        >
-          <p className="text-sm leading-relaxed text-gray-700">
-            {t('vendi.sell.photoFromPhoneModalBody')}
-          </p>
-          <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
-            {t('vendi.sell.photoFromPhoneModalCloseHint')}
-          </p>
-          <div className="mt-3 flex justify-center rounded-xl border border-gray-100 bg-white p-3">
-            {pairing.phonePairingQrUrl ? (
-              <QRCodeSVG value={pairing.phonePairingQrUrl} size={qrCodeSize} level="M" className="h-auto w-auto max-w-full" />
-            ) : null}
-          </div>
-          <p className="mt-2 line-clamp-2 text-center text-[10px] text-gray-500" title={pairing.phonePairingQrUrl}>
-            {pairing.phonePairingQrUrl}
-          </p>
-        </SellWizardModal>
-      ) : null}
-
-      <SellWizardModal
-        open={isConditionModalOpen}
-        onClose={() => setIsConditionModalOpen(false)}
-        title={sellSingleConditionLabel(draft.condition)}
-        titleId="sell-condition-modal-title"
-        size="xl"
-        className="sm:max-w-[52rem] sm:max-h-[min(92dvh,864px)]"
-        contentClassName="px-6 py-5"
-        hideCloseButton
-        footer={
-          <div className="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsConditionModalOpen(false)}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#FF8800] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-[#FF8800]/90 hover:shadow-md active:scale-[0.98]"
-            >
-              <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
-              Ho compreso la condizione
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                localStorage.setItem('sell_condition_modal_dont_show', 'true');
-                setDontShowConditionModal(true);
-                setIsConditionModalOpen(false);
-              }}
-              className="text-[10px] font-semibold text-zinc-500 underline transition hover:text-zinc-700"
-            >
-              Non mostrare più
-            </button>
-          </div>
-        }
-      >
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          <button
-            type="button"
-            className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white"
-            onClick={() =>
-              setConditionLightbox(
-                SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.front ?? '/conditions/near-mint-front.jpeg',
-              )
-            }
-          >
-            <div className="relative h-full w-full p-1">
-              <Image
-                src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.front ?? '/conditions/near-mint-front.jpeg'}
-                alt="Fronte"
-                fill
-                sizes="(max-width: 640px) 45vw, 280px"
-                className="object-contain"
-              />
-            </div>
-          </button>
-          <button
-            type="button"
-            className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white"
-            onClick={() =>
-              setConditionLightbox(
-                SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.back ?? '/conditions/near-mint-back.jpeg',
-              )
-            }
-          >
-            <div className="relative h-full w-full p-1">
-              <Image
-                src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.back ?? '/conditions/near-mint-back.jpeg'}
-                alt="Retro"
-                fill
-                sizes="(max-width: 640px) 45vw, 280px"
-                className="object-contain"
-              />
-            </div>
-          </button>
-        </div>
-        <p className="mt-3 text-center text-xs text-zinc-500">Tocca un&apos;immagine per ingrandire</p>
-      </SellWizardModal>
-
-      <SellWizardModal
-        open={isConfirmPublishModalOpen}
-        onClose={() => setIsConfirmPublishModalOpen(false)}
-        title="Conferma condizione"
-        titleId="sell-confirm-publish-title"
-        size="xl"
-        className="sm:max-w-[46rem] sm:max-h-[min(92dvh,780px)]"
-        contentClassName="px-6 py-5"
-        hideCloseButton
-        footer={
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setIsConfirmPublishModalOpen(false)}
-                className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#1D3160] transition hover:bg-zinc-50"
-              >
-                Annulla
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsConfirmPublishModalOpen(false);
-                  void doPublish();
-                }}
-                className="inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#FF8800] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-[#FF8800]/90 hover:shadow-md active:scale-[0.98]"
-              >
-                <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
-                Confermo che la condizione corrisponde
-              </button>
-            </div>
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => {
-                  localStorage.setItem('sell_confirm_publish_modal_dont_show', 'true');
-                  setDontShowConfirmModal(true);
-                  setIsConfirmPublishModalOpen(false);
-                  void doPublish();
-                }}
-                className="text-[10px] font-semibold text-zinc-500 underline transition hover:text-zinc-700"
-              >
-                Non mostrare più
-              </button>
-            </div>
-          </div>
-        }
-      >
-        <div className="space-y-5">
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[#1D3160]">
-              Esempio condizione: {sellSingleConditionLabel(draft.condition)}
-            </p>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white">
-                <div className="relative h-full w-full p-1">
-                  <Image
-                    src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.front ?? '/conditions/near-mint-front.jpeg'}
-                    alt="Fronte esempio"
-                    fill
-                    sizes="(max-width: 640px) 45vw, 280px"
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-              <div className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white">
-                <div className="relative h-full w-full p-1">
-                  <Image
-                    src={SELL_SINGLE_CONDITION_IMAGES[draft.condition]?.back ?? '/conditions/near-mint-back.jpeg'}
-                    alt="Retro esempio"
-                    fill
-                    sizes="(max-width: 640px) 45vw, 280px"
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {draft.listingPhotos.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[#1D3160]">
-                Le tue foto
-              </p>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                {draft.listingPhotos.map((slot, i) => {
-                  const status = photoUploadStatuses[i];
-                  const url = status?.kind === 'done' ? status.cdnUrl : null;
-                  if (!url) return null;
-                  return (
-                    <div key={i} className="aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white">
-                      <div className="relative h-full w-full p-1">
-                        <Image src={url} alt={`Foto ${i + 1}`} fill sizes="(max-width: 640px) 45vw, 280px" className="object-contain" />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      </SellWizardModal>
-
-      <SellWizardLightbox
-        open={Boolean(conditionLightbox)}
-        imageSrc={conditionLightbox ?? ''}
-        onClose={() => setConditionLightbox(null)}
-        alt="Condizione carta"
-      />
-
-      {publishToast && (
-        <div className="fixed right-5 top-5 z-[90] flex items-center gap-3 rounded-xl border border-emerald-200 bg-white px-4 py-3 shadow-lg">
-          <span
-            className={cn(
-              'h-2 w-2 shrink-0 rounded-full',
-              publishToast.type === 'success' ? 'bg-emerald-500' : 'bg-red-500',
-            )}
-          />
-          <span className="text-sm font-medium text-gray-800">{publishToast.message}</span>
-        </div>
-      )}
-
-      <ImageLightbox
-        open={lightboxOpen}
-        urls={lightboxUrls}
-        startIndex={lightboxIndex}
-        onClose={() => setLightboxOpen(false)}
-        onIndexChange={setLightboxIndex}
+      <SellSingleWizardModals
+        isEmbedded={isEmbedded}
+        pairing={pairing}
+        t={t}
+        qrCodeSize={qrCodeSize}
+        isConditionModalOpen={isConditionModalOpen}
+        setIsConditionModalOpen={setIsConditionModalOpen}
+        draft={draft}
+        setConditionLightbox={setConditionLightbox}
+        setDontShowConditionModal={setDontShowConditionModal}
+        isConfirmPublishModalOpen={isConfirmPublishModalOpen}
+        setIsConfirmPublishModalOpen={setIsConfirmPublishModalOpen}
+        doPublish={() => void doPublish()}
+        setDontShowConfirmModal={setDontShowConfirmModal}
+        photoUploadStatuses={photoUploadStatuses}
+        conditionLightbox={conditionLightbox}
+        publishToast={publishToast}
+        lightboxOpen={lightboxOpen}
+        lightboxUrls={lightboxUrls}
+        lightboxIndex={lightboxIndex}
+        setLightboxOpen={setLightboxOpen}
+        setLightboxIndex={setLightboxIndex}
       />
     </>
   );

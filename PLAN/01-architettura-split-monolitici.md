@@ -111,6 +111,61 @@ Estrarre:
 
 Rimuovere la duplicazione di `handleOwnerQtyDelta` con `OggettiContent`.
 
+> ✅ **FATTO (2026-06-23)** — estrazione incrementale, behavior-preserving,
+> typecheck + lint a 0 errori dopo ogni passo.
+>
+> **Hook estratti in `hooks/product/`:**
+> - `useProductAuctions(card)` — query aste attive per nome carta + enrichment
+>   (prima inline L502-512).
+> - `useProductFilters({ userCountry, detectedCountry })` — **`useReducer`** con
+>   tutto lo stato filtri (prima ~11 `useState` sparsi), memo `marketplaceFilters`
+>   derivata, init paese una-tantum e auto-close del pannello. Setter value-only:
+>   il cablaggio di `ProductDetailMarketplaceSection` è invariato.
+> - `useProductListingActions(...)` — stato modali + handler owner-qty / edit
+>   inventario / edit marketplace.
+> - `useProductCart(...)` — popup quantità, add-to-cart, proposta scambio e flusso
+>   "compra ora" (modale demo + conferma).
+> - `useProductImageGallery(...)` — lightbox, hover preview, swipe, share, nav
+>   immagini, misura header.
+>
+> **Componenti presentazionali estratti dal JSX:**
+> - `ProductDetailPurchaseModal` — modale demo "compra ora".
+> - `ProductDetailCardSection` — sezione dettaglio carta (layout mobile + colonna
+>   immagine desktop + pannello tab desktop), **memoizzata**; i 6 wrapper `memo`
+>   dei tab si spostano qui, preservando FE-REV-020 (un cambio filtro non la
+>   ri-renderizza, perché non riceve lo stato dei filtri).
+>
+> **`ProductDetailView` 1144 → 595 righe** (< 600, criterio soddisfatto;
+> orchestratore: composizione + data fetching + cablaggio).
+>
+> **Test** (`__tests__/hooks/useProduct*.test.ts`): filtri (reducer + init paese),
+> aste, listing actions (owner-qty + edit), cart (guard auth + buy-now), gallery
+> (lightbox + swipe + share). ⚠️ Non eseguibili in questo ambiente Linux: il
+> `node_modules` è installato per Windows e manca il binding nativo
+> `@rolldown/binding-linux-x64-gnu` di vitest (errore "Cannot find native
+> binding"). I test compilano sotto `tsc` (inclusi in `**/*.ts`); vanno eseguiti
+> con `npm run test` su Windows.
+>
+> 🟡 **Correzioni al piano (verifica codebase):**
+> - `useProductMarketplaceListings` **già esistente** come
+>   `lib/hooks/use-marketplace-listings.ts` con `listings/loading/error/refetch`:
+>   nessuna ri-estrazione, riusato così com'è.
+> - La "duplicazione di `handleOwnerQtyDelta` con `OggettiContent`" **non esiste**:
+>   `OggettiContent` non ha tale handler e usa gli helper
+>   `updateInventoryOrListing`/`deleteInventoryOrListing` tipizzati su
+>   `InventoryItemWithCatalog`, mentre qui si opera su `ListingItem` (campo
+>   `item_id`, dialoghi di conferma, polling sync). Tipi divergenti → logica
+>   spostata fedelmente in `useProductListingActions` senza forzare un merge
+>   rischioso.
+> - "5 tab che leggono da context locale" **non implementato**: i tab sono già
+>   componenti presentazionali memoizzati con props stabili. Convertirli a un
+>   `ProductDetailContext` toccherebbe l'interno di 7 figli (churn alto, guadagno
+>   marginale) → rimandato, coerente con la scelta pragmatica di 1.1/1.2.
+>
+> ⚠️ Da ri-verificare a runtime (cablaggio cambiato, layout invariato): filtri
+> marketplace, modali edit/acquisto, add-to-cart + fly-to-cart, lightbox/hover,
+> swipe immagini.
+
 ---
 
 ## 1.4 Split `OggettiContent` (1126 righe)
@@ -124,6 +179,45 @@ Estrarre:
 - `hooks/useInventorySync.ts` → sync marketplace
 - `<OggettiHeader>`, `<OggettiToolbar>`, `<OggettiBulkActions>` componenti
 
+> ✅ **FATTO (2026-06-23).** File reale **1176 righe** (non 1126). Buona parte del
+> piano era **già fatta**:
+> i dati stanno in `useAccountInventory`, le mutazioni in
+> `lib/inventory/inventory-item-mutations`, l'export in
+> `lib/inventory/inventory-export-utils`, i filtri in `inventory-filter-utils`,
+> e i modali bulk (`BulkDeleteModal`, `BulkPriceWizardModal`) + `OggettiTable`
+> sono già componenti.
+>
+> ✅ **Hook estratti in `hooks/account/`** (typecheck + lint a 0 errori):
+> - `useInventorySync` — verifica stato + banner + flag derivati + intero flusso
+>   `handleSyncNow` (avvio/aggancio/recover + polling + applicazione risultato).
+> - `useInventoryExport` — stato menu export + handler CSV (selezione / filtrato)
+>   e JSON (riusa gli helper esistenti).
+> - `useInventorySelection` — selezione + azioni bulk. **Dedup:** il loop di
+>   cancellazione bulk era **duplicato** tra `onDeleteSelected` e `handleBulkDelete`
+>   → unificato in un unico `runBulkDelete`. (Nota: il parametro
+>   `deleteFromPlatforms` di `handleBulkDelete` non era usato nemmeno nell'originale.)
+>
+> **Test** (`__tests__/hooks/account/`): export (CSV/JSON + no-op selezione vuota),
+> selection (allFilteredSelected + dedup bulk delete). Stessa limitazione di 1.3:
+> non eseguibili qui (manca il binding nativo Linux di vitest), ma compilano sotto
+> `tsc`.
+>
+> ✅ **Split presentazionale del JSX FATTO** — estratti in
+> `components/feature/account/oggetti/`: `OggettiSyncBanner`, `OggettiSelectionBar`
+> (barra selezione + azioni bulk desktop), `OggettiPagination`,
+> `OggettiStickyActionBar` (barra sticky mobile), `OggettiExportModal`. JSX
+> spostato verbatim, prop tipizzate. Rimossi gli import lucide ora inutilizzati.
+>
+> **`OggettiContent` 1176 → 586 righe (< 600, criterio soddisfatto).** typecheck +
+> lint a 0 errori. Il piano parlava di `useInventoryTable` (data+mutazioni+bulk):
+> i dati e le mutazioni erano già in hook/lib esistenti, quindi è bastato il solo
+> `useInventorySelection` per le azioni bulk; i nomi `OggettiHeader/Toolbar/
+> BulkActions` del piano sono resi da `OggettiSelectionBar/StickyActionBar` +
+> `OggettiSyncBanner`.
+>
+> ⚠️ Da ri-verificare a runtime: sync "ora", export CSV/JSON, selezione + bulk
+> delete/price (cablaggio cambiato, logica invariata).
+
 ---
 
 ## 1.5 Split `SellSingleWizard` (1097 righe)
@@ -134,6 +228,34 @@ Estrarre:
 
 - `hooks/useSellSinglePhotos.ts` → gestione upload + QR + abort
 - Verificare accoppiamento di `<SellSinglePhotoStep>`, `<SellSingleDetailsStep>`, `<SellSingleReviewStep>`, `<SellSingleConfirmStep>` (già esistono)
+
+> ✅ **FATTO (2026-06-23).** File reale **1097 righe**.
+>
+> ✅ **`hooks/vendi/useSellSinglePhotos.ts`** — possiede lo stato upload (Map
+> `File → entry` con `AbortController` per slot), avvio/annullo/retry upload,
+> sincronizzazione slot↔draft (`setListingPhotos`), stati derivati
+> (`photoUploadStatuses`, `allPhotosUploaded`, `failedUploadFiles`, `lightboxUrls`)
+> e `collectPhotoIds`. Il **QR pairing** era già un hook
+> (`usePhotoPairingSession`) che consuma `setListingPhotos`; `qrCodeSize` + il suo
+> effetto restano nel wizard perché dipendono da `pairing.phoneUploadModalOpen`.
+>
+> 🟡 **Correzione piano:** dei componenti citati come "già esistono",
+> `SellSinglePhotoStep` **non** esisteva (la UI foto era inline nel wizard;
+> `SellSingleReviewStep` esiste ma non è usato nel wizard singolo). Quindi creato
+> ora `SellSinglePhotoStep` (riga azioni upload + pairing telefono + QR inline +
+> galleria) e `SellSingleWizardModals` (cluster modali: QR telefono, guida
+> condizione, conferma pubblicazione, lightbox, toast) — JSX spostato **verbatim**.
+>
+> **Test:** `__tests__/hooks/vendi/useSellSinglePhotos.test.ts` (collectPhotoIds +
+> appendListingPhotos filtra/limita). Non eseguibile qui (binding vitest), compila
+> sotto `tsc`.
+>
+> **`SellSingleWizard` 1097 → 533 righe (< 600).** typecheck + lint a 0 errori.
+> Nuovi file: `SellSinglePhotoStep` 235, `SellSingleWizardModals` 312,
+> `useSellSinglePhotos` 218.
+>
+> ⚠️ Da ri-verificare a runtime (flusso delicato, non testabile qui): upload foto
+> (progress/abort/retry), pairing telefono + QR, pubblicazione, modali condizione.
 
 ---
 
@@ -146,6 +268,29 @@ Azioni:
 - Estrarre `hooks/useClickOutside(ref, onClose)` (DRY per 4 menu copy-pasted in TopBar)
 - Estrarre `<HeaderMenu variant="account|vendi|games|acquisti">` in TopBar
 - `<HamburgerMenu>` → splittare in `<DrawerLanguage>`, `<DrawerAuth>`, `<DrawerNavigation>`, `<DrawerTheme>`
+
+> ✅ **FATTO (2026-06-23).** typecheck + lint a 0 errori.
+>
+> ✅ **`hooks/useClickOutside.ts`** (DRY) — `onClose` letto da ref interna, così il
+> listener si ri-sottoscrive solo al cambio di `enabled` (stesso comportamento
+> degli effetti originali). Sostituisce **4 effetti** copia-incollati in TopBar e
+> **3** in HamburgerMenu. + test (`__tests__/hooks/useClickOutside.test.tsx`).
+>
+> ✅ **TopBar 826 → 561 righe** — estratti in `components/layout/header/`:
+> `header-menu-styles.ts` (costanti "orange glass"), `HeaderDropdownPanels`
+> (`AccountMenuPanel`/`AcquistiMenuPanel`/`VendiMenuPanel`/`GamesMenuPanel` — JSX
+> dropdown verbatim; rende il `<HeaderMenu variant=…>` del piano come 4 pannelli),
+> `HeaderLoginForm` (form login inline desktop).
+>
+> ✅ **HamburgerMenu 762 → 577 righe** — estratti: `DrawerAuthForm` (form login del
+> drawer), `DrawerLanguage` (selettore lingua), `lang-flags.ts` (costanti bandiere
+> condivise). I blocchi "tema" (toggle dark mode, attualmente disabilitato) e
+> "navigation" restano inline perché piccoli/coesi col resto del drawer: lo split
+> ulteriore in `<DrawerTheme>`/`<DrawerNavigation>` non serviva a rientrare < 600 e
+> avrebbe aggiunto churn.
+>
+> ⚠️ Da ri-verificare a runtime: apertura/chiusura dei 4 menu desktop (click-outside),
+> login da header e da drawer, selettore lingua, selezione gioco.
 
 ---
 

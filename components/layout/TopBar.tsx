@@ -1,31 +1,36 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useClickOutside } from '@/hooks/useClickOutside';
+import {
+  AccountMenuPanel,
+  AcquistiMenuPanel,
+  VendiMenuPanel,
+  GamesMenuPanel,
+} from '@/components/layout/header/HeaderDropdownPanels';
+import { HeaderLoginForm } from '@/components/layout/header/HeaderLoginForm';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown, Eye, EyeOff, LogIn } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { TournamentsPortalLink } from './TournamentsPortalButton';
 import { CartDropdown } from './CartDropdown';
 import { MobileHeaderNavIcon, MOBILE_HEADER_ICON_CLASS } from './MobileHeaderNavIcon';
 import { NotificationBell } from '@/components/feature/notifiche/NotificationBell';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { parseAuthError } from '@/lib/api/auth-error';
 import { useLogin } from '@/lib/hooks/use-auth';
 import { headerLoginSchema, type HeaderLoginValues } from '@/lib/validations/auth';
 import { getCdnImageUrl } from '@/lib/config';
-import { useGame, GAME_OPTIONS } from '@/lib/contexts/GameContext';
-import type { GameSlug } from '@/lib/contexts/GameContext';
+import { useGame } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { LOCALE_TO_INTL } from '@/lib/i18n/locales';
 import type { UiLocale } from '@/lib/i18n/locales';
-import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
 import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { PurchasesBagIcon } from '@/components/ui/PurchasesBagIcon';
 import { SalesTagIcon } from '@/components/ui/SalesTagIcon';
@@ -38,23 +43,7 @@ import {
   HEADER_GAME_TEXT_INSET_CLASS,
 } from '@/components/layout/headerBrxColumn';
 
-const GAME_HOME_PATH: Record<GameSlug, string> = {
-  mtg: '/home/magic',
-  pokemon: '/home/pokemon',
-  op: '/home/one-piece',
-};
 
-const AUTH_INPUT_HEIGHT = 'h-9';
-const AUTH_INPUT_WIDTH = 'w-36';
-const inputBase =
-  'rounded-full px-4 text-sm font-normal font-sans text-[#0F172A] placeholder:text-gray-500 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 border';
-
-const ORANGE_GLASS_MENU_CLASS =
-  'absolute left-1/2 top-full z-[120] mt-1.5 min-w-[200px] -translate-x-1/2 rounded-2xl border border-primary/45 bg-primary/30 px-4 py-3 text-white backdrop-blur-2xl backdrop-saturate-150 shadow-2xl ring-1 ring-white/20 animate-orange-menu-enter';
-const ORANGE_GLASS_DIVIDER_CLASS = 'my-1 h-px bg-white/45';
-const ORANGE_GLASS_COMPACT_MENU_CLASS =
-  'absolute left-1/2 top-full z-[120] mt-1.5 min-w-[180px] -translate-x-1/2 rounded-2xl border border-white/20 bg-white/10 px-2 py-2 text-white backdrop-blur-2xl backdrop-saturate-150 shadow-2xl ring-1 ring-white/10 animate-orange-menu-enter';
-const ORANGE_GLASS_SOFT_DIVIDER_CLASS = 'my-1 h-px bg-white/30';
 
 const HamburgerMenu = dynamic(
   () => import('./HamburgerMenu').then((mod) => mod.HamburgerMenu),
@@ -71,7 +60,6 @@ const HamburgerMenu = dynamic(
 export function TopBar() {
   const { t, locale } = useTranslation();
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
   const { selectedGame, setSelectedGame, gameDisplayName } = useGame();
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [acquistiMenuOpen, setAcquistiMenuOpen] = useState(false);
@@ -144,50 +132,11 @@ export function TopBar() {
     void fetchUser();
   }, [isAuthenticated, user, fetchUser]);
 
-  useEffect(() => {
-    if (!accountMenuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
-        setAccountMenuOpen(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [accountMenuOpen]);
-
-  useEffect(() => {
-    if (!acquistiMenuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (acquistiMenuRef.current && !acquistiMenuRef.current.contains(e.target as Node)) {
-        setAcquistiMenuOpen(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [acquistiMenuOpen]);
-
-  useEffect(() => {
-    if (!vendiMenuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (vendiMenuRef.current && !vendiMenuRef.current.contains(e.target as Node)) {
-        setVendiMenuOpen(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [vendiMenuOpen]);
-
+  useClickOutside(accountMenuRef, () => setAccountMenuOpen(false), accountMenuOpen);
+  useClickOutside(acquistiMenuRef, () => setAcquistiMenuOpen(false), acquistiMenuOpen);
+  useClickOutside(vendiMenuRef, () => setVendiMenuOpen(false), vendiMenuOpen);
   // FE-REV-005: il menu giochi mancava del listener click-outside presente sugli altri menu.
-  useEffect(() => {
-    if (!gamesMenuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (gamesMenuRef.current && !gamesMenuRef.current.contains(e.target as Node)) {
-        setGamesMenuOpen(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [gamesMenuOpen]);
+  useClickOutside(gamesMenuRef, () => setGamesMenuOpen(false), gamesMenuOpen);
 
   /** Mostra nome utente: preferisce la parte prima della @ dell'email, poi il nome, poi il fallback */
   const shortLabel = (() => {
@@ -265,44 +214,7 @@ export function TopBar() {
               </span>
             </button>
             {gamesMenuOpen && (
-              <div
-                className={ORANGE_GLASS_COMPACT_MENU_CLASS}
-                role="menu"
-                aria-label={t('topBar.gamesMenuAria')}
-              >
-                {GAME_OPTIONS.filter(opt => opt.value === 'mtg').map((opt, i) => {
-                  const logoSrc =
-                    opt.value === 'mtg'
-                      ? getCdnImageUrl('loghi-giochi/magic.png')
-                      : opt.value === 'pokemon'
-                      ? getCdnImageUrl('loghi-giochi/pokèmon.png')
-                      : getCdnImageUrl('loghi-giochi/One_Piece_Card_Game_Logo%201.png');
-                  return (
-                  <div key={opt.value}>
-                    {i > 0 && <div className={ORANGE_GLASS_SOFT_DIVIDER_CLASS} aria-hidden />}
-                    <Link
-                      href={GAME_HOME_PATH[opt.value]}
-                      onClick={() => {
-                        setSelectedGame(opt.value);
-                        setGamesMenuOpen(false);
-                      }}
-                      className="flex w-full items-center justify-center rounded-lg px-4 py-3 text-white/95 transition-colors duration-200 hover:bg-white/10 focus:bg-white/10 focus:outline-none"
-                      role="menuitem"
-                      aria-label={opt.label}
-                    >
-                      <Image
-                        src={logoSrc}
-                        alt={opt.label}
-                        width={160}
-                        height={48}
-                        className="mx-auto h-10 w-auto max-w-[9rem] object-contain sm:h-12 sm:max-w-[10rem]"
-                        sizes="160px"
-                        unoptimized
-                      />
-                    </Link>
-                  </div>
-                )})}
-              </div>
+              <GamesMenuPanel onClose={() => setGamesMenuOpen(false)} onSelect={setSelectedGame} t={t} />
             )}
           </div>
         </div>
@@ -312,91 +224,13 @@ export function TopBar() {
           {!isAuthenticated ? (
             <>
             {/* Desktop: inline login form */}
-            <form
+            <HeaderLoginForm
               onSubmit={handleSubmit(onHeaderLogin)}
-              className="hidden items-center gap-3 md:flex relative"
-              noValidate
-            >
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder={t('auth.usernamePlaceholder')}
-                  aria-label={t('auth.usernamePlaceholder')}
-                  autoComplete="email"
-                  className={cn(
-                    inputBase,
-                    AUTH_INPUT_HEIGHT,
-                    AUTH_INPUT_WIDTH,
-                    'border',
-                    errors.username && 'border-red-500'
-                  )}
-                  style={{
-                    backgroundColor: '#d9d9d9',
-                    borderColor: errors.username ? undefined : '#FF7300',
-                  }}
-                  {...register('username')}
-                />
-                {errors.username && (
-                  <span className="absolute left-0 top-full mt-0.5 whitespace-nowrap text-[10px] text-red-400">
-                    {translateZodMessage(errors.username.message, t)}
-                  </span>
-                )}
-              </div>
-              <div className="relative flex items-center">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder={t('auth.passwordPlaceholder')}
-                  aria-label={t('auth.passwordPlaceholder')}
-                  autoComplete="current-password"
-                  className={cn(
-                    inputBase,
-                    AUTH_INPUT_HEIGHT,
-                    AUTH_INPUT_WIDTH,
-                    'pl-4 pr-10 border',
-                    errors.password && 'border-red-500'
-                  )}
-                  style={{
-                    backgroundColor: '#d9d9d9',
-                    borderColor: errors.password ? undefined : '#FF7300',
-                  }}
-                  {...register('password')}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-gray-600 hover:bg-gray-300/50"
-                  aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              <Button
-                type="submit"
-                disabled={loginMutation.isPending}
-                className="btn-orange-glow flex shrink-0 items-center justify-center rounded-full border px-4 !text-[#2d1810] h-[2.25rem] min-w-[2.25rem] disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label={t('auth.loginButtonAria')}
-              >
-                {loginMutation.isPending ? (
-                  <span className="text-xs">...</span>
-                ) : (
-                  <LogIn
-                    className="shrink-0"
-                    style={{ width: '1.25rem', height: '1.25rem', color: 'white' }}
-                    strokeWidth={2}
-                  />
-                )}
-              </Button>
-              <Link
-                href="/recupera-credenziali"
-                className="whitespace-nowrap text-xs text-gray-400 hover:text-white leading-none"
-              >
-                {t('auth.recoverCredentials')}
-              </Link>
-            </form>
+              register={register}
+              errors={errors}
+              submitting={loginMutation.isPending}
+              t={t}
+            />
             {/* Mobile: "Accedi o Registrati" link */}
             <div className="flex shrink-0 items-center md:hidden">
               <Link
@@ -483,53 +317,7 @@ export function TopBar() {
                 </button>
 
                 {accountMenuOpen && (
-                  <div
-                    className={ORANGE_GLASS_MENU_CLASS}
-                    role="menu"
-                    aria-label={t('account.menuAria')}
-                  >
-                    <nav className="flex flex-col" aria-label={t('account.menuAria')}>
-                      <Link
-                        href="/account"
-                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                        onClick={() => setAccountMenuOpen(false)}
-                      >
-                        {t('account.account')}
-                      </Link>
-                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                      <Link
-                        href="/account/messaggi"
-                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                        onClick={() => setAccountMenuOpen(false)}
-                      >
-                        {t('account.messages')}
-                      </Link>
-                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                      <Link
-                        href="/account/credito"
-                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                        onClick={() => setAccountMenuOpen(false)}
-                      >
-                        {t('account.credit')}
-                      </Link>
-                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                      <Link
-                        href="/account/sincronizzazione"
-                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                        onClick={() => setAccountMenuOpen(false)}
-                      >
-                        {t('account.sync')}
-                      </Link>
-                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                      <Link
-                        href="/scambi"
-                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                        onClick={() => setAccountMenuOpen(false)}
-                      >
-                        I MIEI SCAMBI
-                      </Link>
-                    </nav>
-                  </div>
+                  <AccountMenuPanel onClose={() => setAccountMenuOpen(false)} t={t} />
                 )}
               </div>
 
@@ -599,26 +387,7 @@ export function TopBar() {
                 </button>
 
                 {acquistiMenuOpen && (
-                  <div
-                    className={ORANGE_GLASS_MENU_CLASS}
-                    role="menu"
-                  >
-                    <Link
-                      href="/ordini/acquisti"
-                      className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                      onClick={() => setAcquistiMenuOpen(false)}
-                    >
-                      {t('purchases.myPurchases')}
-                    </Link>
-                    <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                    <Link
-                      href="/account/lista-desideri"
-                      className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                      onClick={() => setAcquistiMenuOpen(false)}
-                    >
-                      {t('purchases.wishlist')}
-                    </Link>
-                  </div>
+                  <AcquistiMenuPanel onClose={() => setAcquistiMenuOpen(false)} t={t} />
                 )}
               </div>
 
@@ -645,41 +414,7 @@ export function TopBar() {
 
                 {/* Dropdown Vendi - Visibile sia mobile che desktop */}
                 {vendiMenuOpen && (
-                  <div
-                    className={ORANGE_GLASS_MENU_CLASS}
-                    role="menu"
-                  >
-                    <nav className="flex flex-col">
-                      <Link
-                        href="/vendi"
-                        className="relative flex w-full items-center rounded-full bg-white/60 shadow-lg py-2 text-base font-semibold uppercase tracking-wide text-[#FF7300] hover:bg-white/70 hover:shadow-xl transition-all mx-0 my-2 backdrop-blur-md border border-white/30"
-                        onClick={() => setVendiMenuOpen(false)}
-                      >
-                        <span className="absolute left-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#FF7300] text-white opacity-90 animate-pulse shadow-sm">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        </span>
-                        <span className="w-full text-center">Vendi</span>
-                      </Link>
-
-                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                      <Link
-                        href="/ordini/vendite"
-                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                        onClick={() => setVendiMenuOpen(false)}
-                      >
-                        Le mie vendite
-                      </Link>
-
-                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                      <Link
-                        href="/account/oggetti"
-                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                        onClick={() => setVendiMenuOpen(false)}
-                      >
-                        {t('account.items')}
-                      </Link>
-                    </nav>
-                  </div>
+                  <VendiMenuPanel onClose={() => setVendiMenuOpen(false)} t={t} />
                 )}
 
                 {/* Tasto Vendi visibile solo su desktop - ora apre un dropdown */}

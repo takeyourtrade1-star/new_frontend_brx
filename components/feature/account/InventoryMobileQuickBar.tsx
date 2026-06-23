@@ -24,6 +24,7 @@ interface InventoryMobileQuickBarProps {
   onOpenFilters: () => void;
   disabled?: boolean;
   className?: string;
+  showFilterButton?: boolean;
 }
 
 export function InventoryMobileQuickBar({
@@ -35,6 +36,7 @@ export function InventoryMobileQuickBar({
   onOpenFilters,
   disabled = false,
   className = '',
+  showFilterButton = true,
 }: InventoryMobileQuickBarProps) {
   const { t } = useTranslation();
 
@@ -72,20 +74,22 @@ export function InventoryMobileQuickBar({
             );
           })}
         </div>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={onOpenFilters}
-          className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-800 shadow-sm active:scale-[0.99] disabled:opacity-50"
-          aria-label={t('accountPage.itemsFiltersPanelTitle')}
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-gray-500" aria-hidden />
-          {activeFilterCount > 0 ? (
-            <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
-              {activeFilterCount}
-            </span>
-          ) : null}
-        </button>
+        {showFilterButton && (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onOpenFilters}
+            className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-800 shadow-sm active:scale-[0.99] disabled:opacity-50"
+            aria-label={t('accountPage.itemsFiltersPanelTitle')}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-gray-500" aria-hidden />
+            {activeFilterCount > 0 ? (
+              <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+                {activeFilterCount}
+              </span>
+            ) : null}
+          </button>
+        )}
       </div>
 
       <div className="-mx-0.5 flex gap-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
