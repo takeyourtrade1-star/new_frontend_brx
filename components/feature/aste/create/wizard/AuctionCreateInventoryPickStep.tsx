@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import type { AuctionCreateDraft } from '@/lib/auction/auction-create-draft';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 
 type AuctionCreateDraftUpdate = <K extends keyof AuctionCreateDraft>(
@@ -29,7 +30,8 @@ export function AuctionCreateInventoryPickStep({
   onEmbeddedInventoryPickChange,
 }: AuctionCreateInventoryPickStepProps) {
   const { t } = useTranslation();
-  const formatEuro = useCallback((n: number) => formatEuroNoSpace(n, 'it-IT'), []);
+  const intlLocale = useIntlLocale();
+  const formatEuro = useCallback((n: number) => formatEuroNoSpace(n, intlLocale), [intlLocale]);
 
   return (
     <div className={cn('space-y-4', isEmbedded && 'space-y-2')}>

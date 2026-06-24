@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Grid3X3, List } from 'lucide-react';
 import type { InventoryFilters } from '@/components/feature/account/InventoryFiltersPanel';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 
 type SortBy = InventoryFilters['sortBy'];
 
@@ -31,6 +32,7 @@ export function InventorySortBar({
   compact = false,
 }: InventorySortBarProps) {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
 
   const SORT_PILLS: SortPill[] = useMemo(
     () => [
@@ -63,7 +65,7 @@ export function InventorySortBar({
           ))}
         </select>
         <span className="shrink-0 text-xs tabular-nums text-gray-500">
-          {itemCount.toLocaleString('it-IT')}
+          {itemCount.toLocaleString(intlLocale)}
         </span>
       </div>
     );
@@ -74,7 +76,7 @@ export function InventorySortBar({
       <div className="flex min-w-0 items-center justify-between gap-2 md:contents">
         <span className="shrink-0 text-sm text-gray-500">
           <span className="font-semibold tabular-nums text-gray-900">
-            {itemCount.toLocaleString('it-IT')}
+            {itemCount.toLocaleString(intlLocale)}
           </span>{' '}
           <span>{t('accountPage.itemsCardsFound', { count: itemCount })}</span>
         </span>

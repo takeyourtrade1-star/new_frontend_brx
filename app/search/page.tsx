@@ -6,6 +6,8 @@ import { SearchPageLoading } from '@/components/feature/search/SearchPageLoading
 export const metadata = {
   title: 'Cerca | Ebartex',
   description: 'Risultati di ricerca Ebartex',
+  // Canonical alla pagina pulita: deduplica le infinite varianti con query/filtri.
+  alternates: { canonical: '/search' },
 };
 
 type SearchPageProps = {

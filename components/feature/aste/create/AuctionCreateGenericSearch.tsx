@@ -1,8 +1,14 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Camera, Loader2, Search } from 'lucide-react';
-import { ScannerModal } from '@/components/feature/scanner/ScannerModal';
+
+// Lazy: lo scanner carica onnxruntime-web (~1.1MB) solo quando l'utente lo apre.
+const ScannerModal = dynamic(
+  () => import('@/components/feature/scanner/ScannerModal').then((m) => m.ScannerModal),
+  { ssr: false, loading: () => null }
+);
 import type { SearchHit } from '@/app/api/search/route';
 import { useSearchCards } from '@/lib/hooks/use-search';
 import {

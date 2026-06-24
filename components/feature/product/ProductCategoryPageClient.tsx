@@ -3,6 +3,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
+import { MissingPage } from '@/components/shared/MissingPage';
 import { ProductCategoryView } from './SinglesView';
 import { useGame } from '@/lib/contexts/GameContext';
 import { PRODUCT_CATEGORIES } from '@/lib/product-categories';
@@ -22,13 +23,20 @@ export function ProductCategoryPageClient({ categorySlug }: ProductCategoryPageC
         <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
           <Header />
         </Suspense>
-        <div className="container-content py-12 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Categoria non trovata</h1>
-          <p className="mt-2 text-gray-600">
-            <Link href="/products/singles" className="text-[#FF8800] hover:underline">
-              Vai a Singles
-            </Link>
-          </p>
+        <div className="container-content">
+          <MissingPage
+            className="min-h-0 py-12"
+            title="Categoria non trovata"
+            description="La categoria che stai cercando non esiste o non è più disponibile."
+            actions={
+              <Link
+                href="/products/singles"
+                className="inline-flex items-center gap-2 rounded-full bg-[#FF8800] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-[#e67a00]"
+              >
+                Vai a Singles
+              </Link>
+            }
+          />
         </div>
       </main>
     );

@@ -28,6 +28,10 @@ const nextConfig = {
     },
   },
   images: {
+    // Output moderni per le immagini che passano dall'optimizer (quelle senza
+    // `unoptimized`, es. asset locali e `unoptimized={false}`). Le immagini CDN
+    // restano `unoptimized` per scelta deliberata del codebase (già su CloudFront).
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       { protocol: 'https', hostname: '*.cloudfront.net', pathname: '/**' },
       { protocol: 'https', hostname: '*.ebartex.com', pathname: '/**' },

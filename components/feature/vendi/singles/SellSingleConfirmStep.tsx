@@ -5,6 +5,7 @@ import { sellSingleConditionLabel } from '@/lib/marketplace/sell-single-conditio
 import type { SellSingleDraft } from '@/lib/marketplace/sell-single-draft';
 import type { CardLanguageOption } from '@/lib/card-languages';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 
 type SellSingleConfirmStepProps = {
   draft: SellSingleDraft;
@@ -25,7 +26,8 @@ export function SellSingleConfirmStep({
   compact = false,
   children,
 }: SellSingleConfirmStepProps) {
-  const formatEuro = (n: number) => formatEuroNoSpace(n, 'it-IT');
+  const intlLocale = useIntlLocale();
+  const formatEuro = (n: number) => formatEuroNoSpace(n, intlLocale);
   const langLabel =
     languageOptions.find((o) => o.code === draft.language)?.label ?? draft.language.toUpperCase();
   const qty = Number.isFinite(draft.quantity) ? Math.max(1, draft.quantity) : 1;

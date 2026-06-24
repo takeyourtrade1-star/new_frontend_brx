@@ -1,10 +1,12 @@
 /**
  * API Route: inoltra la richiesta di reindex al Search Engine (BRX_Search).
  * La chiamata avviene solo lato server; il browser non vede l'URL del backend.
- * Body: { "apiKey": "..." } oppure header X-Admin-API-Key.
+ * Auth: solo header `X-Admin-API-Key` (la chiave non passa più nel body per
+ * evitare che finisca in log/cronologia). Protetta da rate limit per IP.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, rateLimitExceededResponse } from '@/app/api/_lib/rate-limit';
 
 const SEARCH_API_URL =
   process.env.NEXT_PUBLIC_SEARCH_API_URL ||
@@ -13,18 +15,16 @@ const SEARCH_API_URL =
   'http://localhost:8000';
 
 export async function POST(request: NextRequest) {
-  let apiKey = request.headers.get('X-Admin-API-Key') || '';
-  if (!apiKey && request.headers.get('content-type')?.includes('application/json')) {
-    try {
-      const body = await request.json();
-      apiKey = (body?.apiKey ?? '').trim();
-    } catch {
-      // ignore
-    }
+  // Rate limit per IP: endpoint admin sensibile, mitiga brute-force della chiave.
+  const rl = checkRateLimit(request, { scope: 'reindex', limit: 5, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return rateLimitExceededResponse(rl);
   }
+
+  const apiKey = (request.headers.get('X-Admin-API-Key') || '').trim();
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'Chiave Admin mancante. Invia X-Admin-API-Key o body { "apiKey": "..." }.' },
+      { error: 'Chiave Admin mancante. Invia l\'header X-Admin-API-Key.' },
       { status: 400 }
     );
   }

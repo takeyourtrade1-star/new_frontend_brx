@@ -1,6 +1,7 @@
 import { Crown, ChevronDown } from 'lucide-react';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import type { BidRowUI } from '@/lib/auction/auction-adapter';
 import { formatAuctionEur, sameUserId } from '@/lib/auction/auction-detail-utils';
 
@@ -20,6 +21,7 @@ export function AuctionBidHistory({
   currentUserId: string | null;
 }) {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
   const fmtEur = (n: number) => formatAuctionEur(n);
 
   return (
@@ -52,7 +54,7 @@ export function AuctionBidHistory({
             const bidderCountry = b.countryCode || 'IT';
             const animationDelay = `${i * 0.05}s`;
             const bidDate = new Date(b.createdAt);
-            const timeStr = bidDate.toLocaleString('it-IT', {
+            const timeStr = bidDate.toLocaleString(intlLocale, {
               day: '2-digit',
               month: '2-digit',
               hour: '2-digit',

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import type { CropperRef } from 'react-advanced-cropper';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -22,11 +23,23 @@ import {
   type PairingSessionStatus,
 } from '@/lib/auction-pairing-guest-upload';
 import { cn } from '@/lib/utils';
-import {
-  exportMobileCropFile,
-  MobileCardCropper,
-  type CropMode,
-} from '@/components/feature/aste/create/MobileCardCropper';
+import type { CropMode } from '@/components/feature/aste/create/MobileCardCropper';
+
+// Lazy: react-advanced-cropper (~80-120kB + CSS) entra nel bundle solo quando si
+// apre la vista crop. exportMobileCropFile è importata via await import() al submit
+// (stesso modulo, già in cache a quel punto) per non riportarlo nel bundle iniziale.
+const MobileCardCropper = dynamic(
+  () =>
+    import('@/components/feature/aste/create/MobileCardCropper').then(
+      (m) => m.MobileCardCropper,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="aspect-[63/88] w-full animate-pulse rounded-lg bg-white/10" />
+    ),
+  },
+);
 
 type ViewState = 'pick' | 'crop' | 'uploaded' | 'thanks';
 
@@ -333,6 +346,9 @@ export function AuctionMobilePairingUpload({
     wakeReleaseRef.current = (await acquireWakeLock()) ?? null;
     try {
       setUploadPercent(2);
+      const { exportMobileCropFile } = await import(
+        '@/components/feature/aste/create/MobileCardCropper'
+      );
       const file = await exportMobileCropFile(cropperRef);
       setUploadPercent(6);
       const uploadPromise =

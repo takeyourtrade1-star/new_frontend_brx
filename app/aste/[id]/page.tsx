@@ -20,6 +20,7 @@ export default async function AsteDetailPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-white">
+      <h1 className="sr-only">Dettaglio asta · Ebartex</h1>
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
       </Suspense>

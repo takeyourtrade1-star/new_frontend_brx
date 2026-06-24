@@ -54,6 +54,8 @@ _temp_block*
 # build/deploy e su tutti i PC). Senza, /tornei va in 404 e resta bloccato.
 !public/videos/tournament-video-trial.webm
 !public/videos/tournament-video-trial.mp4
+!public/videos/scambi-opening.webm
+!public/videos/404-animation.webm
 
 # Cartelle foto condizioni e asset grezzi (le versioni processate sono in public/conditions/)
 Damaged/

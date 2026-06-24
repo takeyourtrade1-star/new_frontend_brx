@@ -4,6 +4,7 @@ import { mapReprintHit } from '@/lib/product-detail/map-reprint-hit';
 import { productDetailKeys } from '@/lib/product-detail/product-detail-keys';
 import type { ReprintCard } from '@/lib/product-detail/product-detail-view-types';
 import { shouldFetchReprints, type ReprintSearchHit } from '@/lib/reprints-search';
+import { STALE } from '@/lib/hooks/query-config';
 
 async function fetchProductReprints(card: CardDocument): Promise<ReprintCard[]> {
   const res = await fetch(`/api/reprints?card_id=${encodeURIComponent(card.id)}`, {
@@ -29,7 +30,9 @@ export function useProductReprints(card: CardDocument | undefined) {
     queryKey: productDetailKeys.reprints(card),
     queryFn: () => fetchProductReprints(card!),
     enabled,
-    staleTime: 60_000,
+    // Ristampe = catalogo immutabile: evita il refetch ogni minuto (era 60s).
+    staleTime: STALE.reprints,
+    gcTime: STALE.reprints,
     retry: false,
   });
 

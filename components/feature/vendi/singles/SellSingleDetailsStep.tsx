@@ -6,6 +6,7 @@ import type { CardLanguageOption } from '@/lib/card-languages';
 import { SELL_SINGLE_CONDITION_OPTIONS } from '@/lib/marketplace/sell-single-conditions';
 import type { SellSingleDraft } from '@/lib/marketplace/sell-single-draft';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { Minus, Plus } from 'lucide-react';
 
 type SellSingleDetailsStepProps = {
@@ -29,7 +30,8 @@ export function SellSingleDetailsStep({
   compact = false,
   onConditionChange,
 }: SellSingleDetailsStepProps) {
-  const formatEuro = (n: number) => formatEuroNoSpace(n, 'it-IT');
+  const intlLocale = useIntlLocale();
+  const formatEuro = (n: number) => formatEuroNoSpace(n, intlLocale);
   const qty = Number.isFinite(draft.quantity) ? Math.max(1, draft.quantity) : 1;
 
   return (
@@ -176,7 +178,7 @@ export function SellSingleDetailsStep({
         <div className="rounded-md bg-sky-50/60 px-1.5 py-1 text-center">
           <p className="text-[8px] font-bold uppercase tracking-wider text-sky-600/80">Qtà</p>
           <p className="text-[11px] font-extrabold tabular-nums text-sky-700">
-            {new Intl.NumberFormat('it-IT').format(qty)}
+            {new Intl.NumberFormat(intlLocale).format(qty)}
           </p>
         </div>
         <div className="rounded-md bg-amber-50/70 px-1.5 py-1 text-center">

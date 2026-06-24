@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Bookmark, Shield } from 'lucide-react';
-import { ScambiIcon } from '@/components/ui/ScambiIcon';
+import { MissingPage } from '@/components/shared/MissingPage';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { ScambiProponiModal } from '@/components/feature/scambi/ScambiProponiModal';
@@ -58,23 +58,21 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
   if (!scambio) {
     return (
       <div className="min-h-screen bg-white">
-        <div className="container-content container-content-card-detail py-20 text-center">
-          <div className="mx-auto max-w-md">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-              <ScambiIcon className="h-8 w-8 text-gray-400" />
-            </div>
-            <h2 className="mt-6 text-xl font-bold text-gray-900">Scambio non trovato</h2>
-            <p className="mt-2 text-sm text-gray-500">
-              L&apos;oggetto che stai cercando non esiste o è stato rimosso.
-            </p>
-            <Link
-              href="/scambi"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#FF7300] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-[#e86800]"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Torna agli scambi
-            </Link>
-          </div>
+        <div className="container-content container-content-card-detail">
+          <MissingPage
+            className="min-h-0 py-20"
+            title="Scambio non trovato"
+            description="L'oggetto che stai cercando non esiste o è stato rimosso."
+            actions={
+              <Link
+                href="/scambi"
+                className="inline-flex items-center gap-2 rounded-full bg-[#FF7300] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-[#e86800]"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Torna agli scambi
+              </Link>
+            }
+          />
         </div>
       </div>
     );

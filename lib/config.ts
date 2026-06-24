@@ -102,6 +102,17 @@ export const ASSETS = {
 } as const;
 
 /**
+ * URL pubblico del sito — usato per metadata, sitemap, robots, canonical, OG.
+ * NON è la CDN immagini (CloudFront): impostare NEXT_PUBLIC_SITE_URL (o APP_URL)
+ * in produzione. Single source of truth per evitare basi URL incoerenti.
+ */
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  'https://ebartex.com'
+).replace(/\/+$/, '');
+
+/**
  * Restituisce l'URL dell'immagine UI (icone, illustrazioni). Se CDN configurato usa ASSETS.imagesBaseUrl, altrimenti /images/.
  * @param path - path relativo senza leading slash (es. "aste.png", "icone-credito/xxx.png")
  */

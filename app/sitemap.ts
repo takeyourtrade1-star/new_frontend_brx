@@ -1,12 +1,8 @@
 import { MetadataRoute } from 'next';
-
-const BASE_URL =
-  process.env.NEXT_PUBLIC_CDN_URL ||
-  process.env.NEXT_PUBLIC_APP_URL ||
-  'https://ebartex.com';
+import { SITE_URL } from '@/lib/config';
 
 function url(path: string): string {
-  return `${BASE_URL.replace(/\/+$/, '')}${path}`;
+  return `${SITE_URL}${path}`;
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -64,18 +60,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.8,
-    },
-    {
-      url: url('/aste/nuova'),
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.6,
-    },
-    {
-      url: url('/cart'),
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.7,
     },
     {
       url: url('/vendi'),

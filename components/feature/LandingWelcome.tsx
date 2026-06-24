@@ -12,6 +12,7 @@ import { getCdnImageUrl } from '@/lib/config';
 import { useGame } from '@/lib/contexts/GameContext';
 import type { GameSlug } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { useTimeouts } from '@/lib/hooks/use-timeout-fn';
 import { SignedAlteredShowcase } from './SignedAlteredShowcase';
 import { motion } from 'framer-motion';
@@ -160,6 +161,7 @@ const BOUTIQUE_CATEGORIES = [
 
 export function LandingWelcome() {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
   const { setSelectedGame } = useGame();
 
   /* ─── state ─── */
@@ -493,7 +495,7 @@ export function LandingWelcome() {
 
                 <div className="mb-3 flex items-center gap-2 rounded-full bg-[#FF7300]/90 px-4 py-2 text-white shadow-lg">
                   <Users className="h-4 w-4" />
-                  <span className="text-sm font-semibold">{notifyGame.waitlistCount.toLocaleString('it-IT')} in lista d&apos;attesa</span>
+                  <span className="text-sm font-semibold">{notifyGame.waitlistCount.toLocaleString(intlLocale)} in lista d&apos;attesa</span>
                 </div>
 
                 <h3 className="mb-3 text-lg font-bold uppercase tracking-tight text-white sm:text-xl">
@@ -534,7 +536,7 @@ export function LandingWelcome() {
                   Abbiamo registrato la tua email. <br/>A presto!
                 </p>
                 <p className="mt-4 text-sm text-white/60">
-                  Ora ci sono <span className="text-[#FF7300] font-bold">{(notifyGame.waitlistCount + 1).toLocaleString('it-IT')}</span> utenti in lista!
+                  Ora ci sono <span className="text-[#FF7300] font-bold">{(notifyGame.waitlistCount + 1).toLocaleString(intlLocale)}</span> utenti in lista!
                 </p>
               </div>
             )}
@@ -574,7 +576,7 @@ export function LandingWelcome() {
             style={{ willChange: 'transform, opacity', animationDelay: isFullscreenClosing ? '0ms' : '100ms' }}
           >
             <Users className="h-4 w-4" />
-            <span className="text-sm font-semibold">{fullscreenGame.waitlistCount.toLocaleString('it-IT')} in lista d&apos;attesa</span>
+            <span className="text-sm font-semibold">{fullscreenGame.waitlistCount.toLocaleString(intlLocale)} in lista d&apos;attesa</span>
           </div>
 
           {/* Content area */}
@@ -637,7 +639,7 @@ export function LandingWelcome() {
                   Abbiamo registrato la tua email.<br/>A presto!
                 </p>
                 <p className={`mt-4 text-sm text-white/60 ${isFullscreenClosing ? 'animate-landing-fade-exit' : 'animate-landing-fade-in'}`} style={{ animationDelay: isFullscreenClosing ? '50ms' : '200ms' }}>
-                  Ora ci sono <span className="text-[#FF7300] font-bold">{(fullscreenGame.waitlistCount + 1).toLocaleString('it-IT')}</span> utenti in lista!
+                  Ora ci sono <span className="text-[#FF7300] font-bold">{(fullscreenGame.waitlistCount + 1).toLocaleString(intlLocale)}</span> utenti in lista!
                 </p>
               </div>
             )}

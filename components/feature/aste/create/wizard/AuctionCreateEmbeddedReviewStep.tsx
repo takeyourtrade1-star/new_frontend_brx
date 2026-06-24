@@ -86,9 +86,9 @@ export function AuctionCreateEmbeddedReviewStep({
         </div>
         {draft.shippingPayer === 'buyer' && (
           <div className="mt-1.5 grid grid-cols-4 gap-1">
-            <div title="Paese di spedizione (codice ISO)">
+            <div title={t('auctions.createReview.shipCountryTitle')}>
               <label htmlFor="ac-ship-origin-emb" className="block truncate text-[9px] font-bold uppercase tracking-wide text-gray-500">
-                Paese
+                {t('auctions.createReview.shipCountryLabel')}
               </label>
               <input
                 id="ac-ship-origin-emb"
@@ -98,9 +98,9 @@ export function AuctionCreateEmbeddedReviewStep({
                 maxLength={2}
               />
             </div>
-            <div title={`Spedizione nazionale (${draft.shippingOriginCountry || 'IT'})`}>
+            <div title={t('auctions.createReview.shipNationalTitle', { country: draft.shippingOriginCountry || 'IT' })}>
               <label htmlFor="ac-ship-national-emb" className="block truncate text-[9px] font-bold uppercase tracking-wide text-gray-500">
-                Naz. ({draft.shippingOriginCountry || 'IT'})
+                {t('auctions.createReview.shipNationalLabel', { country: draft.shippingOriginCountry || 'IT' })}
               </label>
               <div className="relative mt-0.5">
                 <span className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">€</span>
@@ -130,9 +130,9 @@ export function AuctionCreateEmbeddedReviewStep({
                 />
               </div>
             </div>
-            <div title="Spedizione resto del mondo (fuori UE)">
+            <div title={t('auctions.createReview.shipRestWorldTitle')}>
               <label htmlFor="ac-ship-rest-world-emb" className="block truncate text-[9px] font-bold uppercase tracking-wide text-gray-500">
-                Extra UE
+                {t('auctions.createReview.shipExtraEuLabel')}
               </label>
               <div className="relative mt-0.5">
                 <span className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">€</span>
@@ -200,7 +200,7 @@ export function AuctionCreateEmbeddedReviewStep({
               )}
             >
               <ImageIcon className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
-              Carica
+              {t('auctions.createReview.uploadBtn')}
             </button>
             <button
               type="button"
@@ -209,7 +209,7 @@ export function AuctionCreateEmbeddedReviewStep({
               className="group flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:hidden"
             >
               <Camera className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
-              Scatta da telefono
+              {t('auctions.createReview.captureFromPhone')}
             </button>
             <button
               type="button"
@@ -219,15 +219,15 @@ export function AuctionCreateEmbeddedReviewStep({
                   : void pairing.openPhoneUploadModal()
               }
               disabled={pairing.pairingActionLoading}
-              aria-label="Carica da telefono con QR"
-              title="Carica da telefono con QR"
+              aria-label={t('auctions.createReview.qrFromPhoneAria')}
+              title={t('auctions.createReview.qrFromPhoneAria')}
               className={cn(
                 'group hidden flex-col items-center justify-center gap-1 rounded-xl border border-[#1D3160]/10 bg-gradient-to-b from-white to-slate-50/60 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#1D3160] shadow-sm transition-all duration-200 hover:border-[#FF7300]/40 hover:bg-orange-50/50 hover:shadow-md hover:shadow-[#FF7300]/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:flex',
                 draft.listingPhotos.length > 0 && 'sm:w-full',
               )}
             >
               <QrCode className="h-4 w-4 text-[#1D3160]/70 transition-colors group-hover:text-[#FF7300]" aria-hidden />
-              Scatta da telefono
+              {t('auctions.createReview.captureFromPhone')}
             </button>
           </div>
           <div
@@ -241,7 +241,7 @@ export function AuctionCreateEmbeddedReviewStep({
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#1D3160]">
-                    Collegamento telefono attivo
+                    {t('auctions.createReview.phoneLinkActive')}
                   </span>
                 </div>
                 <div className="text-xs text-zinc-700 font-medium">
@@ -324,7 +324,7 @@ export function AuctionCreateEmbeddedReviewStep({
             ) : null}
             {failedUploadFiles.length > 0 && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-900">
-                <p className="font-semibold">Alcune foto non sono state caricate.</p>
+                <p className="font-semibold">{t('auctions.createReview.somePhotosFailed')}</p>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {failedUploadFiles.map((file, i) => (
                     <button
@@ -333,7 +333,7 @@ export function AuctionCreateEmbeddedReviewStep({
                       onClick={() => retryFailedUpload(file)}
                       className="rounded border border-red-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-red-800 hover:bg-red-100"
                     >
-                      Riprova
+                      {t('auctions.createReview.retry')}
                     </button>
                   ))}
                 </div>
@@ -346,28 +346,28 @@ export function AuctionCreateEmbeddedReviewStep({
       <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/80 p-2">
         <div className="grid grid-cols-2 gap-1.5">
           <div className="rounded-md bg-white px-2 py-1 ring-1 ring-zinc-100">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">Base</p>
+            <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">{t('auctions.createReview.summaryBase')}</p>
             <p className="text-[11px] font-extrabold text-zinc-900">€{draft.startingBidEur || '—'}</p>
           </div>
           <div className="rounded-md bg-white px-2 py-1 ring-1 ring-zinc-100">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">Durata</p>
+            <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">{t('auctions.createReview.summaryDuration')}</p>
             <p className="text-[11px] font-extrabold text-zinc-900">
               {t('auctions.createDurationDays', { days: draft.durationDays })}
             </p>
           </div>
           <div className="rounded-md bg-white px-2 py-1 ring-1 ring-zinc-100">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">Spedizione</p>
+            <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">{t('auctions.createReview.summaryShipping')}</p>
             <p className="line-clamp-1 text-[11px] font-extrabold text-zinc-900">
               {draft.shippingPayer === 'buyer' ? t('auctions.createShippingBuyer') : t('auctions.createShippingSeller')}
             </p>
           </div>
           <div className="rounded-md bg-white px-2 py-1 ring-1 ring-zinc-100">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">Foto</p>
+            <p className="text-[9px] font-bold uppercase tracking-wide text-zinc-400">{t('auctions.createReview.summaryPhotos')}</p>
             <p className="text-[11px] font-extrabold text-zinc-900">{draft.listingPhotos.length}</p>
           </div>
         </div>
         <p className="mt-1.5 text-[10px] leading-snug text-zinc-500">
-          L&apos;asta parte subito alla pubblicazione (non è possibile programmarla).
+          {t('auctions.createReview.startsImmediately')}
         </p>
       </div>
     </div>

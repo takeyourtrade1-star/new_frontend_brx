@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 're
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { disputesApi } from '@/lib/api/disputes-client';
 import type { DisputeMessageAPI } from '@/types/dispute';
 import {
@@ -29,6 +30,7 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 
 export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
   const router = useRouter();
+  const intlLocale = useIntlLocale();
   const user = useAuthStore((s) => s.user);
   const detailQuery = useDisputeDetail(disputeId, disputeId > 0);
   const messagesQuery = useDisputeMessages(disputeId, disputeId > 0);
@@ -217,7 +219,7 @@ export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
               }`}
             >
               <div>{m.body}</div>
-              <div className="mt-1 text-[11px] text-gray-500">{new Date(m.created_at).toLocaleString('it-IT')}</div>
+              <div className="mt-1 text-[11px] text-gray-500">{new Date(m.created_at).toLocaleString(intlLocale)}</div>
             </div>
           ))}
           {allMessages.length === 0 && <p className="text-sm text-gray-500">Nessun messaggio.</p>}

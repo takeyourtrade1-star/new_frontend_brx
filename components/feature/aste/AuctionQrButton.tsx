@@ -8,7 +8,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { QrCode, X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -70,29 +69,13 @@ export function AuctionQrButton({ auctionTitle, compact = false, className }: Pr
       </button>
 
       {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {modalOpen && url && (
-            <motion.div
-              className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <motion.div
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-                onClick={() => setModalOpen(false)}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              />
-              <motion.div
-                className="relative w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl"
-                initial={{ y: 20, opacity: 0, scale: 0.95 }}
-                animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: 10, opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              >
+        modalOpen && url ? (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+              onClick={() => setModalOpen(false)}
+            />
+            <div className="relative w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200">
             <button
               type="button"
               onClick={() => setModalOpen(false)}
@@ -135,10 +118,9 @@ export function AuctionQrButton({ auctionTitle, compact = false, className }: Pr
                 {t('auctions.qrCodeHint')}
               </p>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-        </AnimatePresence>,
+            </div>
+          </div>
+        ) : null,
         document.body
       )}
     </div>

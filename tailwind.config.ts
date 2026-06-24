@@ -199,6 +199,15 @@ const config: Config = {
           '70%': { opacity: '0.5', transform: 'translateX(-5px)' },
           '100%': { opacity: '0', transform: 'translateX(-7px)' },
         },
+        'offline-float': {
+          '0%,100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-12px)' },
+        },
+        'offline-wobble': {
+          '0%,100%': { transform: 'rotate(0deg)' },
+          '25%': { transform: 'rotate(15deg)' },
+          '75%': { transform: 'rotate(-15deg)' },
+        },
       },
       animation: {
         'caret-blink': 'caret-blink 1.2s ease-out infinite',
@@ -216,6 +225,8 @@ const config: Config = {
         'coin-earn': 'coin-earn 1s ease-out',
         'cart-wobble': 'cart-wobble 0.9s cubic-bezier(0.34,1.56,0.64,1)',
         'cart-speed': 'cart-speed 0.9s ease-out',
+        'offline-float': 'offline-float 2.5s ease-in-out infinite',
+        'offline-wobble': 'offline-wobble 2s ease-in-out infinite',
       },
       backgroundImage: {
         'gradient-global': 'linear-gradient(to bottom, #3D65C6 0%, #1D3160 100%)',

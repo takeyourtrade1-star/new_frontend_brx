@@ -6,6 +6,7 @@ import { ConditionalFooter } from '@/components/layout/ConditionalFooter';
 import { CardMascotteGate } from '@/components/dev/CardMascotteGate';
 import { BuildInfoBadge } from '@/components/dev/BuildInfoBadge';
 import { IOSInstallPromptGate } from '@/components/pwa/IOSInstallPromptGate';
+import { SITE_URL } from '@/lib/config';
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -15,7 +16,7 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: 'Ebartex | Marketplace di Carte Collezionabili',
     template: '%s | Ebartex',
@@ -68,11 +69,13 @@ export const metadata: Metadata = {
   },
 };
 
-/** URL sfondo BRX per CSS (da CDN se configurato). */
+/** URL sfondo BRX per CSS (da CDN se configurato). Sanitizza l'env con una
+ *  whitelist di caratteri URL per evitare injection nel blocco <style> inline. */
 function getBrxBgCssUrl(): string {
-  const cdn = (process.env.NEXT_PUBLIC_CDN_URL || '').replace(/\/+$/, '');
-  if (cdn) return `${cdn}/images/brx_bg.png`;
-  return '/brx_bg.png';
+  const cdn = (process.env.NEXT_PUBLIC_CDN_URL || '')
+    .replace(/\/+$/, '')
+    .replace(/[^a-zA-Z0-9.:/-]/g, '');
+  return cdn ? `${cdn}/images/brx_bg.png` : '/brx_bg.png';
 }
 
 export default function RootLayout({
@@ -80,7 +83,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const brxBgUrl = getBrxBgCssUrl();
+  // Escape backslash/apici prima dell'iniezione in url("...") dentro <style>.
+  const brxBgUrl = getBrxBgCssUrl().replace(/[\\"']/g, '\\$&');
 
   return (
     <html lang="it" suppressHydrationWarning className={nunito.variable}>

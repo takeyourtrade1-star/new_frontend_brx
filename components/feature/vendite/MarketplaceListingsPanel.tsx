@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Loader2, Pencil, Tag, Trash2 } from 'lucide-react';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import {
   cancelListing,
   getMyListings,
@@ -27,6 +28,7 @@ type MarketplaceListingsPanelProps = {
 };
 
 export function MarketplaceListingsPanel({ statusFilter = 'active' }: MarketplaceListingsPanelProps) {
+  const intlLocale = useIntlLocale();
   const [listings, setListings] = useState<ListingResponse[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -177,11 +179,11 @@ export function MarketplaceListingsPanel({ statusFilter = 'active' }: Marketplac
                   <p className="truncate font-bold text-gray-900">{listing.title}</p>
                 )}
                 <p className="mt-1 text-sm text-gray-600">
-                  {formatEuroNoSpace(price, 'it-IT')} · Qtà {listing.quantity} ·{' '}
+                  {formatEuroNoSpace(price, intlLocale)} · Qtà {listing.quantity} ·{' '}
                   {STATUS_LABELS[listing.status] ?? listing.status}
                 </p>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  {new Date(listing.created_at).toLocaleString('it-IT')}
+                  {new Date(listing.created_at).toLocaleString(intlLocale)}
                 </p>
               </div>
               {listing.status === 'active' && (

@@ -9,6 +9,7 @@ import { useMockPurchaseStore } from '@/lib/stores/mock-purchase-store';
 import { formatEuroNoSpace } from '@/lib/utils';
 import { getCdnImageUrl } from '@/lib/config';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import type { MarketplaceCartLine } from '@/types';
 
 function resolveImageSrc(imageUrl: string): string {
@@ -21,6 +22,7 @@ type CartPreviewSectionProps = {
 };
 
 function PreviewLine({ line }: { line: MarketplaceCartLine }) {
+  const intlLocale = useIntlLocale();
   const imageSrc = resolveImageSrc(line.imageUrl);
   const lineTotal = (line.priceCents / 100) * line.quantity;
 
@@ -44,7 +46,7 @@ function PreviewLine({ line }: { line: MarketplaceCartLine }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-gray-900">{line.title}</p>
         <p className="text-xs text-gray-500">
-          Qtà {line.quantity} · {formatEuroNoSpace(lineTotal, 'it-IT')}
+          Qtà {line.quantity} · {formatEuroNoSpace(lineTotal, intlLocale)}
         </p>
       </div>
     </div>
@@ -53,6 +55,7 @@ function PreviewLine({ line }: { line: MarketplaceCartLine }) {
 
 export function CartPreviewSection({ onOrdersCreated }: CartPreviewSectionProps) {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
   const items = useCartStore((s) => s.items);
   const removeItem = useCartStore((s) => s.removeItem);
   const createFromCartLines = useMockPurchaseStore((s) => s.createFromCartLines);
@@ -97,7 +100,7 @@ export function CartPreviewSection({ onOrdersCreated }: CartPreviewSectionProps)
         <div className="mt-3 flex items-center justify-between border-t border-amber-200 pt-3 text-sm">
           <span className="font-medium text-gray-700">{t('cart.total')}</span>
           <span className="font-bold tabular-nums text-gray-900">
-            {formatEuroNoSpace(cartTotal, 'it-IT')}
+            {formatEuroNoSpace(cartTotal, intlLocale)}
           </span>
         </div>
       </div>

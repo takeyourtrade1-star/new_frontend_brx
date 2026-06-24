@@ -59,3 +59,26 @@ jobs:
 
       - name: Run vitest
         run: npx vitest run
+
+  # Report del budget di bundle. NON bloccante (continue-on-error): mostra nei log
+  # della PR i chunk/route/CSS più grandi e gli eventuali sforamenti delle soglie,
+  # senza impedire il merge. Promuovere a gate togliendo `continue-on-error`
+  # quando le soglie sono stabili e condivise.
+  bundle-budget:
+    name: Bundle budget (report, non bloccante)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build + report budget bundle
+        run: npm run build:budget

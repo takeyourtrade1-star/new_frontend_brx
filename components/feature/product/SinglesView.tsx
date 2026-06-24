@@ -13,6 +13,7 @@ import { Search, ChevronDown, X } from 'lucide-react';
 import { getCardImageUrl } from '@/lib/assets';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { RarityLegendProvider } from '@/components/ui/RarityLegendProvider';
 import { SearchResultsTable } from '@/components/feature/search/SearchResultsTable';
@@ -233,6 +234,7 @@ export function ProductCategoryView({
   const searchParams = useSearchParams();
   const { selectedLang } = useLanguage();
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
 
   const gameFromUrl = searchParams.get('game');
   const effectiveGame = ((gameFromUrl as GameSlug) || gameSlug) ?? 'mtg';
@@ -430,7 +432,7 @@ export function ProductCategoryView({
   const effectiveLoading = loading || sellSearchPending;
 
   const formatEuro = (n: number | undefined) =>
-    n != null ? formatEuroNoSpace(n, 'it-IT') : '–';
+    n != null ? formatEuroNoSpace(n, intlLocale) : '–';
 
   const pageTitle = useMemo(() => {
     const key = `products.category.${categorySlug}` as MessageKey;

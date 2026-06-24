@@ -10,6 +10,7 @@ import { getCardImageUrl } from '@/lib/assets';
 import { getCardDisplayNames } from '@/lib/card-display-name';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { getGameLabel, buildBreadcrumbsFromCard } from '@/lib/product-detail';
 import { resolveSetPageGameSlug } from '@/lib/search/set-page-url';
 import { type ListingItem } from '@/lib/api/sync-client';
@@ -76,6 +77,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
   const tabUserOverride = useRef(false);
   const { selectedLang } = useLanguage();
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
   const createFromCartLines = useMockPurchaseStore((s) => s.createFromCartLines);
   const displayNames = card ? getCardDisplayNames(card, selectedLang) : null;
 
@@ -330,13 +332,13 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     return undefined;
   }, [listings.length, enrichedCardAuctions.length, sortedMarketplaceRows.length, t]);
 
-  const formatEuro = useCallback((n: number) => formatEuroNoSpace(n, 'it-IT'), []);
+  const formatEuro = useCallback((n: number) => formatEuroNoSpace(n, intlLocale), [intlLocale]);
 
   const cardsInSaleCount = useMemo(
     () => listings.reduce((total, item) => total + Math.max(0, item.quantity || 0), 0),
     [listings]
   );
-  const cardsInSaleLabel = listingsLoading ? '…' : new Intl.NumberFormat('it-IT').format(cardsInSaleCount);
+  const cardsInSaleLabel = listingsLoading ? '…' : new Intl.NumberFormat(intlLocale).format(cardsInSaleCount);
 
   const defaultTrendStats = useMemo<ProductPriceStats>(() => {
     const points = buildPriceHistoryPoints(slug);

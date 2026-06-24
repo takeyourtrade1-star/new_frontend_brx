@@ -4,6 +4,7 @@ import { SlidersHorizontal } from 'lucide-react';
 import type { InventoryFilters } from '@/components/feature/account/InventoryFiltersPanel';
 import type { InventoryFacets } from '@/lib/inventory/inventory-filter-utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 
 type SortBy = InventoryFilters['sortBy'];
 
@@ -39,6 +40,7 @@ export function InventoryMobileQuickBar({
   showFilterButton = true,
 }: InventoryMobileQuickBarProps) {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
 
   const kindOptions = (['all', 'singole', 'oggetti'] as const).filter((k) => {
     if (k === 'all') return facets.kinds.all > 0;
@@ -109,7 +111,7 @@ export function InventoryMobileQuickBar({
           </button>
         ))}
         <span className="shrink-0 self-center text-xs font-medium tabular-nums text-gray-400">
-          {itemCount.toLocaleString('it-IT')}
+          {itemCount.toLocaleString(intlLocale)}
         </span>
       </div>
     </div>

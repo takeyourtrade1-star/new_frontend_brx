@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { minNextBidEur, parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
 import { formatEur } from '@/lib/utils';
@@ -87,6 +88,8 @@ export function AuctionBidModal({
 
   const { t } = useTranslation();
 
+  const intlLocale = useIntlLocale();
+
   const [input, setInput] = useState('');
 
   const [error, setError] = useState<string | null>(null);
@@ -121,12 +124,12 @@ export function AuctionBidModal({
     prevOpenRef.current = open;
 
     if (justOpened) {
-      setInput(minBid.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 2 }));
+      setInput(minBid.toLocaleString(intlLocale, { minimumFractionDigits: 0, maximumFractionDigits: 2 }));
       setError(null);
       setOutbidWarning(null);
       setConfirmAction(null);
     }
-  }, [open, minBid]);
+  }, [open, minBid, intlLocale]);
 
 
 
@@ -200,9 +203,9 @@ export function AuctionBidModal({
 
   if (!open) return null;
 
-  const fmtEur = formatEur;
+  const fmtEur = (n: number) => formatEur(n, intlLocale);
 
-  const dateLine = endsAt.toLocaleString('it-IT', {
+  const dateLine = endsAt.toLocaleString(intlLocale, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

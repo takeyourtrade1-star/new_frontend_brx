@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'Prodotti | Catalogo Ebartex',
   description:
     'Sfoglia il catalogo completo di prodotti Ebartex: booster box, bustine, carte singole e accessori.',
+  alternates: { canonical: '/products' },
 };
 
 export default function ProductsPage() {

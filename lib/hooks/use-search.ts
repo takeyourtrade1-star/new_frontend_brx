@@ -1,6 +1,7 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import type { SearchApiResponse, SearchHit } from '@/app/api/search/route';
 import type { SetResult } from '@/lib/search/global-search-types';
+import { STALE } from '@/lib/hooks/query-config';
 
 export type { SearchApiResponse, SearchHit };
 
@@ -47,7 +48,7 @@ export function useSearchCards(
   return useQuery<SearchApiResponse>({
     queryKey: ['search', 'cards', params],
     queryFn: () => fetchSearch(params),
-    staleTime: 60_000,
+    staleTime: STALE.catalog,
     ...options,
   });
 }
@@ -78,7 +79,7 @@ export function useSetSearch(
   return useQuery<SetResult[]>({
     queryKey: ['search', 'sets', params.q ?? '', params.game ?? ''],
     queryFn: () => fetchSets(params),
-    staleTime: 60_000,
+    staleTime: STALE.catalog,
     ...options,
   });
 }
@@ -107,9 +108,24 @@ export function useSetPageCards(
       const totalPages = search ? 1 : Math.max(1, first.totalPages ?? 1);
       const all: SearchHit[] = Array.isArray(first.hits) ? first.hits : [];
 
-      for (let page = 2; page <= totalPages; page++) {
-        const next = await fetchSearch({ ...base, page }).catch(() => null);
-        if (next?.hits) all.push(...next.hits);
+      if (totalPages > 1) {
+        // Pagine 2..N in parallelo con concorrenza limitata, preservando
+        // l'ordine: ogni risultato è indicizzato per posizione e poi appiattito.
+        const restPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+        const CONCURRENCY = 5;
+        const pageHits: SearchHit[][] = new Array(restPages.length);
+        let cursor = 0;
+        const worker = async () => {
+          while (cursor < restPages.length) {
+            const idx = cursor++;
+            const next = await fetchSearch({ ...base, page: restPages[idx] }).catch(() => null);
+            pageHits[idx] = next && Array.isArray(next.hits) ? next.hits : [];
+          }
+        };
+        await Promise.all(
+          Array.from({ length: Math.min(CONCURRENCY, restPages.length) }, () => worker()),
+        );
+        for (const hits of pageHits) all.push(...hits);
       }
       return all;
     },

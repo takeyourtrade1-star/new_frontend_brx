@@ -9,15 +9,16 @@ export function cn(...inputs: ClassValue[]): string {
 /**
  * Formatta un importo già in EUR (no arrotondamento), locale-aware con spazio.
  * Es: 10.5 → "10,50 €". Variante base; per cents usa {@link formatEurCents},
- * senza spazio {@link formatEuroNoSpace}.
+ * senza spazio {@link formatEuroNoSpace}. Passa `locale` (BCP 47, es. da
+ * {@link useIntlLocale}) per rispettare la lingua attiva; default 'it-IT'.
  */
-export function formatEur(n: number): string {
-  return n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+export function formatEur(n: number, locale: string = 'it-IT'): string {
+  return n.toLocaleString(locale, { style: 'currency', currency: 'EUR' });
 }
 
 /** Formats a price expressed in euro-cents to a locale-aware EUR string. */
-export function formatEurCents(cents: number): string {
-  return new Intl.NumberFormat('it-IT', {
+export function formatEurCents(cents: number, locale: string = 'it-IT'): string {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 2,

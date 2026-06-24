@@ -3,16 +3,15 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  AlertCircle,
   ArrowLeft,
   CheckCircle,
   MapPin,
   MessageCircle,
   RefreshCw,
   Sparkles,
-  Users,
 } from 'lucide-react';
 
+import { MissingPage } from '@/components/shared/MissingPage';
 import { Header } from '@/components/layout/Header';
 import { UserAvatar } from '@/components/feature/users/UserAvatar';
 import { FeedbackScore } from '@/components/feature/users/FeedbackScore';
@@ -75,45 +74,50 @@ function HeroSkeleton() {
 
 function NotFoundState({ username }: { username: string }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-[2rem] border border-white/70 bg-white/55 px-8 py-24 text-center shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur-2xl">
-      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100/90 ring-1 ring-slate-200/60">
-        <Users className="h-8 w-8 text-slate-400" />
-      </div>
-      <h2 className="mb-2 text-2xl font-bold tracking-tight text-slate-900">Utente non trovato</h2>
-      <p className="mb-8 max-w-sm text-sm leading-relaxed text-slate-500">
-        L&apos;utente <span className="font-semibold text-slate-700">@{username}</span> non esiste o
-        non è più disponibile.
-      </p>
-      <Link
-        href="/search/user"
-        className="inline-flex items-center gap-2 rounded-full bg-[#ff7300] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#ff7300]/25 transition hover:bg-[#e56a00]"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Cerca altri utenti
-      </Link>
-    </div>
+    <MissingPage
+      className="min-h-0 py-8"
+      title="Utente non trovato"
+      description={
+        <>
+          <p className="max-w-sm leading-relaxed">
+            L&apos;utente{' '}
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              @{username}
+            </span>{' '}
+            non esiste o non è più disponibile.
+          </p>
+        </>
+      }
+      actions={
+        <Link
+          href="/search/user"
+          className="inline-flex items-center gap-2 rounded-full bg-[#ff7300] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#ff7300]/25 transition hover:bg-[#e56a00]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Cerca altri utenti
+        </Link>
+      }
+    />
   );
 }
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-[2rem] border border-red-100/80 bg-white/55 px-8 py-24 text-center backdrop-blur-2xl">
-      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 ring-1 ring-red-100">
-        <AlertCircle className="h-8 w-8 text-red-400" />
-      </div>
-      <h2 className="mb-2 text-2xl font-bold tracking-tight text-slate-900">Errore di caricamento</h2>
-      <p className="mb-8 max-w-sm text-sm text-slate-500">
-        Impossibile caricare il profilo. Controlla la connessione e riprova.
-      </p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-      >
-        <RefreshCw className="h-4 w-4" />
-        Riprova
-      </button>
-    </div>
+    <MissingPage
+      className="min-h-0 py-8"
+      title="Errore di caricamento"
+      description="Impossibile caricare il profilo. Controlla la connessione e riprova."
+      actions={
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Riprova
+        </button>
+      }
+    />
   );
 }
 

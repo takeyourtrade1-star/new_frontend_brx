@@ -42,6 +42,7 @@ import {
   HEADER_GAME_ROW_GAP_CLASS,
   HEADER_GAME_TEXT_INSET_CLASS,
 } from '@/components/layout/headerBrxColumn';
+import { ScambiVideoIntro } from '@/components/feature/scambi/ScambiVideoIntro';
 
 
 
@@ -65,6 +66,7 @@ export function TopBar() {
   const [acquistiMenuOpen, setAcquistiMenuOpen] = useState(false);
   const [vendiMenuOpen, setVendiMenuOpen] = useState(false);
   const [gamesMenuOpen, setGamesMenuOpen] = useState(false);
+  const [scambiIntroOpen, setScambiIntroOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const vendiMenuRef = useRef<HTMLDivElement>(null);
   const acquistiMenuRef = useRef<HTMLDivElement>(null);
@@ -160,6 +162,7 @@ export function TopBar() {
 
   return (
     <>
+      {scambiIntroOpen && <ScambiVideoIntro onClose={() => setScambiIntroOpen(false)} />}
       <div className="flex w-full min-h-0 items-center gap-0 py-0.5">
         {/* Left: Logo + selettore gioco — colonna allineata al menu Prodotti sotto */}
         <div
@@ -464,9 +467,10 @@ export function TopBar() {
 
               {/* 4. SCAMBI — mobile icona diretta; desktop con label */}
               <MobileHeaderNavIcon
-                as="link"
-                href="/scambi"
+                as="button"
+                onClick={() => setScambiIntroOpen(true)}
                 aria-label={t('nav.trades')}
+                aria-expanded={false}
                 className="group order-3 md:hidden"
               >
                 <svg
@@ -486,8 +490,9 @@ export function TopBar() {
                   <path d="M21 21v-5h-5" />
                 </svg>
               </MobileHeaderNavIcon>
-              <Link
-                href="/scambi"
+              <button
+                type="button"
+                onClick={() => setScambiIntroOpen(true)}
                 className="group order-3 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-4 md:flex"
                 aria-label={t('nav.trades')}
               >
@@ -514,7 +519,7 @@ export function TopBar() {
                 <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
                   {t('nav.trades')}
                 </span>
-              </Link>
+              </button>
 
               {/* 5. ASTE — mobile icona diretta; desktop con label */}
               <MobileHeaderNavIcon

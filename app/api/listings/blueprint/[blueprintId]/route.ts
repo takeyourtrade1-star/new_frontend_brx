@@ -36,18 +36,30 @@ export async function GET(
     url.searchParams.set(key, value);
   });
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12_000);
   try {
     const res = await fetch(url.toString(), {
       method: 'GET',
       headers: { Accept: 'application/json' },
+      signal: controller.signal,
     });
     const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });
   } catch (err) {
     console.error('[listings proxy]', err);
+    const isAbort = err instanceof Error && err.name === 'AbortError';
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Proxy request failed' },
-      { status: 502 }
+      {
+        error: isAbort
+          ? 'Timeout upstream Sync'
+          : err instanceof Error
+            ? err.message
+            : 'Proxy request failed',
+      },
+      { status: isAbort ? 504 : 502 }
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
