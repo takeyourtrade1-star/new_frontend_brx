@@ -85,7 +85,7 @@ export function useSetSearch(
 }
 
 /**
- * Fetches ALL pages for a set page sequentially (limit=100 per page).
+ * Fetches ALL pages for a set page (limit=100 per page).
  * Returns the flat merged hits array, exposing loading/error like any query.
  */
 export function useSetPageCards(
@@ -118,7 +118,7 @@ export function useSetPageCards(
         const worker = async () => {
           while (cursor < restPages.length) {
             const idx = cursor++;
-            const next = await fetchSearch({ ...base, page: restPages[idx] }).catch(() => null);
+            const next = await fetchSearch({ ...base, page: restPages[idx] });
             pageHits[idx] = next && Array.isArray(next.hits) ? next.hits : [];
           }
         };
