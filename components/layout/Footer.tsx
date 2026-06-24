@@ -48,7 +48,6 @@ export function Footer() {
         { label: t('footer.link.privacy'), href: '/legal/privacy' },
         { label: t('footer.link.cookies'), href: '/legal/cookie' },
         { label: t('footer.link.faq'), href: '/aiuto' },
-        { label: t('footer.link.contact'), href: '/aiuto' },
       ],
     },
     {

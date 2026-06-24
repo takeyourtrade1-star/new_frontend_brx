@@ -2212,6 +2212,74 @@
   animation-play-state: paused;
 }
 
+/* Tutorial scambi: icona scambi (ultimo passo) che ruota in continuo. */
+@keyframes scambi-step-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-360deg);
+  }
+}
+
+.scambi-step-spin {
+  animation: scambi-step-spin 3.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scambi-step-spin {
+    animation: none;
+  }
+}
+
+/* OrderTabs: mini-icone animate "in modo figo".
+   - pop elastico quando la tab diventa attiva
+   - wiggle al passaggio del mouse sulla pillola/voce */
+@keyframes order-tab-icon-pop {
+  0% {
+    transform: scale(0.55) rotate(-14deg);
+  }
+  55% {
+    transform: scale(1.22) rotate(6deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes order-tab-icon-wiggle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-11deg) scale(1.12);
+  }
+  75% {
+    transform: rotate(11deg) scale(1.12);
+  }
+}
+
+.order-tab-icon {
+  transition: transform 0.2s ease;
+}
+
+.group:hover .order-tab-icon {
+  animation: order-tab-icon-wiggle 0.45s ease-in-out;
+}
+
+.order-tab-icon-active {
+  animation: order-tab-icon-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-tab-icon,
+  .group:hover .order-tab-icon,
+  .order-tab-icon-active {
+    animation: none;
+  }
+}
+
 /* ========== ORANGE OUTLINE BUTTON - Reusable glow style ========== */
 .btn-orange-outline-glow {
   background-color: transparent;

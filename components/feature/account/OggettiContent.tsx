@@ -287,6 +287,31 @@ export function OggettiContent() {
         inventoryItems={inventoryItems}
       />
       <main className="w-full min-w-0 max-w-full flex-1 overflow-x-clip p-0 md:p-6">
+        {/* Intestazione pagina: breadcrumb + titolo + conteggio (gerarchia chiara). */}
+        <div className="mb-3 md:mb-5">
+          <nav
+            className="mb-2 hidden items-center gap-1.5 px-0.5 text-sm text-gray-500 md:flex"
+            aria-label="Breadcrumb"
+          >
+            <Link href="/account" className="transition-colors hover:text-gray-900">
+              Account
+            </Link>
+            <span className="text-gray-300">/</span>
+            <span className="font-medium text-gray-900">{t('accountPage.itemsTitle')}</span>
+          </nav>
+          <div className="flex items-end justify-between gap-3 px-0.5">
+            <h1 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
+              {t('accountPage.itemsTitle')}
+            </h1>
+            {!loading && inventoryRaw.length > 0 && (
+              <span className="shrink-0 pb-0.5 text-sm font-semibold tabular-nums text-gray-500">
+                {filteredInventoryItems.length}
+                <span className="font-normal text-gray-400">/{inventoryItems.length}</span>
+              </span>
+            )}
+          </div>
+        </div>
+
         {/* Barra ricerca + azioni in un unico container */}
         <div className="mb-3 md:mb-4">
           <div className="flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-sm md:gap-2">
@@ -389,17 +414,6 @@ export function OggettiContent() {
             />
           </div>
         </div>
-
-        <nav
-          className="mb-3 hidden items-center gap-1.5 px-0.5 text-sm text-gray-500 md:mb-5 md:flex"
-          aria-label="Breadcrumb"
-        >
-          <Link href="/account" className="transition-colors hover:text-gray-900">
-            Account
-          </Link>
-          <span className="text-gray-300">/</span>
-          <span className="font-medium text-gray-900">{t('accountPage.itemsTitle')}</span>
-        </nav>
 
         {syncBanner && (
           <OggettiSyncBanner banner={syncBanner} onClose={() => setSyncBanner(null)} />

@@ -8,9 +8,13 @@
  */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowLeftRight, Check, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowLeftRight, Check, Info, ShieldCheck, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { tradeBalance } from '@/lib/scambi/card-mock-value';
+
+/** Sopra questo valore (in €), una carta può richiedere l'intermediazione Ebartex. */
+const HIGH_VALUE_THRESHOLD = 100;
 import { MOCK_INVENTORY_A, findMockInventoryItem } from './mock-trade-inventories';
 import type { ReceivedProposal } from './mock-received-proposals';
 import { formatTradeEuro, idsEqual, mockToTradeCard } from './trade-proposal-ui';
@@ -70,6 +74,9 @@ export function ReceivedProposalDetail({
   const [status, setStatus] = useState<
     'open' | 'accepted' | 'rejecting' | 'rejected' | 'counterSent'
   >('open');
+  /** Modalità con cui lo scambio è stato finalizzato (per il messaggio d'esito). */
+  const [acceptMethod, setAcceptMethod] = useState<'direct' | 'intermediary'>('direct');
+  const [showAcceptChoice, setShowAcceptChoice] = useState(false);
   const [blockFuture, setBlockFuture] = useState(false);
   const [showCounterConfirm, setShowCounterConfirm] = useState(false);
   /** Di default si vede solo la proposta sul tavolo; le due liste inventario
@@ -114,6 +121,35 @@ export function ReceivedProposalDetail({
   const balance = tradeBalance({ offeredValue, requestedValue, isPro: proposal.fromUser.isPro });
   const gap = requestedValue - offeredValue;
 
+  // Soglia di valore: se una carta nello scambio supera HIGH_VALUE_THRESHOLD,
+  // l'utente sceglie tra scambio diretto 1:1 o intermediazione Ebartex.
+  // Sotto soglia lo scambio è sempre diretto 1:1.
+  const tradeCards = useMemo(
+    () => [...offeredCards, ...requestedCards],
+    [offeredCards, requestedCards],
+  );
+  const maxCardValue = useMemo(
+    () => tradeCards.reduce((max, c) => Math.max(max, c.value), 0),
+    [tradeCards],
+  );
+  const hasHighValueCard = maxCardValue > HIGH_VALUE_THRESHOLD;
+
+  const handleAccept = () => {
+    if (hasHighValueCard) {
+      setShowAcceptChoice(true);
+      return;
+    }
+    // Sotto soglia: scambio diretto 1:1.
+    setAcceptMethod('direct');
+    setStatus('accepted');
+  };
+
+  const chooseAccept = (method: 'direct' | 'intermediary') => {
+    setAcceptMethod(method);
+    setShowAcceptChoice(false);
+    setStatus('accepted');
+  };
+
   const hasModifications =
     addMoney !== initialAddMoney ||
     reqMoney !== initialReqMoney ||
@@ -154,15 +190,35 @@ export function ReceivedProposalDetail({
   /* ---- Esiti ---- */
 
   if (status === 'accepted') {
+    const isIntermediary = acceptMethod === 'intermediary';
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
-          <Check className="h-7 w-7 text-emerald-600" strokeWidth={3} />
+        <div
+          className={cn(
+            'flex h-14 w-14 items-center justify-center rounded-full',
+            isIntermediary ? 'bg-[#1D3160]/10' : 'bg-emerald-100',
+          )}
+        >
+          {isIntermediary ? (
+            <ShieldCheck className="h-7 w-7 text-[#1D3160]" strokeWidth={2.5} />
+          ) : (
+            <Check className="h-7 w-7 text-emerald-600" strokeWidth={3} />
+          )}
         </div>
         <h2 className="text-lg font-bold text-[#1D3160]">Scambio accettato!</h2>
         <p className="max-w-sm text-sm text-gray-500">
-          Hai accettato la proposta di <span className="font-bold">{proposal.fromUser.name}</span>. Ti contatteremo per
-          finalizzare la spedizione.
+          {isIntermediary ? (
+            <>
+              Hai scelto <span className="font-bold">Ebartex Guarantee</span>. Entrambi spedirete le
+              carte a Ebartex, che ne verificherà qualità e condizioni prima di completare lo scambio
+              con <span className="font-bold">{proposal.fromUser.name}</span>.
+            </>
+          ) : (
+            <>
+              Hai accettato la proposta di <span className="font-bold">{proposal.fromUser.name}</span> con
+              scambio diretto 1:1. Ti contatteremo per finalizzare la spedizione.
+            </>
+          )}
         </p>
         <button
           type="button"
@@ -217,7 +273,7 @@ export function ReceivedProposalDetail({
   }
 
   const acceptButton = (
-    <ActionButton variant="accept" icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />} onClick={() => setStatus('accepted')}>
+    <ActionButton variant="accept" icon={<Check className="h-3.5 w-3.5" strokeWidth={3} />} onClick={handleAccept}>
       Accetta
     </ActionButton>
   );
@@ -337,6 +393,86 @@ export function ReceivedProposalDetail({
         editable={counterMode}
         inventoriesSectionRef={inventoriesRef}
       />
+
+      {/* Modale scelta modalità scambio per carte di alto valore (> soglia) */}
+      {showAcceptChoice && (
+        <div className="fixed inset-0 z-[200] flex items-end justify-center bg-[#1D3160]/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="w-full max-w-xl overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl">
+            {/* Header */}
+            <div className="flex items-start gap-3 bg-gradient-to-br from-amber-50 via-amber-50/60 to-white px-5 pb-4 pt-5">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 ring-1 ring-amber-200/80">
+                <AlertTriangle className="h-6 w-6" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-lg font-black tracking-tight text-[#1D3160]">
+                  Scambio di alto valore
+                </h3>
+                <p className="mt-0.5 text-sm leading-snug text-gray-500">
+                  Carta fino a{' '}
+                  <span className="font-bold text-amber-600">{formatTradeEuro(maxCardValue)}</span> nello
+                  scambio (soglia {formatTradeEuro(HIGH_VALUE_THRESHOLD)}). Come vuoi procedere?
+                </p>
+              </div>
+            </div>
+
+            {/* Opzioni */}
+            <div className="grid gap-3 px-5 py-4 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => chooseAccept('direct')}
+                className="group flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-[#FF7300] hover:shadow-lg hover:shadow-[#FF7300]/10 active:translate-y-0"
+              >
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF8A26] to-[#FF7300] text-white shadow-sm">
+                  <ArrowLeftRight className="h-5 w-5" strokeWidth={2.5} />
+                </span>
+                <span className="text-[13px] font-black uppercase tracking-wide text-[#1D3160]">
+                  Scambio diretto 1:1
+                </span>
+                <span className="text-xs leading-relaxed text-gray-500">
+                  Tu e {proposal.fromUser.name} vi spedite le carte direttamente. Veloce, senza
+                  intermediari.
+                </span>
+                <span className="mt-1 flex items-start gap-1.5 rounded-lg bg-sky-50 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-sky-700 ring-1 ring-sky-200/70">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                  Consiglio: trattandosi di carte di valore, puoi chiedere qualche foto e video e dare
+                  un&apos;occhiata alle condizioni prima di confermare.
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => chooseAccept('intermediary')}
+                className="group relative flex flex-col gap-2.5 rounded-2xl border border-[#1D3160]/25 bg-[#F8FAFD] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-[#1D3160] hover:shadow-lg hover:shadow-[#1D3160]/10 active:translate-y-0"
+              >
+                <span className="absolute right-3 top-3 rounded-full bg-[#1D3160] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">
+                  Consigliato
+                </span>
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#2A4480] to-[#1D3160] text-white shadow-sm">
+                  <ShieldCheck className="h-5 w-5" strokeWidth={2.5} />
+                </span>
+                <span className="flex items-center gap-1.5 text-[13px] font-black uppercase tracking-wide text-[#1D3160]">
+                  <ShieldCheck className="h-4 w-4 shrink-0 text-[#1D3160]" aria-hidden />
+                  Ebartex Guarantee
+                </span>
+                <span className="text-xs leading-relaxed text-gray-500">
+                  Spedite entrambi le carte a Ebartex, che verifica qualità e condizioni prima di
+                  completare lo scambio. Massima sicurezza.
+                </span>
+              </button>
+            </div>
+
+            <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-1 sm:pb-5">
+              <button
+                type="button"
+                onClick={() => setShowAcceptChoice(false)}
+                className="w-full rounded-xl border border-gray-300 bg-white py-3 text-sm font-bold text-gray-600 transition hover:bg-gray-50 sm:py-2.5"
+              >
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modale conferma controproposta */}
       {showCounterConfirm && (

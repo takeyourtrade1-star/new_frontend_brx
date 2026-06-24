@@ -1616,7 +1616,7 @@
       "standard": { "type": "Richieste standard (ordini, vendite, dispute)", "time": "24-48 ore lavorative", "priority": "Normale" },
       "general": { "type": "Richieste generali (domande, feedback)", "time": "48-72 ore lavorative", "priority": "Bassa" }
     },
-    "final_note": "PRIMA DI CONTATTARE IL SUPPORTO: assicurati di aver consultato la sezione pertinente di questo workflow e di aver provato tutte le soluzioni suggerite. In questo modo potremo aiutarti in modo più rapido ed efficiente. Le richieste che dimostrano di aver seguito il workflow ricevono priorità di gestione.",
+    "final_note": "Se hai già provato le soluzioni suggerite e non hai trovato risposta, siamo qui per aiutarti! Per consentirci di risolvere il tuo problema nel minor tempo possibile, ricordati di includere tutti i dettagli richiesti prima di inviare la richiesta. Ti risponderemo il prima possibile!",
     "legal_note": "eBartex è attualmente in versione Demo (Beta Test). Il Fornitore (PHONEX SRL) non garantisce la continuità operativa al 100% né la persistenza permanente dei dati. Per ulteriori dettagli, consulta i Termini e Condizioni di Servizio completi pubblicati su www.ebartex.com/legal/condizioni. L'utente utilizza la Piattaforma a proprio rischio e pericolo durante la fase Beta."
   },
   "games_supported": [

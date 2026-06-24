@@ -4,7 +4,6 @@ import { memo } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { EBARTEX_LOGO_PLACEHOLDER } from '@/lib/product-detail/product-detail-view-types';
-import { ProductDetailIconTabBar } from '@/components/feature/product/detail/ProductDetailIconTabBar';
 import { ProductDetailMobileLayout } from '@/components/feature/product/detail/ProductDetailMobileLayout';
 import { ProductDetailInfoTab } from '@/components/feature/product/detail/ProductDetailInfoTab';
 import { ProductDetailSellTab } from '@/components/feature/product/detail/ProductDetailSellTab';
@@ -18,7 +17,6 @@ import { ProductDetailChartTab } from '@/components/feature/product/detail/Produ
  * (FE-REV-020). I tab interni restano a loro volta memoizzati.
  */
 const MemoMobileLayout = memo(ProductDetailMobileLayout);
-const MemoIconTabBar = memo(ProductDetailIconTabBar);
 const MemoInfoTab = memo(ProductDetailInfoTab);
 const MemoSellTab = memo(ProductDetailSellTab);
 const MemoAuctionTab = memo(ProductDetailAuctionTab);
@@ -77,6 +75,44 @@ function ProductDetailCardSectionImpl({
   return (
     <section className="w-full bg-[#F0F0F0] px-0 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 pb-4 sm:pb-6 min-h-0">
       <div className="container-content container-content-card-detail">
+        {/* Desktop: tab "a cartella" che spuntano sopra il box (stile CardMarket).
+            Allineati alla colonna pannello (dopo l'immagine), si sovrappongono
+            di 1px al bordo superiore del box per dare l'effetto "incastro". */}
+        <div
+          className="relative z-[1] hidden items-end gap-1 pl-[180px] sm:flex md:pl-[200px] lg:pl-[220px]"
+          role="tablist"
+          aria-label="Azioni carta"
+        >
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-label={tab.label}
+                onClick={() => onTabChange(tab.id)}
+                className={cn(
+                  'group relative -mb-px flex items-center gap-1.5 rounded-t-xl border border-b-0 px-4 font-bold uppercase tracking-wide transition-all duration-200',
+                  isActive
+                    ? 'z-10 border-zinc-300/80 bg-white pb-2.5 pt-2.5 text-[11px] text-primary shadow-[0_-4px_12px_rgba(0,0,0,0.08)]'
+                    : 'border-zinc-200/90 bg-zinc-100 pb-2 pt-1.5 text-[10px] text-zinc-500 shadow-[0_-1px_3px_rgba(0,0,0,0.04)] hover:bg-zinc-50 hover:text-zinc-700'
+                )}
+              >
+                <Icon
+                  className={cn(
+                    'shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:scale-110',
+                    isActive ? 'h-[18px] w-[18px]' : 'h-4 w-4'
+                  )}
+                  aria-hidden
+                />
+                <span className="truncate">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
         <div
           className={cn(
             'flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/95 backdrop-blur-[2px] shadow-[0_1px_4px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] sm:flex-row',
@@ -89,9 +125,9 @@ function ProductDetailCardSectionImpl({
         >
           <MemoMobileLayout {...mobile} />
 
-          <aside className="hidden w-[180px] flex-shrink-0 flex-col items-center justify-center border-r border-zinc-200/50 bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60 p-4 sm:flex sm:h-full md:w-[200px] lg:w-[220px]">
+          <aside className="hidden w-[180px] flex-shrink-0 flex-col items-center justify-center self-stretch border-r border-zinc-200/50 bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60 p-4 sm:flex md:w-[200px] lg:w-[220px]">
             <div
-              className="relative flex w-full max-w-[180px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md md:max-w-[200px] md:max-h-[360px] lg:max-w-[220px] lg:max-h-[420px] sm:max-h-[300px]"
+              className="relative my-auto flex w-full max-w-[180px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md md:max-w-[200px] md:max-h-[360px] lg:max-w-[220px] lg:max-h-[420px] sm:max-h-[300px]"
               style={{ aspectRatio: '63/88' }}
               onClick={onLightboxOpen}
               onMouseEnter={onHoverPreviewOpen}
@@ -131,13 +167,6 @@ function ProductDetailCardSectionImpl({
           </aside>
 
           <div id="product-detail-tab-panel" className="hidden min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 sm:flex sm:h-full">
-            <MemoIconTabBar
-              tabs={tabs}
-              activeTab={activeTab}
-              onTabChange={onTabChange}
-              className="hidden sm:flex"
-            />
-
             {activeTab === 'INFO' && (
               <MemoInfoTab
                 card={card}

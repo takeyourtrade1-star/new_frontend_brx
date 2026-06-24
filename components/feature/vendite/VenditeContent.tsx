@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Home, LayoutGrid, Hourglass, PackageOpen, Truck, BadgeCheck, LifeBuoy } from 'lucide-react';
+import { Home, History, Hourglass, PackageOpen, Truck, BadgeCheck, AlertTriangle } from 'lucide-react';
 import { OrderTabs, type OrderTab } from '@/components/feature/ordini/OrderTabs';
 import { ordersWrapperClass } from '@/components/feature/ordini/OrderItemCard';
 import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';
@@ -24,15 +24,15 @@ import { VenditeSaleCard } from './VenditeSaleCard';
 type TabId = VenditaStato | 'tutte' | 'supporto';
 
 const TABS_LEFT: OrderTab<TabId>[] = [
-  { id: 'tutte', label: 'TUTTE', icon: LayoutGrid },
   { id: 'in-attesa-pagamento', label: 'IN ATTESA', icon: Hourglass },
   { id: 'da-spedire', label: 'DA SPEDIRE', icon: PackageOpen },
   { id: 'spedito', label: 'SPEDITO', icon: Truck },
   { id: 'completato', label: 'COMPLETATO', icon: BadgeCheck },
+  { id: 'supporto', label: 'PROBLEMATICHE', icon: AlertTriangle },
 ];
 
 const TABS_RIGHT: OrderTab<TabId>[] = [
-  { id: 'supporto', label: 'SUPPORTO', icon: LifeBuoy },
+  { id: 'tutte', label: 'STORICO', icon: History },
 ];
 
 const ALL_TABS = [...TABS_LEFT, ...TABS_RIGHT];

@@ -199,10 +199,10 @@ function AsteHubToolbar({
                 aria-selected={active}
                 onClick={() => onBrowseTabChange(active ? null : tab)}
                 className={cn(
-                  'inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors sm:px-3 sm:text-[11px]',
+                  'inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-all sm:px-3.5 sm:text-xs',
                   active
-                    ? 'border-[#FF7300]/40 bg-[#FF7300]/85 text-white shadow-sm'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-[#FF7300]/30 hover:text-gray-900'
+                    ? 'bg-[#FF7300] text-white shadow-sm'
+                    : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-900'
                 )}
               >
                 {t(BROWSE_TAB_KEYS[tab])}
