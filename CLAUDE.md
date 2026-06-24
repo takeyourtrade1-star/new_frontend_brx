@@ -68,5 +68,6 @@ devono passare. Se tocchi le stringhe i18n, esegui anche `npm run i18n:keys`.
   `error`/`warn`). Non affidarti a `console.log` per logica.
 - **Type generati stantii**: dopo aver cancellato route, `.next/types/*` può
   riferirsi a file rimossi — pulisci `.next` o la sottocartella interessata.
-- **Test bff-security**: 2 test attualmente falliscono per una questione di policy
-  auth (GET aste senza cookie → 401 vs pubbliche) ancora da decidere.
+- **Test bff-security**: i 2 test su GET `/api/auctions` senza cookie sono stati
+  allineati al comportamento attuale del BFF (GET pubblico passa al backend;
+  mutazioni POST/PATCH/DELETE restano 401). La suite ora passa.

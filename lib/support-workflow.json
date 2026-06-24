@@ -1,0 +1,1634 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "last_updated": "2026-06-24",
+    "platform": "eBartex",
+    "company": "PHONEX SRL",
+    "status": "production",
+    "total_sections": 19,
+    "total_faqs": 62,
+    "languages": ["it", "en", "de", "es", "fr", "pt"]
+  },
+  "workflow": {
+    "entrypoint": {
+      "greeting": "Benvenuto nel Supporto eBartex! Sono qui per aiutarti a risolvere qualsiasi problema in autonomia. Ti farò alcune domande per indirizzarti alla soluzione giusta.",
+      "first_question": "Quale di queste categorie descrive meglio il tuo problema?",
+      "options": [
+        {
+          "id": "account_accesso",
+          "label": "Account e Accesso (login, registrazione, password dimenticata)",
+          "target_section": "account_accesso"
+        },
+        {
+          "id": "acquisti",
+          "label": "Acquistare carte (ricerca, ordini, pagamenti, carte non arrivate)",
+          "target_section": "comprare_carte"
+        },
+        {
+          "id": "vendite",
+          "label": "Vendere carte (listare, commissioni, spedire, pagamenti vendita)",
+          "target_section": "vendere_carte"
+        },
+        {
+          "id": "aste",
+          "label": "Aste (partecipare, creare, offerte, vincite)",
+          "target_section": "aste"
+        },
+        {
+          "id": "scambi",
+          "label": "Scambi (barattare carte, negoziare)",
+          "target_section": "scambi"
+        },
+        {
+          "id": "tornei",
+          "label": "Tornei (iscriversi, sala tornei, problemi accesso)",
+          "target_section": "tornei"
+        },
+        {
+          "id": "brx_express",
+          "label": "BRX Express (spedizione 24h, hub, grading)",
+          "target_section": "brx_express"
+        },
+        {
+          "id": "spedizioni",
+          "label": "Spedizioni e Logistica (imballaggio, tracking, costi)",
+          "target_section": "spedizioni_logistica"
+        },
+        {
+          "id": "pagamenti",
+          "label": "Pagamenti e Transazioni (metodi, conto virtuale, prelievi)",
+          "target_section": "pagamenti_transazioni"
+        },
+        {
+          "id": "sicurezza",
+          "label": "Sistema Trust e Sicurezza (dispute, frodi, protezione)",
+          "target_section": "trust_sicurezza"
+        },
+        {
+          "id": "sync",
+          "label": "Sincronizzazione e API (Sync, inventari esterni, Token)",
+          "target_section": "sincronizzazione_api"
+        },
+        {
+          "id": "cameramatch",
+          "label": "CameraMatch e Scanner (ricerca per foto, riconoscimento)",
+          "target_section": "cameramatch_scanner"
+        },
+        {
+          "id": "condizioni",
+          "label": "Guida Condizioni Carte (NM, LP, MP, HP, DMG)",
+          "target_section": "condizioni_carte"
+        },
+        {
+          "id": "tecnici",
+          "label": "Problemi Tecnici (sito lento, bug, browser, dati)",
+          "target_section": "problemi_tecnici"
+        },
+        {
+          "id": "altro",
+          "label": "Altro / Non so quale categoria scegliere",
+          "target_section": "albero_decisionale"
+        }
+      ]
+    },
+    "albero_decisionale": {
+      "title": "Albero Decisionale Principale",
+      "description": "Se non sai quale categoria scegliere, rispondi a queste domande sequenziali.",
+      "steps": [
+        {
+          "step": 1,
+          "question": "Sei un utente registrato su eBartex?",
+          "branches": [
+            {
+              "answer": "No, non ho ancora un account",
+              "action": "redirigi a registrazione_primi_passi"
+            },
+            {
+              "answer": "Sì, ma non riesco ad accedere",
+              "action": "redirigi a account_accesso"
+            },
+            {
+              "answer": "Sì, tutto funziona",
+              "next_step": 2
+            }
+          ]
+        },
+        {
+          "step": 2,
+          "question": "Qual è l'area principale del tuo problema?",
+          "branches": [
+            {
+              "answer": "Voglio comprare carte o ho problemi con un acquisto",
+              "action": "redirigi a comprare_carte"
+            },
+            {
+              "answer": "Voglio vendere carte o ho problemi con una vendita",
+              "action": "redirigi a vendere_carte"
+            },
+            {
+              "answer": "Domande sulle aste",
+              "action": "redirigi a aste"
+            },
+            {
+              "answer": "Domande sugli scambi",
+              "action": "redirigi a scambi"
+            },
+            {
+              "answer": "Domande sui tornei",
+              "action": "redirigi a tornei"
+            },
+            {
+              "answer": "Domande sulle spedizioni / BRX Express",
+              "action": "redirigi a brx_express"
+            },
+            {
+              "answer": "Problemi con pagamenti o conto",
+              "action": "redirigi a pagamenti_transazioni"
+            },
+            {
+              "answer": "Sospetto una frode o problema di sicurezza",
+              "action": "redirigi a trust_sicurezza"
+            },
+            {
+              "answer": "Problemi tecnici con il sito",
+              "action": "redirigi a problemi_tecnici"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "sections": [
+    {
+      "id": "account_accesso",
+      "title": "Account e Accesso",
+      "icon": "user",
+      "priority": 1,
+      "faq_groups": [
+        {
+          "group_title": "Problemi di Login",
+          "faqs": [
+            {
+              "id": "aa_001",
+              "question": "Ho dimenticato la password, come faccio?",
+              "answer_type": "steps",
+              "steps": [
+                "Clicca su 'Recupera credenziali' nella pagina di login",
+                "Inserisci l'email associata al tuo account",
+                "Clicca 'Invia codice'",
+                "Controlla la tua casella email (e la cartella spam)",
+                "Inserisci il codice di ripristino ricevuto",
+                "Crea una nuova password sicura"
+              ],
+              "troubleshooting": {
+                "title": "Se non ricevi l'email entro 5 minuti:",
+                "checks": [
+                  "Verifica che l'indirizzo email sia corretto",
+                  "Controlla cartella spam / promozioni / junk",
+                  "Assicurati che l'email sia quella usata in fase di registrazione",
+                  "Riprova dopo 10 minuti"
+                ]
+              },
+              "escalation": "Se dopo tutti i passaggi non ricevi l'email, contatta il supporto fornendo l'email usata per la registrazione."
+            },
+            {
+              "id": "aa_002",
+              "question": "Ho dimenticato l'username, come faccio?",
+              "answer_type": "text",
+              "resolution_steps": [
+                "Prova ad accedere con l'indirizzo email al posto dell'username (funziona entrambi i modi)",
+                "Se non ricordi nemmeno l'email, controlla nelle tue caselle di posta la conferma di registrazione",
+                "Cerca email da ebartex.service@gmail.com o noreply@ebartex.com"
+              ],
+              "escalation": "Se non trovi nulla, contatta il supporto fornendo: nome utente se ricordato, email possibili, data approssimativa di registrazione, paese selezionato."
+            },
+            {
+              "id": "aa_003",
+              "question": "Il login non funziona, credenziali errate",
+              "answer_type": "checklist",
+              "checklist": [
+                {
+                  "check": "Verifica che il tasto Caps Lock sia SPENTO",
+                  "detail": "Le password sono case-sensitive"
+                },
+                {
+                  "check": "Controlla di non aver digitato spazi prima o dopo l'username/email",
+                  "detail": "Gli spazi iniziali e finali causano errore"
+                },
+                {
+                  "check": "Prova a digitare la password manualmente senza autocompletamento",
+                  "detail": "Il browser potrebbe aver salvato una password vecchia"
+                },
+                {
+                  "check": "Se hai copia-incollato la password, assicurati di non aver incluso spazi",
+                  "detail": "Il copia-incolla può includere caratteri nascosti"
+                },
+                {
+                  "check": "Prova con 'Accedi con codice monouso' come alternativa",
+                  "detail": "Disponibile nella pagina di login"
+                },
+                {
+                  "check": "Se ancora non funziona, usa 'Recupera credenziali' per reimpostare la password",
+                  "detail": "Vedi FAQ aa_001"
+                }
+              ]
+            },
+            {
+              "id": "aa_004",
+              "question": "L'account è stato sospeso o bloccato",
+              "answer_type": "text",
+              "explanation": "Gli account vengono sospesi per violazioni dei Termini e Condizioni di Servizio. Esempi: frodi, comportamenti abusivi, vendite non oneste, utilizzo di dati falsi.",
+              "resolution_steps": [
+                "Controlla la tua email: dovresti aver ricevuto una comunicazione con i motivi della sospensione",
+                "Leggi attentamente i motivi indicati nell'email",
+                "Se ritieni che la sospensione sia un errore, prepara la tua difesa"
+              ],
+              "escalation": "Contatta il supporto con: username/email dell'account, data della sospensione, spiegazione dettagliata della situazione, eventuali prove a tua difesa."
+            }
+          ]
+        },
+        {
+          "group_title": "Sicurezza dell'Account",
+          "faqs": [
+            {
+              "id": "aa_005",
+              "question": "Sospetto un accesso non autorizzato al mio account",
+              "answer_type": "steps",
+              "urgency": "high",
+              "steps": [
+                "Cambia IMMEDIATAMENTE la password da Recupera credenziali",
+                "Controlla tutte le transazioni recenti nel tuo account (ordini, vendite, scambi)",
+                "Se trovi attività sospette, segnalale immediatamente",
+                "Verifica che la tua email sia protetta con password sicura e 2FA se possibile",
+                "Controlla le sessioni attive se disponibili nel profilo"
+              ],
+              "escalation": "Se trovi transazioni non autorizzate, contatta immediatamente ebartex.service@gmail.com con: data/ora sospetta, transazioni non riconosciute, IP se conosciuto."
+            },
+            {
+              "id": "aa_006",
+              "question": "Come posso rendere il mio account più sicuro?",
+              "answer_type": "checklist",
+              "checklist": [
+                {
+                  "check": "Usa una password unica e complessa",
+                  "detail": "Almeno 12 caratteri, maiuscole, minuscole, numeri, simboli. Non riusare password di altri siti."
+                },
+                {
+                  "check": "Non condividere mai le tue credenziali",
+                  "detail": "Nessun membro del team eBartex ti chiederà mai password o codici"
+                },
+                {
+                  "check": "Attiva il 2FA (autenticazione a due fattori) sulla tua email",
+                  "detail": "La sicurezza dell'email = sicurezza dell'account eBartex"
+                },
+                {
+                  "check": "Controlla periodicamente transazioni e attività",
+                  "detail": "Verifica ordini, vendite e scambi nella tua dashboard"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "registrazione_primi_passi",
+      "title": "Registrazione e Primi Passi",
+      "icon": "user-plus",
+      "priority": 2,
+      "faq_groups": [
+        {
+          "group_title": "Processo di Registrazione",
+          "faqs": [
+            {
+              "id": "rp_001",
+              "question": "Come mi registro su eBartex?",
+              "answer_type": "steps",
+              "steps": [
+                "Clicca 'REGISTRATI' in alto a destra nella homepage",
+                "Inserisci Username (unico, senza spazi, lettere e numeri)",
+                "Inserisci la tua email valida (servirà per verifica e recupero)",
+                "Crea una password sicura (minimo requisiti di sicurezza)",
+                "Inserisci il tuo numero di telefono con prefisso nazionale (+39 per Italia)",
+                "Seleziona il tuo Paese dal menu a tendina",
+                "Spunta 'Accetto i Termini e Condizioni di Servizio'",
+                "Spunta 'Ai sensi degli artt. 1341 e 1342 c.c., approvo specificamente le clausole indicate nei Termini'",
+                "Spunta 'Ho letto e accetto la Privacy Policy'",
+                "Spunta 'Accetto la policy di cancellazione'",
+                "Spunta 'Dichiaro di essere maggiorenne' (obbligatorio)",
+                "Clicca 'Registrati'"
+              ],
+              "note": "Tutti i campi con asterisco (*) sono obbligatori. Devi spuntare TUTTE le caselle di accettazione per completare la registrazione."
+            },
+            {
+              "id": "rp_002",
+              "question": "Perché devo fornire il numero di telefono?",
+              "answer_type": "text",
+              "uses": [
+                "Verificare la tua identità reale",
+                "Proteggere il tuo account da accessi non autorizzati",
+                "Comunicarti aggiornamenti importanti sugli ordini",
+                "Prevenire frodi e creazioni multiple di account"
+              ]
+            },
+            {
+              "id": "rp_003",
+              "question": "Devo essere maggiorenne per registrarmi?",
+              "answer_type": "text",
+              "answer": "Sì. eBartex richiede esplicitamente di dichiarare di essere maggiorenne al momento della registrazione. Gli utenti minorenni non possono utilizzare la piattaforma. Questo è un requisito legale per le transazioni commerciali."
+            }
+          ]
+        },
+        {
+          "group_title": "Problemi di Registrazione",
+          "faqs": [
+            {
+              "id": "rp_004",
+              "question": "L'username scelto non è disponibile",
+              "answer_type": "tips",
+              "tips": [
+                "Prova varianti numeriche (es. MarioTCG99, Mario_TCG_2026)",
+                "Usa trattini bassi o punti come separatori",
+                "Evita spazi nell'username (non sono permessi)",
+                "Prova combinazioni con il tuo anno di nascita o iniziali",
+                "Aggiungi il nome del tuo gioco preferito (es. Mario_Magic, Mario_Pokemon)"
+              ]
+            },
+            {
+              "id": "rp_005",
+              "question": "Non ricevo l'email di conferma",
+              "answer_type": "steps",
+              "steps": [
+                "Controlla la cartella spam / junk / promozioni / posta indesiderata",
+                "Verifica di aver inserito l'email corretta (controlla eventuali typo)",
+                "Attendi almeno 5 minuti (ritardi del server possibili)",
+                "Se sono passati più di 15 minuti, prova a registrarti nuovamente",
+                "Prova con un indirizzo email diverso (Gmail, Outlook, etc.)"
+              ],
+              "escalation": "Se il problema persiste con più email, contatta il supporto specificando: email provate, browser usato, eventuali messaggi di errore visualizzati."
+            },
+            {
+              "id": "rp_006",
+              "question": "Errore durante la registrazione",
+              "answer_type": "checklist",
+              "checklist": [
+                {
+                  "check": "Tutti i campi obbligatori (*) sono compilati",
+                  "detail": "Username, Email, Password, Telefono, Paese"
+                },
+                {
+                  "check": "L'email è in formato valido",
+                  "detail": "esempio@dominio.com - controlla che ci sia @ e dominio valido"
+                },
+                {
+                  "check": "La password rispetta i requisiti di sicurezza",
+                  "detail": "Lunghezza minima, complessità richiesta"
+                },
+                {
+                  "check": "TUTTE le caselle di accettazione sono spuntate",
+                  "detail": "5 checkbox totali: Termini, Clausole 1341/1342, Privacy, Cancellazione, Maggiorenne"
+                },
+                {
+                  "check": "Prova a ricaricare la pagina e ripetere la registrazione",
+                  "detail": "Usa Ctrl+F5 per hard refresh"
+                },
+                {
+                  "check": "Prova con un altro browser",
+                  "detail": "Chrome consigliato"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group_title": "Verifica Account",
+          "faqs": [
+            {
+              "id": "rp_007",
+              "question": "Devo verificare il mio account?",
+              "answer_type": "text",
+              "levels": [
+                {
+                  "level": "Verifica base",
+                  "description": "Avviene automaticamente tramite email durante la registrazione. Ti basta cliccare il link nella email di conferma."
+                },
+                {
+                  "level": "Verifica KYC (Know Your Customer)",
+                  "description": "Richiesta per vendere o effettuare transazioni di importo elevato. Potrebbe includere invio documento d'identità."
+                }
+              ],
+              "note": "Segui le istruzioni che ti verranno comunicate via email o nel pannello utente. La verifica KYC serve a proteggere tutti gli utenti dalla frode."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comprare_carte",
+      "title": "Comprare Carte",
+      "icon": "shopping-cart",
+      "priority": 3,
+      "faq_groups": [
+        {
+          "group_title": "Prima dell'Acquisto",
+          "faqs": [
+            {
+              "id": "cc_001",
+              "question": "Come trovo una carta specifica?",
+              "answer_type": "steps",
+              "steps": [
+                "Usa la barra di ricerca in alto sulla pagina",
+                "Seleziona il tipo di ricerca dal menu a tendina (Carte singole, Boosters, ecc.)",
+                "Digita il nome della carta (puoi usare nome inglese o italiano)",
+                "Usa i filtri per affinare: Gioco (Magic, Pokémon, Yu-Gi-Oh!, ecc.), Rarità, Condizione, Prezzo min/max",
+                "Sfoglia i risultati e confronta i venditori"
+              ],
+              "alternatives": [
+                "Usa la funzione CameraMatch (icona fotocamera accanto alla barra di ricerca) per scansionare una carta fisica",
+                "Usa la Ricerca Avanzata Singole dal menu per filtri più dettagliati (espansione, set, venditore specifico)",
+                "Cerca per nome venditore se conosci un seller affidabile"
+              ]
+            },
+            {
+              "id": "cc_002",
+              "question": "Cos'è CameraMatch?",
+              "answer_type": "text",
+              "description": "CameraMatch è una funzione in Beta che permette di scansionare carte fisiche con la fotocamera del dispositivo. Riconosce automaticamente la carta e mostra i risultati disponibili sul marketplace.",
+              "how_to": "Clicca l'icona della fotocamera accanto alla barra di ricerca, inquadra la carta frontalmente con buona luce.",
+              "limitations": "Essendo in Beta, il riconoscimento potrebbe non essere perfetto per tutte le carte, specialmente foil o carte con riflessi."
+            },
+            {
+              "id": "cc_003",
+              "question": "Come funziona la ricerca avanzata per singole carte?",
+              "answer_type": "text",
+              "how_to_access": "Dal menu principale (hamburger menu in alto a destra), seleziona 'Ricerca avanzate singole'.",
+              "available_filters": [
+                "Gioco (Magic, Pokémon, Yu-Gi-Oh!, One Piece, Lorcana, Star Wars)",
+                "Espansione / Set",
+                "Rarità (Common, Uncommon, Rare, Mythic, ecc.)",
+                "Condizione (NM, LP, MP, HP)",
+                "Prezzo minimo e massimo",
+                "Venditore specifico (Ricerca utente)"
+              ]
+            }
+          ]
+        },
+        {
+          "group_title": "Durante l'Acquisto",
+          "faqs": [
+            {
+              "id": "cc_004",
+              "question": "Come faccio a comprare una carta?",
+              "answer_type": "steps",
+              "steps": [
+                "Cerca la carta desiderata usando la barra di ricerca",
+                "Confronta i venditori disponibili: prezzo, condizione della carta, recensioni del venditore",
+                "Seleziona la quantità desiderata (se disponibile)",
+                "Clicca 'Aggiungi al carrello' o 'Compra ora'",
+                "Rivedi il riepilogo ordine (carte, spese di spedizione, totale)",
+                "Scegli il metodo di pagamento preferito",
+                "Conferma l'acquisto"
+              ],
+              "note": "Puoi acquistare da più venditori contemporaneamente. Ogni venditore spedirà separatamente (a meno che non usi BRX Express)."
+            },
+            {
+              "id": "cc_005",
+              "question": "Cosa significa 'Protezione Acquirenti'?",
+              "answer_type": "text",
+              "coverage": [
+                "Se non ricevi l'articolo entro i tempi previsti, puoi aprire una disputa",
+                "Se la carta ricevuta non corrisponde alla descrizione (condizione, edizione, lingua), puoi richiedere un rimborso",
+                "Hai 14 giorni dalla ricezione per aprire una disputa",
+                "Il team eBartex medierà per risolvere il problema in modo equo"
+              ],
+              "note": "La protezione copre transazioni effettuate interamente attraverso la piattaforma eBartex. Transazioni esterne non sono coperte."
+            },
+            {
+              "id": "cc_006",
+              "question": "Posso comprare da più venditori contemporaneamente?",
+              "answer_type": "text",
+              "answer": "Sì, puoi aggiungere al carrello carte da venditori diversi. Tieni presente che ogni venditore spedierà separatamente e le spese di spedizione si applicano per ogni venditore. Il sistema ti mostrerà un riepilogo con tutti i costi prima della conferma."
+            }
+          ]
+        },
+        {
+          "group_title": "Dopo l'Acquisto",
+          "faqs": [
+            {
+              "id": "cc_007",
+              "question": "Dove trovo i dettagli del mio ordine?",
+              "answer_type": "steps",
+              "steps": [
+                "Accedi al tuo account eBartex",
+                "Vai alla sezione 'I miei ordini' o 'Acquisti' dal menu utente",
+                "Troverai: stato dell'ordine (in elaborazione, spedito, consegnato), codice tracking spedizione, dettagli del venditore, data stimata di consegna"
+              ]
+            },
+            {
+              "id": "cc_008",
+              "question": "Quanto tempo impiega la spedizione?",
+              "answer_type": "table",
+              "times": [
+                { "destination": "Italia", "standard": "2-5 giorni lavorativi", "brx_express": "24 ore dall'hub" },
+                { "destination": "Europa", "standard": "5-10 giorni lavorativi", "brx_express": "24-48 ore dall'hub" }
+              ],
+              "note": "I tempi esatti dipendono dal venditore e dal metodo di spedizione scelto. Ogni venditore specifica i propri tempi nel profilo. Riceverai un codice di tracking via email non appena la spedizione viene effettuata."
+            },
+            {
+              "id": "cc_009",
+              "question": "La carta ricevuta non corrisponde alla descrizione",
+              "answer_type": "steps",
+              "urgency": "high",
+              "warning": "IMPORTANTE: Non confermare la ricezione se la carta non corrisponde alla descrizione. Una volta confermata, la transazione si considera conclusa e il pagamento viene rilasciato al venditore.",
+              "steps": [
+                "Scatta foto chiare e ben illuminate della carta ricevuta (fronte, retro, eventuali difetti specifici)",
+                "Confronta attentamente con la descrizione dell'annuncio (condizione, edizione, lingua)",
+                "Entro 14 giorni dalla ricezione, apri una disputa dalla sezione 'I miei ordini'",
+                "Fornisci le foto scattate e una descrizione dettagliata della discrepanza",
+                "Il team eBartex medierà tra te e il venditore per trovare una soluzione equa"
+              ],
+              "timeline": "La disputa viene esaminata entro 5-10 giorni lavorativi. Riceverai aggiornamenti via email a ogni fase."
+            },
+            {
+              "id": "cc_010",
+              "question": "Non ho ricevuto la carta ordinata",
+              "answer_type": "steps",
+              "steps": [
+                "Controlla il tracking della spedizione usando il codice fornito",
+                "Verifica l'indirizzo di spedizione inserito in fase d'ordine (Profilo > Indirizzi)",
+                "Contatta il venditore tramite il sistema di messaggistica interna per chiedere informazioni",
+                "Se il venditore non risponde entro 3 giorni lavorativi, apri una disputa dalla sezione ordini",
+                "Se il tracking risulta 'consegnato' ma non hai ricevuto nulla, contatta prima il corriere (potrebbe essere stato consegnato a un vicino o depositato in un punto di ritiro)"
+              ],
+              "escalation": "Se il tracking non si aggiorna da più di 7 giorni o mostra 'consegnato' senza che tu abbia ricevuto, apri subito una disputa."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vendere_carte",
+      "title": "Vendere Carte",
+      "icon": "tag",
+      "priority": 4,
+      "faq_groups": [
+        {
+          "group_title": "Prima di Vendere",
+          "faqs": [
+            {
+              "id": "vc_001",
+              "question": "Cosa mi serve per vendere su eBartex?",
+              "answer_type": "checklist",
+              "checklist": [
+                { "check": "Account registrato e verificato", "detail": "Email confermata e, per vendite elevate, KYC completato" },
+                { "check": "Carte collezionabili in condizioni oneste", "detail": "Valuta la condizione con la Guida Condizioni Carte" },
+                { "check": "Metodo per ricevere i pagamenti", "detail": "Conto virtuale eBartex, poi prelievo su conto bancario/PayPal" },
+                { "check": "Conoscenza delle commissioni", "detail": "5% su ogni vendita, nessun costo di listaggio" }
+              ]
+            },
+            {
+              "id": "vc_002",
+              "question": "Quali commissioni ci sono per vendere?",
+              "answer_type": "table",
+              "fees": [
+                { "type": "Listaggio annuncio", "amount": "Gratuito", "note": "Nessun costo fisso" },
+                { "type": "Commissione vendita", "amount": "5%", "note": "Sul prezzo di vendita finale" },
+                { "type": "Durata annuncio", "amount": "Illimitata", "note": "Nessun limite di tempo" },
+                { "type": "Prelievo fondi", "amount": "Variabile", "note": "Dipende dal metodo scelto" }
+              ],
+              "note": "Le commissioni vengono detratte automaticamente al momento del pagamento da parte dell'acquirente."
+            }
+          ]
+        },
+        {
+          "group_title": "Come Vendere",
+          "faqs": [
+            {
+              "id": "vc_003",
+              "question": "Come metto in vendita una carta?",
+              "answer_type": "steps",
+              "steps": [
+                "Accedi al tuo account e vai alla sezione 'Vendi' o nel pannello venditore",
+                "Cerca la carta nel database eBartex (è molto ampio e aggiornato, includendo tutti i set)",
+                "Seleziona l'edizione/esatta della carta",
+                "Seleziona la condizione della carta (NM, LP, MP, HP) usando la Guida Condizioni",
+                "Imposta il prezzo di vendita (confronta con i prezzi di mercato suggeriti)",
+                "Specifica le opzioni di spedizione disponibili",
+                "Aggiungi eventuali note (lingua, firma, alterazioni)",
+                "Conferma e pubblica l'annuncio"
+              ]
+            },
+            {
+              "id": "vc_004",
+              "question": "Come determino il prezzo di vendita?",
+              "answer_type": "text",
+              "methods": [
+                "Controlla i prezzi degli stessi venditori su eBartex nella stessa condizione",
+                "Usa siti di riferimento come TCGPlayer, Cardmarket per confrontare il prezzo di mercato",
+                "Considera la condizione: NM = prezzo pieno, LP = -10/20%, MP = -30/40%, HP = -50%+",
+                "Carte gradate (PSA, BGS) hanno prezzi diversi dalle non gradate"
+              ],
+              "tip": "Prezzi più bassi = vendita più rapida; prezzi più alti = potrebbe richiedere più tempo. Sii competitivo ma non sottovalutare le tue carte."
+            },
+            {
+              "id": "vc_005",
+              "question": "Come sincronizzo il mio inventario con altre piattaforme?",
+              "answer_type": "steps",
+              "steps": [
+                "Accedi al pannello venditore e trova la sezione 'Sincronizza'",
+                "Collega i tuoi account esterni inserendo le credenziali API/Token",
+                "Configura quali inventari sincronizzare e la frequenza",
+                "Avvia la sincronizzazione e verifica che i dati siano corretti"
+              ],
+              "warning": "Leggi attentamente la sezione 'Sincronizzazione e API' per conoscere i rischi tecnici: latenza, overselling, dipendenza dalle piattaforme terze."
+            }
+          ]
+        },
+        {
+          "group_title": "Gestione Vendite",
+          "faqs": [
+            {
+              "id": "vc_006",
+              "question": "Come spedisco le carte vendute?",
+              "answer_type": "text",
+              "options": [
+                {
+                  "method": "Spedizione Standard",
+                  "description": "Spedisci direttamente tu al compratore usando il metodo concordato. Segui la Guida Imballaggio per proteggere le carte."
+                },
+                {
+                  "method": "BRX Express",
+                  "description": "Spedisci una volta all'hub eBartex. Loro gestiscono grading, foto, stoccaggio e spedizione finale in 24h."
+                }
+              ],
+              "packaging_requirements": [
+                "Bustina protettiva (penny sleeve) obbligatoria",
+                "Top loader o card saver rigido obbligatorio",
+                "Busta imbottita o rigida",
+                "Tracking obbligatorio per tutte le spedizioni"
+              ]
+            },
+            {
+              "id": "vc_007",
+              "question": "Quando ricevo il pagamento?",
+              "answer_type": "text",
+              "flow": [
+                "L'acquirente paga eBartex al momento dell'acquisto",
+                "eBartex trattiene il pagamento finché il compratore non conferma la ricezione",
+                "Dopo la conferma (o scadenza termine di verifica), il pagamento viene rilasciato sul tuo conto virtuale eBartex",
+                "Puoi richiedere un prelievo dal conto virtuale verso il tuo metodo di pagamento preferito"
+              ],
+              "timeline": "Dalla conferma di ricezione: istantaneo sul conto virtuale. Dal prelievo: 1-5 giorni lavorativi a seconda del metodo."
+            },
+            {
+              "id": "vc_008",
+              "question": "Il compratore dice di non aver ricevuto la carta",
+              "answer_type": "steps",
+              "steps": [
+                "Verifica l'indirizzo di spedizione fornito dall'acquirente in fase d'ordine",
+                "Controlla il tracking della spedizione: se mostra 'consegnato', comunica il codice all'acquirente",
+                "Se il tracking mostra problemi (fermo, smarrimento), contatta il corriere direttamente",
+                "Se la spedizione era assicurata, avvia la procedura di risarcimento con il corriere",
+                "Se il compratore apre una disputa, fornisci tutte le prove (tracking, ricevuta spedizione, foto imballaggio)",
+                "Il team eBartex medierà in caso di disputa basandosi sulle prove disponibili"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "aste",
+      "title": "Aste",
+      "icon": "gavel",
+      "priority": 5,
+      "faq_groups": [
+        {
+          "group_title": "Partecipare alle Aste",
+          "faqs": [
+            {
+              "id": "as_001",
+              "question": "Come funzionano le aste su eBartex?",
+              "answer_type": "text",
+              "mechanism": [
+                "Le aste sono offerte in tempo reale su carte collezionabili",
+                "Ogni asta ha un prezzo di partenza, incrementi minimi e un tempo di scadenza",
+                "Puoi fare offerte manualmente inserendo il tuo importo",
+                "L'offerta più alta si aggiudica la carta allo scadere del tempo"
+              ],
+              "note": "Le aste sono vincolanti: se vinci, sei obbligato a completare il pagamento."
+            },
+            {
+              "id": "as_002",
+              "question": "Come faccio a trovare le aste attive?",
+              "answer_type": "steps",
+              "steps": [
+                "Vai alla sezione 'Aste' dal menu principale o cliccando il link in homepage",
+                "Usa la barra di ricerca per trovare carte specifiche",
+                "Applica i filtri: Gioco, Prezzo massimo (€), Offerte minime",
+                "Ordina per: In scadenza, Appena pubblicate, Scadute",
+                "Cambia visualizzazione: griglia o lista"
+              ]
+            },
+            {
+              "id": "as_003",
+              "question": "Come faccio un'offerta?",
+              "answer_type": "steps",
+              "steps": [
+                "Trova l'asta che ti interessa e clicca per i dettagli",
+                "Inserisci il tuo importo nel campo offerta",
+                "Verifica che l'importo rispetti i minimi di incremento (mostrati nell'asta)",
+                "Conferma l'offerta",
+                "Riceverai una notifica via email se qualcuno ti supera, così puoi rilanciare"
+              ]
+            }
+          ]
+        },
+        {
+          "group_title": "Creare un'Asta",
+          "faqs": [
+            {
+              "id": "as_004",
+              "question": "Come creo un'asta per vendere una carta?",
+              "answer_type": "steps",
+              "steps": [
+                "Accedi e vai su 'Aste' dal menu principale",
+                "Clicca 'Crea asta' (in alto a destra)",
+                "Seleziona la carta dal database eBartex",
+                "Imposta il prezzo di partenza (soglia minima per accettare l'asta)",
+                "Imposta la durata dell'asta (giorni/ore)",
+                "Specifica le condizioni della carta (NM, LP, MP, HP)",
+                "Aggiungi foto e descrizione dettagliata",
+                "Pubblica l'asta"
+              ],
+              "note": "Le aste pubblicate sono visibili a tutti gli utenti. Non puoi modificare l'asta dopo la prima offerta ricevuta."
+            }
+          ]
+        },
+        {
+          "group_title": "Problemi con le Aste",
+          "faqs": [
+            {
+              "id": "as_005",
+              "question": "Ho vinto un'asta ma non posso/voglio più pagare",
+              "answer_type": "text",
+              "answer": "Le offerte sulle aste sono vincolanti per contratto. Rifiutare ripetutamente di pagare dopo aver vinto un'asta può comportare la sospensione permanente dell'account. Se hai un problema valido (es. carta persa nel frattempo, problema personale grave), contatta il supporto spiegando la situazione il prima possibile.",
+              "escalation": "Contatta ebartex.service@gmail.com con: ID asta, motivo, proposta di soluzione."
+            },
+            {
+              "id": "as_006",
+              "question": "L'asta è stata annullata dal venditore",
+              "answer_type": "text",
+              "answer": "Il venditore può annullare un'asta in determinate circostanze (carta danneggiata, errore di listaggio). Se hai già fatto offerte, riceverai un rimborso completo sul tuo conto virtuale. Per abusi ripetuti da parte del venditore (annullamenti frequenti), il venditore potrebbe essere sanzionato dalla piattaforma."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scambi",
+      "title": "Scambi",
+      "icon": "exchange-alt",
+      "priority": 6,
+      "faq_groups": [
+        {
+          "group_title": "Come Funzionano gli Scambi",
+          "faqs": [
+            {
+              "id": "sc_001",
+              "question": "Come funziona il sistema di scambi?",
+              "answer_type": "text",
+              "description": "Gli scambi permettono di barattare carte con altri utenti della community. Il formato è: 'Ti offro X carte, chiedo Y carte'. Puoi anche includere crediti eBartex come parte dello scambio per bilanciare il valore. Lo scambio avviene solo se entrambe le parti accettano.",
+              "key_points": [
+                "Scambio carta per carta",
+                "Negoziazione in chat integrata",
+                "Chiusura in sicurezza con protezione eBartex",
+                "Inclusione crediti come compensazione valore"
+              ]
+            },
+            {
+              "id": "sc_002",
+              "question": "Come avvio uno scambio?",
+              "answer_type": "steps",
+              "steps": [
+                "Trova l'utente con cui vuoi scambiare (tramite ricerca utente o profilo)",
+                "Seleziona le carte che OFFRI dal tuo guardaroba/inventario",
+                "Seleziona le carte che CHIEDI dall'inventario dell'utente target",
+                "Aggiungi eventuali crediti eBartex per bilanciare il valore",
+                "Invia la proposta di scambio",
+                "Attendi che l'altro utente: accetti, rifiuti o faccia una controproposta"
+              ]
+            }
+          ]
+        },
+        {
+          "group_title": "Gestione Scambi",
+          "faqs": [
+            {
+              "id": "sc_003",
+              "question": "Dove vedo le mie richieste di scambio?",
+              "answer_type": "text",
+              "navigation": "Vai alla sezione 'Scambi' dal menu principale.",
+              "tabs": [
+                { "name": "Richieste in attesa", "description": "Scambi proposti da ALTRI utenti a TE. Devi accettare, rifiutare o controproporre." },
+                { "name": "Inviate", "description": "Scambi che HAI proposto TU ad altri. Attendi la loro risposta." },
+                { "name": "Conclusi", "description": "Scambi completati con successo. Storico delle transazioni." }
+              ]
+            },
+            {
+              "id": "sc_004",
+              "question": "Posso negoziare uno scambio?",
+              "answer_type": "text",
+              "answer": "Sì, puoi fare controproposte illimitate fino a quando entrambi non accettano. La chat integrata permette di discutere i dettagli con l'altro utente in tempo reale. Puoi modificare le carte offerte, le carte chieste e i crediti inclusi fino all'accordo finale.",
+              "tip": "Sii chiaro e rispettoso nella negoziazione. Una buona comunicazione aumenta le probabilità di successo dello scambio."
+            },
+            {
+              "id": "sc_005",
+              "question": "Lo scambio è sicuro?",
+              "answer_type": "text",
+              "answer": "Sì, eBartex garantisce gli scambi con lo stesso sistema di protezione delle vendite. Le carte vengono spedite solo dopo che entrambi hanno confermato lo scambio. Se una carta non arriva o non corrisponde alla descrizione concordata, puoi aprire una disputa esattamente come per gli acquisti.",
+              "protection": [
+                "Conferma obbligatoria da entrambe le parti prima della spedizione",
+                "Tracking obbligatorio per entrambe le spedizioni",
+                "Protezione dispute entro 14 giorni",
+                "Mediazione del team eBartex in caso di problemi"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tornei",
+      "title": "Tornei",
+      "icon": "trophy",
+      "priority": 7,
+      "faq_groups": [
+        {
+          "group_title": "Partecipare ai Tornei",
+          "faqs": [
+            {
+              "id": "to_001",
+              "question": "Come accedo ai tornei?",
+              "answer_type": "steps",
+              "steps": [
+                "Clicca 'TORNEI' in alto a destra nella navbar, o vai direttamente a tornei.ebartex.com",
+                "Usa le STESSE credenziali del tuo account eBartex (username/email + password)",
+                "Dopo l'accesso, entri nella sala tornei con inventario e profilo già sincronizzati automaticamente"
+              ],
+              "note": "La piattaforma tornei è un sottodominio separato (tornei.ebartex.com) ma condivide il sistema di autenticazione con il marketplace principale."
+            },
+            {
+              "id": "to_002",
+              "question": "Quali tipi di tornei sono disponibili?",
+              "answer_type": "list",
+              "types": [
+                { "type": "Tornei live con montepremi", "description": "Competizioni in tempo reale con premi in denaro o crediti" },
+                { "type": "Tornei con classifiche", "description": "Tornei che contribuiscono a una classifica stagionale" },
+                { "type": "Tornei community", "description": "Eventi organizzati dalla community, più informali" }
+              ],
+              "note": "Ogni torneo mostra: formato (Standard, Modern, Commander, ecc.), requisiti di iscrizione, montepremi, numero massimo di partecipanti."
+            },
+            {
+              "id": "to_003",
+              "question": "Come mi iscrivo a un torneo?",
+              "answer_type": "steps",
+              "steps": [
+                "Accedi alla sala tornei con le tue credenziali eBartex",
+                "Sfoglia i tornei disponibili nella dashboard",
+                "Leggi attentamente regole, formato e requisiti di iscrizione",
+                "Verifica di avere le carte necessarie nel tuo inventario sincronizzato",
+                "Clicca 'Iscriviti' sul torneo desiderato",
+                "Conferma l'iscrizione",
+                "Prepara il tuo mazzo secondo il formato richiesto"
+              ]
+            }
+          ]
+        },
+        {
+          "group_title": "Problemi con i Tornei",
+          "faqs": [
+            {
+              "id": "to_004",
+              "question": "Non riesco ad accedere alla sala tornei",
+              "answer_type": "checklist",
+              "checklist": [
+                { "check": "Verifica che le credenziali siano corrette", "detail": "Stesse di eBartex, stessa email/username e stessa password" },
+                { "check": "Prova 'Accedi con codice monouso'", "detail": "Opzione alternativa disponibile nella pagina di login tornei" },
+                { "check": "Se hai dimenticato le credenziali", "detail": "Usa 'Recupera credenziali' sul sito principale eBartex" },
+                { "check": "Prova in modalità incognito", "detail": "Per escludere problemi di cache/cookie" }
+              ],
+              "escalation": "Se il problema persiste, contatta ebartex.service@gmail.com indicando: username, browser usato, messaggio di errore esatto."
+            },
+            {
+              "id": "to_005",
+              "question": "Il mio inventario non si sincronizza con i tornei",
+              "answer_type": "steps",
+              "steps": [
+                "L'inventario dovrebbe sincronizzarsi automaticamente all'accesso",
+                "Prova a disconnetterti e riconnetterti alla sala tornei",
+                "Verifica che le carte siano presenti nel tuo guardaroba eBartex (sito principale)",
+                "Controlla che le carte siano nel formato richiesto dal torneo",
+                "Se il problema persiste dopo questi passaggi, contatta il supporto"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "brx_express",
+      "title": "BRX Express",
+      "icon": "shipping-fast",
+      "priority": 8,
+      "faq_groups": [
+        {
+          "group_title": "Informazioni Generali",
+          "faqs": [
+            {
+              "id": "bx_001",
+              "question": "Cos'è BRX Express?",
+              "answer_type": "text",
+              "description": "BRX Express è il network logistico europeo esclusivo di eBartex. Permette di spedire carte in 24 ore eliminando lo stress delle spedizioni singole per i venditori. Tu spedisci una volta all'hub, eBartex gestisce tutto il resto.",
+              "workflow_summary": [
+                "Spedisci le tue carte all'hub BRX (una sola spedizione)",
+                "eBartex esegue grading professionale e foto HD",
+                "Le carte vengono stoccate in camera blindata",
+                "Listate sul marketplace sotto Account Ufficiale Sponsorizzato",
+                "Quando vendute, spedite al compratore in 24h"
+              ]
+            },
+            {
+              "id": "bx_002",
+              "question": "Come funziona BRX Express passo dopo passo?",
+              "answer_type": "steps",
+              "steps": [
+                "Raggruppa le carte che vuoi vendere tramite BRX",
+                "Spediscile all'hub BRX Express più vicino a te (una sola spedizione aggregata)",
+                "eBartex riceve le carte ed esegue: grading professionale, foto in HD, stoccaggio in camera blindata protetta",
+                "Le carte vengono listate automaticamente sul marketplace a 0,30 EUR a pezzo",
+                "Le carte appaiono sotto un Account Ufficiale Sponsorizzato (massima visibilità e affidabilità)",
+                "Quando una carta viene venduta, eBartex la spedisce al compratore in 24 ore"
+              ]
+            }
+          ]
+        },
+        {
+          "group_title": "Costi e Commissioni",
+          "faqs": [
+            {
+              "id": "bx_003",
+              "question": "Quanto costa BRX Express?",
+              "answer_type": "table",
+              "costs": [
+                { "item": "Listaggio carta", "cost": "0,30 EUR a pezzo", "note": "One-time per carta ricevuta" },
+                { "item": "Grading professionale", "cost": "Incluso", "note": "Valutazione condizione da esperti" },
+                { "item": "Foto HD", "cost": "Incluso", "note": "Foto professionali per ogni carta" },
+                { "item": "Stoccaggio", "cost": "Incluso", "note": "Camera blindata, protezione ottimale" },
+                { "item": "Spedizione al compratore", "cost": "Incluso", "note": "24 ore dalla vendita" }
+              ],
+              "note": "Oltre al costo di listaggio, si applica la commissione standard del 5% sulla vendita."
+            },
+            {
+              "id": "bx_004",
+              "question": "Quali sono i vantaggi di BRX Express?",
+              "answer_type": "list",
+              "benefits": [
+                { "benefit": "Spedisci UNA sola volta", "detail": "Anche per centinaia di carte, non devi gestire spedizioni singole" },
+                { "benefit": "Grading professionale", "detail": "Le tue carte vengono valutate da esperti secondo standard uniformi" },
+                { "benefit": "Foto in HD", "detail": "Ogni carta ha foto professionali che aumentano la fiducia degli acquirenti" },
+                { "benefit": "Stoccaggio protetto", "detail": "Camera blindata con condizioni ottimali di temperatura e umidità" },
+                { "benefit": "Spedizione 24h", "detail": "I compratori ricevono le carte in 24 ore, aumentando le recensioni positive" },
+                { "benefit": "Account Sponsorizzato", "detail": "Massima visibilità sul marketplace, badge di affidabilità" }
+              ]
+            }
+          ]
+        },
+        {
+          "group_title": "Problemi BRX Express",
+          "faqs": [
+            {
+              "id": "bx_005",
+              "question": "Ho spedito le carte ma non sono ancora listate",
+              "answer_type": "steps",
+              "steps": [
+                "Verifica che le carte siano state ricevute dall'hub controllando il tracking della TUA spedizione all'hub",
+                "Il processo di ricezione, grading e foto richiede tempo (dipende dal volume)",
+                "Verifica nella sezione 'BRX Express' del tuo pannello venditore lo stato di elaborazione",
+                "Se sono passate più di 2 settimane dalla ricezione confermata, contatta il supporto BRX"
+              ],
+              "normal_timeline": "5-10 giorni lavorativi dalla ricezione all'hub per completare grading, foto e listaggio."
+            },
+            {
+              "id": "bx_006",
+              "question": "Una carta è stata danneggiata durante la gestione BRX",
+              "answer_type": "steps",
+              "urgency": "high",
+              "steps": [
+                "Le carte sono assicurate durante tutto il processo BRX",
+                "Scatta foto del danno appena ricevi notifica o accorgiti del problema",
+                "Raccogli tutte le prove: foto dettagliate, descrizione del danno, ID carta",
+                "Contatta immediatamente il supporto BRX con: codice carta BRX, foto del danno, descrizione dettagliata"
+              ],
+              "escalation": "Email: ebartex.service@gmail.com - Oggetto: 'Danno BRX Express - [ID Carta]'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spedizioni_logistica",
+      "title": "Spedizioni e Logistica",
+      "icon": "truck",
+      "priority": 9,
+      "faq_groups": [
+        {
+          "group_title": "Metodi di Spedizione",
+          "faqs": [
+            {
+              "id": "sl_001",
+              "question": "Quali metodi di spedizione sono disponibili?",
+              "answer_type": "table",
+              "methods": [
+                { "method": "Standard", "time_it": "2-5 giorni lavorativi", "time_eu": "5-10 giorni lavorativi", "tracking": "Sì", "note": "Dipende dal corriere del venditore" },
+                { "method": "BRX Express", "time_it": "24 ore dall'hub", "time_eu": "24-48 ore dall'hub", "tracking": "Sì", "note": "Gestito interamente da eBartex" },
+                { "method": "Assicurata", "time_it": "2-5 giorni", "time_eu": "5-10 giorni", "tracking": "Sì", "note": "Copertura in caso di smarrimento/danno" }
+              ]
+            },
+            {
+              "id": "sl_002",
+              "question": "Come imballare correttamente le carte?",
+              "answer_type": "steps",
+              "importance": "ESSENZIALE - Un imballaggio scaduto causa danni e dispute",
+              "steps": [
+                "Inserisci la carta in una bustina protettiva (penny sleeve) - OBBLIGATORIO",
+                "Inserisci la bustina in un top loader rigido o card saver - OBBLIGATORIO",
+                "Usa nastro adesivo 'painters tape' o washi tape per sigillare il top loader - NON usare scotch normale (lascia residui)",
+                "Inserisci il tutto in una busta da lettere imbottita (bubble mailer) o busta rigida",
+                "Per carte di valore (>50 EUR): usa scatola rigida + assicurazione + tracking firmato"
+              ],
+              "materials_needed": [
+                "Penny sleeves (bustine protettive trasparenti)",
+                "Top loaders rigidi (o Card Saver per grading)",
+                "Painters tape / washi tape",
+                "Buste imbottite (bubble mailers) o rigide"
+              ]
+            },
+            {
+              "id": "sl_003",
+              "question": "Le spedizioni sono tracciate?",
+              "answer_type": "text",
+              "answer": "Sì, tutte le spedizioni su eBartex DEVONO includere un codice di tracking. Il tracking viene comunicato automaticamente al compratore via email e nella sezione 'I miei ordini'. Per spedizioni standard, il tracking dipende dal corriere usato dal venditore. Per BRX Express, il tracking è gestito internamente da eBartex.",
+              "note": "Venditori che non forniscono tracking possono essere segnalati e sanzionati."
+            }
+          ]
+        },
+        {
+          "group_title": "Costi di Spedizione",
+          "faqs": [
+            {
+              "id": "sl_004",
+              "question": "Chi paga le spese di spedizione?",
+              "answer_type": "text",
+              "standard_rule": "Generalmente il COMPRATORE paga le spese di spedizione. Il costo viene aggiunto al totale in fase di checkout.",
+              "exceptions": [
+                "Il venditore può offrire spedizione gratuita sopra certi importi (es. spedizione gratis per ordini >30 EUR)",
+                "Per BRX Express, i costi di spedizione al compratore sono inclusi nel servizio (0,30 EUR/carta)",
+                "Negli scambi, ogni parte paga la propria spedizione"
+              ]
+            },
+            {
+              "id": "sl_005",
+              "question": "Le spese di spedizione sono indicate in anticipo?",
+              "answer_type": "text",
+              "answer": "Sì, ogni venditore specifica i propri costi di spedizione nel profilo pubblico. Il sistema eBartex ha un database aggiornato sulle spese di spedizione per peso e destinazione. Il costo totale (carte + spedizione) viene mostrato chiaramente prima della conferma dell'acquisto, senza costi nascosti."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pagamenti_transazioni",
+      "title": "Pagamenti e Transazioni",
+      "icon": "credit-card",
+      "priority": 10,
+      "faq_groups": [
+        {
+          "group_title": "Metodi di Pagamento",
+          "faqs": [
+            {
+              "id": "pt_001",
+              "question": "Quali metodi di pagamento sono accettati?",
+              "answer_type": "list",
+              "methods": [
+                { "method": "Carte di credito/debito", "types": "Visa, Mastercard, American Express", "processing": "Immediato" },
+                { "method": "PayPal", "types": "Conto PayPal e carte collegate", "processing": "Immediato" },
+                { "method": "Bonifico bancario", "types": "SEPA", "processing": "2-5 giorni lavorativi", "restriction": "Solo per ordini di importo superiore a una soglia minima" },
+                { "method": "Credito eBartex", "types": "Fondi accumulati dalle vendite", "processing": "Immediato" }
+              ]
+            },
+            {
+              "id": "pt_002",
+              "question": "I pagamenti sono sicuri?",
+              "answer_type": "text",
+              "security_measures": [
+                "Tutti i pagamenti sono processati con crittografia SSL a 256 bit",
+                "eBartex NON memorizza i dati della carta di credito (usa tokenizzazione)",
+                "Le transazioni sono protette dal Sistema Trust eBartex",
+                "Autenticazione JWT RS256 per le sessioni",
+                "Password archiviate con hashing irreversibile"
+              ]
+            }
+          ]
+        },
+        {
+          "group_title": "Conto Virtuale eBartex",
+          "faqs": [
+            {
+              "id": "pt_003",
+              "question": "Cos'è il conto virtuale eBartex?",
+              "answer_type": "text",
+              "description": "Il conto virtuale eBartex è il tuo portafoglio digitale integrato nella piattaforma. I proventi delle vendite vengono accreditati automaticamente qui. Puoi usarlo per acquistare carte, pagare aste, partecipare a scambi, oppure prelevare i fondi verso il tuo conto esterno.",
+              "features": [
+                "Accredito automatico proventi vendite",
+                "Pagamento immediato per acquisti su eBartex",
+                "Nessuna commissione aggiuntiva per pagamenti interni",
+                "Prelievo verso conto bancario o PayPal"
+              ]
+            },
+            {
+              "id": "pt_004",
+              "question": "Come faccio a prelevare i miei fondi?",
+              "answer_type": "steps",
+              "steps": [
+                "Accedi al tuo account e vai al Profilo / Pannello Finanziario",
+                "Seleziona 'Preleva' o 'Withdraw'",
+                "Scegli il metodo di prelievo preferito (bonifico bancario SEPA o PayPal)",
+                "Inserisci l'importo desiderato (verifica il saldo disponibile)",
+                "Conferma i dati del conto destinatario",
+                "Conferma la richiesta di prelievo",
+                "Riceverai conferma via email"
+              ],
+              "timeline": "Bonifico SEPA: 2-5 giorni lavorativi. PayPal: 1-3 giorni lavorativi."
+            }
+          ]
+        },
+        {
+          "group_title": "Problemi con i Pagamenti",
+          "faqs": [
+            {
+              "id": "pt_005",
+              "question": "Il pagamento è stato rifiutato",
+              "answer_type": "checklist",
+              "checklist": [
+                { "check": "Verifica che la carta non sia scaduta", "detail": "Controlla data di scadenza sul fronte" },
+                { "check": "Controlla che ci sia credito sufficiente sul conto/carta", "detail": "Verifica saldo con la tua banca" },
+                { "check": "Verifica che la banca non abbia bloccato la transazione", "detail": "Controlla SMS/app banca per richieste di conferma" },
+                { "check": "Prova con un altro metodo di pagamento", "detail": "PayPal, altra carta, ecc." },
+                { "check": "Se il problema persiste, contatta la tua banca", "detail": "Il blocco potrebbe essere lato istituto bancario" }
+              ]
+            },
+            {
+              "id": "pt_006",
+              "question": "Ho pagato ma l'ordine non risulta confermato",
+              "answer_type": "steps",
+              "steps": [
+                "Attendi qualche minuto: possibili ritardi del sistema di elaborazione",
+                "Controlla la sezione 'I miei ordini' nel tuo profilo",
+                "Verifica se hai ricevuto l'email di conferma d'acquisto",
+                "Controlla l'estratto conto della carta/PayPal: il pagamento risulta addebitato?",
+                "Se il pagamento è stato addebitato ma l'ordine non risulta, contatta il supporto"
+              ],
+              "escalation_info": "Fornisci al supporto: ID transazione (se visibile), importo esatto, data e ora del pagamento, metodo di pagamento usato."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "trust_sicurezza",
+      "title": "Sistema Trust e Sicurezza",
+      "icon": "shield-alt",
+      "priority": 11,
+      "faq_groups": [
+        {
+          "group_title": "Protezione e Garanzie",
+          "faqs": [
+            {
+              "id": "ts_001",
+              "question": "Cos'è il Sistema Trust di eBartex?",
+              "answer_type": "text",
+              "description": "Il Sistema Trust è il sistema di protezione integrato di eBartex che garantisce che le transazioni siano sicure per entrambe le parti. Funziona come intermediario fidato: trattenendo i pagamenti fino alla conferma, mediano le dispute, verificando i venditori.",
+              "components": [
+                "Protezione Acquirenti: rimborso se non ricevi o non corrisponde alla descrizione",
+                "Protezione Venditori: pagamento garantito dopo conferma ricezione",
+                "Verifica Venditori: badge per venditori affidabili",
+                "Mediazione Dispute: team dedicato per risolvere conflitti"
+              ]
+            },
+            {
+              "id": "ts_002",
+              "question": "Come funziona la protezione acquirenti?",
+              "answer_type": "text",
+              "coverage": [
+                "Se non ricevi l'articolo entro i tempi previsti: puoi aprire una disputa entro 14 giorni dalla data stimata di consegna",
+                "Se l'articolo non corrisponde alla descrizione: puoi richiedere rimborso entro 14 giorni dalla ricezione",
+                "Il team eBartex esamina il caso e media tra le parti",
+                "In caso di frode comprovata a tuo danno: rimborso completo entro 10 giorni lavorativi"
+              ],
+              "exclusions": "Non copre: danni causati dal compratore, richieste dopo 14 giorni, transazioni effettuate fuori dalla piattaforma."
+            },
+            {
+              "id": "ts_003",
+              "question": "Come funziona la protezione venditori?",
+              "answer_type": "text",
+              "coverage": [
+                "Il pagamento viene trattenuto da eBartex fino alla conferma di ricezione da parte del compratore",
+                "Se il compratore apre una disputa ingiustificata, il team esamina le prove e media",
+                "I venditori verificati (con storia positiva) hanno maggiore visibilità e fiducia",
+                "Protezione contro chargeback fraudolenti su pagamenti validi"
+              ]
+            }
+          ]
+        },
+        {
+          "group_title": "Dispute",
+          "faqs": [
+            {
+              "id": "ts_004",
+              "question": "Come apro una disputa?",
+              "answer_type": "steps",
+              "steps": [
+                "Accedi al tuo account e vai alla sezione 'I miei ordini'",
+                "Trova l'ordine problematico nella lista",
+                "Clicca 'Apri disputa' o 'Segnala problema'",
+                "Seleziona il tipo di problema (non ricevuto, non conforme, altro)",
+                "Descrivi il problema nel dettaglio (sii specifico)",
+                "Carica foto/documenti a supporto (obbligatorio per 'non conforme')",
+                "Invia la disputa"
+              ],
+              "deadline": "Entro 14 giorni dalla ricezione della carta o dalla data stimata di consegna."
+            },
+            {
+              "id": "ts_005",
+              "question": "Cosa succede dopo aver aperto una disputa?",
+              "answer_type": "timeline",
+              "phases": [
+                { "phase": "Notifica venditore", "time": "Immediato", "description": "Il venditore riceve notifica e ha 3 giorni lavorativi per rispondere" },
+                { "phase": "Fase di discussione", "time": "3-5 giorni", "description": "Entrambe le parti possono presentare argomentazioni e prove" },
+                { "phase": "Esame eBartex", "time": "3-7 giorni", "description": "Il team esamina il caso, le prove e la comunicazione" },
+                { "phase": "Decisione finale", "time": "Totale 5-15 giorni", "description": "La decisione viene comunicata ad entrambe le parti via email" },
+                { "phase": "Rimborso (se previsto)", "time": "1-3 giorni dopo decisione", "description": "L'importo viene restituito sul conto virtuale eBartex" }
+              ]
+            },
+            {
+              "id": "ts_006",
+              "question": "Quanto tempo ci vuole per risolvere una disputa?",
+              "answer_type": "table",
+              "timelines": [
+                { "type": "Caso semplice (non ricevuto, tracking chiaro)", "time": "2-3 giorni lavorativi" },
+                { "type": "Caso medio (non conforme, prove sufficienti)", "time": "5-10 giorni lavorativi" },
+                { "type": "Caso complesso (entrambe le parti hanno argomentazioni)", "time": "10-15 giorni lavorativi" }
+              ],
+              "note": "Sarai aggiornato via email a ogni fase del processo. Non è necessario contattare il supporto se la disputa è già aperta: attendi la decisione."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sincronizzazione_api",
+      "title": "Sincronizzazione e API",
+      "icon": "sync",
+      "priority": 12,
+      "faq_groups": [
+        {
+          "group_title": "Modulo Sync",
+          "faqs": [
+            {
+              "id": "sa_001",
+              "question": "Cos'è il modulo di sincronizzazione?",
+              "answer_type": "text",
+              "description": "Il Modulo Sync permettte di collegare eBartex con altre piattaforme di vendita carte (es. Cardmarket, TCGPlayer) per sincronizzare automaticamente inventari, prezzi e disponibilità. Funziona tramite API Token forniti dalle piattaforme terze.",
+              "technical_details": [
+                "Sincronizzazione asincrona tramite Celery Worker in background",
+                "Sistema di gestione code Redis",
+                "Notifiche istantanee via Webhook",
+                "Crittografia simmetrica Fernet per i Token API"
+              ]
+            },
+            {
+              "id": "sa_002",
+              "question": "Come configuro la sincronizzazione?",
+              "answer_type": "steps",
+              "steps": [
+                "Accedi alla piattaforma terza (es. Cardmarket) e genera le credenziali API/Token",
+                "Copia il Token nel pannello di sincronizzazione eBartex (sezione 'Sincronizza')",
+                "Configura quali inventari sincronizzare (tutti o selezionati)",
+                "Imposta la frequenza di sincronizzazione",
+                "Avvia la sincronizzazione e verifica i dati importati",
+                "Controlla periodicamente che la sincronizzazione funzioni correttamente"
+              ]
+            },
+            {
+              "id": "sa_003",
+              "question": "Cos'è l'Overselling e come lo evito?",
+              "answer_type": "text",
+              "definition": "L'Overselling è quando una stessa carta viene venduta su più piattaforme contemporaneamente a causa di ritardi nella sincronizzazione.",
+              "cause": "La sincronizzazione NON è in tempo reale assoluto. Esiste una latenza tecnica di 30-60 secondi (a volte più in caso di carico elevato) tra la vendita su una piattaforma e l'aggiornamento della disponibilità sull'altra.",
+              "prevention_tips": [
+                "Mantieni un buffer di disponibilità (es. se hai 10 carte, listane 9)",
+                "Sincronizza frequentemente (imposta intervalli brevi)",
+                "Verifica manualmente le giacenze prima di grandi promozioni",
+                "Considera di listare su meno piattaforme per carte ad alta rotazione"
+              ]
+            },
+            {
+              "id": "sa_004",
+              "question": "Rischi e Limitazioni del Modulo Sync",
+              "answer_type": "warning",
+              "points": [
+                "Dipendenza da terze parti: se una piattaforma modifica le API, revoca l'accesso o è in down, la sincronizzazione cessa di funzionare",
+                "eBartex NON ha obbligo di garantire continuità delle integrazioni con servizi terzi",
+                "L'utente assume il rischio di Overselling per la latenza tecnica",
+                "Possibili errori di parsing se la piattaforma terza modifica il formato dei dati",
+                "In caso di reset database (versione Demo), le configurazioni Sync vanno riconfigurate"
+              ],
+              "disclaimer": "Consulta l'Art. 4 dei Termini e Condizioni per il quadro completo delle limitazioni di responsabilità tecniche."
+            }
+          ]
+        },
+        {
+          "group_title": "Problemi di Sincronizzazione",
+          "faqs": [
+            {
+              "id": "sa_005",
+              "question": "La sincronizzazione non funziona",
+              "answer_type": "checklist",
+              "checklist": [
+                { "check": "Verifica che il Token API sia ancora valido", "detail": "Vai sulla piattaforma terza e controlla lo stato del Token. Se scaduto, rigeneralo." },
+                { "check": "Controlla lo stato della piattaforma terza", "detail": "Verifica se la piattaforma terza è in manutenzione o down." },
+                { "check": "Verifica le autorizzazioni del Token", "detail": "Assicurati che includa lettura e scrittura inventario." },
+                { "check": "Rigenera e reinserisci il Token su eBartex", "detail": "A volte un refresh risolve problemi temporanei." },
+                { "check": "Verifica i log di sincronizzazione nel pannello", "detail": "Possono indicare errori specifici." }
+              ],
+              "escalation": "Se nessuna delle verifiche risolve, contatta il supporto con: piattaforma terza, messaggio di errore esatto, data ultima sincronizzazione riuscita."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cameramatch_scanner",
+      "title": "CameraMatch e Scanner",
+      "icon": "camera",
+      "priority": 13,
+      "faq_groups": [
+        {
+          "group_title": "Uso di CameraMatch",
+          "faqs": [
+            {
+              "id": "cm_001",
+              "question": "Come uso la funzione CameraMatch?",
+              "answer_type": "steps",
+              "steps": [
+                "Clicca l'icona della fotocamera accanto alla barra di ricerca in homepage",
+                "Permetti l'accesso alla fotocamera quando richiesto dal browser",
+                "Inquadra la carta con la fotocamera: fronte visibile, ben centrata",
+                "Assicurati di avere buona illuminazione e niente riflessi",
+                "Il sistema riconoscerà automaticamente la carta e mostrerà i risultati",
+                "Sfoglia i risultati disponibili sul marketplace"
+              ]
+            },
+            {
+              "id": "cm_002",
+              "question": "CameraMatch non riconosce la mia carta",
+              "answer_type": "checklist",
+              "checklist": [
+                { "check": "Assicurati di avere buona illuminazione", "detail": "Evita ombre e punti luce troppo forti" },
+                { "check": "Inquadra solo la carta, senza oggetti di sfondo", "detail": "Sfondo pulito e contrastante aiuta il riconoscimento" },
+                { "check": "La carta deve essere ben visibile e a fuoco", "detail": "Tieni fermo il dispositivo durante la scansione" },
+                { "check": "Carte foil o con riflessi", "detail": "Possono essere difficili da riconoscere. Prova ad angolare la luce." }
+              ],
+              "fallback": "Se CameraMatch non funziona, usa la ricerca manuale per nome della carta. Digita il nome nella barra di ricerca e seleziona dai risultati."
+            },
+            {
+              "id": "cm_003",
+              "question": "CameraMatch è disponibile per tutti i giochi?",
+              "answer_type": "text",
+              "answer": "CameraMatch è progettato per riconoscere carte dei principali giochi TCG supportati da eBartex: Magic: The Gathering, Pokémon, Yu-Gi-Oh!, One Piece TCG, Lorcana, Star Wars. Il database di riconoscimento viene aggiornato regolarmente con le nuove espansioni.",
+              "note": "Essendo una funzione in Beta, il supporto per giochi meno popolari o carte promo speciali potrebbe essere limitato."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "condizioni_carte",
+      "title": "Guida alle Condizioni delle Carte",
+      "icon": "gem",
+      "priority": 14,
+      "faq_groups": [
+        {
+          "group_title": "Standard di Condizione",
+          "faqs": [
+            {
+              "id": "gc_001",
+              "question": "Quali sono le condizioni delle carte su eBartex?",
+              "answer_type": "table",
+              "conditions": [
+                { "code": "NM", "name": "Near Mint (Quasi Nuova)", "description": "Carta in condizioni perfette o quasi perfette. Bordi perfetti, angoli appuntiti, nessun segno visibile. Eventuali imperfezioni microscopiche solo sotto lente.", "price_adjustment": "Prezzo di mercato pieno" },
+                { "code": "LP", "name": "Light Played (Leggermente Giocata)", "description": "Piccoli segni di usura sui bordi o angoli leggermente arrotondati. Nessuna piega, graffio profondo o macchia. Visivamente ottima da vicino.", "price_adjustment": "-10% / -20% dal prezzo NM" },
+                { "code": "MP", "name": "Moderately Played (Moderatamente Giocata)", "description": "Usura visibile: bordi consumati, angoli arrotondati, possibili graffi lievi sulla superficie o sul retro. Nessuna piega strutturale.", "price_adjustment": "-30% / -40% dal prezzo NM" },
+                { "code": "HP", "name": "Heavily Played (Molto Giocata)", "description": "Usura evidente su tutta la carta: bordi molto consumati, angoli danneggiati, graffi visibili, possibili pieghe lievi. La carta è ancora giocabile con sleeve.", "price_adjustment": "-50% o più dal prezzo NM" },
+                { "code": "DMG", "name": "Damaged (Danneggiata)", "description": "Danni gravi: pieghe marcate, strappi, macchie d'acqua, inchiostro, crepe. La carta ha valore principalmente collezionistico o per gioco casuale.", "price_adjustment": "Valore molto ridotto, caso per caso" }
+              ]
+            },
+            {
+              "id": "gc_002",
+              "question": "Come valuto correttamente la condizione di una carta?",
+              "answer_type": "checklist",
+              "checklist": [
+                { "check": "BORDI", "detail": "Controlla segni di usura, sbiancamento, scheggiature. Ruota la carta alla luce." },
+                { "check": "ANGOLI", "detail": "Verifica pieghe, arrotondamenti, strappi agli angoli." },
+                { "check": "SUPERFICIE (fronte)", "detail": "Graffi, impronte, pieghe, macchie, danni da foil peeling." },
+                { "check": "RETRO", "detail": "Macchie, sbiancamento, graffi sul retro possono influenzare il grading." },
+                { "check": "CENTRATURA (per carte gradate)", "detail": "Bordi simmetrici? Importante solo per grading professionale." }
+              ],
+              "golden_rule": "QUANDO IN DUBBIO, valuta una condizione INFERIORE. È meglio sorprendere positivamente l'acquirente che deluderlo. Una valutazione troppo ottimistica causa dispute e richieste di rimborso."
+            },
+            {
+              "id": "gc_003",
+              "question": "Cosa significa 'Carte Gradate'?",
+              "answer_type": "text",
+              "description": "Le carte gradate sono state valutate da aziende professionali (PSA, BGS, CGC) che assegnano un punteggio numerico da 1 a 10 in base a condizione, centratura e qualità. Su eBartex le carte gradate hanno un mercato separato e prezzi generalmente più alti.",
+              "grading_companies": [
+                "PSA (Professional Sports Authenticator) - Il più riconosciuto",
+                "BGS (Beckett Grading Services) - Sottosistemi di punteggio dettagliati",
+                "CGC (Certified Guaranty Company) - Crescita rapida nel TCG"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "problemi_tecnici",
+      "title": "Problemi Tecnici",
+      "icon": "bug",
+      "priority": 15,
+      "faq_groups": [
+        {
+          "group_title": "Sito e Prestazioni",
+          "faqs": [
+            {
+              "id": "pt_001",
+              "question": "Il sito non si carica",
+              "answer_type": "steps",
+              "steps": [
+                "Verifica la tua connessione internet (prova ad aprire altri siti)",
+                "Prova a ricaricare la pagina (F5 o Ctrl+R per hard refresh)",
+                "Prova con un altro browser (Chrome consigliato)",
+                "Cancella cache e cookie del browser per ebartex.com",
+                "Prova in modalità incognito / navigazione privata",
+                "Verifica lo stato del sito sui canali social eBartex (Instagram, Facebook, Discord)",
+                "Controlla se ci sono manutenzioni programmate (banner 'SITO IN DEMO')"
+              ],
+              "escalation": "Se ancora non funziona dopo tutti i passaggi, contatta il supporto indicando: browser, versione, sistema operativo, messaggio di errore esatto."
+            },
+            {
+              "id": "pt_002",
+              "question": "Il sito è lento o si blocca",
+              "answer_type": "text",
+              "important_note": "eBartex è attualmente in versione Demo (Beta Test). Possibili rallentamenti, malfunzionamenti o interruzioni sono normali durante questa fase. Il Fornitore non garantisce l'uptime del 100%.",
+              "troubleshooting": [
+                "Chiudi schede e applicazioni inutili per liberare RAM",
+                "Verifica che il tuo dispositivo abbia risorse sufficienti",
+                "Prova a riavviare il browser",
+                "Se il problema persiste solo su eBartex, potrebbe essere un problema lato server: attendi e riprova più tardi"
+              ]
+            },
+            {
+              "id": "pt_003",
+              "question": "Ho trovato un bug nel sito",
+              "answer_type": "text",
+              "welcome": "Come utente Beta, il tuo feedback è preziosissimo! Ti invitiamo a segnalare ogni bug per aiutarci a migliorare.",
+              "report_template": {
+                "cosa_stavi_facendo": "Descrivi l'azione che stavi compiendo",
+                "cosa_e_successo": "Descrivi il comportamento anomalo osservato",
+                "cosa_ti_aspettavi": "Descrivi il comportamento corretto atteso",
+                "browser": "Nome e versione del browser",
+                "device": "PC, Mac, Mobile, Tablet",
+                "screenshot": "Allega screenshot se possibile"
+              },
+              "where_to_send": "Invia la segnalazione a ebartex.service@gmail.com con oggetto: 'BUG REPORT - [breve descrizione]'"
+            }
+          ]
+        },
+        {
+          "group_title": "Dati e Persistenza",
+          "faqs": [
+            {
+              "id": "pt_004",
+              "question": "I miei dati/inventario sono scomparsi",
+              "answer_type": "text",
+              "explanation": "Essendo eBartex in versione Demo (Beta Test), il Fornitore si riserva il diritto di resettare i database in qualsiasi momento. Questo può comportare la cancellazione di: inventari, offerte, messaggi, configurazioni.",
+              "from_tos": "Art. 2.3 dei Termini: 'Il Fornitore si riserva espressamente il diritto di procedere al reset totale o parziale dei database senza obbligo di preavviso.'",
+              "prevention": [
+                "Mantieni backup locali del tuo inventario (es. foglio Excel)",
+                "Per sincronizzazioni, le integrazioni con piattaforme terze permettono di reimportare facilmente i dati",
+                "Esporta periodicamente le tue transazioni dal pannello"
+              ],
+              "note": "Questo è un rischio noto e accettato della fase Beta. Dopo il lancio ufficiale, la persistenza dei dati sarà garantita."
+            }
+          ]
+        },
+        {
+          "group_title": "Browser e Compatibilità",
+          "faqs": [
+            {
+              "id": "pt_005",
+              "question": "Quali browser sono supportati?",
+              "answer_type": "list",
+              "browsers": [
+                { "browser": "Google Chrome", "status": "Consigliato, massima compatibilità", "min_version": "Ultima versione" },
+                { "browser": "Mozilla Firefox", "status": "Supportato", "min_version": "Ultima versione" },
+                { "browser": "Apple Safari", "status": "Supportato", "min_version": "Ultima versione" },
+                { "browser": "Microsoft Edge", "status": "Supportato", "min_version": "Ultima versione (Chromium)" }
+              ],
+              "not_supported": "Internet Explorer NON è supportato. Versioni obsolete di browser potrebbero causare problemi."
+            },
+            {
+              "id": "pt_006",
+              "question": "Il sito non funziona correttamente sul mio browser",
+              "answer_type": "checklist",
+              "checklist": [
+                { "check": "Aggiorna il browser all'ultima versione", "detail": "Versioni obsolete causano incompatibilità" },
+                { "check": "Disabilita temporaneamente le estensioni", "detail": "Ad-blocker, script-blocker, privacy extensions possono bloccare funzionalità" },
+                { "check": "Abilita JavaScript", "detail": "eBartex richiede JavaScript per funzionare" },
+                { "check": "Abilita i cookie di terze parti", "detail": "Necessari per autenticazione e pagamenti" },
+                { "check": "Prova con un altro browser per isolare il problema", "detail": "Se funziona su Chrome ma non su Firefox, è un problema di compatibilità" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "escalation": {
+    "id": "contattare_supporto",
+    "title": "Contattare il Supporto",
+    "description": "Hai provato TUTTE le soluzioni nella sezione pertinente? Se il problema persiste, ecco come contattarci.",
+    "prerequisites": {
+      "title": "Prima di contattare il supporto, prepara queste informazioni:",
+      "required_info": [
+        "Username o email dell'account eBartex",
+        "Descrizione dettagliata del problema (cosa succede, quando, con quale frequenza)",
+        "Passaggi già provati per risolvere (cosa hai già tentato)",
+        "Screenshot del problema (se visibile/applicabile)",
+        "ID ordine / ID asta / ID transazione (se applicabile)",
+        "Browser e dispositivo utilizzato (es. Chrome 120 su Windows 11)",
+        "Data e ora in cui il problema si è verificato"
+      ]
+    },
+    "channels": [
+      {
+        "channel": "Email principale",
+        "value": "ebartex.service@gmail.com",
+        "response_time": "24-48 ore lavorative",
+        "best_for": "Tutte le richieste, dispute, problemi complessi"
+      },
+      {
+        "channel": "Sezione Aiuto",
+        "value": "https://www.ebartex.com/aiuto",
+        "response_time": "N/A (self-service)",
+        "best_for": "FAQ rapide, guida condizioni, come comprare"
+      },
+      {
+        "channel": "FAQ online",
+        "value": "https://www.ebartex.com/aiuto",
+        "response_time": "N/A (self-service)",
+        "best_for": "Domande frequenti generiche"
+      }
+    ],
+    "response_times": {
+      "urgent": { "type": "Problemi urgenti (sicurezza, frodi, account compromesso)", "time": "4-8 ore lavorative", "priority": "Alta" },
+      "standard": { "type": "Richieste standard (ordini, vendite, dispute)", "time": "24-48 ore lavorative", "priority": "Normale" },
+      "general": { "type": "Richieste generali (domande, feedback)", "time": "48-72 ore lavorative", "priority": "Bassa" }
+    },
+    "final_note": "PRIMA DI CONTATTARE IL SUPPORTO: assicurati di aver consultato la sezione pertinente di questo workflow e di aver provato tutte le soluzioni suggerite. In questo modo potremo aiutarti in modo più rapido ed efficiente. Le richieste che dimostrano di aver seguito il workflow ricevono priorità di gestione.",
+    "legal_note": "eBartex è attualmente in versione Demo (Beta Test). Il Fornitore (PHONEX SRL) non garantisce la continuità operativa al 100% né la persistenza permanente dei dati. Per ulteriori dettagli, consulta i Termini e Condizioni di Servizio completi pubblicati su www.ebartex.com/legal/condizioni. L'utente utilizza la Piattaforma a proprio rischio e pericolo durante la fase Beta."
+  },
+  "games_supported": [
+    { "name": "Magic: The Gathering", "status": "Disponibile", "categories": ["Singles", "Boosters", "Booster Boxes", "Set/Lotti", "Sigillati", "Accessori"] },
+    { "name": "Pokémon", "status": "In arrivo", "categories": ["Singles", "Boosters", "Set/Lotti"] },
+    { "name": "Yu-Gi-Oh!", "status": "In arrivo", "categories": ["Singles", "Boosters", "Set/Lotti"] },
+    { "name": "One Piece TCG", "status": "In arrivo", "categories": ["Singles", "Boosters"] },
+    { "name": "Lorcana", "status": "In arrivo", "categories": ["Singles", "Boosters"] },
+    { "name": "Star Wars", "status": "In arrivo", "categories": ["Singles", "Boosters"] }
+  ],
+  "boutique_categories": [
+    "Dadi", "Buste protettive", "Tappetini", "Memorabilia", 
+    "Album", "Game Kits", "Carte firmate", "Carte gradate", "Carte alterate"
+  ]
+}

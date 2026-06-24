@@ -169,6 +169,7 @@ export const de: Record<MessageKey, string> = {
   'nav.trades': 'TAUSCH',
   'scambi.intro.dialogAria': 'Tausch-Intro',
   'scambi.intro.skipAria': 'Intro überspringen',
+  'scambi.intro.skip': 'Video überspringen',
   'nav.auctions': 'AUKTIONEN',
   'nav.tournamentsPortal': 'Turniere',
   'nav.tournamentsPortalAria': 'Ebartex-Turnierplattform öffnen (neuer Tab)',

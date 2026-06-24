@@ -30,7 +30,7 @@ export function SearchBar({
     <div
       className={cn(
         'w-full rounded-full bg-gray-200 px-4 py-2.5',
-        'focus-within:ring-0',
+        'focus-within:ring-2 focus-within:ring-[#FF7300]/40',
         !withDarkContainer && className
       )}
       style={{ height: '44px' }}
@@ -47,7 +47,7 @@ export function SearchBar({
           className={cn(
             'min-w-0 flex-1 bg-transparent text-sm text-gray-900',
             'placeholder:text-gray-500 font-sans',
-            'focus:outline-none focus:ring-0'
+            'focus:outline-none'
           )}
           aria-label="Cerca"
         />
@@ -60,7 +60,7 @@ export function SearchBar({
               'flex items-center gap-1 rounded-full border border-gray-400 px-3 py-1.5',
               'bg-white/50 text-gray-700 text-sm font-medium',
               'hover:bg-gray-100 transition-colors',
-              'focus:outline-none focus:ring-0'
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40'
             )}
             aria-expanded={categoriesOpen}
             aria-label="Categorie"
@@ -77,7 +77,7 @@ export function SearchBar({
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="p-1 text-gray-500 hover:text-gray-700 transition-colors focus:outline-none focus:ring-0"
+              className="p-1 text-gray-500 hover:text-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40 rounded-full"
               aria-label="Cancella ricerca"
             >
               <X className="h-4 w-4" />
@@ -86,7 +86,7 @@ export function SearchBar({
 
           <button
             type="submit"
-            className="p-1 text-gray-900 focus:outline-none focus:ring-0"
+            className="p-1 text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40 rounded-full"
             aria-label="Cerca"
           >
             <Search className="h-5 w-5" />

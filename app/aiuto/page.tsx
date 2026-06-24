@@ -2,8 +2,15 @@ import { Suspense } from 'react';
 import { AiutoContent } from './aiuto-content';
 
 export const metadata = {
-  title: 'Aiuto e FAQ | Ebartex',
-  description: 'Domande frequenti e guide su come usare Ebartex',
+  title: 'Centro Assistenza | eBartex – Supporto e FAQ',
+  description:
+    'Trova risposte immediate alle domande più frequenti su eBartex: account, acquisti, vendite, aste, scambi, spedizioni, pagamenti e altro. Supporto guidato passo-passo.',
+  keywords: [
+    'ebartex supporto',
+    'aiuto ebartex',
+    'faq carte collezionabili',
+    'assistenza marketplace',
+  ],
 };
 
 export default function AiutoPage() {

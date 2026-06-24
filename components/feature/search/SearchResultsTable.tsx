@@ -106,7 +106,12 @@ export function SearchResultsTable({
                   role="button"
                   tabIndex={0}
                   onClick={() => router.push(productHref)}
-                  onKeyDown={(e) => e.key === 'Enter' && router.push(productHref)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      router.push(productHref);
+                    }
+                  }}
                   className={cn(
                     'search-result-row border-b border-gray-100/90 cursor-pointer outline-none',
                     isExact && 'bg-[#FF8800]/5 border-l-4 border-l-[#FF8800]'
@@ -225,7 +230,12 @@ export function SearchResultsTable({
               role="button"
               tabIndex={0}
               onClick={() => router.push(productHref)}
-              onKeyDown={(e) => e.key === 'Enter' && router.push(productHref)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  router.push(productHref);
+                }
+              }}
               className={cn(
                 'flex items-center justify-between p-3 border-l-4 border-l-transparent cursor-pointer outline-none hover:bg-gray-50/50 gap-3 min-w-0 transition-colors',
                 isExact && 'bg-[#FF8800]/5 border-l-[#FF8800]'

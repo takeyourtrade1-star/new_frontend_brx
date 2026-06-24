@@ -37,7 +37,7 @@ export function Pagination({
   const pageText = t('search.pageOf', { current: currentPage, total: totalPages }) || `Pagina ${currentPage} di ${totalPages}`;
 
   const buttonStyle =
-    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 active:scale-95 disabled:pointer-events-none disabled:opacity-40';
+    'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 active:scale-95 disabled:pointer-events-none disabled:opacity-40';
 
   const renderPrev = () => {
     if (buildPageHref && !isPrevDisabled) {

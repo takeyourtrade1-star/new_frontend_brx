@@ -110,9 +110,15 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased min-h-screen flex flex-col">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:text-black focus:shadow-lg focus:ring-2 focus:ring-[#FF7300]"
+        >
+          Vai al contenuto principale
+        </a>
         <IOSInstallPromptGate />
         <Providers>
-          <div className="flex-1 flex flex-col" id="main-content">
+          <div className="flex-1 flex flex-col" id="main-content" tabIndex={-1}>
             {children}
             <ConditionalFooter />
           </div>

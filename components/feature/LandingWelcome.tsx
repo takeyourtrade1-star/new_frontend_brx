@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useCallback, useMemo, useState } from 'react';
+import type { LucideProps } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -25,7 +26,7 @@ import { LandingBackgroundVideo } from '@/components/feature/LandingBackgroundVi
 
 type LandingGameSlug = GameSlug | 'clear';
 
-const FEATURE_ICONS: Record<string, React.FC<any>> = {
+const FEATURE_ICONS: Record<string, React.FC<LucideProps>> = {
   prezzi: CircleDollarSign,
   sicuro: ShieldCheck,
   gestione: ArrowRightLeft,

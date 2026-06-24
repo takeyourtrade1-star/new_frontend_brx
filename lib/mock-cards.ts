@@ -4,6 +4,7 @@
  */
 
 import { getCdnImageUrl } from '@/lib/config';
+import type { CardSearchHit } from '@/lib/search/global-search-types';
 
 const MOCK_CARD_IMAGE = getCdnImageUrl('kyurem.png');
 
@@ -257,7 +258,7 @@ export function searchCards(query: string, game?: 'mtg' | 'pk' | 'op'): MockCard
 /**
  * Converte MockCard in CardSearchHit per compatibilità con GlobalSearchBar
  */
-export function mockCardToSearchHit(card: MockCard): any {
+export function mockCardToSearchHit(card: MockCard): CardSearchHit {
   return {
     objectID: `${card.game}_${card.slug}`,
     id: `${card.game}_${card.slug}`,

@@ -26,26 +26,36 @@ function makeRequest(
     method = 'GET',
     cookie,
     body,
-  }: { method?: string; cookie?: string; body?: string } = {}
+    headers: extraHeaders,
+  }: {
+    method?: string;
+    cookie?: string;
+    body?: string;
+    headers?: Record<string, string>;
+  } = {}
 ): NextRequest {
   const url = new URL(`http://localhost:3000${path}`);
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...(extraHeaders || {}) };
   if (cookie) headers['cookie'] = cookie;
   if (body) {
     headers['content-type'] = 'application/json';
   }
-  const init: RequestInit = { method, headers };
+  const init = { method, headers } as Record<string, unknown>;
   if (body) {
-    (init as any).body = body;
+    init.body = body;
   }
-  return new NextRequest(url, init as any);
+  return new NextRequest(url, init as unknown as ConstructorParameters<typeof NextRequest>[1]);
 }
 
 /** Cookie HttpOnly valido (access token fittizio, non verificato lato BFF).
  *  In sviluppo il cookie name è 'ebartex_access_token' (senza __Host-). */
 const VALID_COOKIE = 'ebartex_access_token=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEyMyIsImV4cCI6OTk5OTk5OTk5OX0.sig';
+const VALID_REFRESH_COOKIE = 'ebartex_refresh_token=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEyMyIsImV4cCI6OTk5OTk5OTk5OX0.sig';
 /** Cookie invalido (valore vuoto) */
 const INVALID_COOKIE = 'ebartex_access_token=';
+
+const VALID_PAIRING_SESSION_ID = '12345678-1234-4234-8234-123456789abc';
+const VALID_PAIRING_TOKEN = 'abcdefghijklmnopqrstuvwxyz123456';
 
 // ─── env setup ────────────────────────────────────────────────────────────────
 
@@ -53,18 +63,22 @@ beforeEach(() => {
   // Usiamo 'development' così:
   // 1. lib/config.ts non lancia per NEXT_PUBLIC_AUTH_API_URL mancante
   // 2. Il cookie name non usa il prefisso __Host- (richiede HTTPS)
-  (process.env as any).NODE_ENV = 'development';
+  (process.env as Record<string, string>).NODE_ENV = 'development';
   process.env.NEXT_PUBLIC_AUTH_API_URL = 'http://auth-api.test';
   process.env.AUCTION_API_URL = 'http://auction-api.test';
   process.env.MARKETPLACE_API_URL = 'http://marketplace-api.test';
   process.env.SYNC_API_URL = 'http://sync-api.test';
   // Default fetch mock: sovrascritta nei test che simulano risposta backend
-  global.fetch = vi.fn().mockRejectedValue(new Error('fetch not stubbed in this test')) as typeof fetch;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockRejectedValue(new Error('fetch not stubbed in this test'))
+  );
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
-  delete (process.env as any).NODE_ENV;
+  vi.unstubAllGlobals();
+  delete (process.env as Record<string, string | undefined>).NODE_ENV;
   delete process.env.NEXT_PUBLIC_AUTH_API_URL;
   delete process.env.AUCTION_API_URL;
   delete process.env.MARKETPLACE_API_URL;
@@ -103,6 +117,7 @@ describe('/api/orders — sicurezza', () => {
   it('passa al backend con cookie valido e risponde 200', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       status: 200,
+      ok: true,
       json: () => Promise.resolve({ id: '123', status: 'paid' }),
     }));
     const { GET } = await import('@/app/api/orders/[...path]/route');
@@ -141,6 +156,7 @@ describe('/api/disputes — sicurezza', () => {
   it('passa al backend con cookie valido', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       status: 200,
+      ok: true,
       json: () => Promise.resolve([]),
     }));
     const { GET } = await import('@/app/api/disputes/route');
@@ -173,6 +189,7 @@ describe('/api/notifications — sicurezza', () => {
   it('passa al backend con cookie valido', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       status: 200,
+      ok: true,
       json: () => Promise.resolve({ items: [] }),
     }));
     const { GET } = await import('@/app/api/notifications/route');
@@ -198,6 +215,7 @@ describe('/api/saved-auctions — sicurezza', () => {
   it('passa al backend con cookie valido', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       status: 200,
+      ok: true,
       json: () => Promise.resolve([]),
     }));
     const { GET } = await import('@/app/api/saved-auctions/[...path]/route');
@@ -212,25 +230,52 @@ describe('/api/saved-auctions — sicurezza', () => {
 // ─── /api/auctions ───────────────────────────────────────────────────────────
 
 describe('/api/auctions — sicurezza', () => {
-  it('root: risponde 401 senza cookie', async () => {
+  it('root GET pubblico senza cookie passa al backend e risponde 200 se il backend è raggiungibile', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      json: () => Promise.resolve({ items: [] }),
+    }));
     const { GET } = await import('@/app/api/auctions/route');
     const req = makeRequest('/api/auctions');
     const res = await GET(req);
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toMatch(/no-store/);
   });
 
-  it('subpath: risponde 401 senza cookie', async () => {
+  it('subpath GET pubblico senza cookie passa al backend e risponde 200 se il backend è raggiungibile', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      json: () => Promise.resolve({ id: 'abc123' }),
+    }));
     const { GET } = await import('@/app/api/auctions/[...path]/route');
     const req = makeRequest('/api/auctions/abc123');
     const ctx = { params: Promise.resolve({ path: ['abc123'] }) };
     const res = await GET(req, ctx);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('cache-control')).toMatch(/no-store/);
+  });
+
+  it('root POST senza cookie → 401', async () => {
+    const { POST } = await import('@/app/api/auctions/route');
+    const req = makeRequest('/api/auctions', { method: 'POST', body: '{}' });
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+  });
+
+  it('subpath POST senza cookie → 401', async () => {
+    const { POST } = await import('@/app/api/auctions/[...path]/route');
+    const req = makeRequest('/api/auctions/abc123/bid', { method: 'POST', body: '{}' });
+    const ctx = { params: Promise.resolve({ path: ['abc123', 'bid'] }) };
+    const res = await POST(req, ctx);
     expect(res.status).toBe(401);
   });
 
   it('subpath: risponde 200 con cookie valido', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       status: 200,
+      ok: true,
       json: () => Promise.resolve({ id: 'abc123' }),
     }));
     const { GET } = await import('@/app/api/auctions/[...path]/route');
@@ -239,6 +284,122 @@ describe('/api/auctions — sicurezza', () => {
     const res = await GET(req, ctx);
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toMatch(/no-store/);
+  });
+});
+
+// ─── /api/auctions guest QR pairing ──────────────────────────────────────────
+
+describe('/api/auctions — guest QR pairing', () => {
+  it('GET photos/pairing-sessions/:uuid con token valido passa senza cookie → 502', async () => {
+    const { GET } = await import('@/app/api/auctions/[...path]/route');
+    const req = makeRequest(`/api/auctions/photos/pairing-sessions/${VALID_PAIRING_SESSION_ID}`, {
+      headers: { 'X-Pairing-Upload-Token': VALID_PAIRING_TOKEN },
+    });
+    const ctx = { params: Promise.resolve({ path: ['photos', 'pairing-sessions', VALID_PAIRING_SESSION_ID] }) };
+    const res = await GET(req, ctx);
+    expect(res.status).toBe(502);
+  });
+
+  it('POST photos/init con body valido passa senza cookie → 502', async () => {
+    const { POST } = await import('@/app/api/auctions/[...path]/route');
+    const req = makeRequest('/api/auctions/photos/init', {
+      method: 'POST',
+      body: JSON.stringify({
+        pairing_session_id: VALID_PAIRING_SESSION_ID,
+        pairing_upload_token: VALID_PAIRING_TOKEN,
+      }),
+    });
+    const ctx = { params: Promise.resolve({ path: ['photos', 'init'] }) };
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(502);
+  });
+
+  it('POST photos/finalize con body valido passa senza cookie → 502', async () => {
+    const { POST } = await import('@/app/api/auctions/[...path]/route');
+    const req = makeRequest('/api/auctions/photos/finalize', {
+      method: 'POST',
+      body: JSON.stringify({
+        pairing_session_id: VALID_PAIRING_SESSION_ID,
+        pairing_upload_token: VALID_PAIRING_TOKEN,
+      }),
+    });
+    const ctx = { params: Promise.resolve({ path: ['photos', 'finalize'] }) };
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(502);
+  });
+
+  it('GET pairing session con token vuoto viene trattato come GET pubblico → 502', async () => {
+    const { GET } = await import('@/app/api/auctions/[...path]/route');
+    const req = makeRequest(`/api/auctions/photos/pairing-sessions/${VALID_PAIRING_SESSION_ID}`, {
+      headers: { 'X-Pairing-Upload-Token': '' },
+    });
+    const ctx = { params: Promise.resolve({ path: ['photos', 'pairing-sessions', VALID_PAIRING_SESSION_ID] }) };
+    const res = await GET(req, ctx);
+    expect(res.status).toBe(502);
+  });
+
+  it('POST photos/init con body mancante → 401', async () => {
+    const { POST } = await import('@/app/api/auctions/[...path]/route');
+    const req = makeRequest('/api/auctions/photos/init', { method: 'POST', body: '{}' });
+    const ctx = { params: Promise.resolve({ path: ['photos', 'init'] }) };
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(401);
+  });
+
+  it('POST photos/finalize con UUID non valido → 401', async () => {
+    const { POST } = await import('@/app/api/auctions/[...path]/route');
+    const req = makeRequest('/api/auctions/photos/finalize', {
+      method: 'POST',
+      body: JSON.stringify({
+        pairing_session_id: 'not-a-uuid',
+        pairing_upload_token: VALID_PAIRING_TOKEN,
+      }),
+    });
+    const ctx = { params: Promise.resolve({ path: ['photos', 'finalize'] }) };
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(401);
+  });
+
+  it('POST path diverso con body valido → 401', async () => {
+    const { POST } = await import('@/app/api/auctions/[...path]/route');
+    const req = makeRequest('/api/auctions/photos/attach-listing', {
+      method: 'POST',
+      body: JSON.stringify({
+        pairing_session_id: VALID_PAIRING_SESSION_ID,
+        pairing_upload_token: VALID_PAIRING_TOKEN,
+      }),
+    });
+    const ctx = { params: Promise.resolve({ path: ['photos', 'attach-listing'] }) };
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(401);
+  });
+
+  it('POST photos/init con UUID non valido → 401', async () => {
+    const { POST } = await import('@/app/api/auctions/[...path]/route');
+    const req = makeRequest('/api/auctions/photos/init', {
+      method: 'POST',
+      body: JSON.stringify({
+        pairing_session_id: 'not-a-uuid',
+        pairing_upload_token: VALID_PAIRING_TOKEN,
+      }),
+    });
+    const ctx = { params: Promise.resolve({ path: ['photos', 'init'] }) };
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(401);
+  });
+
+  it('POST photos/init con token troppo corto → 401', async () => {
+    const { POST } = await import('@/app/api/auctions/[...path]/route');
+    const req = makeRequest('/api/auctions/photos/init', {
+      method: 'POST',
+      body: JSON.stringify({
+        pairing_session_id: VALID_PAIRING_SESSION_ID,
+        pairing_upload_token: 'short',
+      }),
+    });
+    const ctx = { params: Promise.resolve({ path: ['photos', 'init'] }) };
+    const res = await POST(req, ctx);
+    expect(res.status).toBe(401);
   });
 });
 
@@ -266,6 +427,73 @@ describe('/api/sync — sicurezza', () => {
     const res = await GET(req, ctx);
     expect(res.status).toBe(504);
   });
+
+  it('checkRateLimit sync scope ritorna allowed:false dopo 30 richieste', async () => {
+    const { checkRateLimit } = await import('@/app/api/_lib/rate-limit');
+    const req = makeRequest('/api/sync/status', { cookie: VALID_COOKIE });
+    const scope = `sync-exhausted-${Date.now()}`;
+    for (let i = 0; i < 30; i++) {
+      const result = checkRateLimit(req, { scope, limit: 30, windowMs: 60_000 });
+      expect(result.allowed).toBe(true);
+    }
+    const blocked = checkRateLimit(req, { scope, limit: 30, windowMs: 60_000 });
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.remaining).toBe(0);
+    expect(blocked.retryAfterSec).toBeGreaterThan(0);
+  });
+});
+
+// ─── /api/auth/bridge ────────────────────────────────────────────────────────
+
+describe('/api/auth/bridge — sicurezza', () => {
+  it('risponde 401 senza refresh cookie', async () => {
+    const { GET } = await import('@/app/api/auth/bridge/route');
+    const req = makeRequest('/api/auth/bridge');
+    const res = await GET(req);
+    expect(res.status).toBe(401);
+  });
+
+  it('risponde 200 con refresh cookie valido e setta i cookie di sessione', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      json: () => Promise.resolve({
+        access_token: 'new_access_token',
+        refresh_token: 'new_refresh_token',
+        expires_in: 3600,
+      }),
+    }));
+    const { GET } = await import('@/app/api/auth/bridge/route');
+    const req = makeRequest('/api/auth/bridge', { cookie: VALID_REFRESH_COOKIE });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.access_token).toBe('new_access_token');
+    const setCookie = res.headers.get('set-cookie');
+    expect(setCookie).toBeTruthy();
+    expect(setCookie).toMatch(/ebartex_access_token=new_access_token/);
+    expect(setCookie).toMatch(/ebartex_refresh_token=new_refresh_token/);
+  });
+
+  it('risponde 502 se il backend refresh non restituisce i token', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      json: () => Promise.resolve({ detail: 'ok' }),
+    }));
+    const { GET } = await import('@/app/api/auth/bridge/route');
+    const req = makeRequest('/api/auth/bridge', { cookie: VALID_REFRESH_COOKIE });
+    const res = await GET(req);
+    expect(res.status).toBe(502);
+  });
+
+  it('risponde 502 su errore di rete dal backend auth', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection refused')));
+    const { GET } = await import('@/app/api/auth/bridge/route');
+    const req = makeRequest('/api/auth/bridge', { cookie: VALID_REFRESH_COOKIE });
+    const res = await GET(req);
+    expect(res.status).toBe(502);
+  });
 });
 
 // ─── /api/marketplace ────────────────────────────────────────────────────────
@@ -274,6 +502,7 @@ describe('/api/marketplace — cache pubblica e sicurezza privata', () => {
   it('listings/public/* → 200 con cache pubblica s-maxage=30', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
+      ok: true,
       json: () => Promise.resolve({ items: [] }),
     }) as typeof fetch;
     const { GET } = await import('@/app/api/marketplace/[...path]/route');
@@ -298,6 +527,7 @@ describe('/api/marketplace — cache pubblica e sicurezza privata', () => {
     vi.resetModules();
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
+      ok: true,
       json: () => Promise.resolve([]),
     }) as typeof fetch;
     const { GET } = await import('@/app/api/marketplace/[...path]/route');

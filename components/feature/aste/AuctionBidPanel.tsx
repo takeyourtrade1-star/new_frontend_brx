@@ -451,10 +451,11 @@ export function AuctionBidPanel({
         </div>
 
         <div className="mt-3">
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+          <label htmlFor="bid-panel-input" className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-gray-600">
             {t('auctions.bidCustomAmountLabel')}
           </label>
           <input
+            id="bid-panel-input"
             type="text"
             inputMode="decimal"
             value={input}

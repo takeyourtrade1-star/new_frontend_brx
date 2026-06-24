@@ -3,6 +3,7 @@
 import { Archive, Heart, MessageSquare } from 'lucide-react';
 import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
+import { useTabListKeyboard } from '@/hooks/useTabListKeyboard';
 
 import { UserProfileAuctionsPanel } from '@/components/feature/users/UserProfileAuctionsPanel';
 import { UserProfileCollectionPanel } from '@/components/feature/users/UserProfileCollectionPanel';
@@ -89,6 +90,12 @@ export function UserProfileTabs({
   collectionCount,
   auctionsCount,
 }: UserProfileTabsProps) {
+  const { onKeyDown, registerTab, getTabIndex } = useTabListKeyboard(
+    TABS.map((tab) => tab.id),
+    activeTab,
+    onTabChange
+  );
+
   return (
     <section className="space-y-6">
       <div
@@ -104,9 +111,14 @@ export function UserProfileTabs({
           return (
             <button
               key={tab.id}
+              ref={registerTab(tab.id)}
               type="button"
               role="tab"
+              id={`profile-tab-${tab.id}`}
               aria-selected={isActive}
+              aria-controls={`profile-tabpanel-${tab.id}`}
+              tabIndex={getTabIndex(tab.id)}
+              onKeyDown={onKeyDown}
               onClick={() => onTabChange(tab.id)}
               className={`group relative flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
                 isActive
@@ -137,7 +149,13 @@ export function UserProfileTabs({
         })}
       </div>
 
-      <div role="tabpanel" className="min-h-[280px]">
+      <div
+        role="tabpanel"
+        id={`profile-tabpanel-${activeTab}`}
+        aria-labelledby={`profile-tab-${activeTab}`}
+        tabIndex={0}
+        className="min-h-[280px] focus:outline-none"
+      >
         {activeTab === 'collezione' && <UserProfileCollectionPanel username={username} />}
         {activeTab === 'aste' && (
           <UserProfileAuctionsPanel userId={userId} username={username} />

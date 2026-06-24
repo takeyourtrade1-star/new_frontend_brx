@@ -1,4 +1,7 @@
+'use client';
+
 import { formatAuctionEur } from '@/lib/auction/auction-detail-utils';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 export function ProxyLimitModal({
   maxBidEur,
@@ -22,10 +25,17 @@ export function ProxyLimitModal({
   isCancelling: boolean;
 }) {
   const fmtEur = (n: number) => formatAuctionEur(n);
+  const trapRef = useFocusTrap<HTMLDivElement>(true);
 
   return (
     <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
+      <div
+        ref={trapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Gestisci il tuo limite massimo"
+        className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl"
+      >
         <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Proxy bidding</p>
         <h3 className="mt-1 text-lg font-extrabold text-[#1D3160]">Gestisci il tuo limite massimo</h3>
         <p className="mt-2 text-sm text-gray-600">

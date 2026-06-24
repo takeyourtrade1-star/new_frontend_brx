@@ -9,6 +9,15 @@
 
 import type { MessageKey } from '@/lib/i18n/messages/en';
 
+interface AuthApiError {
+  response?: {
+    status?: number;
+    data?: unknown;
+  };
+  code?: string;
+  message?: string;
+}
+
 // ============================================================================
 // ERROR CODE CONSTANTS - Used as i18n keys
 // ============================================================================
@@ -288,20 +297,26 @@ function extractFieldFromLoc(loc?: string[]): string | null {
 // MAIN PARSER FUNCTION
 // ============================================================================
 
-export function parseAuthErrorToCode(error: any): ParsedAuthError {
-  const status = error?.response?.status;
-  const data = error?.response?.data;
-  
+function extractDetail(data?: Record<string, unknown>): string | undefined {
+  return data && typeof data.detail === 'string' ? data.detail : undefined;
+}
+
+export function parseAuthErrorToCode(error: unknown): ParsedAuthError {
+  const err = error as AuthApiError;
+  const status = err.response?.status;
+  const data = err.response?.data as Record<string, unknown> | undefined;
+  const detail = extractDetail(data);
+
   // Network errors (no response)
-  if (!error?.response) {
+  if (!err.response) {
     const isOffline = typeof window !== 'undefined' && !navigator.onLine;
-    const isTimeout = error?.code === 'ECONNABORTED' || error?.message?.includes('timeout');
-    
+    const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout');
+
     return {
-      code: isOffline ? AUTH_ERROR_CODES.NETWORK_OFFLINE : 
-            isTimeout ? AUTH_ERROR_CODES.NETWORK_TIMEOUT : 
+      code: isOffline ? AUTH_ERROR_CODES.NETWORK_OFFLINE :
+            isTimeout ? AUTH_ERROR_CODES.NETWORK_TIMEOUT :
             AUTH_ERROR_CODES.NETWORK_ERROR,
-      message: error?.message || 'Network error',
+      message: err.message || 'Network error',
       isNetworkError: true,
     };
   }
@@ -309,65 +324,69 @@ export function parseAuthErrorToCode(error: any): ParsedAuthError {
   // 422 Validation Errors
   if (status === 422 && Array.isArray(data?.errors)) {
     const fieldErrors: Record<string, AuthErrorCode> = {};
-    
-    for (const err of data.errors) {
-      const field = extractFieldFromLoc(err?.loc);
-      const msg = err?.msg || '';
-      
+
+    for (const item of data.errors) {
+      const errorItem = item as Record<string, unknown> | undefined;
+      const field = extractFieldFromLoc(errorItem?.loc as string[] | undefined);
+      const msg = typeof errorItem?.msg === 'string' ? errorItem.msg : '';
+
       if (field && msg) {
         const pattern = findValidationPattern(msg);
         fieldErrors[field] = (pattern?.code || 'errors.validation.fieldRequired') as AuthErrorCode;
       }
     }
-    
+
     // Also try to map the detail message if present
     let mainCode: AuthErrorCode = AUTH_ERROR_CODES.VALIDATION_FIELD_REQUIRED;
-    if (data?.detail) {
-      const detailPattern = findValidationPattern(data.detail);
+    if (detail) {
+      const detailPattern = findValidationPattern(detail);
       if (detailPattern) mainCode = detailPattern.code;
     }
-    
+
     return {
       status,
       code: mainCode,
-      message: data?.detail || 'Validation error',
+      message: detail || 'Validation error',
       fieldErrors: Object.keys(fieldErrors).length > 0 ? fieldErrors : undefined,
     };
   }
 
   // 409 Conflict (username/email taken)
-  if (status === 409 && typeof data?.detail === 'string') {
-    const pattern = findErrorPattern(status, data.detail);
+  if (status === 409 && detail) {
+    const pattern = findErrorPattern(status, detail);
     const fieldErrors = pattern?.field ? { [pattern.field]: pattern.code } : undefined;
-    
+
     return {
       status,
       code: pattern?.code || AUTH_ERROR_CODES.UNKNOWN_ERROR,
-      message: data.detail,
+      message: detail,
       fieldErrors,
     };
   }
 
   // 429 Rate Limit
   if (status === 429) {
-    const retryAfter = data?.retry_after || data?.retryAfter;
-    
+    const retryAfter =
+      typeof data?.retry_after === 'number' ? data.retry_after :
+      typeof data?.retryAfter === 'number' ? data.retryAfter :
+      undefined;
+
     return {
       status,
       code: AUTH_ERROR_CODES.RATE_LIMIT_EXCEEDED,
-      message: data?.detail || 'Rate limit exceeded',
-      retryAfterSeconds: typeof retryAfter === 'number' ? retryAfter : undefined,
+      message: detail || 'Rate limit exceeded',
+      retryAfterSeconds: retryAfter,
     };
   }
 
   // All other status codes with detail
-  if (typeof data?.detail === 'string') {
-    const pattern = findErrorPattern(status, data.detail);
-    
+  if (detail && typeof status === 'number') {
+    const pattern = findErrorPattern(status, detail);
+
     return {
       status,
       code: pattern?.code || AUTH_ERROR_CODES.UNKNOWN_ERROR,
-      message: data.detail,
+      message: detail,
     };
   }
 
@@ -375,27 +394,27 @@ export function parseAuthErrorToCode(error: any): ParsedAuthError {
   return {
     status,
     code: AUTH_ERROR_CODES.UNKNOWN_ERROR,
-    message: error?.message || 'An unexpected error occurred',
+    message: err.message || 'An unexpected error occurred',
   };
 }
 
 /**
  * Get just the error code (for simple use cases)
  */
-export function getAuthErrorCode(error: any): AuthErrorCode {
+export function getAuthErrorCode(error: unknown): AuthErrorCode {
   return parseAuthErrorToCode(error).code;
 }
 
 /**
  * Check if error is a specific type
  */
-export function isAuthError(error: any, code: AuthErrorCode): boolean {
+export function isAuthError(error: unknown, code: AuthErrorCode): boolean {
   return getAuthErrorCode(error) === code;
 }
 
 /**
  * Get field errors map for form validation
  */
-export function getAuthFieldErrors(error: any): Record<string, AuthErrorCode> | undefined {
+export function getAuthFieldErrors(error: unknown): Record<string, AuthErrorCode> | undefined {
   return parseAuthErrorToCode(error).fieldErrors;
 }

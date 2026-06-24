@@ -475,7 +475,6 @@ function MatchPreview({
       style={{ animation: 'slide-up 0.4s cubic-bezier(0.16,1,0.3,1) forwards' }}
       role="dialog"
       aria-label="Carta trovata"
-      aria-live="polite"
     >
       <style>{`
         @keyframes slide-up {
@@ -483,6 +482,12 @@ function MatchPreview({
           to   { transform: translateY(0);   opacity: 1; }
         }
       `}</style>
+
+      {/* Live region: annuncia la carta trovata una sola volta (evita lo spam
+          del countdown a ogni secondo). aria-atomic per leggere il messaggio intero. */}
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {`Carta trovata: ${cardName}${setName ? `, ${setName}` : ''}. Reindirizzamento automatico alla ricerca; premi "Non è questa carta" per annullare.`}
+      </p>
 
       {/* Backdrop */}
       <div

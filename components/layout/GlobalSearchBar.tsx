@@ -104,7 +104,12 @@ export default function GlobalSearchBar({ onOpenChange }: { onOpenChange?: (isOp
             indexName={MEILISEARCH_PUBLIC_INDEX_NAME}
             future={{ preserveSharedStateOnUnmount: true }}
           >
-            <Configure {...({ filter: allFilters?.join(' AND '), hitsPerPage: 8 } as any)} />
+            <Configure
+              {...({
+                filter: allFilters?.join(' AND '),
+                hitsPerPage: 8,
+              } as React.ComponentProps<typeof Configure> & { filter?: string })}
+            />
             <SearchWithInstantSearch
               selectedGame={selectedGame}
               productCategory={productCategory}

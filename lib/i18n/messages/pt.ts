@@ -169,6 +169,7 @@ export const pt: Record<MessageKey, string> = {
   'nav.trades': 'TROCAS',
   'scambi.intro.dialogAria': 'Introdução de Trocas',
   'scambi.intro.skipAria': 'Pular introdução',
+  'scambi.intro.skip': 'Pular vídeo',
   'nav.auctions': 'LEILÕES',
   'nav.tournamentsPortal': 'Torneios',
   'nav.tournamentsPortalAria': 'Abrir a plataforma de torneios Ebartex (novo separador)',

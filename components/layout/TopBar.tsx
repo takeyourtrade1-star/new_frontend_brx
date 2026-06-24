@@ -558,7 +558,7 @@ export function TopBar() {
         <div className="ml-1 flex flex-1 justify-end md:flex-none md:justify-start items-center gap-2 md:gap-2.5" aria-label={t('header.menuAria')}>
           {isAuthenticated ? <NotificationBell /> : null}
           <TournamentsPortalLink variant="header" />
-          <HamburgerMenu />
+          {!scambiIntroOpen && <HamburgerMenu />}
         </div>
       </div>
     </>

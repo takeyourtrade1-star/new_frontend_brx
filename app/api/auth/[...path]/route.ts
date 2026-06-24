@@ -223,7 +223,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
       { status: 502 }
     );
   }
-} // <--- MANCAVA QUESTA PARENTESI PER CHIUDERE LA FUNZIONE PROXY!
+}
 
 export async function GET(
   request: NextRequest,

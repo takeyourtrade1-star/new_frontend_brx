@@ -3,6 +3,7 @@
 import { useEffect, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 export function ImageLightbox({
   open,
@@ -19,6 +20,7 @@ export function ImageLightbox({
 }) {
   const currentIndex = startIndex;
   const total = urls.length;
+  const trapRef = useFocusTrap<HTMLDivElement>(open);
 
   const goPrev = useCallback(() => {
     if (total <= 1) return;
@@ -49,6 +51,7 @@ export function ImageLightbox({
 
   return (
     <div
+      ref={trapRef}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90"
       onClick={onClose}
       role="dialog"

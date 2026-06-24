@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, ReactNode } from 'react';
+import { MotionConfig } from 'framer-motion';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/lib/theme-context';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -88,18 +89,22 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthInitializer>
-          <LanguageProvider>
-            <HtmlLangSync />
-            <GameProvider>
-              <GameFromRouteSync />
-              {children}
-            </GameProvider>
-          </LanguageProvider>
-        </AuthInitializer>
-      </ThemeProvider>
-    </QueryClientProvider>
+    // reducedMotion="user": tutti i componenti framer-motion rispettano
+    // automaticamente prefers-reduced-motion (niente HOC per-file).
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthInitializer>
+            <LanguageProvider>
+              <HtmlLangSync />
+              <GameProvider>
+                <GameFromRouteSync />
+                {children}
+              </GameProvider>
+            </LanguageProvider>
+          </AuthInitializer>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </MotionConfig>
   );
 }

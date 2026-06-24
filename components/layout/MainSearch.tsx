@@ -29,7 +29,7 @@ export function MainSearch() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex w-full flex-1 items-center gap-0 rounded-full py-1 pl-3 pr-1 focus-within:ring-0"
+      className="flex w-full flex-1 items-center gap-0 rounded-full py-1 pl-3 pr-1 focus-within:ring-2 focus-within:ring-[#FF7300]/40"
       style={{ backgroundColor: '#e5e7eb' }}
     >
       <input
@@ -40,7 +40,7 @@ export function MainSearch() {
         placeholder="Cosa stai cercando?"
         enterKeyHint="search"
         inputMode="search"
-        className="min-w-0 flex-1 bg-transparent text-base font-normal text-[#0F172A] placeholder:text-gray-500 focus:outline-none focus:ring-0 md:text-sm"
+        className="min-w-0 flex-1 bg-transparent text-base font-normal text-[#0F172A] placeholder:text-gray-500 focus:outline-none md:text-sm"
         aria-label="Cerca prodotti"
       />
 
@@ -52,7 +52,7 @@ export function MainSearch() {
             className={cn(
               'flex max-w-[140px] items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium',
               'bg-gray-200 text-gray-700 border-gray-400',
-              'hover:bg-gray-300/80 focus:outline-none focus:ring-0',
+              'hover:bg-gray-300/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40',
               'transition-colors'
             )}
             aria-expanded={categoryOpen}
@@ -109,7 +109,7 @@ export function MainSearch() {
               setQuery('');
               inputRef.current?.focus();
             }}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-300/60 focus:outline-none focus:ring-0 transition-colors"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-300/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40 transition-colors"
             aria-label="Cancella ricerca"
           >
             <X className="h-4 w-4" />
@@ -118,7 +118,7 @@ export function MainSearch() {
 
         <button
           type="submit"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#0F172A] hover:bg-gray-300/60 focus:outline-none focus:ring-0"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#0F172A] hover:bg-gray-300/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40"
           aria-label="Cerca"
         >
           <Search className="h-5 w-5" strokeWidth={2.5} />

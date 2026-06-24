@@ -351,11 +351,12 @@ export function AuctionBidModal({
         <div className="max-h-[65vh] overflow-y-auto px-5 py-4 sm:max-h-none sm:px-8 sm:py-5">
           {/* CAMPO INSERIMENTO */}
           <div className="mb-4 sm:mb-5">
-            <label className="mb-2 block text-[10px] font-semibold uppercase tracking-wide text-gray-700 sm:text-xs">
+            <label htmlFor="bid-modal-input" className="mb-2 block text-[10px] font-semibold uppercase tracking-wide text-gray-700 sm:text-xs">
               {t('auctions.bidInput')}
             </label>
             <div className="relative">
               <input
+                id="bid-modal-input"
                 type="text"
                 inputMode="decimal"
                 value={input}

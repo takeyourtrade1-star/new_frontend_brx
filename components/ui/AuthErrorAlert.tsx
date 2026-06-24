@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { useAuthError } from '@/lib/errors/useAuthError';
 import { AUTH_ERROR_CODES } from '@/lib/errors/auth-error-codes';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import type { MessageKey } from '@/lib/i18n/messages/en';
 
 interface AuthErrorAlertProps {
   error: ReturnType<typeof useAuthError>;
@@ -38,13 +39,13 @@ interface AuthErrorAlertProps {
 }
 
 // Enhanced error configurations with better styling
-const ERROR_CONFIGS: Record<string, { 
-  icon: React.ElementType; 
+const ERROR_CONFIGS: Record<string, {
+  icon: React.ElementType;
   gradient: string;
   shadow: string;
   iconBg: string;
   titleColor: string;
-  titleKey: string;
+  titleKey: MessageKey;
   pulseColor: string;
 }> = {
   [AUTH_ERROR_CODES.LOGIN_INVALID_CREDENTIALS]: {
@@ -157,7 +158,7 @@ export function AuthErrorAlert({
 
   const config = getErrorConfig(error.error?.code);
   const Icon = config.icon;
-  const title = t(config.titleKey as any);
+  const title = t(config.titleKey);
 
   useEffect(() => {
     if (error.hasError) {

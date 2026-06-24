@@ -168,6 +168,7 @@ export const en = {
   'nav.trades': 'Trades',
   'scambi.intro.dialogAria': 'Trades intro',
   'scambi.intro.skipAria': 'Skip intro',
+  'scambi.intro.skip': 'Skip video',
   'nav.auctions': 'Auctions',
   'nav.tournamentsPortal': 'Tournaments',
   'nav.tournamentsPortalAria': 'Open Ebartex tournaments platform (new tab)',
