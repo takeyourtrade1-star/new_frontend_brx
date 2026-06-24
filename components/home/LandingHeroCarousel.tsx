@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Trophy, Zap } from 'lucide-react';
 import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { getTournamentsPortalUrl, TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import type { MessageKey } from '@/lib/i18n/messages/en';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -41,119 +43,63 @@ type Step = {
   description: string;
 };
 
-const SLIDES: SlideConfig[] = [
-  {
-    key: 'aste',
-    tabLabel: 'Aste',
-    headline: 'Aste live sulle carte',
-    description:
-      'Esplora annunci verificati, fai offerte in tempo reale e aggiudicati le carte che cerchi. Prezzi trasparenti, pagamenti protetti e spedizione integrata.',
-    cta: 'Esplora le aste',
-    href: '/aste',
-    ariaLabel: 'Vai alle aste',
-    Icon: AuctionGavelIcon,
-    accentColor: '#FB923C',
-  },
-  {
-    key: 'scambi',
-    tabLabel: 'Scambi',
-    headline: 'Scambia con la community',
-    description:
-      "Proponi scambi carta per carta, negozia in chat e chiudi l'accordo in sicurezza. Ideale per completare set e muovere collezione senza vendere.",
-    cta: 'Vai agli scambi',
-    href: '/scambi',
-    ariaLabel: 'Vai agli scambi',
-    Icon: ScambiIcon,
-    accentColor: '#34D399',
-  },
+type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
+
+/** Metadati statici (non traducibili) di ogni slide. I testi arrivano da i18n. */
+const SLIDE_META: {
+  key: HeroFeatureKey;
+  href: string;
+  external?: boolean;
+  Icon: React.ComponentType<{ className?: string }>;
+  accentColor: string;
+}[] = [
+  { key: 'aste', href: '/aste', Icon: AuctionGavelIcon, accentColor: '#FB923C' },
+  { key: 'scambi', href: '/scambi', Icon: ScambiIcon, accentColor: '#34D399' },
   {
     key: 'tornei',
-    tabLabel: 'Tornei',
-    headline: 'Competi in diretta',
-    description:
-      'Iscriviti ai tornei live, verifica la webcam e gioca round Swiss con tabellone live. Montepremi, classifiche e community attiva ogni settimana.',
-    cta: 'Scopri i tornei',
     href: getTournamentsPortalUrl('/'),
     external: true,
-    ariaLabel: 'Vai ai tornei live',
     Icon: Trophy,
     accentColor: '#A78BFA',
   },
-  {
-    key: 'brx',
-    tabLabel: 'BRX Express',
-    headline: 'Spedizione in 24 ore',
-    description:
-      'Logistica decentralizzata per carte TCG: consegna rapida, tracciamento e rete di hub verificati. Il modo più veloce per ricevere o inviare le tue carte.',
-    cta: 'Scopri BRX Express',
-    href: '/brx-express',
-    ariaLabel: 'Vai a BRX Express',
-    Icon: Zap,
-    accentColor: '#38BDF8',
-  },
+  { key: 'brx', href: '/brx-express', Icon: Zap, accentColor: '#38BDF8' },
 ];
 
-const STEPS: Record<HeroFeatureKey, Step[]> = {
-  aste: [
-    {
-      title: 'Sfoglia e filtra',
-      description: 'Cerca per gioco, rarità, condizione e prezzo.',
-    },
-    {
-      title: 'Fai la tua offerta',
-      description: 'Punta in tempo reale con incrementi chiari.',
-    },
-    {
-      title: "Vinci l'asta",
-      description: "L'offerta più alta si aggiudica la carta.",
-    },
-    {
-      title: 'Ricevi in sicurezza',
-      description: 'Spedizione tracciata e protezione acquirente.',
-    },
-  ],
-  scambi: [
-    {
-      title: 'Proponi uno scambio',
-      description: 'Seleziona le carte che offri e quelle che cerchi.',
-    },
-    {
-      title: 'Negozia in chat',
-      description: 'Allinea valori e condizioni con l\'altro utente.',
-    },
-    {
-      title: 'Chiudi in sicurezza',
-      description: 'Accordo tracciato con storico e reputazione.',
-    },
-    {
-      title: 'Spedisci e completa',
-      description: 'Invia, conferma la ricezione e valuta.',
-    },
-  ],
-  tornei: [
-    {
-      title: 'Scegli il torneo',
-      description: 'Formati Standard, Modern, Commander e altri.',
-    },
-    {
-      title: 'Verifica e gioca live',
-      description: 'Webcam, pairing live e supporto giudici.',
-    },
-    {
-      title: 'Segui il tabellone',
-      description: 'Round Swiss, top cut e classifiche.',
-    },
-    {
-      title: 'Vinci premi',
-      description: 'Montepremi, badge e visibilità.',
-    },
-  ],
-  brx: [],
+const STEP_COUNT: Record<HeroFeatureKey, number> = {
+  aste: 4,
+  scambi: 4,
+  tornei: 4,
+  brx: 0,
 };
 
-const SLIDE_BY_KEY = Object.fromEntries(
-  SLIDES.map((s) => [s.key, s])
-) as Record<HeroFeatureKey, SlideConfig>;
+function buildSlides(t: Translate): SlideConfig[] {
+  return SLIDE_META.map((m) => ({
+    key: m.key,
+    tabLabel: t(`landing.carousel.${m.key}.tab` as MessageKey),
+    headline: t(`landing.carousel.${m.key}.headline` as MessageKey),
+    description: t(`landing.carousel.${m.key}.description` as MessageKey),
+    cta: t(`landing.carousel.${m.key}.cta` as MessageKey),
+    href: m.href,
+    ariaLabel: t(`landing.carousel.${m.key}.aria` as MessageKey),
+    external: m.external,
+    Icon: m.Icon,
+    accentColor: m.accentColor,
+  }));
+}
+
+function buildSteps(t: Translate): Record<HeroFeatureKey, Step[]> {
+  const make = (key: HeroFeatureKey): Step[] =>
+    Array.from({ length: STEP_COUNT[key] }, (_, i) => ({
+      title: t(`landing.carousel.${key}.step${i + 1}.title` as MessageKey),
+      description: t(`landing.carousel.${key}.step${i + 1}.desc` as MessageKey),
+    }));
+  return {
+    aste: make('aste'),
+    scambi: make('scambi'),
+    tornei: make('tornei'),
+    brx: make('brx'),
+  };
+}
 
 function getSlideDirection(
   from: HeroFeatureKey,
@@ -356,7 +302,18 @@ function HeroTab({
    ─────────────────────────────────────────────── */
 
 export function LandingHeroCarousel({ informative = false }: { informative?: boolean }) {
+  const { t } = useTranslation();
   const reduced = useReducedMotion();
+  const slides = useMemo(() => buildSlides(t), [t]);
+  const slideByKey = useMemo(
+    () =>
+      Object.fromEntries(slides.map((s) => [s.key, s])) as Record<
+        HeroFeatureKey,
+        SlideConfig
+      >,
+    [slides]
+  );
+  const stepsByKey = useMemo(() => buildSteps(t), [t]);
   const [activeFeature, setActiveFeature] =
     useState<HeroFeatureKey>('aste');
   const [progressKey, setProgressKey] = useState(0);
@@ -382,8 +339,8 @@ export function LandingHeroCarousel({ informative = false }: { informative?: boo
     setProgressKey((k) => k + 1);
   }, [activeFeature]);
 
-  const activeSlide = SLIDE_BY_KEY[activeFeature];
-  const activeSteps = STEPS[activeFeature];
+  const activeSlide = slideByKey[activeFeature];
+  const activeSteps = stepsByKey[activeFeature];
 
   const rootVariants = motionVariants(
     {
@@ -410,7 +367,7 @@ export function LandingHeroCarousel({ informative = false }: { informative?: boo
     >
       {/* Tabs */}
       <div className="grid grid-cols-4 gap-2 sm:gap-3 shrink-0">
-        {SLIDES.map((slide) => (
+        {slides.map((slide) => (
           <HeroTab
             key={slide.key}
             slide={slide}

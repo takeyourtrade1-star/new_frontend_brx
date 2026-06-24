@@ -262,11 +262,17 @@ export function LandingWelcome() {
               priority
               unoptimized
             />
-            <div className="h-8 w-px bg-white/20 hidden sm:block" />
-            <h1 className="max-w-xl text-center text-xs font-medium uppercase leading-snug tracking-[0.06em] text-white/80 sm:max-w-none sm:text-left sm:text-sm md:text-base lg:text-lg">
-              Compra, vendi, scambia,
-              <br className="sm:hidden" />
-              {' '}metti all&apos;asta o partecipa ai tornei live.
+            <div className="h-10 w-px bg-white/20 hidden sm:block" />
+            <h1 className="max-w-xl text-center leading-tight sm:max-w-md sm:text-left">
+              <span className="block text-base font-extrabold uppercase tracking-tight text-white sm:text-lg md:text-xl lg:text-2xl">
+                {t('landing.hero.tagline.main')}{' '}
+                <span className="text-[#FF7300]">
+                  {t('landing.hero.tagline.highlight')}<sup className="align-super text-[0.55em] font-bold">*</sup>
+                </span>
+              </span>
+              <span className="mt-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-white/60 sm:text-xs md:text-sm">
+                {t('landing.hero.tagline.sub')}
+              </span>
             </h1>
           </div>
         </header>
@@ -468,6 +474,14 @@ export function LandingWelcome() {
             </div>
           </div>
         </section>
+
+        {/* ─── Legal disclaimer (asterisco tagline) ─── */}
+        <div className="relative z-[2] mx-auto w-full max-w-3xl px-4 pb-8 pt-2 sm:px-6">
+          <p className="text-center text-[10px] leading-relaxed text-white/40 sm:text-[11px]">
+            <span className="font-bold text-[#FF7300]/70">*</span>{' '}
+            {t('landing.hero.disclaimer')}
+          </p>
+        </div>
 
         {/* ─── Transition zone before footer ─── */}
         <div className="relative z-[2] w-full h-20 sm:h-28 bg-gradient-to-b from-transparent via-[#0F172A]/80 to-[#1D3160]" />

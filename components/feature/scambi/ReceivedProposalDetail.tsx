@@ -76,6 +76,7 @@ export function ReceivedProposalDetail({
   >('open');
   /** Modalità con cui lo scambio è stato finalizzato (per il messaggio d'esito). */
   const [acceptMethod, setAcceptMethod] = useState<'direct' | 'intermediary'>('direct');
+  const [selectedMethod, setSelectedMethod] = useState<'direct' | 'intermediary' | null>(null);
   const [showAcceptChoice, setShowAcceptChoice] = useState(false);
   const [blockFuture, setBlockFuture] = useState(false);
   const [showCounterConfirm, setShowCounterConfirm] = useState(false);
@@ -136,6 +137,7 @@ export function ReceivedProposalDetail({
 
   const handleAccept = () => {
     if (hasHighValueCard) {
+      setSelectedMethod(null);
       setShowAcceptChoice(true);
       return;
     }
@@ -419,12 +421,31 @@ export function ReceivedProposalDetail({
             <div className="grid gap-3 px-5 py-4 sm:grid-cols-2">
               <button
                 type="button"
-                onClick={() => chooseAccept('direct')}
-                className="group flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-[#FF7300] hover:shadow-lg hover:shadow-[#FF7300]/10 active:translate-y-0"
+                onClick={() => setSelectedMethod('direct')}
+                className={cn(
+                  "group flex flex-col gap-2.5 rounded-2xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0",
+                  selectedMethod === 'direct'
+                    ? "border-[#FF7300] bg-orange-50/20 shadow-lg shadow-[#FF7300]/10"
+                    : "border-gray-200 bg-white hover:border-[#FF7300]/50 hover:shadow-md"
+                )}
               >
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF8A26] to-[#FF7300] text-white shadow-sm">
-                  <ArrowLeftRight className="h-5 w-5" strokeWidth={2.5} />
-                </span>
+                <div className="flex w-full items-center justify-between">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF8A26] to-[#FF7300] text-white shadow-sm">
+                    <ArrowLeftRight className="h-5 w-5" strokeWidth={2.5} />
+                  </span>
+                  <div
+                    className={cn(
+                      "flex h-5 w-5 items-center justify-center rounded-full border transition-all",
+                      selectedMethod === 'direct'
+                        ? "border-[#FF7300] bg-[#FF7300]"
+                        : "border-gray-300 bg-white"
+                    )}
+                  >
+                    {selectedMethod === 'direct' && (
+                      <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                    )}
+                  </div>
+                </div>
                 <span className="text-[13px] font-black uppercase tracking-wide text-[#1D3160]">
                   Scambio diretto 1:1
                 </span>
@@ -441,15 +462,36 @@ export function ReceivedProposalDetail({
 
               <button
                 type="button"
-                onClick={() => chooseAccept('intermediary')}
-                className="group relative flex flex-col gap-2.5 rounded-2xl border border-[#1D3160]/25 bg-[#F8FAFD] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-[#1D3160] hover:shadow-lg hover:shadow-[#1D3160]/10 active:translate-y-0"
+                onClick={() => setSelectedMethod('intermediary')}
+                className={cn(
+                  "group relative flex flex-col gap-2.5 rounded-2xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0",
+                  selectedMethod === 'intermediary'
+                    ? "border-[#1D3160] bg-[#1D3160]/5 shadow-lg shadow-[#1D3160]/10"
+                    : "border-[#1D3160]/20 bg-[#F8FAFD] hover:border-[#1D3160]/50 hover:shadow-md"
+                )}
               >
-                <span className="absolute right-3 top-3 rounded-full bg-[#1D3160] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">
-                  Consigliato
-                </span>
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#2A4480] to-[#1D3160] text-white shadow-sm">
-                  <ShieldCheck className="h-5 w-5" strokeWidth={2.5} />
-                </span>
+                <div className="flex w-full items-center justify-between">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#2A4480] to-[#1D3160] text-white shadow-sm">
+                    <ShieldCheck className="h-5 w-5" strokeWidth={2.5} />
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-[#1D3160] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">
+                      Consigliato
+                    </span>
+                    <div
+                      className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded-full border transition-all",
+                        selectedMethod === 'intermediary'
+                          ? "border-[#1D3160] bg-[#1D3160]"
+                          : "border-gray-300 bg-white"
+                      )}
+                    >
+                      {selectedMethod === 'intermediary' && (
+                        <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <span className="flex items-center gap-1.5 text-[13px] font-black uppercase tracking-wide text-[#1D3160]">
                   <ShieldCheck className="h-4 w-4 shrink-0 text-[#1D3160]" aria-hidden />
                   Ebartex Guarantee
@@ -461,13 +503,33 @@ export function ReceivedProposalDetail({
               </button>
             </div>
 
-            <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-1 sm:pb-5">
+            <div className="flex gap-3 px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 sm:pb-5">
               <button
                 type="button"
-                onClick={() => setShowAcceptChoice(false)}
-                className="w-full rounded-xl border border-gray-300 bg-white py-3 text-sm font-bold text-gray-600 transition hover:bg-gray-50 sm:py-2.5"
+                onClick={() => {
+                  setSelectedMethod(null);
+                  setShowAcceptChoice(false);
+                }}
+                className="flex-1 rounded-xl border border-gray-300 bg-white py-3 text-sm font-bold text-gray-600 transition hover:bg-gray-50 sm:py-2.5"
               >
                 Annulla
+              </button>
+              <button
+                type="button"
+                disabled={!selectedMethod}
+                onClick={() => {
+                  if (selectedMethod) {
+                    chooseAccept(selectedMethod);
+                  }
+                }}
+                className={cn(
+                  "flex-1 rounded-xl py-3 text-sm font-bold uppercase tracking-wide text-white transition sm:py-2.5 active:scale-95",
+                  selectedMethod
+                    ? "bg-[#FF7300] hover:bg-[#e86800]"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                )}
+              >
+                Conferma
               </button>
             </div>
           </div>

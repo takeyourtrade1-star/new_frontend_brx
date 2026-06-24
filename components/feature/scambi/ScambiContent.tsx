@@ -3,28 +3,36 @@
 import { Fragment, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, ChevronRight, Search, Coins, Send, Clock } from 'lucide-react';
+import { Home, ChevronRight, Search, Coins, Send, Clock, Inbox, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { FlagIcon } from '@/components/ui/FlagIcon';
+import { OrderTabs, type OrderTab } from '@/components/feature/ordini/OrderTabs';
 import { MOCK_RECEIVED_PROPOSALS, type ReceivedProposal } from './mock-received-proposals';
 import { ReceivedProposalDetail } from './ReceivedProposalDetail';
 
-const TABS = [
-  { id: 'richieste', label: 'PROPOSTE RICEVUTE' },
-  { id: 'inviate', label: 'PROPOSTE INVIATE' },
-  { id: 'conclusi', label: 'SCAMBI CONCLUSI' },
-] as const;
+type ScambiTabId = 'richieste' | 'inviate' | 'conclusi';
 
-const EMPTY_STATE_BY_TAB: Record<string, string> = {
+const TABS_LEFT: OrderTab<ScambiTabId>[] = [
+  { id: 'richieste', label: 'PROPOSTE RICEVUTE', icon: Inbox },
+  { id: 'inviate', label: 'PROPOSTE INVIATE', icon: Send },
+];
+
+const TABS_RIGHT: OrderTab<ScambiTabId>[] = [
+  { id: 'conclusi', label: 'SCAMBI CONCLUSI', icon: CheckCircle2 },
+];
+
+const ALL_TABS = [...TABS_LEFT, ...TABS_RIGHT];
+
+const EMPTY_STATE_BY_TAB: Record<ScambiTabId, string> = {
   richieste: 'NESSUNA PROPOSTA RICEVUTA',
   inviate: 'NESSUNA PROPOSTA INVIATA',
   conclusi: 'NESSUNO SCAMBIO CONCLUSO',
 };
 
-function getTabLabel(tabId: string): string {
-  return TABS.find((t) => t.id === tabId)?.label ?? tabId;
+function getTabLabel(tabId: ScambiTabId): string {
+  return ALL_TABS.find((t) => t.id === tabId)?.label ?? tabId;
 }
 
 /** Passi del flusso di scambio mostrati nella striscia scorrevole. */
@@ -198,11 +206,18 @@ function ProposalListItem({ proposal, onOpen }: { proposal: ReceivedProposal; on
 }
 
 export function ScambiContent() {
-  const [activeTab, setActiveTab] = useState<string>('richieste');
+  const [activeTab, setActiveTab] = useState<ScambiTabId>('richieste');
   const [openProposal, setOpenProposal] = useState<ReceivedProposal | null>(null);
 
   const proposals = MOCK_RECEIVED_PROPOSALS;
   const activeLabel = getTabLabel(activeTab);
+
+  const leftTabs = TABS_LEFT.map((tab) =>
+    tab.id === 'richieste' && proposals.length > 0
+      ? { ...tab, count: proposals.length }
+      : tab,
+  );
+  const rightTabs = TABS_RIGHT;
 
   const breadcrumbItems: AppBreadcrumbItem[] = [
     {
@@ -236,23 +251,14 @@ export function ScambiContent() {
           <ReceivedProposalDetail proposal={openProposal} onBack={() => setOpenProposal(null)} />
         ) : (
           <>
-            {/* Tab — una riga scrollabile su mobile, a capo su desktop */}
-            <div className="scrollbar-hide mb-6 flex items-center gap-2 overflow-x-auto border-b border-gray-200 pb-3 sm:flex-wrap">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold uppercase tracking-wide transition-all sm:py-1.5 sm:text-xs',
-                    activeTab === tab.id
-                      ? 'bg-[#FF7300] text-white shadow-sm shadow-[#FF7300]/25'
-                      : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  )}
-                >
-                  {tab.id === 'richieste' && proposals.length > 0 ? `${tab.label} (${proposals.length})` : tab.label}
-                </button>
-              ))}
+            {/* Tab — dropdown a tendina su mobile, pillole su desktop (come "Le mie vendite") */}
+            <div className="mb-6">
+              <OrderTabs
+                leftTabs={leftTabs}
+                rightTabs={rightTabs}
+                activeTab={activeTab}
+                onChange={setActiveTab}
+              />
             </div>
 
             {/* Contenuto */}
