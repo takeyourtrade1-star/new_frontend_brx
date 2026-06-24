@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { X } from 'lucide-react';
+import { X, Play } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 /**
@@ -13,6 +13,11 @@ export function ScambiVideoIntro({ onClose }: { onClose?: () => void }) {
   const router = useRouter();
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const onCloseRef = useRef(onClose);
+  const [needsUserPlay, setNeedsUserPlay] = useState(false);
+
+  // Mantiene il riferimento aggiornato senza invalidare i callback.
+  onCloseRef.current = onClose;
 
   const finish = useCallback(() => {
     if (document.fullscreenElement) {
@@ -20,32 +25,30 @@ export function ScambiVideoIntro({ onClose }: { onClose?: () => void }) {
         // Ignora errori di uscita fullscreen.
       });
     }
-    onClose?.();
+    onCloseRef.current?.();
     router.push('/scambi');
-  }, [onClose, router]);
+  }, [router]);
+
+  const startPlayback = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true;
+    void video.play().catch(() => {
+      // Se l'autoplay è bloccato, mostra il pulsante di avvio manuale.
+      setNeedsUserPlay(true);
+    });
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    // Riproduzione automatica robusta: il browser richiede muted per autoplay.
-    video.muted = true;
-    void video.play().catch(() => {
-      // Fallback silenzioso: se autoplay viene bloccato, l'utente può cliccare.
-    });
-
-    // Tenta il fullscreen nativo; se non supportato resta l'overlay a schermo intero.
-    const container = video.parentElement;
-    if (container && document.fullscreenEnabled) {
-      void container.requestFullscreen().catch(() => {
-        // Fullscreen non consentito: prosegui in overlay.
-      });
-    }
+    startPlayback();
 
     const handleEnded = () => finish();
     video.addEventListener('ended', handleEnded);
     return () => video.removeEventListener('ended', handleEnded);
-  }, [finish]);
+  }, [startPlayback, finish]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -66,7 +69,7 @@ export function ScambiVideoIntro({ onClose }: { onClose?: () => void }) {
       <button
         type="button"
         onClick={finish}
-        className="absolute right-4 top-4 z-10 rounded-full bg-black/50 p-2 text-white backdrop-blur-sm transition-opacity hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+        className="absolute right-4 top-4 z-20 rounded-full bg-black/50 p-2 text-white backdrop-blur-sm transition-opacity hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
         aria-label={t('scambi.intro.skipAria')}
       >
         <X className="h-6 w-6" />
@@ -81,6 +84,23 @@ export function ScambiVideoIntro({ onClose }: { onClose?: () => void }) {
         className="h-full w-full object-cover"
         onClick={(e) => e.stopPropagation()}
       />
+
+      {needsUserPlay && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setNeedsUserPlay(false);
+            startPlayback();
+          }}
+          className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+          aria-label={t('scambi.intro.skipAria')}
+        >
+          <span className="flex h-20 w-20 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-transform hover:scale-105">
+            <Play className="h-10 w-10 fill-white" />
+          </span>
+        </button>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { ChevronRight } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 
-const VIDEO_VERSION = 'v=3';
+const VIDEO_VERSION = 'v=4';
 const VIDEO_WEBM = `/videos/tournament-video-trial.webm?${VIDEO_VERSION}`;
 const VIDEO_MP4 = `/videos/tournament-video-trial.mp4?${VIDEO_VERSION}`;
 
