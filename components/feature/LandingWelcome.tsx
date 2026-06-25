@@ -16,7 +16,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { useTimeouts } from '@/lib/hooks/use-timeout-fn';
 import { SignedAlteredShowcase } from './SignedAlteredShowcase';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { LandingHeroCarousel } from '@/components/home/LandingHeroCarousel';
 import { LandingBackgroundVideo } from '@/components/feature/LandingBackgroundVideo';
 
@@ -157,6 +157,48 @@ const BOUTIQUE_CATEGORIES = [
 ];
 
 /* ═══════════════════════════════════════════════════════════
+   ROTATING TAGLINE — sub-claim che ruota con animazione
+   ═══════════════════════════════════════════════════════════ */
+
+const ROTATE_KEYS = [
+  'landing.hero.tagline.rotate1',
+  'landing.hero.tagline.rotate2',
+  'landing.hero.tagline.rotate3',
+  'landing.hero.tagline.rotate4',
+  'landing.hero.tagline.rotate5',
+] as const;
+
+function RotatingTagline() {
+  const { t } = useTranslation();
+  const phrases = useMemo(() => ROTATE_KEYS.map((k) => t(k)), [t]);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % phrases.length);
+    }, 3600);
+    return () => clearInterval(id);
+  }, [phrases.length]);
+
+  return (
+    <span className="mt-2 block min-h-[1.25rem] sm:min-h-[1.5rem] md:min-h-[1.75rem]">
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={index}
+          initial={{ opacity: 0, y: 12, filter: 'blur(8px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, y: -12, filter: 'blur(8px)' }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="block text-sm font-semibold uppercase tracking-[0.06em] text-white/70 sm:text-base md:text-lg"
+        >
+          {phrases[index]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
    COMPONENT
    ═══════════════════════════════════════════════════════════ */
 
@@ -250,29 +292,27 @@ export function LandingWelcome() {
       <div className="relative z-[2] flex flex-col">
 
         {/* ────── LOGO + TAGLINE — same row ────── */}
-        <header className="bento-entry flex items-center justify-center px-4 pt-6 pb-4 sm:pt-6 sm:pb-5 md:pt-5 md:pb-3" style={{ animationDelay: '0ms' }}>
-          <div className="flex w-full max-w-6xl flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-5 md:gap-6">
+        <header className="bento-entry flex items-center justify-center px-4 pt-12 pb-10 sm:pt-14 sm:pb-12 md:pt-14 md:pb-11" style={{ animationDelay: '0ms' }}>
+          <div className="flex w-full max-w-6xl flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-center sm:gap-6 md:gap-7">
             <Image
               src={getCdnImageUrl('Logo%20Principale%20EBARTEX.png')}
               alt="Ebartex"
               width={700}
               height={263}
-              className="h-14 w-auto shrink-0 object-contain sm:h-20 md:h-24 lg:h-28"
-              sizes="(max-width: 640px) 140px, (max-width: 1024px) 200px, 280px"
+              className="h-[4.25rem] w-auto shrink-0 object-contain sm:h-24 md:h-[7.5rem] lg:h-[8.5rem]"
+              sizes="(max-width: 640px) 170px, (max-width: 1024px) 240px, 340px"
               priority
               unoptimized
             />
-            <div className="flex items-center gap-4 sm:gap-5 md:gap-6">
-              <div className="h-12 w-px bg-white/20 hidden sm:block md:h-16" />
+            <div className="flex items-center gap-4 sm:gap-6 md:gap-7">
+              <div className="h-14 w-px bg-white/20 hidden sm:block md:h-20" />
               <h1 className="text-center leading-tight sm:text-left sm:whitespace-nowrap">
-                <span className="block text-lg font-extrabold uppercase tracking-tight text-white sm:text-xl md:text-2xl lg:text-3xl">
+                <span className="block text-xl font-extrabold uppercase tracking-tight text-white sm:text-2xl md:text-3xl lg:text-4xl">
                   {t('landing.hero.tagline.main')}{' '}
                   <span className="text-[#FF7300]">{t('landing.hero.tagline.highlight')}</span>{' '}
                   {t('landing.hero.tagline.suffix')}
                 </span>
-                <span className="mt-1.5 block text-xs font-semibold uppercase tracking-[0.06em] text-white/70 sm:text-sm md:text-base">
-                  {t('landing.hero.tagline.sub')}
-                </span>
+                <RotatingTagline />
               </h1>
             </div>
           </div>
