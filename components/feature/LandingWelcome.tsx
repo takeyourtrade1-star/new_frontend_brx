@@ -251,7 +251,7 @@ export function LandingWelcome() {
 
         {/* ────── LOGO + TAGLINE — same row ────── */}
         <header className="bento-entry flex items-center justify-center px-4 pt-6 pb-4 sm:pt-6 sm:pb-5 md:pt-5 md:pb-3" style={{ animationDelay: '0ms' }}>
-          <div className="flex w-full max-w-6xl flex-col items-center justify-center gap-2 sm:flex-row sm:items-center sm:gap-5 md:gap-6">
+          <div className="flex w-full max-w-6xl flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-5 md:gap-6">
             <Image
               src={getCdnImageUrl('Logo%20Principale%20EBARTEX.png')}
               alt="Ebartex"
@@ -262,18 +262,19 @@ export function LandingWelcome() {
               priority
               unoptimized
             />
-            <div className="h-10 w-px bg-white/20 hidden sm:block" />
-            <h1 className="max-w-xl text-center leading-tight sm:max-w-md sm:text-left">
-              <span className="block text-base font-extrabold uppercase tracking-tight text-white sm:text-lg md:text-xl lg:text-2xl">
-                {t('landing.hero.tagline.main')}{' '}
-                <span className="text-[#FF7300]">
-                  {t('landing.hero.tagline.highlight')}<sup className="align-super text-[0.55em] font-bold">*</sup>
+            <div className="flex items-center gap-4 sm:gap-5 md:gap-6">
+              <div className="h-12 w-px bg-white/20 hidden sm:block md:h-16" />
+              <h1 className="text-center leading-tight sm:text-left sm:whitespace-nowrap">
+                <span className="block text-lg font-extrabold uppercase tracking-tight text-white sm:text-xl md:text-2xl lg:text-3xl">
+                  {t('landing.hero.tagline.main')}{' '}
+                  <span className="text-[#FF7300]">{t('landing.hero.tagline.highlight')}</span>{' '}
+                  {t('landing.hero.tagline.suffix')}
                 </span>
-              </span>
-              <span className="mt-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-white/60 sm:text-xs md:text-sm">
-                {t('landing.hero.tagline.sub')}
-              </span>
-            </h1>
+                <span className="mt-1.5 block text-xs font-semibold uppercase tracking-[0.06em] text-white/70 sm:text-sm md:text-base">
+                  {t('landing.hero.tagline.sub')}
+                </span>
+              </h1>
+            </div>
           </div>
         </header>
 
@@ -474,14 +475,6 @@ export function LandingWelcome() {
             </div>
           </div>
         </section>
-
-        {/* ─── Legal disclaimer (asterisco tagline) ─── */}
-        <div className="relative z-[2] mx-auto w-full max-w-3xl px-4 pb-8 pt-2 sm:px-6">
-          <p className="text-center text-[10px] leading-relaxed text-white/40 sm:text-[11px]">
-            <span className="font-bold text-[#FF7300]/70">*</span>{' '}
-            {t('landing.hero.disclaimer')}
-          </p>
-        </div>
 
         {/* ─── Transition zone before footer ─── */}
         <div className="relative z-[2] w-full h-20 sm:h-28 bg-gradient-to-b from-transparent via-[#0F172A]/80 to-[#1D3160]" />

@@ -34,6 +34,7 @@ import type { UiLocale } from '@/lib/i18n/locales';
 import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
 import { PurchasesBagIcon } from '@/components/ui/PurchasesBagIcon';
 import { SalesTagIcon } from '@/components/ui/SalesTagIcon';
+import { ProfileSaluteIcon } from '@/components/ui/ProfileSaluteIcon';
 import { FEATURES } from '@/lib/config/features';
 import {
   HEADER_BRX_LOGO_COLUMN_CLASS,
@@ -265,7 +266,7 @@ export function TopBar() {
                     setAccountMenuOpen((o) => !o);
                     setAcquistiMenuOpen(false);
                   }}
-                  className="flex items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
+                  className="group flex items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160]"
                   aria-expanded={accountMenuOpen}
                   aria-haspopup="true"
                   aria-label={t('account.menuAria')}
@@ -274,22 +275,13 @@ export function TopBar() {
                     className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full"
                     aria-hidden
                   >
-                    {/* Icona profilo SVG (24x24, stroke #FF7300) */}
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#FF7300"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                    {/* Icona profilo con saluto militare all'hover */}
+                    <ProfileSaluteIcon
                       className="h-[1.1rem] w-[1.1rem]"
-                    >
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
+                      stroke="#FF7300"
+                      strokeWidth={2}
+                      animated
+                    />
                   </span>
                   <span className="hidden max-w-[6rem] shrink-0 text-[0.78rem] font-medium uppercase text-white md:block" title={user?.email ?? user?.name ?? undefined}>
                     {shortLabel}

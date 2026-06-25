@@ -80,7 +80,7 @@ export function UserProfileAuctionsPanel({ userId, username }: UserProfileAuctio
         </div>
         <p className="text-base font-semibold text-slate-800">Nessuna asta</p>
         <p className="mt-1 max-w-sm text-sm text-slate-500">
-          @{username} non ha aste pubblicate al momento.
+          @{username} non ha pubblicazioni al momento.
         </p>
       </div>
     );

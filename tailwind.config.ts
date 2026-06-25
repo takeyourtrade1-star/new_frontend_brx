@@ -208,6 +208,30 @@ const config: Config = {
           '25%': { transform: 'rotate(15deg)' },
           '75%': { transform: 'rotate(-15deg)' },
         },
+        // Saluto militare: l'avambraccio fa cerniera sul gomito e sale alla fronte,
+        // tiene la posa, poi torna giù. Movimento morbido (niente molla nervosa).
+        'salute-forearm': {
+          '0%': { transform: 'rotate(74deg)' },
+          '34%': { transform: 'rotate(-3deg)' },
+          '48%': { transform: 'rotate(0deg)' },
+          '85%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(74deg)' },
+        },
+        // Tutto il braccio (avambraccio + spalla) compare e svanisce in sincrono,
+        // così non lo si vede passare "dentro" la testa.
+        'salute-fade': {
+          '0%': { opacity: '0' },
+          '20%': { opacity: '1' },
+          '85%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        },
+        // L'omino scatta sull'attenti: piccola straizzata su se stesso.
+        'salute-bob': {
+          '0%': { transform: 'translateY(0) scale(1)' },
+          '22%': { transform: 'translateY(-1px) scale(1.035)' },
+          '46%': { transform: 'translateY(0) scale(1)' },
+          '100%': { transform: 'translateY(0) scale(1)' },
+        },
       },
       animation: {
         'caret-blink': 'caret-blink 1.2s ease-out infinite',
@@ -227,6 +251,9 @@ const config: Config = {
         'cart-speed': 'cart-speed 0.9s ease-out',
         'offline-float': 'offline-float 2.5s ease-in-out infinite',
         'offline-wobble': 'offline-wobble 2s ease-in-out infinite',
+        'salute-forearm': 'salute-forearm 1.5s cubic-bezier(0.45,0.05,0.25,1)',
+        'salute-fade': 'salute-fade 1.5s ease-in-out',
+        'salute-bob': 'salute-bob 1.5s cubic-bezier(0.34,1.56,0.64,1)',
       },
       backgroundImage: {
         'gradient-global': 'linear-gradient(to bottom, #3D65C6 0%, #1D3160 100%)',

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Home, Plus, PlusCircle, List, Gavel, ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
+import { Home, Plus, PlusCircle, List, Gavel, History, ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
@@ -144,6 +144,7 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
     { href: '/aste/nuova', label: t('auctions.createAuction'), Icon: PlusCircle, isPrimary: true },
     { href: '/aste/mie', label: t('auctions.navPublished'), Icon: List },
     { href: '/aste/partecipazioni', label: t('auctions.navParticipated'), Icon: Gavel },
+    { href: '/aste/storico', label: t('auctions.navHistory'), Icon: History, iconOnly: true },
   ];
 
   function isActive(href: string) {
@@ -155,6 +156,9 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
     }
     if (href === '/aste/partecipazioni') {
       return pathname?.startsWith('/aste/partecipazioni') ?? false;
+    }
+    if (href === '/aste/storico') {
+      return pathname?.startsWith('/aste/storico') ?? false;
     }
     return pathname?.startsWith(href) ?? false;
   }
@@ -272,7 +276,7 @@ export function AsteNav({ variant = 'default' }: AsteNavProps) {
                     : cn(
                         'h-9 sm:h-12 justify-center sm:justify-start px-0 sm:px-4 w-9 sm:w-auto text-[10px] sm:text-xs',
                         active
-                          ? 'border-2 border-[#FF7300] bg-[#FFF4EC] text-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.2)] scale-105'
+                          ? 'border-2 border-[#FF7300] bg-[#FFF4EC] text-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.2)]'
                           : isPrimary
                             ? 'border-2 border-[#FF7300]/30 bg-[#FFF4EC] text-[#FF7300]/90 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_12px_rgba(255,115,0,0.2)] active:scale-95'
                             : 'border-2 border-gray-200 bg-white text-gray-600 hover:border-[#FF7300] hover:text-[#FF7300] hover:shadow-[0_0_10px_rgba(255,115,0,0.15)] active:scale-95',
