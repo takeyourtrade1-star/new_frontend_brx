@@ -34,6 +34,9 @@ export type ReprintCard = {
   gameSlug?: string;
 };
 
+/** Numero massimo di ristampe mostrate nel dettaglio carta: oltre, si usa "Vedi tutte". */
+export const MAX_VISIBLE_REPRINTS = 6;
+
 /** 2 colonne × 3 righe = 6 ristampe visibili; celle h-20 fisse (non si schiacciano). */
 export const REPRINT_TILE_CLASS = 'h-20 min-h-20 shrink-0';
 export const REPRINT_GRID_SCROLL_CLASS =

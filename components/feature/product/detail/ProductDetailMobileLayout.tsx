@@ -10,6 +10,7 @@ import type { ProductPriceStats } from '@/components/feature/product/ProductPric
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import {
   EBARTEX_LOGO_PLACEHOLDER,
+  MAX_VISIBLE_REPRINTS,
   REPRINT_GRID_SCROLL_CLASS,
   REPRINT_TILE_CLASS,
   type ProductDetailTabConfig,
@@ -20,6 +21,7 @@ import { ProductDetailIconTabBar } from '@/components/feature/product/detail/Pro
 import { MobileCardGeneralInfo } from '@/components/feature/product/detail/MobileCardGeneralInfo';
 import { MobileChartKpiRow } from '@/components/feature/product/detail/MobileChartKpiRow';
 import { ReprintThumbnail } from '@/components/feature/product/detail/ReprintThumbnail';
+import { FoilSelector } from '@/components/feature/product/detail/FoilSelector';
 
 const AuctionCreateWizard = dynamic(
   () => import('@/components/feature/aste/create/AuctionCreateWizard').then((mod) => mod.AuctionCreateWizard),
@@ -91,6 +93,8 @@ export interface ProductDetailMobileLayoutProps {
   reprintsLoading: boolean;
   reprintsDegraded: boolean;
   reprintsAllHref: string | null;
+  soloFoil: boolean;
+  onSoloFoilChange: (value: boolean) => void;
 }
 
 export function ProductDetailMobileLayout({
@@ -127,6 +131,8 @@ export function ProductDetailMobileLayout({
   reprintsLoading,
   reprintsDegraded,
   reprintsAllHref,
+  soloFoil,
+  onSoloFoilChange,
 }: ProductDetailMobileLayoutProps) {
   return (
     <div className="flex w-full flex-col sm:hidden">
@@ -143,6 +149,8 @@ export function ProductDetailMobileLayout({
         )}
       >
         {activeTab === 'INFO' && (
+          <div className="flex flex-col items-center gap-2">
+            <FoilSelector soloFoil={soloFoil} onChange={onSoloFoilChange} size="sm" />
           <div
             className="relative w-[min(62vw,11.5rem)] cursor-pointer overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-transform active:scale-[0.99]"
             style={{ aspectRatio: '63/88' }}
@@ -178,6 +186,7 @@ export function ProductDetailMobileLayout({
                 priority
               />
             )}
+          </div>
           </div>
         )}
 
@@ -281,9 +290,10 @@ export function ProductDetailMobileLayout({
                 {reprints.length > 0 && reprintsAllHref && (
                   <Link
                     href={reprintsAllHref}
-                    className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[9px] font-semibold text-primary hover:bg-primary/10"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/5 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/10"
                   >
-                    Vedi tutte
+                    <span>Vedi tutte</span>
+                    <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums">{reprints.length}</span>
                   </Link>
                 )}
               </div>
@@ -305,7 +315,7 @@ export function ProductDetailMobileLayout({
                     REPRINT_GRID_SCROLL_CLASS
                   )}
                 >
-                  {reprints.map((r, i) => (
+                  {reprints.slice(0, MAX_VISIBLE_REPRINTS).map((r, i) => (
                     <ReprintThumbnail key={r.id} reprint={r} columnIndex={i} />
                   ))}
                 </div>

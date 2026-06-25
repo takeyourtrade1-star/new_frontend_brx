@@ -60,12 +60,12 @@ const TABS_LEFT: OrderTab<TabId>[] = [
   { id: 'pagato', label: 'PAGATI', icon: BadgeCheck },
   { id: 'inviato', label: 'IN ARRIVO', icon: Truck },
   { id: 'ricevuto', label: 'RICEVUTI', icon: Inbox },
+  { id: 'cancellato', label: 'CANCELLATE', icon: Ban },
   { id: 'supporto', label: 'PROBLEMATICHE', icon: AlertTriangle },
 ];
 
 const TABS_RIGHT: OrderTab<TabId>[] = [
   { id: 'acquisti', label: 'STORICO', icon: History },
-  { id: 'cancellato', label: 'CANCELLATE', icon: Ban },
 ];
 
 type TabId =

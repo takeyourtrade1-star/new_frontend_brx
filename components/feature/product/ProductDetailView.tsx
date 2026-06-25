@@ -448,6 +448,8 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           reprintsLoading={reprintsLoading}
           reprintsDegraded={reprintsDegraded}
           reprintsAllHref={reprintsAllHref}
+          soloFoil={soloFoil}
+          onSoloFoilChange={setSoloFoil}
           gameLabel={gameLabel}
           showChart={showChart}
           onShowChartToggle={handleShowChartToggle}

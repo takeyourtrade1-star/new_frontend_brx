@@ -2226,9 +2226,115 @@
   animation: scambi-step-spin 3.2s linear infinite;
 }
 
+/* Tutorial scambi: i passi compaiono uno dopo l'altro (delay per indice). */
+@keyframes scambi-step-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.scambi-step-enter {
+  opacity: 0;
+  animation: scambi-step-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--step-delay, 0ms);
+}
+
+/* Ogni icona del tutorial ha il suo micro-movimento in loop. */
+@keyframes scambi-icon-search {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(1.5px, -1.5px);
+  }
+  55% {
+    transform: translate(-1.5px, 1px);
+  }
+  80% {
+    transform: translate(1px, 1px);
+  }
+}
+@keyframes scambi-icon-coins {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  40% {
+    transform: translateY(-3px) rotate(-9deg);
+  }
+  65% {
+    transform: translateY(-3px) rotate(9deg);
+  }
+}
+@keyframes scambi-icon-send {
+  0%,
+  60%,
+  100% {
+    transform: translate(0, 0);
+  }
+  30% {
+    transform: translate(3px, -3px);
+  }
+}
+@keyframes scambi-icon-clock {
+  0%,
+  100% {
+    transform: rotate(-10deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+
+.scambi-icon-search {
+  animation: scambi-icon-search 2.6s ease-in-out infinite;
+}
+.scambi-icon-coins {
+  animation: scambi-icon-coins 2.4s ease-in-out infinite;
+}
+.scambi-icon-send {
+  animation: scambi-icon-send 2s ease-in-out infinite;
+}
+.scambi-icon-clock {
+  transform-origin: 50% 55%;
+  animation: scambi-icon-clock 2.2s ease-in-out infinite;
+}
+
+/* Parola "carta/carte" evidenziata nel tutorial: leggero battito. */
+@keyframes scambi-card-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.07);
+  }
+}
+.scambi-card-word {
+  display: inline-block;
+  animation: scambi-card-pulse 2.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .scambi-step-spin {
+  .scambi-step-spin,
+  .scambi-step-enter,
+  .scambi-icon-search,
+  .scambi-icon-coins,
+  .scambi-icon-send,
+  .scambi-icon-clock,
+  .scambi-card-word {
     animation: none;
+    opacity: 1;
   }
 }
 

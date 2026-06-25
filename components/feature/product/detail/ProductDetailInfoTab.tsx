@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import type { CardDocument } from '@/lib/product-detail';
 import type { ProductPriceStats } from '@/components/feature/product/ProductPriceChart';
 import {
+  MAX_VISIBLE_REPRINTS,
   REPRINT_GRID_SCROLL_CLASS,
   REPRINT_LIST_SCROLL_CLASS,
   REPRINT_TILE_CLASS,
@@ -135,20 +136,20 @@ export function ProductDetailInfoTab({
       >
         <div className={cn('flex shrink-0 items-center justify-between gap-1', showChart ? 'mb-1' : 'mb-2')}>
           <h3 className={cn('font-extrabold uppercase tracking-wider text-zinc-800 truncate', showChart ? 'text-[9px]' : 'text-[10px]')}>Ristampe</h3>
-          <div className="flex items-center gap-1.5">
-            <span className={cn('rounded-full bg-zinc-100 font-bold text-zinc-400 tabular-nums', showChart ? 'px-1 py-0 text-[8px]' : 'px-1.5 py-0.5 text-[9px]')}>{reprints.length}</span>
-            {reprints.length > 0 && reprintsAllHref && (
-              <Link
-                href={reprintsAllHref}
-                className={cn(
-                  'rounded-full border border-primary/20 bg-primary/5 font-semibold text-primary transition-colors hover:bg-primary/10',
-                  showChart ? 'px-1.5 py-0 text-[8px]' : 'px-2 py-0.5 text-[9px]'
-                )}
-              >
-                Vedi tutte
-              </Link>
-            )}
-          </div>
+          {reprints.length > 0 && reprintsAllHref ? (
+            <Link
+              href={reprintsAllHref}
+              className={cn(
+                'inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/5 font-bold text-primary transition-colors hover:bg-primary/10',
+                showChart ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-[11px]'
+              )}
+            >
+              <span>Vedi tutte</span>
+              <span className={cn('rounded-full bg-primary/15 font-extrabold tabular-nums', showChart ? 'px-1.5 py-0 text-[9px]' : 'px-1.5 py-0.5 text-[10px]')}>{reprints.length}</span>
+            </Link>
+          ) : (
+            <span className={cn('shrink-0 rounded-full bg-zinc-100 font-bold text-zinc-400 tabular-nums', showChart ? 'px-1 py-0 text-[8px]' : 'px-1.5 py-0.5 text-[9px]')}>{reprints.length}</span>
+          )}
         </div>
 
         {reprintsLoading ? (
@@ -183,12 +184,12 @@ export function ProductDetailInfoTab({
                 REPRINT_LIST_SCROLL_CLASS
               )}
             >
-              {reprints.map((reprint, i) => (
+              {reprints.slice(0, MAX_VISIBLE_REPRINTS).map((reprint, i) => (
                 <ReprintListRow
                   key={reprint.id}
                   reprint={reprint}
                   rowIndex={i}
-                  totalRows={reprints.length}
+                  totalRows={Math.min(reprints.length, MAX_VISIBLE_REPRINTS)}
                 />
               ))}
             </div>
@@ -199,7 +200,7 @@ export function ProductDetailInfoTab({
                 REPRINT_GRID_SCROLL_CLASS
               )}
             >
-              {reprints.map((reprint, i) => (
+              {reprints.slice(0, MAX_VISIBLE_REPRINTS).map((reprint, i) => (
                 <ReprintThumbnail key={reprint.id} reprint={reprint} columnIndex={i} />
               ))}
             </div>

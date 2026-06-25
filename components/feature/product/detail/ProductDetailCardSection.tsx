@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { EBARTEX_LOGO_PLACEHOLDER } from '@/lib/product-detail/product-detail-view-types';
 import { ProductDetailMobileLayout } from '@/components/feature/product/detail/ProductDetailMobileLayout';
+import { FoilSelector } from '@/components/feature/product/detail/FoilSelector';
 import { ProductDetailInfoTab } from '@/components/feature/product/detail/ProductDetailInfoTab';
 import { ProductDetailSellTab } from '@/components/feature/product/detail/ProductDetailSellTab';
 import { ProductDetailAuctionTab } from '@/components/feature/product/detail/ProductDetailAuctionTab';
@@ -70,6 +71,8 @@ function ProductDetailCardSectionImpl({
     reprintsLoading,
     reprintsDegraded,
     reprintsAllHref,
+    soloFoil,
+    onSoloFoilChange,
   } = mobile;
 
   return (
@@ -126,6 +129,7 @@ function ProductDetailCardSectionImpl({
           <MemoMobileLayout {...mobile} />
 
           <aside className="hidden w-[180px] flex-shrink-0 flex-col items-center justify-center self-stretch border-r border-zinc-200/50 bg-gradient-to-br from-zinc-50/80 via-white to-zinc-100/60 p-4 sm:flex md:w-[200px] lg:w-[220px]">
+            <FoilSelector soloFoil={soloFoil} onChange={onSoloFoilChange} size="sm" className="mb-3" />
             <div
               className="relative my-auto flex w-full max-w-[180px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-zinc-300/50 bg-zinc-100/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md md:max-w-[200px] md:max-h-[360px] lg:max-w-[220px] lg:max-h-[420px] sm:max-h-[300px]"
               style={{ aspectRatio: '63/88' }}

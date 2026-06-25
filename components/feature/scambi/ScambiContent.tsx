@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Home, ChevronRight, Search, Coins, Send, Clock, Inbox, CheckCircle2 } from 'lucide-react';
@@ -35,16 +35,33 @@ function getTabLabel(tabId: ScambiTabId): string {
   return ALL_TABS.find((t) => t.id === tabId)?.label ?? tabId;
 }
 
-/** Passi del flusso di scambio mostrati nella striscia scorrevole. */
+/** Passi del flusso di scambio. `card` è la parola evidenziata (le carte sono il
+ *  centro dello scambio); `iconClass` è l'animazione propria di ogni icona. */
 const TRADE_STEPS = [
-  { icon: Search, label: 'Scegli la carta' },
-  { icon: Coins, label: 'Fai un’offerta' },
-  { icon: Send, label: 'Manda la proposta' },
-  { icon: Clock, label: 'Attendi risposta' },
-  { icon: ScambiIcon, label: 'Scambia!' },
+  { icon: Search, lead: 'Scegli la ', card: 'carta', tail: ' che vuoi', iconClass: 'scambi-icon-search' },
+  { icon: Coins, lead: 'Offri le tue ', card: 'carte', tail: ' (o crediti)', iconClass: 'scambi-icon-coins' },
+  { icon: Send, lead: 'Manda la proposta', card: '', tail: '', iconClass: 'scambi-icon-send' },
+  { icon: Clock, lead: 'Attendi la risposta', card: '', tail: '', iconClass: 'scambi-icon-clock' },
+  { icon: ScambiIcon, lead: 'Scambia le ', card: 'carte', tail: '!', iconClass: 'scambi-step-spin' },
 ] as const;
 
-/** Badge numerato con icona del passo (animato sull'ultimo). */
+/** Ritardo di comparsa in cascata: ogni passo entra dopo il precedente. */
+const STEP_ENTER_DELAY_MS = 130;
+
+/** Testo del passo con la parola "carta/carte" messa in risalto. */
+function StepLabel({ step, className }: { step: (typeof TRADE_STEPS)[number]; className?: string }) {
+  return (
+    <span className={className}>
+      {step.lead}
+      {step.card && (
+        <span className="scambi-card-word font-extrabold text-[#FF7300]">{step.card}</span>
+      )}
+      {step.tail}
+    </span>
+  );
+}
+
+/** Badge numerato con icona animata del passo. */
 function StepBadge({
   step,
   index,
@@ -68,7 +85,7 @@ function StepBadge({
     >
       <Icon
         className={cn(
-          isLast && 'scambi-step-spin',
+          step.iconClass,
           lg ? (isLast ? 'h-7 w-7' : 'h-6 w-6') : isLast ? 'h-6 w-6' : 'h-[18px] w-[18px]'
         )}
       />
@@ -130,20 +147,23 @@ function TradeStepsTicker() {
         {TRADE_STEPS.map((step, index) => {
           const isLast = index === TRADE_STEPS.length - 1;
           return (
-            <li key={step.label} className="flex gap-3.5">
+            <li
+              key={step.lead}
+              className="scambi-step-enter flex gap-3.5"
+              style={{ '--step-delay': `${index * STEP_ENTER_DELAY_MS}ms` } as CSSProperties}
+            >
               <div className="flex flex-col items-center">
                 <StepBadge step={step} index={index} size="lg" />
                 {!isLast && <span className="my-1 w-0.5 flex-1 rounded-full bg-[#FF7300]/25" aria-hidden />}
               </div>
-              <span
+              <StepLabel
+                step={step}
                 className={cn(
                   'pt-3 text-[15px] font-semibold text-[#1D3160]',
                   !isLast && 'pb-4',
                   isLast && 'font-bold'
                 )}
-              >
-                {step.label}
-              </span>
+              />
             </li>
           );
         })}
@@ -155,14 +175,24 @@ function TradeStepsTicker() {
         {TRADE_STEPS.map((step, index) => {
           const isLast = index === TRADE_STEPS.length - 1;
           return (
-            <Fragment key={step.label}>
-              <div className="flex shrink-0 items-center gap-2.5 px-2.5">
+            <Fragment key={step.lead}>
+              <div
+                className="scambi-step-enter flex shrink-0 items-center gap-2.5 px-2.5"
+                style={{ '--step-delay': `${index * STEP_ENTER_DELAY_MS}ms` } as CSSProperties}
+              >
                 <StepBadge step={step} index={index} />
-                <span className={cn('whitespace-nowrap text-sm font-semibold text-[#1D3160]', isLast && 'font-bold')}>
-                  {step.label}
-                </span>
+                <StepLabel
+                  step={step}
+                  className={cn('whitespace-nowrap text-sm font-semibold text-[#1D3160]', isLast && 'font-bold')}
+                />
               </div>
-              {!isLast && <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" aria-hidden />}
+              {!isLast && (
+                <ChevronRight
+                  className="scambi-step-enter h-4 w-4 shrink-0 text-gray-300"
+                  style={{ '--step-delay': `${index * STEP_ENTER_DELAY_MS + 60}ms` } as CSSProperties}
+                  aria-hidden
+                />
+              )}
             </Fragment>
           );
         })}
