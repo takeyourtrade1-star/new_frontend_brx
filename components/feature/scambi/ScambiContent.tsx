@@ -42,14 +42,14 @@ function getTabLabel(tabId: ScambiTabId): string {
  *  centro dello scambio); `iconClass` è l'animazione propria di ogni icona. */
 const TRADE_STEPS = [
   { icon: Search, lead: 'Scegli la ', card: 'carta', tail: ' che vuoi', iconClass: 'scambi-icon-search' },
-  { icon: Coins, lead: 'Offri le tue ', card: 'carte', tail: ' (o crediti)', iconClass: 'scambi-icon-coins' },
+  { icon: Coins, lead: 'Offri le tue ', card: 'carte', tail: '', iconClass: 'scambi-icon-coins' },
   { icon: Send, lead: 'Manda la proposta', card: '', tail: '', iconClass: 'scambi-icon-send' },
   { icon: Clock, lead: 'Attendi la risposta', card: '', tail: '', iconClass: 'scambi-icon-clock' },
   { icon: ScambiIcon, lead: 'Scambia le ', card: 'carte', tail: '!', iconClass: 'scambi-step-spin' },
 ] as const;
 
 /** Ritardo di comparsa in cascata: ogni passo entra dopo il precedente. */
-const STEP_ENTER_DELAY_MS = 230;
+const STEP_ENTER_DELAY_MS = 380;
 
 /** Testo del passo con la parola "carta/carte" messa in risalto. */
 function StepLabel({ step, className }: { step: (typeof TRADE_STEPS)[number]; className?: string }) {
@@ -99,19 +99,12 @@ function StepBadge({
   );
 }
 
-/** Tutorial passi dello scambio: stepper verticale su mobile, riga su desktop.
- *  Su mobile è comprimibile (toggle "Nascondi"), preferenza salvata in localStorage. */
+/** Tutorial passi dello scambio: stepper verticale su mobile, riga su desktop. */
 function TradeStepsTicker() {
-  const [hidden, setHidden] = useState(false);
   const [started, setStarted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setHidden(localStorage.getItem('scambi_tutorial_hidden') === '1');
-  }, []);
-
-  // Avvia la cascata solo quando il tutorial entra nel viewport (così l'effetto
-  // sequenziale si vede davvero, anche scrollando fin qui).
+  // Avvia la cascata solo quando il tutorial entra nel viewport.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -122,51 +115,16 @@ function TradeStepsTicker() {
           io.disconnect();
         }
       },
-      { threshold: 0.25 },
+      { threshold: 0.2 },
     );
     io.observe(el);
     return () => io.disconnect();
   }, []);
 
-  const toggleHidden = () =>
-    setHidden((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('scambi_tutorial_hidden', next ? '1' : '0');
-      } catch {
-        /* localStorage non disponibile */
-      }
-      return next;
-    });
-
   return (
-    <div ref={containerRef} className="mb-6 overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-sm">
-      <div
-        className={cn(
-          'flex items-center justify-between gap-2 bg-gradient-to-r from-[#FFF4EC] to-white px-4 py-2.5',
-          hidden ? 'sm:border-b sm:border-gray-200' : 'border-b border-gray-200'
-        )}
-      >
-        <span className="text-[11px] font-bold uppercase tracking-widest text-[#FF7300]">
-          Come funziona uno scambio
-        </span>
-        <button
-          type="button"
-          onClick={toggleHidden}
-          className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-gray-400 transition hover:text-gray-600 sm:hidden"
-          aria-expanded={!hidden}
-        >
-          {hidden ? 'Mostra' : 'Nascondi'}
-          <ChevronRight
-            className={cn('h-3.5 w-3.5 transition-transform', hidden ? '' : 'rotate-90')}
-            aria-hidden
-          />
-        </button>
-      </div>
-
+    <div ref={containerRef} className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       {/* Mobile: stepper verticale con connettore */}
-      {!hidden && (
-      <ol className="flex flex-col px-4 py-3 sm:hidden">
+      <ol className="flex flex-col px-4 py-4 sm:hidden">
         {TRADE_STEPS.map((step, index) => {
           const isLast = index === TRADE_STEPS.length - 1;
           return (
@@ -191,10 +149,9 @@ function TradeStepsTicker() {
           );
         })}
       </ol>
-      )}
 
       {/* Desktop: riga orizzontale */}
-      <div className="hidden flex-wrap items-center justify-center gap-y-3 px-4 py-3.5 sm:flex">
+      <div className="hidden flex-wrap items-center justify-center gap-y-3 px-6 py-5 sm:flex">
         {TRADE_STEPS.map((step, index) => {
           const isLast = index === TRADE_STEPS.length - 1;
           return (
@@ -215,7 +172,7 @@ function TradeStepsTicker() {
               {!isLast && (
                 <ChevronRight
                   className={cn('h-4 w-4 shrink-0 text-gray-300', started ? 'scambi-step-enter' : 'opacity-0')}
-                  style={{ '--step-delay': `${index * STEP_ENTER_DELAY_MS + 110}ms` } as CSSProperties}
+                  style={{ '--step-delay': `${index * STEP_ENTER_DELAY_MS + 180}ms` } as CSSProperties}
                   aria-hidden
                 />
               )}
@@ -386,15 +343,19 @@ export function ScambiContent() {
           </Link>
         </div>
 
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-2 flex items-center justify-between">
           <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">I MIEI SCAMBI</h1>
-          <div className="group relative inline-flex items-center gap-2 self-start overflow-hidden rounded-full border border-[#FF7300]/30 bg-gradient-to-r from-[#FFF4EC] via-white to-[#FFF4EC] px-3.5 py-1.5 shadow-sm sm:self-auto">
-            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent transition-transform duration-700 group-hover:translate-x-full" aria-hidden />
-            <ScambiIcon className="h-4 w-4 shrink-0 text-[#FF7300]" aria-hidden />
-            <span className="text-[11px] font-bold uppercase tracking-wide text-[#1D3160] sm:text-xs">
-              Il primo marketplace per <span className="text-[#FF7300]">scambiare</span> le tue carte
-            </span>
-          </div>
+        </div>
+
+        {/* Banner marketing centrato */}
+        <div className="mb-6 flex items-center justify-center gap-3 py-3">
+          <ScambiIcon className="h-5 w-5 shrink-0 text-[#FF7300] sm:h-6 sm:w-6" aria-hidden />
+          <p className="text-center text-base font-extrabold uppercase tracking-widest text-[#1D3160] sm:text-xl">
+            Il primo marketplace per{' '}
+            <span className="text-[#FF7300]">scambiare</span>{' '}
+            le tue carte
+          </p>
+          <ScambiIcon className="h-5 w-5 shrink-0 text-[#FF7300] sm:h-6 sm:w-6" aria-hidden />
         </div>
 
         {/* Ricerca interna agli scambi */}
