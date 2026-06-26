@@ -31,9 +31,12 @@ export function AsteMyListingsPage() {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
-  const { data: listData, isLoading } = useAuctionList({ limit: 100 });
-  const deleteAuctionMutation = useDeleteAuction();
   const userId = user?.id;
+  const { data: listData, isLoading } = useAuctionList(
+    { created_by_user_id: userId ?? '', limit: 100 },
+    { enabled: Boolean(userId) },
+  );
+  const deleteAuctionMutation = useDeleteAuction();
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);

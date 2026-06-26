@@ -23,7 +23,15 @@ export function AsteHistoryPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const userId = user?.id;
-  const { data: listData, isLoading } = useAuctionList({ limit: 100 });
+  const auctionQueriesEnabled = Boolean(userId);
+  const { data: publishedListData } = useAuctionList(
+    { created_by_user_id: userId ?? '', limit: 100 },
+    { enabled: auctionQueriesEnabled },
+  );
+  const { data: participationListData } = useAuctionList(
+    { limit: 100 },
+    { enabled: auctionQueriesEnabled },
+  );
 
   const [viewMode, setViewMode] = useState<AsteViewMode>('grid');
 
@@ -35,7 +43,7 @@ export function AsteHistoryPage() {
   }, [viewMode]);
 
   const { publishedRows, participatedRows, myBidById } = useMemo(() => {
-    if (!listData?.data || !userId) {
+    if (!userId) {
       return {
         publishedRows: [] as AuctionUI[],
         participatedRows: [] as AuctionUI[],
@@ -46,14 +54,16 @@ export function AsteHistoryPage() {
     const published: AuctionUI[] = [];
     const participated: AuctionUI[] = [];
 
-    for (const a of listData.data) {
-      const isCreator = a.created_by_user_id === userId;
-      const isBidder = a.highest_bidder_id === userId;
-
-      if (isCreator) {
+    for (const a of publishedListData?.data ?? []) {
+      if (a.created_by_user_id === userId) {
         const ui = apiToAuctionUI(a);
         if (isAuctionEndedUI(ui)) published.push(ui);
       }
+    }
+
+    for (const a of participationListData?.data ?? []) {
+      const isCreator = a.created_by_user_id === userId;
+      const isBidder = a.highest_bidder_id === userId;
 
       if (!isCreator && isBidder) {
         const ui = apiToAuctionUI(a);
@@ -65,7 +75,7 @@ export function AsteHistoryPage() {
     }
 
     return { publishedRows: published, participatedRows: participated, myBidById: bids };
-  }, [listData, userId]);
+  }, [participationListData, publishedListData, userId]);
 
   const published = useEnrichedAuctions(publishedRows);
   const participated = useEnrichedAuctions(participatedRows);
