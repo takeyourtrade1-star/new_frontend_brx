@@ -225,3 +225,15 @@ ancora" + "Vedi meno"/"Vedi tutte ({count})"), `AuctionTimerCardDesktop`/`Mobile
 pubblicazione, 5 stringhe con interpolazione {date}/{id}). Parità i18n:keys **2198×6**.
 Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅. Cluster aste/detail
 ora privo di stringhe hardcoded user-facing.
+
+## Diario esecuzione — 2026-06-29 (6.5 batch 3: cluster account/oggetti)
+
+Localizzato il cluster gestione inventario (12 chiavi nuove ×6 in namespace
+`accountPage.*` + riuso common.close/common.cancel/breadcrumbNav/breadcrumb.account/
+itemsViewTable/itemsViewTableAria/itemsTableActions): `BulkDeleteModal` (+'use client'
+già presente, +useTranslation: titolo/progress/sezione sync/opzioni/footer con
+interpolazioni {count}/{current}/{total}), `OggettiContent` (breadcrumb + toolbar
+Sync/Tabella/Griglia, sia desktop che mobile via replace_all), `OggettiTable` e
+`OggettiMobileList` (aria-label Diminuisci/Aumenta quantità + Azioni). Parità
+i18n:keys **2210×6**. Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅.
+`Promise` (annotazioni di tipo) e fallback `Carta #{id}` lasciati (falsi positivi/interni).

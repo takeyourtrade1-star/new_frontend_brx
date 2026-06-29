@@ -291,10 +291,10 @@ export function OggettiContent() {
         <div className="mb-3 md:mb-5">
           <nav
             className="mb-2 hidden items-center gap-1.5 px-0.5 text-sm text-gray-500 md:flex"
-            aria-label="Breadcrumb"
+            aria-label={t('accountPage.breadcrumbNav')}
           >
             <Link href="/account" className="transition-colors hover:text-gray-900">
-              Account
+              {t('breadcrumb.account')}
             </Link>
             <span className="text-gray-300">/</span>
             <span className="font-medium text-gray-900">{t('accountPage.itemsTitle')}</span>
@@ -351,14 +351,14 @@ export function OggettiContent() {
                   onClick={() => void handleSyncNow()}
                   disabled={!integrationConnected || !canSyncNow || syncAnyPending}
                   className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-2 text-xs font-medium text-white shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 md:h-9 md:px-2.5"
-                  aria-label="Sync"
+                  aria-label={t('accountPage.itemsSyncNow')}
                 >
                   {syncNowPending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
                     <RefreshCw className="h-3.5 w-3.5" />
                   )}
-                  <span className="hidden sm:inline">Sync</span>
+                  <span className="hidden sm:inline">{t('accountPage.itemsSyncNow')}</span>
                 </button>
               )}
 
@@ -380,8 +380,8 @@ export function OggettiContent() {
                   className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
                     viewMode === 'table' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
-                  aria-label="Tabella"
-                  title="Tabella"
+                  aria-label={t('accountPage.itemsViewTableAria')}
+                  title={t('accountPage.itemsViewTable')}
                 >
                   <List className="h-4 w-4" />
                 </button>
@@ -391,8 +391,8 @@ export function OggettiContent() {
                   className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
                     viewMode === 'cards' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
-                  aria-label="Griglia"
-                  title="Griglia"
+                  aria-label={t('accountPage.itemsViewGridAria')}
+                  title={t('accountPage.itemsViewGrid')}
                 >
                   <Grid3X3 className="h-4 w-4" />
                 </button>
@@ -560,14 +560,14 @@ export function OggettiContent() {
                     onClick={() => void handleSyncNow()}
                     disabled={!integrationConnected || !canSyncNow || syncAnyPending}
                     className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-2 text-xs font-medium text-white shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 md:h-9 md:px-2.5"
-                    aria-label="Sync"
+                    aria-label={t('accountPage.itemsSyncNow')}
                   >
                     {syncNowPending ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
                       <RefreshCw className="h-3.5 w-3.5" />
                     )}
-                    <span className="hidden sm:inline">Sync</span>
+                    <span className="hidden sm:inline">{t('accountPage.itemsSyncNow')}</span>
                   </button>
                 )}
 

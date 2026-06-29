@@ -8,6 +8,7 @@ import type { ConditionCode } from '@/components/ui/ConditionBadge';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { getCdnImageUrl } from '@/lib/config';
 import { buildImageUrl, formatEurCents } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface BulkDeleteModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export function BulkDeleteModal({
   deleteProgress,
   onConfirm,
 }: BulkDeleteModalProps) {
+  const { t } = useTranslation();
   const [deleteFromPlatforms, setDeleteFromPlatforms] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -76,7 +78,7 @@ export function BulkDeleteModal({
               <Trash2 className="h-5 w-5" />
             </div>
             <h2 id="bulk-delete-modal-title" className="text-base font-bold text-gray-900">
-              Elimina {selectedItems.length} carte
+              {t('accountPage.bulkDeleteTitle', { count: selectedItems.length })}
             </h2>
           </div>
           <button
@@ -84,7 +86,7 @@ export function BulkDeleteModal({
             onClick={onClose}
             disabled={isDeleting}
             className="rounded-lg p-2 text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
-            aria-label="Chiudi"
+            aria-label={t('common.close')}
           >
             <X className="h-5 w-5" />
           </button>
@@ -93,7 +95,7 @@ export function BulkDeleteModal({
         <div className="p-6 space-y-5">
           {deleteProgress && (
             <p className="text-sm font-medium text-gray-600">
-              Eliminazione {deleteProgress.current} di {deleteProgress.total}…
+              {t('accountPage.bulkDeleteProgress', { current: deleteProgress.current, total: deleteProgress.total })}
             </p>
           )}
           {/* Sezione 1 — Riepilogo carte */}
@@ -125,10 +127,10 @@ export function BulkDeleteModal({
             <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4">
               <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">
                 <span aria-hidden>⚠️</span>
-                Sincronizzazione attiva rilevata
+                {t('accountPage.bulkDeleteSyncDetected')}
               </p>
               <p className="mb-3 text-xs text-gray-600">
-                Vuoi eliminare queste carte anche sulle piattaforme collegate?
+                {t('accountPage.bulkDeleteSyncQuestion')}
               </p>
               <div className="space-y-2">
                 <label className="flex cursor-pointer items-center gap-2.5">
@@ -140,8 +142,8 @@ export function BulkDeleteModal({
                     className="h-4 w-4 accent-primary border-gray-300"
                   />
                   <span className="text-sm text-gray-800">
-                    Sì, elimina ovunque{' '}
-                    <span className="text-gray-500">(marketplace collegati…)</span>
+                    {t('accountPage.bulkDeleteEverywhere')}{' '}
+                    <span className="text-gray-500">{t('accountPage.bulkDeleteEverywhereHint')}</span>
                   </span>
                 </label>
                 <label className="flex cursor-pointer items-center gap-2.5">
@@ -153,7 +155,7 @@ export function BulkDeleteModal({
                     className="h-4 w-4 accent-primary border-gray-300"
                   />
                   <span className="text-sm text-gray-800">
-                    No, elimina solo dall&apos;inventario locale
+                    {t('accountPage.bulkDeleteLocalOnly')}
                   </span>
                 </label>
               </div>
@@ -169,7 +171,7 @@ export function BulkDeleteModal({
             disabled={isDeleting}
             className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50"
           >
-            Annulla
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -182,7 +184,7 @@ export function BulkDeleteModal({
             ) : (
               <Trash2 className="h-4 w-4" />
             )}
-            Elimina {selectedItems.length} carte
+            {t('accountPage.bulkDeleteTitle', { count: selectedItems.length })}
           </button>
         </div>
       </div>

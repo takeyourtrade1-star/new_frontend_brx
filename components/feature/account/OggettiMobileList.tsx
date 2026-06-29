@@ -75,7 +75,7 @@ function MobileRowActions({
           disabled={mutationsDisabled || busy}
           onClick={() => onQtyDelta(item, -1)}
           className="flex h-8 w-8 items-center justify-center rounded-md text-red-600 disabled:opacity-40"
-          aria-label="Diminuisci quantità"
+          aria-label={t('accountPage.itemsDecreaseQty')}
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
         </button>
@@ -87,7 +87,7 @@ function MobileRowActions({
           disabled={mutationsDisabled || busy || item.quantity >= 999}
           onClick={() => onQtyDelta(item, 1)}
           className="flex h-8 w-8 items-center justify-center rounded-md text-emerald-700 disabled:opacity-40"
-          aria-label="Aumenta quantità"
+          aria-label={t('accountPage.itemsIncreaseQty')}
         >
           <Plus className="h-3.5 w-3.5" />
         </button>
@@ -96,7 +96,7 @@ function MobileRowActions({
         type="button"
         onClick={() => setMenuOpen((o) => !o)}
         className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 ring-1 ring-gray-200/80"
-        aria-label="Azioni"
+        aria-label={t('accountPage.itemsTableActions')}
       >
         <MoreVertical className="h-4 w-4" />
       </button>

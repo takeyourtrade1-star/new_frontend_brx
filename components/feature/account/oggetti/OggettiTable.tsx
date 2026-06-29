@@ -500,7 +500,7 @@ export function OggettiTable({
                         disabled={mutationsDisabled || qtyUpdatingId === item.id || deletingId === item.id}
                         onClick={() => handleQtyDelta(item, -1)}
                         className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-red-500 text-white shadow-sm transition hover:bg-red-600 active:scale-95 disabled:opacity-50 md:h-7 md:w-7 md:rounded-md"
-                        aria-label="Diminuisci quantità"
+                        aria-label={t('accountPage.itemsDecreaseQty')}
                       >
                         {qtyUpdatingId === item.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -521,7 +521,7 @@ export function OggettiTable({
                         }
                         onClick={() => handleQtyDelta(item, 1)}
                         className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50 md:h-7 md:w-7 md:rounded-md"
-                        aria-label="Aumenta quantità"
+                        aria-label={t('accountPage.itemsIncreaseQty')}
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
@@ -789,7 +789,7 @@ export function OggettiTable({
                         }
                         onClick={() => handleQtyDelta(item, -1)}
                         className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-red-500 text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50"
-                        aria-label="Diminuisci quantità"
+                        aria-label={t('accountPage.itemsDecreaseQty')}
                       >
                         {qtyUpdatingId === item.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -810,7 +810,7 @@ export function OggettiTable({
                         }
                         onClick={() => handleQtyDelta(item, 1)}
                         className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
-                        aria-label="Aumenta quantità"
+                        aria-label={t('accountPage.itemsIncreaseQty')}
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
