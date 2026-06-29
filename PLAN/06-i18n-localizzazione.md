@@ -246,3 +246,14 @@ nuove incl. titolo default interpolato {id} + messaggio errore validazione) e
 mockCheckout.simulatePayment/cancel + common.close; testo "Stai per pagare l'ordine"
 spezzato in payingOrderPrefix + relativeToAuction per preservare il markup <strong>).
 Parità i18n:keys **2223×6**. Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅.
+
+## Diario esecuzione — 2026-06-29 (6.5 batch 5: profilo utente pubblico)
+
+`app/users/[username]/UserProfileClient.tsx` localizzato (namespace `userProfile.*`,
+18 chiavi nuove). Tutti i sotto-componenti (AccountTypeBadge, NotFoundState, ErrorState,
+ProfileHero) hanno il proprio `useTranslation`. `formatMemberSince` riscritto: rimossi
+i nomi-mese IT hardcoded → `Intl.DateTimeFormat(locale, {month:'long',year:'numeric'})`
+con `useIntlLocale()`. Descrizione "utente non trovato" spezzata prefix/suffix per
+preservare lo @username in grassetto. Parità i18n:keys **2241×6**. Gate verdi:
+typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅. NB: il componente usa ancora
+useEffect+authApi.get (anti-pattern RQ) — fuori scope i18n, non toccato.
