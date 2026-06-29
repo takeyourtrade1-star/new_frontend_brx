@@ -38,12 +38,12 @@ export function AuctionCreateSuccessScreen({ createdAuctionInfo }: AuctionCreate
       <p className="mt-3 text-sm leading-relaxed text-gray-600">{t('auctions.createSuccessBody')}</p>
       {createdAuctionInfo && (
         <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-left">
-          <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Dettagli pubblicazione</p>
-          <p className="mt-2 text-sm text-emerald-900">L&apos;asta è partita subito dopo la conferma.</p>
-          <p className="mt-1 text-sm text-emerald-900">Inizio asta: {formatDateTimeLong(createdAuctionInfo.startIso)}</p>
-          <p className="mt-1 text-sm text-emerald-900">Fine asta: {formatDateTimeLong(createdAuctionInfo.endIso)}</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">{t('auctions.createSuccessDetailsTitle')}</p>
+          <p className="mt-2 text-sm text-emerald-900">{t('auctions.createSuccessStartedImmediately')}</p>
+          <p className="mt-1 text-sm text-emerald-900">{t('auctions.createSuccessStart', { date: formatDateTimeLong(createdAuctionInfo.startIso) })}</p>
+          <p className="mt-1 text-sm text-emerald-900">{t('auctions.createSuccessEnd', { date: formatDateTimeLong(createdAuctionInfo.endIso) })}</p>
           {createdAuctionInfo.id ? (
-            <p className="mt-1 text-sm text-emerald-900">ID asta: #{createdAuctionInfo.id}</p>
+            <p className="mt-1 text-sm text-emerald-900">{t('auctions.createSuccessId', { id: createdAuctionInfo.id })}</p>
           ) : null}
         </div>
       )}

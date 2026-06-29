@@ -38,7 +38,7 @@ export function AuctionBidHistory({
       <div className={`overflow-y-auto py-0.5 ${bidRows.length === 0 ? 'min-h-[3rem]' : 'max-h-60'}`}>
         {bidRows.length === 0 && (
           <p className="px-3 py-2 text-center text-xs text-gray-400">
-            Nessuna offerta ancora.
+            {t('auctions.bidHistory.empty')}
           </p>
         )}
         {/* Bids List */}
@@ -101,7 +101,7 @@ export function AuctionBidHistory({
             onClick={onToggleExpanded}
             className="flex w-full items-center justify-center gap-1.5 border-t border-gray-100 bg-gray-50/50 py-2.5 text-xs font-extrabold uppercase tracking-wide text-gray-500 transition-colors hover:bg-gray-50 hover:text-[#FF7300]"
           >
-            {bidsExpanded ? 'Vedi meno' : `Vedi tutte (${bidRows.length})`}
+            {bidsExpanded ? t('auctions.bidHistory.seeLess') : t('auctions.bidHistory.seeAll', { count: bidRows.length })}
             <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${bidsExpanded ? 'rotate-180' : ''}`} />
           </button>
         )}

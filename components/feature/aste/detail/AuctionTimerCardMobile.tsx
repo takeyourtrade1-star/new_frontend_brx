@@ -84,8 +84,8 @@ export function AuctionTimerCardMobile({
                     type="button"
                     onClick={onToggleCalendar}
                     className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#FF7300]/30 bg-white/70 text-[#FF7300] transition hover:border-[#FF7300] hover:bg-white"
-                    aria-label="Apri menu calendario"
-                    title="Aggiungi al calendario"
+                    aria-label={t('auctions.calendar.openMenuAria')}
+                    title={t('auctions.calendar.addTitle')}
                     aria-haspopup="menu"
                     aria-expanded={calendarMenuOpen}
                   >
@@ -116,7 +116,7 @@ export function AuctionTimerCardMobile({
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-100 pt-2.5 text-xs text-gray-500">
               <span>{t('auctions.detailFrom')}: <span className="font-semibold text-gray-700">{fmtEur(startingBidEur)}</span></span>
               <span className="inline-flex items-center gap-1 text-gray-600">
-                <span className="font-semibold text-gray-800">{bidCount}</span> offerte
+                <span className="font-semibold text-gray-800">{bidCount}</span> {t('auctions.detailBidsCount')}
               </span>
               <span className={`text-[11px] font-medium ${reserveMet ? 'text-emerald-600' : 'text-amber-600'}`}>
                 {reserveMet ? t('auctions.detailReserveYes') : t('auctions.detailReserveNo')}

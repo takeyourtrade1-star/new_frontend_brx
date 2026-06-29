@@ -1,5 +1,8 @@
+'use client';
+
 import { Smartphone, Globe } from 'lucide-react';
 import { CALENDAR_MENU_ITEM_CLASS, CALENDAR_MENU_BADGE_CLASS } from '@/lib/auction/auction-detail-utils';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 /** Dropdown "Aggiungi al calendario" (iOS ICS + Google). Markup condiviso tra mobile e desktop. */
 export function CalendarAddMenu({
@@ -11,14 +14,15 @@ export function CalendarAddMenu({
   onIos: () => void;
   onGoogle: () => void;
 }) {
+  const { t } = useTranslation();
   return (
-    <div className={menuClassName} role="menu" aria-label="Opzioni calendario">
+    <div className={menuClassName} role="menu" aria-label={t('auctions.calendar.menuAria')}>
       <button type="button" onClick={onIos} className={CALENDAR_MENU_ITEM_CLASS} role="menuitem">
         <span className="inline-flex items-center gap-2">
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/35">
             <Smartphone className="h-4 w-4" />
           </span>
-          <span>Calendario iOS</span>
+          <span>{t('auctions.calendar.ios')}</span>
         </span>
         <span className={CALENDAR_MENU_BADGE_CLASS}>ICS</span>
       </button>
@@ -27,7 +31,7 @@ export function CalendarAddMenu({
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/35">
             <Globe className="h-4 w-4" />
           </span>
-          <span>Google Calendar</span>
+          <span>{t('auctions.calendar.google')}</span>
         </span>
         <span className={CALENDAR_MENU_BADGE_CLASS}>WEB</span>
       </button>

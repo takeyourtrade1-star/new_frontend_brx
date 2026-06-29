@@ -67,8 +67,8 @@ export function AuctionTimerCardDesktop({
                 type="button"
                 onClick={onToggleCalendar}
                 className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#FF7300]/35 bg-white/70 text-[#FF7300] transition hover:border-[#FF7300] hover:bg-white"
-                aria-label="Apri menu calendario"
-                title="Aggiungi al calendario"
+                aria-label={t('auctions.calendar.openMenuAria')}
+                title={t('auctions.calendar.addTitle')}
                 aria-haspopup="menu"
                 aria-expanded={calendarMenuOpen}
               >

@@ -1,6 +1,9 @@
+'use client';
+
 import { type Dispatch, type SetStateAction } from 'react';
 import Image from 'next/image';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export function AuctionGallery({
   detailImages,
@@ -25,6 +28,7 @@ export function AuctionGallery({
   mainImg: string;
   onOpenLightbox: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-stretch gap-3 sm:gap-4">
       <div className="flex w-14 shrink-0 flex-col items-center gap-2 sm:w-[4.5rem]">
@@ -71,7 +75,7 @@ export function AuctionGallery({
           type="button"
           onClick={onOpenLightbox}
           className="absolute inset-0 z-10 cursor-zoom-in"
-          aria-label="Apri immagine in grande"
+          aria-label={t('auctions.gallery.openImageAria')}
         />
         <Image
           src={mainImg}

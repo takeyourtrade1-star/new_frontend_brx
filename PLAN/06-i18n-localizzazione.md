@@ -213,3 +213,15 @@ che `i18n:check` non flaggava). 0 hardcoded residue nei 2 file. Parità i18n:key
 **2182 ×6**. Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅.
 NB: `i18n:check` totale resta ~800 (in gran parte falsi positivi/brand/gergo TCG); il
 "0" del piano non è un target realistico — si procede per cluster user-facing a valore.
+
+## Diario esecuzione — 2026-06-29 (6.5 batch 2: aste/detail completo + a11y)
+
+Localizzato il resto del cluster aste/detail (16 chiavi nuove ×6 + riuso `common.close`
+e `auctions.detailBidsCount`): `CalendarAddMenu` (+'use client', aria/iOS/Google),
+`AuctionImageLightbox` (+'use client', Chiudi + aggiunti aria-label prev/next = a11y),
+`AuctionGallery` (+'use client', aria zoom), `AuctionBidHistory` ("Nessuna offerta
+ancora" + "Vedi meno"/"Vedi tutte ({count})"), `AuctionTimerCardDesktop`/`Mobile`
+(aria/title calendario + "offerte"), `AuctionCreateSuccessScreen` (blocco dettagli
+pubblicazione, 5 stringhe con interpolazione {date}/{id}). Parità i18n:keys **2198×6**.
+Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅. Cluster aste/detail
+ora privo di stringhe hardcoded user-facing.
