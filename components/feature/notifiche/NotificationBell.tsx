@@ -6,6 +6,7 @@ import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -49,7 +50,7 @@ function getDeepLink(n: NotificationAPI): string | null {
   }
 }
 
-function formatRelative(iso: string): string {
+function formatRelative(iso: string, locale: string): string {
   const ms = Date.now() - new Date(iso).getTime();
   if (ms < 60_000) return 'ora';
   const min = Math.floor(ms / 60_000);
@@ -58,11 +59,12 @@ function formatRelative(iso: string): string {
   if (hours < 24) return `${hours} ore fa`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days} giorni fa`;
-  return new Date(iso).toLocaleDateString('it-IT');
+  return new Date(iso).toLocaleDateString(locale);
 }
 
 export function NotificationBell() {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [open, setOpen] = useState(false);
@@ -202,7 +204,7 @@ export function NotificationBell() {
                       <span className="text-[10px] font-bold uppercase tracking-wide text-[#FF7300]">
                         {TYPE_LABEL[n.type] ?? n.type}
                       </span>
-                      <span className="text-[10px] text-gray-500">{formatRelative(n.created_at)}</span>
+                      <span className="text-[10px] text-gray-500">{formatRelative(n.created_at, intlLocale)}</span>
                     </div>
                     <span className="line-clamp-2 text-sm font-semibold text-gray-900">{n.title}</span>
                     <span className="line-clamp-2 text-xs text-gray-600">{n.body}</span>

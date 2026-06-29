@@ -25,6 +25,7 @@ import {
 import { isDemoEbartexListing } from '@/lib/sync/inventory-types';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { formatEuroNoSpace } from '@/lib/utils';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 
 export interface OggettiMobileListProps {
@@ -159,6 +160,7 @@ export function OggettiMobileList({
   onQtyDelta,
   t,
 }: OggettiMobileListProps) {
+  const intlLocale = useIntlLocale();
   return (
     <ul className="w-full divide-y divide-gray-100">
       {items.map((item) => {
@@ -183,7 +185,7 @@ export function OggettiMobileList({
         const setName = item.card?.set_name ?? '';
         const productHref = item.card?.id ? `/products/${item.card.id}` : null;
         const isSelected = selectedIds?.has(item.id) ?? false;
-        const priceLabel = formatEuroNoSpace((item.price_cents ?? 0) / 100, 'it-IT');
+        const priceLabel = formatEuroNoSpace((item.price_cents ?? 0) / 100, intlLocale);
 
         return (
           <li

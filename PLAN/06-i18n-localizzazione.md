@@ -173,3 +173,32 @@ File: `OrderCard`, `MarketplaceOrderCard`, `MockPurchaseOrderCard`,
 
 Conteggio globale `'it-IT'` (toLocaleString/Intl) sceso da 37 → **18**. Gate verdi:
 typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅.
+
+## Diario esecuzione — 2026-06-29 (6.1 batch vendite/users/notifiche/pagination)
+
+Localizzati 4 file (helper → param `locale` + `useIntlLocale()` nel componente):
+`VenditeSaleCard` (formatPrice + formatDateTime), `UserProfileCollectionPanel`
+(formatPrice), `NotificationBell` (toLocaleDateString nel fallback di formatRelative),
+`OggettiPagination` (4× toLocaleString). Conteggio globale `'it-IT'` 18 → **12**.
+
+**Restano (~6, esclusi i fallback legittimi):** i `'it-IT'` in `lib/utils.ts`,
+`lib/i18n/useIntlLocale.ts`, `lib/i18n/locales.ts` sono **default/fallback corretti**
+(da NON toccare). Rimangono da fare: `CartDropdown`, `FloatingCartFab`, `TopBar`,
+`app/cart/page.tsx`, `trade-proposal-ui`, `LegalDocShell`, `OggettiTable`/`OggettiMobileList`;
++ deferiti per complessità/scelta: `ProductPriceChart`/`ModernSellerTable`/
+`auctions-browse-shared` (formatter module-scope multi-call-site), `SetPageClient`
+(`formatEuro` è **dead code**), `SyncStatusOverview`/`SyncHistorySection` (admin IT-only),
+`BuildInfoBadge` (dev), `inventory-export-utils` (non-componente, export CSV).
+Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅.
+
+## Diario esecuzione — 2026-06-29 (6.1 chiusura inventario + verifica falsi positivi)
+
+Verificato che la maggior parte dei `'it-IT'` "da fare" NON erano hardcoded:
+`CartDropdown`, `FloatingCartFab`, `TopBar`, `app/cart/page.tsx`, `LegalDocShell`
+usano già `LOCALE_TO_INTL[locale] ?? 'it-IT'` = **fallback corretto** (invariati).
+Localizzati gli ultimi 2 hardcoded reali con `useIntlLocale()` nel componente:
+`OggettiMobileList` (priceLabel) e `OggettiTable` (cella prezzo). Conteggio `'it-IT'`
+hardcoded effettivi → **0** (restano solo fallback legittimi + deferiti).
+`trade-proposal-ui.formatTradeEuro` resta deferito: fn module-scope, 14 call-site in
+4 file (incl. fn interne), refactor invasivo a basso valore (solo formato numero).
+Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅ (2164×6), test 199/199 ✅.

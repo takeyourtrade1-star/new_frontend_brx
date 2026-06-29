@@ -8,9 +8,10 @@ import {
   type OrderViewMode,
 } from '@/components/feature/ordini/OrderItemCard';
 import type { VenditaMock } from './venditeMockData';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('it-IT', {
+function formatPrice(price: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: price % 1 === 0 ? 0 : 2,
@@ -18,9 +19,9 @@ function formatPrice(price: number): string {
   }).format(price);
 }
 
-function formatDateTime(iso: string): string {
+function formatDateTime(iso: string, locale: string): string {
   try {
-    return new Date(iso).toLocaleString('it-IT', {
+    return new Date(iso).toLocaleString(locale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -51,7 +52,8 @@ type VenditeSaleCardProps = {
 };
 
 export function VenditeSaleCard({ vendita, layout = 'list' }: VenditeSaleCardProps) {
-  const metaParts = [`${vendita.setName} · ${vendita.condition} · ${vendita.language}`, formatDateTime(vendita.soldAt)];
+  const intlLocale = useIntlLocale();
+  const metaParts = [`${vendita.setName} · ${vendita.condition} · ${vendita.language}`, formatDateTime(vendita.soldAt, intlLocale)];
   if (vendita.trackingCode) metaParts.push(`Tracking ${vendita.trackingCode}`);
 
   const model: OrderItemModel = {
@@ -60,10 +62,10 @@ export function VenditeSaleCard({ vendita, layout = 'list' }: VenditeSaleCardPro
     fallbackIcon: Package,
     subtitle: vendita.setName,
     counterparty: { label: 'Acquirente', name: `@${vendita.buyerUsername}` },
-    priceLabel: formatPrice(vendita.price),
+    priceLabel: formatPrice(vendita.price, intlLocale),
     status: STATUS_META[vendita.stato],
     channel: CHANNEL_LABEL[vendita.category],
-    metaLine: [formatDateTime(vendita.soldAt), vendita.trackingCode ? `Tracking ${vendita.trackingCode}` : null]
+    metaLine: [formatDateTime(vendita.soldAt, intlLocale), vendita.trackingCode ? `Tracking ${vendita.trackingCode}` : null]
       .filter(Boolean)
       .join(' · '),
   };

@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import type { MessageKey } from '@/lib/i18n/messages/en';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 
 type T = (key: MessageKey, vars?: Record<string, string | number>) => string;
 
@@ -25,12 +26,13 @@ export function OggettiPagination({
   t: T;
   onPageChange: (updater: (p: number) => number) => void;
 }) {
+  const intlLocale = useIntlLocale();
   return (
     <div className={`mt-3 flex flex-col gap-2 rounded-xl bg-white p-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] md:mt-6 md:gap-3 md:p-3 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4 ${hasSelection ? 'max-md:mb-20' : ''}`}>
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <span className="text-gray-500">
           {t('accountPage.itemsPage')} <span className="font-semibold text-gray-900">{currentPage}</span> {t('accountPage.itemsOf')}{' '}
-          <span className="font-semibold text-gray-900">{totalPages.toLocaleString()}</span>
+          <span className="font-semibold text-gray-900">{totalPages.toLocaleString(intlLocale)}</span>
         </span>
         <span className="text-gray-300">·</span>
         <span className="text-xs text-gray-400">
@@ -38,11 +40,11 @@ export function OggettiPagination({
         </span>
         <span className="text-gray-300">·</span>
         <span className="text-xs text-gray-500 tabular-nums">
-          {(totalFiltered === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1).toLocaleString('it-IT')}
+          {(totalFiltered === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1).toLocaleString(intlLocale)}
           –
-          {Math.min(currentPage * itemsPerPage, totalFiltered).toLocaleString('it-IT')}{' '}
+          {Math.min(currentPage * itemsPerPage, totalFiltered).toLocaleString(intlLocale)}{' '}
           {t('accountPage.itemsOf')}{' '}
-          {totalFiltered.toLocaleString('it-IT')}
+          {totalFiltered.toLocaleString(intlLocale)}
         </span>
         {catalogLoading && (
           <>

@@ -47,6 +47,7 @@ import { SetIconBadge } from '@/components/ui/SetIconBadge';
 import { CardArtStripHoverPreview } from '@/components/ui/CardArtStripHoverPreview';
 import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
 import { formatEuroNoSpace } from '@/lib/utils';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { OggettiMobileList } from '@/components/feature/account/OggettiMobileList';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 
@@ -98,6 +99,7 @@ export function OggettiTable({
 }: OggettiTableProps) {
   const router = useRouter();
   const { selectedLang } = useLanguage();
+  const intlLocale = useIntlLocale();
   const [editItem, setEditItem] = useState<InventoryItemWithCatalog | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -815,7 +817,7 @@ export function OggettiTable({
                     </div>
                   </td>
                   <td className="search-results-td px-1 align-middle text-right text-[13px] font-bold tabular-nums text-[#FF7300]">
-                    {formatEuroNoSpace((item.price_cents ?? 0) / 100, 'it-IT')}
+                    {formatEuroNoSpace((item.price_cents ?? 0) / 100, intlLocale)}
                   </td>
                   <td
                     className="search-results-td px-2 pr-3 align-middle"

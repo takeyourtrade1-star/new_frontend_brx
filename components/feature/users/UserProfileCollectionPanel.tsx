@@ -12,6 +12,7 @@ import { useMeilisearchCards } from '@/lib/hooks/use-meilisearch-cards';
 import { getCardDisplayNames } from '@/lib/card-display-name';
 import { getInventoryConditionCode } from '@/lib/inventory/inventory-filter-utils';
 import { ASSETS, getCdnImageUrl } from '@/lib/config';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import type { PublicInventoryItem } from '@/types';
 
 const PAGE_SIZE = 24;
@@ -27,8 +28,8 @@ function buildImageUrl(raw: string | null | undefined): string {
   return ASSETS.cdnUrl ? `${ASSETS.cdnUrl}${withSlash}` : withSlash;
 }
 
-function formatPrice(cents: number): string {
-  return new Intl.NumberFormat('it-IT', {
+function formatPrice(cents: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 2,
@@ -40,6 +41,7 @@ interface UserProfileCollectionPanelProps {
 }
 
 export function UserProfileCollectionPanel({ username }: UserProfileCollectionPanelProps) {
+  const intlLocale = useIntlLocale();
   const [page, setPage] = useState(0);
   const offset = page * PAGE_SIZE;
 
@@ -170,7 +172,7 @@ export function UserProfileCollectionPanel({ username }: UserProfileCollectionPa
                   <p className="line-clamp-1 text-[11px] font-medium text-slate-500">{card.set_name}</p>
                 )}
                 <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100/90 pt-2">
-                  <span className="text-sm font-bold text-[#ff7300]">{formatPrice(item.price_cents)}</span>
+                  <span className="text-sm font-bold text-[#ff7300]">{formatPrice(item.price_cents, intlLocale)}</span>
                   {condition && <ConditionBadge condition={condition} size="sm" />}
                 </div>
               </div>
