@@ -111,6 +111,14 @@ const nextConfig = {
   },
   async rewrites() {
     const searchApiUrl = process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL || 'http://localhost:8000';
+    if (!process.env.BRX_MATCH_API_URL) {
+      // Fallback hardcoded all'IP del servizio match: utile in dev, ma in
+      // produzione la variabile DEVE essere impostata. Segnaliamo a build-time
+      // così la mancanza non passa silenziosa in CI/deploy.
+      console.warn(
+        '[next.config] BRX_MATCH_API_URL non impostata: uso fallback hardcoded http://15.160.8.178:8005. Impostare la variabile in produzione.'
+      );
+    }
     const brxMatchUrl = (process.env.BRX_MATCH_API_URL || 'http://15.160.8.178:8005').replace(/\/+$/, '');
 
     // NOTA: /api/sync/* e /api/marketplace/* NON hanno rewrite qui.

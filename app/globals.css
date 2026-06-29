@@ -111,6 +111,16 @@
     background-attachment: fixed;
     color: #fff;
   }
+  /* `background-attachment: fixed` è ignorato/causa jank e repaint costosi su
+     iOS Safari e in generale su mobile. Sotto i 768px usiamo `scroll`: lo sfondo
+     scorre col contenuto (comportamento standard mobile) ed evita lo stutter. */
+  @media (max-width: 768px) {
+    body,
+    html:not(.dark) body,
+    html.dark body {
+      background-attachment: scroll;
+    }
+  }
 }
 
 /* Grid Card Title: animazione stagger (fade in + slide up) */

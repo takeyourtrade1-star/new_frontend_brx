@@ -1,8 +1,11 @@
 'use client';
 
 import { WifiOff, RefreshCw, Frown } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export default function OfflinePage() {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center bg-gradient-to-b from-[#3D65C6] to-[#1D3160]">
       <div className="mb-6 animate-offline-float">
@@ -15,13 +18,13 @@ export default function OfflinePage() {
       </div>
 
       <h1 className="text-3xl font-bold text-white mb-3 animate-auth-enter [animation-fill-mode:both] [animation-delay:200ms]">
-        Oops, sei offline!
+        {t('pages.offline.title')}
       </h1>
 
       <p className="text-white/70 text-lg max-w-md mb-8 animate-auth-enter [animation-fill-mode:both] [animation-delay:400ms]">
-        Non preoccuparti, la tua collezione ti aspetta.
+        {t('pages.offline.description1')}
         <br />
-        Riconnetti la rete e torna a catturare le migliori carte.
+        {t('pages.offline.description2')}
       </p>
 
       {/* Entrance sul wrapper così l'hover scale sul bottone non confligge con l'animazione (entrambi usano transform). */}
@@ -31,7 +34,7 @@ export default function OfflinePage() {
           className="flex items-center gap-2 px-6 py-3 bg-[#FF7300] text-white font-semibold rounded-xl shadow-lg hover:bg-[#e66800] transition-transform duration-200 hover:scale-105 active:scale-95"
         >
           <RefreshCw className="w-5 h-5" />
-          Riprova
+          {t('pages.error.retry')}
         </button>
       </div>
     </div>

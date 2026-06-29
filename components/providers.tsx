@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, ReactNode } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MotionConfig } from 'framer-motion';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/lib/theme-context';
@@ -9,34 +9,6 @@ import { startProactiveRefresh } from '@/lib/api/refresh-token';
 import { GameProvider, GameFromRouteSync } from '@/lib/contexts/GameContext';
 import { LanguageProvider } from '@/lib/contexts/LanguageContext';
 import { HtmlLangSync } from '@/components/HtmlLangSync';
-
-// Error Boundary for Auth-related errors
-class AuthErrorBoundary extends React.Component<
-  { children: ReactNode },
-  { hasError: boolean; error?: Error }
-> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[AuthErrorBoundary] Caught error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      // Render children anyway - don't block the UI for auth errors
-      console.warn('[AuthErrorBoundary] Rendering children despite auth error');
-      return this.props.children;
-    }
-    return this.props.children;
-  }
-}
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const hasInitialized = useRef(false);

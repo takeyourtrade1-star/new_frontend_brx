@@ -19,6 +19,42 @@ const DEVICE_TRUST_CRITICAL_PATHS = new Set([
   '/api/auth/verify-mfa',
 ]);
 
+/**
+ * Endpoint auth raggiungibili da utenti non autenticati: un 401 qui significa
+ * credenziali errate, non token scaduto. Il response interceptor NON deve
+ * tentare un refresh per queste richieste (match per substring sull'URL).
+ */
+const REFRESH_SKIP_PATHS = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/refresh',
+  '/api/auth/logout',
+  '/api/auth/verify-mfa',
+  '/api/auth/login/code/request',
+  '/api/auth/login/code/verify',
+  '/api/auth/password/reset/request',
+  '/api/auth/password/reset/verify-code',
+  '/api/auth/password/reset/confirm-init',
+  '/api/auth/password/reset/confirm-final',
+  '/api/auth/password/reset/confirm',
+] as const;
+
+/** Endpoint auth che un utente anonimo (non loggato) può chiamare. */
+const ANONYMOUS_AUTH_PATHS = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/refresh',
+  '/api/auth/verify-mfa',
+  '/api/auth/mfa/verify',
+  '/api/auth/login/code/request',
+  '/api/auth/login/code/verify',
+  '/api/auth/password/reset/request',
+  '/api/auth/password/reset/verify-code',
+  '/api/auth/password/reset/confirm-init',
+  '/api/auth/password/reset/confirm-final',
+  '/api/auth/password/reset/confirm',
+] as const;
+
 /** Risposta tipica per richieste che inviano solo email / messaggio generico (OTP, reset). */
 export interface OtpFlowMessageResponse {
   message?: string;
@@ -52,20 +88,7 @@ class AuthApiClient {
 
   private isAnonymousAuthRequest(url?: string): boolean {
     if (!url) return false;
-    return (
-      url.includes('/api/auth/login') ||
-      url.includes('/api/auth/register') ||
-      url.includes('/api/auth/refresh') ||
-      url.includes('/api/auth/verify-mfa') ||
-      url.includes('/api/auth/mfa/verify') ||
-      url.includes('/api/auth/login/code/request') ||
-      url.includes('/api/auth/login/code/verify') ||
-      url.includes('/api/auth/password/reset/request') ||
-      url.includes('/api/auth/password/reset/verify-code') ||
-      url.includes('/api/auth/password/reset/confirm-init') ||
-      url.includes('/api/auth/password/reset/confirm-final') ||
-      url.includes('/api/auth/password/reset/confirm')
-    );
+    return ANONYMOUS_AUTH_PATHS.some((path) => url.includes(path));
   }
 
   private shouldTryDirectCredentialedCall(normalizedUrl: string): boolean {
@@ -137,21 +160,11 @@ class AuthApiClient {
 
         // Se l'errore è 401 E non è una richiesta di "retry"
         // E NON è una richiesta di login/register/refresh (che non dovrebbero avere token)
+        const requestUrl = originalRequest.url;
         if (
           error.response?.status === 401 &&
           !originalRequest._retry &&
-          !originalRequest.url?.includes('/api/auth/login') &&
-          !originalRequest.url?.includes('/api/auth/register') &&
-          !originalRequest.url?.includes('/api/auth/refresh') &&
-          !originalRequest.url?.includes('/api/auth/logout') &&
-          !originalRequest.url?.includes('/api/auth/verify-mfa') &&
-          !originalRequest.url?.includes('/api/auth/login/code/request') &&
-          !originalRequest.url?.includes('/api/auth/login/code/verify') &&
-          !originalRequest.url?.includes('/api/auth/password/reset/request') &&
-          !originalRequest.url?.includes('/api/auth/password/reset/verify-code') &&
-          !originalRequest.url?.includes('/api/auth/password/reset/confirm-init') &&
-          !originalRequest.url?.includes('/api/auth/password/reset/confirm-final') &&
-          !originalRequest.url?.includes('/api/auth/password/reset/confirm')
+          !REFRESH_SKIP_PATHS.some((path) => requestUrl?.includes(path))
         ) {
           originalRequest._retry = true;
 

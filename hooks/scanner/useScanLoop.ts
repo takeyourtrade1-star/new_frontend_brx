@@ -273,6 +273,10 @@ export function useScanLoop({
     }
     lastFrameFpRef.current = fp;
 
+    // Turbo (ONNX) path also counts frames sent — the legacy path already did,
+    // so without this the debug counter stayed at 0 in Turbo mode.
+    setDebug((d) => ({ ...d, framesSent: d.framesSent + 1, lastOutcome: 'pending' }));
+
     syncBusy(inflightRef.current + 1, false);
     const t0 = performance.now();
 

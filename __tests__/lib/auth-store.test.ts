@@ -222,5 +222,82 @@ describe('auth-store', () => {
       expect(state.isAuthenticated).toBe(true);
       expect(state.accessToken).toBe('access_123');
     });
+
+    it('logout azzera authError/error e imposta flashMessage atomicamente con isAuthenticated', async () => {
+      useAuthStore.setState({
+        isAuthenticated: true,
+        accessToken: 'access_123',
+        authError: 'Errore precedente',
+        error: 'Altro errore',
+      });
+
+      await useAuthStore.getState().logout();
+
+      const state = useAuthStore.getState();
+      expect(state.isAuthenticated).toBe(false);
+      expect(state.authError).toBeNull();
+      expect(state.error).toBeNull();
+      // flashMessage di logout impostato nello stesso set() di isAuthenticated=false
+      expect(state.flashMessage).toBe('Disconnessione avvenuta con successo');
+    });
+  });
+
+  describe('login passwordless (codice via email)', () => {
+    it('requestLoginCode chiama l\'API e azzera loading/error', async () => {
+      vi.mocked(authApi.requestLoginCode).mockResolvedValue({ message: 'Codice inviato' });
+
+      await useAuthStore.getState().requestLoginCode('test@example.com');
+
+      expect(authApi.requestLoginCode).toHaveBeenCalledWith('test@example.com');
+      const state = useAuthStore.getState();
+      expect(state.isLoading).toBe(false);
+      expect(state.error).toBeNull();
+    });
+
+    it('requestLoginCode in errore imposta error e rilancia', async () => {
+      vi.mocked(authApi.requestLoginCode).mockRejectedValue(new Error('Email non valida'));
+
+      await expect(
+        useAuthStore.getState().requestLoginCode('bad')
+      ).rejects.toThrow();
+
+      const state = useAuthStore.getState();
+      expect(state.isLoading).toBe(false);
+      expect(state.error).toBeTruthy();
+    });
+
+    it('verifyLoginCode con token diretti → autenticato, flash, utente caricato', async () => {
+      vi.mocked(authApi.verifyLoginCode).mockResolvedValue({
+        access_token: 'access_code',
+        refresh_token: 'refresh_code',
+        token_type: 'bearer',
+      });
+      vi.mocked(fetchMe).mockResolvedValue(mockUser);
+
+      const result = await useAuthStore.getState().verifyLoginCode('test@example.com', '123456');
+
+      expect(result).toEqual({ mfaRequired: false });
+      const state = useAuthStore.getState();
+      expect(state.isAuthenticated).toBe(true);
+      expect(state.accessToken).toBe('access_code');
+      expect(state.user).toEqual(mockUser);
+      expect(state.flashMessage).toBe('Login avvenuto con successo');
+    });
+
+    it('verifyLoginCode con MFA richiesta → preAuthToken e mfaRequired, non autenticato', async () => {
+      vi.mocked(authApi.verifyLoginCode).mockResolvedValue({
+        mfa_required: true,
+        pre_auth_token: 'pre_code_123',
+      });
+
+      const result = await useAuthStore.getState().verifyLoginCode('test@example.com', '123456');
+
+      expect(result).toEqual({ mfaRequired: true, preAuthToken: 'pre_code_123' });
+      const state = useAuthStore.getState();
+      expect(state.mfaRequired).toBe(true);
+      expect(state.preAuthToken).toBe('pre_code_123');
+      expect(state.isAuthenticated).toBe(false);
+      expect(state.accessToken).toBeNull();
+    });
   });
 });

@@ -79,7 +79,12 @@ export async function GET(request: NextRequest) {
       count: hits.length,
       hits,
     };
-    return NextResponse.json(payload);
+    return NextResponse.json(payload, {
+      headers: {
+        // Catalogo pubblico: cache breve lato CDN/browser + revalidate in background.
+        'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+      },
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const status =

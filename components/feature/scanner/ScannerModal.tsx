@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useState, type RefObject } from 'react';
+import { useEffect, useCallback, useRef, useState, type RefObject } from 'react';
 import { Camera, X, Lightbulb } from 'lucide-react';
 import { useBrxScanner } from '@/hooks/useBrxScanner';
 import { ScannerModelGate } from '@/components/feature/scanner/ScannerModelGate';
@@ -499,11 +499,20 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
     return () => clearInterval(id);
   }, [state, videoRef]);
 
+  // Debounce: applyConstraints is async, so a fast double-tap could race two
+  // toggles and leave torchOn out of sync with the actual track state.
+  const torchBusyRef = useRef(false);
   const toggleTorch = useCallback(async () => {
+    if (torchBusyRef.current) return;
+    torchBusyRef.current = true;
     const next = !torchOn;
-    const ok = await applyTorch(videoRef, next);
-    if (ok) setTorchOn(next);
-    else setTorchSupported(false);
+    try {
+      const ok = await applyTorch(videoRef, next);
+      if (ok) setTorchOn(next);
+      else setTorchSupported(false);
+    } finally {
+      torchBusyRef.current = false;
+    }
   }, [torchOn, videoRef]);
 
   const handleUseCard = useCallback(() => {

@@ -1566,12 +1566,13 @@ export function CardMascotte() {
 
   // Listen for sticky bar visibility changes
   useEffect(() => {
-    const handleStickyBarShow = (e: CustomEvent) => {
-      setIsStickyBarVisible(e.detail.visible);
+    const handleStickyBarShow = (e: Event) => {
+      const detail = (e as CustomEvent<{ visible: boolean }>).detail;
+      setIsStickyBarVisible(Boolean(detail?.visible));
     };
 
-    window.addEventListener('stickyBarVisibilityChange' as any, handleStickyBarShow as any);
-    return () => window.removeEventListener('stickyBarVisibilityChange' as any, handleStickyBarShow as any);
+    window.addEventListener('stickyBarVisibilityChange', handleStickyBarShow);
+    return () => window.removeEventListener('stickyBarVisibilityChange', handleStickyBarShow);
   }, []);
 
   // No separate sleep promo cycle - uses same index as awake state

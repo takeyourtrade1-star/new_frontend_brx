@@ -91,6 +91,12 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] font-sans text-neutral-900">
+      <noscript>
+        <p className="bg-amber-100 px-4 py-3 text-center text-sm text-amber-900">
+          Questo sito richiede JavaScript per funzionare. Attiva JavaScript nel
+          browser per usare il carrello.
+        </p>
+      </noscript>
       <Suspense fallback={<div className="h-[120px] bg-[#1D3160]" />}>
         <Header />
       </Suspense>

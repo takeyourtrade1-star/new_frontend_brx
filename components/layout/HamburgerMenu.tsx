@@ -198,7 +198,7 @@ export function HamburgerMenu() {
 
       <div
         className={cn(
-          'fixed right-0 top-0 z-[10000] flex h-full w-[min(100%,340px)] max-w-[92vw] flex-col bg-white shadow-[-8px_0_32px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out',
+          'fixed right-0 top-0 z-[10000] flex h-full w-[min(100%,320px)] max-w-[88vw] flex-col bg-white shadow-[-8px_0_32px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out',
           open ? 'translate-x-0' : 'translate-x-full'
         )}
         role="dialog"

@@ -235,8 +235,9 @@ export function TopBar() {
               submitting={loginMutation.isPending}
               t={t}
             />
-            {/* Mobile: "Accedi o Registrati" link */}
-            <div className="flex shrink-0 items-center md:hidden">
+            {/* Mobile + tablet (<1280px): "Accedi o Registrati" link — il form inline
+                completo (con i due input) appare solo da xl per evitare overflow a 1024-1280px */}
+            <div className="flex shrink-0 items-center xl:hidden">
               <Link
                 href="/registrati"
                 className="text-[13px] font-semibold tracking-wide text-white/95 hover:text-white transition-colors uppercase"
@@ -244,8 +245,8 @@ export function TopBar() {
                 Accedi o Registrati
               </Link>
             </div>
-            {/* Desktop: REGISTRATI button */}
-            <div className="hidden shrink-0 md:block ml-3">
+            {/* Desktop ≥xl: REGISTRATI button (sotto xl basta il link sopra) */}
+            <div className="hidden shrink-0 xl:block ml-3">
               <Button
                 asChild
                 className="btn-orange-glow rounded-full border px-5 py-2 disabled:opacity-50 disabled:cursor-not-allowed"

@@ -839,6 +839,13 @@ function ScannerPageInner() {
       className="relative w-full overflow-hidden bg-black"
       style={{ height: '100svh' }}
     >
+      <noscript>
+        <p className="absolute inset-x-0 top-0 z-50 bg-amber-100 px-4 py-3 text-center text-sm text-amber-900">
+          Lo scanner richiede JavaScript e l&apos;accesso alla fotocamera. Attiva
+          JavaScript nel browser per usarlo.
+        </p>
+      </noscript>
+
       {/* ── Top loading bar ─────────────────────────────────────────── */}
       <TopLoadingBar active={isBusy && state !== 'matched'} />
 

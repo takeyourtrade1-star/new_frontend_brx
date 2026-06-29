@@ -6,7 +6,7 @@ import { RefreshCw } from 'lucide-react';
 import { MissingPage } from '@/components/shared/MissingPage';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
-export default function AsteError({
+export default function VendiError({
   error,
   reset,
 }: {
@@ -17,13 +17,13 @@ export default function AsteError({
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production') {
-      console.error('[AsteError]', error);
+      console.error('[VendiError]', error);
     }
   }, [error]);
 
   return (
     <MissingPage
-      title={t('pages.error.asteTitle')}
+      title={t('pages.error.vendiTitle')}
       description={
         <>
           <p>{t('pages.error.sectionGeneric')}</p>

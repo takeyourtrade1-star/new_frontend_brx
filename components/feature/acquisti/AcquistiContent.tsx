@@ -395,7 +395,7 @@ export function AcquistiContent() {
   };
 
   const handleConfirmMockPayment = () => {
-    if (!mockOrderToPay) return;
+    if (!mockOrderToPay || mockPaying) return;
     setMockPaying(true);
     markPaid(mockOrderToPay.id);
     setMockOrderToPay(null);

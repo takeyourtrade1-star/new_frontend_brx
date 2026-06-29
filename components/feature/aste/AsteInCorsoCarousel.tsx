@@ -368,7 +368,7 @@ export function AsteInCorsoCarousel({ useLightText = false }: { useLightText?: b
 function AuctionCardSkeleton() {
   return (
     <div className="flex w-[200px] shrink-0 flex-col gap-3 md:w-[240px]" aria-hidden="true">
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl bg-slate-200 animate-pulse">
+      <div className="relative aspect-[63/88] w-full overflow-hidden rounded-2xl bg-slate-200 animate-pulse">
         <div className="absolute left-2.5 top-2.5 flex gap-2">
           <div className="h-5 w-20 rounded-full bg-slate-300/50" />
         </div>
@@ -402,7 +402,7 @@ function AuctionCard({ item, featured = false }: AuctionCardProps) {
       aria-label={t('auctions.auctionAriaLabel', { title: item.title })}
     >
       {/* Immagine */}
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl bg-slate-100 shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_12px_24px_rgba(0,0,0,0.12)]">
+      <div className="relative aspect-[63/88] w-full overflow-hidden rounded-2xl bg-slate-100 shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_12px_24px_rgba(0,0,0,0.12)]">
         <Image
           src={item.image}
           alt=""

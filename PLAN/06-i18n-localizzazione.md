@@ -108,3 +108,32 @@ Scegliere "Sign in" come unico termine, sostituire in tutte le chiavi.
 - `npm run i18n:check` (nuovo) passa con 0 stringhe hardcoded in `app/` e `components/`
 - `npm run i18n:quality` (nuovo) passa con 0 chiavi non tradotte in de/fr/es/pt
 - Tutti i `toLocaleString('it-IT')` sostituiti con `useIntlLocale()`
+
+---
+
+## Diario esecuzione — 2026-06-29 (6.6 pagine di errore)
+
+Continuazione della sessione 2026-06-24 (vedi storico sotto/memoria). Gate verdi:
+`npm run typecheck` ✅, `npm run lint` ✅ (0 errori), `npm run i18n:keys` ✅
+(**2164 chiavi × 6 locali**), test **199/199**.
+
+**Fatto — 6.6 Localizzare pagine di errore:**
+
+Tutte le pagine error/offline sono Client Component dentro il provider tree → usano
+`useTranslation()`. Localizzate (titolo, descrizione, bottoni "Riprova"/"Home"):
+- `app/aste/error.tsx`, `app/aste/[id]/error.tsx` (con "Torna alle aste"),
+  `app/scambi/error.tsx`, `app/scanner/error.tsx`, `app/ordini/error.tsx`,
+  `app/vendi/error.tsx`, `app/offline/page.tsx`.
+- `app/error.tsx` e `app/not-found.tsx` erano **già** localizzati.
+
+Aggiunte 14 chiavi nuove ×6 locali (it/en/de/fr/es/pt), namespace `pages.error.*`
+(sectionGeneric, home, backToAuctions, asteTitle, asteDetailTitle,
+asteDetailDescription, scambiTitle, scannerTitle, scannerDescription, ordiniTitle,
+vendiTitle) e `pages.offline.*` (title, description1, description2). Riusate le
+preesistenti `pages.error.retry`/`pages.error.title`/`pages.error.generic`.
+
+**Non toccato:**
+- `app/global-error.tsx` — è **fuori** dal provider tree (renderizza il proprio
+  `<html><body>`), quindi `useTranslation()` non è disponibile lì. Lasciato invariato.
+- **6.7** (uniformare "Login"/"Sign in"): cosmetico, saltato come da nota precedente.
+- 6.2/6.4 e il resto di 6.1/6.5 restano come documentato nel diario 2026-06-24.

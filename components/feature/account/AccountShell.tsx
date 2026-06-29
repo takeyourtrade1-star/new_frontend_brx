@@ -120,7 +120,7 @@ function AccountSidebar() {
               )}
             >
               <Icon className="h-5 w-5 shrink-0" aria-hidden />
-              <span className="truncate">{t(key as any)}</span>
+              <span className="truncate">{t(key as MessageKey)}</span>
             </Link>
           );
         })}
@@ -262,7 +262,7 @@ function AccountNavMobile() {
                 )}
               >
                 <Icon className="h-4 w-4" aria-hidden />
-                <span className={active ? 'inline' : 'hidden'}>{t(key as any)}</span>
+                <span className={active ? 'inline' : 'hidden'}>{t(key as MessageKey)}</span>
               </Link>
             );
           })}

@@ -9,6 +9,7 @@ import { CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { usePasswordResetStore } from '@/lib/stores/password-reset-store';
 import { useCountdown } from '@/lib/hooks/use-countdown';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import type { MessageKey } from '@/lib/i18n/messages/en';
 import { translateZodMessage } from '@/lib/i18n/translateZodMessage';
 import { OtpSixBoxes } from '@/components/ui/otp-six-boxes';
 import {
@@ -113,7 +114,7 @@ export function RecuperaCredenzialiForm() {
     return (
       <div className={AUTH_ERROR_CLASS}>
         <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
-        <p className="text-[13px] text-red-600">{t(messageKey as any)}</p>
+        <p className="text-[13px] text-red-600">{t(messageKey as MessageKey)}</p>
       </div>
     );
   }
@@ -152,7 +153,7 @@ export function RecuperaCredenzialiForm() {
         <div className="space-y-1">
           <p className="text-[16px] font-semibold text-[#1d1d1f]">{t('errors.titles.generic')}</p>
           <p className={AUTH_SPLIT_MUTED_CLASS}>
-            {error ? t(error.message as any) : t('passwordReset.errorGeneric')}
+            {error ? t(error.message as MessageKey) : t('passwordReset.errorGeneric')}
           </p>
         </div>
         <button

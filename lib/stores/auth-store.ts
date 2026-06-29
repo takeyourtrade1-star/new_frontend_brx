@@ -224,6 +224,10 @@ export const useAuthStore = create<AuthState>()(
             if (normalized) {
               set({
                 user: normalized,
+                // Allinea lo stato in-memory all'header Authorization: il token
+                // può provenire da localStorage mentre get().accessToken era null
+                // (es. fetchUser invocato prima/indipendentemente da initializeAuth).
+                accessToken: token,
                 isAuthenticated: true,
                 isLoading: false,
                 error: null,

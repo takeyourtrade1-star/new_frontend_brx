@@ -182,9 +182,19 @@ export function AuctionBidModal({
 
     }
 
+    // Reset the confirmation step when the modal closes/unmounts, otherwise a
+    // stale 'direct'/'max' confirm could reappear the next time it opens.
+    if (!open) {
+
+      setConfirmAction(null);
+
+    }
+
     return () => {
 
       document.body.classList.remove('auction-bid-modal-open');
+
+      setConfirmAction(null);
 
     };
 

@@ -6,7 +6,7 @@ import { RefreshCw } from 'lucide-react';
 import { MissingPage } from '@/components/shared/MissingPage';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
-export default function AsteError({
+export default function ScannerError({
   error,
   reset,
 }: {
@@ -17,16 +17,16 @@ export default function AsteError({
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production') {
-      console.error('[AsteError]', error);
+      console.error('[ScannerError]', error);
     }
   }, [error]);
 
   return (
     <MissingPage
-      title={t('pages.error.asteTitle')}
+      title={t('pages.error.scannerTitle')}
       description={
         <>
-          <p>{t('pages.error.sectionGeneric')}</p>
+          <p>{t('pages.error.scannerDescription')}</p>
           {process.env.NODE_ENV !== 'production' && error?.message && (
             <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-left font-mono text-xs text-red-700 dark:bg-red-950 dark:text-red-300">
               {error.message}

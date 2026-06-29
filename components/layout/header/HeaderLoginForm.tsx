@@ -36,7 +36,7 @@ export function HeaderLoginForm({
   return (
             <form
               onSubmit={onSubmit}
-              className="hidden items-center gap-3 md:flex relative"
+              className="hidden items-center gap-3 xl:flex relative"
               noValidate
             >
               <div className="relative">

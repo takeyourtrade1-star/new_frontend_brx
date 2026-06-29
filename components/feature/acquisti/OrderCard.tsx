@@ -45,12 +45,17 @@ function relativeTime(targetIso: string | null): { label: string; isOverdue: boo
   const diff = target - Date.now();
   const isOverdue = diff < 0;
   const absMs = Math.abs(diff);
+  const sign = isOverdue ? '−' : '';
   const hours = Math.floor(absMs / 3_600_000);
   const days = Math.floor(hours / 24);
-  if (days >= 2) return { label: `${isOverdue ? '−' : ''}${days} giorni`, isOverdue };
-  if (hours >= 1) return { label: `${isOverdue ? '−' : ''}${hours} ore`, isOverdue };
+  const years = Math.floor(days / 365);
+  const months = Math.floor(days / 30);
+  if (years >= 1) return { label: `${sign}${years} ${years === 1 ? 'anno' : 'anni'}`, isOverdue };
+  if (months >= 1) return { label: `${sign}${months} ${months === 1 ? 'mese' : 'mesi'}`, isOverdue };
+  if (days >= 2) return { label: `${sign}${days} giorni`, isOverdue };
+  if (hours >= 1) return { label: `${sign}${hours} ore`, isOverdue };
   const minutes = Math.max(1, Math.floor(absMs / 60_000));
-  return { label: `${isOverdue ? '−' : ''}${minutes} min`, isOverdue };
+  return { label: `${sign}${minutes} min`, isOverdue };
 }
 
 export interface OrderCardProps {

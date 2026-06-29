@@ -118,7 +118,7 @@ export function CountrySelect({
   }, [isOpen]);
 
   return (
-    <div ref={containerRef} className={cn('relative', className)}>
+    <div ref={containerRef} className={cn('relative min-w-0', className)}>
       {label && (
         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">
           {label}

@@ -239,11 +239,14 @@ export function AuctionCreateWizard({
   const handleCardSelect = useCallback((sel: AuctionCreateCardSelection) => {
     const img =
       getCardImageUrl(sel.image) ?? (sel.image.trim().startsWith('http') ? sel.image : '');
+    // Defensive: normalize the selection title so a malformed selection
+    // (undefined / whitespace-only) can't put a blank/garbage title in the draft.
+    const safeTitle = typeof sel.title === 'string' ? sel.title.trim() : '';
     setDraft((d): AuctionCreateDraft => {
       const base = {
         ...d,
         cardSelection: sel,
-        title: sel.title,
+        title: safeTitle,
         description: '',
         imageUrl: img,
         game: searchGameSlugToAuctionGame(sel.gameSlug),
@@ -440,9 +443,13 @@ export function AuctionCreateWizard({
         endIso: created?.data?.end_time ?? built.endIso,
       });
       setDone(true);
-      pairing.revokeOnPublish();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore nella creazione dell'asta");
+    } finally {
+      // Revoke the phone-pairing session whether publish succeeds or fails —
+      // the uploaded photos are already in the payload, so a stale session is
+      // never useful and leaving it open on failure leaks a live pairing token.
+      pairing.revokeOnPublish();
     }
   }, [
     draft,

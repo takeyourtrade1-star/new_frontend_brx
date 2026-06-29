@@ -100,9 +100,13 @@ export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
     };
   }, [connect]);
 
-  // Reset local WS messages whenever the base query reloads (tab focus, manual refetch).
+  // When the base query reloads (tab focus, manual refetch), drop only the
+  // WS-only messages that the server now returns — keep any that arrived after
+  // the fetch snapshot so a live message isn't lost on refetch.
   useEffect(() => {
-    setWsMessages([]);
+    const serverIds = new Set((messagesQuery.data?.data ?? []).map((m) => m.id));
+    setWsMessages((prev) => prev.filter((m) => !serverIds.has(m.id)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messagesQuery.dataUpdatedAt]);
 
   // Merge server + WS-only messages, deduplicating by id, sorted by creation time.

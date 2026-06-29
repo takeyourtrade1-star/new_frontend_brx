@@ -17,6 +17,13 @@ export type ModelStatus = 'loading' | 'ready' | 'failed';
 
 const ONNX_SIZE = 224;
 
+/**
+ * `ort.env.wasm` is process-global. Configuring it once guards against a race
+ * when multiple instances of this hook mount (e.g. scanner + embed) and write
+ * the same globals concurrently.
+ */
+let ortEnvConfigured = false;
+
 export interface UseOnnxSessionOptions {
   apiBaseUrl: string;
 }
@@ -118,9 +125,12 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
         const ort = await import('onnxruntime-web');
         if (cancelled) return;
 
-        ort.env.wasm.numThreads = 1;
-        ort.env.wasm.simd = true;
-        ort.env.wasm.wasmPaths = '/ort-wasm/';
+        if (!ortEnvConfigured) {
+          ort.env.wasm.numThreads = 1;
+          ort.env.wasm.simd = true;
+          ort.env.wasm.wasmPaths = '/ort-wasm/';
+          ortEnvConfigured = true;
+        }
 
         const wasmBase =
           typeof window !== 'undefined' ? `${window.location.origin}/ort-wasm/` : '/ort-wasm/';

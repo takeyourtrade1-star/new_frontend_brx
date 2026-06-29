@@ -110,7 +110,12 @@ export async function GET(
       available_languages: doc.available_languages,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        // Catalogo pubblico: cache breve lato CDN/browser + revalidate in background.
+        'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+      },
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
