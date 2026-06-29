@@ -1,5 +1,8 @@
+'use client';
+
 import { Package } from 'lucide-react';
 import { formatEuroNoSpace } from '@/lib/utils';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import {
   OrderItemCard,
   type OrderItemModel,
@@ -17,9 +20,9 @@ const STATUS_META: Record<OrderStatus, { label: string; tone: OrderStatusTone }>
   mock: { label: 'Demo', tone: 'cancelled' },
 };
 
-function formatDateTime(iso: string): string {
+function formatDateTime(iso: string, locale: string): string {
   try {
-    return new Date(iso).toLocaleString('it-IT', {
+    return new Date(iso).toLocaleString(locale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -37,6 +40,7 @@ type MarketplaceOrderCardProps = {
 };
 
 export function MarketplaceOrderCard({ order, layout = 'list' }: MarketplaceOrderCardProps) {
+  const intlLocale = useIntlLocale();
   const statusMeta = STATUS_META[order.status] ?? { label: order.status.toUpperCase(), tone: 'cancelled' as const };
   const title = order.listing_title?.trim() || `Inserzione ${order.listing_id.slice(0, 8)}…`;
   const total = Number.parseFloat(order.total_amount);
@@ -46,10 +50,10 @@ export function MarketplaceOrderCard({ order, layout = 'list' }: MarketplaceOrde
     title,
     href: order.card_id ? `/products/${order.card_id}` : null,
     fallbackIcon: Package,
-    priceLabel: formatEuroNoSpace(total, 'it-IT'),
+    priceLabel: formatEuroNoSpace(total, intlLocale),
     status: statusMeta,
     channel: order.is_mock ? 'Demo' : 'Marketplace',
-    metaLine: `${formatDateTime(order.created_at)} · Qtà ${order.quantity}`,
+    metaLine: `${formatDateTime(order.created_at, intlLocale)} · Qtà ${order.quantity}`,
   };
 
   return <OrderItemCard model={model} layout={layout} />;

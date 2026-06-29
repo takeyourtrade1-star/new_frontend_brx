@@ -1,13 +1,16 @@
+'use client';
+
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { ExpandableCard } from '@/components/shared/ExpandableCard';
 import type { MockSupportTicket } from '@/lib/stores/mock-support-store';
 import type { DisputeAPI, DisputeStatus } from '@/types/dispute';
 
-function formatDateTime(iso: string | null): string {
+function formatDateTime(iso: string | null, locale: string): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleString('it-IT', {
+    return new Date(iso).toLocaleString(locale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -42,6 +45,7 @@ interface SupportTicketCardProps {
 }
 
 export function SupportTicketCard({ ticket }: SupportTicketCardProps) {
+  const intlLocale = useIntlLocale();
   if (ticket.type === 'real') {
     const d = ticket.data;
     const meta = getDisputeBadgeMeta(d.status);
@@ -74,7 +78,7 @@ export function SupportTicketCard({ ticket }: SupportTicketCardProps) {
     );
 
     const details = (
-      <p className="text-sm text-gray-600">Aperta il {formatDateTime(d.created_at)}</p>
+      <p className="text-sm text-gray-600">Aperta il {formatDateTime(d.created_at, intlLocale)}</p>
     );
 
     return <ExpandableCard summary={summary} details={details} />;
@@ -114,9 +118,9 @@ export function SupportTicketCard({ ticket }: SupportTicketCardProps) {
     <div className="space-y-2">
       <p className="text-sm text-gray-600">{m.description}</p>
       <p className="text-xs text-gray-500">Categoria: {m.category}</p>
-      <p className="text-xs text-gray-500">Aperta il {formatDateTime(m.createdAt)}</p>
+      <p className="text-xs text-gray-500">Aperta il {formatDateTime(m.createdAt, intlLocale)}</p>
       {m.resolvedAt && (
-        <p className="text-xs text-emerald-700">Risolto il {formatDateTime(m.resolvedAt)}</p>
+        <p className="text-xs text-emerald-700">Risolto il {formatDateTime(m.resolvedAt, intlLocale)}</p>
       )}
     </div>
   );

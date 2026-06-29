@@ -4,6 +4,7 @@ import { CreditCard, Package } from 'lucide-react';
 import { formatEuroNoSpace } from '@/lib/utils';
 import { getCdnImageUrl } from '@/lib/config';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import {
   OrderActionButton,
   OrderItemCard,
@@ -20,9 +21,9 @@ function resolveImageSrc(imageUrl: string): string {
   return imageUrl.startsWith('http') ? imageUrl : getCdnImageUrl(imageUrl);
 }
 
-function formatDateTime(iso: string): string {
+function formatDateTime(iso: string, locale: string): string {
   try {
-    return new Date(iso).toLocaleString('it-IT', {
+    return new Date(iso).toLocaleString(locale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -48,6 +49,7 @@ export function MockPurchaseOrderCard({
   layout = 'list',
 }: MockPurchaseOrderCardProps) {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
   const isPending = order.status === 'payment_pending';
   const total = getMockOrderTotalCents(order) / 100;
 
@@ -58,15 +60,15 @@ export function MockPurchaseOrderCard({
     imageUrl: resolveImageSrc(order.imageUrl) || null,
     fallbackIcon: Package,
     subtitle: order.sellerDisplayName || undefined,
-    priceLabel: formatEuroNoSpace(total, 'it-IT'),
+    priceLabel: formatEuroNoSpace(total, intlLocale),
     status: isPending
       ? { label: t('mockCheckout.statusPending'), tone: 'waiting' }
       : { label: t('mockCheckout.statusPaid'), tone: 'done' },
     channel: 'Demo',
     metaLine:
       !isPending && order.paidAt
-        ? t('mockCheckout.paidAt', { date: formatDateTime(order.paidAt) })
-        : formatDateTime(order.createdAt),
+        ? t('mockCheckout.paidAt', { date: formatDateTime(order.paidAt, intlLocale) })
+        : formatDateTime(order.createdAt, intlLocale),
     actions:
       isPending && onPay ? (
         <OrderActionButton variant="primary" icon={CreditCard} disabled={paying} onClick={() => onPay(order)}>

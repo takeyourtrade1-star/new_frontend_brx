@@ -158,3 +158,18 @@ a livello di modulo** (es. `const eurFmt = new Intl.NumberFormat('it-IT', …)` 
 acquisti/aste-browse/seller-table) che richiedono restructuring (spostare il formatter
 dentro il componente o passare il locale come parametro), più alcuni helper in
 `lib/inventory/*` e `lib/i18n/locales.ts`. Da fare in batch dedicati.
+
+## Diario esecuzione — 2026-06-29 (6.1 batch acquisti)
+
+Localizzato il cluster **acquisti** (7 file): i formatter a scope-modulo
+(`const eurFmt = new Intl.NumberFormat('it-IT', …)`) sono stati rimossi e sostituiti
+con `formatEur(n, intlLocale)` di `lib/utils`; gli helper `formatDateTime(iso)` ora
+accettano `locale`; aggiunto `useIntlLocale()` nei componenti (con `'use client'`
+dove mancava: MarketplaceOrderCard, SupportTicketCard).
+
+File: `OrderCard`, `MarketplaceOrderCard`, `MockPurchaseOrderCard`,
+`MockShippingOrderCard`, `SupportTicketCard`, `MockPaymentFormModal`,
+`PaymentConfirmModal`. Residui `'it-IT'` di formattazione in `components/feature/acquisti/`: **0**.
+
+Conteggio globale `'it-IT'` (toLocaleString/Intl) sceso da 37 → **18**. Gate verdi:
+typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅.

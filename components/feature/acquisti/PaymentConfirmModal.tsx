@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatEur } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import type { OrderAPI } from '@/types/order';
 
 interface PaymentConfirmModalProps {
@@ -14,8 +15,6 @@ interface PaymentConfirmModalProps {
   onConfirm: () => void;
 }
 
-const eurFmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
-
 export function PaymentConfirmModal({
   order,
   isPaying,
@@ -24,6 +23,7 @@ export function PaymentConfirmModal({
   onConfirm,
 }: PaymentConfirmModalProps) {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
   const closeBtn = useRef<HTMLButtonElement | null>(null);
   const [acceptedDemo, setAcceptedDemo] = useState(false);
 
@@ -81,7 +81,7 @@ export function PaymentConfirmModal({
           </p>
           <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
             <span className="text-gray-500">Totale da pagare</span>
-            <span className="text-xl font-bold text-gray-900">{eurFmt.format(order.total_amount)}</span>
+            <span className="text-xl font-bold text-gray-900">{formatEur(order.total_amount, intlLocale)}</span>
           </div>
 
           <label className="flex cursor-pointer items-start gap-2 text-sm text-gray-700">

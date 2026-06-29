@@ -3,6 +3,7 @@
 import { Package, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { formatEuroNoSpace } from '@/lib/utils';
 import { getCdnImageUrl } from '@/lib/config';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import {
   OrderActionButton,
   OrderItemCard,
@@ -27,9 +28,9 @@ function resolveImageSrc(imageUrl: string): string {
   return imageUrl.startsWith('http') ? imageUrl : getCdnImageUrl(imageUrl);
 }
 
-function formatDateTime(iso: string): string {
+function formatDateTime(iso: string, locale: string): string {
   try {
-    return new Date(iso).toLocaleString('it-IT', {
+    return new Date(iso).toLocaleString(locale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -54,6 +55,7 @@ export function MockShippingOrderCard({
   onNotReceived,
   layout = 'list',
 }: MockShippingOrderCardProps) {
+  const intlLocale = useIntlLocale();
   const total = (order.priceCents * order.quantity) / 100;
   const isDelayed = order.shippingDays > 14;
   const isReceived = order.status === 'received';
@@ -64,13 +66,13 @@ export function MockShippingOrderCard({
     imageUrl: resolveImageSrc(order.imageUrl) || null,
     fallbackIcon: Package,
     subtitle: order.sellerDisplayName || undefined,
-    priceLabel: formatEuroNoSpace(total, 'it-IT'),
+    priceLabel: formatEuroNoSpace(total, intlLocale),
     status: isReceived
       ? { label: 'Ricevuto', tone: 'done' }
       : { label: `In transito · ${order.shippingDays} g`, tone: 'progress' },
     alert: isDelayed && !isReceived ? 'In ritardo' : undefined,
     channel: 'Demo',
-    metaLine: `Spedito il ${formatDateTime(order.shippedAt)}`,
+    metaLine: `Spedito il ${formatDateTime(order.shippedAt, intlLocale)}`,
     actions:
       order.status === 'in_transit' ? (
         <>

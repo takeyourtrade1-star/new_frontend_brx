@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, CreditCard, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatEur } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import {
   getMockOrderTotalCents,
   type MockPurchaseOrder,
@@ -16,8 +17,6 @@ interface MockPaymentFormModalProps {
   onConfirm: () => void;
 }
 
-const eurFmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
-
 export function MockPaymentFormModal({
   order,
   isPaying,
@@ -25,6 +24,7 @@ export function MockPaymentFormModal({
   onConfirm,
 }: MockPaymentFormModalProps) {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
   const closeBtn = useRef<HTMLButtonElement | null>(null);
   const [cardholder, setCardholder] = useState('');
   const [cardNumber, setCardNumber] = useState('');
@@ -103,7 +103,7 @@ export function MockPaymentFormModal({
           <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm">
             <p className="font-semibold text-gray-900">{order.title}</p>
             <p className="mt-1 text-gray-600">
-              Qtà {order.quantity} · {eurFmt.format(total)}
+              Qtà {order.quantity} · {formatEur(total, intlLocale)}
             </p>
           </div>
 

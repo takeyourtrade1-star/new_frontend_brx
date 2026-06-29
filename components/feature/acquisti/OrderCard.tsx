@@ -10,6 +10,8 @@ import {
   type OrderViewMode,
 } from '@/components/feature/ordini/OrderItemCard';
 import type { OrderAPI, OrderStatus } from '@/types/order';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
+import { formatEur } from '@/lib/utils';
 
 const STATUS_META: Record<OrderStatus, { label: string; tone: OrderStatusTone }> = {
   PAYMENT_PENDING: { label: 'Da pagare', tone: 'waiting' },
@@ -22,12 +24,10 @@ const STATUS_META: Record<OrderStatus, { label: string; tone: OrderStatusTone }>
   REASSIGNED: { label: 'Riassegnato', tone: 'cancelled' },
 };
 
-const eurFmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
-
-function formatDateTime(iso: string | null): string {
+function formatDateTime(iso: string | null, locale: string): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleString('it-IT', {
+    return new Date(iso).toLocaleString(locale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -77,6 +77,7 @@ export function OrderCard({
   openingDispute = false,
   layout = 'list',
 }: OrderCardProps) {
+  const intlLocale = useIntlLocale();
   const statusMeta = STATUS_META[order.status];
   const dueRelative = useMemo(() => relativeTime(order.due_at), [order.due_at]);
 
@@ -92,9 +93,9 @@ export function OrderCard({
 
   const metaLine =
     order.status === 'PAID'
-      ? `Pagato il ${formatDateTime(order.paid_at)}`
+      ? `Pagato il ${formatDateTime(order.paid_at, intlLocale)}`
       : order.due_at
-        ? `${dueRelative.isOverdue ? 'Scaduto da ' : 'Scade tra '}${dueRelative.label} · ${formatDateTime(order.due_at)}`
+        ? `${dueRelative.isOverdue ? 'Scaduto da ' : 'Scade tra '}${dueRelative.label} · ${formatDateTime(order.due_at, intlLocale)}`
         : undefined;
 
   const model: OrderItemModel = {
@@ -102,7 +103,7 @@ export function OrderCard({
     title: order.auction_title || `Asta #${order.auction_id}`,
     href: `/aste/${order.auction_id}`,
     fallbackIcon: Gavel,
-    priceLabel: eurFmt.format(order.total_amount),
+    priceLabel: formatEur(order.total_amount, intlLocale),
     counterparty: { label: perspective === 'buyer' ? 'Venditore' : 'Acquirente', name: counterpartyName },
     status: statusMeta,
     alert: order.due_at && dueRelative.isOverdue ? 'Scaduto' : undefined,
