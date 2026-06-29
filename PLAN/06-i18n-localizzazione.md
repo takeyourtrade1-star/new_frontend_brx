@@ -202,3 +202,14 @@ hardcoded effettivi → **0** (restano solo fallback legittimi + deferiti).
 `trade-proposal-ui.formatTradeEuro` resta deferito: fn module-scope, 14 call-site in
 4 file (incl. fn interne), refactor invasivo a basso valore (solo formato numero).
 Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅ (2164×6), test 199/199 ✅.
+
+## Diario esecuzione — 2026-06-29 (6.5 estrazione hardcoded aste/detail)
+
+Estratti 2 sotto-componenti `aste/detail` user-facing in i18n (18 chiavi ×6 locali,
+it=originale + en/de/fr/es/pt MT): `ProxyLimitModal` → `auctions.proxyModal.*` (12
+chiavi, +`useTranslation`), `AuctionShippingDetails` → `auctions.shippingDetails.*` (6
+chiavi, +`'use client'`+`useTranslation`; intercettata anche "Resto Europa (default)"
+che `i18n:check` non flaggava). 0 hardcoded residue nei 2 file. Parità i18n:keys ora
+**2182 ×6**. Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅.
+NB: `i18n:check` totale resta ~800 (in gran parte falsi positivi/brand/gergo TCG); il
+"0" del piano non è un target realistico — si procede per cluster user-facing a valore.

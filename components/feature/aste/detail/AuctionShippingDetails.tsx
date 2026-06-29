@@ -1,5 +1,8 @@
+'use client';
+
 import { Globe } from 'lucide-react';
 import { FlagIcon } from '@/components/ui/FlagIcon';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export interface AuctionShippingCountryRow {
   country_iso: string;
@@ -26,20 +29,21 @@ export function AuctionShippingDetails({
   shippingCountryRows,
   fmtEur,
 }: AuctionShippingDetailsProps) {
+  const { t } = useTranslation();
   return (
     <>
       <p className="text-sm font-semibold text-gray-900">
-        {shippingInfo.included ? 'Spedizione inclusa' : shippingInfo.label}
+        {shippingInfo.included ? t('auctions.shippingDetails.included') : shippingInfo.label}
       </p>
       {!shippingInfo.included ? (
-        <p className="mt-1 text-xs text-gray-500">Tariffe per area di consegna</p>
+        <p className="mt-1 text-xs text-gray-500">{t('auctions.shippingDetails.ratesByArea')}</p>
       ) : null}
       <div className="mt-2 space-y-1.5">
         {shippingOriginCountry ? (
           <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs">
             <div className="flex items-center gap-2">
               <FlagIcon country={shippingOriginCountry} size="sm" />
-              <span className="font-medium text-gray-600">Nazionale</span>
+              <span className="font-medium text-gray-600">{t('auctions.shippingDetails.national')}</span>
             </div>
             <span className="font-semibold text-gray-900">
               {shippingNationalEur != null ? fmtEur(shippingNationalEur) : '—'}
@@ -47,7 +51,7 @@ export function AuctionShippingDetails({
           </div>
         ) : null}
         <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs">
-          <span className="font-medium text-gray-600">Resto Europa (default)</span>
+          <span className="font-medium text-gray-600">{t('auctions.shippingDetails.restEuropeDefault')}</span>
           <span className="font-semibold text-gray-900">
             {shippingEuDefaultEur != null ? fmtEur(shippingEuDefaultEur) : '—'}
           </span>
@@ -56,7 +60,7 @@ export function AuctionShippingDetails({
           <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs">
             <div className="flex items-center gap-2">
               <Globe className="h-3.5 w-3.5 text-gray-500" aria-hidden />
-              <span className="font-medium text-gray-600">Resto del mondo</span>
+              <span className="font-medium text-gray-600">{t('auctions.shippingDetails.restWorld')}</span>
             </div>
             <span className="font-semibold text-gray-900">{fmtEur(restOfWorldPriceEur)}</span>
           </div>
@@ -64,7 +68,7 @@ export function AuctionShippingDetails({
         {shippingCountryRows.length > 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white px-2.5 py-2">
             <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-              Tariffe specifiche per paese
+              {t('auctions.shippingDetails.perCountry')}
             </p>
             <div className="space-y-1.5">
               {shippingCountryRows.map((row) => (
