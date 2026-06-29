@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { MessageKey } from '@/lib/i18n/messages/en';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 
 export interface AuctionDetailsSummaryProps {
   endsAt: string;
@@ -25,6 +26,7 @@ export function AuctionDetailsSummary({
   t,
 }: AuctionDetailsSummaryProps) {
   const [mobileSection, setMobileSection] = useState<string | null>('auction');
+  const intlLocale = useIntlLocale();
 
   return (
     <>
@@ -33,7 +35,7 @@ export function AuctionDetailsSummary({
         <div className="px-3 py-2 text-sm">
           <span className="text-gray-500">{t('auctions.detailEnds')}: </span>
           <span className="font-semibold text-gray-900">
-            {new Date(endsAt).toLocaleString('it-IT', {
+            {new Date(endsAt).toLocaleString(intlLocale, {
               weekday: 'long',
               day: 'numeric',
               month: 'long',
@@ -78,7 +80,7 @@ export function AuctionDetailsSummary({
               <div className="flex items-baseline justify-between">
                 <span className="text-gray-500">{t('auctions.detailEnds')}</span>
                 <span className="font-semibold text-gray-900 text-right text-xs">
-                  {new Date(endsAt).toLocaleString('it-IT', {
+                  {new Date(endsAt).toLocaleString(intlLocale, {
                     weekday: 'short',
                     day: 'numeric',
                     month: 'short',

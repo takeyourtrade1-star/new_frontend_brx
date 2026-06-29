@@ -1,6 +1,7 @@
 import { type RefObject } from 'react';
 import { CalendarPlus } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { formatAuctionEur, CALENDAR_GLASS_MENU_CLASS } from '@/lib/auction/auction-detail-utils';
 import { CalendarAddMenu } from '@/components/feature/aste/detail/CalendarAddMenu';
 import { AntiSnipeInfoButton } from '@/components/feature/aste/detail/AntiSnipeInfoButton';
@@ -29,6 +30,7 @@ export function AuctionTimerCardDesktop({
   onGoogle: () => void;
 }) {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
   const fmtEur = (n: number) => formatAuctionEur(n);
 
   return (
@@ -42,7 +44,7 @@ export function AuctionTimerCardDesktop({
             {t('auctions.detailAuctionClosed')}
           </p>
           <p className="mt-3 text-[13px] font-semibold text-[#9A3412]">
-            {new Date(endsAt).toLocaleString('it-IT', {
+            {new Date(endsAt).toLocaleString(intlLocale, {
               day: 'numeric',
               month: 'long',
               year: 'numeric',

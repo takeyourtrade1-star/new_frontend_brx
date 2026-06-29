@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import type { CardDocument } from '@/lib/product-detail';
 import type { ProductPriceStats } from '@/components/feature/product/ProductPriceChart';
 
@@ -59,6 +60,7 @@ export function ProductDetailSellTab({
   onChartStatsChange,
   onSellSinglePublished,
 }: ProductDetailSellTabProps) {
+  const intlLocale = useIntlLocale();
   if (!card) {
     return (
       <div className="hidden flex-1 flex-col items-center justify-center p-6 min-w-0 w-full sm:flex">
@@ -107,7 +109,7 @@ export function ProductDetailSellTab({
             </div>
             <div className="flex items-center justify-between gap-1 rounded-md border border-[#1D3160]/15 bg-[#1D3160]/[0.06] px-1.5 py-1">
               <span className="text-[8px] font-bold uppercase tracking-wider text-[#1D3160]/70">Vendute</span>
-              <span className="text-[11px] font-extrabold tabular-nums text-[#1D3160]">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</span>
+              <span className="text-[11px] font-extrabold tabular-nums text-[#1D3160]">{new Intl.NumberFormat(intlLocale).format(soldCopiesValue)}</span>
             </div>
             <div className="flex items-center justify-between gap-1 rounded-md border border-emerald-200/70 bg-emerald-50/60 px-1.5 py-1">
               <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-700/80">Prezzo medio</span>
@@ -122,7 +124,7 @@ export function ProductDetailSellTab({
             </div>
             <div className="flex items-center justify-between gap-2 rounded-md border border-[#1D3160]/15 bg-[#1D3160]/[0.06] px-2.5 py-1.5">
               <span className="text-[9px] font-bold uppercase tracking-wider text-[#1D3160]/70">Vendute</span>
-              <span className="text-[13px] font-extrabold tabular-nums text-[#1D3160]">{new Intl.NumberFormat('it-IT').format(soldCopiesValue)}</span>
+              <span className="text-[13px] font-extrabold tabular-nums text-[#1D3160]">{new Intl.NumberFormat(intlLocale).format(soldCopiesValue)}</span>
             </div>
             <div className="flex items-center justify-between gap-2 rounded-md border border-emerald-200/70 bg-emerald-50/60 px-2.5 py-1.5">
               <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700/80">Prezzo medio</span>

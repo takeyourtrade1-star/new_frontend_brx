@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Check } from 'lucide-react';
 import { useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 
 export type AuctionCreateSuccessInfo = {
   id: number | null;
@@ -17,15 +18,16 @@ type AuctionCreateSuccessScreenProps = {
 
 export function AuctionCreateSuccessScreen({ createdAuctionInfo }: AuctionCreateSuccessScreenProps) {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
 
   const formatDateTimeLong = useCallback((iso: string) => {
     const d = new Date(iso);
     if (!Number.isFinite(d.getTime())) return '—';
-    return new Intl.DateTimeFormat('it-IT', {
+    return new Intl.DateTimeFormat(intlLocale, {
       dateStyle: 'full',
       timeStyle: 'short',
     }).format(d);
-  }, []);
+  }, [intlLocale]);
 
   return (
     <div className="mx-auto max-w-lg rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">

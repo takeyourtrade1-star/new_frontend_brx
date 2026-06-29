@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import type { ProductPriceStats } from '@/components/feature/product/ProductPriceChart';
 
 const ProductPriceChart = dynamic(
@@ -33,6 +34,7 @@ export function ProductDetailChartTab({
   soldCopiesValue,
   onChartStatsChange,
 }: ProductDetailChartTabProps) {
+  const intlLocale = useIntlLocale();
   return (
     <div className="hidden min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto p-2.5 sm:flex sm:p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -42,7 +44,7 @@ export function ProductDetailChartTab({
         <div className="flex gap-1.5 text-[10px] font-bold tabular-nums">
           <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-amber-700">{formatEuro(trendPriceValue)}</span>
           <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-sky-700">
-            {new Intl.NumberFormat('it-IT').format(soldCopiesValue)} vend.
+            {new Intl.NumberFormat(intlLocale).format(soldCopiesValue)} vend.
           </span>
         </div>
       </div>

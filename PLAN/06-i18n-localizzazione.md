@@ -137,3 +137,24 @@ preesistenti `pages.error.retry`/`pages.error.title`/`pages.error.generic`.
   `<html><body>`), quindi `useTranslation()` non è disponibile lì. Lasciato invariato.
 - **6.7** (uniformare "Login"/"Sign in"): cosmetico, saltato come da nota precedente.
 - 6.2/6.4 e il resto di 6.1/6.5 restano come documentato nel diario 2026-06-24.
+
+## Diario esecuzione — 2026-06-29 (6.1 batch formattazione)
+
+Avanzamento di **6.1** (formattazione locale-aware). Infra già pronta da sessioni
+precedenti: `useIntlLocale()` e i formatter di `lib/utils.ts` accettano già `locale`.
+Localizzati 9 call-site hardcoded `'it-IT'` (date + numeri) in 2 cluster client:
+
+- **Aste detail:** `AuctionDetailsSummary` (2), `AuctionTimerCardDesktop` (1),
+  `AuctionTimerCardMobile` (1), `AuctionCreateSuccessScreen` (1) →
+  `new Date().toLocaleString(intlLocale, …)` / `Intl.DateTimeFormat(intlLocale, …)`.
+- **Product "sold copies":** `ProductDetailChartTab` (1), `ProductDetailInfoTab` (2),
+  `ProductDetailSellTab` (2), `MobileChartKpiRow` (1, ora `'use client'`) →
+  `new Intl.NumberFormat(intlLocale)`.
+
+Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅.
+
+**Restano (6.1):** ~28 call-site `'it-IT'` ancora hardcoded, in gran parte **formatter
+a livello di modulo** (es. `const eurFmt = new Intl.NumberFormat('it-IT', …)` in
+acquisti/aste-browse/seller-table) che richiedono restructuring (spostare il formatter
+dentro il componente o passare il locale come parametro), più alcuni helper in
+`lib/inventory/*` e `lib/i18n/locales.ts`. Da fare in batch dedicati.
