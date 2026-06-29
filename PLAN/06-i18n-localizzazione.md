@@ -237,3 +237,12 @@ Sync/Tabella/Griglia, sia desktop che mobile via replace_all), `OggettiTable` e
 `OggettiMobileList` (aria-label Diminuisci/Aumenta quantità + Azioni). Parità
 i18n:keys **2210×6**. Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅.
 `Promise` (annotazioni di tipo) e fallback `Carta #{id}` lasciati (falsi positivi/interni).
+
+## Diario esecuzione — 2026-06-29 (6.5 batch 4: modali acquisti)
+
+Localizzati i 2 modali acquisti: `SupportRequestModal` (namespace `support.*`, 8 chiavi
+nuove incl. titolo default interpolato {id} + messaggio errore validazione) e
+`PaymentConfirmModal` (namespace `mockCheckout.*`, 5 chiavi nuove + riuso
+mockCheckout.simulatePayment/cancel + common.close; testo "Stai per pagare l'ordine"
+spezzato in payingOrderPrefix + relativeToAuction per preservare il markup <strong>).
+Parità i18n:keys **2223×6**. Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅.

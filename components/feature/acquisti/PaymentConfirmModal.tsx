@@ -52,7 +52,7 @@ export function PaymentConfirmModal({
       <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
         <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4">
           <h2 id="payment-confirm-title" className="text-lg font-bold text-gray-900">
-            Conferma pagamento
+            {t('mockCheckout.confirmTitle')}
           </h2>
           <button
             ref={closeBtn}
@@ -60,7 +60,7 @@ export function PaymentConfirmModal({
             onClick={onClose}
             disabled={isPaying}
             className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40 disabled:opacity-50"
-            aria-label="Chiudi"
+            aria-label={t('common.close')}
           >
             <X className="h-5 w-5" aria-hidden />
           </button>
@@ -75,12 +75,12 @@ export function PaymentConfirmModal({
           </div>
 
           <p>
-            Stai per pagare l&apos;ordine{' '}
+            {t('mockCheckout.payingOrderPrefix')}{' '}
             <strong>#{order.id}</strong>
-            {order.auction_title ? <> relativo all&apos;asta <strong>{order.auction_title}</strong></> : null}.
+            {order.auction_title ? <> {t('mockCheckout.relativeToAuction')} <strong>{order.auction_title}</strong></> : null}.
           </p>
           <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
-            <span className="text-gray-500">Totale da pagare</span>
+            <span className="text-gray-500">{t('mockCheckout.totalToPay')}</span>
             <span className="text-xl font-bold text-gray-900">{formatEur(order.total_amount, intlLocale)}</span>
           </div>
 
@@ -109,7 +109,7 @@ export function PaymentConfirmModal({
             disabled={isPaying}
             className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50"
           >
-            Annulla
+            {t('mockCheckout.cancel')}
           </button>
           <button
             type="button"
@@ -120,7 +120,7 @@ export function PaymentConfirmModal({
             )}
           >
             <CheckCircle2 className="h-4 w-4" aria-hidden />
-            {isPaying ? 'Approvazione…' : 'Simula pagamento'}
+            {isPaying ? t('mockCheckout.approving') : t('mockCheckout.simulatePayment')}
           </button>
         </div>
       </div>

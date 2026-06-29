@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, AlertTriangle, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface SupportRequestModalProps {
   isOpen: boolean;
@@ -19,20 +20,22 @@ export function SupportRequestModal({
   orderId,
   onSubmit,
 }: SupportRequestModalProps) {
-  const [title, setTitle] = useState(`Problema con spedizione ordine #${orderId.slice(0, 8)}`);
+  const { t } = useTranslation();
+  const defaultTitle = t('support.titleDefault', { id: orderId.slice(0, 8) });
+  const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description.trim()) {
-      setError('Inserisci una descrizione del problema.');
+      setError(t('support.errorDescription'));
       return;
     }
     setError(null);
     onSubmit({ title: title.trim(), description: description.trim() });
     setDescription('');
-    setTitle(`Problema con spedizione ordine #${orderId.slice(0, 8)}`);
+    setTitle(defaultTitle);
   };
 
   if (!isOpen) return null;
@@ -44,14 +47,14 @@ export function SupportRequestModal({
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-red-600" aria-hidden />
             <h2 className="text-base font-bold uppercase tracking-wide text-gray-900">
-              Segnala un problema
+              {t('support.title')}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300"
-            aria-label="Chiudi"
+            aria-label={t('common.close')}
           >
             <X className="h-5 w-5" aria-hidden />
           </button>
@@ -59,12 +62,12 @@ export function SupportRequestModal({
 
         <form onSubmit={handleSubmit} className="px-5 py-5">
           <div className="mb-4 rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-600">
-            Ordine: <span className="font-semibold text-gray-900">{orderTitle}</span>
+            {t('support.orderLabel')} <span className="font-semibold text-gray-900">{orderTitle}</span>
           </div>
 
           <div className="mb-4">
             <label htmlFor="support-title" className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-700">
-              Titolo
+              {t('support.fieldTitle')}
             </label>
             <input
               id="support-title"
@@ -77,14 +80,14 @@ export function SupportRequestModal({
 
           <div className="mb-4">
             <label htmlFor="support-description" className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-700">
-              Descrizione del problema
+              {t('support.fieldDescription')}
             </label>
             <textarea
               id="support-description"
               rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descrivi il problema con la spedizione..."
+              placeholder={t('support.placeholder')}
               className={cn(
                 'w-full resize-none rounded-md border px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-1',
                 error
@@ -101,14 +104,14 @@ export function SupportRequestModal({
               onClick={onClose}
               className="rounded-md px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100"
             >
-              Annulla
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               className="inline-flex items-center gap-1.5 rounded-md bg-[#FF7300] px-4 py-2 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#e56500] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/40"
             >
               <Send className="h-4 w-4" aria-hidden />
-              apri richiesta di supporto
+              {t('support.submit')}
             </button>
           </div>
         </form>
