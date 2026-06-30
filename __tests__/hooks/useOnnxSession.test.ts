@@ -87,7 +87,7 @@ describe('useOnnxSession', () => {
   it("rigetta l'embed pendente se il worker ONNX fallisce", async () => {
     vi.mocked(fetchAndCacheOnnxModel).mockResolvedValue(new ArrayBuffer(8));
 
-    let currentWorker: MockWorker | null = null;
+    const workers: MockWorker[] = [];
     class MockWorker {
       onmessage:
         | ((ev: MessageEvent<{ type: string; vector?: Float32Array; message?: string }>) => void)
@@ -96,7 +96,7 @@ describe('useOnnxSession', () => {
       terminate = vi.fn();
 
       constructor() {
-        currentWorker = this;
+        workers.push(this);
       }
 
       postMessage(message: { type: string }) {
@@ -112,12 +112,14 @@ describe('useOnnxSession', () => {
 
     const { result } = renderHook(() => useOnnxSession({ apiBaseUrl: '/brx-match' }));
     await waitFor(() => expect(result.current.modelStatus).toBe('ready'));
+    const currentWorker = workers[0];
+    if (!currentWorker) throw new Error('Worker non creato');
 
     const embedPromise = result.current.runOnnxEmbed(new Float32Array(3 * 224 * 224));
-    currentWorker?.onerror?.(new Event('error'));
+    currentWorker.onerror?.(new Event('error'));
 
     await expect(embedPromise).rejects.toThrow('worker embed failed');
     expect(result.current.isTurboReady()).toBe(false);
-    expect(currentWorker?.terminate).toHaveBeenCalled();
+    expect(currentWorker.terminate).toHaveBeenCalled();
   });
 });
