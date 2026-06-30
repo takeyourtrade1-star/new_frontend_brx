@@ -257,3 +257,22 @@ con `useIntlLocale()`. Descrizione "utente non trovato" spezzata prefix/suffix p
 preservare lo @username in grassetto. Parità i18n:keys **2241×6**. Gate verdi:
 typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅. NB: il componente usa ancora
 useEffect+authApi.get (anti-pattern RQ) — fuori scope i18n, non toccato.
+
+## Diario esecuzione — 2026-06-29 (6.1 formatter module-scope rimanenti — 6.1 di fatto COMPLETO)
+
+Localizzati gli ultimi formatter user-facing a scope-modulo (commit 8a9000b):
+- `auctions-browse-shared.tsx`: `MoneyWithSmallCents` → formatter creato in-render con
+  `useIntlLocale()` (rimosso `EURO_PARTS_FORMATTER` module-scope).
+- `ProductPriceChart.tsx`: `formatEuroShort(n, locale)` (assi Y + tooltip), locale via
+  `useIntlLocale()` nel componente.
+- `ModernSellerTable.tsx`: `formatReviewRating`/`formatSalesCount` ora con `locale` +
+  `reviewCount.toLocaleString(intlLocale)`; locale da `useIntlLocale()` in
+  `MarketplaceSellerCell`.
+- `lib/inventory/inventory-export-utils.ts`: `formatPrice(cents, locale='it-IT')`
+  (export senza caller attuali; default coerente con i formatter di lib/utils).
+
+**6.1 di fatto CHIUSO.** I `'it-IT'` ancora a grep sono solo INTENZIONALI: `BuildInfoBadge`
+(dev), `SetPageClient.formatEuro` (**dead code**), `SyncStatusOverview`/`SyncHistorySection`
+(admin IT-only), + default/fallback in `lib/utils.ts`/`lib/i18n/locales.ts`/
+`lib/i18n/useIntlLocale.ts`/`inventory-export-utils`. Gate verdi: typecheck ✅, lint ✅,
+i18n:keys ✅, test 199/199 ✅.
