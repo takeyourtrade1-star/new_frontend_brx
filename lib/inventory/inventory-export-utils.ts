@@ -13,9 +13,12 @@ export function buildImageUrl(raw: string | null | undefined): string | null {
 
 export const DEFAULT_IMAGE = getCdnImageUrl('Logo%20Principale%20EBARTEX.png');
 
-export function formatPrice(priceCents: number | null | undefined): string {
+export function formatPrice(
+  priceCents: number | null | undefined,
+  locale: string = 'it-IT'
+): string {
   const cents = priceCents ?? 0;
-  return new Intl.NumberFormat('it-IT', {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 2,

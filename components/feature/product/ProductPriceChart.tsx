@@ -3,6 +3,7 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { Info, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { buildPriceHistoryPoints } from '@/lib/product-detail/build-price-history-points';
 
 export { buildPriceHistoryPoints } from '@/lib/product-detail/build-price-history-points';
@@ -33,9 +34,9 @@ function formatDateIt(t: number): string {
   return `${dd}.${mm}.${yy}`;
 }
 
-function formatEuroShort(n: number): string {
+function formatEuroShort(n: number, locale: string): string {
   return (
-    new Intl.NumberFormat('it-IT', {
+    new Intl.NumberFormat(locale, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(n) + ' €'
@@ -141,6 +142,7 @@ export function ProductPriceChart({
   className?: string;
   onStatsChange?: (stats: ProductPriceStats) => void;
 }) {
+  const intlLocale = useIntlLocale();
   const [isLoading, setIsLoading] = useState(true);
   const [rangePreset, setRangePreset] = useState<RangePreset>('7d');
   const [customFrom, setCustomFrom] = useState('');
@@ -516,7 +518,7 @@ export function ProductPriceChart({
                   className="text-[10px] fill-current"
                   style={{ fill: AXIS_TEXT }}
                 >
-                  {formatEuroShort(yv)}
+                  {formatEuroShort(yv, intlLocale)}
                 </text>
               </g>
             );
@@ -648,7 +650,7 @@ export function ProductPriceChart({
                     {formatDateIt(hover.t)}
                   </text>
                   <text x={tw / 2} y={30} textAnchor="middle" fill={BRAND_ORANGE} className="text-[11px] font-bold">
-                    {formatEuroShort(hover.price)}
+                    {formatEuroShort(hover.price, intlLocale)}
                   </text>
                   <text x={tw / 2} y={46} textAnchor="middle" fill={SALES_NAVY} className="text-[10px] font-semibold">
                     {hover.sales} carte vendute

@@ -29,6 +29,7 @@ import { listingRowKey } from '@/lib/marketplace/listing-map';
 import { getListingPhotos } from '@/lib/api/listing-photo-client';
 import { MarketplaceNowProvider, useMarketplaceNowMs } from '@/lib/hooks/use-marketplace-now-ms';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 
 const CONDITION_TEXT_TO_CODE: Record<string, ConditionCode> = {
   'Near Mint': 'NM',
@@ -92,8 +93,8 @@ function getSellerReputation(item: ListingItem) {
   };
 }
 
-function formatReviewRating(rating: number): string {
-  return rating.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+function formatReviewRating(rating: number, locale: string): string {
+  return rating.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
 /** Rating API: 0–5 oppure percentuale 0–100. */
@@ -102,14 +103,14 @@ function normalizeRatingToFive(rating: number): number {
   return rating;
 }
 
-function formatSalesCount(count: number): string {
+function formatSalesCount(count: number, locale: string): string {
   if (count >= 1_000_000) {
-    return `${(count / 1_000_000).toLocaleString('it-IT', { maximumFractionDigits: 1 })}M`;
+    return `${(count / 1_000_000).toLocaleString(locale, { maximumFractionDigits: 1 })}M`;
   }
   if (count >= 1_000) {
-    return `${(count / 1_000).toLocaleString('it-IT', { maximumFractionDigits: 1 })}K`;
+    return `${(count / 1_000).toLocaleString(locale, { maximumFractionDigits: 1 })}K`;
   }
-  return count.toLocaleString('it-IT');
+  return count.toLocaleString(locale);
 }
 
 const MOCK_SELLER_DESCRIPTIONS = [
@@ -147,9 +148,10 @@ function MarketplaceSellerCell({
   isPro?: boolean;
 }) {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
   const href = profileHrefForSeller(username);
   const reviewTitle = t('marketplace.sellerReviewTitle', {
-    count: reviewCount.toLocaleString('it-IT'),
+    count: reviewCount.toLocaleString(intlLocale),
   });
 
   return (
@@ -160,11 +162,11 @@ function MarketplaceSellerCell({
         title={reviewTitle}
       >
         <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-500" aria-hidden />
-        <span className="font-semibold tabular-nums">{formatReviewRating(rating)}/5</span>
+        <span className="font-semibold tabular-nums">{formatReviewRating(rating, intlLocale)}/5</span>
       </Link>
       <span className="shrink-0 text-slate-300">·</span>
       <span className="shrink-0 tabular-nums text-slate-500" title={t('marketplace.salesCompleted')}>
-        {formatSalesCount(salesCount)}
+        {formatSalesCount(salesCount, intlLocale)}
       </span>
       <span className="shrink-0 text-slate-300">·</span>
       {country ? <FlagIcon country={country} size="xs" className="shrink-0" /> : null}

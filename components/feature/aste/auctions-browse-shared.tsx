@@ -11,6 +11,7 @@ import { LayoutGrid, LayoutList, Star } from 'lucide-react';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { cn } from '@/lib/utils';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { isAuctionEndedUI, type AuctionUI, type AuctionGame } from '@/lib/auction/auction-adapter';
 import { roundUpToHalfStep } from '@/lib/auction/bid-math';
@@ -61,14 +62,13 @@ export function AuctionHmsText({ endsAt }: { endsAt: string }) {
   return <>{formatHMS(ms)}</>;
 }
 
-const EURO_PARTS_FORMATTER = new Intl.NumberFormat('it-IT', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
 export function MoneyWithSmallCents({ value, className = '' }: { value: number; className?: string }) {
+  const intlLocale = useIntlLocale();
   const roundedValue = roundUpToHalfStep(value);
-  const parts = EURO_PARTS_FORMATTER.formatToParts(roundedValue);
+  const parts = new Intl.NumberFormat(intlLocale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).formatToParts(roundedValue);
   const main = parts
     .filter((p) => p.type !== 'fraction' && p.type !== 'currency')
     .map((p) => p.value)
