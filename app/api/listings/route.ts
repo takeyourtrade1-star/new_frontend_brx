@@ -62,11 +62,12 @@ export async function GET(request: NextRequest) {
     clearTimeout(timeoutId);
     const isTimeout = err instanceof Error && err.name === 'AbortError';
     console.error('[listings proxy]', isTimeout ? 'timeout' : err);
+    // Dettaglio dell'errore solo nei log server (sopra); al client messaggio generico.
     return NextResponse.json(
       {
         error: isTimeout
           ? 'Timeout: servizio listings non ha risposto in tempo.'
-          : (err instanceof Error ? err.message : 'Proxy request failed'),
+          : 'Servizio listings temporaneamente non disponibile.',
         blueprint_id: blueprintIdNum,
       },
       { status: 502 }

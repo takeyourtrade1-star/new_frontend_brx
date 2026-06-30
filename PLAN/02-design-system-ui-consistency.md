@@ -81,6 +81,18 @@ Mantenere solo `input-otp` (Radix), rimuovere `otp-six-boxes`.
 > `OggettiTable`/`SearchResultsTable`/`ModernSellerTable` è grosso); `dialog/select/
 > tabs/dropdown-menu` (richiedono `@radix-ui/*`); `toast` (richiede `sonner`). Da
 > fare come lavori dedicati, staged e verificati a runtime.
+>
+> 🟢 **Adozione `Skeleton` — 2 route loading FATTE (2026-06-29).** Migrati i due
+> `loading.tsx` di segmento (puri skeleton, nessuna interattività) al primitivo
+> condiviso: `app/products/[slug]/loading.tsx` e `app/aste/[id]/loading.tsx`. Ogni
+> blocco aveva già il proprio `animate-pulse` → swap 1:1 `<div>`→`<Skeleton>`
+> mantenendo identico il look (override `bg-gray-200 dark:bg-gray-800` + rounding via
+> `className`, risolti da tailwind-merge sul default `bg-muted rounded-md`).
+> Gate: typecheck + lint a 0, **`npm run build` exit 0**.
+> ⚠️ **Falsi positivi confermati** (NON skeleton → lasciati): `SimilarAuctionsSections`
+> usa `animate-pulse` su dot di countdown live + shimmer hover; `OrdersStates`
+> (`OrdersSkeleton`) pulsa sul wrapper-card con figli non-pulsanti (swap non 1:1).
+> Migrazione resta incrementale come da nota originale.
 
 Aggiungere in `components/ui/`:
 

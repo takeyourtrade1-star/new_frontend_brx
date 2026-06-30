@@ -94,7 +94,7 @@ export function CartLineItem({
             size="sm"
             className="h-8 w-8 rounded-full p-0 text-neutral-700 hover:bg-white"
             onClick={() => onUpdateQuantity(item.lineId, item.quantity - 1)}
-            aria-label="Diminuisci quantità"
+            aria-label={t('cart.decreaseQty')}
           >
             <Minus className="h-3.5 w-3.5" />
           </Button>
@@ -108,7 +108,7 @@ export function CartLineItem({
             className="h-8 w-8 rounded-full p-0 text-neutral-700 hover:bg-white"
             onClick={() => onUpdateQuantity(item.lineId, item.quantity + 1)}
             disabled={item.quantity >= item.maxQuantity}
-            aria-label="Aumenta quantità"
+            aria-label={t('cart.increaseQty')}
           >
             <Plus className="h-3.5 w-3.5" />
           </Button>

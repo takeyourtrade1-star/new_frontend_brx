@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCdnImageUrl } from '@/lib/config';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 const SLIDE_COUNT = 3;
 const AUTO_PLAY_INTERVAL_MS = 4500;
@@ -16,6 +17,7 @@ const HERO_SLIDES = [
 ];
 
 export function HeroCarousel() {
+  const { t } = useTranslation();
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -73,7 +75,7 @@ export function HeroCarousel() {
         type="button"
         onClick={goPrev}
         className="absolute left-2 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white transition hover:bg-black/60 md:left-4"
-        aria-label="Slide precedente"
+        aria-label={t('hero.prevSlide')}
       >
         <ChevronLeft className="h-6 w-6 md:h-8 md:w-8" />
       </button>
@@ -81,7 +83,7 @@ export function HeroCarousel() {
         type="button"
         onClick={goNext}
         className="absolute right-2 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white transition hover:bg-black/60 md:right-4"
-        aria-label="Slide successiva"
+        aria-label={t('hero.nextSlide')}
       >
         <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
       </button>
@@ -99,7 +101,7 @@ export function HeroCarousel() {
                 ? 'bg-white scale-110'
                 : 'bg-white/60 hover:bg-white/80'
             )}
-            aria-label={`Vai allo slide ${index + 1}`}
+            aria-label={t('hero.goToSlide', { n: index + 1 })}
           />
         ))}
       </div>

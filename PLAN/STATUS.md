@@ -5,7 +5,7 @@ Questo file dice all'agente *quali piani sono già stati eseguiti* senza dover l
 | Piano | Titolo | Stato |
 |---|---|---|
 | 01 | Architettura & Split File Monolitici | **Completato** (chiuso 2026-06-23, diario esecuzione nel file) |
-| 02 | Design System & UI Consistency | **Parziale** (review 2026-06-23, eseguite le parti sicure) |
+| 02 | Design System & UI Consistency | **Parziale** (review 2026-06-23 parti sicure; 2026-06-29 Skeleton adottato in 2 route loading. Resto: colori/z-index/scroll-lock/Radix rimandati, serve verifica visiva) |
 | 03 | Sicurezza & Auth | **Parziale** (review 2026-06-23, solo 3.5/3.7/3.8, resto runtime-dipendente) |
 | 04 | Performance & Bundle | **Parziale** (review 2026-06-23, solo parti isolate e verificabili) |
 | 05 | SEO & Metadata | **Parziale** (review 2026-06-24, primo batch sicuro fatto) |

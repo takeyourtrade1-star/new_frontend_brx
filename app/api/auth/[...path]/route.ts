@@ -218,8 +218,10 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
     
   } catch (err) {
     console.error('[auth proxy] Error forwarding to', url?.toString(), ':', err instanceof Error ? err.message : err);
+    // Dettaglio dell'errore solo nei log server (sopra); al client messaggio generico.
+    const isTimeout = err instanceof DOMException && err.name === 'AbortError';
     return NextResponse.json(
-      { detail: err instanceof DOMException && err.name === 'AbortError' ? 'Request timed out' : (err instanceof Error ? err.message : 'Proxy request failed') },
+      { detail: isTimeout ? 'Request timed out' : 'Authentication service unavailable' },
       { status: 502 }
     );
   }

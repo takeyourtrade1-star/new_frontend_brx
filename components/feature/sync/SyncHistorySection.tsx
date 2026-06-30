@@ -3,6 +3,7 @@
 import { RefreshCw, Loader2, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import type { SyncEvent } from '@/lib/api/marketplace-client';
 
 export function SyncHistorySection({
@@ -16,6 +17,7 @@ export function SyncHistorySection({
   onRefresh: () => void;
   total?: number;
 }) {
+  const intlLocale = useIntlLocale();
   return (
     <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-3 py-3 sm:px-5 sm:py-4">
@@ -72,7 +74,7 @@ export function SyncHistorySection({
                   <tr key={ev.id} className="border-b border-gray-50 last:border-0">
                     <td className="py-2.5 pr-4 font-mono text-xs text-gray-500 whitespace-nowrap">
                       {ev.created_at
-                        ? new Date(ev.created_at).toLocaleString('it-IT', {
+                        ? new Date(ev.created_at).toLocaleString(intlLocale, {
                             day: '2-digit',
                             month: 'short',
                             hour: '2-digit',

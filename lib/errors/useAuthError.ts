@@ -43,7 +43,7 @@ export interface UseAuthErrorReturn {
   retryAfter: number;
   
   // Actions
-  setError: (error: any) => void;
+  setError: (error: unknown) => void;
   clearError: () => void;
   getFieldError: (field: string) => string | undefined;
 }
@@ -87,7 +87,7 @@ export function useAuthError(): UseAuthErrorReturn {
   /**
    * Set error from any error object
    */
-  const setError = useCallback((error: any) => {
+  const setError = useCallback((error: unknown) => {
     const parsed = parseAuthErrorToCode(error);
     setParsedError(parsed);
   }, []);
@@ -145,7 +145,7 @@ export function useAuthError(): UseAuthErrorReturn {
  */
 export function getTranslatedAuthError(
   t: (key: string, vars?: Record<string, string | number>) => string,
-  error: any
+  error: unknown
 ): string {
   const parsed = parseAuthErrorToCode(error);
   

@@ -8,6 +8,7 @@ export function translateZodMessage(
   if (!message) return '';
   if (
     message.startsWith('validation.') ||
+    message.startsWith('errors.validation.') ||
     message.startsWith('recoverForm.') ||
     message.startsWith('loginForm.') ||
     message.startsWith('accountPage.') ||

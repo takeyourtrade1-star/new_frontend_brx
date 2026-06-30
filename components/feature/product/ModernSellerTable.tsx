@@ -1110,6 +1110,7 @@ function ModernSellerTableInner({
   busyItemId = null,
 }: ModernSellerTableProps) {
   const { t } = useTranslation();
+  const intlLocale = useIntlLocale();
   const displayRows: MarketplaceRow[] =
     rows ??
     listings.map((l) => ({
@@ -1118,7 +1119,10 @@ function ModernSellerTableInner({
       listing: l,
     }));
   // PERF: stable formatter reference for memoized row children.
-  const formatEuro = useCallback((n: number) => formatEuroNoSpace(n, 'it-IT'), []);
+  const formatEuro = useCallback(
+    (n: number) => formatEuroNoSpace(n, intlLocale),
+    [intlLocale]
+  );
   const [activeCartRowKey, setActiveCartRowKey] = useState<string | null>(null);
   const [cartQtyByRow, setCartQtyByRow] = useState<Record<string, number>>({});
 

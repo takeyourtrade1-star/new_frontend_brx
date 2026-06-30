@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import { disputesApi } from '@/lib/api/disputes-client';
 import type { DisputeMessageAPI } from '@/types/dispute';
 import {
@@ -31,6 +32,7 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
   const router = useRouter();
   const intlLocale = useIntlLocale();
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const detailQuery = useDisputeDetail(disputeId, disputeId > 0);
   const messagesQuery = useDisputeMessages(disputeId, disputeId > 0);
@@ -158,24 +160,24 @@ export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
   return (
     <div className="mx-auto max-w-4xl space-y-4 px-4 py-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Contestazione #{disputeId}</h1>
+        <h1 className="text-xl font-bold">{t('disputes.title', { id: disputeId })}</h1>
         <Link href="/ordini/vendite" className="text-sm text-[#FF7300] hover:underline">
-          Torna alle vendite
+          {t('disputes.backToSales')}
         </Link>
       </div>
 
       {detailQuery.isLoading ? (
-        <div className="rounded border bg-white p-4 text-sm text-gray-500">Caricamento contestazione…</div>
+        <div className="rounded border bg-white p-4 text-sm text-gray-500">{t('disputes.loading')}</div>
       ) : detailQuery.isError ? (
         <div className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {detailQuery.error instanceof Error ? detailQuery.error.message : 'Errore caricamento contestazione.'}
+          {detailQuery.error instanceof Error ? detailQuery.error.message : t('disputes.loadError')}
         </div>
       ) : (
         <div className="rounded border bg-white p-4 text-sm">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="font-semibold">Stato: {dispute?.status ?? '—'}</span>
-            <span>Ordine #{dispute?.order_id ?? '—'}</span>
-            <span>Aperta da: {dispute?.opened_by ?? '—'}</span>
+            <span className="font-semibold">{t('disputes.statusLabel')} {dispute?.status ?? '—'}</span>
+            <span>{t('disputes.orderLabel', { id: dispute?.order_id ?? '—' })}</span>
+            <span>{t('disputes.openedByLabel', { who: dispute?.opened_by ?? '—' })}</span>
           </div>
           {dispute?.status === 'OPEN' && isSeller && (
             <div className="mt-3 flex gap-2">
@@ -185,7 +187,7 @@ export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
                 disabled={reassignMutation.isPending || cancelMutation.isPending}
                 className="rounded bg-[#FF7300] px-3 py-2 text-xs font-bold uppercase text-white disabled:opacity-60"
               >
-                {reassignMutation.isPending ? 'Riassegnazione…' : 'Riassegna al secondo'}
+                {reassignMutation.isPending ? t('disputes.reassigning') : t('disputes.reassign')}
               </button>
               <button
                 type="button"
@@ -193,25 +195,25 @@ export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
                 disabled={reassignMutation.isPending || cancelMutation.isPending}
                 className="rounded border border-red-300 px-3 py-2 text-xs font-bold uppercase text-red-700 disabled:opacity-60"
               >
-                {cancelMutation.isPending ? 'Annullamento…' : 'Annulla asta'}
+                {cancelMutation.isPending ? t('disputes.cancelling') : t('disputes.cancelAuction')}
               </button>
             </div>
           )}
           {reassignMutation.isError && (
             <p className="mt-2 text-xs text-red-600">
-              {reassignMutation.error instanceof Error ? reassignMutation.error.message : 'Errore riassegnazione.'}
+              {reassignMutation.error instanceof Error ? reassignMutation.error.message : t('disputes.reassignError')}
             </p>
           )}
           {cancelMutation.isError && (
             <p className="mt-2 text-xs text-red-600">
-              {cancelMutation.error instanceof Error ? cancelMutation.error.message : 'Errore annullamento.'}
+              {cancelMutation.error instanceof Error ? cancelMutation.error.message : t('disputes.cancelError')}
             </p>
           )}
         </div>
       )}
 
       <div className="rounded border bg-white p-4">
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide">Chat</h2>
+        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide">{t('disputes.chat')}</h2>
         <div className="max-h-[420px] space-y-2 overflow-auto">
           {allMessages.map((m) => (
             <div
@@ -226,7 +228,7 @@ export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
               <div className="mt-1 text-[11px] text-gray-500">{new Date(m.created_at).toLocaleString(intlLocale)}</div>
             </div>
           ))}
-          {allMessages.length === 0 && <p className="text-sm text-gray-500">Nessun messaggio.</p>}
+          {allMessages.length === 0 && <p className="text-sm text-gray-500">{t('disputes.noMessages')}</p>}
         </div>
         {dispute?.status === 'OPEN' ? (
           <form onSubmit={(e) => void onSend(e)} className="mt-3 flex gap-2">
@@ -234,7 +236,7 @@ export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               className="min-w-0 flex-1 rounded border px-3 py-2 text-sm"
-              placeholder="Scrivi un messaggio…"
+              placeholder={t('disputes.messagePlaceholder')}
               maxLength={4000}
             />
             <button
@@ -242,11 +244,11 @@ export function DisputeDetailContent({ disputeId }: { disputeId: number }) {
               disabled={sendMutation.isPending || !text.trim()}
               className="rounded bg-[#FF7300] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
             >
-              Invia
+              {t('disputes.send')}
             </button>
           </form>
         ) : (
-          <p className="mt-3 text-xs text-gray-500">La contestazione è chiusa. Non è possibile inviare nuovi messaggi.</p>
+          <p className="mt-3 text-xs text-gray-500">{t('disputes.closed')}</p>
         )}
       </div>
     </div>

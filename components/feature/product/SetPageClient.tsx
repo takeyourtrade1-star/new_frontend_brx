@@ -69,15 +69,6 @@ function classifyHit(hit: SetHit): CategoryKey {
   return 'other';
 }
 
-function formatEuro(n: number | undefined) {
-  if (typeof n !== 'number' || !Number.isFinite(n)) return '–';
-  return new Intl.NumberFormat('it-IT', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-  }).format(n);
-}
-
 export function SetPageClient({ game, setName }: SetPageClientProps) {
   const { selectedLang } = useLanguage();
   const { t } = useTranslation();

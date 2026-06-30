@@ -59,14 +59,16 @@ export async function POST(request: NextRequest) {
       { status: res.status >= 400 ? res.status : 502 }
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Errore di rete';
-    const isAbort = message.includes('abort') || (err instanceof Error && err.name === 'AbortError');
-    const hint = isAbort
-      ? ' Timeout 15s: il servizio non risponde. Verifica che il Search Engine (BRX_Search) sia avviato sulla porta corretta (es. 8001).'
-      : ' Verifica che (1) il Search Engine sia in esecuzione, (2) la porta sia aperta nel firewall/security group, (3) se Next.js gira in locale, l\'IP del Search sia raggiungibile (altrimenti usa http://localhost:8001 se il Search è in locale).';
+    const isAbort =
+      err instanceof Error &&
+      (err.name === 'AbortError' || err.message.includes('abort'));
+    // Dettaglio (URL/porta/IP) solo nei log server, mai nella risposta al client.
+    console.error('[reindex proxy]', isAbort ? 'timeout' : err);
     return NextResponse.json(
       {
-        error: `Impossibile raggiungere il Search Engine.${hint} Dettaglio: ${message}`,
+        error: isAbort
+          ? 'Timeout: il Search Engine non ha risposto entro 15s.'
+          : 'Impossibile raggiungere il Search Engine.',
       },
       { status: 502 }
     );

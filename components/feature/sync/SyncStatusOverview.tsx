@@ -11,6 +11,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import type { SyncStatus } from '@/lib/api/sync-client';
 import type { MarketplaceSyncStatus, SyncMode } from '@/lib/api/marketplace-client';
 
@@ -88,6 +89,7 @@ export function SyncStatusOverview({
   lastSyncAt: string | null;
   lastError: string | null;
 }) {
+  const intlLocale = useIntlLocale();
   const cardtraderState: CheckState = loading
     ? 'loading'
     : isDisconnected
@@ -175,7 +177,7 @@ export function SyncStatusOverview({
             <span>
               Ultima sync:{' '}
               <strong className="font-medium text-gray-800">
-                {new Date(lastSyncAt).toLocaleString('it-IT')}
+                {new Date(lastSyncAt).toLocaleString(intlLocale)}
               </strong>
             </span>
           )}
