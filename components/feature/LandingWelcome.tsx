@@ -169,6 +169,31 @@ const ROTATE_KEYS = [
   'landing.hero.tagline.rotate5',
 ] as const;
 
+/** Parole in entrata/uscita con flip 3D scaglionato (orchestrazione via variants). */
+const TAGLINE_CONTAINER_VARIANTS = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05, delayChildren: 0.03 } },
+  exit: { transition: { staggerChildren: 0.035, staggerDirection: -1 } },
+};
+
+const TAGLINE_WORD_VARIANTS = {
+  hidden: { opacity: 0, y: 14, rotateX: -90, filter: 'blur(6px)' },
+  show: {
+    opacity: 1,
+    y: 0,
+    rotateX: 0,
+    filter: 'blur(0px)',
+    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const },
+  },
+  exit: {
+    opacity: 0,
+    y: -14,
+    rotateX: 90,
+    filter: 'blur(6px)',
+    transition: { duration: 0.28, ease: [0.4, 0, 1, 1] as const },
+  },
+};
+
 function RotatingTagline() {
   const { t } = useTranslation();
   const phrases = useMemo(() => ROTATE_KEYS.map((k) => t(k)), [t]);
@@ -181,18 +206,30 @@ function RotatingTagline() {
     return () => clearInterval(id);
   }, [phrases.length]);
 
+  const words = phrases[index].split(' ');
+
   return (
     <span className="mt-2 block min-h-[1.25rem] sm:min-h-[1.5rem] md:min-h-[1.75rem]">
       <AnimatePresence mode="wait">
         <motion.span
           key={index}
-          initial={{ opacity: 0, y: 12, filter: 'blur(8px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          exit={{ opacity: 0, y: -12, filter: 'blur(8px)' }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="block text-sm font-semibold uppercase tracking-[0.06em] text-white/70 sm:text-base md:text-lg"
+          variants={TAGLINE_CONTAINER_VARIANTS}
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          style={{ perspective: 500 }}
+          className="flex flex-wrap justify-center gap-x-[0.35em] text-sm font-semibold uppercase tracking-[0.06em] text-white/70 sm:justify-start sm:text-base md:text-lg"
         >
-          {phrases[index]}
+          {words.map((word, i) => (
+            <motion.span
+              key={i}
+              variants={TAGLINE_WORD_VARIANTS}
+              className="inline-block"
+              style={{ transformOrigin: 'center bottom' }}
+            >
+              {word}
+            </motion.span>
+          ))}
         </motion.span>
       </AnimatePresence>
     </span>
