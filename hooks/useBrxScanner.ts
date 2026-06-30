@@ -108,6 +108,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const [state, setState] = useState<ScannerState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const cameraOpenedRef = useRef(false);
+  const cameraRequestRef = useRef<Promise<void> | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -165,6 +166,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
 
   const stopScanning = useCallback(() => {
     stopLoop();
+    cameraOpenedRef.current = false;
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -180,41 +182,58 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   // ---------------------------------------------------------------------------
 
   const openCamera = useCallback(async (): Promise<void> => {
-    setState('requesting_camera');
-    setErrorMessage(null);
-    beginScan();
-
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 640, max: 960 },
-          height: { ideal: 480, max: 720 },
-          frameRate: { ideal: 30, max: 30 },
-        },
-        audio: false,
-      });
-    } catch (err) {
-      const msg =
-        err instanceof DOMException && err.name === 'NotAllowedError'
-          ? 'Camera permission denied. Please allow camera access and try again.'
-          : 'Could not access camera.';
-      setErrorMessage(msg);
-      setState('error');
-      onError?.(msg);
+    if (cameraRequestRef.current) return cameraRequestRef.current;
+    if (streamRef.current) {
+      if (!isLoopActive()) startScanLoop();
+      setState('scanning');
       return;
     }
 
-    streamRef.current = stream;
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play().catch(() => {});
-    }
+    const cameraRequest = (async () => {
+      setState('requesting_camera');
+      setErrorMessage(null);
+      beginScan();
 
-    setState('scanning');
-    startScanLoop();
-  }, [beginScan, onError, startScanLoop]);
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 640, max: 960 },
+            height: { ideal: 480, max: 720 },
+            frameRate: { ideal: 30, max: 30 },
+          },
+          audio: false,
+        });
+      } catch (err) {
+        cameraOpenedRef.current = false;
+        const msg =
+          err instanceof DOMException && err.name === 'NotAllowedError'
+            ? 'Camera permission denied. Please allow camera access and try again.'
+            : 'Could not access camera.';
+        setErrorMessage(msg);
+        setState('error');
+        onError?.(msg);
+        return;
+      }
+
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
+      }
+
+      setState('scanning');
+      startScanLoop();
+    })();
+
+    cameraRequestRef.current = cameraRequest;
+    try {
+      await cameraRequest;
+    } finally {
+      cameraRequestRef.current = null;
+    }
+  }, [beginScan, isLoopActive, onError, startScanLoop]);
 
   useEffect(() => {
     if (!autoOpenCamera || cameraOpenedRef.current) return;

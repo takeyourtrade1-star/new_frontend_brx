@@ -128,6 +128,7 @@ export function useScanLoop({
   const recentNamesRef = useRef<string[]>([]);
   const matchedRef = useRef(false);
   const hintStaleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scanGenerationRef = useRef(0);
   /** {name, count} — consecutive frames with the same card name, for hint gating. */
   const hintStreakRef = useRef<{ name: string; count: number }>({ name: '', count: 0 });
 
@@ -142,6 +143,10 @@ export function useScanLoop({
       clearTimeout(scanLoopTimerRef.current);
       scanLoopTimerRef.current = null;
     }
+  }, []);
+
+  const isCurrentScan = useCallback((generation: number) => {
+    return scanLoopActiveRef.current && scanGenerationRef.current === generation && !matchedRef.current;
   }, []);
 
   const clearHintStale = useCallback(() => {
@@ -176,7 +181,8 @@ export function useScanLoop({
   }, [canvasRef, videoRef]);
 
   const commitMatch = useCallback(
-    (scanResult: ScanResult) => {
+    (scanResult: ScanResult, generation: number) => {
+      if (!isCurrentScan(generation)) return;
       if (matchedRef.current) return;
       matchedRef.current = true;
       clearHintStale();
@@ -198,7 +204,7 @@ export function useScanLoop({
       }, 1000);
       onMatch?.(scanResult);
     },
-    [clearHintStale, clearScanLoop, countdownSeconds, onMatch, setScannerState],
+    [clearHintStale, clearScanLoop, countdownSeconds, isCurrentScan, onMatch, setScannerState],
   );
 
   /**
@@ -206,8 +212,8 @@ export function useScanLoop({
    * AND confidence >= effectiveHint.
    */
   const applyHint = useCallback(
-    (scanResult: ScanResult) => {
-      if (matchedRef.current) return;
+    (scanResult: ScanResult, generation: number) => {
+      if (!isCurrentScan(generation)) return;
       const key = scanResult.card_name.trim().toLowerCase();
       if (hintStreakRef.current.name === key) {
         hintStreakRef.current.count++;
@@ -224,7 +230,7 @@ export function useScanLoop({
         }
       }
     },
-    [effectiveHint, scheduleHintStale],
+    [effectiveHint, isCurrentScan, scheduleHintStale],
   );
 
   /**
@@ -232,7 +238,8 @@ export function useScanLoop({
    * out of the last voteWindow frames, with confidence >= effectiveConf.
    */
   const recordVote = useCallback(
-    (name: string, scanResult: ScanResult) => {
+    (name: string, scanResult: ScanResult, generation: number) => {
+      if (!isCurrentScan(generation)) return;
       const key = name.trim().toLowerCase();
       if (!key) return;
       const buf = recentNamesRef.current;
@@ -240,10 +247,10 @@ export function useScanLoop({
       while (buf.length > voteWindow) buf.shift();
       const hits = buf.filter((n) => n === key).length;
       if (hits >= voteRequired && scanResult.confidence >= effectiveConf) {
-        commitMatch(scanResult);
+        commitMatch(scanResult, generation);
       }
     },
-    [commitMatch, effectiveConf, voteRequired, voteWindow],
+    [commitMatch, effectiveConf, isCurrentScan, voteRequired, voteWindow],
   );
 
   // ---------------------------------------------------------------------------
@@ -251,7 +258,8 @@ export function useScanLoop({
   // ---------------------------------------------------------------------------
 
   const sendFrameOnnx = useCallback(async (): Promise<void> => {
-    if (matchedRef.current) return;
+    const generation = scanGenerationRef.current;
+    if (!isCurrentScan(generation)) return;
     if (inflightRef.current >= TURBO_MAX_INFLIGHT) return;
 
     const video = videoRef.current;
@@ -283,6 +291,7 @@ export function useScanLoop({
     try {
       imageDataToTensor(imageData, tensorBuf);
       const vector = await runOnnxEmbed(tensorBuf.slice());
+      if (!isCurrentScan(generation)) return;
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
@@ -294,6 +303,7 @@ export function useScanLoop({
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
+      if (!isCurrentScan(generation)) return;
 
       if (!searchResp.ok) {
         setDebug((d) => ({
@@ -308,6 +318,7 @@ export function useScanLoop({
       }
 
       const searchData = await searchResp.json();
+      if (!isCurrentScan(generation)) return;
       const candidates: {
         meta_idx: number;
         card_name: string;
@@ -332,15 +343,19 @@ export function useScanLoop({
       if (shouldRunOrbVerify(margin, top1.confidence)) {
         try {
           const cropBlob = await captureFrame();
+          if (!isCurrentScan(generation)) return;
           if (cropBlob) {
             const b64 = await blobToBase64Strip(cropBlob);
+            if (!isCurrentScan(generation)) return;
             const verifyResp = await fetch(`${apiBaseUrl}/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ meta_idx: top1.meta_idx, image_b64: b64 }),
             });
+            if (!isCurrentScan(generation)) return;
             if (verifyResp.ok) {
               const vd = await verifyResp.json();
+              if (!isCurrentScan(generation)) return;
               if (vd.verified) {
                 finalConfidence = Math.max(finalConfidence, vd.confidence);
                 method = 'v3+vec+orb';
@@ -371,7 +386,7 @@ export function useScanLoop({
         latency_ms: elapsed,
       };
 
-      applyHint(scanResult);
+      applyHint(scanResult, generation);
 
       const key = top1.card_name.trim().toLowerCase();
       const voteBuf = recentNamesRef.current;
@@ -389,9 +404,10 @@ export function useScanLoop({
           voteRequired,
         })
       ) {
-        commitMatch(scanResult);
+        commitMatch(scanResult, generation);
       }
     } catch (err) {
+      if (!isCurrentScan(generation)) return;
       const elapsed = Math.round(performance.now() - t0);
       const isAbort = err instanceof DOMException && err.name === 'AbortError';
       setDebug((d) => ({
@@ -403,7 +419,11 @@ export function useScanLoop({
         lastMethod: null,
       }));
     } finally {
-      syncBusy(Math.max(0, inflightRef.current - 1), false);
+      if (scanGenerationRef.current === generation) {
+        syncBusy(Math.max(0, inflightRef.current - 1), false);
+      } else {
+        inflightRef.current = Math.max(0, inflightRef.current - 1);
+      }
     }
   }, [
     apiBaseUrl,
@@ -411,6 +431,7 @@ export function useScanLoop({
     captureFrame,
     commitMatch,
     effectiveConf,
+    isCurrentScan,
     onnxCanvasRef,
     onnxCtxRef,
     requestTimeoutMs,
@@ -427,11 +448,16 @@ export function useScanLoop({
   // ---------------------------------------------------------------------------
 
   const sendFrameLegacy = useCallback(async (): Promise<void> => {
-    if (matchedRef.current) return;
+    const generation = scanGenerationRef.current;
+    if (!isCurrentScan(generation)) return;
     if (inflightRef.current >= maxInflight) return;
 
     syncBusy(inflightRef.current + 1);
     const blob = await captureFrame();
+    if (!isCurrentScan(generation)) {
+      inflightRef.current = Math.max(0, inflightRef.current - 1);
+      return;
+    }
     if (!blob) { syncBusy(Math.max(0, inflightRef.current - 1)); return; }
 
     const formData = new FormData();
@@ -450,6 +476,7 @@ export function useScanLoop({
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
+      if (!isCurrentScan(generation)) return;
 
       const elapsed = Math.round(performance.now() - t0);
       if (!resp.ok) {
@@ -466,6 +493,7 @@ export function useScanLoop({
       }
 
       const data = await resp.json();
+      if (!isCurrentScan(generation)) return;
       const method = (data.method as string) ?? 'none';
       setDebug((d) => ({
         ...d,
@@ -491,18 +519,19 @@ export function useScanLoop({
             }
           : null;
 
-      if (scanResult) applyHint(scanResult);
+      if (scanResult) applyHint(scanResult, generation);
 
       if (data.matched && scanResult && scanResult.confidence >= effectiveConf && scanResult.search_url) {
-        commitMatch(scanResult);
+        commitMatch(scanResult, generation);
       } else if (scanResult?.card_name) {
-        recordVote(scanResult.card_name, scanResult);
+        recordVote(scanResult.card_name, scanResult, generation);
         if (!data.matched) onNoMatch?.();
       } else if (!data.matched) {
         onNoMatch?.();
       }
     } catch (err) {
       clearTimeout(timeoutId);
+      if (!isCurrentScan(generation)) return;
       const elapsed = Math.round(performance.now() - t0);
       const isAbort = err instanceof DOMException && err.name === 'AbortError';
       const msg = isAbort
@@ -517,8 +546,12 @@ export function useScanLoop({
         lastMethod: null,
       }));
     } finally {
-      syncBusy(Math.max(0, inflightRef.current - 1));
-      if (!matchedRef.current) setScannerState('scanning');
+      if (scanGenerationRef.current === generation) {
+        syncBusy(Math.max(0, inflightRef.current - 1));
+        if (isCurrentScan(generation)) setScannerState('scanning');
+      } else {
+        inflightRef.current = Math.max(0, inflightRef.current - 1);
+      }
     }
   }, [
     apiBaseUrl,
@@ -526,6 +559,7 @@ export function useScanLoop({
     captureFrame,
     commitMatch,
     effectiveConf,
+    isCurrentScan,
     maxInflight,
     onNoMatch,
     recordVote,
@@ -561,6 +595,7 @@ export function useScanLoop({
   // ---------------------------------------------------------------------------
 
   const beginScan = useCallback(() => {
+    scanGenerationRef.current += 1;
     setResult(null);
     setHint(null);
     matchedRef.current = false;
@@ -573,6 +608,7 @@ export function useScanLoop({
   }, [captureIntervalMs]);
 
   const stopLoop = useCallback(() => {
+    scanGenerationRef.current += 1;
     clearScanLoop();
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
@@ -586,6 +622,7 @@ export function useScanLoop({
   }, [clearHintStale, clearScanLoop, syncBusy]);
 
   const restartScan = useCallback(() => {
+    scanGenerationRef.current += 1;
     if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
     clearHintStale();
     setCountdown(0);

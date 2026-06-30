@@ -16,6 +16,7 @@ import { resolveOnnxDownloadUrls } from '../resolveOnnxUrls';
 export type ModelStatus = 'loading' | 'ready' | 'failed';
 
 const ONNX_SIZE = 224;
+const EMBED_TIMEOUT_MS = 10_000;
 
 /**
  * `ort.env.wasm` is process-global. Configuring it once guards against a race
@@ -70,14 +71,25 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
   const embedWorkerRef = useRef<Worker | null>(null);
   const workerReadyRef = useRef(false);
   const embedPendingRef = useRef<{
+    id: number;
     resolve: (v: Float32Array) => void;
     reject: (e: Error) => void;
+    timeoutId: ReturnType<typeof setTimeout>;
   } | null>(null);
+  const embedRequestIdRef = useRef(0);
 
   /** ONNX InferenceSession (set once after model loads). */
   const sessionRef = useRef<OrtLib.InferenceSession | null>(null);
   /** Cached onnxruntime-web module reference (avoids repeated dynamic import). */
   const ortRef = useRef<typeof OrtLib | null>(null);
+
+  const rejectPendingEmbed = useCallback((message: string) => {
+    const pending = embedPendingRef.current;
+    if (!pending) return;
+    clearTimeout(pending.timeoutId);
+    embedPendingRef.current = null;
+    pending.reject(new Error(message));
+  }, []);
 
   // ---------------------------------------------------------------------------
   // ONNX model loading (runs once after mount)
@@ -143,26 +155,29 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
               new URL('../scannerEmbed.worker.ts', import.meta.url),
               { type: 'module' },
             );
+            embedWorkerRef.current = worker;
             workerOk = await new Promise<boolean>((resolve) => {
               const t = setTimeout(() => resolve(false), 45_000);
               worker.onmessage = (ev: MessageEvent<{ type: string; vector?: Float32Array; message?: string }>) => {
                 if (ev.data.type === 'ready') {
                   clearTimeout(t);
                   workerReadyRef.current = true;
-                  embedWorkerRef.current = worker;
                   resolve(true);
                 } else if (ev.data.type === 'vector' && ev.data.vector && embedPendingRef.current) {
-                  embedPendingRef.current.resolve(ev.data.vector);
+                  const pending = embedPendingRef.current;
+                  clearTimeout(pending.timeoutId);
                   embedPendingRef.current = null;
+                  pending.resolve(ev.data.vector);
                 } else if (ev.data.type === 'error') {
-                  if (embedPendingRef.current) {
-                    embedPendingRef.current.reject(new Error(ev.data.message ?? 'worker embed failed'));
-                    embedPendingRef.current = null;
-                  }
+                  rejectPendingEmbed(ev.data.message ?? 'worker embed failed');
                 }
               };
               worker.onerror = () => {
                 clearTimeout(t);
+                workerReadyRef.current = false;
+                if (embedWorkerRef.current === worker) embedWorkerRef.current = null;
+                rejectPendingEmbed('worker embed failed');
+                worker.terminate();
                 resolve(false);
               };
               const modelCopy = modelData.slice(0);
@@ -173,7 +188,7 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
             });
             if (!workerOk) {
               worker.terminate();
-              embedWorkerRef.current = null;
+              if (embedWorkerRef.current === worker) embedWorkerRef.current = null;
               workerReadyRef.current = false;
             }
           } catch {
@@ -231,6 +246,7 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
     loadOnnxModel();
     return () => {
       cancelled = true;
+      rejectPendingEmbed('ONNX worker terminated');
       embedWorkerRef.current?.terminate();
       embedWorkerRef.current = null;
       workerReadyRef.current = false;
@@ -239,6 +255,7 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
   }, [apiBaseUrl, modelLoadAttempt, turboSkipped]);
 
   const retryModelDownload = useCallback(() => {
+    rejectPendingEmbed('ONNX worker restarted');
     embedWorkerRef.current?.terminate();
     embedWorkerRef.current = null;
     workerReadyRef.current = false;
@@ -248,18 +265,19 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
     setModelStatus('loading');
     setModelProgress({ loaded: 0, total: 0, percent: -1, phase: 'downloading' });
     setModelLoadAttempt((n) => n + 1);
-  }, []);
+  }, [rejectPendingEmbed]);
 
   const continueWithStandardMode = useCallback(() => {
     setTurboSkipped(true);
     setModelError(null);
     setModelStatus('failed');
+    rejectPendingEmbed('ONNX worker stopped');
     embedWorkerRef.current?.terminate();
     embedWorkerRef.current = null;
     workerReadyRef.current = false;
     sessionRef.current = null;
     ortRef.current = null;
-  }, []);
+  }, [rejectPendingEmbed]);
 
   const runOnnxEmbed = useCallback(
     async (tensor: Float32Array): Promise<Float32Array> => {
@@ -267,8 +285,22 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
         const worker = embedWorkerRef.current;
         const payload = tensor.slice();
         return new Promise((resolve, reject) => {
-          embedPendingRef.current = { resolve, reject };
-          worker.postMessage({ type: 'embed', tensor: payload }, [payload.buffer]);
+          const requestId = embedRequestIdRef.current + 1;
+          embedRequestIdRef.current = requestId;
+          const timeoutId = setTimeout(() => {
+            const pending = embedPendingRef.current;
+            if (!pending || pending.id !== requestId) return;
+            embedPendingRef.current = null;
+            pending.reject(new Error('worker embed timeout'));
+          }, EMBED_TIMEOUT_MS);
+          embedPendingRef.current = { id: requestId, resolve, reject, timeoutId };
+          try {
+            worker.postMessage({ type: 'embed', tensor: payload }, [payload.buffer]);
+          } catch (err) {
+            clearTimeout(timeoutId);
+            embedPendingRef.current = null;
+            reject(err instanceof Error ? err : new Error('worker embed failed'));
+          }
         });
       }
       const ort = ortRef.current;
