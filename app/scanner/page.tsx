@@ -12,6 +12,7 @@ import {
 import { ScannerModelGate } from '@/components/feature/scanner/ScannerModelGate';
 import { ScannerBetaNotice } from '@/components/feature/scanner/ScannerBetaNotice';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -67,11 +68,12 @@ function TopLoadingBar({ active }: { active: boolean }) {
 // ---------------------------------------------------------------------------
 
 function ModelStatusBadge({ status }: { status: ModelStatus }) {
+  const { t } = useTranslation();
   if (status === 'ready') {
     return (
       <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300 ring-1 ring-emerald-500/30">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(74,222,128,0.8)]" aria-hidden />
-        Turbo
+        {t('scanner.badgeTurbo')}
       </span>
     );
   }
@@ -79,7 +81,7 @@ function ModelStatusBadge({ status }: { status: ModelStatus }) {
     return (
       <span className="flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300 ring-1 ring-amber-500/30">
         <span className="h-1.5 w-1.5 animate-[pulse_1s_ease-in-out_infinite] rounded-full bg-amber-400" aria-hidden />
-        Caricamento…
+        {t('scanner.badgeLoading')}
       </span>
     );
   }
@@ -87,7 +89,7 @@ function ModelStatusBadge({ status }: { status: ModelStatus }) {
   return (
     <span className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/50 ring-1 ring-white/10">
       <span className="h-1.5 w-1.5 rounded-full bg-white/40" aria-hidden />
-      📡 Standard
+      {t('scanner.badgeStandard')}
     </span>
   );
 }
@@ -265,13 +267,14 @@ function StatusBar({
   status: StatusBarState;
   hintName?: string | null;
 }) {
+  const { t } = useTranslation();
   const messages: Record<StatusBarState, string> = {
-    idle: 'Inizializzazione fotocamera…',
-    scanning: 'Inquadra la carta nel riquadro',
-    processing: 'Analisi in corso…',
-    matched: 'Carta trovata!',
-    slow: 'Analisi in corso… (rete lenta)',
-    hint: hintName ? `Riconosco: ${hintName}` : 'Riconoscimento…',
+    idle: t('scanner.statusIdle'),
+    scanning: t('scanner.statusScanning'),
+    processing: t('scanner.statusProcessing'),
+    matched: t('scanner.statusMatched'),
+    slow: t('scanner.statusSlow'),
+    hint: hintName ? t('scanner.statusHint', { name: hintName }) : t('scanner.statusRecognizing'),
   };
 
   const dotColor =
@@ -329,6 +332,7 @@ function ScannerToolbar({
   onClose: () => void;
   modelStatus: ModelStatus;
 }) {
+  const { t } = useTranslation();
   return (
     <header
       className={cn(
@@ -337,7 +341,7 @@ function ScannerToolbar({
       )}
     >
       <div className="flex items-center gap-2 justify-self-start">
-        <button type="button" onClick={onGoHome} className={glassIconBtn} aria-label="Torna alla home">
+        <button type="button" onClick={onGoHome} className={glassIconBtn} aria-label={t('scanner.goHome')}>
           <Home className="h-5 w-5" strokeWidth={2.2} />
         </button>
         {torchSupported ? (
@@ -348,7 +352,7 @@ function ScannerToolbar({
               glassIconBtn,
               torchOn && 'border-[#FF7300]/50 bg-[#FF7300]/20 text-white shadow-[0_0_16px_rgba(255,115,0,0.35)]'
             )}
-            aria-label={torchOn ? 'Spegni torcia' : 'Accendi torcia'}
+            aria-label={torchOn ? t('scanner.torchOff') : t('scanner.torchOn')}
             aria-pressed={torchOn}
           >
             <Lightbulb className="h-5 w-5" strokeWidth={2.2} />
@@ -360,16 +364,16 @@ function ScannerToolbar({
 
       <div className="flex flex-col items-center justify-center px-1">
         <span className="font-display text-[1.05rem] font-bold uppercase tracking-[0.22em] text-white drop-shadow-sm sm:text-xl">
-          Scan
+          {t('scanner.title')}
         </span>
         <ModelStatusBadge status={modelStatus} />
       </div>
 
       <div className="flex items-center justify-end gap-2 justify-self-end">
-        <Link href="/search" className={glassIconBtn} aria-label="Apri ricerca marketplace">
+        <Link href="/search" className={glassIconBtn} aria-label={t('scanner.openSearch')}>
           <Search className="h-5 w-5" strokeWidth={2.2} />
         </Link>
-        <button type="button" onClick={onClose} className={glassIconBtn} aria-label="Chiudi scanner">
+        <button type="button" onClick={onClose} className={glassIconBtn} aria-label={t('scanner.close')}>
           <X className="h-5 w-5" strokeWidth={2.2} />
         </button>
       </div>
@@ -382,6 +386,7 @@ function ScannerToolbar({
 // ---------------------------------------------------------------------------
 
 function CameraPermissionDenied({ noCamera }: { noCamera?: boolean }) {
+  const { t } = useTranslation();
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-8 px-6 text-center">
@@ -414,12 +419,10 @@ function CameraPermissionDenied({ noCamera }: { noCamera?: boolean }) {
 
         <div className="mt-6 space-y-2">
           <p className="font-display text-xl font-bold tracking-wide text-white">
-            {noCamera ? 'Camera non disponibile' : 'Accesso fotocamera negato'}
+            {noCamera ? t('scanner.noCameraTitle') : t('scanner.deniedTitle')}
           </p>
           <p className="text-sm leading-relaxed text-white/55">
-            {noCamera
-              ? 'Questo dispositivo non sembra avere una fotocamera. Usa uno smartphone.'
-              : "Consenti l'accesso alla fotocamera nelle impostazioni del browser, poi ricarica."}
+            {noCamera ? t('scanner.noCameraBody') : t('scanner.deniedBody')}
           </p>
         </div>
       </div>
@@ -430,14 +433,14 @@ function CameraPermissionDenied({ noCamera }: { noCamera?: boolean }) {
           onClick={() => window.location.reload()}
           className="w-full rounded-2xl bg-[#FF7300] px-6 py-3.5 text-sm font-bold uppercase tracking-wide text-[#1a0f08] shadow-[0_8px_24px_rgba(255,115,0,0.35)] transition hover:brightness-110 active:scale-[0.98]"
         >
-          Ricarica pagina
+          {t('scanner.reload')}
         </button>
         <Link
           href="/"
           className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/[0.08] px-6 py-3.5 text-sm font-semibold text-white/90 backdrop-blur-xl transition hover:bg-white/[0.12]"
         >
           <Home className="h-4 w-4 text-[#FF7300]" aria-hidden />
-          Torna alla home
+          {t('scanner.goHome')}
         </Link>
       </div>
     </div>
@@ -465,16 +468,18 @@ function MatchPreview({
   onSearchNow: () => void;
   onNotThisCard: () => void;
 }) {
+  const { t } = useTranslation();
   const pct = Math.round(confidence * 100);
   const badgeColor = pct >= 90 ? 'bg-green-500' : pct >= 80 ? 'bg-amber-500' : 'bg-zinc-500';
   const progressPct = (countdown / COUNTDOWN_SECONDS) * 100;
+  const announceCard = setName ? `${cardName}, ${setName}` : cardName;
 
   return (
     <div
       className="absolute inset-x-0 bottom-0 z-30 overflow-hidden rounded-t-[2rem] animate-[slide-up_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]"
       style={{ animation: 'slide-up 0.4s cubic-bezier(0.16,1,0.3,1) forwards' }}
       role="dialog"
-      aria-label="Carta trovata"
+      aria-label={t('scanner.matchFound')}
     >
       <style>{`
         @keyframes slide-up {
@@ -486,7 +491,7 @@ function MatchPreview({
       {/* Live region: annuncia la carta trovata una sola volta (evita lo spam
           del countdown a ogni secondo). aria-atomic per leggere il messaggio intero. */}
       <p className="sr-only" aria-live="polite" aria-atomic="true">
-        {`Carta trovata: ${cardName}${setName ? `, ${setName}` : ''}. Reindirizzamento automatico alla ricerca; premi "Non è questa carta" per annullare.`}
+        {t('scanner.matchAnnounce', { card: announceCard })}
       </p>
 
       {/* Backdrop */}
@@ -520,7 +525,7 @@ function MatchPreview({
                 badgeColor
               )}
             >
-              {pct}% match
+              {t('scanner.matchPercent', { pct })}
             </span>
           </div>
         </div>
@@ -532,7 +537,7 @@ function MatchPreview({
                 className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-[pulse_1s_ease-in-out_infinite]"
                 aria-hidden
               />
-              Reindirizzo alla ricerca…
+              {t('scanner.redirecting')}
             </span>
             <span className="tabular-nums font-semibold text-[#FF7300]">{countdown}s</span>
           </div>
@@ -550,14 +555,14 @@ function MatchPreview({
             onClick={onSearchNow}
             className="flex-1 rounded-2xl bg-[#FF7300] px-4 py-3.5 text-sm font-bold uppercase tracking-wide text-[#1a0f08] shadow-[0_6px_20px_rgba(255,115,0,0.35)] transition hover:brightness-110 active:scale-[0.98]"
           >
-            Cerca ora
+            {t('scanner.searchNow')}
           </button>
           <button
             type="button"
             onClick={onNotThisCard}
             className="flex-1 rounded-2xl border border-white/18 bg-white/[0.08] px-4 py-3.5 text-sm font-semibold text-white/85 backdrop-blur-md transition hover:bg-white/[0.12] active:scale-[0.98]"
           >
-            Non è questa carta
+            {t('scanner.notThisCard')}
           </button>
         </div>
       </div>
@@ -570,12 +575,13 @@ function MatchPreview({
 // ---------------------------------------------------------------------------
 
 function RequestingCameraLoader() {
+  const { t } = useTranslation();
   return (
     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-[#050810]/80 backdrop-blur-md">
       <div className="rounded-3xl border border-white/12 bg-white/[0.06] px-10 py-8 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl ring-1 ring-white/10">
         <div className="mx-auto h-11 w-11 rounded-full border-2 border-white/20 border-t-[#FF7300] animate-spin" />
         <p className="mt-5 text-center font-display text-sm font-semibold uppercase tracking-[0.2em] text-white/80">
-          Apertura fotocamera…
+          {t('scanner.openingCamera')}
         </p>
       </div>
     </div>
@@ -594,6 +600,7 @@ function LiveHintChip({
   hint: { card_name: string; set_name: string; image_uri: string | null; confidence: number };
   latencyMs: number;
 }) {
+  const { t } = useTranslation();
   const confPct = Math.round(hint.confidence * 100);
   const confColor =
     confPct >= 80 ? 'text-emerald-400' : confPct >= 65 ? 'text-yellow-400' : 'text-white/50';
@@ -623,7 +630,7 @@ function LiveHintChip({
         <p className="truncate text-[14px] font-bold leading-tight text-white">{hint.card_name}</p>
         <p className="truncate text-[11px] text-white/65">{hint.set_name}</p>
         <p className={cn('mt-1 text-[11px] font-semibold uppercase tracking-wider', confColor)}>
-          {confPct}% · Conferma…
+          {confPct}% · {t('scanner.confirming')}
           {latencyMs > 0 ? ` ${latencyMs}ms` : ''}
         </p>
       </div>
@@ -663,6 +670,7 @@ function DebugOverlay({ debug, state }: { debug: DebugInfo; state: string }) {
 // ---------------------------------------------------------------------------
 
 function ScannerPageInner() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const showDebug =
@@ -841,8 +849,7 @@ function ScannerPageInner() {
     >
       <noscript>
         <p className="absolute inset-x-0 top-0 z-50 bg-amber-100 px-4 py-3 text-center text-sm text-amber-900">
-          Lo scanner richiede JavaScript e l&apos;accesso alla fotocamera. Attiva
-          JavaScript nel browser per usarlo.
+          {t('scanner.noscript')}
         </p>
       </noscript>
 
@@ -916,7 +923,7 @@ function ScannerPageInner() {
                   state === 'scanning' && 'animate-[pulse_2s_ease-in-out_infinite]',
                 )}
               >
-                {state === 'scanning' ? 'Cerca carta…' : 'Inquadra la carta Magic nel riquadro'}
+                {state === 'scanning' ? t('scanner.scanHintScanning') : t('scanner.scanHintIdle')}
               </p>
             )}
             {hint && state !== 'matched' && (

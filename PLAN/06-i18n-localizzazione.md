@@ -276,3 +276,20 @@ Localizzati gli ultimi formatter user-facing a scope-modulo (commit 8a9000b):
 (admin IT-only), + default/fallback in `lib/utils.ts`/`lib/i18n/locales.ts`/
 `lib/i18n/useIntlLocale.ts`/`inventory-export-utils`. Gate verdi: typecheck ✅, lint ✅,
 i18n:keys ✅, test 199/199 ✅.
+
+## Diario esecuzione — 2026-06-29 (6.4 script quality + 6.5 scanner page)
+
+**6.4 — `scripts/check-i18n-quality.mjs` + `npm run i18n:quality`:** confronta i VALORI
+di de/fr/es/pt contro en (fallback) e segnala le chiavi potenzialmente non tradotte,
+ESCLUDENDO i falsi positivi via allowlist (brand/gergo TCG/nomi giochi/sigle, valori
+senza lettere, namespace proper-noun `country.`/`games.`, sole interpolazioni).
+Default = report (exit 0, non rompe la CI); `--strict` (+ `I18N_QUALITY_BUDGET`) per
+far fallire; `--list` elenca le sospette. Stato attuale: de 72, fr 85, es 71, pt 68
+(296 totali genuinamente non tradotte → input per futuri batch 6.3).
+
+**6.5 — `app/scanner/page.tsx` estratto:** 32 nuove chiavi `scanner.*` ×6 locali
+(badge Turbo/Standard, StatusBar, aria-label toolbar, CameraPermissionDenied, MatchPreview
+con `{card}`/`{pct}`, RequestingCameraLoader, LiveHintChip, hint scan, noscript). Tutti i
+sotto-componenti (module-level) hanno ora il proprio `useTranslation`. Tradotto in
+de/fr/es/pt. Restano hardcoded solo le label del DebugOverlay (dev, `?debug=1`).
+Parità i18n:keys **2273×6**. Gate verdi: typecheck ✅, lint ✅, i18n:keys ✅, test 199/199 ✅.
