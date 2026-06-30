@@ -65,24 +65,70 @@ export function AuctionCreatePriceStep({ draft, update, isEmbedded }: AuctionCre
         </div>
       </div>
       {!isEmbedded && (
-        <div>
-          <label htmlFor="ac-buynow" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-            {t('auctions.createBuyNowLabel')}
-          </label>
-          <div className="relative mt-1.5 max-w-xs">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
-            <input
-              id="ac-buynow"
-              value={draft.buyNowPriceEur}
-              onChange={(e) => update('buyNowPriceEur', e.target.value)}
-              onBlur={(e) => update('buyNowPriceEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-              className="w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-              inputMode="decimal"
-              placeholder="—"
-            />
+        draft.inventoryListPriceEur ? (
+          // Carta già in vendita (da inventario, prezzata): chiediamo se tenerla in
+          // vendita. Sì → il "Compra subito" eredita il prezzo del listing; No → niente buy-now.
+          <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4">
+            <span className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+              {t('auctions.createKeepListingLabel')}
+            </span>
+            <p className="mt-1 text-xs leading-snug text-gray-500">
+              {t('auctions.createKeepListingHint', { price: draft.inventoryListPriceEur })}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  update('keepInventoryListing', true);
+                  update('buyNowPriceEur', draft.inventoryListPriceEur);
+                }}
+                className={cn(
+                  'rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-colors',
+                  draft.keepInventoryListing
+                    ? 'border-[#FF7300] bg-[#FF7300] text-white'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                )}
+              >
+                {t('auctions.createKeepListingYes')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  update('keepInventoryListing', false);
+                  update('buyNowPriceEur', '');
+                }}
+                className={cn(
+                  'rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-colors',
+                  !draft.keepInventoryListing
+                    ? 'border-[#FF7300] bg-[#FF7300] text-white'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                )}
+              >
+                {t('auctions.createKeepListingNo')}
+              </button>
+            </div>
           </div>
-          <p className="mt-1 text-xs text-gray-500">{t('auctions.createBuyNowHint')}</p>
-        </div>
+        ) : (
+          // Prodotto caricato direttamente in asta: "Compra subito" facoltativo.
+          <div>
+            <label htmlFor="ac-buynow" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
+              {t('auctions.createBuyNowLabel')}
+            </label>
+            <div className="relative mt-1.5 max-w-xs">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
+              <input
+                id="ac-buynow"
+                value={draft.buyNowPriceEur}
+                onChange={(e) => update('buyNowPriceEur', e.target.value)}
+                onBlur={(e) => update('buyNowPriceEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                className="w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
+                inputMode="decimal"
+                placeholder="—"
+              />
+            </div>
+            <p className="mt-1 text-xs text-gray-500">{t('auctions.createBuyNowHint')}</p>
+          </div>
+        )
       )}
       {isEmbedded && (
         <div>

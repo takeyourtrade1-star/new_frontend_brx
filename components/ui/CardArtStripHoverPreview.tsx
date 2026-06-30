@@ -23,7 +23,7 @@ const HOVER_HIDE_MS = 140;
 type HoverPreview = { url: string; name: string; left: number; top: number; width: number };
 
 /**
- * Ritaglio parte alta della carta (come ristampe / CardTrader) con anteprima grande al hover.
+ * Ritaglio parte alta della carta (come nelle ristampe) con anteprima grande al hover.
  */
 export function CardArtStripHoverPreview({
   imageUrl,

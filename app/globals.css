@@ -78,6 +78,14 @@
   }
   html {
     min-height: 100%;
+    /* Lock scroll laterale a livello documento: `overflow-x-hidden` sui wrapper
+       di pagina taglia solo il contenuto interno, ma un element che sfora il
+       viewport (o un `fixed`) allarga comunque il <body>. `clip` blocca lo
+       scroll orizzontale senza creare scroll-container (no jank iOS, sticky ok). */
+    overflow-x: clip;
+  }
+  body {
+    overflow-x: clip;
   }
   body {
     @apply transition-colors duration-300 min-h-screen font-medium;
@@ -2460,5 +2468,40 @@
 .search-input-orange-placeholder:-ms-input-placeholder {
   color: #FF7300;
   opacity: 1;
+}
+
+/* ========== EMBLEMA SCAMBI: coppia di carte che si "scambiano" ========== */
+/* Le due carte ruotano l'una attorno all'altra (una passa sopra, una sotto)
+   simulando uno scambio. Usato accanto alla scritta "scambiare" in ScambiContent. */
+.trade-emblem-card-a,
+.trade-emblem-card-b {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.trade-emblem-card-a {
+  animation: trade-swap-a 2.6s ease-in-out infinite;
+}
+.trade-emblem-card-b {
+  animation: trade-swap-b 2.6s ease-in-out infinite;
+}
+@keyframes trade-swap-a {
+  0%, 100% { transform: translate(-2.5px, 0) rotate(-11deg); }
+  25%      { transform: translate(-2.5px, -2.5px) rotate(-11deg); }
+  50%      { transform: translate(3.5px, 0) rotate(11deg); }
+  75%      { transform: translate(3.5px, 2.5px) rotate(11deg); }
+}
+@keyframes trade-swap-b {
+  0%, 100% { transform: translate(3.5px, 0) rotate(11deg); }
+  25%      { transform: translate(3.5px, 2.5px) rotate(11deg); }
+  50%      { transform: translate(-2.5px, 0) rotate(-11deg); }
+  75%      { transform: translate(-2.5px, -2.5px) rotate(-11deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trade-emblem-card-a,
+  .trade-emblem-card-b {
+    animation: none !important;
+  }
+  .trade-emblem-card-a { transform: translate(-2.5px, 0) rotate(-11deg); }
+  .trade-emblem-card-b { transform: translate(3.5px, 0) rotate(11deg); }
 }
 

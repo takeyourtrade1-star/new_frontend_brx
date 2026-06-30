@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 
 import {
   INITIAL_PRODUCT_FILTERS,
@@ -49,20 +49,26 @@ describe('useProductFilters', () => {
     expect(result.current.marketplaceFilters.hideAuctions).toBe(true);
   });
 
-  it('inizializza posizioneVenditore una sola volta dal paese utente', async () => {
+  it('default a "tutti i paesi" e reset al cambio prodotto', () => {
     const { result, rerender } = renderHook(
-      (props: { userCountry?: string; detectedCountry?: string }) =>
+      (props: { productId: string }) =>
         useProductFilters({
-          userCountry: props.userCountry,
-          detectedCountry: props.detectedCountry,
+          userCountry: 'FR',
+          detectedCountry: 'IT',
+          productId: props.productId,
         }),
-      { initialProps: { userCountry: undefined as string | undefined, detectedCountry: 'IT' as string | undefined } }
+      { initialProps: { productId: 'mtg_1' } }
     );
 
-    await waitFor(() => expect(result.current.posizioneVenditore).toBe('IT'));
+    // Nessuna pre-selezione del paese utente/geo: parte da "tutti i paesi" ('').
+    expect(result.current.posizioneVenditore).toBe('');
 
-    // un cambio tardivo non deve sovrascrivere la prima inizializzazione
-    rerender({ userCountry: 'FR', detectedCountry: 'IT' });
-    expect(result.current.posizioneVenditore).toBe('IT');
+    // L'utente seleziona un paese specifico.
+    act(() => result.current.setPosizioneVenditore('DE'));
+    expect(result.current.posizioneVenditore).toBe('DE');
+
+    // Aprendo un prodotto diverso il filtro torna a "tutti i paesi".
+    rerender({ productId: 'mtg_2' });
+    expect(result.current.posizioneVenditore).toBe('');
   });
 });

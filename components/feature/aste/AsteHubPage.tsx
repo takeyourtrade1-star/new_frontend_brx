@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search, X } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -62,8 +62,6 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 }
 
 type AsteHubToolbarProps = {
-  q: string;
-  onQChange: (value: string) => void;
   filterPriceMax: string;
   onFilterPriceMaxChange: (value: string) => void;
   filterMinBids: string;
@@ -77,8 +75,6 @@ type AsteHubToolbarProps = {
 };
 
 function AsteHubToolbar({
-  q,
-  onQChange,
   filterPriceMax,
   onFilterPriceMaxChange,
   filterMinBids,
@@ -99,41 +95,10 @@ function AsteHubToolbar({
           : 'mb-6 rounded-2xl border border-slate-200/75 bg-slate-100/90 px-4 py-3.5 shadow-[0_1px_4px_rgba(15,23,42,0.06)] sm:px-5 sm:py-4',
       )}
     >
-      <div className="flex w-full min-w-0 items-center overflow-hidden rounded-full bg-white px-2 py-1.5 shadow-sm ring-1 ring-slate-200/60">
-        <div className="flex min-w-0 flex-1 items-center gap-2 px-3">
-          <Search className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
-          <input
-            id={compact ? 'aste-hub-search-sticky' : 'aste-hub-search'}
-            type="search"
-            value={q}
-            onChange={(e) => onQChange(e.target.value)}
-            placeholder={t('auctions.searchPlaceholder')}
-            className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none"
-            aria-label={t('auctions.searchPlaceholder')}
-          />
-          {q && (
-            <button
-              type="button"
-              onClick={() => onQChange('')}
-              className="text-gray-400 transition-colors hover:text-gray-600 focus:outline-none"
-              aria-label="Cancella ricerca"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-        <button
-          type="button"
-          className="btn-orange-glow shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs sm:px-4 sm:text-sm"
-        >
-          {t('auctions.searchLabel')}
-        </button>
-      </div>
-
       <div
         className={cn(
           'flex flex-wrap items-end gap-2',
-          compact ? 'pt-1' : 'border-t border-slate-200/65 pt-3',
+          compact ? 'pt-1' : '',
         )}
       >
         {!compact && (
@@ -228,12 +193,18 @@ function AsteHubToolbar({
 export function AsteHubPage() {
   const { t } = useTranslation();
   const { selectedLang } = useLanguage();
+  const searchParams = useSearchParams();
+  const urlQ = searchParams.get('q') ?? '';
 
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const [apiBatchCount, setApiBatchCount] = useState(1);
   const [viewMode, setViewMode] = useState<AsteViewMode>('list');
   const [browseTab, setBrowseTab] = useState<BrowseTab | null>(null);
-  const [q, setQ] = useState('');
+  // La ricerca aste arriva dalla barra principale (toggle "Aste") via URL ?q=.
+  const [q, setQ] = useState(urlQ);
+  useEffect(() => {
+    setQ(urlQ);
+  }, [urlQ]);
   const debouncedQ = useDebouncedValue(q, SEARCH_DEBOUNCE_MS);
   const [filterPriceMax, setFilterPriceMax] = useState('');
   const [filterMinBids, setFilterMinBids] = useState('');
@@ -438,8 +409,6 @@ export function AsteHubPage() {
             />
 
             <AsteHubToolbar
-              q={q}
-              onQChange={setQ}
               filterPriceMax={filterPriceMax}
               onFilterPriceMaxChange={setFilterPriceMax}
               filterMinBids={filterMinBids}
@@ -501,8 +470,6 @@ export function AsteHubPage() {
         <div className="animate-slide-up-bounce fixed bottom-0 left-0 right-0 z-40 overflow-x-clip border-t border-gray-200 bg-white/95 backdrop-blur-md">
           <div className="px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
             <AsteHubToolbar
-              q={q}
-              onQChange={setQ}
               filterPriceMax={filterPriceMax}
               onFilterPriceMaxChange={setFilterPriceMax}
               filterMinBids={filterMinBids}

@@ -9,7 +9,9 @@ import type { GameSlug } from '@/lib/contexts/GameContext';
 import { type CategoryKey, normalizeCategoryKey, normalizeGameSlug } from '@/lib/search/category-mapping';
 import type { SetResult } from '@/lib/search/global-search-types';
 import { FRONTEND_TO_DB_SLUG, searchResultsPath } from '@/lib/search/global-search-url';
+import { getActiveScope } from '@/lib/search/search-scopes';
 import { useSetSearch } from '@/lib/hooks/use-search';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import { isSellFlow } from '@/lib/sell-flow/sell-flow';
 import { AnimatedSearchPlaceholder } from '@/components/layout/search/AnimatedSearchPlaceholder';
 import { ProductCategoryButton } from '@/components/layout/search/ProductCategoryButton';
@@ -30,6 +32,7 @@ export function SearchWithInstantSearch({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownDismissed, setDropdownDismissed] = useState(() => pathname.startsWith('/search'));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +49,14 @@ export function SearchWithInstantSearch({
   const [localValue, setLocalValue] = useState(query ?? '');
   const hasText = (localValue ?? '').trim().length > 0;
   const mappedGame = useMemo(() => normalizeGameSlug(selectedGame), [selectedGame]);
+
+  // Scope contestuale (es. /aste): se attivo, Invio reindirizza alla pagina del flusso
+  // invece di passare dalla ricerca carte. ON di default quando si entra nel flusso.
+  const activeScope = useMemo(() => getActiveScope(pathname), [pathname]);
+  const [scopeOn, setScopeOn] = useState(true);
+  useEffect(() => {
+    setScopeOn(true);
+  }, [activeScope?.id]);
 
   const [isTyping, setIsTyping] = useState(false);
   const [typingKey, setTypingKey] = useState(0);
@@ -128,6 +139,13 @@ export function SearchWithInstantSearch({
   }, []);
 
   const handleEnter = () => {
+    if (activeScope && scopeOn) {
+      const q = (localValue ?? '').trim();
+      router.push(activeScope.buildUrl(q));
+      inputRef.current?.blur();
+      closePanel();
+      return;
+    }
     if (isSetsMode) {
       const q = (localValue ?? '').trim();
       const dbGame = selectedGame ? (FRONTEND_TO_DB_SLUG[selectedGame] ?? selectedGame) : '';
@@ -179,7 +197,7 @@ export function SearchWithInstantSearch({
       if (triggerRef.current?.contains(target)) return;
       if (dropdownContainerRef.current?.contains(target)) return;
       const el = target instanceof Element ? target : null;
-      if (el?.closest('.search-category-dropdown-panel--attached, .search-composite-panel')) return;
+      if (el?.closest('.search-category-dropdown-panel, .search-composite-panel')) return;
       closePanel();
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -191,6 +209,7 @@ export function SearchWithInstantSearch({
 
   const showOpenStyle = Boolean(isOpen || (!dropdownDismissed && allowAutoDropdownFromText && hasText));
   const showComposite = showOpenStyle && categoryMenuOpen && showDropdown;
+  const scopeActive = Boolean(activeScope && scopeOn);
 
   const dropdownContent = showComposite ? (
     <SearchCompositePanel
@@ -281,6 +300,10 @@ export function SearchWithInstantSearch({
             : ''
       } ${showComposite ? 'search-container--composite-active' : ''}${
         categoryMenuOpen && showOpenStyle ? ' search-container--category-menu-open' : ''
+      }${
+        scopeActive
+          ? ' ring-2 ring-[#FF7300] ring-offset-1 ring-offset-transparent shadow-[0_0_0_4px_rgba(255,115,0,0.18)]'
+          : ''
       }`}
       style={{ zIndex: 1000 }}
       onClick={() => inputRef.current?.focus()}
@@ -299,6 +322,44 @@ export function SearchWithInstantSearch({
           searchContainerRef={triggerRef}
         />
       </div>
+
+      {activeScope && (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={scopeOn}
+          onClick={(e) => {
+            e.stopPropagation();
+            setScopeOn((v) => !v);
+            inputRef.current?.focus();
+          }}
+          className={`group shrink-0 self-center flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1 text-xs font-semibold leading-none transition-colors duration-200 md:px-2.5 md:text-sm ${
+            scopeOn
+              ? showOpenStyle
+                ? 'text-[#FF7300]'
+                : 'text-white'
+              : showOpenStyle
+                ? 'text-gray-400 hover:text-gray-600'
+                : 'text-white/60 hover:text-white/90'
+          }`}
+          aria-label={t(activeScope.labelKey)}
+          title={t(activeScope.labelKey)}
+        >
+          <span>{t(activeScope.labelKey)}</span>
+          <span
+            aria-hidden
+            className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200 ${
+              scopeOn ? 'bg-[#FF7300]' : showOpenStyle ? 'bg-gray-300' : 'bg-white/30'
+            }`}
+          >
+            <span
+              className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                scopeOn ? 'translate-x-3.5' : 'translate-x-0.5'
+              }`}
+            />
+          </span>
+        </button>
+      )}
 
       <div className="search-input-slot">
         <div

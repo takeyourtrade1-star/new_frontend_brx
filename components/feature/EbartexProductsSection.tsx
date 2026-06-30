@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getCdnImageUrl } from '@/lib/config';
 import { ResponsiveGrid, type GridItem } from './ResponsiveGrid';
 import { ScrollMarquee } from './ScrollMarquee';
@@ -12,13 +13,14 @@ export type BoutiqueProductItem = {
   imageUrl?: string | null;
 };
 
+// Tutte le card rimandano alla pagina Boutique standard (non a categorie filtrate).
 const DEFAULT_PRODUCTS: BoutiqueProductItem[] = [
-  { id: 'dadi', label: 'DADI', href: '/products?category=dadi', imageUrl: '/ebartex-boutique/dadi-boutique.webp' },
-  { id: 'buste', label: 'BUSTE', href: '/products?category=buste', imageUrl: '/ebartex-boutique/buste-boutique.webp' },
-  { id: 'tappetini', label: 'TAPPETINI', href: '/products?category=tappetini', imageUrl: '/ebartex-boutique/tappetini-boutique.webp' },
-  { id: 'memorabilia', label: 'MEMORABILIA', href: '/products?category=memorabilia', imageUrl: '/ebartex-boutique/memorabilia-boutique.webp' },
-  { id: 'albums', label: 'ALBUMS', href: '/products?category=albums', imageUrl: '/ebartex-boutique/albums-boutique.webp' },
-  { id: 'game-kits', label: 'GAME KITS', href: '/products?category=game-kits', imageUrl: '/ebartex-boutique/gamekits-boutique.webp' },
+  { id: 'dadi', label: 'DADI', href: '/products/boutique', imageUrl: '/ebartex-boutique/dadi-boutique.webp' },
+  { id: 'buste', label: 'BUSTE', href: '/products/boutique', imageUrl: '/ebartex-boutique/buste-boutique.webp' },
+  { id: 'tappetini', label: 'TAPPETINI', href: '/products/boutique', imageUrl: '/ebartex-boutique/tappetini-boutique.webp' },
+  { id: 'memorabilia', label: 'MEMORABILIA', href: '/products/boutique', imageUrl: '/ebartex-boutique/memorabilia-boutique.webp' },
+  { id: 'albums', label: 'ALBUMS', href: '/products/boutique', imageUrl: '/ebartex-boutique/albums-boutique.webp' },
+  { id: 'game-kits', label: 'GAME KITS', href: '/products/boutique', imageUrl: '/ebartex-boutique/gamekits-boutique.webp' },
 ];
 
 const BOUTIQUE_GLOW_COLORS: Record<string, string> = {
@@ -66,8 +68,14 @@ export function EbartexProductsSection({
 
   return (
     <section className="w-full pb-10 pt-0 md:pb-14 bg-transparent text-white">
-      {/* Barra full width senza margini laterali */}
-      <ScrollMarquee label="EBARTEX BOUTIQUE" direction="right" />
+      {/* Barra full width senza margini laterali — link alla pagina Boutique */}
+      <Link
+        href="/products/boutique"
+        aria-label="Vai alla pagina Ebartex Boutique"
+        className="block transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+      >
+        <ScrollMarquee label="EBARTEX BOUTIQUE" direction="right" />
+      </Link>
 
       <div className="relative mt-0 overflow-hidden rounded-none">
         {!useUnifiedBackground && (

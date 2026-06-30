@@ -88,18 +88,7 @@ export function AuctionCreateDetailsStep({ draft, update, isEmbedded }: AuctionC
           </div>
           <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <label className="flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={draft.antiSniperEnabled}
-                  onChange={(e) => update('antiSniperEnabled', e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-[#FF7300] focus:ring-[#FF7300]/30"
-                />
-                <span className="text-xs font-bold uppercase tracking-wide text-gray-700">
-                  {t('auctions.createAntiSniperToggle')}
-                </span>
-              </label>
-              <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
+              <span className="text-xs font-bold uppercase tracking-wide text-gray-700">
                 {t('auctions.createAntiSniperLabel')}
               </span>
               <button
@@ -111,35 +100,33 @@ export function AuctionCreateDetailsStep({ draft, update, isEmbedded }: AuctionC
                 <Info className="h-4 w-4" aria-hidden />
               </button>
             </div>
-            {draft.antiSniperEnabled && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {AUCTION_ANTI_SNIPER_MINUTES_OPTIONS.map((minutes) => {
-                  const backendReady = AUCTION_ANTI_SNIPER_BACKEND_READY.has(minutes);
-                  return (
-                    <button
-                      key={minutes}
-                      type="button"
-                      disabled={!backendReady}
-                      onClick={() => backendReady && update('antiSniperMinutes', minutes)}
-                      className={cn(
-                        'relative rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
-                        !backendReady && 'cursor-not-allowed opacity-50',
-                        draft.antiSniperMinutes === minutes && backendReady
-                          ? 'border-[#FF7300] bg-[#FF7300] text-white'
-                          : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                      )}
-                    >
-                      {t('auctions.createAntiSniperMinutes', { minutes: String(minutes) })}
-                      {!backendReady && (
-                        <span className="ml-1 text-[9px] font-medium normal-case text-gray-400">
-                          ({t('auctions.createAntiSniperComingSoon')})
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {AUCTION_ANTI_SNIPER_MINUTES_OPTIONS.map((minutes) => {
+                const backendReady = AUCTION_ANTI_SNIPER_BACKEND_READY.has(minutes);
+                return (
+                  <button
+                    key={minutes}
+                    type="button"
+                    disabled={!backendReady}
+                    onClick={() => backendReady && update('antiSniperMinutes', minutes)}
+                    className={cn(
+                      'relative rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
+                      !backendReady && 'cursor-not-allowed opacity-50',
+                      draft.antiSniperMinutes === minutes && backendReady
+                        ? 'border-[#FF7300] bg-[#FF7300] text-white'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                    )}
+                  >
+                    {t('auctions.createAntiSniperMinutes', { minutes: String(minutes) })}
+                    {!backendReady && (
+                      <span className="ml-1 text-[9px] font-medium normal-case text-gray-400">
+                        ({t('auctions.createAntiSniperComingSoon')})
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div>
             <label htmlFor="ac-desc" className="flex items-baseline justify-between gap-2">

@@ -729,13 +729,22 @@ export function InventoryFiltersPanel({
           {!collapsed ? (
             panelContent()
           ) : (
-            <div className="flex flex-1 flex-col items-center gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              className="flex flex-1 flex-col items-center gap-3 py-4 text-gray-500 transition-colors hover:text-gray-800"
+              aria-label={t('accountPage.itemsFiltersExpand')}
+            >
+              <SlidersHorizontal className="h-4 w-4 shrink-0" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider [writing-mode:vertical-rl]">
+                {t('accountPage.itemsFiltersPanelTitle')}
+              </span>
               {activeCount > 0 && (
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
                   {activeCount}
                 </span>
               )}
-            </div>
+            </button>
           )}
         </div>
       </aside>

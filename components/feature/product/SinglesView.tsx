@@ -263,7 +263,10 @@ export function ProductCategoryView({
     [t]
   );
 
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  // Vista iniziale dal param ?view (es. "card view" arrivando dall'Emporio);
+  // default lista per gli altri ingressi.
+  const initialViewMode: ViewMode = searchParams.get('view') === 'grid' ? 'grid' : 'list';
+  const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
   const [nomeInput, setNomeInput] = useState(q);
   const [edizioneInput, setEdizioneInput] = useState(setFilter);
   const [raritaInput, setRaritaInput] = useState('');

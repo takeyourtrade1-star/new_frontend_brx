@@ -55,6 +55,14 @@ export type AuctionCreateDraft = {
   reservePriceEur: string;
   /** Prezzo Compra subito (facoltativo; abilita buy_now se > 0). */
   buyNowPriceEur: string;
+  /** Prezzo di vendita esistente sul marketplace quando l'asta è creata da
+   *  una carta già in inventario e già in vendita. Se presente, il wizard
+   *  mostra il selettore «vuoi tenerla in vendita?»: Sì → buy-now = questo
+   *  prezzo; No → niente buy-now. Vuoto nel flusso standalone. */
+  inventoryListPriceEur: string;
+  /** Se true, l'utente sceglie di mantenere il listing marketplace attivo
+   *  parallelamente all'asta e il buy-now viene impostato al prezzo esistente. */
+  keepInventoryListing: boolean;
   durationDays: 3 | 5 | 7;
   /** Anti-Sniper opzionale; backend attualmente default 5 min. */
   antiSniperEnabled: boolean;
@@ -212,11 +220,13 @@ export const AUCTION_CREATE_DEFAULT_DRAFT: AuctionCreateDraft = {
   condition: 'near_mint',
   cardLanguage: '',
   imageUrl: '',
-  startingBidEur: '',
+  startingBidEur: '1',
   reservePriceEur: '',
   buyNowPriceEur: '',
+  inventoryListPriceEur: '',
+  keepInventoryListing: true,
   durationDays: 7,
-  antiSniperEnabled: false,
+  antiSniperEnabled: true,
   antiSniperMinutes: 5,
   paymentDeadlineHours: AUCTION_PAYMENT_DEADLINE_DEFAULT_HOURS,
   shippingPayer: 'buyer',

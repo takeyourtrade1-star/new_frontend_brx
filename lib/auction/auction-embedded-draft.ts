@@ -81,11 +81,16 @@ export function mergeInventoryIntoAuctionDraft(
         : null;
   const language = normalizeAuctionCardLanguage(rawLanguage);
   const priceHint = item.price_cents > 0 ? moneyInputStringFromNumber(item.price_cents / 100) : draft.startingBidEur;
+  const existingListPrice =
+    item.price_cents > 0 ? moneyInputStringFromNumber(item.price_cents / 100) : '';
   return {
     ...draft,
     condition: cond,
     cardLanguage: language || draft.cardLanguage,
     startingBidEur: priceHint,
+    inventoryListPriceEur: existingListPrice,
+    keepInventoryListing: existingListPrice !== '',
+    buyNowPriceEur: existingListPrice !== '' ? existingListPrice : draft.buyNowPriceEur,
     cardSelection: draft.cardSelection
       ? {
           ...draft.cardSelection,
@@ -103,6 +108,8 @@ export function clearInventoryFromAuctionDraft(draft: AuctionCreateDraft): Aucti
     ...draft,
     cardSelection: { ...rest },
     selectedInventoryItemId: null,
-    startingBidEur: '',
+    startingBidEur: '1',
+    inventoryListPriceEur: '',
+    keepInventoryListing: true,
   };
 }

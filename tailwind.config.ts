@@ -232,6 +232,25 @@ const config: Config = {
           '46%': { transform: 'translateY(0) scale(1)' },
           '100%': { transform: 'translateY(0) scale(1)' },
         },
+        // Effetto "foil" olografico (stile CardTrader). Bande prismatiche sottili
+        // che scorrono avanti/indietro sotto blend color-dodge domato, con
+        // rotazione di tinta + pulsazione di luminosità per renderle cangianti.
+        'foil-shimmer': {
+          '0%': { backgroundPosition: '0% 50%', filter: 'brightness(0.85) contrast(1.6) hue-rotate(0deg)' },
+          '50%': { backgroundPosition: '100% 50%', filter: 'brightness(1) contrast(1.75) hue-rotate(50deg)' },
+          '100%': { backgroundPosition: '0% 50%', filter: 'brightness(0.85) contrast(1.6) hue-rotate(0deg)' },
+        },
+        // Micro-scintillii: traslano in diagonale e luccicano insieme.
+        'foil-sparkle': {
+          '0%': { backgroundPosition: '0% 0%', opacity: '0.15' },
+          '50%': { backgroundPosition: '100% 100%', opacity: '0.55' },
+          '100%': { backgroundPosition: '200% 200%', opacity: '0.15' },
+        },
+        // Passata di luce morbida che attraversa la carta (il tocco "premium").
+        'foil-sweep': {
+          '0%': { backgroundPosition: '120% 0%' },
+          '40%, 100%': { backgroundPosition: '-60% 0%' },
+        },
       },
       animation: {
         'caret-blink': 'caret-blink 1.2s ease-out infinite',
@@ -254,6 +273,9 @@ const config: Config = {
         'salute-forearm': 'salute-forearm 1.5s cubic-bezier(0.45,0.05,0.25,1)',
         'salute-fade': 'salute-fade 1.5s ease-in-out',
         'salute-bob': 'salute-bob 1.5s cubic-bezier(0.34,1.56,0.64,1)',
+        'foil-shimmer': 'foil-shimmer 3.2s ease-in-out infinite',
+        'foil-sparkle': 'foil-sparkle 3.8s ease-in-out infinite',
+        'foil-sweep': 'foil-sweep 3s ease-in-out infinite',
       },
       backgroundImage: {
         'gradient-global': 'linear-gradient(to bottom, #3D65C6 0%, #1D3160 100%)',

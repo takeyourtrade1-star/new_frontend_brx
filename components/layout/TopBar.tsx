@@ -237,12 +237,13 @@ export function TopBar() {
             />
             {/* Mobile + tablet (<1280px): "Accedi o Registrati" link — il form inline
                 completo (con i due input) appare solo da xl per evitare overflow a 1024-1280px */}
-            <div className="flex shrink-0 items-center xl:hidden">
-              <Link
-                href="/registrati"
-                className="text-[13px] font-semibold tracking-wide text-white/95 hover:text-white transition-colors uppercase"
-              >
-                Accedi o Registrati
+            <div className="flex shrink-0 items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wide text-white/95 xl:hidden">
+              <Link href="/login" className="transition-colors hover:text-white">
+                {t('breadcrumb.login')}
+              </Link>
+              <span className="text-white/70">o</span>
+              <Link href="/registrati" className="transition-colors hover:text-white">
+                {t('auth.register')}
               </Link>
             </div>
             {/* Desktop ≥xl: REGISTRATI button (sotto xl basta il link sopra) */}

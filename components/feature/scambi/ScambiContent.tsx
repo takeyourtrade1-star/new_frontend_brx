@@ -38,6 +38,42 @@ function getTabLabel(tabId: ScambiTabId): string {
   return ALL_TABS.find((t) => t.id === tabId)?.label ?? tabId;
 }
 
+/**
+ * Emblema "coppia di carte": due carte incrociate che si animano "scambiandosi"
+ * (ruotano l'una attorno all'altra). Posizione/rotazione base e animazione sono
+ * gestite dalle classi `.trade-emblem-card-a/-b` in globals.css. Usato ai lati
+ * del banner marketing degli scambi al posto della singola icona refresh.
+ */
+function TradeCardsEmblem({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <rect
+        className="trade-emblem-card-a"
+        x="7.25"
+        y="5.5"
+        width="9.5"
+        height="13"
+        rx="2"
+        fill="white"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <rect
+        className="trade-emblem-card-b"
+        x="7.25"
+        y="5.5"
+        width="9.5"
+        height="13"
+        rx="2"
+        fill="currentColor"
+        fillOpacity="0.15"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}
+
 /** Passi del flusso di scambio. `card` è la parola evidenziata (le carte sono il
  *  centro dello scambio); `iconClass` è l'animazione propria di ogni icona. */
 const TRADE_STEPS = [
@@ -343,19 +379,19 @@ export function ScambiContent() {
           </Link>
         </div>
 
-        <div className="mb-2 flex items-center justify-between">
+        {/* Titolo + banner marketing sulla stessa riga (desktop); impilati su mobile */}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">I MIEI SCAMBI</h1>
-        </div>
 
-        {/* Banner marketing centrato */}
-        <div className="mb-6 flex items-center justify-center gap-3 py-3">
-          <ScambiIcon className="h-5 w-5 shrink-0 text-[#FF7300] sm:h-6 sm:w-6" aria-hidden />
-          <p className="text-center text-base font-extrabold uppercase tracking-widest text-[#1D3160] sm:text-xl">
-            Il primo marketplace per{' '}
-            <span className="text-[#FF7300]">scambiare</span>{' '}
-            le tue carte
-          </p>
-          <ScambiIcon className="h-5 w-5 shrink-0 text-[#FF7300] sm:h-6 sm:w-6" aria-hidden />
+          <div className="flex items-center gap-2.5">
+            <TradeCardsEmblem className="h-6 w-6 shrink-0 text-[#FF7300] sm:h-7 sm:w-7" />
+            <p className="text-base font-extrabold uppercase tracking-widest text-[#1D3160] sm:text-lg">
+              Il primo marketplace per{' '}
+              <span className="text-[#FF7300]">scambiare</span>{' '}
+              le tue carte
+            </p>
+            <TradeCardsEmblem className="h-6 w-6 shrink-0 -scale-x-100 text-[#FF7300] sm:h-7 sm:w-7" />
+          </div>
         </div>
 
         {/* Ricerca interna agli scambi */}

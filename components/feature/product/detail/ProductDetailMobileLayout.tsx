@@ -22,6 +22,7 @@ import { MobileCardGeneralInfo } from '@/components/feature/product/detail/Mobil
 import { MobileChartKpiRow } from '@/components/feature/product/detail/MobileChartKpiRow';
 import { ReprintThumbnail } from '@/components/feature/product/detail/ReprintThumbnail';
 import { FoilSelector } from '@/components/feature/product/detail/FoilSelector';
+import { CardFoilOverlay } from '@/components/feature/product/detail/CardFoilOverlay';
 
 const AuctionCreateWizard = dynamic(
   () => import('@/components/feature/aste/create/AuctionCreateWizard').then((mod) => mod.AuctionCreateWizard),
@@ -186,6 +187,7 @@ export function ProductDetailMobileLayout({
                 priority
               />
             )}
+            {soloFoil && !showImagePlaceholder && <CardFoilOverlay className="rounded-lg" />}
           </div>
           </div>
         )}

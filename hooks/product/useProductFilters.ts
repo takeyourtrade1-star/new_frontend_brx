@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef } from 'react';
+import { useEffect, useMemo, useReducer } from 'react';
 import { type ConditionCode } from '@/components/ui/ConditionBadge';
 import {
   type MarketplaceFilterState,
@@ -70,22 +70,22 @@ export function productFiltersReducer(
 interface UseProductFiltersArgs {
   userCountry: string | null | undefined;
   detectedCountry: string | null | undefined;
+  /** Id del prodotto corrente: al suo cambio il filtro paese torna a "tutti i paesi". */
+  productId?: string | null;
 }
 
-export function useProductFilters({ userCountry, detectedCountry }: UseProductFiltersArgs) {
+export function useProductFilters({ productId }: UseProductFiltersArgs) {
   const [state, dispatch] = useReducer(productFiltersReducer, INITIAL_PRODUCT_FILTERS);
 
-  // FE-REV-003: imposta il default paese una sola volta, al primo valore disponibile
-  // (user o geo). Senza questo guard, la risoluzione tardiva di user/geo sovrascriveva
-  // la scelta manuale dell'utente.
-  const countryInitializedRef = useRef(false);
+  // Il filtro "Posizione venditore" parte sempre da "tutti i paesi" ('') — non viene
+  // pre-selezionato il paese dell'utente — e ci torna ogni volta che si apre un prodotto
+  // diverso: la selezione non deve trascinarsi tra una carta e l'altra (la route
+  // /products/[slug] riusa la stessa istanza del componente, quindi lo stato
+  // sopravvivrebbe alla navigazione). A sito chiuso/riaperto lo stato è comunque nuovo,
+  // quindi resta "tutti i paesi".
   useEffect(() => {
-    if (countryInitializedRef.current) return;
-    const next = userCountry || detectedCountry;
-    if (!next) return;
-    countryInitializedRef.current = true;
-    dispatch({ type: 'set', key: 'posizioneVenditore', value: next });
-  }, [userCountry, detectedCountry]);
+    dispatch({ type: 'set', key: 'posizioneVenditore', value: '' });
+  }, [productId]);
 
   // Chiusura automatica del pannello filtri dopo 1s dal mount.
   useEffect(() => {

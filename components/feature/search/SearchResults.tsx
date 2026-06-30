@@ -610,6 +610,7 @@ export function SearchResults({
             </div>
           </div>
         </div>
+        */}
 
         {filtersOpen && (
           <div

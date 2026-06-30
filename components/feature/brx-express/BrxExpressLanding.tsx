@@ -7,8 +7,9 @@ import {
   useMotionValueEvent,
 } from 'framer-motion';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { Zap, ArrowRight, FileText } from 'lucide-react';
+import { Zap, ArrowRight, FileText, LayoutGrid } from 'lucide-react';
 import { useState } from 'react';
+import Link from 'next/link';
 
 import { BrxExpressLandingScene } from '@/components/feature/brx-express/landing/BrxExpressLandingScene';
 import landingStyles from '@/components/feature/brx-express/landing/brx-express-landing.module.css';
@@ -99,7 +100,7 @@ export default function BrxExpressLanding() {
           {t('brxExpress.heroDescription')}
         </p>
 
-        <div className="mt-6 flex justify-center">
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button className="relative group overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-3 text-xs font-bold text-white shadow-lg shadow-orange-500/10 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-orange-500/20">
             <span className="relative z-10 flex items-center gap-1.5">
               {t('brxExpress.cta')}
@@ -107,6 +108,14 @@ export default function BrxExpressLanding() {
             </span>
             <span className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-500 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           </button>
+
+          <Link
+            href="/brx-express/catalogo"
+            className="group inline-flex items-center gap-1.5 rounded-xl border border-orange-500/40 bg-white/5 px-5 py-3 text-xs font-bold text-orange-300 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-orange-400/70 hover:text-orange-200"
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            {t('brxExpress.catalogCta')}
+          </Link>
         </div>
       </section>
 

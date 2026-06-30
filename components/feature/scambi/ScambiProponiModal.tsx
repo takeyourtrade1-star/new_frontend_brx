@@ -461,6 +461,142 @@ function SubmitButton({ onClick, children }: { onClick: () => void; children: Re
 }
 
 /* ------------------------------------------------------------------ */
+/*  TradeConfirmOverlay — conferma finale con resoconto dello scambio   */
+/* ------------------------------------------------------------------ */
+
+function ConfirmCardThumb({ image, name, qty }: { image: string; name: string; qty?: number }) {
+  return (
+    <div className="relative w-14 shrink-0">
+      <div className="card-shine-wrapper relative aspect-[200/280] w-full overflow-hidden rounded-lg bg-gray-100 shadow-sm ring-1 ring-black/5">
+        {image ? (
+          <Image src={image} alt={name} fill unoptimized className="object-cover" sizes="56px" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gray-100">
+            <Package className="h-4 w-4 text-gray-300" />
+          </div>
+        )}
+        {qty && qty > 1 ? (
+          <span className="absolute bottom-1 right-1 rounded-full bg-[#FF7300] px-1.5 py-0.5 text-[9px] font-black text-white shadow">
+            x{qty}
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-1 line-clamp-2 text-center text-[9px] font-bold leading-tight text-gray-700">{name}</p>
+    </div>
+  );
+}
+
+function ConfirmColumn({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex-1 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+      <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-gray-400">{label}</p>
+      <div className="flex flex-wrap items-start gap-2">{children}</div>
+    </div>
+  );
+}
+
+function TradeConfirmOverlay({
+  t,
+  offeredSummary,
+  offeredCredits,
+  receivedSummary,
+  requestedCredits,
+  onBack,
+  onConfirm,
+}: {
+  t: TFunction;
+  offeredSummary: { item: TradeCardItem; qty: number }[];
+  offeredCredits: number;
+  receivedSummary: { item: TradeCardItem; qty: number }[];
+  requestedCredits: number;
+  onBack: () => void;
+  onConfirm: () => void;
+}) {
+  const hasOffer = offeredSummary.length > 0 || offeredCredits > 0;
+  const hasReceived = receivedSummary.length > 0 || requestedCredits > 0;
+  return (
+    <div className="absolute inset-0 z-[210] flex items-center justify-center p-3 sm:p-6">
+      <button
+        type="button"
+        className="animate-backdrop-enter absolute inset-0 bg-[#0F172A]/70 backdrop-blur-md"
+        aria-label={t('common.close')}
+        onClick={onBack}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="animate-modal-enter relative z-[211] w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl shadow-black/30"
+      >
+        <div className="bg-gradient-to-r from-[#1D3160] via-[#2A3F73] to-[#1D3160] px-5 py-4">
+          <h2 className="text-base font-black uppercase tracking-tight text-white">{t('scambi.modal.confirmTitle')}</h2>
+          <p className="text-[11px] font-medium text-white/70">{t('scambi.modal.confirmSubtitle')}</p>
+        </div>
+
+        <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-stretch">
+          <ConfirmColumn label={t('scambi.modal.confirmYouOffer')}>
+            {offeredSummary.map(({ item, qty }) => (
+              <ConfirmCardThumb key={item.id} image={item.image} name={item.name} qty={qty} />
+            ))}
+            {offeredCredits > 0 ? (
+              <span className="inline-flex items-center gap-1 self-center rounded-full bg-[#FF7300]/10 px-2.5 py-1 text-[11px] font-black text-[#FF7300]">
+                <Coins className="h-3 w-3" /> {t('scambi.modal.confirmCredits', { count: offeredCredits })}
+              </span>
+            ) : null}
+            {!hasOffer ? (
+              <p className="text-[11px] font-medium text-gray-400">{t('scambi.modal.confirmNoItems')}</p>
+            ) : null}
+          </ConfirmColumn>
+
+          <div className="flex items-center justify-center sm:flex-col">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1D3160]/5 text-[#1D3160]">
+              <ScambiIcon className="h-4 w-4" />
+            </span>
+          </div>
+
+          <ConfirmColumn label={t('scambi.modal.confirmYouReceive')}>
+            {receivedSummary.map(({ item, qty }) => (
+              <ConfirmCardThumb key={item.id} image={item.image} name={item.name} qty={qty} />
+            ))}
+            {requestedCredits > 0 ? (
+              <span className="inline-flex items-center gap-1 self-center rounded-full bg-[#FF7300]/10 px-2.5 py-1 text-[11px] font-black text-[#FF7300]">
+                <Coins className="h-3 w-3" /> {t('scambi.modal.confirmCredits', { count: requestedCredits })}
+              </span>
+            ) : null}
+            {!hasReceived ? (
+              <p className="text-[11px] font-medium text-gray-400">{t('scambi.modal.confirmNoItems')}</p>
+            ) : null}
+          </ConfirmColumn>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-gray-100 bg-gray-50/60 px-5 py-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-xl border-2 border-gray-200 bg-white px-4 py-2.5 text-xs font-black uppercase tracking-wide text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
+          >
+            {t('scambi.modal.confirmBack')}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#FF8A3D] via-[#FF7300] to-[#E86800] px-5 py-2.5 text-xs font-black uppercase tracking-wide text-white shadow-lg shadow-orange-500/30 transition hover:shadow-xl hover:shadow-orange-500/45 hover:-translate-y-0.5 active:translate-y-0"
+          >
+            <Send className="h-3.5 w-3.5" />
+            {t('scambi.modal.confirmSend')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  SelectedBadge — mostra conteggio + popover hover con lista carte    */
 /* ------------------------------------------------------------------ */
 
@@ -569,6 +705,8 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [counterEditing, setCounterEditing] = useState(false);
+  /* Step di conferma finale con resoconto di ciò che si sta scambiando. */
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [inventoryItems, setInventoryItems] = useState<InventoryWithCard[]>([]);
@@ -673,6 +811,7 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
       setMessage('');
       setSearchQuery('');
       setCounterEditing(false);
+      setConfirmOpen(false);
       setViewMode('grid');
       setOfferedItemData({});
       setRequestedItemData({});
@@ -758,6 +897,27 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
   const handleSubmit = () => {
     onSubmit(buildPayload());
     onClose();
+  };
+
+  /* Resoconto minimal per il modale di conferma finale (lato "offerta"). */
+  const offeredSummary = selectedOfferedIds
+    .map((id) => ({ item: offeredItemData[id], qty: offeredQuantities[id] ?? 1 }))
+    .filter((x): x is { item: TradeCardItem; qty: number } => Boolean(x.item));
+
+  /* Resoconto lato "richiesta" (carte selezionate dall'inventario del venditore
+     nella controproposta) — usato per il recap di conferma del counter. */
+  const requestedSummary = selectedRequestedIds
+    .map((id) => ({ item: requestedItemData[id], qty: requestedQuantities[id] ?? 1 }))
+    .filter((x): x is { item: TradeCardItem; qty: number } => Boolean(x.item));
+
+  /* Carta bersaglio dello scambio come riga di recap (lato "ricevi" nel propose). */
+  const targetCardSummary: { item: TradeCardItem; qty: number }[] = [
+    { item: { id: scambio.id, name: scambio.title, image: scambio.image }, qty: 1 },
+  ];
+
+  const confirmAndSend = () => {
+    setConfirmOpen(false);
+    handleSubmit();
   };
 
   const handleAccept = () => {
@@ -1059,11 +1219,23 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                   <CreditField value={requestedCredits} onChange={handleRequestedCreditsChange} label={t('scambi.modal.requestCreditsLabel')} disabled={offeredCredits > 0} />
                   <SelectedBadge count={selectedOfferedIds.length} items={Object.values(offeredItemData)} quantities={offeredQuantities} />
                 </div>
-                <SubmitButton onClick={handleSubmit}>{t('scambi.modal.sendProposal')}</SubmitButton>
+                <SubmitButton onClick={() => setConfirmOpen(true)}>{t('scambi.modal.sendProposal')}</SubmitButton>
               </div>
             </div>
           </div>
         </div>
+
+        {confirmOpen && (
+          <TradeConfirmOverlay
+            t={t}
+            offeredSummary={offeredSummary}
+            offeredCredits={offeredCredits}
+            receivedSummary={targetCardSummary}
+            requestedCredits={requestedCredits}
+            onBack={() => setConfirmOpen(false)}
+            onConfirm={confirmAndSend}
+          />
+        )}
       </div>
     );
   }
@@ -1353,13 +1525,25 @@ export function ScambiProponiModal({ open, onClose, scambio, mode, onSubmit, ini
                     <CreditField value={requestedCredits} onChange={handleRequestedCreditsChange} label={t('scambi.modal.requestCreditsLabel')} disabled={offeredCredits > 0} />
                     <SelectedBadge count={selectedRequestedIds.length} items={Object.values(requestedItemData)} quantities={requestedQuantities} />
                   </div>
-                  <SubmitButton onClick={handleSubmit}>{t('scambi.modal.sendCounter')}</SubmitButton>
+                  <SubmitButton onClick={() => setConfirmOpen(true)}>{t('scambi.modal.sendCounter')}</SubmitButton>
                 </div>
               </>
             )}
           </div>
         </div>
       </div>
+
+      {confirmOpen && (
+        <TradeConfirmOverlay
+          t={t}
+          offeredSummary={offeredSummary}
+          offeredCredits={offeredCredits}
+          receivedSummary={requestedSummary}
+          requestedCredits={requestedCredits}
+          onBack={() => setConfirmOpen(false)}
+          onConfirm={confirmAndSend}
+        />
+      )}
     </div>
   );
 }

@@ -129,28 +129,29 @@ const BOUTIQUE_GLOW_COLORS: Record<string, string> = {
   'game-kits': '255, 115, 0',
 };
 
+// Tutte le card rimandano alla pagina Boutique standard (non a categorie filtrate).
 const BOUTIQUE_CATEGORIES = [
-  { id: 'dadi', label: 'Dadi', href: '/products?category=dadi',
+  { id: 'dadi', label: 'Dadi', href: '/products/boutique',
     imageUrl: '/ebartex-boutique/dadi-boutique.webp',
     imageSet: { sm: '/ebartex-boutique/dadi-boutique-sm.webp', md: '/ebartex-boutique/dadi-boutique-md.webp', lg: '/ebartex-boutique/dadi-boutique-lg.webp' }
   },
-  { id: 'buste', label: 'Buste', href: '/products?category=buste',
+  { id: 'buste', label: 'Buste', href: '/products/boutique',
     imageUrl: '/ebartex-boutique/buste-boutique.webp',
     imageSet: { sm: '/ebartex-boutique/buste-boutique-sm.webp', md: '/ebartex-boutique/buste-boutique-md.webp', lg: '/ebartex-boutique/buste-boutique-lg.webp' }
   },
-  { id: 'tappetini', label: 'Tappetini', href: '/products?category=tappetini',
+  { id: 'tappetini', label: 'Tappetini', href: '/products/boutique',
     imageUrl: '/ebartex-boutique/tappetini-boutique.webp',
     imageSet: { sm: '/ebartex-boutique/tappetini-boutique-sm.webp', md: '/ebartex-boutique/tappetini-boutique-md.webp', lg: '/ebartex-boutique/tappetini-boutique-lg.webp' }
   },
-  { id: 'memorabilia', label: 'Memorabilia', href: '/products?category=memorabilia',
+  { id: 'memorabilia', label: 'Memorabilia', href: '/products/boutique',
     imageUrl: '/ebartex-boutique/memorabilia-boutique.webp',
     imageSet: { sm: '/ebartex-boutique/memorabilia-boutique-sm.webp', md: '/ebartex-boutique/memorabilia-boutique-md.webp', lg: '/ebartex-boutique/memorabilia-boutique-lg.webp' }
   },
-  { id: 'albums', label: 'Albums', href: '/products?category=albums',
+  { id: 'albums', label: 'Albums', href: '/products/boutique',
     imageUrl: '/ebartex-boutique/albums-boutique.webp',
     imageSet: { sm: '/ebartex-boutique/albums-boutique-sm.webp', md: '/ebartex-boutique/albums-boutique-md.webp', lg: '/ebartex-boutique/albums-boutique-lg.webp' }
   },
-  { id: 'game-kits', label: 'Game kits', href: '/products?category=game-kits',
+  { id: 'game-kits', label: 'Game kits', href: '/products/boutique',
     imageUrl: '/ebartex-boutique/gamekits-boutique.webp',
     imageSet: { sm: '/ebartex-boutique/gamekits-boutique-sm.webp', md: '/ebartex-boutique/gamekits-boutique-md.webp', lg: '/ebartex-boutique/gamekits-boutique-lg.webp' }
   },
@@ -464,7 +465,12 @@ export function LandingWelcome() {
             {/* ─── Boutique Cards ─── */}
             <div className="mt-10 sm:mt-12 md:mt-14 text-center">
               <h3 className="mb-5 sm:mb-6 md:mb-8 text-xs sm:text-sm md:text-base font-semibold uppercase tracking-widest text-white/90">
-                La Nostra Boutique
+                <Link
+                  href="/products/boutique"
+                  className="transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                >
+                  La Nostra Boutique
+                </Link>
               </h3>
 
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 sm:gap-4 md:gap-5 max-w-5xl mx-auto px-2 sm:px-3">

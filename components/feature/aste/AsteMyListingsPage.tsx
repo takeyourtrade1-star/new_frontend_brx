@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Trash2, AlertTriangle } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { getStoredAsteViewMode, setStoredAsteViewMode, type AsteViewMode } from '@/lib/auction/aste-view-storage';
@@ -138,12 +138,6 @@ export function AsteMyListingsPage() {
             {t('auctions.myListingsSubtitle', { name: displayName })}
           </p>
         </header>
-
-        {/* Demo banner */}
-        <div className="mb-5 flex items-center gap-3 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
-          <p className="font-medium">{t('auctions.demoBanner')}</p>
-        </div>
 
         {/* Toast eliminazione */}
         {deleteToast && (

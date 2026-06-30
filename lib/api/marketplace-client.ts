@@ -288,6 +288,51 @@ export async function getPublicListingsByBlueprint(
   );
 }
 
+/** Una carta del feed "best sellers" pubblico: ha almeno una listing attiva. */
+export interface PublicBestSellerItem {
+  card_id: string;
+  blueprint_id: number | null;
+  name: string;
+  set_name: string;
+  image: string | null;
+  game_slug: string;
+  /** Prezzo della listing attiva più economica (euro, stringa es. "12.50"). */
+  min_price: string | null;
+  /** Numero di listing attive su questa carta (venditori registrati). */
+  listings_count: number;
+  /** Vendite completate — segnale di ranking (opzionale). */
+  sales_count?: number;
+}
+
+export interface PublicBestSellersResponse {
+  items: PublicBestSellerItem[];
+  total: number;
+}
+
+/**
+ * Feed pubblico "best sellers": carte con listing attive dei venditori registrati,
+ * ordinate per popolarità (`sales_count`). Nessuna auth.
+ *
+ * ⚠️ CONTRATTO BACKEND da implementare in brx-marketplace:
+ *   GET /api/v1/listings/public/best-sellers?game=mtg&limit=12
+ *   → { items: PublicBestSellerItem[], total: number }
+ *   Il path sotto `listings/public/` è già instradato come GET pubblico dal proxy
+ *   (app/api/marketplace/[...path]/route.ts). Finché l'endpoint non esiste la fetch
+ *   fallisce e il chiamante fa fallback al catalogo (vedi useBestSellers + MarketplaceDashboard).
+ */
+export async function getPublicBestSellers(params: {
+  game?: string;
+  limit?: number;
+}): Promise<PublicBestSellersResponse> {
+  const qs = new URLSearchParams();
+  if (params.game) qs.set('game', params.game);
+  if (params.limit != null) qs.set('limit', String(params.limit));
+  const query = qs.toString();
+  return marketplaceFetch<PublicBestSellersResponse>(
+    `/listings/public/best-sellers${query ? `?${query}` : ''}`,
+  );
+}
+
 // ── Orders ────────────────────────────────────────────────────────────────────
 
 export type OrderStatus =

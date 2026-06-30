@@ -25,6 +25,7 @@ export interface CardMascotteOverlaysProps {
   isSleeping: boolean;
   isOverlayVisible: boolean;
   isMobileView: boolean;
+  isAssoMini: boolean;
   flipParticles: FlipParticle[];
   dressingSparkles: DressingSparkle[];
   goldenConfetti: GoldenConfettiPiece[];
@@ -49,6 +50,7 @@ export function CardMascotteOverlays({
   isSleeping,
   isOverlayVisible,
   isMobileView,
+  isAssoMini,
   flipParticles,
   dressingSparkles,
   goldenConfetti,
@@ -212,8 +214,12 @@ export function CardMascotteOverlays({
         </div>
       )}
 
-      {/* Sleep Bubbles - Floating when sleeping */}
-      {isSleeping && !isOverlayVisible && !isFlipped && !isMobileView && (
+      {/* Sleep Bubbles - Floating when sleeping.
+          Posizione fixed ancorata alla mascotte a grandezza piena: in mini mode
+          (scale 0.3 verso bottom-right) le bolle resterebbero "altrove" rispetto
+          ad Asso rimpicciolito, quindi le nascondiamo — il badge "Zzz" nel pill
+          della card scala con la mascotte e resta come indicatore di sonno. */}
+      {isSleeping && !isOverlayVisible && !isFlipped && !isMobileView && !isAssoMini && (
         <div
           className="fixed pointer-events-none sleep-bubbles-wrapper"
           style={{

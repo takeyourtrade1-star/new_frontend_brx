@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { EBARTEX_LOGO_PLACEHOLDER } from '@/lib/product-detail/product-detail-view-types';
 import { ProductDetailMobileLayout } from '@/components/feature/product/detail/ProductDetailMobileLayout';
 import { FoilSelector } from '@/components/feature/product/detail/FoilSelector';
+import { CardFoilOverlay } from '@/components/feature/product/detail/CardFoilOverlay';
 import { ProductDetailInfoTab } from '@/components/feature/product/detail/ProductDetailInfoTab';
 import { ProductDetailSellTab } from '@/components/feature/product/detail/ProductDetailSellTab';
 import { ProductDetailAuctionTab } from '@/components/feature/product/detail/ProductDetailAuctionTab';
@@ -167,6 +168,7 @@ function ProductDetailCardSectionImpl({
                   priority
                 />
               )}
+              {soloFoil && !showImagePlaceholder && <CardFoilOverlay className="rounded-lg" />}
             </div>
           </aside>
 

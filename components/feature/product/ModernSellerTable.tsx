@@ -518,20 +518,34 @@ function AuctionGavelLinkDesktop({ numericId, endsAt }: { numericId: number; end
   );
 }
 
-/** Tre colonne allineate: prezzo | quantità | azioni */
+/** Tre colonne allineate: prezzo | quantità | azioni.
+ * `actions` usa una traccia `auto`: quando il selettore carrello inline si apre
+ * (più largo dei ~6.5rem precedenti) prende la larghezza che gli serve invece di
+ * sforare il proprio track e finire sopra al prezzo. Il prezzo (1fr, nowrap) si
+ * sposta a sinistra senza andare a capo. Con `hideQuantity` la colonna quantità
+ * statica viene rimossa (ridondante: il selettore mostra già la quantità). */
 function MarketplaceOfferGrid({
   price,
   quantity,
   actions,
+  hideQuantity = false,
 }: {
   price: ReactNode;
   quantity: ReactNode;
   actions: ReactNode;
+  hideQuantity?: boolean;
 }) {
   return (
-    <div className="grid w-full grid-cols-[minmax(0,1fr)_2.75rem_6.5rem] items-center">
-      <div className="pr-2 text-right text-sm font-bold tabular-nums text-[#1D3160]">{price}</div>
-      <div className="text-center text-xs font-semibold tabular-nums text-slate-600">{quantity}</div>
+    <div
+      className={cn(
+        'grid w-full items-center',
+        hideQuantity ? 'grid-cols-[minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_2.75rem_auto]'
+      )}
+    >
+      <div className="whitespace-nowrap pr-2 text-right text-sm font-bold tabular-nums text-[#1D3160]">{price}</div>
+      {!hideQuantity && (
+        <div className="text-center text-xs font-semibold tabular-nums text-slate-600">{quantity}</div>
+      )}
       <div className="flex justify-end">{actions}</div>
     </div>
   );
@@ -702,6 +716,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
         <MarketplaceOfferGrid
           price={formatEuro(item.price_cents / 100)}
           quantity={item.quantity}
+          hideQuantity={isCartOpen}
           actions={
             isOwn ? (
               <div className="inline-flex items-center rounded-sm border border-slate-200 bg-white">
@@ -737,7 +752,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
               </div>
             ) : (
               <div className="flex items-center justify-end gap-1">
-                {onProposeTrade && (
+                {!isCartOpen && onProposeTrade && (
                   <button
                     type="button"
                     onClick={() => onProposeTrade(item)}
@@ -750,6 +765,14 @@ const DesktopListingRow = memo(function DesktopListingRow({
                 )}
                 {isCartOpen ? (
                 <div className="inline-flex items-center rounded-sm border border-orange-200 bg-white">
+                <button
+                  type="button"
+                  onClick={onCloseInlineCart}
+                  className="inline-flex h-7 w-6 items-center justify-center border-r border-orange-100 text-slate-400 hover:text-slate-600"
+                  aria-label={t('common.close')}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
                 <button
                   type="button"
                   onClick={() => onSetCartQty(rowKey, cartQty - 1, item.quantity)}
@@ -961,7 +984,7 @@ const MobileListingRow = memo(function MobileListingRow({
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5 self-center">
-        {!isOwn && onProposeTrade && (
+        {!isOwn && !isCartOpen && onProposeTrade && (
           <button
             type="button"
             onClick={() => onProposeTrade(item)}
@@ -1008,6 +1031,14 @@ const MobileListingRow = memo(function MobileListingRow({
           </div>
         ) : isCartOpen ? (
           <div className="inline-flex flex-col overflow-hidden rounded-sm border border-orange-200 bg-white shadow-sm">
+            <button
+              type="button"
+              onClick={onCloseInlineCart}
+              className="inline-flex h-7 w-full items-center justify-center border-b border-orange-100 text-slate-400 hover:text-slate-600"
+              aria-label={t('common.close')}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
             <div className="flex items-center">
               <button
                 type="button"

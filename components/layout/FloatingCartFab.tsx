@@ -30,7 +30,9 @@ export function FloatingCartFab() {
   const badgeBounce = useCartBadgeBounce(cartCount);
   const intlLocale = LOCALE_TO_INTL[locale as UiLocale] ?? 'it-IT';
 
-  if (pathname === '/cart') return null;
+  // Nascondi il FAB carrello sul carrello stesso e nella pagina "I miei oggetti":
+  // lì la barra azioni mobile (ricerca/filtri) sta in basso e il FAB la coprirebbe.
+  if (pathname === '/cart' || pathname === '/account/oggetti') return null;
 
   return (
     <Link

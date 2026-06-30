@@ -1799,6 +1799,7 @@ export function CardMascotte() {
         isSleeping={isSleeping}
         isOverlayVisible={isOverlayVisible}
         isMobileView={isMobileView}
+        isAssoMini={isAssoMini}
         flipParticles={flipParticles}
         dressingSparkles={dressingSparkles}
         goldenConfetti={goldenConfetti}

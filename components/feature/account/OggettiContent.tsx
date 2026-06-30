@@ -333,11 +333,11 @@ export function OggettiContent() {
                 type="button"
                 onClick={() => setMobileFiltersOpen(true)}
                 disabled={loading}
-                className="inline-flex h-8 items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50 md:h-9 md:px-2.5"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-semibold text-gray-800 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50 md:h-9 md:px-3"
                 aria-label={t('accountPage.itemsFiltersPanelTitle')}
               >
                 <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-gray-500" />
-                <span className="hidden sm:inline">{t('accountPage.itemsFiltersPanelTitle')}</span>
+                <span>{t('accountPage.itemsFiltersPanelTitle')}</span>
                 {activeFilterCount > 0 && (
                   <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
                     {activeFilterCount}
@@ -521,7 +521,7 @@ export function OggettiContent() {
       </main>
 
       {showFloatingBar && (
-        <div className="animate-slide-up-bounce fixed bottom-0 left-0 right-0 z-40 overflow-x-clip border-t border-gray-200 bg-white/95 backdrop-blur-md">
+        <div className="animate-slide-up-bounce fixed bottom-0 left-0 right-0 z-40 overflow-x-clip border-t border-gray-200 bg-white/95 backdrop-blur-md md:left-[312px] lg:left-[328px]">
           <div className="mx-auto flex max-w-screen-xl flex-col gap-2 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 md:gap-3 md:px-6">
             <div className="flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-sm md:gap-2">
               <div className="min-w-0 flex-1">

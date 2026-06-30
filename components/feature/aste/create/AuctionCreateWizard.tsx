@@ -41,7 +41,6 @@ import { ImageLightbox } from '@/components/ui/ImageLightbox';
 import { AuctionCreateSuccessScreen } from './wizard/AuctionCreateSuccessScreen';
 import { AuctionCreateStepper } from './wizard/AuctionCreateStepper';
 import { AuctionCreateWizardNav } from './wizard/AuctionCreateWizardNav';
-import { AuctionCreatePhoneQrModal } from './wizard/AuctionCreatePhoneQrModal';
 import { AuctionCreatePublishConfirmModal } from './wizard/AuctionCreatePublishConfirmModal';
 import { AuctionCreateStepPanel } from './wizard/AuctionCreateStepPanel';
 
@@ -254,18 +253,30 @@ export function AuctionCreateWizard({
         nonCardCategory: '' as const,
       };
       if (sel.inventoryItemId != null) {
+        // Carta già in inventario e prezzata: il prezzo del listing diventa il
+        // "Compra subito" (con selettore «tieni in vendita?»), mentre l'offerta
+        // iniziale parte comunque da 1 € (modificabile).
+        const listPrice = sel.startingBidEur ? normalizeAuctionDraftMoneyInput(sel.startingBidEur) : '';
         return {
           ...base,
           condition: inventoryConditionToWizardValue(sel.condition),
           cardLanguage: normalizeAuctionCardLanguage(sel.cardLanguage) || '',
-          startingBidEur: sel.startingBidEur ? normalizeAuctionDraftMoneyInput(sel.startingBidEur) : '',
+          startingBidEur: '1',
+          inventoryListPriceEur: listPrice,
+          keepInventoryListing: listPrice !== '',
+          buyNowPriceEur: listPrice,
           selectedInventoryItemId: String(sel.inventoryItemId),
         };
       }
       return {
         ...base,
         selectedInventoryItemId: null,
-        startingBidEur: '',
+        // Offerta iniziale di base 1 €: l'utente la può modificare nello step prezzo.
+        startingBidEur: '1',
+        // Prodotto non in inventario: niente listing esistente → "Compra subito" facoltativo.
+        inventoryListPriceEur: '',
+        keepInventoryListing: true,
+        buyNowPriceEur: '',
       };
     });
     setError(null);
@@ -318,7 +329,7 @@ export function AuctionCreateWizard({
       imageUrl: '',
       game: '',
       selectedInventoryItemId: null,
-      startingBidEur: '',
+      startingBidEur: '1',
       condition: '',
       cardLanguage: '',
     }));
@@ -687,14 +698,6 @@ export function AuctionCreateWizard({
           onOpenPublishConfirm={openPublishConfirm}
         />
       </div>
-
-      {!isEmbedded && pairing.phoneUploadModalOpen && pairing.pairingSessionId && pairing.phonePairingQrUrl ? (
-        <AuctionCreatePhoneQrModal
-          open
-          qrUrl={pairing.phonePairingQrUrl}
-          onClose={pairing.closePhoneUploadModal}
-        />
-      ) : null}
 
       {publishConfirmOpen && (
         <AuctionCreatePublishConfirmModal

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchCards } from '@/lib/hooks/use-search';
+import { useBestSellers } from '@/lib/hooks/use-best-sellers';
 import { getCdnImageUrl } from '@/lib/config';
 import { getCardImageUrl } from '@/lib/assets';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -227,6 +228,14 @@ export function MarketplaceDashboard({
   const { t } = useTranslation();
 
   const isMtg = !gameSlug || gameSlug === 'mtg';
+
+  // Best sellers REALI: carte in vendita dai venditori registrati (feed pubblico).
+  const { data: bestSellersData } = useBestSellers(
+    { game: gameSlug ?? 'mtg', limit: 12 },
+    { enabled: isMtg },
+  );
+
+  // Fallback: catalogo Meilisearch (mostrato finché il feed best-sellers è vuoto/non attivo).
   const { data: searchData, isLoading: magicLoading } = useSearchCards(
     { game: 'mtg', category_id: 1, limit: 30, sort: 'name_asc' },
     { enabled: isMtg },
@@ -235,9 +244,20 @@ export function MarketplaceDashboard({
   const magicHits = useMemo<SearchHit[]>(() => {
     if (gameSlug === 'pokemon') return POKEMON_HITS;
     if (gameSlug === 'op') return OP_HITS;
+    // 1ª scelta: carte realmente in vendita dai venditori registrati.
+    const bestSellers = (bestSellersData?.items ?? [])
+      .filter((it) => it?.card_id && it?.name)
+      .map<SearchHit>((it) => ({
+        id: it.card_id,
+        name: it.name,
+        set_name: it.set_name,
+        image: it.image,
+      }));
+    if (bestSellers.length > 0) return bestSellers;
+    // 2ª scelta: catalogo. 3ª: mock di fallback.
     const hits = (searchData?.hits ?? []).filter((h) => h?.id && h?.name);
     return hits.length > 0 ? hits : MTG_HITS_FALLBACK;
-  }, [gameSlug, searchData]);
+  }, [gameSlug, bestSellersData, searchData]);
 
   const [magicOffset, setMagicOffset] = useState(0);
   const espansioniItems = nuoveEspansioni?.length

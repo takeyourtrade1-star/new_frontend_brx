@@ -115,9 +115,9 @@ export function OrderTabs<T extends string>({
   return (
     <div
       className={cn(
-        'sticky z-40 -mx-4 px-4 md:static md:mx-0 md:px-0',
+        'sticky z-40 -mx-4 px-4 md:mx-0 md:px-0',
         'md:border-b md:border-gray-200',
-        'bg-[#F5F4F0]/95 py-2 backdrop-blur-md md:bg-transparent md:py-0 md:pb-3 md:backdrop-blur-none md:mb-6',
+        'bg-[#F5F4F0]/95 py-2 backdrop-blur-md md:py-2 md:pb-3 md:mb-6',
       )}
       style={{ top: stickyTop }}
     >

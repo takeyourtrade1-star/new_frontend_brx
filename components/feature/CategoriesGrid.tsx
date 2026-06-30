@@ -20,6 +20,20 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
   { id: 'sigillati', label: 'PRODOTTI SIGILLATI' },
 ];
 
+/**
+ * Mappa l'id grafico della card Emporio sullo slug reale della pagina categoria
+ * (`/products/<slug>` → vedi PRODUCT_CATEGORIES). Alcuni id non coincidono con lo
+ * slug (es. booster-box → booster-boxes), quindi serve la traduzione esplicita.
+ */
+const CATEGORY_SLUGS: Record<string, string> = {
+  singles: 'singles',
+  boosters: 'boosters',
+  'booster-box': 'booster-boxes',
+  'set-lotti': 'set-lotti-collezioni',
+  accessori: 'accessori',
+  sigillati: 'sigillati',
+};
+
 /** Titolo categoria con background superstondato (spezza la grafica dalle altre card) */
 const CATEGORY_GLOW_COLORS: Record<string, string> = {
   singles: '255, 115, 0',
@@ -60,7 +74,8 @@ export function CategoriesGrid({
 
   const gridItems: GridItem[] = items.map((cat, index) => ({
     id: cat.id,
-    href: `/products?category=${cat.id}`,
+    // Vai alla pagina categoria reale (/products/<slug>) e parti in "card view".
+    href: `/products/${CATEGORY_SLUGS[cat.id] ?? cat.id}?view=grid`,
     style: {
       background: CATEGORY_BACKGROUNDS[cat.id] || CATEGORY_BACKGROUNDS.singles,
     },

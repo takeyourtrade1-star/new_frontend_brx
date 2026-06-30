@@ -217,7 +217,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setSellerSubTab,
     setFiltersOpen,
     marketplaceFilters,
-  } = useProductFilters({ userCountry: user?.country, detectedCountry });
+  } = useProductFilters({ userCountry: user?.country, detectedCountry, productId: card?.id });
 
   // Piano 1.3 — aste correlate alla carta.
   const { enrichedCardAuctions, auctionsLoading } = useProductAuctions(card);
@@ -285,7 +285,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
 
   const countryOptions: CountryOption[] = useMemo(
     () => [
-      { code: '', label: t('productDetail.filters.allCountries'), flagCode: 'EU' },
+      { code: '', label: t('productDetail.filters.allCountries'), flagCode: 'WORLD' },
       ...COUNTRIES.map((c) => ({
         code: c.code,
         label: c.label,

@@ -128,6 +128,13 @@ export function AuctionCreateStepPanel({
           photoUploadStatuses={photoUploadStatuses}
           failedUploadFiles={failedUploadFiles}
           onRetryFailedUpload={retryFailedUpload}
+          appendPhotos={appendEmbeddedPhotos}
+          galleryInputRef={embGalleryInputRef}
+          cameraInputRef={embCameraInputRef}
+          onPhotoClick={(index) => {
+            setLightboxIndex(index);
+            setLightboxOpen(true);
+          }}
         />
       );
     case 'review':
