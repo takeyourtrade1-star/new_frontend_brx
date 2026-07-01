@@ -268,3 +268,23 @@ export const tabIconPulse = {
 };
 
 export const MotionSection = motion.section;
+
+/* ─── Rotazione sincronizzata della hero ───
+   Il ventaglio di carte, la parola typewriter e la tagline rotante sotto di
+   essa condividono lo stesso intervallo e la stessa palette, nello stesso
+   ordine (Vendi, Aste, Scambi, Tornei, BRX), così cambiano nello stesso
+   istante e con lo stesso colore invece di andare ognuno per conto proprio. */
+export const LANDING_ROTATION_MS = 3800;
+
+export type LandingRotationColor = { hex: string; light: string; rgb: string; glow: string; flare: string };
+
+/** `light` = tinta più chiara dello stesso colore, per la tagline abbinata
+ * (Element C) che deve leggersi come "collegata" alla parola sopra senza
+ * competere con essa in saturazione. */
+export const LANDING_ROTATION_COLORS: readonly LandingRotationColor[] = [
+  { hex: '#FBBF24', light: '#FFE9B0', rgb: '251,191,36', glow: 'rgba(251,191,36,0.5)', flare: 'rgba(255,240,190,0.95)' }, // Vendi
+  { hex: '#FB923C', light: '#FFD3AC', rgb: '251,146,60', glow: 'rgba(251,146,60,0.5)', flare: 'rgba(255,214,168,0.95)' }, // Aste
+  { hex: '#34D399', light: '#A9F5D0', rgb: '52,211,153', glow: 'rgba(52,211,153,0.5)', flare: 'rgba(186,255,224,0.95)' }, // Scambi
+  { hex: '#A78BFA', light: '#D8CCFD', rgb: '167,139,250', glow: 'rgba(167,139,250,0.5)', flare: 'rgba(221,210,255,0.95)' }, // Tornei
+  { hex: '#38BDF8', light: '#BEE7FD', rgb: '56,189,248', glow: 'rgba(56,189,248,0.5)', flare: 'rgba(190,230,255,0.95)' }, // BRX
+];

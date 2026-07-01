@@ -401,6 +401,22 @@
   display: none;
 }
 
+/* Rallenta l'overlay foil (CardFoilOverlay) quando è usato come accento
+   ambientale sulle card della dashboard marketplace (Best Sellers/Aste/
+   Scambi): il ritmo pensato per la scheda prodotto (rivelazione "premium",
+   guardata pochi secondi) è troppo rapido/psichedelico su una card di sfondo
+   che resta visibile a lungo mentre si scorre la home. Non tocca le durate
+   base (animate-foil-*) usate nelle pagine prodotto. */
+.dashboard-card-foil .animate-foil-shimmer {
+  animation-duration: 6.5s;
+}
+.dashboard-card-foil .animate-foil-sparkle {
+  animation-duration: 7.5s;
+}
+.dashboard-card-foil .animate-foil-sweep {
+  animation-duration: 6s;
+}
+
 /* Contenitore principale responsive: su schermi larghi usa più spazio (evita tutto accentrato) */
 .container-content {
   width: 100%;

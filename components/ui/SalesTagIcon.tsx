@@ -13,6 +13,14 @@ export interface SalesTagIconProps {
    * con la "E" dell'euro).
    */
   animated?: boolean;
+  /**
+   * Stessa identica animazione di `animated`, ma auto-play in loop (con
+   * pausa a riposo) invece che legata all'hover — per usi "ambientali" senza
+   * un genitore interattivo (es. il ventaglio della landing).
+   */
+  loop?: boolean;
+  /** Ritardo (s) prima del primo ciclo, per sfalsare più icone in loop. */
+  loopDelay?: number;
 }
 
 /**
@@ -27,8 +35,11 @@ export function SalesTagIcon({
   stroke = 'currentColor',
   strokeWidth = 2,
   animated = false,
+  loop = false,
+  loopDelay = 0,
 }: SalesTagIconProps) {
   const sizeClass = cn('shrink-0', className);
+  const delayStyle = loop ? { animationDelay: `${loopDelay}s` } : undefined;
 
   const tagSvg = (
     <svg
@@ -39,7 +50,13 @@ export function SalesTagIcon({
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn(sizeClass, animated && 'relative z-10 origin-center group-hover:animate-tag-shift')}
+      className={cn(
+        sizeClass,
+        (animated || loop) && 'relative z-10 origin-center',
+        animated && 'group-hover:animate-tag-shift',
+        loop && 'animate-tag-shift-loop'
+      )}
+      style={delayStyle}
       aria-hidden
     >
       <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
@@ -47,7 +64,7 @@ export function SalesTagIcon({
     </svg>
   );
 
-  if (!animated) {
+  if (!animated && !loop) {
     return tagSvg;
   }
 
@@ -67,11 +84,13 @@ export function SalesTagIcon({
         strokeWidth={1.1}
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{ overflow: 'visible' }}
+        style={{ overflow: 'visible', ...delayStyle }}
         className={cn(
           'pointer-events-none absolute inset-0 z-0 m-auto',
           sizeClass,
-          'origin-center opacity-0 group-hover:animate-coin-peek',
+          'origin-center opacity-0',
+          animated && 'group-hover:animate-coin-peek',
+          loop && 'animate-coin-peek-loop'
         )}
         aria-hidden
       >
@@ -90,11 +109,13 @@ export function SalesTagIcon({
         stroke="#fff"
         strokeWidth="1.2"
         strokeLinecap="round"
-        style={{ overflow: 'visible' }}
+        style={{ overflow: 'visible', ...delayStyle }}
         className={cn(
           'pointer-events-none absolute inset-0 z-0 m-auto',
           sizeClass,
-          'origin-center opacity-0 group-hover:animate-coin-peek-shine',
+          'origin-center opacity-0',
+          animated && 'group-hover:animate-coin-peek-shine',
+          loop && 'animate-coin-peek-shine-loop'
         )}
         aria-hidden
       >

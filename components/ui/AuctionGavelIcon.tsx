@@ -10,6 +10,14 @@ export interface AuctionGavelIconProps {
    * Il genitore interattivo deve avere la classe `group`.
    */
   animated?: boolean;
+  /**
+   * Stessa identica animazione di `animated`, ma auto-play in loop (con
+   * pausa a riposo) invece che legata all'hover — per usi "ambientali" senza
+   * un genitore interattivo (es. il ventaglio della landing).
+   */
+  loop?: boolean;
+  /** Ritardo (s) prima del primo ciclo, per sfalsare più icone in loop. */
+  loopDelay?: number;
 }
 
 /**
@@ -24,8 +32,11 @@ export function AuctionGavelIcon({
   stroke = 'currentColor',
   strokeWidth = 2,
   animated = false,
+  loop = false,
+  loopDelay = 0,
 }: AuctionGavelIconProps) {
   const sizeClass = cn('shrink-0', className);
+  const delayStyle = loop ? { animationDelay: `${loopDelay}s` } : undefined;
 
   const gavelSvg = (
     <svg
@@ -36,7 +47,13 @@ export function AuctionGavelIcon({
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn(sizeClass, animated && 'origin-bottom-left group-hover:animate-gavel-bang')}
+      className={cn(
+        sizeClass,
+        (animated || loop) && 'origin-bottom-left',
+        animated && 'group-hover:animate-gavel-bang',
+        loop && 'animate-gavel-bang-loop'
+      )}
+      style={delayStyle}
       aria-hidden
     >
       <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8" />
@@ -47,7 +64,7 @@ export function AuctionGavelIcon({
     </svg>
   );
 
-  if (!animated) {
+  if (!animated && !loop) {
     return gavelSvg;
   }
 
@@ -64,8 +81,11 @@ export function AuctionGavelIcon({
         className={cn(
           'pointer-events-none absolute inset-0 m-auto',
           sizeClass,
-          'origin-[83%_75%] opacity-0 group-hover:animate-gavel-spark',
+          'origin-[83%_75%] opacity-0',
+          animated && 'group-hover:animate-gavel-spark',
+          loop && 'animate-gavel-spark-loop'
         )}
+        style={delayStyle}
         aria-hidden
       >
         <line x1="20" y1="18.5" x2="20" y2="21" />

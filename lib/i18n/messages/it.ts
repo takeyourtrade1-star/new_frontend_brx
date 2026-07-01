@@ -304,6 +304,9 @@ export const it: Record<MessageKey, string> = {
   'landing.hero.tagline.typewriter.3.phrase.2': 'Fissa la base d\'asta e lascia che la community si sfidi al rialzo.',
   'landing.hero.tagline.typewriter.4.phrase.1': 'Partecipa a tornei live con webcam e pairing istantanei.',
   'landing.hero.tagline.typewriter.4.phrase.2': 'Scala le classifiche e vinci premi direttamente da casa tua.',
+  'landing.hero.tagline.typewriter.5': 'Spedisci',
+  'landing.hero.tagline.typewriter.5.phrase.1': 'Spedizioni tracciate con una rete di hub verificati in tutta Italia.',
+  'landing.hero.tagline.typewriter.5.phrase.2': "Le tue carte a casa in 24 ore, veloce e sicuro come dev'essere.",
   'landing.hero.tagline.and': 'e',
   'landing.hero.tagline.statement': 'Il marketplace che il collezionismo europeo meritava.',
   'landing.hero.tagline.sub': 'Scambi, Aste e Tornei: puntiamo tutto su di te.',
@@ -356,6 +359,9 @@ export const it: Record<MessageKey, string> = {
   'landing.carousel.brx.description': 'Rete di hub verificati e spedizioni tracciate. Il modo più veloce per ricevere e inviare le tue carte.',
   'landing.carousel.brx.cta': 'Scopri BRX Express',
   'landing.carousel.brx.aria': 'Vai a BRX Express',
+  'landing.carousel.vendi.tab': 'Vendi',
+  'landing.carousel.vendi.cta': 'Inizia a vendere',
+  'landing.carousel.vendi.aria': 'Vai a vendere le tue carte',
 
   'pages.notFound.title': 'Pagina non trovata',
   'pages.notFound.description': 'La pagina che stai cercando non esiste o è stata spostata.',
@@ -908,10 +914,10 @@ export const it: Record<MessageKey, string> = {
     "Il flusso decentralizzato che elimina lo stress delle spedizioni singole.",
   'brxExpress.card1.title': 'Inviaci le tue carte',
   'brxExpress.card1.description':
-    "Raggruppa le tue carte e spediscile all'hub BRX Express più vicino. Al resto pensiamo noi: grading professionale, foto in HD e stoccaggio protetto in camera blindata.",
+    "Raggruppa le tue carte e spediscile all'hub BRX Express più vicino. Al resto pensiamo noi: grading professionale, foto in HD e stoccaggio protetto.",
   'brxExpress.card2.title': 'Vendiamo per te',
   'brxExpress.card2.description':
-    "Le tue carte sono listate sul marketplace a soli 0,30€ a pezzo. Vengono visualizzate sotto un Account Ufficiale Sponsorizzato, garantendo massima visibilità e affidabilità.",
+    "Le tue carte sono listate sul marketplace, vengono visualizzate sotto un account ufficiale sponsorizzato e anche direttamente nel tuo account, garantendo massima visibilità e affidabilità.",
   'brxExpress.card3.title': 'Zero doppie vendite',
   'brxExpress.card3.description':
     "Eliminiamo alla radice l'incubo del doppio ordinamento. Avendo le carte fisicamente stoccate nei nostri hub regionali, la sincronizzazione dell'inventario è istantanea.",
@@ -2076,7 +2082,7 @@ export const it: Record<MessageKey, string> = {
   'marketplace.seeAllAuctions': 'vedi tutte le aste →',
   'marketplace.openDetail': 'Apri dettaglio {name}',
   'marketplace.tradeCard': 'Scambia {name}',
-  'home.scambi.title': 'Prova gli scambi',
+  'home.scambi.title': 'Scambia le carte',
   'home.scambi.seeAll': 'Vedi tutto →',
   'home.scambi.empty': 'Nessuno scambio disponibile al momento',
   'home.scambi.scrollLeft': 'Scorri scambi a sinistra',

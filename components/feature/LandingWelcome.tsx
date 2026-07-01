@@ -17,8 +17,9 @@ import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { useTimeouts } from '@/lib/hooks/use-timeout-fn';
 import { SignedAlteredShowcase } from './SignedAlteredShowcase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LandingHeroCarousel } from '@/components/home/LandingHeroCarousel';
+import { LandingHeroCardFan } from '@/components/home/LandingHeroCardFan';
 import { LandingBackgroundVideo } from '@/components/feature/LandingBackgroundVideo';
+import { LANDING_ROTATION_MS, LANDING_ROTATION_COLORS } from '@/components/home/landingMotion';
 
 /* ═══════════════════════════════════════════════════════════
    CONSTANTS
@@ -199,35 +200,19 @@ const TAGLINE_LETTER_VARIANTS = {
 
 /** Colore finale + glow di riposo + "flare" (bagliore intenso al momento
  * dell'accensione) per ogni parola. Ogni lettera entra come brace incandescente
- * (HOT_CORE) e "raffredda" verso il colore finale → effetto fuoco/ember. */
+ * (HOT_CORE) e "raffredda" verso il colore finale → effetto fuoco/ember.
+ * Palette condivisa con il ventaglio hero (LANDING_ROTATION_COLORS): stesso
+ * ordine — Vendi, Aste, Scambi, Tornei, BRX — così la parola e la card attiva
+ * si accendono sempre con lo stesso colore. */
 const HOT_CORE = '#FFF1CC'; // bianco-caldo della brace all'accensione
 
-const WORD_STYLES = [
-  {
-    color: '#FFC24B', // Amber/Gold
-    glow: 'rgba(255, 163, 60, 0.5)',
-    flare: 'rgba(255, 224, 150, 0.95)',
-    caret: '#FFC24B',
-  },
-  {
-    color: '#2DD4BF', // Teal/Emerald
-    glow: 'rgba(45, 212, 191, 0.5)',
-    flare: 'rgba(178, 255, 244, 0.95)',
-    caret: '#2DD4BF',
-  },
-  {
-    color: '#FB7185', // Coral/Rose
-    glow: 'rgba(251, 113, 133, 0.5)',
-    flare: 'rgba(255, 205, 212, 0.95)',
-    caret: '#FB7185',
-  },
-  {
-    color: '#A78BFA', // Violet/Lavender
-    glow: 'rgba(167, 139, 250, 0.5)',
-    flare: 'rgba(221, 210, 255, 0.95)',
-    caret: '#A78BFA',
-  },
-];
+const WORD_STYLES = LANDING_ROTATION_COLORS.map((c) => ({
+  color: c.hex,
+  light: c.light, // stessa tinta, più chiara — per la tagline abbinata
+  glow: c.glow,
+  flare: c.flare,
+  caret: c.hex,
+}));
 
 function DynamicTaglineHeader() {
   const { t } = useTranslation();
@@ -237,14 +222,16 @@ function DynamicTaglineHeader() {
   const [currentText, setCurrentText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Track the phrase index (0 or 1) for each of the 4 words
-  const [phraseOffsets, setPhraseOffsets] = useState<number[]>([0, 0, 0, 0]);
+  // Track the phrase index (0 or 1) for each delle 5 parole
+  const [phraseOffsets, setPhraseOffsets] = useState<number[]>([0, 0, 0, 0, 0]);
 
+  // Ordine allineato al ventaglio hero (Vendi, Aste, Scambi, Tornei, BRX) — stesso indice, stesso colore.
   const words = useMemo(() => [
     t('landing.hero.tagline.typewriter.1'), // Vendi
-    t('landing.hero.tagline.typewriter.2'), // Scambia
-    t('landing.hero.tagline.typewriter.3'), // Metti all'Asta
-    t('landing.hero.tagline.typewriter.4')  // Gioca i tornei
+    t('landing.hero.tagline.typewriter.3'), // Metti all'Asta — Aste
+    t('landing.hero.tagline.typewriter.2'), // Scambia — Scambi
+    t('landing.hero.tagline.typewriter.4'), // Gioca i tornei — Tornei
+    t('landing.hero.tagline.typewriter.5'), // Spedisci — BRX
   ], [t]);
 
   const subPhrases = useMemo(() => [
@@ -253,29 +240,38 @@ function DynamicTaglineHeader() {
       t('landing.hero.tagline.typewriter.1.phrase.2')
     ],
     [
-      t('landing.hero.tagline.typewriter.2.phrase.1'),
-      t('landing.hero.tagline.typewriter.2.phrase.2')
-    ],
-    [
       t('landing.hero.tagline.typewriter.3.phrase.1'),
       t('landing.hero.tagline.typewriter.3.phrase.2')
     ],
     [
+      t('landing.hero.tagline.typewriter.2.phrase.1'),
+      t('landing.hero.tagline.typewriter.2.phrase.2')
+    ],
+    [
       t('landing.hero.tagline.typewriter.4.phrase.1'),
       t('landing.hero.tagline.typewriter.4.phrase.2')
-    ]
+    ],
+    [
+      t('landing.hero.tagline.typewriter.5.phrase.1'),
+      t('landing.hero.tagline.typewriter.5.phrase.2')
+    ],
   ], [t]);
 
-  // Timer for typewriter
+  // Timer for typewriter — il ciclo completo (scrittura + pausa + cancellazione) dura
+  // sempre esattamente LANDING_ROTATION_MS, qualunque sia la lunghezza della parola,
+  // così il cambio di parola resta a tempo con il ventaglio di carte nella hero.
   useEffect(() => {
     const fullWord = words[currentWordIdx];
     if (!fullWord) return;
 
-    const speed = isDeleting ? 50 : 100;
+    const wordLen = Math.max(fullWord.length, 1);
+    const typeMs = (LANDING_ROTATION_MS * 0.4) / wordLen;
+    const deleteMs = (LANDING_ROTATION_MS * 0.25) / wordLen;
+    const pauseMs = LANDING_ROTATION_MS * 0.35;
+    const speed = isDeleting ? deleteMs : typeMs;
 
     if (!isDeleting && currentText === fullWord) {
-      // Pause for 2.8s
-      const timeout = setTimeout(() => setIsDeleting(true), 2800);
+      const timeout = setTimeout(() => setIsDeleting(true), pauseMs);
       return () => clearTimeout(timeout);
     }
 
@@ -361,8 +357,13 @@ function DynamicTaglineHeader() {
         {t('landing.hero.tagline.statement')}
       </span>
 
-      {/* Element C: Coordinated Rotating Tagline (staggered 3D letter flip) */}
-      <span className="relative mt-2 block min-h-[1.9rem] leading-snug text-center text-sm font-semibold uppercase tracking-[0.06em] text-white/70 sm:min-h-[2.2rem] sm:text-left sm:text-base md:min-h-[2.6rem] md:text-lg whitespace-nowrap">
+      {/* Element C: Coordinated Rotating Tagline (staggered 3D letter flip).
+          Colore abbinato alla parola sopra (WORD_STYLES) ma più chiaro, per
+          segnalare visivamente che le due righe sono collegate. */}
+      <span
+        className="relative mt-2 block min-h-[1.9rem] leading-snug text-center text-sm font-semibold uppercase tracking-[0.06em] transition-colors duration-500 sm:min-h-[2.2rem] sm:text-left sm:text-base md:min-h-[2.6rem] md:text-lg whitespace-nowrap"
+        style={{ color: activeStyle.light }}
+      >
         <span className="absolute inset-x-0 top-0">
           <AnimatePresence mode="wait">
             <motion.span
@@ -618,8 +619,8 @@ export function LandingWelcome() {
               </Link>
             </div>
 
-            {/* ──── RIGHT: FEATURE CAROUSEL (4 slide) ──── */}
-            <LandingHeroCarousel />
+            {/* ──── RIGHT: VENTAGLIO DI CARTE (4 feature brandizzate) ──── */}
+            <LandingHeroCardFan />
 
           </div>
         </section>

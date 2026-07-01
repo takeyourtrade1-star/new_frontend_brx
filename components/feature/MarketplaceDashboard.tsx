@@ -16,6 +16,14 @@ import { cn } from '@/lib/utils';
 import { FeaturesSection } from './FeaturesSection';
 import { AsteInCorsoCarousel } from './aste/AsteInCorsoCarousel';
 import { ScambiInCorsoCarousel } from './scambi/ScambiInCorsoCarousel';
+import { CardFoilOverlay } from './product/detail/CardFoilOverlay';
+
+/** Velo "foil" arcobaleno molto attenuato per le 3 card blu (Best Sellers/Aste/Scambi):
+ * riusa l'overlay olografico delle pagine prodotto, smorzato con opacity così resta
+ * un accento ambientale e non un effetto "premium carta". */
+function DashboardCardFoil() {
+  return <CardFoilOverlay className="dashboard-card-foil rounded-2xl opacity-[0.14]" />;
+}
 
 const SECTION_RADIUS = '0.625rem';
 
@@ -173,21 +181,21 @@ export type NuovaEspansioneItem = {
 const NUOVE_ESPANSIONI_PLACEHOLDER: NuovaEspansioneItem[] = [
   {
     id: '1',
-    name: 'Espansione 1',
-    releaseDate: '—',
-    imageUrl: getCdnImageUrl('card-3/4978fe1369c0fbf68d42ac63d0582ffc6cf67d60.png'),
+    name: 'Foundations',
+    releaseDate: '15 Nov 2024',
+    imageUrl: '/images/mtg_foundations.png',
   },
   {
     id: '2',
-    name: 'Espansione 2',
-    releaseDate: '—',
-    imageUrl: getCdnImageUrl('card-3/8b5d86761fe7404aee02bee1471c3e0fc815d3bb.png'),
+    name: 'Duskmourn: House of Horror',
+    releaseDate: '27 Set 2024',
+    imageUrl: '/images/mtg_duskmourn.png',
   },
   {
     id: '3',
-    name: 'Espansione 3',
-    releaseDate: '—',
-    imageUrl: getCdnImageUrl('card-3/a8020835a8ffd96555a4b53cd6ef0d04866ca8b1.png'),
+    name: 'Bloomburrow',
+    releaseDate: '02 Ago 2024',
+    imageUrl: '/images/mtg_bloomburrow.png',
   },
 ];
 
@@ -197,7 +205,7 @@ function NuoveEspansioniSection({ items }: { items: NuovaEspansioneItem[] }) {
   return (
     <section className="rounded-2xl border border-slate-200/70 bg-white/80 px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] md:px-8 md:py-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
-        <div className="shrink-0 lg:pr-4">
+        <div className="shrink-0 lg:pr-4 lg:w-1/4">
           <h2 className="text-lg font-black uppercase tracking-tight text-gray-900 md:text-xl">
             {t('home.nuoveEspansioni.title')}
           </h2>
@@ -205,29 +213,48 @@ function NuoveEspansioniSection({ items }: { items: NuovaEspansioneItem[] }) {
             {t('home.nuoveEspansioni.subtitle')}
           </p>
         </div>
-        <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/60 px-3 py-2.5"
-            >
-              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
-                <Image
-                  src={item.imageUrl}
-                  alt={item.name}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
+        <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-4">
+          {items.map((item, index) => {
+            const isFirst = index === 0;
+            return (
+              <div
+                key={item.id}
+                className={`${
+                  isFirst ? 'sm:col-span-2' : 'sm:col-span-1'
+                } flex items-center gap-3 sm:gap-4 rounded-xl border border-slate-200/60 bg-gradient-to-br from-white/95 to-slate-50/70 p-3 shadow-sm hover:scale-[1.01] hover:shadow-md hover:border-indigo-300/80 transition-all duration-300 group`}
+              >
+                <div
+                  className={`relative shrink-0 overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-sm ${
+                    isFirst ? 'h-16 w-24 sm:w-28' : 'h-16 w-16'
+                  }`}
+                >
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    unoptimized
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`truncate text-gray-900 group-hover:text-indigo-600 transition-colors duration-200 ${
+                      isFirst ? 'text-base font-extrabold' : 'text-sm font-bold'
+                    }`}
+                  >
+                    {item.name}
+                  </p>
+                  <p
+                    className={`mt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 ${
+                      isFirst ? 'bg-slate-100/80 px-2 py-0.5 rounded-full inline-block w-fit' : ''
+                    }`}
+                  >
+                    {t('home.nuoveEspansioni.releaseDate', { date: item.releaseDate })}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-gray-900">{item.name}</p>
-                <p className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-500">
-                  {t('home.nuoveEspansioni.releaseDate', { date: item.releaseDate })}
-                </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -339,12 +366,13 @@ export function MarketplaceDashboard({
               aria-hidden
               className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent"
             />
+            {useUnifiedBackground && <DashboardCardFoil />}
             {/* Card principale */}
             <div className="relative z-10 p-3">
               {magicHits.length > 0 ? (
                 <Link
                   href={`/products/${magicHits[0]?.id}`}
-                  className="group relative block w-full overflow-hidden rounded-xl"
+                  className="group relative mx-auto block w-[46%] max-w-[190px] overflow-hidden rounded-xl"
                   aria-label={t('marketplace.openDetail', { name: magicHits[0]?.name })}
                 >
                   {(() => {
@@ -363,22 +391,22 @@ export function MarketplaceDashboard({
                       <div className="aspect-[3/4] w-full rounded-xl border border-gray-200 bg-gray-100" aria-hidden />
                     );
                   })()}
-                  <p className="mt-2 text-center text-sm font-semibold text-gray-900">{magicHits[0]?.name}</p>
-                  <p className="text-center text-xs text-gray-500">{magicHits[0]?.set_name}</p>
+                  <p className={`mt-2 text-center text-sm font-semibold ${useUnifiedBackground ? 'text-slate-100' : 'text-gray-900'}`}>{magicHits[0]?.name}</p>
+                  <p className={`text-center text-xs ${useUnifiedBackground ? 'text-slate-300' : 'text-gray-500'}`}>{magicHits[0]?.set_name}</p>
                 </Link>
               ) : (
-                <div className="aspect-[3/4] w-full rounded-xl border border-gray-200 bg-gray-100 animate-pulse" />
+                <div className="mx-auto aspect-[3/4] w-[46%] max-w-[190px] rounded-xl border border-gray-200 bg-gray-100 animate-pulse" />
               )}
             </div>
 
             {/* Lista 5 carte sotto */}
-            <div className="relative z-10 border-t border-[#ff7300]/20 px-4 py-2.5">
+            <div className={`relative z-10 border-t border-[#ff7300]/20 px-4 py-2.5 ${useUnifiedBackground ? 'bg-[#0f172a]/70' : ''}`}>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#ff7300]">
                 Altre carte
               </p>
               <ul className="space-y-2">
                 {magicHits.slice(1, 6).map((hit) => (
-                  <li key={hit.id} className="flex items-center gap-3 text-sm text-gray-800">
+                  <li key={hit.id} className={`flex items-center gap-3 text-sm ${useUnifiedBackground ? 'text-slate-200' : 'text-gray-800'}`}>
                     {(() => {
                       const cardSrc = getCardImageUrl(hit.image ?? null);
                       return cardSrc ? (
@@ -392,11 +420,11 @@ export function MarketplaceDashboard({
                     <Link href={`/products/${hit.id}`} className="flex-1 truncate text-sm hover:text-[#ff7300] hover:underline">
                       {hit.name}
                     </Link>
-                    <span className="truncate text-xs text-gray-500">{hit.set_name}</span>
+                    <span className={`truncate text-xs ${useUnifiedBackground ? 'text-slate-400' : 'text-gray-500'}`}>{hit.set_name}</span>
                   </li>
                 ))}
                 {magicHits.length === 0 && !magicLoading && (
-                  <li className="text-sm text-gray-500">{t('marketplace.noSingles')}</li>
+                  <li className={`text-sm ${useUnifiedBackground ? 'text-slate-300' : 'text-gray-500'}`}>{t('marketplace.noSingles')}</li>
                 )}
               </ul>
               <Link
@@ -417,7 +445,8 @@ export function MarketplaceDashboard({
           >
             <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[56%] bg-gradient-to-b from-slate-950/55 via-slate-900/35 to-transparent" />
             <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent" />
-            
+            {useUnifiedBackground && <DashboardCardFoil />}
+
             {/* Header */}
             <div className="relative z-10 flex items-center justify-between gap-4 px-5 pt-3 pb-1">
               <div className="flex items-center gap-2">
@@ -449,7 +478,8 @@ export function MarketplaceDashboard({
           >
             <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[56%] bg-gradient-to-b from-slate-950/55 via-slate-900/35 to-transparent" />
             <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent" />
-            
+            {useUnifiedBackground && <DashboardCardFoil />}
+
             {/* Header */}
             <div className="relative z-10 flex items-center justify-between gap-4 px-5 pt-3 pb-1">
               <div className="flex items-center gap-2">
@@ -490,6 +520,7 @@ export function MarketplaceDashboard({
               aria-hidden
               className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent"
             />
+            {useUnifiedBackground && <DashboardCardFoil />}
             {/* Titolo sezione VENDITE */}
             <div className="relative z-10 flex items-start justify-between gap-4 px-6 py-3">
               <div className="flex flex-col">
@@ -552,7 +583,8 @@ export function MarketplaceDashboard({
             >
               <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[56%] bg-gradient-to-b from-slate-950/55 via-slate-900/35 to-transparent" />
               <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent" />
-              
+              {useUnifiedBackground && <DashboardCardFoil />}
+
               {/* Header */}
               <div className="relative z-10 flex items-center justify-between gap-4 px-5 pt-3 pb-1">
                 <div className="flex items-center gap-2">
@@ -584,7 +616,8 @@ export function MarketplaceDashboard({
             >
               <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[56%] bg-gradient-to-b from-slate-950/55 via-slate-900/35 to-transparent" />
               <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent" />
-              
+              {useUnifiedBackground && <DashboardCardFoil />}
+
               {/* Header */}
               <div className="relative z-10 flex items-center justify-between gap-4 px-5 pt-3 pb-1">
                 <div className="flex items-center gap-2">

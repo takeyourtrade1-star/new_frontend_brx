@@ -175,6 +175,48 @@ const config: Config = {
           '65%': { opacity: '0.9', transform: 'translate(3px, -3px) rotate(15deg)' },
           '85%, 100%': { opacity: '0', transform: 'translate(6px, -1px) rotate(15deg)' },
         },
+        /* Varianti "-loop" delle icone header: stessi valori di rotazione/scala/
+         * traslazione delle animazioni hover (gavel-bang, tag-shift, coin-peek,
+         * ecc.), solo ricalibrate su una timeline più lunga con una pausa a
+         * riposo, per l'auto-play in loop nel ventaglio della landing. */
+        'gavel-bang-loop': {
+          '0%, 30%, 100%': { transform: 'rotate(0deg)' },
+          '5.4%': { transform: 'rotate(-26deg)' },
+          '10.2%': { transform: 'rotate(10deg)' },
+          '13.2%': { transform: 'rotate(6deg)' },
+          '17.4%': { transform: 'rotate(-16deg)' },
+          '22.2%': { transform: 'rotate(8deg)' },
+          '25.2%': { transform: 'rotate(4deg)' },
+        },
+        'gavel-spark-loop': {
+          '0%, 9%, 30%, 100%': { opacity: '0', transform: 'scale(0.3)' },
+          '10.8%': { opacity: '1', transform: 'scale(1)' },
+          '14.4%': { opacity: '0', transform: 'scale(0.7)' },
+          '22.8%': { opacity: '0.85', transform: 'scale(0.92)' },
+          '26.4%': { opacity: '0', transform: 'scale(0.6)' },
+        },
+        'tag-shift-loop': {
+          '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+          '7.3%': { transform: 'translate(-3.5px, 3.5px) rotate(-6deg)' },
+          '13.2%, 22%': { transform: 'translate(-2.5px, 3px) rotate(-2deg)' },
+          '30%': { transform: 'translate(0, 0) rotate(0deg)' },
+        },
+        'coin-peek-loop': {
+          '0%, 30%, 100%': { opacity: '0', transform: 'translate(1px, -1px) scale(0.3)' },
+          '8.1%': { opacity: '1', transform: 'translate(3.5px, -3.5px) scale(1.15)' },
+          '11.5%': { opacity: '1', transform: 'translate(2.7px, -2.7px) scale(0.95)' },
+          '14.7%, 22%': { opacity: '1', transform: 'translate(3px, -3px) scale(1)' },
+        },
+        'coin-peek-shine-loop': {
+          '0%, 8%, 14.3%': { opacity: '0', transform: 'translate(1px, -3px) rotate(15deg)' },
+          '17.1%': { opacity: '0.9', transform: 'translate(3px, -3px) rotate(15deg)' },
+          '19.9%, 100%': { opacity: '0', transform: 'translate(6px, -1px) rotate(15deg)' },
+        },
+        'scambi-swirl-loop': {
+          '0%, 100%': { transform: 'rotate(0deg)' },
+          '33.3%, 55%': { transform: 'rotate(180deg)' },
+          '88.3%': { transform: 'rotate(360deg)' },
+        },
         'cart-wobble': {
           '0%': { transform: 'translateY(0) rotate(0deg)' },
           '18%': { transform: 'translateY(-2px) rotate(-16deg)' },
@@ -256,6 +298,12 @@ const config: Config = {
         'tag-shift': 'tag-shift 0.45s cubic-bezier(0.22,1,0.36,1) forwards',
         'coin-peek': 'coin-peek 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards',
         'coin-peek-shine': 'coin-peek-shine 0.7s ease-out forwards',
+        'gavel-bang-loop': 'gavel-bang-loop 3.2s cubic-bezier(0.34,1.56,0.64,1) infinite',
+        'gavel-spark-loop': 'gavel-spark-loop 3.2s ease-out infinite',
+        'tag-shift-loop': 'tag-shift-loop 3.4s cubic-bezier(0.22,1,0.36,1) infinite',
+        'coin-peek-loop': 'coin-peek-loop 3.4s cubic-bezier(0.34,1.56,0.64,1) infinite',
+        'coin-peek-shine-loop': 'coin-peek-shine-loop 3.4s ease-out infinite',
+        'scambi-swirl-loop': 'scambi-swirl-loop 3.6s cubic-bezier(0.22,1,0.36,1) infinite',
         'cart-wobble': 'cart-wobble 0.9s cubic-bezier(0.34,1.56,0.64,1)',
         'cart-speed': 'cart-speed 0.9s ease-out',
         'offline-float': 'offline-float 2.5s ease-in-out infinite',
