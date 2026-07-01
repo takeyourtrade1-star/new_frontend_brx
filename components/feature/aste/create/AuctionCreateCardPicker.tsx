@@ -290,7 +290,7 @@ export function AuctionCreateCardPicker({
         )}
 
         {debounced && !searchError && hits.length > 0 && (
-          <ul className="max-h-[min(320px,50vh)] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+          <ul className="scrollbar-hide max-h-[min(320px,50vh)] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
             {hits.map((hit, index) => {
               const imgUrl = getCardImageUrl(hit.image ?? null);
               const sel = hitToSelection(hit);
@@ -475,7 +475,7 @@ export function AuctionCreateCardPicker({
         )}
 
         {!loadingCollection && filteredCollection.length > 0 && viewMode === 'list' && (
-          <ul className="max-h-[min(360px,55vh)] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200 bg-white">
+          <ul className="scrollbar-hide max-h-[min(360px,55vh)] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200 bg-white">
             {filteredCollection.map((row) => {
               const sel = inventoryToSelection(row);
               if (!sel) return null;

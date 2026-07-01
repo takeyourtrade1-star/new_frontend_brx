@@ -179,7 +179,7 @@ export function AuctionCreateGenericSearch({
       )}
 
       {debounced && !searchError && hits.length > 0 && (
-        <ul className="max-h-[min(320px,50vh)] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+        <ul className="scrollbar-hide max-h-[min(320px,50vh)] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
           {hits.map((hit, index) => {
             const imgUrl = getCardImageUrl(hit.image ?? null);
             const sel = hitToSelection(hit);
