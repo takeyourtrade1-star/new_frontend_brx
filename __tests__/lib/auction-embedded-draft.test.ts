@@ -29,7 +29,7 @@ function inventoryItem(overrides: Partial<InventoryItemWithCatalog>): InventoryI
     updated_at: '2026-07-01T00:00:00.000Z',
     ...overrides,
   };
-});
+}
 
 describe('mergeInventoryIntoAuctionDraft', () => {
   it('mantiene il prezzo inventario come compra subito senza bloccare la validazione embedded', () => {
@@ -62,4 +62,4 @@ describe('mergeInventoryIntoAuctionDraft', () => {
       })
     ).toEqual({ ok: true });
   });
-}
+});
