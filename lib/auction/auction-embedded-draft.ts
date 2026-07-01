@@ -80,14 +80,13 @@ export function mergeInventoryIntoAuctionDraft(
         ? props.language
         : null;
   const language = normalizeAuctionCardLanguage(rawLanguage);
-  const priceHint = item.price_cents > 0 ? moneyInputStringFromNumber(item.price_cents / 100) : draft.startingBidEur;
   const existingListPrice =
     item.price_cents > 0 ? moneyInputStringFromNumber(item.price_cents / 100) : '';
   return {
     ...draft,
     condition: cond,
     cardLanguage: language || draft.cardLanguage,
-    startingBidEur: priceHint,
+    startingBidEur: '1',
     inventoryListPriceEur: existingListPrice,
     keepInventoryListing: existingListPrice !== '',
     buyNowPriceEur: existingListPrice !== '' ? existingListPrice : draft.buyNowPriceEur,
