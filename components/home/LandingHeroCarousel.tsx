@@ -251,7 +251,7 @@ function HeroTab({
   informative?: boolean;
 }) {
   const className = cn(
-    'relative overflow-hidden rounded-lg border px-2 py-2 text-[9px] font-bold uppercase tracking-wider sm:px-3 sm:py-2.5 sm:text-[10px]',
+    'relative overflow-hidden rounded-lg border px-2 py-2 text-xs font-bold uppercase tracking-wide sm:px-3 sm:py-2.5 sm:text-sm',
     isActive
       ? 'bg-white/10 text-white'
       : 'border-white/10 bg-white/5 text-white/50',

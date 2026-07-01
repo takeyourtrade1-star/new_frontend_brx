@@ -119,6 +119,10 @@ const getComingSoonGames = (): {
   },
 ];
 
+/** Giochi TCG presenti sul catalogo Cardmarket ma non ancora mostrati qui singolarmente
+ * (Magic + i 5 di COMING_SOON_GAMES sono già visibili): mostrato come tile "+N" in stile Cardmarket. */
+const EXTRA_COMING_SOON_GAMES_COUNT = 10;
+
 /* ─── Boutique ─── */
 const BOUTIQUE_GLOW_COLORS: Record<string, string> = {
   dadi: '251, 191, 36',
@@ -345,11 +349,11 @@ export function LandingWelcome() {
               <div className="h-14 w-px bg-white/20 hidden sm:block md:h-20" />
               <h1 className="text-center leading-tight sm:max-w-xl sm:text-left md:max-w-2xl">
                 <span className="block text-xl font-extrabold uppercase tracking-tight text-white sm:text-2xl md:text-3xl lg:text-4xl">
-                  <span className="text-[#FF7300]">{t('landing.hero.tagline.word1')}</span>
+                  <span className="hero-gradient-text">{t('landing.hero.tagline.word1')}</span>
                   {', '}
-                  <span className="text-[#FF7300]">{t('landing.hero.tagline.word2')}</span>{' '}
+                  <span className="hero-gradient-text">{t('landing.hero.tagline.word2')}</span>{' '}
                   {t('landing.hero.tagline.and')}{' '}
-                  <span className="text-[#FF7300]">{t('landing.hero.tagline.word3')}</span>
+                  <span className="hero-gradient-text">{t('landing.hero.tagline.word3')}</span>
                   {'.'}
                 </span>
                 <span className="mt-1 block text-sm font-semibold normal-case tracking-normal text-white/80 sm:text-base md:text-lg">
@@ -413,7 +417,7 @@ export function LandingWelcome() {
                   <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 text-center">
                     Presto in arrivo
                   </p>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-6 gap-2">
                     {COMING_SOON_GAMES.map((game) => (
                       <button
                         key={game.alt}
@@ -453,6 +457,22 @@ export function LandingWelcome() {
                         </span>
                       </button>
                     ))}
+                    <button
+                      type="button"
+                      aria-label={`+${EXTRA_COMING_SOON_GAMES_COUNT} altri giochi in arrivo`}
+                      className="group/game relative flex aspect-square w-full flex-col items-center justify-center gap-0.5 rounded-lg overflow-hidden bg-white/5 border border-dashed border-white/20 px-1 py-1.5 transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:scale-105"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                    >
+                      <span className="relative z-10 text-sm font-extrabold text-white/90 sm:text-base">
+                        +{EXTRA_COMING_SOON_GAMES_COUNT}
+                      </span>
+                      <span className="relative z-10 shrink-0 text-center text-[8px] font-medium leading-tight text-white/50 sm:text-[9px]">
+                        altri giochi
+                      </span>
+                    </button>
                   </div>
                 </div>
               </Link>
@@ -743,7 +763,7 @@ export function LandingWelcome() {
         </div>
       )}
 
-      {/* Inline keyframes for boutique entry */}
+      {/* Inline keyframes for boutique entry + hero gradient headline */}
       <style>{`
         @keyframes categoryEnter {
           0% {
@@ -757,6 +777,24 @@ export function LandingWelcome() {
           100% {
             opacity: 1;
             transform: translateY(0) scale(1);
+          }
+        }
+        .hero-gradient-text {
+          background-image: linear-gradient(90deg, #FF7300, #FFC24B, #FF7300, #FF9A3D, #FF7300);
+          background-size: 300% 100%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          animation: heroGradientShift 5s linear infinite;
+        }
+        @keyframes heroGradientShift {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 100% 50%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .hero-gradient-text {
+            animation: none;
+            background-position: 0% 50%;
           }
         }
       `}</style>
