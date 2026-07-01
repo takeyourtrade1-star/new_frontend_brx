@@ -197,26 +197,35 @@ const TAGLINE_LETTER_VARIANTS = {
   },
 };
 
+/** Colore finale + glow di riposo + "flare" (bagliore intenso al momento
+ * dell'accensione) per ogni parola. Ogni lettera entra come brace incandescente
+ * (HOT_CORE) e "raffredda" verso il colore finale → effetto fuoco/ember. */
+const HOT_CORE = '#FFF1CC'; // bianco-caldo della brace all'accensione
+
 const WORD_STYLES = [
   {
-    color: '#FFB84D', // Amber/Orange
-    glow: 'rgba(255, 184, 77, 0.35)',
-    caret: '#FFB84D',
+    color: '#FFC24B', // Amber/Gold
+    glow: 'rgba(255, 163, 60, 0.5)',
+    flare: 'rgba(255, 224, 150, 0.95)',
+    caret: '#FFC24B',
   },
   {
-    color: '#34E8E8', // Cyan/Teal
-    glow: 'rgba(52, 232, 232, 0.35)',
-    caret: '#34E8E8',
+    color: '#2DD4BF', // Teal/Emerald
+    glow: 'rgba(45, 212, 191, 0.5)',
+    flare: 'rgba(178, 255, 244, 0.95)',
+    caret: '#2DD4BF',
   },
   {
-    color: '#FF8A9A', // Coral/Rose
-    glow: 'rgba(255, 138, 154, 0.35)',
-    caret: '#FF8A9A',
+    color: '#FB7185', // Coral/Rose
+    glow: 'rgba(251, 113, 133, 0.5)',
+    flare: 'rgba(255, 205, 212, 0.95)',
+    caret: '#FB7185',
   },
   {
-    color: '#C084FC', // Lavender/Violet
-    glow: 'rgba(192, 132, 252, 0.35)',
-    caret: '#C084FC',
+    color: '#A78BFA', // Violet/Lavender
+    glow: 'rgba(167, 139, 250, 0.5)',
+    flare: 'rgba(221, 210, 255, 0.95)',
+    caret: '#A78BFA',
   },
 ];
 
@@ -301,25 +310,38 @@ function DynamicTaglineHeader() {
   const letters = useMemo(() => Array.from(displayPhrase || ''), [displayPhrase]);
 
   return (
-    <h1 className="text-center leading-tight sm:max-w-xl sm:text-left md:max-w-2xl flex flex-col">
+    <h1 className="text-center leading-tight sm:max-w-xl sm:text-left md:max-w-2xl flex flex-col py-1 sm:py-1.5 sm:pl-1">
       {/* Element A: Typewriter Word */}
       <span className="block text-xl font-extrabold uppercase tracking-tight text-white sm:text-2xl md:text-3xl lg:text-4xl min-h-[1.75em] sm:min-h-[1.5em] select-none text-center sm:text-left">
         <span className="inline-flex flex-wrap justify-center sm:justify-start">
           {currentText.split('').map((char, i) => (
             <motion.span
               key={i}
-              initial={{ opacity: 0, scale: 0.3, y: 8, filter: 'blur(3px)' }}
-              animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+              initial={{
+                opacity: 0,
+                y: 14,
+                scale: 0.72,
+                color: HOT_CORE,
+                filter: `blur(6px) drop-shadow(0 0 22px ${activeStyle.flare})`,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                color: activeStyle.color,
+                filter: `blur(0px) drop-shadow(0 0 9px ${activeStyle.glow})`,
+              }}
               className="inline-block"
               style={{
-                color: activeStyle.color,
                 whiteSpace: char === ' ' ? 'pre' : 'normal',
-                filter: `drop-shadow(0 2px 8px ${activeStyle.glow})`,
+                transformOrigin: 'center bottom',
+                willChange: 'transform, filter',
               }}
               transition={{
-                type: 'spring',
-                stiffness: 400,
-                damping: 15,
+                duration: 0.5,
+                ease: [0.16, 1, 0.3, 1],
+                color: { duration: 0.6, ease: 'easeOut' },
+                filter: { duration: 0.45, ease: 'easeOut' },
               }}
             >
               {char}
@@ -328,7 +350,7 @@ function DynamicTaglineHeader() {
         </span>
         <span
           className="animate-pulse ml-0.5 font-normal select-none"
-          style={{ color: activeStyle.caret }}
+          style={{ color: activeStyle.caret, textShadow: `0 0 10px ${activeStyle.glow}, 0 0 20px ${activeStyle.flare}` }}
         >
           |
         </span>
@@ -340,7 +362,7 @@ function DynamicTaglineHeader() {
       </span>
 
       {/* Element C: Coordinated Rotating Tagline (staggered 3D letter flip) */}
-      <span className="relative mt-2 block min-h-[2.6rem] leading-snug text-center text-sm font-semibold uppercase tracking-[0.06em] text-white/70 sm:min-h-[3rem] sm:text-left sm:text-base md:min-h-[3.6rem] md:text-lg whitespace-nowrap">
+      <span className="relative mt-2 block min-h-[1.9rem] leading-snug text-center text-sm font-semibold uppercase tracking-[0.06em] text-white/70 sm:min-h-[2.2rem] sm:text-left sm:text-base md:min-h-[2.6rem] md:text-lg whitespace-nowrap">
         <span className="absolute inset-x-0 top-0">
           <AnimatePresence mode="wait">
             <motion.span
