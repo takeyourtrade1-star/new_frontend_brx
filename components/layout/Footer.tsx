@@ -126,8 +126,10 @@ export function Footer() {
         <p className="mb-3 max-w-3xl text-xs leading-relaxed text-gray-500">
           {COMPANY_INFO.legalName} — {COMPANY_INFO.legalForm} — Sede legale: {COMPANY_INFO.legalAddress} — P.IVA/C.F. {COMPANY_INFO.vatNumber} — REA {COMPANY_INFO.rea} — PEC {COMPANY_INFO.pec}
         </p>
-        <span className="text-sm font-medium text-gray-700">
-          {t('footer.copyright', { year: new Date().getFullYear() })}
+        <span className="text-sm font-medium text-gray-700 flex flex-col items-center justify-center gap-1 sm:flex-row sm:gap-2">
+          <span>{t('footer.copyright', { year: new Date().getFullYear() })}</span>
+          <span className="hidden sm:inline text-gray-300">•</span>
+          <span>{t('footer.madeInIvrea')}</span>
         </span>
       </div>
     </footer>

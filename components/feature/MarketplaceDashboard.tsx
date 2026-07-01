@@ -12,8 +12,10 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { GameSlug } from '@/lib/contexts/GameContext';
 import { TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 
+import { cn } from '@/lib/utils';
 import { FeaturesSection } from './FeaturesSection';
 import { AsteInCorsoCarousel } from './aste/AsteInCorsoCarousel';
+import { ScambiInCorsoCarousel } from './scambi/ScambiInCorsoCarousel';
 
 const SECTION_RADIUS = '0.625rem';
 
@@ -71,7 +73,7 @@ const MTG_HITS_FALLBACK: SearchHit[] = Array(12).fill(null).map((_, i) => ({
   image: getCdnImageUrl('card-1.png') // Fallback using a local CDN image
 }));
 
-function MagicSearchCard({ hit }: { hit: SearchHit }) {
+function MagicSearchCard({ hit, useLightText = false }: { hit: SearchHit; useLightText?: boolean }) {
   const { t } = useTranslation();
   const imgUrl = getCardImageUrl(hit.image ?? null);
   return (
@@ -83,17 +85,28 @@ function MagicSearchCard({ hit }: { hit: SearchHit }) {
       ) : (
         <div className="w-full aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
       )}
-      <p className="mt-1.5 line-clamp-1 text-center text-xs font-semibold text-slate-900">{hit.name}</p>
-      <p className="line-clamp-1 text-center text-[11px] font-medium text-gray-600">{hit.set_name}</p>
+      <p className={cn(
+        "mt-1.5 line-clamp-1 text-center text-xs font-semibold",
+        useLightText ? "text-white" : "text-slate-900"
+      )}>{hit.name}</p>
+      <p className={cn(
+        "line-clamp-1 text-center text-[11px] font-medium",
+        useLightText ? "text-slate-300" : "text-gray-600"
+      )}>{hit.set_name}</p>
     </Link>
   );
 }
 
-function BestSellerRankRow({ hit, rank }: { hit: SearchHit; rank: number }) {
-
+function BestSellerRankRow({ hit, rank, useLightText = false }: { hit: SearchHit; rank: number; useLightText?: boolean }) {
   return (
-    <li key={hit.id} className="group/row flex items-center gap-3.5 rounded-xl px-3 py-2.5 text-sm transition-colors hover:bg-orange-50/80 md:px-3.5 md:py-3">
-      <span className="w-6 shrink-0 text-sm font-bold text-gray-500">{rank}.</span>
+    <li key={hit.id} className={cn(
+      "group/row flex items-center gap-3.5 rounded-xl px-3 py-2.5 text-sm transition-colors md:px-3.5 md:py-3",
+      useLightText ? "hover:bg-white/10" : "hover:bg-orange-50/80"
+    )}>
+      <span className={cn(
+        "w-6 shrink-0 text-sm font-bold",
+        useLightText ? "text-slate-400" : "text-gray-500"
+      )}>{rank}.</span>
       {(() => {
         const cardSrc = getCardImageUrl(hit.image ?? null);
         return cardSrc ? (
@@ -104,10 +117,19 @@ function BestSellerRankRow({ hit, rank }: { hit: SearchHit; rank: number }) {
           <div className="h-10 w-8 shrink-0 rounded bg-gray-200" aria-hidden />
         );
       })()}
-      <Link href={`/products/${hit.id}`} className="flex-1 truncate font-medium text-slate-900 transition-colors group-hover/row:text-[#ff7300]">
+      <Link
+        href={`/products/${hit.id}`}
+        className={cn(
+          "flex-1 truncate font-medium transition-colors group-hover/row:text-[#ff7300]",
+          useLightText ? "text-white" : "text-slate-900"
+        )}
+      >
         {hit.name}
       </Link>
-      <span className="truncate text-[11px] text-gray-600">{hit.set_name}</span>
+      <span className={cn(
+        "truncate text-[11px]",
+        useLightText ? "text-slate-300" : "text-gray-600"
+      )}>{hit.set_name}</span>
     </li>
   );
 }
@@ -117,24 +139,16 @@ function TorneiMiniSection() {
   const { t } = useTranslation();
   return (
     <section
-      className="relative overflow-hidden rounded-2xl border border-violet-400/25 bg-white/90 bg-[url('/brx-sfondo-logo-tile.svg')] bg-[length:120px_120px] 3xl:bg-[length:88px_88px] bg-repeat p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)] md:p-8"
+      className="relative overflow-hidden rounded-2xl border border-violet-400/25 bg-white/95 p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)] md:p-8 before:absolute before:inset-0 before:z-0 before:bg-[url('/brx-sfondo-logo-tile.svg')] before:bg-[length:60px_60px] before:bg-[position:0_0] before:bg-repeat before:opacity-[0.35]"
     >
       <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-8">
-        <div className="flex items-start gap-4">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/15">
-            <Trophy className="h-6 w-6 text-violet-600" strokeWidth={2} />
-          </span>
-          <div>
-            <span className="inline-flex items-center rounded-full border border-violet-400/40 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-violet-700">
-              {t('home.tornei.eyebrow')}
-            </span>
-            <h2 className="mt-2 text-xl font-black uppercase tracking-tight text-gray-900 md:text-2xl">
-              {t('home.tornei.title')}
-            </h2>
-            <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-gray-600 md:text-base">
-              {t('home.tornei.description')}
-            </p>
-          </div>
+        <div>
+          <h2 className="text-xl font-black uppercase tracking-tight text-gray-900 md:text-2xl">
+            {t('home.tornei.title')}
+          </h2>
+          <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-gray-600 md:text-base">
+            {t('home.tornei.description')}
+          </p>
         </div>
         <a
           {...TOURNAMENTS_PORTAL_LINK_PROPS}
@@ -312,7 +326,7 @@ export function MarketplaceDashboard({
           <div
             className={`relative isolate flex flex-col overflow-hidden rounded-2xl ${
               useUnifiedBackground
-                ? 'border border-white/55 bg-white/30 backdrop-blur-[6px] backdrop-saturate-130 shadow-[0_10px_28px_rgba(15,23,42,0.16)]'
+                ? 'border border-white/10 bg-[#0f172a]/65 backdrop-blur-[8px] shadow-[0_10px_28px_rgba(0,0,0,0.35)]'
                 : 'border border-gray-200/55 bg-white/30 backdrop-blur-[4px] shadow-[0_8px_24px_rgba(15,23,42,0.12)]'
             }`}
             style={{ borderRadius: SECTION_RADIUS }}
@@ -393,6 +407,69 @@ export function MarketplaceDashboard({
               </Link>
             </div>
           </div>
+          {/* Mobile: Aste in corso */}
+          <div
+            className={`relative isolate mt-4 flex flex-col overflow-hidden rounded-2xl ${
+              useUnifiedBackground
+                ? 'border border-white/10 bg-[#0f172a]/65 backdrop-blur-[8px] shadow-[0_10px_28px_rgba(0,0,0,0.35)]'
+                : 'border border-gray-200/55 bg-white/30 backdrop-blur-[4px] shadow-[0_8px_24px_rgba(15,23,42,0.12)]'
+            }`}
+          >
+            <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[56%] bg-gradient-to-b from-slate-950/55 via-slate-900/35 to-transparent" />
+            <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent" />
+            
+            {/* Header */}
+            <div className="relative z-10 flex items-center justify-between gap-4 px-5 pt-3 pb-1">
+              <div className="flex items-center gap-2">
+                <div className="h-4.5 w-1 rounded-full bg-gradient-to-b from-[#ff7300] to-[#ff9900]" />
+                <h3 className={`text-lg font-black uppercase tracking-wide font-sans ${useUnifiedBackground ? 'text-slate-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.42)]' : 'text-slate-900'}`}>
+                  {t('auctions.liveAuctionsTitle')}
+                </h3>
+              </div>
+              <Link
+                href="/aste"
+                className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wide text-primary transition-colors hover:text-orange-600"
+              >
+                {t('marketplace.seeAll')}
+              </Link>
+            </div>
+
+            <div className="relative z-10 flex flex-col overflow-hidden">
+              <AsteInCorsoCarousel useLightText compact />
+            </div>
+          </div>
+
+          {/* Mobile: Prova gli scambi */}
+          <div
+            className={`relative isolate mt-3 flex flex-col overflow-hidden rounded-2xl ${
+              useUnifiedBackground
+                ? 'border border-white/10 bg-[#0f172a]/65 backdrop-blur-[8px] shadow-[0_10px_28px_rgba(0,0,0,0.35)]'
+                : 'border border-gray-200/55 bg-white/30 backdrop-blur-[4px] shadow-[0_8px_24px_rgba(15,23,42,0.12)]'
+            }`}
+          >
+            <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[56%] bg-gradient-to-b from-slate-950/55 via-slate-900/35 to-transparent" />
+            <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent" />
+            
+            {/* Header */}
+            <div className="relative z-10 flex items-center justify-between gap-4 px-5 pt-3 pb-1">
+              <div className="flex items-center gap-2">
+                <div className="h-4.5 w-1 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500" />
+                <h3 className={`text-lg font-black uppercase tracking-wide font-sans ${useUnifiedBackground ? 'text-slate-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.42)]' : 'text-slate-900'}`}>
+                  {t('home.scambi.title')}
+                </h3>
+              </div>
+              <Link
+                href="/scambi"
+                className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wide text-primary transition-colors hover:text-orange-600"
+              >
+                {t('home.scambi.seeAll')}
+              </Link>
+            </div>
+
+            <div className="relative z-10 flex flex-col overflow-hidden">
+              <ScambiInCorsoCarousel useLightText compact />
+            </div>
+          </div>
         </div>
 
         {/* DESKTOP: Layout originale a due colonne */}
@@ -401,7 +478,7 @@ export function MarketplaceDashboard({
           <div
             className={`relative isolate flex min-h-[437px] flex-col justify-between overflow-hidden rounded-2xl lg:col-span-2 ${
               useUnifiedBackground
-                ? 'border border-white/55 bg-white/30 backdrop-blur-[6px] backdrop-saturate-130 shadow-[0_10px_28px_rgba(15,23,42,0.16)]'
+                ? 'border border-white/10 bg-[#0f172a]/65 backdrop-blur-[8px] shadow-[0_10px_28px_rgba(0,0,0,0.35)]'
                 : 'border border-gray-200/55 bg-white/30 backdrop-blur-[4px] shadow-[0_8px_24px_rgba(15,23,42,0.12)]'
             }`}
           >
@@ -430,7 +507,7 @@ export function MarketplaceDashboard({
               <div className="px-5 pt-5 md:px-6 md:pt-6">
                 <div className="grid grid-cols-6 gap-3">
                   {topBestSellerCards.length > 0
-                    ? topBestSellerCards.map((hit) => <MagicSearchCard key={hit.id} hit={hit} />)
+                    ? topBestSellerCards.map((hit) => <MagicSearchCard key={hit.id} hit={hit} useLightText={useUnifiedBackground} />)
                     : Array.from({ length: 6 }).map((_, i) => (
                         <div key={i} className="aspect-[3/4] rounded-lg border border-gray-200 bg-gray-100" aria-hidden />
                       ))}
@@ -441,7 +518,7 @@ export function MarketplaceDashboard({
                 <div className="flex min-w-0 flex-col">
                   <ul className="flex-1 space-y-1">
                     {(buyListCards.length > 0 ? buyListCards : []).map((hit, i) => {
-                      return <BestSellerRankRow key={hit.id} hit={hit} rank={i + 7} />;
+                      return <BestSellerRankRow key={hit.id} hit={hit} rank={i + 7} useLightText={useUnifiedBackground} />;
                     })}
                     {!magicLoading && buyListCards.length === 0 && (
                       <li className="text-sm text-gray-600">{t('marketplace.noSingles')}</li>
@@ -452,7 +529,7 @@ export function MarketplaceDashboard({
                 <div className="flex min-w-0 flex-col">
                   <ul className="flex-1 space-y-1">
                     {(tradeListCards.length > 0 ? tradeListCards : []).map((hit, i) => {
-                      return <BestSellerRankRow key={hit.id} hit={hit} rank={i + 10} />;
+                      return <BestSellerRankRow key={hit.id} hit={hit} rank={i + 10} useLightText={useUnifiedBackground} />;
                     })}
                     {!magicLoading && tradeListCards.length === 0 && (
                       <li className="text-sm text-gray-600">{t('marketplace.noSingles')}</li>
@@ -463,32 +540,70 @@ export function MarketplaceDashboard({
             </div>
           </div>
 
-          {/* ═══ Card ASTE IN CORSO ═══ */}
-          <div
-            className={`relative isolate flex flex-col justify-between rounded-2xl ${
-              useUnifiedBackground
-                ? 'border border-white/55 bg-white/30 backdrop-blur-[6px] backdrop-saturate-130 shadow-[0_10px_28px_rgba(15,23,42,0.16)]'
-                : 'border border-gray-200/55 bg-white/30 backdrop-blur-[4px] shadow-[0_8px_24px_rgba(15,23,42,0.12)]'
-            }`}
-          >
+          {/* ═══ Card ASTE + SCAMBI (DESKTOP) ═══ */}
+          <div className="flex flex-col gap-3">
+            {/* Aste in corso */}
             <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[56%] bg-gradient-to-b from-slate-950/55 via-slate-900/35 to-transparent"
-            />
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent"
-            />
-            <div className="absolute right-6 top-3 z-20">
-              <Link
-                href="/aste"
-                className="inline-flex items-center text-sm font-semibold uppercase tracking-wide text-[#ff7300] transition-colors hover:text-orange-600"
-              >
-                {t('marketplace.seeAll')}
-              </Link>
+              className={`relative isolate flex flex-col overflow-hidden rounded-2xl ${
+                useUnifiedBackground
+                  ? 'border border-white/10 bg-[#0f172a]/65 backdrop-blur-[8px] shadow-[0_10px_28px_rgba(0,0,0,0.35)]'
+                  : 'border border-gray-200/55 bg-white/30 backdrop-blur-[4px] shadow-[0_8px_24px_rgba(15,23,42,0.12)]'
+              }`}
+            >
+              <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[56%] bg-gradient-to-b from-slate-950/55 via-slate-900/35 to-transparent" />
+              <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent" />
+              
+              {/* Header */}
+              <div className="relative z-10 flex items-center justify-between gap-4 px-5 pt-3 pb-1">
+                <div className="flex items-center gap-2">
+                  <div className="h-4.5 w-1 rounded-full bg-gradient-to-b from-[#ff7300] to-[#ff9900]" />
+                  <h3 className="text-lg font-black uppercase tracking-wide font-sans text-slate-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.42)]">
+                    {t('auctions.liveAuctionsTitle')}
+                  </h3>
+                </div>
+                <Link
+                  href="/aste"
+                  className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wide text-primary transition-colors hover:text-orange-600"
+                >
+                  {t('marketplace.seeAll')}
+                </Link>
+              </div>
+
+              <div className="relative z-10 flex flex-col overflow-hidden">
+                <AsteInCorsoCarousel useLightText compact />
+              </div>
             </div>
-            <div className="relative z-10 flex min-h-[380px] flex-1 flex-col overflow-hidden md:min-h-[437px]">
-              <AsteInCorsoCarousel useLightText />
+
+            {/* Prova gli scambi */}
+            <div
+              className={`relative isolate flex flex-col overflow-hidden rounded-2xl ${
+                useUnifiedBackground
+                  ? 'border border-white/10 bg-[#0f172a]/65 backdrop-blur-[8px] shadow-[0_10px_28px_rgba(0,0,0,0.35)]'
+                  : 'border border-gray-200/55 bg-white/30 backdrop-blur-[4px] shadow-[0_8px_24px_rgba(15,23,42,0.12)]'
+              }`}
+            >
+              <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[56%] bg-gradient-to-b from-slate-950/55 via-slate-900/35 to-transparent" />
+              <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent" />
+              
+              {/* Header */}
+              <div className="relative z-10 flex items-center justify-between gap-4 px-5 pt-3 pb-1">
+                <div className="flex items-center gap-2">
+                  <div className="h-4.5 w-1 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500" />
+                  <h3 className="text-lg font-black uppercase tracking-wide font-sans text-slate-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.42)]">
+                    {t('home.scambi.title')}
+                  </h3>
+                </div>
+                <Link
+                  href="/scambi"
+                  className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wide text-primary transition-colors hover:text-orange-600"
+                >
+                  {t('home.scambi.seeAll')}
+                </Link>
+              </div>
+
+              <div className="relative z-10 flex flex-col overflow-hidden">
+                <ScambiInCorsoCarousel useLightText compact />
+              </div>
             </div>
           </div>
         </div>

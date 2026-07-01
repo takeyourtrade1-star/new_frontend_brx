@@ -197,45 +197,176 @@ const TAGLINE_LETTER_VARIANTS = {
   },
 };
 
-function RotatingTagline() {
+const WORD_STYLES = [
+  {
+    color: '#FFB84D', // Amber/Orange
+    glow: 'rgba(255, 184, 77, 0.35)',
+    caret: '#FFB84D',
+  },
+  {
+    color: '#34E8E8', // Cyan/Teal
+    glow: 'rgba(52, 232, 232, 0.35)',
+    caret: '#34E8E8',
+  },
+  {
+    color: '#FF8A9A', // Coral/Rose
+    glow: 'rgba(255, 138, 154, 0.35)',
+    caret: '#FF8A9A',
+  },
+  {
+    color: '#C084FC', // Lavender/Violet
+    glow: 'rgba(192, 132, 252, 0.35)',
+    caret: '#C084FC',
+  },
+];
+
+function DynamicTaglineHeader() {
   const { t } = useTranslation();
-  const phrases = useMemo(() => ROTATE_KEYS.map((k) => t(k)), [t]);
-  const [index, setIndex] = useState(0);
 
+  // Unify the word index
+  const [currentWordIdx, setCurrentWordIdx] = useState(0);
+  const [currentText, setCurrentText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Track the phrase index (0 or 1) for each of the 4 words
+  const [phraseOffsets, setPhraseOffsets] = useState<number[]>([0, 0, 0, 0]);
+
+  const words = useMemo(() => [
+    t('landing.hero.tagline.typewriter.1'), // Vendi
+    t('landing.hero.tagline.typewriter.2'), // Scambia
+    t('landing.hero.tagline.typewriter.3'), // Metti all'Asta
+    t('landing.hero.tagline.typewriter.4')  // Gioca i tornei
+  ], [t]);
+
+  const subPhrases = useMemo(() => [
+    [
+      t('landing.hero.tagline.typewriter.1.phrase.1'),
+      t('landing.hero.tagline.typewriter.1.phrase.2')
+    ],
+    [
+      t('landing.hero.tagline.typewriter.2.phrase.1'),
+      t('landing.hero.tagline.typewriter.2.phrase.2')
+    ],
+    [
+      t('landing.hero.tagline.typewriter.3.phrase.1'),
+      t('landing.hero.tagline.typewriter.3.phrase.2')
+    ],
+    [
+      t('landing.hero.tagline.typewriter.4.phrase.1'),
+      t('landing.hero.tagline.typewriter.4.phrase.2')
+    ]
+  ], [t]);
+
+  // Timer for typewriter
   useEffect(() => {
-    const id = setInterval(() => {
-      setIndex((i) => (i + 1) % phrases.length);
-    }, 3600);
-    return () => clearInterval(id);
-  }, [phrases.length]);
+    const fullWord = words[currentWordIdx];
+    if (!fullWord) return;
 
-  const letters = useMemo(() => Array.from(phrases[index]), [phrases, index]);
+    const speed = isDeleting ? 50 : 100;
+
+    if (!isDeleting && currentText === fullWord) {
+      // Pause for 2.8s
+      const timeout = setTimeout(() => setIsDeleting(true), 2800);
+      return () => clearTimeout(timeout);
+    }
+
+    if (isDeleting && currentText === '') {
+      setIsDeleting(false);
+      setCurrentWordIdx((prev) => {
+        const nextIdx = (prev + 1) % words.length;
+        // Toggle the phrase offset for the word we just finished
+        setPhraseOffsets((prevOffsets) => {
+          const nextOffsets = [...prevOffsets];
+          nextOffsets[prev] = nextOffsets[prev] === 0 ? 1 : 0;
+          return nextOffsets;
+        });
+        return nextIdx;
+      });
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setCurrentText((prev) =>
+        isDeleting ? prev.slice(0, -1) : fullWord.slice(0, prev.length + 1)
+      );
+    }, speed);
+
+    return () => clearTimeout(timeout);
+  }, [currentText, isDeleting, currentWordIdx, words]);
+
+  const activeStyle = WORD_STYLES[currentWordIdx] || WORD_STYLES[0];
+  const activePhrases = subPhrases[currentWordIdx] || subPhrases[0];
+  const subPhraseIdx = phraseOffsets[currentWordIdx] || 0;
+  const displayPhrase = activePhrases[subPhraseIdx];
+  const letters = useMemo(() => Array.from(displayPhrase || ''), [displayPhrase]);
 
   return (
-    <span className="mt-2 block min-h-[2.6rem] leading-snug text-center text-sm font-semibold uppercase tracking-[0.06em] text-white/70 sm:min-h-[3rem] sm:text-left sm:text-base md:min-h-[3.6rem] md:text-lg">
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={index}
-          variants={TAGLINE_CONTAINER_VARIANTS}
-          initial="hidden"
-          animate="show"
-          exit="exit"
-          style={{ perspective: 500 }}
-          className="inline-block"
-        >
-          {letters.map((letter, i) => (
+    <h1 className="text-center leading-tight sm:max-w-xl sm:text-left md:max-w-2xl flex flex-col">
+      {/* Element A: Typewriter Word */}
+      <span className="block text-xl font-extrabold uppercase tracking-tight text-white sm:text-2xl md:text-3xl lg:text-4xl min-h-[1.75em] sm:min-h-[1.5em] select-none text-center sm:text-left">
+        <span className="inline-flex flex-wrap justify-center sm:justify-start">
+          {currentText.split('').map((char, i) => (
             <motion.span
               key={i}
-              variants={TAGLINE_LETTER_VARIANTS}
+              initial={{ opacity: 0, scale: 0.3, y: 8, filter: 'blur(3px)' }}
+              animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
               className="inline-block"
-              style={{ transformOrigin: 'center bottom', whiteSpace: letter === ' ' ? 'pre' : 'normal' }}
+              style={{
+                color: activeStyle.color,
+                whiteSpace: char === ' ' ? 'pre' : 'normal',
+                filter: `drop-shadow(0 2px 8px ${activeStyle.glow})`,
+              }}
+              transition={{
+                type: 'spring',
+                stiffness: 400,
+                damping: 15,
+              }}
             >
-              {letter}
+              {char}
             </motion.span>
           ))}
-        </motion.span>
-      </AnimatePresence>
-    </span>
+        </span>
+        <span
+          className="animate-pulse ml-0.5 font-normal select-none"
+          style={{ color: activeStyle.caret }}
+        >
+          |
+        </span>
+      </span>
+
+      {/* Element B: Fixed Statement */}
+      <span className="mt-1 block text-sm font-semibold normal-case tracking-normal text-white/80 sm:text-base md:text-lg text-center sm:text-left">
+        {t('landing.hero.tagline.statement')}
+      </span>
+
+      {/* Element C: Coordinated Rotating Tagline (staggered 3D letter flip) */}
+      <span className="relative mt-2 block min-h-[2.6rem] leading-snug text-center text-sm font-semibold uppercase tracking-[0.06em] text-white/70 sm:min-h-[3rem] sm:text-left sm:text-base md:min-h-[3.6rem] md:text-lg whitespace-nowrap">
+        <span className="absolute inset-x-0 top-0">
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={`${currentWordIdx}-${subPhraseIdx}`}
+              variants={TAGLINE_CONTAINER_VARIANTS}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              style={{ perspective: 500 }}
+              className="inline-block"
+            >
+              {letters.map((letter, i) => (
+                <motion.span
+                  key={i}
+                  variants={TAGLINE_LETTER_VARIANTS}
+                  className="inline-block"
+                  style={{ transformOrigin: 'center bottom', whiteSpace: letter === ' ' ? 'pre' : 'normal' }}
+                >
+                  {letter}
+                </motion.span>
+              ))}
+            </motion.span>
+          </AnimatePresence>
+        </span>
+      </span>
+    </h1>
   );
 }
 
@@ -347,20 +478,7 @@ export function LandingWelcome() {
             />
             <div className="flex items-center gap-4 sm:gap-6 md:gap-7">
               <div className="h-14 w-px bg-white/20 hidden sm:block md:h-20" />
-              <h1 className="text-center leading-tight sm:max-w-xl sm:text-left md:max-w-2xl">
-                <span className="block text-xl font-extrabold uppercase tracking-tight text-white sm:text-2xl md:text-3xl lg:text-4xl">
-                  <span className="hero-gradient-text">{t('landing.hero.tagline.word1')}</span>
-                  {', '}
-                  <span className="hero-gradient-text">{t('landing.hero.tagline.word2')}</span>{' '}
-                  {t('landing.hero.tagline.and')}{' '}
-                  <span className="hero-gradient-text">{t('landing.hero.tagline.word3')}</span>
-                  {'.'}
-                </span>
-                <span className="mt-1 block text-sm font-semibold normal-case tracking-normal text-white/80 sm:text-base md:text-lg">
-                  {t('landing.hero.tagline.statement')}
-                </span>
-                <RotatingTagline />
-              </h1>
+              <DynamicTaglineHeader />
             </div>
           </div>
         </header>
