@@ -204,8 +204,8 @@ function FanCardFace({
         background:
           'linear-gradient(150deg, #1c1c22 0%, #0e0e12 35%, #16161b 70%, #1c1c22 100%)',
         boxShadow: isActive
-          ? `0 20px 55px rgba(${card.rgb}, 0.4), 0 6px 18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(${card.rgb}, 0.12)`
-          : `0 10px 26px rgba(0,0,0,0.55), inset 0 1px 0 rgba(${card.rgb}, 0.06)`,
+          ? `0 20px 55px rgba(${card.rgb}, 0.15), 0 6px 18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(${card.rgb}, 0.08)`
+          : `0 10px 26px rgba(0,0,0,0.55), inset 0 1px 0 rgba(${card.rgb}, 0.04)`,
         filter: isActive ? 'none' : 'brightness(0.66) saturate(0.9)',
         transition: 'box-shadow 350ms ease, border-color 350ms ease, filter 350ms ease',
       }}
@@ -226,7 +226,7 @@ function FanCardFace({
       <div
         className="pointer-events-none absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity duration-500"
         style={{
-          background: `radial-gradient(circle, rgba(${card.rgb}, 0.28) 0%, transparent 70%)`,
+          background: `radial-gradient(circle, rgba(${card.rgb}, 0.1) 0%, transparent 70%)`,
           opacity: isActive ? 1 : 0,
         }}
       />
@@ -264,7 +264,7 @@ function FanCardFace({
             opacity: isActive ? 1 : 0,
             y: isActive ? 0 : 6,
             filter: isActive
-              ? `blur(0px) drop-shadow(0 2px 12px rgba(${card.rgb}, 0.55))`
+              ? `blur(0px) drop-shadow(0 2px 10px rgba(${card.rgb}, 0.2))`
               : 'blur(3px) drop-shadow(0 0 0 transparent)',
           }}
           transition={revealTransition}
@@ -309,7 +309,17 @@ function FanCardFace({
    Ventaglio
    ─────────────────────────────────────────────── */
 
-export function LandingHeroCardFan() {
+export function LandingHeroCardFan({
+  active,
+  setActive,
+  paused,
+  setPaused,
+}: {
+  active: number;
+  setActive: React.Dispatch<React.SetStateAction<number>>;
+  paused: boolean;
+  setPaused: (paused: boolean) => void;
+}) {
   const { t } = useTranslation();
   const reduced = useReducedMotion();
 
@@ -328,18 +338,6 @@ export function LandingHeroCardFan() {
       })),
     [t]
   );
-
-  const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
-
-  /* Auto-rotazione */
-  useEffect(() => {
-    if (paused || reduced) return;
-    const id = window.setInterval(() => {
-      setActive((a) => (a + 1) % cards.length);
-    }, LANDING_ROTATION_MS);
-    return () => window.clearInterval(id);
-  }, [paused, reduced, cards.length]);
 
   /* Larghezza reale → scala l'apertura del ventaglio per non sforare su mobile */
   const stageRef = useRef<HTMLDivElement>(null);
@@ -388,7 +386,7 @@ export function LandingHeroCardFan() {
       <div
         className="pointer-events-none h-56 w-56 rounded-full blur-[60px] transition-[background] duration-700 [grid-area:1/1]"
         style={{
-          background: `radial-gradient(circle, rgba(${activeCard.rgb}, 0.22) 0%, transparent 70%)`,
+          background: `radial-gradient(circle, rgba(${activeCard.rgb}, 0.1) 0%, transparent 70%)`,
           zIndex: 0,
         }}
         aria-hidden

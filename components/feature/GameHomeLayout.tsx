@@ -22,10 +22,8 @@ export function GameHomeLayout({ gameSlug }: GameHomeLayoutProps) {
         <GameHeroSection gameSlug={gameSlug} />
       </section>
 
-      {/* Mobile (<640px): margine negativo ridotto rispetto a sm/md/lg — sull'hero corto (70vh)
-          il valore desktop-style tirava la dashboard fin sopra al logo, sovrapponendola.
-          Qui la si fa iniziare dentro la sola fascia di sfumatura in fondo all'hero. */}
-      <div className="relative z-10 -mt-[8vh] sm:-mt-[60vh] md:-mt-[62vh] lg:-mt-[66vh]">
+      {/* Mobile (<640px): margine negativo ottimizzato per coprire il vuoto dell'hero senza coprire il logo. */}
+      <div className="relative z-10 -mt-[36vh] sm:-mt-[60vh] md:-mt-[62vh] lg:-mt-[66vh]">
         <MarketplaceDashboard gameSlug={gameSlug} useUnifiedBackground showFeaturesBelowTopRow />
 
         <CategoriesGrid useUnifiedBackground />

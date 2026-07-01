@@ -214,11 +214,17 @@ const WORD_STYLES = LANDING_ROTATION_COLORS.map((c) => ({
   caret: c.hex,
 }));
 
-function DynamicTaglineHeader() {
+function DynamicTaglineHeader({
+  currentWordIdx,
+  setCurrentWordIdx,
+  paused,
+}: {
+  currentWordIdx: number;
+  setCurrentWordIdx: React.Dispatch<React.SetStateAction<number>>;
+  paused: boolean;
+}) {
   const { t } = useTranslation();
 
-  // Unify the word index
-  const [currentWordIdx, setCurrentWordIdx] = useState(0);
   const [currentText, setCurrentText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -257,10 +263,23 @@ function DynamicTaglineHeader() {
     ],
   ], [t]);
 
+  // Se siamo in pausa (hover del mouse), forziamo la parola intera e resettiamo la cancellazione
+  useEffect(() => {
+    if (paused) {
+      const fullWord = words[currentWordIdx];
+      if (fullWord) {
+        setCurrentText(fullWord);
+        setIsDeleting(false);
+      }
+    }
+  }, [paused, currentWordIdx, words]);
+
   // Timer for typewriter — il ciclo completo (scrittura + pausa + cancellazione) dura
   // sempre esattamente LANDING_ROTATION_MS, qualunque sia la lunghezza della parola,
   // così il cambio di parola resta a tempo con il ventaglio di carte nella hero.
   useEffect(() => {
+    if (paused) return;
+
     const fullWord = words[currentWordIdx];
     if (!fullWord) return;
 
@@ -291,13 +310,16 @@ function DynamicTaglineHeader() {
     }
 
     const timeout = setTimeout(() => {
-      setCurrentText((prev) =>
-        isDeleting ? prev.slice(0, -1) : fullWord.slice(0, prev.length + 1)
-      );
+      setCurrentText((prev) => {
+        if (!isDeleting && !fullWord.startsWith(prev)) {
+          return fullWord.slice(0, 1);
+        }
+        return isDeleting ? prev.slice(0, -1) : fullWord.slice(0, prev.length + 1);
+      });
     }, speed);
 
     return () => clearTimeout(timeout);
-  }, [currentText, isDeleting, currentWordIdx, words]);
+  }, [currentText, isDeleting, currentWordIdx, words, paused, setCurrentWordIdx]);
 
   const activeStyle = WORD_STYLES[currentWordIdx] || WORD_STYLES[0];
   const activePhrases = subPhrases[currentWordIdx] || subPhrases[0];
@@ -403,6 +425,9 @@ export function LandingWelcome() {
   const { setSelectedGame } = useGame();
 
   /* ─── state ─── */
+  const [heroRotationIdx, setHeroRotationIdx] = useState(0);
+  const [heroRotationPaused, setHeroRotationPaused] = useState(false);
+
   const [notifyGame, setNotifyGame] = useState<{ src: string; alt: string; waitlistCount: number } | null>(null);
   const [fullscreenGame, setFullscreenGame] = useState<{ src: string; alt: string; bgImage: string; waitlistCount: number } | null>(null);
   const [isFullscreenClosing, setIsFullscreenClosing] = useState(false);
@@ -501,7 +526,11 @@ export function LandingWelcome() {
             />
             <div className="flex items-center gap-4 sm:gap-6 md:gap-7">
               <div className="h-14 w-px bg-white/20 hidden sm:block md:h-20" />
-              <DynamicTaglineHeader />
+              <DynamicTaglineHeader
+                currentWordIdx={heroRotationIdx}
+                setCurrentWordIdx={setHeroRotationIdx}
+                paused={heroRotationPaused}
+              />
             </div>
           </div>
         </header>
@@ -620,7 +649,12 @@ export function LandingWelcome() {
             </div>
 
             {/* ──── RIGHT: VENTAGLIO DI CARTE (4 feature brandizzate) ──── */}
-            <LandingHeroCardFan />
+            <LandingHeroCardFan
+              active={heroRotationIdx}
+              setActive={setHeroRotationIdx}
+              paused={heroRotationPaused}
+              setPaused={setHeroRotationPaused}
+            />
 
           </div>
         </section>
