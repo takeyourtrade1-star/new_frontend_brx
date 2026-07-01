@@ -61,14 +61,6 @@ export function AccountMenuPanel({ onClose, t }: { onClose: () => void; t: T }) 
                       >
                         {t('account.sync')}
                       </Link>
-                      <div className={ORANGE_GLASS_DIVIDER_CLASS} aria-hidden />
-                      <Link
-                        href="/scambi"
-                        className="block py-2 text-sm font-medium uppercase tracking-wide text-white hover:underline"
-                        onClick={onClose}
-                      >
-                        I MIEI SCAMBI
-                      </Link>
                     </nav>
                   </div>
   );

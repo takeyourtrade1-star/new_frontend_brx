@@ -16,7 +16,7 @@ type T = (key: MessageKey, vars?: Record<string, string | number>) => string;
 const AUTH_INPUT_HEIGHT = 'h-9';
 const AUTH_INPUT_WIDTH = 'w-36';
 const inputBase =
-  'rounded-full px-4 text-sm font-normal font-sans text-[#0F172A] placeholder:text-gray-500 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 border';
+  'rounded-full px-4 text-sm font-semibold font-sans text-black placeholder:text-gray-600 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 border';
 
 /** Piano 1.6 — form di login inline (desktop) dell'header, estratto da TopBar. */
 export function HeaderLoginForm({
@@ -53,7 +53,7 @@ export function HeaderLoginForm({
                     errors.username && 'border-red-500'
                   )}
                   style={{
-                    backgroundColor: '#d9d9d9',
+                    backgroundColor: '#FAF3E4',
                     borderColor: errors.username ? undefined : '#FF7300',
                   }}
                   {...register('username')}
@@ -78,7 +78,7 @@ export function HeaderLoginForm({
                     errors.password && 'border-red-500'
                   )}
                   style={{
-                    backgroundColor: '#d9d9d9',
+                    backgroundColor: '#FAF3E4',
                     borderColor: errors.password ? undefined : '#FF7300',
                   }}
                   {...register('password')}

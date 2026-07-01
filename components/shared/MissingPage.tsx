@@ -25,7 +25,7 @@ export function MissingPage({
     >
       <div className="relative w-full max-w-2xl aspect-[1400/781]">
         <video
-          src="/videos/404-animation.webm"
+          src="/videos/404-animation.webm?v=2"
           autoPlay
           muted
           loop

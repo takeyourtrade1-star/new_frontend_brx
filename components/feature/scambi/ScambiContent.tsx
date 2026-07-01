@@ -158,7 +158,7 @@ function TradeStepsTicker() {
   }, []);
 
   return (
-    <div ref={containerRef} className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div ref={containerRef} className="mb-6">
       {/* Mobile: stepper verticale con connettore */}
       <ol className="flex flex-col px-4 py-4 sm:hidden">
         {TRADE_STEPS.map((step, index) => {
@@ -379,11 +379,11 @@ export function ScambiContent() {
           </Link>
         </div>
 
-        {/* Titolo + banner marketing sulla stessa riga (desktop); impilati su mobile */}
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-          <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl">I MIEI SCAMBI</h1>
+        {/* Titolo + banner marketing centrato sulla riga (desktop); impilati su mobile */}
+        <div className="mb-6 flex flex-col items-center gap-3 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-6">
+          <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900 sm:text-3xl sm:justify-self-start">I MIEI SCAMBI</h1>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center gap-2.5 sm:col-start-2 sm:justify-self-center">
             <TradeCardsEmblem className="h-6 w-6 shrink-0 text-[#FF7300] sm:h-7 sm:w-7" />
             <p className="text-base font-extrabold uppercase tracking-widest text-[#1D3160] sm:text-lg">
               Il primo marketplace per{' '}

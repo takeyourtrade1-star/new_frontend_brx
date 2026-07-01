@@ -544,20 +544,44 @@ export function ReceivedProposalDetail({
             <p className="mt-1 text-sm text-gray-500">
               Invii a <span className="font-bold text-gray-800">{proposal.fromUser.name}</span>:
             </p>
-            <div className="mt-3 space-y-2 text-sm">
-              <div className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                <span className="text-gray-600">Offri</span>
-                <span className="font-bold text-[#1D3160]">
-                  {offeredCards.length} {offeredCards.length === 1 ? 'carta' : 'carte'}
-                  {addMoney > 0 ? ` + ${formatTradeEuro(addMoney)}` : ''} · {formatTradeEuro(offeredValue)}
-                </span>
+            <div className="mt-3 max-h-[45vh] space-y-2 overflow-y-auto text-sm">
+              <div className="rounded-lg bg-gray-50 px-3 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Offri</span>
+                  <span className="font-bold text-[#1D3160]">
+                    {offeredCards.length} {offeredCards.length === 1 ? 'carta' : 'carte'}
+                    {addMoney > 0 ? ` + ${formatTradeEuro(addMoney)}` : ''} · {formatTradeEuro(offeredValue)}
+                  </span>
+                </div>
+                {offeredCards.length > 0 && (
+                  <ul className="mt-1.5 space-y-1 border-t border-gray-200 pt-1.5">
+                    {offeredCards.map((c) => (
+                      <li key={c.id} className="flex items-center justify-between gap-2 text-xs text-gray-600">
+                        <span className="truncate">{c.name}</span>
+                        <span className="shrink-0 font-semibold text-gray-700">{formatTradeEuro(c.value)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <div className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                <span className="text-gray-600">Chiedi</span>
-                <span className="font-bold text-[#1D3160]">
-                  {requestedCards.length} {requestedCards.length === 1 ? 'carta' : 'carte'}
-                  {reqMoney > 0 ? ` + ${formatTradeEuro(reqMoney)}` : ''} · {formatTradeEuro(requestedValue)}
-                </span>
+              <div className="rounded-lg bg-gray-50 px-3 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Chiedi</span>
+                  <span className="font-bold text-[#1D3160]">
+                    {requestedCards.length} {requestedCards.length === 1 ? 'carta' : 'carte'}
+                    {reqMoney > 0 ? ` + ${formatTradeEuro(reqMoney)}` : ''} · {formatTradeEuro(requestedValue)}
+                  </span>
+                </div>
+                {requestedCards.length > 0 && (
+                  <ul className="mt-1.5 space-y-1 border-t border-gray-200 pt-1.5">
+                    {requestedCards.map((c) => (
+                      <li key={c.id} className="flex items-center justify-between gap-2 text-xs text-gray-600">
+                        <span className="truncate">{c.name}</span>
+                        <span className="shrink-0 font-semibold text-gray-700">{formatTradeEuro(c.value)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
             <div className="mt-5 flex gap-2">

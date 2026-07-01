@@ -315,7 +315,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   if (isLoading || !detail) {
     return (
       <div className="min-h-screen bg-white">
-        <AsteNav variant="compact" />
+        <AsteNav />
         <div className="flex min-h-[40vh] items-center justify-center">
           <MascotteLoader size="md" />
         </div>
@@ -338,7 +338,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         ref={asteNavRef} 
         className={`transition-opacity duration-200 ${showStickyHeader ? 'max-lg:pointer-events-none max-lg:opacity-0' : ''}`}
       >
-        <AsteNav variant="compact" />
+        <AsteNav />
       </div>
 
       {floatingNotice && !isOwner && (

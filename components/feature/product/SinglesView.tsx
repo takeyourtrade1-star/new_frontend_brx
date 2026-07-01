@@ -566,7 +566,6 @@ export function ProductCategoryView({
                             if (e.key === 'Enter') { setIsSetDropdownOpen(false); handleCerca(); }
                             if (e.key === 'Escape') setIsSetDropdownOpen(false);
                           }}
-                          placeholder={t('search.filterEdition')}
                           className={cn(fieldClass, edizioneInput ? 'pr-7' : '')}
                         />
                         {edizioneInput && (
@@ -685,7 +684,6 @@ export function ProductCategoryView({
                         value={nomeInput}
                         onChange={(e) => setNomeInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleCerca()}
-                        placeholder={t('search.thName')}
                         className={fieldClass}
                       />
                       {nomeInput && (

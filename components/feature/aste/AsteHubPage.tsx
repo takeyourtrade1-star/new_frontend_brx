@@ -7,9 +7,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { Search, X } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { getStoredAsteViewMode, setStoredAsteViewMode, type AsteViewMode } from '@/lib/auction/aste-view-storage';
@@ -22,6 +24,7 @@ import {
 import { AsteNav } from '@/components/feature/aste/AsteNav';
 import { MascotteLoader } from '@/components/dev/MascotteLoader';
 import { useAuctionList } from '@/lib/hooks/use-auctions';
+import { savedApi } from '@/lib/api/auction-client';
 import {
   apiToAuctionUI,
   isAuctionEndedUI,
@@ -38,18 +41,19 @@ import {
 } from '@/lib/auction/resolve-auction-search-query';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 
-type BrowseTab = 'ending_soon' | 'recent' | 'ended';
+type BrowseTab = 'ending_soon' | 'recent' | 'ended' | 'saved';
 
 const VIEW_STORAGE_KEY = 'hub';
 const BATCH_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
 
-const BROWSE_TABS: BrowseTab[] = ['ending_soon', 'recent', 'ended'];
+const BROWSE_TABS: BrowseTab[] = ['ending_soon', 'recent', 'ended', 'saved'];
 
 const BROWSE_TAB_KEYS: Record<BrowseTab, MessageKey> = {
   ending_soon: 'auctions.browseEndingSoon',
   recent: 'auctions.browseRecent',
   ended: 'auctions.browseEnded',
+  saved: 'auctions.browseSaved',
 };
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
@@ -62,6 +66,8 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 }
 
 type AsteHubToolbarProps = {
+  q: string;
+  onQChange: (value: string) => void;
   filterPriceMax: string;
   onFilterPriceMaxChange: (value: string) => void;
   filterMinBids: string;
@@ -71,10 +77,13 @@ type AsteHubToolbarProps = {
   viewMode: AsteViewMode;
   onViewModeChange: (mode: AsteViewMode) => void;
   compact?: boolean;
+  showSavedTab: boolean;
   t: (key: MessageKey) => string;
 };
 
 function AsteHubToolbar({
+  q,
+  onQChange,
   filterPriceMax,
   onFilterPriceMaxChange,
   filterMinBids,
@@ -84,6 +93,7 @@ function AsteHubToolbar({
   viewMode,
   onViewModeChange,
   compact = false,
+  showSavedTab,
   t,
 }: AsteHubToolbarProps) {
   return (
@@ -95,10 +105,41 @@ function AsteHubToolbar({
           : 'mb-6 rounded-2xl border border-slate-200/75 bg-slate-100/90 px-4 py-3.5 shadow-[0_1px_4px_rgba(15,23,42,0.06)] sm:px-5 sm:py-4',
       )}
     >
+      <div className="flex w-full min-w-0 items-center overflow-hidden rounded-full bg-white px-2 py-1.5 shadow-sm ring-1 ring-slate-200/60">
+        <div className="flex min-w-0 flex-1 items-center gap-2 px-3">
+          <Search className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
+          <input
+            id={compact ? 'aste-hub-search-sticky' : 'aste-hub-search'}
+            type="search"
+            value={q}
+            onChange={(e) => onQChange(e.target.value)}
+            placeholder={t('auctions.searchPlaceholder')}
+            className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none"
+            aria-label={t('auctions.searchPlaceholder')}
+          />
+          {q && (
+            <button
+              type="button"
+              onClick={() => onQChange('')}
+              className="text-gray-400 transition-colors hover:text-gray-600 focus:outline-none"
+              aria-label="Cancella ricerca"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          className="btn-orange-glow shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs sm:px-4 sm:text-sm"
+        >
+          {t('auctions.searchLabel')}
+        </button>
+      </div>
+
       <div
         className={cn(
           'flex flex-wrap items-end gap-2',
-          compact ? 'pt-1' : '',
+          compact ? 'pt-1' : 'border-t border-slate-200/65 pt-3',
         )}
       >
         {!compact && (
@@ -154,7 +195,7 @@ function AsteHubToolbar({
           role="tablist"
           aria-label={t('auctions.browseTabListLabel')}
         >
-          {BROWSE_TABS.map((tab) => {
+          {BROWSE_TABS.filter((tab) => tab !== 'saved' || showSavedTab).map((tab) => {
             const active = browseTab === tab;
             return (
               <button
@@ -193,18 +234,13 @@ function AsteHubToolbar({
 export function AsteHubPage() {
   const { t } = useTranslation();
   const { selectedLang } = useLanguage();
-  const searchParams = useSearchParams();
-  const urlQ = searchParams.get('q') ?? '';
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const [apiBatchCount, setApiBatchCount] = useState(1);
   const [viewMode, setViewMode] = useState<AsteViewMode>('list');
   const [browseTab, setBrowseTab] = useState<BrowseTab | null>(null);
-  // La ricerca aste arriva dalla barra principale (toggle "Aste") via URL ?q=.
-  const [q, setQ] = useState(urlQ);
-  useEffect(() => {
-    setQ(urlQ);
-  }, [urlQ]);
+  const [q, setQ] = useState('');
   const debouncedQ = useDebouncedValue(q, SEARCH_DEBOUNCE_MS);
   const [filterPriceMax, setFilterPriceMax] = useState('');
   const [filterMinBids, setFilterMinBids] = useState('');
@@ -212,8 +248,15 @@ export function AsteHubPage() {
   const [resolvedApiQ, setResolvedApiQ] = useState<string | undefined>(undefined);
   const [searchResolving, setSearchResolving] = useState(false);
 
+  const isSavedTab = browseTab === 'saved';
   const apiStatus = browseTab === 'ended' ? 'CLOSED' : 'ACTIVE';
   const apiLimit = apiBatchCount * BATCH_SIZE;
+
+  useEffect(() => {
+    if (isSavedTab && !isAuthenticated) {
+      setBrowseTab(null);
+    }
+  }, [isSavedTab, isAuthenticated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -239,7 +282,7 @@ export function AsteHubPage() {
     };
   }, [debouncedQ, selectedLang]);
 
-  const { data: listData, isLoading, isFetching } = useAuctionList(
+  const { data: listData, isLoading: isLoadingMain, isFetching: isFetchingMain } = useAuctionList(
     {
       q: resolvedApiQ,
       status: apiStatus,
@@ -247,6 +290,7 @@ export function AsteHubPage() {
       offset: 0,
     },
     {
+      enabled: !isSavedTab,
       staleTime: 5_000,
       refetchInterval: 10_000,
       refetchIntervalInBackground: false,
@@ -255,9 +299,24 @@ export function AsteHubPage() {
     }
   );
 
+  /** "Salvate": stessa griglia/tabella, ma la sorgente dati è la lista
+   * salvate dell'utente (`/api/saved-auctions/me`) invece dell'elenco aste. */
+  const { data: savedListData, isLoading: isLoadingSaved, isFetching: isFetchingSaved } = useQuery({
+    queryKey: ['saved-auctions', 'list', 'hub', apiLimit],
+    queryFn: () => savedApi.listSaved({ limit: apiLimit, offset: 0 }),
+    enabled: isSavedTab && isAuthenticated,
+    staleTime: 5_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
+  });
+
+  const activeListData = isSavedTab ? savedListData : listData;
+  const isLoading = isSavedTab ? isLoadingSaved : isLoadingMain;
+  const isFetching = isSavedTab ? isFetchingSaved : isFetchingMain;
+
   const baseAuctions: AuctionUI[] = useMemo(
-    () => (listData?.data ?? []).map((a) => apiToAuctionUI(a)),
-    [listData]
+    () => (activeListData?.data ?? []).map((a) => apiToAuctionUI(a)),
+    [activeListData]
   );
   const enriched = useEnrichedAuctions(baseAuctions);
   const [showStickyBar, setShowStickyBar] = useState(false);
@@ -318,6 +377,9 @@ export function AsteHubPage() {
         if (!isAuctionEndedUI(a)) return false;
       } else if (browseTab === 'ending_soon') {
         if (isAuctionEndedUI(a) || !isEndingWithin24h(a.hoursFromNow)) return false;
+      } else if (browseTab === 'saved') {
+        // Le salvate mostrano sia le attive che le concluse: sono già filtrate
+        // in partenza dalla lista personale dell'utente.
       } else if (isAuctionEndedUI(a)) {
         return false;
       }
@@ -331,6 +393,15 @@ export function AsteHubPage() {
       copy.sort((a, b) => a.hoursFromNow - b.hoursFromNow);
     } else if (browseTab === 'recent') {
       copy.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+    } else if (browseTab === 'saved') {
+      copy.sort((a, b) => {
+        const aEnded = isAuctionEndedUI(a);
+        const bEnded = isAuctionEndedUI(b);
+        if (aEnded !== bEnded) return aEnded ? 1 : -1;
+        return aEnded
+          ? new Date(b.endsAt).getTime() - new Date(a.endsAt).getTime()
+          : a.hoursFromNow - b.hoursFromNow;
+      });
     } else {
       copy.sort((a, b) => a.hoursFromNow - b.hoursFromNow);
     }
@@ -342,8 +413,8 @@ export function AsteHubPage() {
     [filtered, visibleCount]
   );
 
-  const total = listData?.total ?? 0;
-  const fetchedFromApi = listData?.data?.length ?? 0;
+  const total = activeListData?.total ?? 0;
+  const fetchedFromApi = activeListData?.data?.length ?? 0;
   const hasMore =
     filtered.length > visibleCount || fetchedFromApi < total;
 
@@ -409,6 +480,8 @@ export function AsteHubPage() {
             />
 
             <AsteHubToolbar
+              q={q}
+              onQChange={setQ}
               filterPriceMax={filterPriceMax}
               onFilterPriceMaxChange={setFilterPriceMax}
               filterMinBids={filterMinBids}
@@ -417,13 +490,18 @@ export function AsteHubPage() {
               onBrowseTabChange={setBrowseTab}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
+              showSavedTab={isAuthenticated}
               t={t}
             />
 
             <div className="mb-3 flex items-end justify-between gap-3">
               <h2 className="flex min-w-0 flex-wrap items-baseline gap-2 sm:gap-3">
                 <span className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
-                  {browseTab === 'ended' ? t('auctions.hubEndedTitle') : t('auctions.hubOngoingTitle')}
+                  {browseTab === 'ended'
+                    ? t('auctions.hubEndedTitle')
+                    : browseTab === 'saved'
+                      ? t('auctions.hubSavedTitle')
+                      : t('auctions.hubOngoingTitle')}
                 </span>
                 <span className="text-base font-black tabular-nums leading-none text-[#1D3160] sm:text-lg">
                   {displayed.length}
@@ -470,6 +548,8 @@ export function AsteHubPage() {
         <div className="animate-slide-up-bounce fixed bottom-0 left-0 right-0 z-40 overflow-x-clip border-t border-gray-200 bg-white/95 backdrop-blur-md">
           <div className="px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
             <AsteHubToolbar
+              q={q}
+              onQChange={setQ}
               filterPriceMax={filterPriceMax}
               onFilterPriceMaxChange={setFilterPriceMax}
               filterMinBids={filterMinBids}
@@ -478,6 +558,7 @@ export function AsteHubPage() {
               onBrowseTabChange={setBrowseTab}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
+              showSavedTab={isAuthenticated}
               compact
               t={t}
             />

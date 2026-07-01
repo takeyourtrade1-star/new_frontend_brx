@@ -11,19 +11,11 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  Search,
-  Rows3,
-  Grid2x2,
-  SlidersHorizontal,
-  X,
-} from 'lucide-react';
 import { getCardImageUrl } from '@/lib/assets';
 import { SetIconBadge } from '@/components/ui/SetIconBadge';
 import { buildSetPageUrl, resolveSetPageGameSlug } from '@/lib/search/set-page-url';
@@ -52,7 +44,6 @@ import {
   normalizeCategoryKey,
   getCategoryIds,
   getCategoryIdsAcrossGames,
-  getCategoryKeys,
   getCategoryLabel,
   mapCategoryIdToKey,
   isValidCategoryKey,
@@ -104,161 +95,6 @@ const SORT_DEFS: { value: string; labelKey: MessageKey }[] = [
   { value: 'set_asc', labelKey: 'search.sort.setAsc' },
   { value: 'set_desc', labelKey: 'search.sort.setDesc' },
 ];
-
-const fieldClassSheet =
-  'min-h-[44px] w-full rounded-[12px] border border-gray-200 bg-[#f2f2f7] px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-[#5AC8FA]/30 focus:ring-offset-0 transition-colors';
-const fieldClassDesktop =
-  'min-h-[40px] rounded-[12px] border border-gray-200 bg-[#f2f2f7] px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-[#5AC8FA]/30 focus:ring-offset-0 transition-colors';
-
-type SearchFiltersFieldsProps = {
-  t: (k: MessageKey, vars?: Record<string, string | number>) => string;
-  gameSlug: GameSlug | null;
-  categoryKey: CategoryKey;
-  edizioneInput: string;
-  setEdizioneInput: (v: string) => void;
-  nomeInput: string;
-  setNomeInput: (v: string) => void;
-  buildSearchUrl: (updates: Record<string, string>) => string;
-  variant: 'desktop' | 'sheet';
-  onSubmitSearch: () => void;
-  onNavigate: (url: string) => void;
-  onLiveChange?: (nextNomeInput: string, nextEdizioneInput: string) => void;
-  hideNameFilter?: boolean;
-};
-
-function SearchFiltersFields({
-  t,
-  gameSlug,
-  categoryKey,
-  edizioneInput,
-  setEdizioneInput,
-  nomeInput,
-  setNomeInput,
-  buildSearchUrl,
-  variant,
-  onSubmitSearch,
-  onNavigate,
-  onLiveChange,
-  hideNameFilter = false,
-}: SearchFiltersFieldsProps) {
-  const isSheet = variant === 'sheet';
-  const fc = isSheet ? fieldClassSheet : fieldClassDesktop;
-
-  // Ottieni le categorie disponibili per il gioco corrente.
-  // 'sets' è escluso: la ricerca per set/edizioni usa un flusso dedicato in GlobalSearchBar
-  // (dropdown /api/sets), non la pagina /search standard.
-  const availableKeys = useMemo(
-    () => getCategoryKeys(gameSlug).filter((k) => k !== 'sets'),
-    [gameSlug]
-  );
-
-  const categorySelect = (
-    <select
-      className={`${fc} ${isSheet ? 'w-full' : 'min-w-[140px] flex-shrink-0'}`}
-      value={categoryKey}
-      aria-label={t('search.filterCategory')}
-      disabled={!gameSlug}
-      onChange={(e) => {
-        const newKey = e.target.value as CategoryKey;
-        onNavigate(
-          buildSearchUrl({
-            category_key: newKey,
-            category_id: '', // Clear legacy param
-            page: '1',
-          })
-        );
-      }}
-    >
-      {!gameSlug && (
-        <option value="">{t('search.catAll')}</option>
-      )}
-      {gameSlug && availableKeys.map((key) => (
-        <option key={key} value={key}>
-          {getCategoryLabel(gameSlug, key, 'it')}
-        </option>
-      ))}
-    </select>
-  );
-
-  const editionInput = (
-    <input
-      type="text"
-      placeholder={t('search.editionPlaceholder')}
-      className={`${fc} ${isSheet ? 'w-full' : 'min-w-[140px] flex-shrink-0'}`}
-      value={edizioneInput}
-      aria-label={t('search.filterEdition')}
-      onChange={(e) => {
-        const v = e.target.value;
-        setEdizioneInput(v);
-        onLiveChange?.(nomeInput, v);
-      }}
-    />
-  );
-
-  const raritySelect = (
-    <select
-      className={`${fc} ${isSheet ? 'w-full' : 'min-w-[115px] flex-shrink-0 opacity-70 cursor-not-allowed'}`}
-      disabled
-      title={t('search.raritySoon')}
-      aria-label={t('search.filterRarity')}
-    >
-      <option value="">{t('search.catAll')}</option>
-    </select>
-  );
-
-  const nameInput = (
-    <input
-      type="text"
-      placeholder={t('search.namePlaceholder')}
-      className={`${fc} ${isSheet ? 'w-full' : 'flex-1 min-w-[170px]'}`}
-      value={nomeInput}
-      aria-label={t('search.filterName')}
-      onChange={(e) => {
-        const v = e.target.value;
-        setNomeInput(v);
-        onLiveChange?.(v, edizioneInput);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          onSubmitSearch();
-        }
-      }}
-    />
-  );
-
-  const desktopSearchButton = (
-    <button
-      type="button"
-      onClick={onSubmitSearch}
-      className="flex h-[40px] items-center justify-center gap-2 rounded-[12px] bg-[#FF7300] px-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-orange-600 flex-shrink-0"
-    >
-      <Search className="h-4 w-4" aria-hidden />
-      {t('search.searchBtn')}
-    </button>
-  );
-
-  if (isSheet) {
-    return (
-      <div className="flex flex-col gap-3">
-        {categorySelect}
-        {editionInput}
-        {raritySelect}
-        {!hideNameFilter ? nameInput : null}
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-2 flex-1 min-w-0">
-      {categorySelect}
-      {editionInput}
-      {raritySelect}
-      {!hideNameFilter ? nameInput : null}
-      {desktopSearchButton}
-    </div>
-  );
-}
 
 export function SearchResults({
   query: initialQuery,
@@ -315,10 +151,6 @@ export function SearchResults({
   );
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [nomeInput, setNomeInput] = useState(q);
-  const [edizioneInput, setEdizioneInput] = useState(setFilter);
-  const [advancedNameMode, setAdvancedNameMode] = useState<'exact' | 'available'>('exact');
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [imagePreviewModalOpen, setImagePreviewModalOpen] = useState(false);
 
   const apiGame = game ? (FRONTEND_TO_GAME_SLUG[game] || game) : '';
@@ -363,11 +195,6 @@ export function SearchResults({
     }
   }, [viewMode]);
 
-  useEffect(() => {
-    setNomeInput(q);
-    setEdizioneInput(setFilter);
-  }, [q, setFilter]);
-
   const total = data?.total ?? 0;
   const hits = data?.hits ?? [];
   const currentPage = data?.page ?? 1;
@@ -411,65 +238,23 @@ export function SearchResults({
     [searchParams]
   );
 
-  const liveSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const triggerLiveSearch = useCallback(
-    (nextNomeInput: string, nextEdizioneInput: string) => {
-      if (liveSearchTimeoutRef.current) clearTimeout(liveSearchTimeoutRef.current);
-      const qVal = nextNomeInput.trim();
-      const setVal = nextEdizioneInput.trim();
-      liveSearchTimeoutRef.current = setTimeout(() => {
-        router.replace(buildSearchUrl({ q: qVal, set: setVal, page: '1' }));
-      }, 350);
-    },
-    [router, buildSearchUrl]
-  );
-
   useEffect(() => {
-    return () => {
-      if (liveSearchTimeoutRef.current) clearTimeout(liveSearchTimeoutRef.current);
-    };
-  }, []);
-
-  const handleCerca = () => {
-    if (typeof document !== 'undefined') {
-      const el = document.activeElement;
-      if (el instanceof HTMLElement) el.blur();
-    }
-    const newQ = nomeInput.trim();
-    const newSet = edizioneInput.trim();
-    const params: Record<string, string> = { page: '1' };
-    if (newQ) params.q = newQ;
-    if (newSet) params.set = newSet;
-    router.replace(buildSearchUrl(params));
-  };
-
-  useEffect(() => {
-    if (!filtersOpen) return;
+    if (!imagePreviewModalOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [filtersOpen]);
+  }, [imagePreviewModalOpen]);
 
   // Safety: evita casi in cui rimane attivo uno "scroll lock"
   // (causa tipica dello scroll verticale interno nella tabella).
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    const shouldUnlock = !filtersOpen && !imagePreviewModalOpen;
-    if (!shouldUnlock) return;
+    if (imagePreviewModalOpen) return;
     document.body.style.overflow = 'auto';
     document.documentElement.style.overflow = 'auto';
-  }, [filtersOpen, imagePreviewModalOpen]);
-
-  useEffect(() => {
-    if (!filtersOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setFiltersOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [filtersOpen]);
+  }, [imagePreviewModalOpen]);
 
   return (
     <RarityLegendProvider>
@@ -487,252 +272,6 @@ export function SearchResults({
           {tHydrationSafe('search.singles')}
         </h1>
         <div className="mb-6" /> */}
-
-        {/* Mobile: pulsante Filtri + sheet; Desktop: pannello filtri completo - NASCOSTO */
-        /*
-        <div className="mb-4 md:hidden">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(true)}
-              className="flex flex-1 min-w-0 min-h-[44px] items-center justify-center gap-2 rounded-full border border-gray-200 bg-[#f2f2f7] px-4 py-2.5 text-sm font-semibold text-[#FF7300] shadow-sm transition-colors hover:bg-orange-50/60"
-{{ ... }
-            >
-              <SlidersHorizontal className="h-5 w-5 shrink-0" aria-hidden />
-              {tHydrationSafe('search.filtersButton')}
-            </button>
-
-            <div className="flex h-[44px] w-[104px] overflow-hidden rounded-full border border-gray-200 bg-[#f2f2f7]">
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                aria-label={t('search.viewList')}
-                title={t('search.viewList')}
-                className={`relative z-10 flex h-[44px] w-[52px] items-center justify-center transition-colors ${
-                  viewMode === 'list' ? 'bg-orange-50/60 text-[#FF7300]' : 'bg-[#f2f2f7] text-gray-500'
-                }`}
-              >
-                {viewMode === 'list' && (
-                  <span
-                    aria-hidden
-                    className="absolute left-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-r bg-[#FF7300]/90 shadow-sm pointer-events-none"
-                  />
-                )}
-                <Rows3
-                  className="relative h-4 w-4 pointer-events-none"
-                  aria-hidden
-                />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                aria-label={t('search.viewGrid')}
-                title={t('search.viewGrid')}
-                className={`relative z-10 flex h-[44px] w-[52px] items-center justify-center transition-colors ${
-                  viewMode === 'grid' ? 'bg-orange-50/60 text-[#FF7300]' : 'bg-[#f2f2f7] text-gray-500'
-                }`}
-              >
-                {viewMode === 'grid' && (
-                  <span
-                    aria-hidden
-                    className="absolute left-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-r bg-[#FF7300]/90 shadow-sm pointer-events-none"
-                  />
-                )}
-                <Grid2x2
-                  className="relative h-4 w-4 pointer-events-none"
-                  aria-hidden
-                />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="hidden md:block rounded-lg border border-gray-200 bg-white shadow-sm px-3 py-2 mb-3" style={{ display: 'none' }}>
-          <div className="flex flex-wrap items-center gap-2 md:gap-3">
-            <SearchFiltersFields
-              t={t}
-              gameSlug={gameSlug}
-              categoryKey={categoryKey}
-              edizioneInput={edizioneInput}
-              setEdizioneInput={setEdizioneInput}
-              nomeInput={nomeInput}
-              setNomeInput={setNomeInput}
-              buildSearchUrl={buildSearchUrl}
-              variant="desktop"
-              onSubmitSearch={handleCerca}
-              onNavigate={(url) => router.replace(url)}
-              onLiveChange={triggerLiveSearch}
-              hideNameFilter={sellFlow}
-            />
-
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  className="sr-only"
-                  checked={advancedNameMode === 'exact'}
-                  onChange={() => setAdvancedNameMode('exact')}
-                />
-                <span
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    advancedNameMode === 'exact' ? 'bg-[#FF7300]/25' : 'bg-gray-200'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                      advancedNameMode === 'exact' ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
-                </span>
-                <span className="text-xs text-gray-600 whitespace-nowrap">{t('search.exactName')}</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  className="sr-only"
-                  checked={advancedNameMode === 'available'}
-                  onChange={() => setAdvancedNameMode('available')}
-                />
-                <span
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    advancedNameMode === 'available' ? 'bg-[#FF7300]/25' : 'bg-gray-200'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                      advancedNameMode === 'available' ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
-                </span>
-                <span className="text-xs text-gray-600 whitespace-nowrap">{t('search.onlyAvailable')}</span>
-              </label>
-            </div>
-          </div>
-        </div>
-        */}
-
-        {filtersOpen && (
-          <div
-            className="fixed inset-0 z-[200] flex md:hidden"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="search-filters-sheet-title"
-          >
-            <button
-              type="button"
-              className="absolute inset-0 bg-black/50"
-              aria-label={t('search.filtersClose')}
-              onClick={() => setFiltersOpen(false)}
-            />
-            <div className="absolute bottom-0 left-0 right-0 flex max-h-[min(92vh,720px)] flex-col rounded-t-2xl bg-white shadow-2xl">
-              <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-3">
-                <h2 id="search-filters-sheet-title" className="text-lg font-bold uppercase tracking-wide text-gray-900">
-                  {t('search.filtersSheetTitle')}
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setFiltersOpen(false)}
-                  className="rounded-full p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                  aria-label={t('search.filtersClose')}
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-                <SearchFiltersFields
-                  t={t}
-                  gameSlug={gameSlug}
-                  categoryKey={categoryKey}
-                  edizioneInput={edizioneInput}
-                  setEdizioneInput={setEdizioneInput}
-                  nomeInput={nomeInput}
-                  setNomeInput={setNomeInput}
-                  buildSearchUrl={buildSearchUrl}
-                  variant="sheet"
-                  onSubmitSearch={() => {
-                    handleCerca();
-                    setFiltersOpen(false);
-                  }}
-                  onNavigate={(url) => router.replace(url)}
-                  hideNameFilter={sellFlow}
-                />
-                <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4">
-                  <span className="text-xs font-semibold text-gray-600">{t('search.sortBy')}</span>
-                  <select
-                    className="min-h-[44px] w-full rounded-[12px] border border-gray-200 bg-[#f2f2f7] px-3 py-2 text-sm font-medium text-gray-900 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-[#5AC8FA]/30 focus:ring-offset-0"
-                    value={sortParam}
-                    onChange={(e) => {
-                      router.replace(buildSearchUrl({ sort: e.target.value, page: '1' }));
-                    }}
-                  >
-                    {sortOptions.map((o) => (
-                      <option key={o.value} value={o.value} className="bg-white text-gray-900">
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={advancedNameMode === 'exact'}
-                      onChange={() => setAdvancedNameMode('exact')}
-                    />
-                    <span
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        advancedNameMode === 'exact' ? 'bg-[#FF7300]/25' : 'bg-gray-200'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                          advancedNameMode === 'exact' ? 'translate-x-5' : 'translate-x-1'
-                        }`}
-                      />
-                    </span>
-                    <span className="text-xs text-gray-600 whitespace-nowrap">{t('search.exactName')}</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={advancedNameMode === 'available'}
-                      onChange={() => setAdvancedNameMode('available')}
-                    />
-                    <span
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        advancedNameMode === 'available' ? 'bg-[#FF7300]/25' : 'bg-gray-200'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                          advancedNameMode === 'available' ? 'translate-x-5' : 'translate-x-1'
-                        }`}
-                      />
-                    </span>
-                    <span className="text-xs text-gray-600 whitespace-nowrap">{t('search.onlyAvailable')}</span>
-                  </label>
-                </div>
-              </div>
-              <div className="shrink-0 border-t border-gray-200 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleCerca();
-                    setFiltersOpen(false);
-                  }}
-                  className="flex w-full min-h-[48px] items-center justify-center gap-2 bg-[#FF7300] px-4 py-3 text-sm font-semibold rounded-[14px] text-white transition-colors hover:bg-orange-600"
-                >
-                  <Search className="h-5 w-5 shrink-0" />
-                  {t('search.searchBtn')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {!loading && !error && hits.length > 0 && (
           <SearchResultsToolbar

@@ -166,31 +166,30 @@ const ROTATE_KEYS = [
   'landing.hero.tagline.rotate2',
   'landing.hero.tagline.rotate3',
   'landing.hero.tagline.rotate4',
-  'landing.hero.tagline.rotate5',
 ] as const;
 
-/** Parole in entrata/uscita con flip 3D scaglionato (orchestrazione via variants). */
+/** Lettere in entrata/uscita con flip 3D scaglionato lettera per lettera (orchestrazione via variants). */
 const TAGLINE_CONTAINER_VARIANTS = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.05, delayChildren: 0.03 } },
-  exit: { transition: { staggerChildren: 0.035, staggerDirection: -1 } },
+  show: { transition: { staggerChildren: 0.018, delayChildren: 0.02 } },
+  exit: { transition: { staggerChildren: 0.01, staggerDirection: -1 } },
 };
 
-const TAGLINE_WORD_VARIANTS = {
-  hidden: { opacity: 0, y: 14, rotateX: -90, filter: 'blur(6px)' },
+const TAGLINE_LETTER_VARIANTS = {
+  hidden: { opacity: 0, y: 8, rotateX: -80, filter: 'blur(3px)' },
   show: {
     opacity: 1,
     y: 0,
     rotateX: 0,
     filter: 'blur(0px)',
-    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const },
+    transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const },
   },
   exit: {
     opacity: 0,
-    y: -14,
-    rotateX: 90,
-    filter: 'blur(6px)',
-    transition: { duration: 0.28, ease: [0.4, 0, 1, 1] as const },
+    y: -8,
+    rotateX: 80,
+    filter: 'blur(3px)',
+    transition: { duration: 0.18, ease: [0.4, 0, 1, 1] as const },
   },
 };
 
@@ -206,10 +205,10 @@ function RotatingTagline() {
     return () => clearInterval(id);
   }, [phrases.length]);
 
-  const words = phrases[index].split(' ');
+  const letters = useMemo(() => Array.from(phrases[index]), [phrases, index]);
 
   return (
-    <span className="mt-2 block min-h-[1.25rem] sm:min-h-[1.5rem] md:min-h-[1.75rem]">
+    <span className="mt-2 block min-h-[2.6rem] leading-snug text-center text-sm font-semibold uppercase tracking-[0.06em] text-white/70 sm:min-h-[3rem] sm:text-left sm:text-base md:min-h-[3.6rem] md:text-lg">
       <AnimatePresence mode="wait">
         <motion.span
           key={index}
@@ -218,16 +217,16 @@ function RotatingTagline() {
           animate="show"
           exit="exit"
           style={{ perspective: 500 }}
-          className="flex flex-wrap justify-center gap-x-[0.35em] text-sm font-semibold uppercase tracking-[0.06em] text-white/70 sm:justify-start sm:text-base md:text-lg"
+          className="inline-block"
         >
-          {words.map((word, i) => (
+          {letters.map((letter, i) => (
             <motion.span
               key={i}
-              variants={TAGLINE_WORD_VARIANTS}
+              variants={TAGLINE_LETTER_VARIANTS}
               className="inline-block"
-              style={{ transformOrigin: 'center bottom' }}
+              style={{ transformOrigin: 'center bottom', whiteSpace: letter === ' ' ? 'pre' : 'normal' }}
             >
-              {word}
+              {letter}
             </motion.span>
           ))}
         </motion.span>
@@ -344,11 +343,17 @@ export function LandingWelcome() {
             />
             <div className="flex items-center gap-4 sm:gap-6 md:gap-7">
               <div className="h-14 w-px bg-white/20 hidden sm:block md:h-20" />
-              <h1 className="text-center leading-tight sm:text-left sm:whitespace-nowrap">
+              <h1 className="text-center leading-tight sm:max-w-xl sm:text-left md:max-w-2xl">
                 <span className="block text-xl font-extrabold uppercase tracking-tight text-white sm:text-2xl md:text-3xl lg:text-4xl">
-                  {t('landing.hero.tagline.main')}{' '}
-                  <span className="text-[#FF7300]">{t('landing.hero.tagline.highlight')}</span>{' '}
-                  {t('landing.hero.tagline.suffix')}
+                  <span className="text-[#FF7300]">{t('landing.hero.tagline.word1')}</span>
+                  {', '}
+                  <span className="text-[#FF7300]">{t('landing.hero.tagline.word2')}</span>{' '}
+                  {t('landing.hero.tagline.and')}{' '}
+                  <span className="text-[#FF7300]">{t('landing.hero.tagline.word3')}</span>
+                  {'.'}
+                </span>
+                <span className="mt-1 block text-sm font-semibold normal-case tracking-normal text-white/80 sm:text-base md:text-lg">
+                  {t('landing.hero.tagline.statement')}
                 </span>
                 <RotatingTagline />
               </h1>

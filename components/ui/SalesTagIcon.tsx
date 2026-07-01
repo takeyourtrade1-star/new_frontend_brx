@@ -8,9 +8,9 @@ export interface SalesTagIconProps {
   /**
    * Animazione tag-prezzo all'hover (come nell'header).
    * Il genitore interattivo deve avere la classe `group`.
-   * Effetto: il tag oscilla a scatti (wobble) e una moneta/€ appare
-   * in basso a destra facendo un flip 3D ad arco con rimbalzo + shine
-   * ("appare il soldo").
+   * Effetto: il tag (perfettamente centrato a riposo) si sposta leggermente
+   * in basso a sinistra, e da dietro sbuca una moneta scintillante (cerchio
+   * con la "E" dell'euro).
    */
   animated?: boolean;
 }
@@ -39,7 +39,7 @@ export function SalesTagIcon({
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn(sizeClass, animated && 'origin-[30%_30%] group-hover:animate-tag-tilt')}
+      className={cn(sizeClass, animated && 'relative z-10 origin-center group-hover:animate-tag-shift')}
       aria-hidden
     >
       <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
@@ -53,71 +53,54 @@ export function SalesTagIcon({
 
   return (
     <span
-      className="relative inline-flex shrink-0 items-center justify-center [perspective:240px]"
+      className="relative inline-flex shrink-0 items-center justify-center overflow-visible"
       aria-hidden
     >
-      {tagSvg}
-      {/* Moneta/€ in overlay: flip 3D mentre vola ad arco e rimbalza = "appare il soldo". */}
+      {/* Moneta che sbuca da dietro il tag quando questo si sposta, con scintillio.
+          Tratto volutamente più sottile di quello del tag: a queste dimensioni
+          lo stesso strokeWidth del tag la rendeva un blob illeggibile. */}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
         fill="none"
         stroke={stroke}
-        strokeWidth={strokeWidth}
+        strokeWidth={1.1}
         strokeLinecap="round"
         strokeLinejoin="round"
+        style={{ overflow: 'visible' }}
         className={cn(
-          'pointer-events-none absolute inset-0 m-auto [transform-style:preserve-3d] [backface-visibility:visible]',
+          'pointer-events-none absolute inset-0 z-0 m-auto',
           sizeClass,
-          'origin-center opacity-0 group-hover:animate-coin-pop',
+          'origin-center opacity-0 group-hover:animate-coin-peek',
         )}
         aria-hidden
       >
         {/* Bordo moneta */}
-        <circle cx="18" cy="17" r="3.1" />
-        {/* Bordo interno (spessore) */}
-        <circle cx="18" cy="17" r="2.1" strokeOpacity="0.55" />
+        <circle cx="15" cy="15" r="6.2" />
         {/* Simbolo €: arco sinistro + due linee orizzontali */}
-        <path d="M17.9 15.5a1.5 1.5 0 1 0 0 3" />
-        <line x1="16.2" y1="16.3" x2="19.4" y2="16.3" />
-        <line x1="16.2" y1="17.7" x2="19.4" y2="17.7" />
+        <path d="M15.1 12.4a2.7 2.7 0 1 0 0 5.2" />
+        <line x1="12.4" y1="14.2" x2="17.2" y2="14.2" />
+        <line x1="12.4" y1="15.8" x2="17.2" y2="15.8" />
       </svg>
-      {/* Shine: riflesso che attraversa la moneta al culmine del salto. */}
+      {/* Shine: riflesso che attraversa la moneta mentre sbuca ("scintillante"). */}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
         fill="none"
         stroke="#fff"
-        strokeWidth="1.4"
+        strokeWidth="1.2"
         strokeLinecap="round"
+        style={{ overflow: 'visible' }}
         className={cn(
-          'pointer-events-none absolute inset-0 m-auto',
+          'pointer-events-none absolute inset-0 z-0 m-auto',
           sizeClass,
-          'origin-center opacity-0 group-hover:animate-coin-shine',
+          'origin-center opacity-0 group-hover:animate-coin-peek-shine',
         )}
         aria-hidden
       >
-        <line x1="15.5" y1="14.5" x2="15.5" y2="19.5" strokeOpacity="0.85" />
+        <line x1="12" y1="11" x2="12" y2="19" strokeOpacity="0.9" />
       </svg>
-      {/* "+" guadagno: indicatore reward che spunta sopra la moneta e sale
-          svanendo, come un "+1" da gioco = "guadagni". */}
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        className={cn(
-          'pointer-events-none absolute inset-0 m-auto',
-          sizeClass,
-          'origin-[83%_30%] opacity-0 group-hover:animate-coin-earn',
-        )}
-        aria-hidden
-      >
-        <line x1="18.4" y1="7" x2="21.6" y2="7" />
-        <line x1="20" y1="5.4" x2="20" y2="8.6" />
-      </svg>
+      {tagSvg}
     </span>
   );
 }
