@@ -2056,19 +2056,18 @@ export const en = {
   'marketplace.featuredAuctions': 'Featured auctions',
   'marketplace.auctionCreatedByYou': 'Created by you',
   'marketplace.seeAllAuctions': 'see all auctions →',
-  'marketplace.newExpansions': 'new expansions',
   'marketplace.openDetail': 'Open details {name}',
   'marketplace.tradeCard': 'Trade {name}',
 
-  'simpleSecure.title': 'SIMPLE. SECURE. YOURS.',
-  'simpleSecure.b1':
-    'Sync your inventory in one click. Automatic stock and reprint imports, no complex setup.',
-  'simpleSecure.b2':
-    'Stock and prices from your account. Automatic updates and instant configuration for your inventory.',
-  'simpleSecure.b3':
-    'Your photos stay exactly as they are. We only sync stock and price lists so your media stays yours.',
-  'simpleSecure.b4':
-    'Full control over access. Revoke tokens and webhooks anytime from this page.',
+  'home.tornei.eyebrow': 'Live tournaments',
+  'home.tornei.title': 'Play live, win more',
+  'home.tornei.description':
+    'Join weekly tournaments with webcam verification, real-time pairing and live standings. Challenge the community and climb the bracket from home.',
+  'home.tornei.cta': 'Go to live tournaments',
+
+  'home.nuoveEspansioni.title': 'New expansions',
+  'home.nuoveEspansioni.subtitle': 'Upcoming Magic releases',
+  'home.nuoveEspansioni.releaseDate': 'Release: {date}',
 
   'search.loading': 'Loading…',
   'set.other': 'Other',

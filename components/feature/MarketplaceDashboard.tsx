@@ -3,14 +3,16 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { Trophy, ArrowRight } from 'lucide-react';
 import { useSearchCards } from '@/lib/hooks/use-search';
 import { useBestSellers } from '@/lib/hooks/use-best-sellers';
 import { getCdnImageUrl } from '@/lib/config';
 import { getCardImageUrl } from '@/lib/assets';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { GameSlug } from '@/lib/contexts/GameContext';
+import { TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 
-import { SimpleSecureTuoSection } from './SimpleSecureTuoSection';
+import { FeaturesSection } from './FeaturesSection';
 import { AsteInCorsoCarousel } from './aste/AsteInCorsoCarousel';
 
 const SECTION_RADIUS = '0.625rem';
@@ -36,21 +38,6 @@ export type ScambiaData = {
   listItems: HomeCardItem[];
   vediTuttoHref?: string;
 };
-
-/** Dati per le card Nuove Espansioni (in futuro dal backend) */
-export type NuovaEspansioneItem = {
-  id: string;
-  title: string;
-  subtitle?: string;
-  imageUrl?: string | null;
-  link?: string;
-};
-
-const NUOVE_ESPANSIONI_PLACEHOLDER: NuovaEspansioneItem[] = [
-  { id: '1', title: 'Le espansioni sono', subtitle: 'presto in arrivo', imageUrl: getCdnImageUrl('card-3/4978fe1369c0fbf68d42ac63d0582ffc6cf67d60.png') },
-  { id: '2', title: 'Nuovi set in', subtitle: 'fase di arrivo', imageUrl: getCdnImageUrl('card-3/8b5d86761fe7404aee02bee1471c3e0fc815d3bb.png') },
-  { id: '3', title: 'Prossimamente su', subtitle: 'BRX Marketplace', imageUrl: getCdnImageUrl('card-3/a8020835a8ffd96555a4b53cd6ef0d04866ca8b1.png') },
-];
 
 const headerOrange = {
   backgroundColor: '#ff7300',
@@ -125,105 +112,127 @@ function BestSellerRankRow({ hit, rank }: { hit: SearchHit; rank: number }) {
   );
 }
 
-/** Carousel Nuove Espansioni: più corto su mobile, pillola in risalto */
-function NuoveEspansioniCarousel({ items }: { items: NuovaEspansioneItem[] }) {
+/** Mini spieghino Tornei live — card compatta, sostituisce "Semplice. Sicuro. Tuo." */
+function TorneiMiniSection() {
   const { t } = useTranslation();
-  const [index, setIndex] = useState(0);
-  const goTo = useCallback(
-    (i: number) => {
-      setIndex((prev) => Math.max(0, Math.min(i, items.length - 1)));
-    },
-    [items.length]
-  );
-
-  if (items.length === 0) return null;
-
-  const current = items[index];
-
   return (
-    <div
-      className="relative flex min-h-[280px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[380px]"
-      style={{ borderRadius: SECTION_RADIUS }}
+    <section
+      className="relative overflow-hidden rounded-2xl border border-violet-400/25 bg-white/90 bg-[url('/brx-sfondo-logo-tile.svg')] bg-[length:120px_120px] 3xl:bg-[length:88px_88px] bg-repeat p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)] md:p-8"
     >
-      {/* Blue beam border layer - matches header gradient */}
-      <div
-        className="absolute -inset-[1px] rounded-[10px]"
-        style={{
-          background: 'linear-gradient(90deg, #3d65c6, #0f172a, #3d65c6, #5a7fd4, #3d65c6)',
-          backgroundSize: '200% 100%',
-          animation: 'flowBeam 4s linear infinite',
-          zIndex: -1,
-        }}
-      />
-      {/* Inner white card - immagine full-bleed come sfondo */}
-      <div
-        className="relative flex min-h-[280px] flex-col overflow-hidden rounded-2xl shadow-lg md:min-h-[380px]"
-        style={{
-          borderRadius: SECTION_RADIUS,
-          backgroundColor: '#ffffff',
-          margin: '1px',
-          boxShadow: '0 0 25px rgba(61, 101, 198, 0.12), 0 4px 20px rgba(0,0,0,0.08)',
-        }}
-      >
-        {/* Immagine del set a tutta card come sfondo */}
-        {current.imageUrl ? (
-          <Image
-            src={current.imageUrl}
-            alt={current.title}
-            fill
-            className="object-cover"
-            unoptimized
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900" aria-hidden />
-        )}
-        {/* Gradient scuro per leggibilità testo */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10" />
-        {/* Contenuto testuale in basso */}
-        <div className="relative z-10 mt-auto flex flex-col p-5 md:p-6">
-          {current.link ? (
-            <Link
-              href={current.link}
-              className="text-left text-lg font-bold uppercase leading-tight text-white drop-shadow-md hover:underline md:text-2xl"
-            >
-              {current.title}
-              {current.subtitle ? (<><br />{current.subtitle}</>) : null}
-            </Link>
-          ) : (
-            <p className="text-left text-lg font-bold uppercase leading-tight text-white drop-shadow-md md:text-2xl">
-              {current.title}
-              {current.subtitle ? (<><br />{current.subtitle}</>) : null}
+      <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-8">
+        <div className="flex items-start gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/15">
+            <Trophy className="h-6 w-6 text-violet-600" strokeWidth={2} />
+          </span>
+          <div>
+            <span className="inline-flex items-center rounded-full border border-violet-400/40 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-violet-700">
+              {t('home.tornei.eyebrow')}
+            </span>
+            <h2 className="mt-2 text-xl font-black uppercase tracking-tight text-gray-900 md:text-2xl">
+              {t('home.tornei.title')}
+            </h2>
+            <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-gray-600 md:text-base">
+              {t('home.tornei.description')}
             </p>
-          )}
-          <div className="mt-3 flex gap-1.5">
-            {items.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => goTo(i)}
-                className={`h-2 rounded-full transition-all focus:outline-none ${i === index ? 'w-5 bg-white' : 'w-2 bg-white/50 hover:bg-white/70'}`}
-                aria-label={t('gameHero.goToSlide', { n: i + 1 })}
-              />
-            ))}
           </div>
         </div>
+        <a
+          {...TOURNAMENTS_PORTAL_LINK_PROPS}
+          className="group inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl border border-violet-400/40 bg-violet-500/10 px-5 py-3 text-xs font-bold uppercase tracking-wider text-violet-700 transition-colors hover:bg-violet-500/20 md:self-auto"
+        >
+          {t('home.tornei.cta')}
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </a>
       </div>
-    </div>
+    </section>
+  );
+}
+
+/** Dati nuove espansioni — placeholder, da sostituire con dati reali (es. Cardmarket) */
+export type NuovaEspansioneItem = {
+  id: string;
+  name: string;
+  releaseDate: string;
+  imageUrl: string;
+};
+
+const NUOVE_ESPANSIONI_PLACEHOLDER: NuovaEspansioneItem[] = [
+  {
+    id: '1',
+    name: 'Espansione 1',
+    releaseDate: '—',
+    imageUrl: getCdnImageUrl('card-3/4978fe1369c0fbf68d42ac63d0582ffc6cf67d60.png'),
+  },
+  {
+    id: '2',
+    name: 'Espansione 2',
+    releaseDate: '—',
+    imageUrl: getCdnImageUrl('card-3/8b5d86761fe7404aee02bee1471c3e0fc815d3bb.png'),
+  },
+  {
+    id: '3',
+    name: 'Espansione 3',
+    releaseDate: '—',
+    imageUrl: getCdnImageUrl('card-3/a8020835a8ffd96555a4b53cd6ef0d04866ca8b1.png'),
+  },
+];
+
+/** Sezione Nuove Espansioni — striscia larga e bassa, non a card */
+function NuoveEspansioniSection({ items }: { items: NuovaEspansioneItem[] }) {
+  const { t } = useTranslation();
+  return (
+    <section className="rounded-2xl border border-slate-200/70 bg-white/80 px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] md:px-8 md:py-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
+        <div className="shrink-0 lg:pr-4">
+          <h2 className="text-lg font-black uppercase tracking-tight text-gray-900 md:text-xl">
+            {t('home.nuoveEspansioni.title')}
+          </h2>
+          <p className="mt-0.5 text-xs text-gray-500 md:text-sm">
+            {t('home.nuoveEspansioni.subtitle')}
+          </p>
+        </div>
+        <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/60 px-3 py-2.5"
+            >
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+                <Image
+                  src={item.imageUrl}
+                  alt={item.name}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-gray-900">{item.name}</p>
+                <p className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-500">
+                  {t('home.nuoveEspansioni.releaseDate', { date: item.releaseDate })}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
 export function MarketplaceDashboard({
   compraVendi: _compraVendi,
   scambia: _scambia,
-  nuoveEspansioni,
   gameSlug = 'mtg',
   useUnifiedBackground = false,
+  showFeaturesBelowTopRow = false,
 }: {
   compraVendi?: CompraVendiData;
   scambia?: ScambiaData;
-  nuoveEspansioni?: NuovaEspansioneItem[];
   gameSlug?: GameSlug;
   useUnifiedBackground?: boolean;
+  /** Mostra i 4 bannerini (FeaturesSection) sotto le card Best Sellers/Aste in corso invece che sopra. */
+  showFeaturesBelowTopRow?: boolean;
 } = {}) {
   const { t } = useTranslation();
 
@@ -260,9 +269,6 @@ export function MarketplaceDashboard({
   }, [gameSlug, bestSellersData, searchData]);
 
   const [magicOffset, setMagicOffset] = useState(0);
-  const espansioniItems = nuoveEspansioni?.length
-    ? nuoveEspansioni
-    : NUOVE_ESPANSIONI_PLACEHOLDER;
 
   useEffect(() => {
     if (magicHits.length < 4) return;
@@ -293,7 +299,7 @@ export function MarketplaceDashboard({
           : "bg-[#F1F5F9] bg-[linear-gradient(rgba(241,245,249,0.8),rgba(241,245,249,0.8)),url('/brx-sfondo-logo-tile.svg')] bg-[length:100%_100%,162px_162px] bg-repeat"
       }`}
     >
-      <div className="container-content space-y-4 pb-5 pt-2 md:space-y-8 md:pb-10 md:pt-6">
+      <div className="container-content space-y-4 pb-5 pt-0 md:space-y-8 md:pb-10 md:pt-3">
         {/* MOBILE: Layout semplificato - 1 carta principale + 5 sotto */}
         <div className="block lg:hidden">
           {/* Titolo sezione Best Sellers - Mobile */}
@@ -487,31 +493,11 @@ export function MarketplaceDashboard({
           </div>
         </div>
 
-        {/* Row 2: NUOVE ESPANSIONI (carousel) | SEMPLICE. SICURO. TUO. */}
-        <div className="hidden lg:grid lg:grid-cols-2 lg:gap-6">
-          <div className="flex items-center px-6 py-3">
-            <div className="flex flex-col">
-              <h2 className="text-3xl font-bold uppercase tracking-wider text-gray-800 font-display">{t('marketplace.newExpansions')}</h2>
-              <div className="mt-2 h-1 w-20 rounded-full bg-gradient-to-r from-[#ff7300] to-[#ff9900]" />
-            </div>
-          </div>
-          <div className="flex items-center px-6 py-3">
-            <div className="flex flex-col">
-              <h2 className="text-3xl font-bold uppercase tracking-wider text-gray-800 font-display">{t('simpleSecure.title')}</h2>
-              <div className="mt-2 h-1 w-20 rounded-full bg-gradient-to-r from-[#ff7300] to-[#ff9900]" />
-            </div>
-          </div>
-        </div>
+        {showFeaturesBelowTopRow && <FeaturesSection useUnifiedBackground={useUnifiedBackground} />}
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-          <NuoveEspansioniCarousel items={espansioniItems} />
+        <TorneiMiniSection />
 
-          <div className="flex flex-col lg:min-h-[380px] lg:justify-center lg:px-6">
-            <div className="mx-auto w-full max-w-[560px]">
-              <SimpleSecureTuoSection hideTitleOnDesktop noCard />
-            </div>
-          </div>
-        </div>
+        <NuoveEspansioniSection items={NUOVE_ESPANSIONI_PLACEHOLDER} />
       </div>
     </div>
   );

@@ -2056,19 +2056,18 @@ export const pt: Record<MessageKey, string> = {
   'marketplace.featuredAuctions': 'Leilões em destaque',
   'marketplace.auctionCreatedByYou': 'Criada por ti',
   'marketplace.seeAllAuctions': 'ver todos os leilões →',
-  'marketplace.newExpansions': 'novas expansões',
   'marketplace.openDetail': 'Abrir detalhe {name}',
   'marketplace.tradeCard': 'Trocar {name}',
 
-  'simpleSecure.title': 'SIMPLES. SEGURO. SEU.',
-  'simpleSecure.b1':
-    'Sincronize o inventário num clique. Importação automática de stock e reprints.',
-  'simpleSecure.b2':
-    'Stock e preços da sua conta. Atualizações automáticas para o inventário.',
-  'simpleSecure.b3':
-    'As suas fotos mantêm-se. Sincronizamos apenas stock e preços.',
-  'simpleSecure.b4':
-    'Controlo total. Revogue tokens e webhooks a qualquer momento.',
+  'home.tornei.eyebrow': 'Torneios ao vivo',
+  'home.tornei.title': 'Jogue ao vivo, ganhe mais',
+  'home.tornei.description':
+    'Participe de torneios semanais com verificação por webcam, pareamento em tempo real e classificações ao vivo. Desafie a comunidade direto de casa.',
+  'home.tornei.cta': 'Ver torneios ao vivo',
+
+  'home.nuoveEspansioni.title': 'Novas expansões',
+  'home.nuoveEspansioni.subtitle': 'Próximos lançamentos de Magic',
+  'home.nuoveEspansioni.releaseDate': 'Lançamento: {date}',
 
   'search.loading': 'A carregar…',
   'set.other': 'Outro',

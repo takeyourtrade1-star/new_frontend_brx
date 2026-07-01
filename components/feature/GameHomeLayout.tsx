@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { GameHeroSection } from '@/components/feature/GameHeroSection';
-import { FeaturesSection } from '@/components/feature/FeaturesSection';
 import { MarketplaceDashboard } from '@/components/feature/MarketplaceDashboard';
 import { CategoriesGrid } from '@/components/feature/CategoriesGrid';
 import { EbartexProductsSection } from '@/components/feature/EbartexProductsSection';
@@ -23,10 +22,8 @@ export function GameHomeLayout({ gameSlug }: GameHomeLayoutProps) {
         <GameHeroSection gameSlug={gameSlug} />
       </section>
 
-      <div className="relative z-10 -mt-[54vh] sm:-mt-[56vh] md:-mt-[58vh] lg:-mt-[62vh]">
-        <FeaturesSection useUnifiedBackground />
-
-        <MarketplaceDashboard gameSlug={gameSlug} useUnifiedBackground />
+      <div className="relative z-10 -mt-[58vh] sm:-mt-[60vh] md:-mt-[62vh] lg:-mt-[66vh]">
+        <MarketplaceDashboard gameSlug={gameSlug} useUnifiedBackground showFeaturesBelowTopRow />
 
         <CategoriesGrid useUnifiedBackground />
 

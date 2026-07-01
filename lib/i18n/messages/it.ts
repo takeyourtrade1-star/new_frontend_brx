@@ -2061,19 +2061,18 @@ export const it: Record<MessageKey, string> = {
   'marketplace.featuredAuctions': 'Aste in evidenza',
   'marketplace.auctionCreatedByYou': 'Creata da te',
   'marketplace.seeAllAuctions': 'vedi tutte le aste →',
-  'marketplace.newExpansions': 'nuove espansioni',
   'marketplace.openDetail': 'Apri dettaglio {name}',
   'marketplace.tradeCard': 'Scambia {name}',
 
-  'simpleSecure.title': 'SEMPLICE. SICURO. TUO.',
-  'simpleSecure.b1':
-    'Sincronizza il tuo inventario in un click. Importazione automatica di stock e ristampe, senza configurazioni complesse.',
-  'simpleSecure.b2':
-    'Stock e prezzi dal tuo account. Aggiornamento automatico e configurazione immediata per il tuo inventario.',
-  'simpleSecure.b3':
-    'Le tue foto restano esattamente come sono. Sincronizziamo esclusivamente stock e listini, così i tuoi contenuti multimediali rimangono personalizzati e protetti.',
-  'simpleSecure.b4':
-    'Pieno controllo sui tuoi accessi. Puoi revocare token e webhook in qualsiasi momento, direttamente da questa pagina.',
+  'home.tornei.eyebrow': 'Tornei live',
+  'home.tornei.title': 'Gioca dal vivo, vinci di più',
+  'home.tornei.description':
+    'Iscriviti ai tornei settimanali con verifica webcam, pairing in tempo reale e classifiche aggiornate. Sfida la community e scala il tabellone da casa tua.',
+  'home.tornei.cta': 'Vai ai tornei live',
+
+  'home.nuoveEspansioni.title': 'Nuove espansioni',
+  'home.nuoveEspansioni.subtitle': 'Le prossime uscite Magic',
+  'home.nuoveEspansioni.releaseDate': 'Uscita: {date}',
 
   'search.loading': 'Caricamento…',
   'set.other': 'Altro',
