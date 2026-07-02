@@ -35,6 +35,14 @@ export const en = {
   'nav.cameraMatchQrSubtitle':
     'Scan this QR code with your phone camera to open CameraMatch on your device.',
   'nav.cameraMatchQrHint': 'CameraMatch uses your phone camera — continue on mobile after scanning.',
+  'push.testButton': 'Test push notifications',
+  'push.scheduled': 'Notification arriving in 60 seconds — you can put the app in the background.',
+  'push.sent': 'Notification sent!',
+  'push.errorUnsupported':
+    'Push notifications not supported here. On iPhone, install the app first: Share → Add to Home Screen.',
+  'push.errorPermission': 'Notification permission denied — enable it in your settings.',
+  'push.errorNoSw': 'Service worker not active: requires the production build or the installed app.',
+  'push.errorGeneric': 'Failed to send the test notification.',
   'scanner.badgeTurbo': 'Turbo',
   'scanner.badgeLoading': 'Loading…',
   'scanner.badgeStandard': '📡 Standard',

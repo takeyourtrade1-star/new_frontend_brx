@@ -27,6 +27,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { TournamentsPortalLink } from './TournamentsPortalButton';
+import { PushTestButton } from './PushTestButton';
 import { BetaBadge } from '@/components/ui/BetaBadge';
 
 const GAME_HOME_PATH: Record<GameSlug, string> = {
@@ -453,6 +454,9 @@ export function HamburgerMenu() {
               <HelpCircle className="h-6 w-6 shrink-0 text-gray-400" strokeWidth={1.5} aria-hidden />
               {t('common.help')}
             </Link>
+
+            {/* Prova notifiche push (PWA) */}
+            <PushTestButton className={navLinkClass} />
 
             {/* Lingua */}
             <DrawerLanguage

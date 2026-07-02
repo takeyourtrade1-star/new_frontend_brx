@@ -35,6 +35,14 @@ export const pt: Record<MessageKey, string> = {
     'Digitalize este código QR com a câmara do telemóvel para abrir o CameraMatch no dispositivo.',
   'nav.cameraMatchQrHint':
     'O CameraMatch usa a câmara do telemóvel — continue no smartphone após digitalizar.',
+  'push.testButton': 'Testar notificações push',
+  'push.scheduled': 'Notificação a chegar em 60 segundos — pode deixar a app em segundo plano.',
+  'push.sent': 'Notificação enviada!',
+  'push.errorUnsupported':
+    'Notificações push não suportadas aqui. No iPhone, instale primeiro a app: Partilhar → Adicionar ao ecrã principal.',
+  'push.errorPermission': 'Permissão de notificações negada — ative-a nas definições.',
+  'push.errorNoSw': 'Service worker inativo: requer a build de produção ou a app instalada.',
+  'push.errorGeneric': 'Falha ao enviar a notificação de teste.',
   'scanner.badgeTurbo': 'Turbo',
   'scanner.badgeLoading': 'A carregar…',
   'scanner.badgeStandard': '📡 Standard',

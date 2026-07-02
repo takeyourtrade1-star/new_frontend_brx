@@ -35,6 +35,14 @@ export const de: Record<MessageKey, string> = {
     'Scanne diesen QR-Code mit der Handykamera, um CameraMatch auf dem Gerät zu öffnen.',
   'nav.cameraMatchQrHint':
     'CameraMatch nutzt die Handykamera — nach dem Scannen auf dem Smartphone weitermachen.',
+  'push.testButton': 'Push-Benachrichtigungen testen',
+  'push.scheduled': 'Benachrichtigung kommt in 60 Sekunden — die App darf in den Hintergrund.',
+  'push.sent': 'Benachrichtigung gesendet!',
+  'push.errorUnsupported':
+    'Push-Benachrichtigungen werden hier nicht unterstützt. Auf dem iPhone zuerst die App installieren: Teilen → Zum Home-Bildschirm.',
+  'push.errorPermission': 'Benachrichtigungsberechtigung verweigert — in den Einstellungen aktivieren.',
+  'push.errorNoSw': 'Service Worker nicht aktiv: Produktions-Build oder installierte App erforderlich.',
+  'push.errorGeneric': 'Senden der Testbenachrichtigung fehlgeschlagen.',
   'scanner.badgeTurbo': 'Turbo',
   'scanner.badgeLoading': 'Wird geladen…',
   'scanner.badgeStandard': '📡 Standard',
