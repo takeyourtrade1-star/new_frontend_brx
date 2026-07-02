@@ -25,16 +25,15 @@ export function AuctionCreatePhoneQrModal({ open, qrUrl, onClose }: AuctionCreat
         <h2 id="phone-upload-qr-title" className="text-lg font-bold uppercase tracking-wide text-[#1D3160]">
           {t('auctions.createPhotoFromPhoneModalTitle')}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-gray-700">
+        <p className="mt-3 text-sm md:text-base font-bold leading-relaxed text-gray-900 text-center">
           {t('auctions.createPhotoFromPhoneModalBody')}
         </p>
-        <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
+        <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700 text-center">
           {t('auctions.createPhotoFromPhoneModalCloseHint')}
         </p>
         <div className="mt-4 flex justify-center rounded-xl border border-gray-100 bg-white p-4">
           <QRCodeSVG value={qrUrl} size={200} level="M" />
         </div>
-        <p className="mt-2 break-all text-center text-[11px] text-gray-500">{qrUrl}</p>
         <button
           type="button"
           onClick={onClose}

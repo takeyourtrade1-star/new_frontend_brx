@@ -120,7 +120,6 @@ export function ReceivedProposalDetail({
   const offeredValue = offeredCards.reduce((s, c) => s + c.value, 0) + addMoney;
   const requestedValue = requestedCards.reduce((s, c) => s + c.value, 0) + reqMoney;
   const balance = tradeBalance({ offeredValue, requestedValue, isPro: proposal.fromUser.isPro });
-  const gap = requestedValue - offeredValue;
 
   // Soglia di valore: se una carta nello scambio supera HIGH_VALUE_THRESHOLD,
   // l'utente sceglie tra scambio diretto 1:1 o intermediazione Ebartex.
@@ -165,11 +164,6 @@ export function ReceivedProposalDetail({
     setSelectedOfferedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const toggleRequested = (id: string) =>
     setSelectedRequestedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-
-  const quickCompensate = () => {
-    if (gap > 0) setAddMoney((m) => m + gap);
-    else if (gap < 0) setReqMoney((m) => m - gap);
-  };
 
   const exitCounter = () => {
     setSelectedRequestedIds(initialRequestedIds);
@@ -218,7 +212,9 @@ export function ReceivedProposalDetail({
           ) : (
             <>
               Hai accettato la proposta di <span className="font-bold">{proposal.fromUser.name}</span> con
-              scambio diretto 1:1. Ti contatteremo per finalizzare la spedizione.
+              scambio diretto 1:1: vi spedite le carte in autonomia, sotto la vostra responsabilità.
+              Gli eventuali crediti restano congelati da Ebartex finché entrambi non confermate
+              l&apos;arrivo delle carte. Ti contatteremo per finalizzare la spedizione.
             </>
           )}
         </p>
@@ -390,8 +386,6 @@ export function ReceivedProposalDetail({
         onReqMoneyChange={setReqMoney}
         offeredValue={offeredValue}
         requestedValue={requestedValue}
-        balance={balance}
-        onQuickCompensate={quickCompensate}
         editable={counterMode}
         inventoriesSectionRef={inventoriesRef}
       />
@@ -450,8 +444,9 @@ export function ReceivedProposalDetail({
                   Scambio diretto 1:1
                 </span>
                 <span className="text-xs leading-relaxed text-gray-500">
-                  Tu e {proposal.fromUser.name} vi spedite le carte direttamente. Veloce, senza
-                  intermediari.
+                  Tu e {proposal.fromUser.name} vi spedite le carte direttamente. Veloce e senza
+                  intermediari: ogni utente è responsabile del proprio scambio, e Ebartex congela gli
+                  eventuali crediti finché entrambi non confermate l&apos;arrivo delle carte.
                 </span>
                 <span className="mt-1 flex items-start gap-1.5 rounded-lg bg-sky-50 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-sky-700 ring-1 ring-sky-200/70">
                   <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -497,8 +492,8 @@ export function ReceivedProposalDetail({
                   Ebartex Guarantee
                 </span>
                 <span className="text-xs leading-relaxed text-gray-500">
-                  Spedite entrambi le carte a Ebartex, che verifica qualità e condizioni prima di
-                  completare lo scambio. Massima sicurezza.
+                  Spedite entrambi le carte a Ebartex: le verifichiamo una a una e completiamo lo
+                  scambio solo quando è tutto perfetto. Massima sicurezza, zero pensieri.
                 </span>
               </button>
             </div>

@@ -1,13 +1,13 @@
 'use client';
 
 /**
- * Blocco scambio riutilizzabile — un'unica "scheda" coerente e gerarchica che
- * raccoglie tutto ciò che prima era sparso in più card separate:
+ * Blocco scambio riutilizzabile — un'unica "scheda" coerente e gerarchica:
  *
- *   1. barra equilibrio  → bilancia animata + stato + "Compensa"
- *   2. tavolo            → "Chiedi" (sopra) / "Offri" (sotto) con totali
- *   3. crediti           → differenza da aggiungere / richiedere
- *   4. inventari         → il mio | dell'altro utente (due colonne)
+ *   1. tavolo    → "Chiedi" (sopra) / "Offri" (sotto) con totali
+ *   2. crediti   → differenza da aggiungere / richiedere (opzionale, vedi
+ *                  `showCredits`: nel flusso proposta i crediti vivono in un
+ *                  passaggio dedicato, qui restano solo per la controproposta)
+ *   3. inventari → il mio | dell'altro utente (due colonne)
  *
  * Usato sia da TradeProposalPage (proposta/controproposta) sia da
  * ReceivedProposalDetail (proposta ricevuta). Lo stato di business (carte
@@ -16,12 +16,10 @@
  */
 
 import { useMemo, useState, type Ref } from 'react';
-import { Check, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { cn } from '@/lib/utils';
-import type { TradeBalanceResult } from '@/lib/scambi/card-mock-value';
 import {
-  AnimatedBalanceScale,
   filterTradeCards,
   formatTradeEuro,
   InventoryPanel,
@@ -55,19 +53,20 @@ export interface TradeComposerProps {
   onAddMoneyChange: (v: number) => void;
   onReqMoneyChange: (v: number) => void;
 
-  /** Valori e regola di equità (calcolati dal genitore). */
+  /** Valori (calcolati dal genitore). */
   offeredValue: number;
   requestedValue: number;
-  balance: TradeBalanceResult;
-  onQuickCompensate: () => void;
 
   /** Carta richiesta "base" non rimovibile (es. quella scelta dal venditore). */
   lockedRequestedId?: string | null;
   /**
    * In sola lettura (default true = modificabile). Quando false mostra solo
-   * il tavolo: niente inventari, crediti, "Compensa" o tasti di rimozione.
+   * il tavolo: niente inventari, crediti o tasti di rimozione.
    */
   editable?: boolean;
+  /** Mostra i campi crediti sopra gli inventari (default true). Il flusso
+   *  proposta li nasconde: i crediti si scelgono in un passaggio dedicato. */
+  showCredits?: boolean;
   /** Ref opzionale sulla sezione inventari (per scroll quando si apre). */
   inventoriesSectionRef?: Ref<HTMLElement>;
 }
@@ -235,10 +234,9 @@ export function TradeComposer({
   onReqMoneyChange,
   offeredValue,
   requestedValue,
-  balance,
-  onQuickCompensate,
   lockedRequestedId,
   editable = true,
+  showCredits = true,
   inventoriesSectionRef,
 }: TradeComposerProps) {
   const [myFilters, setMyFilters] = useState<InventoryFiltersState>(EMPTY_FILTERS);
@@ -247,52 +245,10 @@ export function TradeComposer({
   const filteredMy = useMemo(() => filterTradeCards(myInventory, myFilters), [myInventory, myFilters]);
   const filteredOther = useMemo(() => filterTradeCards(otherInventory, otherFilters), [otherInventory, otherFilters]);
 
-  const gap = requestedValue - offeredValue;
-
   return (
     <div className="flex flex-col gap-3">
-      {/* Bilancia appoggiata sul tavolo + tavolo */}
       <div className="flex flex-col items-center">
-        {/* 1. Bilancia appoggiata: senza sfondo, posa sul bordo del tavolo.
-            La frase di stato compare solo all'hover. */}
-        <div className="group/balance relative z-20 -mb-1.5 flex w-fit flex-col items-center gap-1">
-          {/* Frase di stato — popup all'hover */}
-          <div className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 w-max max-w-[20rem] -translate-x-1/2 translate-y-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-center text-[12px] leading-snug opacity-0 shadow-lg transition-all duration-200 group-hover/balance:translate-y-0 group-hover/balance:opacity-100">
-            {balance.balanced ? (
-              <span className="flex items-center justify-center gap-1 font-bold text-emerald-600">
-                <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> Scambio equo
-              </span>
-            ) : (
-              <span className="text-gray-700">
-                <span className="font-bold text-[#1D3160]">La bilancia pende un po&apos; troppo da una parte.</span>{' '}
-                {offeredValue === 0
-                  ? "Aggiungi qualcos'altro o richiedi."
-                  : `Mancano ${formatTradeEuro(Math.abs(gap))} per pareggiare · scarto ${Math.round(
-                      balance.diffPct * 100,
-                    )}% (max ${Math.round(balance.threshold * 100)}%).`}
-              </span>
-            )}
-            <span className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 border-b border-r border-gray-200 bg-white" aria-hidden />
-          </div>
-
-          {editable && !balance.balanced && (
-            <button
-              type="button"
-              onClick={onQuickCompensate}
-              className="rounded-full bg-[#1D3160] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-[#16264d] active:scale-95"
-            >
-              Compensa
-            </button>
-          )}
-
-          <AnimatedBalanceScale
-            offeredValue={offeredValue}
-            requestedValue={requestedValue}
-            className="scale-110 drop-shadow-[0_5px_5px_rgba(0,0,0,0.28)]"
-          />
-        </div>
-
-        {/* 2. Tavolo da gioco: sponda in legno stondata attorno al panno incassato */}
+        {/* 1. Tavolo da gioco: sponda in legno stondata attorno al panno incassato */}
         <div className="relative isolate w-full overflow-hidden rounded-[20px] p-2.5 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.5)] sm:p-3" style={WOOD_STYLE}>
         {/* venatura del legno */}
         <span
@@ -355,20 +311,22 @@ export function TradeComposer({
       </div>
       </div>
 
-      {/* 3. Crediti + inventari (solo in controproposta) */}
+      {/* 2. Crediti (opzionali) + inventari */}
       {editable && (
         <section
           ref={inventoriesSectionRef}
           className="scroll-mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.06),0_14px_34px_-18px_rgba(29,49,96,0.32)]"
         >
-          {/* Crediti di compensazione */}
-          <div className="flex flex-col gap-2 bg-[#FAFAF7] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-            <MoneyField value={addMoney} onChange={onAddMoneyChange} label="Aggiungi differenza" />
-            <MoneyField value={reqMoney} onChange={onReqMoneyChange} label="Richiedi differenza" />
-          </div>
+          {/* Crediti di compensazione (solo dove richiesto, es. controproposta) */}
+          {showCredits && (
+            <div className="flex flex-col gap-2 bg-[#FAFAF7] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+              <MoneyField value={addMoney} onChange={onAddMoneyChange} label="Aggiungi differenza" />
+              <MoneyField value={reqMoney} onChange={onReqMoneyChange} label="Richiedi differenza" />
+            </div>
+          )}
 
           {/* Inventari: il mio (TU) | dell'altro utente */}
-          <div className="grid grid-cols-1 border-t border-gray-200 sm:grid-cols-2">
+          <div className={cn('grid grid-cols-1 sm:grid-cols-2', showCredits && 'border-t border-gray-200')}>
             <div className="border-b-2 border-[#FF7300]/30 sm:border-b-0 sm:border-r-2">
               <InventoryPanel
                 embedded

@@ -11,7 +11,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Menu, X, ChevronDown, LogOut, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, ShoppingCart, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, ScanLine, QrCode } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, UserCircle, MessageSquare, Wallet, Package, ShoppingBag, ShoppingCart, Heart, RefreshCw, Search, Users, Scale, FileText, HelpCircle, Newspaper, ScanLine, QrCode } from 'lucide-react';
 import { useCartStore } from '@/lib/stores/cart-store';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme-context';
@@ -441,6 +441,12 @@ export function HamburgerMenu() {
                 <span className="absolute left-0.5 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow" />
               </button>
             </div>
+
+            {/* Blog / annunci */}
+            <Link href="/blog" onClick={() => setOpen(false)} className={navLinkClass}>
+              <Newspaper className="h-6 w-6 shrink-0 text-gray-400" strokeWidth={1.5} aria-hidden />
+              {t('nav.blog')}
+            </Link>
 
             {/* Aiuto */}
             <Link href="/aiuto" onClick={() => setOpen(false)} className={navLinkClass}>

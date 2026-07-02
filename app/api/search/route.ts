@@ -93,6 +93,9 @@ function buildFilter(game: string, set: string, categoryId: number | null, categ
 
 function buildSort(sortBy: string): string[] {
   switch (sortBy) {
+    case 'relevance':
+      // Nessun sort: Meilisearch usa il ranking di rilevanza, come la barra principale.
+      return [];
     case 'name_asc':
       return ['name:asc'];
     case 'name_desc':
@@ -149,7 +152,7 @@ export async function GET(request: NextRequest) {
       attributesToRetrieve: [...SEARCH_ATTRIBUTES_TO_RETRIEVE],
     };
     if (filter) body.filter = filter;
-    if (includeSort) body.sort = sort;
+    if (includeSort && sort.length > 0) body.sort = sort;
     return fetchMeiliWithTimeout(url, { method: 'POST', headers, body: JSON.stringify(body) });
   };
 

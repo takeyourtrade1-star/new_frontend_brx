@@ -11,7 +11,7 @@ const ScannerModal = dynamic(
   { ssr: false, loading: () => null }
 );
 import type { SearchHit } from '@/app/api/search/route';
-import { useSearchCards } from '@/lib/hooks/use-search';
+import { useInfiniteSearchCards } from '@/lib/hooks/use-search';
 import {
   auctionGameToSearchParam,
   moneyInputStringFromNumber,
@@ -30,6 +30,8 @@ import {
 import { cn } from '@/lib/utils';
 import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';
 import { AuctionCardImagePeek } from '@/components/feature/aste/create/AuctionCardImagePeek';
+import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
+import { SetIconBadge } from '@/components/ui/SetIconBadge';
 
 function hitToSelection(hit: SearchHit): AuctionCreateCardSelection {
   return {
@@ -160,16 +162,24 @@ export function AuctionCreateCardPicker({
 
   const apiGame = useMemo(() => auctionGameToSearchParam(searchGame), [searchGame]);
 
-  // Ricerca a catalogo via React Query (regola §2) invece di useEffect+fetch+useState.
+  // Stessa logica della barra di ricerca principale: ranking di rilevanza
+  // Meilisearch (sort: relevance) e paginazione "carica altri" fino a
+  // esaurire i risultati, invece del cap fisso a 12.
   const {
     data: searchData,
     isLoading: loadingSearch,
     error: searchErr,
-  } = useSearchCards(
-    { q: debounced || undefined, game: apiGame || undefined, limit: 12, page: 1 },
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteSearchCards(
+    { q: debounced || undefined, game: apiGame || undefined, limit: 20, sort: 'relevance' },
     { enabled: Boolean(debounced) },
   );
-  const hits = searchData?.hits ?? [];
+  const hits = useMemo(
+    () => searchData?.pages.flatMap((p) => p.hits) ?? [],
+    [searchData],
+  );
   const searchError = searchErr
     ? (searchErr instanceof Error ? searchErr.message : t('auctions.createSearchError'))
     : null;
@@ -306,12 +316,23 @@ export function AuctionCreateCardPicker({
                       active ? 'bg-orange-50/90 ring-2 ring-inset ring-[#FF7300]' : 'hover:bg-gray-50'
                     )}
                   >
-                    <AuctionCardImagePeek
-                      imageUrl={imgUrl}
-                      name={hit.name}
-                      thumbClassName="h-14 w-11"
-                      sizes="56px"
-                    />
+                    {/* Trigger anteprima + logo set: identici alla barra di ricerca globale */}
+                    <div className="flex shrink-0 items-center gap-2 self-center">
+                      <CardImageCameraPeek
+                        imageUrl={imgUrl}
+                        name={hit.name}
+                        variant="thumb"
+                        previewSide="left"
+                        closeModalLabelKey="auctions.createImagePreviewClose"
+                      />
+                      <SetIconBadge
+                        setIconUri={hit.set_icon_uri}
+                        setCode={hit.set_code}
+                        setName={hit.set_name}
+                        gameSlug={hit.game_slug}
+                        imageClassName="h-8 w-8 object-contain"
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={() => handleSelect(sel)}
@@ -336,6 +357,19 @@ export function AuctionCreateCardPicker({
                 </li>
               );
             })}
+            {hasNextPage && (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="flex w-full items-center justify-center gap-2 px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-[#1D3160] transition hover:bg-gray-50 disabled:opacity-60"
+                >
+                  {isFetchingNextPage && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+                  {t('auctions.createSearchLoadMore')}
+                </button>
+              </li>
+            )}
           </ul>
         )}
       </section>
@@ -397,9 +431,23 @@ export function AuctionCreateCardPicker({
         )}
 
         {loadingCollection && (
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            {t('auctions.createCollectionLoading')}
+          // Skeleton ad altezza fissa (≈ lista finale): evita che la pagina
+          // cresca/si accorci durante il caricamento facendo comparire e
+          // sparire la scrollbar del browser.
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white" role="status">
+            <p className="flex items-center gap-2 border-b border-gray-100 px-3 py-2.5 text-sm text-gray-500">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              {t('auctions.createCollectionLoading')}
+            </p>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3 border-b border-gray-50 px-3 py-2.5 last:border-b-0">
+                <div className="h-12 w-10 shrink-0 animate-pulse rounded-md bg-gray-100" />
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <div className="h-3 w-2/5 animate-pulse rounded bg-gray-100" />
+                  <div className="h-2.5 w-1/4 animate-pulse rounded bg-gray-100" />
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

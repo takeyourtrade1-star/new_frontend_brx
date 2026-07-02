@@ -29,12 +29,17 @@ export const CARD_IMAGE_CAMERA_TRIGGER_CLASS =
   'relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/90 bg-gradient-to-b from-white via-[#f6f7fa] to-[#e8ebf0] shadow-[0_1px_2px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.95)] transition-[box-shadow,border-color,transform,background] duration-200 ease-out hover:border-[#FF7300]/45 hover:from-orange-50/95 hover:via-white hover:to-[#f2f4f8] hover:shadow-[0_2px_10px_rgba(255,115,0,0.14),0_0_0_3px_rgba(255,115,0,0.1)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7300]/40 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-white/90 disabled:hover:from-white disabled:hover:via-[#f6f7fa] disabled:hover:to-[#e8ebf0] disabled:hover:shadow-[0_1px_2px_rgba(15,23,42,0.06)] disabled:active:scale-100';
 
 /**
- * Trigger con icona fotocamera (senza miniatura). Hover desktop → anteprima a sinistra; tap → modale.
+ * Trigger con icona fotocamera. Hover desktop → anteprima a lato; tap → modale.
+ * `variant`:
+ *  - 'button' (default): bottone rotondo in vetro con sola icona;
+ *  - 'thumb': miniatura sfocata con icona sovrapposta, identica al trigger
+ *    della barra di ricerca globale (CardHit).
  */
 export function CardImageCameraPeek({
   imageUrl,
   name,
   className,
+  variant = 'button',
   previewSide = 'left',
   ariaLabelKey = 'search.previewCardImage',
   ariaLabel,
@@ -48,6 +53,7 @@ export function CardImageCameraPeek({
   imageUrl: string | null;
   name: string;
   className?: string;
+  variant?: 'button' | 'thumb';
   previewSide?: 'left' | 'right';
   ariaLabelKey?: MessageKey;
   /** Se impostato, ha priorità su ariaLabelKey (es. messaggi con {name}). */
@@ -272,8 +278,42 @@ export function CardImageCameraPeek({
       document.body
     );
 
-  return (
-    <>
+  const trigger =
+    variant === 'thumb' ? (
+      <button
+        type="button"
+        disabled={!imageUrl}
+        className={cn(
+          'group/camera relative h-11 w-8 shrink-0 overflow-hidden rounded-lg transition-all hover:ring-2 hover:ring-orange-400 disabled:pointer-events-none',
+          className
+        )}
+        aria-label={triggerAriaLabel}
+        onClick={handleClick}
+        onMouseEnter={openHoverPreview}
+        onMouseLeave={scheduleHide}
+      >
+        {imageUrl ? (
+          <>
+            <Image
+              src={imageUrl}
+              alt=""
+              fill
+              sizes="44px"
+              className="scale-110 object-cover blur-[2px] transition-all duration-200 group-hover/camera:blur-[1px]"
+              unoptimized
+            />
+            <span className="absolute inset-0 bg-black/30 transition-colors group-hover/camera:bg-black/20" aria-hidden />
+            <span className="absolute inset-0 flex items-center justify-center">
+              <Camera className="h-4 w-4 text-white drop-shadow-md" aria-hidden />
+            </span>
+          </>
+        ) : (
+          <span className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
+            <Camera className="h-4 w-4" aria-hidden />
+          </span>
+        )}
+      </button>
+    ) : (
       <button
         type="button"
         disabled={!imageUrl}
@@ -296,6 +336,11 @@ export function CardImageCameraPeek({
           aria-hidden
         />
       </button>
+    );
+
+  return (
+    <>
+      {trigger}
       {hoverPortal}
       {enableActions ? actionModalPortal : modalPortal}
     </>

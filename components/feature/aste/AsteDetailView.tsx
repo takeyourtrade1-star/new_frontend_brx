@@ -281,8 +281,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     sameUserId(detail?.highestBidderId, currentUserId);
   const fmtEur = (n: number) => formatAuctionEur(n);
   const antiSnipeLabel =
-    detail != null && detail.antiSniperEnabled && detail.antiSniperMinutes != null
-      ? t('auctions.createAntiSniperMinutes', { minutes: String(detail.antiSniperMinutes) })
+    detail != null && detail.antiSnipeEnabled && detail.antiSnipeMinutes != null
+      ? t('auctions.createAntiSnipeMinutes', { minutes: String(detail.antiSnipeMinutes) })
       : t('auctions.detailAntiSnipeOff');
   const descriptionText =
     detail?.description?.trim() || t('auctions.detailDescriptionEmpty');

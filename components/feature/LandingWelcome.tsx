@@ -10,14 +10,14 @@ import {
   CheckCircle2, ArrowLeft, BellRing, Users,
 } from 'lucide-react';
 import { getCdnImageUrl } from '@/lib/config';
+import { TOURNAMENTS_PORTAL_LINK_PROPS } from '@/lib/config/tournaments';
 import { useGame } from '@/lib/contexts/GameContext';
 import type { GameSlug } from '@/lib/contexts/GameContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
 import { useTimeouts } from '@/lib/hooks/use-timeout-fn';
 import { SignedAlteredShowcase } from './SignedAlteredShowcase';
-import { motion, AnimatePresence } from 'framer-motion';
-import { LandingHeroCardFan } from '@/components/home/LandingHeroCardFan';
+import { CardFoilOverlay } from './product/detail/CardFoilOverlay';
 import { LandingBackgroundVideo } from '@/components/feature/LandingBackgroundVideo';
 import { LANDING_ROTATION_MS, LANDING_ROTATION_COLORS } from '@/components/home/landingMotion';
 
@@ -163,255 +163,112 @@ const BOUTIQUE_CATEGORIES = [
 ];
 
 /* ═══════════════════════════════════════════════════════════
-   ROTATING TAGLINE — sub-claim che ruota con animazione
+   HERO TAGLINE — punti sincronizzati col ventaglio di carte:
+   stesso ordine (Vendi, Aste, Scambi, Tornei, BRX), stessa palette
+   e stesso indice attivo. Hover/focus su un punto porta in primo
+   piano la carta corrispondente; click naviga alla feature.
    ═══════════════════════════════════════════════════════════ */
 
-const ROTATE_KEYS = [
-  'landing.hero.tagline.rotate1',
-  'landing.hero.tagline.rotate2',
-  'landing.hero.tagline.rotate3',
-  'landing.hero.tagline.rotate4',
-] as const;
+/** Rotte dei punti, nello stesso ordine di LANDING_ROTATION_COLORS. */
+const HERO_POINT_ROUTES: { href: string; external?: boolean }[] = [
+  { href: '/vendi' },
+  { href: '/aste' },
+  { href: '/scambi' },
+  { href: TOURNAMENTS_PORTAL_LINK_PROPS.href, external: true },
+  { href: '/brx-express' },
+];
 
-/** Lettere in entrata/uscita con flip 3D scaglionato lettera per lettera (orchestrazione via variants). */
-const TAGLINE_CONTAINER_VARIANTS = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.018, delayChildren: 0.02 } },
-  exit: { transition: { staggerChildren: 0.01, staggerDirection: -1 } },
-};
-
-const TAGLINE_LETTER_VARIANTS = {
-  hidden: { opacity: 0, y: 8, rotateX: -80, filter: 'blur(3px)' },
-  show: {
-    opacity: 1,
-    y: 0,
-    rotateX: 0,
-    filter: 'blur(0px)',
-    transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const },
-  },
-  exit: {
-    opacity: 0,
-    y: -8,
-    rotateX: 80,
-    filter: 'blur(3px)',
-    transition: { duration: 0.18, ease: [0.4, 0, 1, 1] as const },
-  },
-};
-
-/** Colore finale + glow di riposo + "flare" (bagliore intenso al momento
- * dell'accensione) per ogni parola. Ogni lettera entra come brace incandescente
- * (HOT_CORE) e "raffredda" verso il colore finale → effetto fuoco/ember.
- * Palette condivisa con il ventaglio hero (LANDING_ROTATION_COLORS): stesso
- * ordine — Vendi, Aste, Scambi, Tornei, BRX — così la parola e la card attiva
- * si accendono sempre con lo stesso colore. */
-const HOT_CORE = '#FFF1CC'; // bianco-caldo della brace all'accensione
-
-const WORD_STYLES = LANDING_ROTATION_COLORS.map((c) => ({
-  color: c.hex,
-  light: c.light, // stessa tinta, più chiara — per la tagline abbinata
-  glow: c.glow,
-  flare: c.flare,
-  caret: c.hex,
-}));
-
-function DynamicTaglineHeader({
-  currentWordIdx,
-  setCurrentWordIdx,
-  paused,
+function HeroTaglinePoints({
+  active,
+  setActive,
+  setPaused,
 }: {
-  currentWordIdx: number;
-  setCurrentWordIdx: React.Dispatch<React.SetStateAction<number>>;
-  paused: boolean;
+  active: number;
+  setActive: (i: number) => void;
+  setPaused: (paused: boolean) => void;
 }) {
   const { t } = useTranslation();
 
-  const [currentText, setCurrentText] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  // Track the phrase index (0 or 1) for each delle 5 parole
-  const [phraseOffsets, setPhraseOffsets] = useState<number[]>([0, 0, 0, 0, 0]);
-
-  // Ordine allineato al ventaglio hero (Vendi, Aste, Scambi, Tornei, BRX) — stesso indice, stesso colore.
-  const words = useMemo(() => [
-    t('landing.hero.tagline.typewriter.1'), // Vendi
-    t('landing.hero.tagline.typewriter.3'), // Metti all'Asta — Aste
-    t('landing.hero.tagline.typewriter.2'), // Scambia — Scambi
-    t('landing.hero.tagline.typewriter.4'), // Gioca i tornei — Tornei
-    t('landing.hero.tagline.typewriter.5'), // Spedisci — BRX
-  ], [t]);
-
-  const subPhrases = useMemo(() => [
-    [
-      t('landing.hero.tagline.typewriter.1.phrase.1'),
-      t('landing.hero.tagline.typewriter.1.phrase.2')
-    ],
-    [
-      t('landing.hero.tagline.typewriter.3.phrase.1'),
-      t('landing.hero.tagline.typewriter.3.phrase.2')
-    ],
-    [
-      t('landing.hero.tagline.typewriter.2.phrase.1'),
-      t('landing.hero.tagline.typewriter.2.phrase.2')
-    ],
-    [
-      t('landing.hero.tagline.typewriter.4.phrase.1'),
-      t('landing.hero.tagline.typewriter.4.phrase.2')
-    ],
-    [
-      t('landing.hero.tagline.typewriter.5.phrase.1'),
-      t('landing.hero.tagline.typewriter.5.phrase.2')
-    ],
-  ], [t]);
-
-  // Se siamo in pausa (hover del mouse), forziamo la parola intera e resettiamo la cancellazione
-  useEffect(() => {
-    if (paused) {
-      const fullWord = words[currentWordIdx];
-      if (fullWord) {
-        setCurrentText(fullWord);
-        setIsDeleting(false);
-      }
-    }
-  }, [paused, currentWordIdx, words]);
-
-  // Timer for typewriter — il ciclo completo (scrittura + pausa + cancellazione) dura
-  // sempre esattamente LANDING_ROTATION_MS, qualunque sia la lunghezza della parola,
-  // così il cambio di parola resta a tempo con il ventaglio di carte nella hero.
-  useEffect(() => {
-    if (paused) return;
-
-    const fullWord = words[currentWordIdx];
-    if (!fullWord) return;
-
-    const wordLen = Math.max(fullWord.length, 1);
-    const typeMs = (LANDING_ROTATION_MS * 0.4) / wordLen;
-    const deleteMs = (LANDING_ROTATION_MS * 0.25) / wordLen;
-    const pauseMs = LANDING_ROTATION_MS * 0.35;
-    const speed = isDeleting ? deleteMs : typeMs;
-
-    if (!isDeleting && currentText === fullWord) {
-      const timeout = setTimeout(() => setIsDeleting(true), pauseMs);
-      return () => clearTimeout(timeout);
-    }
-
-    if (isDeleting && currentText === '') {
-      setIsDeleting(false);
-      setCurrentWordIdx((prev) => {
-        const nextIdx = (prev + 1) % words.length;
-        // Toggle the phrase offset for the word we just finished
-        setPhraseOffsets((prevOffsets) => {
-          const nextOffsets = [...prevOffsets];
-          nextOffsets[prev] = nextOffsets[prev] === 0 ? 1 : 0;
-          return nextOffsets;
-        });
-        return nextIdx;
-      });
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      setCurrentText((prev) => {
-        if (!isDeleting && !fullWord.startsWith(prev)) {
-          return fullWord.slice(0, 1);
-        }
-        return isDeleting ? prev.slice(0, -1) : fullWord.slice(0, prev.length + 1);
-      });
-    }, speed);
-
-    return () => clearTimeout(timeout);
-  }, [currentText, isDeleting, currentWordIdx, words, paused, setCurrentWordIdx]);
-
-  const activeStyle = WORD_STYLES[currentWordIdx] || WORD_STYLES[0];
-  const activePhrases = subPhrases[currentWordIdx] || subPhrases[0];
-  const subPhraseIdx = phraseOffsets[currentWordIdx] || 0;
-  const displayPhrase = activePhrases[subPhraseIdx];
-  const letters = useMemo(() => Array.from(displayPhrase || ''), [displayPhrase]);
+  // Riordinati per combaciare con la rotazione del ventaglio:
+  // point1=Vendi, point3=Aste, point2=Scambi, point4=Tornei, point5=BRX.
+  const points = [
+    t('landing.hero.static.point1'),
+    t('landing.hero.static.point3'),
+    t('landing.hero.static.point2'),
+    t('landing.hero.static.point4'),
+    t('landing.hero.static.point5'),
+  ];
 
   return (
-    <h1 className="text-center leading-tight sm:max-w-xl sm:text-left md:max-w-2xl flex flex-col py-1 sm:py-1.5 sm:pl-1">
-      {/* Element A: Typewriter Word */}
-      <span className="block text-xl font-extrabold uppercase tracking-tight text-white sm:text-2xl md:text-3xl lg:text-4xl min-h-[1.75em] sm:min-h-[1.5em] select-none text-center sm:text-left">
-        <span className="inline-flex flex-wrap justify-center sm:justify-start">
-          {currentText.split('').map((char, i) => (
-            <motion.span
-              key={i}
-              initial={{
-                opacity: 0,
-                y: 14,
-                scale: 0.72,
-                color: HOT_CORE,
-                filter: `blur(6px) drop-shadow(0 0 22px ${activeStyle.flare})`,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                scale: 1,
-                color: activeStyle.color,
-                filter: `blur(0px) drop-shadow(0 0 9px ${activeStyle.glow})`,
-              }}
-              className="inline-block"
-              style={{
-                whiteSpace: char === ' ' ? 'pre' : 'normal',
-                transformOrigin: 'center bottom',
-                willChange: 'transform, filter',
-              }}
-              transition={{
-                duration: 0.5,
-                ease: [0.16, 1, 0.3, 1],
-                color: { duration: 0.6, ease: 'easeOut' },
-                filter: { duration: 0.45, ease: 'easeOut' },
-              }}
-            >
-              {char}
-            </motion.span>
-          ))}
-        </span>
-        <span
-          className="animate-pulse ml-0.5 font-normal select-none"
-          style={{ color: activeStyle.caret, textShadow: `0 0 10px ${activeStyle.glow}, 0 0 20px ${activeStyle.flare}` }}
-        >
-          |
-        </span>
+    <div className="flex flex-col text-left py-1 sm:py-2 max-w-xl lg:max-w-2xl">
+      {/* Intro phrase */}
+      <span className="text-lg font-extrabold uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-white/95 to-white/70 sm:text-xl md:text-2xl lg:text-3xl mb-3 sm:mb-4 text-left drop-shadow-md select-none">
+        {t('landing.hero.static.intro')}
       </span>
 
-      {/* Element B: Fixed Statement */}
-      <span className="mt-1 block text-sm font-semibold normal-case tracking-normal text-white/80 sm:text-base md:text-lg text-center sm:text-left">
-        {t('landing.hero.tagline.statement')}
-      </span>
+      {/* List points — colore e stato attivo condivisi col ventaglio */}
+      <ul className="space-y-2 sm:space-y-2.5 text-left">
+        {points.map((point, index) => {
+          const color = LANDING_ROTATION_COLORS[index];
+          const route = HERO_POINT_ROUTES[index];
+          const isActive = index === active;
 
-      {/* Element C: Coordinated Rotating Tagline (staggered 3D letter flip).
-          Colore abbinato alla parola sopra (WORD_STYLES) ma più chiaro, per
-          segnalare visivamente che le due righe sono collegate. */}
-      <span
-        className="relative mt-2 block min-h-[1.9rem] leading-snug text-center text-sm font-semibold uppercase tracking-[0.06em] transition-colors duration-500 sm:min-h-[2.2rem] sm:text-left sm:text-base md:min-h-[2.6rem] md:text-lg whitespace-nowrap"
-        style={{ color: activeStyle.light }}
-      >
-        <span className="absolute inset-x-0 top-0">
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={`${currentWordIdx}-${subPhraseIdx}`}
-              variants={TAGLINE_CONTAINER_VARIANTS}
-              initial="hidden"
-              animate="show"
-              exit="exit"
-              style={{ perspective: 500 }}
-              className="inline-block"
-            >
-              {letters.map((letter, i) => (
-                <motion.span
-                  key={i}
-                  variants={TAGLINE_LETTER_VARIANTS}
-                  className="inline-block"
-                  style={{ transformOrigin: 'center bottom', whiteSpace: letter === ' ' ? 'pre' : 'normal' }}
-                >
-                  {letter}
-                </motion.span>
-              ))}
-            </motion.span>
-          </AnimatePresence>
-        </span>
-      </span>
-    </h1>
+          const content = (
+            <>
+              <span
+                className="flex-shrink-0 w-2.5 h-2.5 mt-[0.45rem] rounded-full transition-all duration-300"
+                style={{
+                  backgroundColor: color.hex,
+                  opacity: isActive ? 1 : 0.5,
+                  transform: isActive ? 'scale(1.3)' : 'scale(1)',
+                  boxShadow: isActive ? `0 0 12px ${color.glow}` : 'none',
+                }}
+                aria-hidden
+              />
+              <span
+                className={`text-sm sm:text-base lg:text-[1.05rem] leading-relaxed font-medium ${
+                  isActive
+                    ? 'hero-point-reveal'
+                    : 'text-white/60 transition-colors duration-300 group-hover:text-white/90'
+                }`}
+                style={isActive ? { ['--point-color' as string]: color.hex } : undefined}
+              >
+                {point}
+              </span>
+            </>
+          );
+
+          const sharedProps = {
+            className:
+              'group flex items-start gap-3 text-left rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50',
+            onMouseEnter: () => {
+              setActive(index);
+              setPaused(true);
+            },
+            onMouseLeave: () => setPaused(false),
+            onFocus: () => {
+              setActive(index);
+              setPaused(true);
+            },
+            onBlur: () => setPaused(false),
+          };
+
+          return (
+            <li key={index}>
+              {route.external ? (
+                <a {...TOURNAMENTS_PORTAL_LINK_PROPS} {...sharedProps}>
+                  {content}
+                </a>
+              ) : (
+                <Link href={route.href} {...sharedProps}>
+                  {content}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
@@ -427,6 +284,14 @@ export function LandingWelcome() {
   /* ─── state ─── */
   const [heroRotationIdx, setHeroRotationIdx] = useState(0);
   const [heroRotationPaused, setHeroRotationPaused] = useState(false);
+
+  useEffect(() => {
+    if (heroRotationPaused) return;
+    const interval = setInterval(() => {
+      setHeroRotationIdx((prev) => (prev + 1) % 5);
+    }, LANDING_ROTATION_MS);
+    return () => clearInterval(interval);
+  }, [heroRotationPaused]);
 
   const [notifyGame, setNotifyGame] = useState<{ src: string; alt: string; waitlistCount: number } | null>(null);
   const [fullscreenGame, setFullscreenGame] = useState<{ src: string; alt: string; bgImage: string; waitlistCount: number } | null>(null);
@@ -511,89 +376,103 @@ export function LandingWelcome() {
       {/* ══════ CONTENT LAYER ══════ */}
       <div className="relative z-[2] flex flex-col">
 
-        {/* ────── LOGO + TAGLINE — same row ────── */}
-        <header className="bento-entry flex items-center justify-center px-4 pt-12 pb-10 sm:pt-14 sm:pb-12 md:pt-14 md:pb-11" style={{ animationDelay: '0ms' }}>
-          <div className="flex w-full max-w-6xl flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-center sm:gap-6 md:gap-7">
-            <Image
-              src={getCdnImageUrl('Logo%20Principale%20EBARTEX.png')}
-              alt="Ebartex"
-              width={700}
-              height={263}
-              className="h-[4.25rem] w-auto shrink-0 object-contain sm:h-24 md:h-[7.5rem] lg:h-[8.5rem]"
-              sizes="(max-width: 640px) 170px, (max-width: 1024px) 240px, 340px"
-              priority
-              unoptimized
-            />
-            <div className="flex items-center gap-4 sm:gap-6 md:gap-7">
-              <div className="h-14 w-px bg-white/20 hidden sm:block md:h-20" />
-              <DynamicTaglineHeader
-                currentWordIdx={heroRotationIdx}
-                setCurrentWordIdx={setHeroRotationIdx}
-                paused={heroRotationPaused}
-              />
-            </div>
-          </div>
-        </header>
-
         {/* ═══════════════════════════════════════════════
-            HERO — Card Magic (left) + Feature Carousel (right)
+            HERO — logo + tagline + ventaglio su una riga,
+            card Magic grande sotto: tutto entro il viewport.
             ═══════════════════════════════════════════════ */}
-        <section className="px-4 pt-4 pb-8 sm:px-5 sm:pt-5 sm:pb-10 md:px-6 md:pt-4 md:pb-8">
-          <div className="mx-auto grid w-full max-w-6xl gap-5 sm:gap-6 md:gap-5 grid-cols-1 lg:grid-cols-2">
+        {/* min-h oltre il viewport di proposito: la piega taglia le tile dei
+            giochi in arrivo a metà — sopra si vedono "Presto in arrivo" e la
+            parte alta delle tile, invito a scrollare. */}
+        <section className="flex min-h-[calc(100svh-40px)] flex-col px-4 pt-8 pb-0 sm:px-5 sm:pt-10 md:px-6 xl:pt-6">
 
-            {/* ──── LEFT: MAGIC CARD ──── */}
+          {/* ────── LOGO + TAGLINE + CARDS — same row, centrata nello spazio
+                     libero; la card Magic è ancorata in fondo al viewport ────── */}
+          <header className="bento-entry flex flex-1 items-center justify-center" style={{ animationDelay: '0ms' }}>
+            <div className="flex w-full max-w-7xl flex-col items-center gap-8 xl:flex-row xl:items-center xl:justify-center xl:gap-14">
+              <Image
+                src={getCdnImageUrl('Logo%20Principale%20EBARTEX.png')}
+                alt="Ebartex"
+                width={800}
+                height={300}
+                className="h-[5.5rem] w-auto shrink-0 object-contain sm:h-28 md:h-36 xl:h-40"
+                sizes="(max-width: 640px) 220px, (max-width: 1024px) 350px, 450px"
+                priority
+                unoptimized
+              />
+              <div className="flex items-stretch justify-center gap-4 sm:gap-6 md:gap-8">
+                <div className="self-stretch w-px bg-white/15 hidden md:block my-3" />
+                <HeroTaglinePoints
+                  active={heroRotationIdx}
+                  setActive={setHeroRotationIdx}
+                  setPaused={setHeroRotationPaused}
+                />
+              </div>
+            </div>
+          </header>
+
+          <div className="mx-auto mt-10 w-full max-w-4xl sm:mt-12">
+
+            {/* ──── MAGIC CARD ──── */}
             <div
-              className="bento-entry group relative flex flex-col min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[260px] rounded-2xl border border-white/10 bg-[#0F172A]/50 backdrop-blur-md overflow-hidden"
+              className="bento-entry group relative flex flex-col min-h-[200px] sm:min-h-[210px] md:min-h-[230px] rounded-2xl border border-white/10 bg-[#0F172A]/50 backdrop-blur-md overflow-hidden w-full"
               style={{ animationDelay: '180ms' }}
             >
               <Link
                 href="/home/magic"
                 id="hero-magic-card"
-                className="relative flex flex-col flex-1 rounded-2xl p-5 sm:p-6 md:p-7 lg:p-8 transition-all duration-500 hover:bg-white/[0.03]"
+                className="relative flex flex-col flex-1 rounded-2xl transition-all duration-500 hover:bg-white/[0.03]"
                 aria-label={t('landing.gameAria.goHome', { name: 'Magic The Gathering' })}
                 onClick={() => setSelectedGame('mtg')}
               >
                 {/* Badge "Disponibile subito" — centered pill */}
-                <span className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white">
+                <span className="absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-white shadow-md">
                   Disponibile subito!
                 </span>
 
-                {/* Top row: Text + Logo */}
-                <div className="flex flex-1 items-center justify-between gap-4">
-                  <div className="flex flex-col gap-1 sm:gap-1.5">
-                    <h2 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold uppercase tracking-tight text-white drop-shadow-lg">
+                {/* Metà Magic: bordo-a-bordo della card, dal top fino alla
+                    linea divisoria — il velo foil (stesso delle 3 card blu
+                    della home Magic) copre tutta questa zona */}
+                <div className="relative flex flex-1 flex-col overflow-hidden rounded-t-2xl px-5 pt-5 pb-5 sm:px-6 sm:pt-6 md:px-7 md:pt-7 lg:px-8 lg:pt-8">
+                  <CardFoilOverlay className="dashboard-card-foil rounded-t-2xl opacity-[0.14]" />
+
+                  {/* Top row: Text + Logo */}
+                  <div className="flex flex-col sm:flex-row flex-1 items-center justify-between gap-6 sm:gap-8 mt-4 sm:mt-2">
+                  <div className="flex flex-col gap-1.5 sm:gap-2 text-center sm:text-left">
+                    <h2 className="font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold uppercase tracking-tight text-white drop-shadow-lg">
                       Magic: The Gathering
                     </h2>
-                    <p className="max-w-md text-[11px] sm:text-xs md:text-sm text-white/50">
+                    <p className="max-w-md text-xs sm:text-sm md:text-base text-white/50 leading-relaxed">
                       Compra, vendi e metti all&apos;asta le tue carte. Inizia subito.
                     </p>
                   </div>
 
                   <div className="relative flex shrink-0 items-center justify-center">
-                    <div className="relative h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 lg:h-36 lg:w-64 transition-transform duration-500 group-hover:scale-105">
+                    <div className="relative h-24 w-40 -translate-y-1 sm:h-28 sm:w-48 sm:-translate-y-1.5 md:h-32 md:w-56 lg:h-36 lg:w-64 transition-transform duration-500 group-hover:scale-105">
                       <Image
                         src={MAIN_GAMES[0].src}
                         alt={MAIN_GAMES[0].alt}
                         fill
-                        sizes="(max-width: 640px) 144px, (max-width: 768px) 176px, (max-width: 1024px) 208px, 256px"
-                        className="object-contain drop-shadow-[0_0_16px_rgba(239,68,68,0.15)]"
+                        sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 300px"
+                        className="object-contain drop-shadow-[0_0_24px_rgba(239,68,68,0.25)]"
                       />
                     </div>
                   </div>
                 </div>
 
+                </div>
+
                 {/* Bottom: Coming soon games */}
-                <div className="mt-auto pt-3 border-t border-white/10">
-                  <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 text-center">
+                <div className="border-t border-white/10 pt-4 px-5 pb-5 sm:px-6 sm:pb-6 md:px-7 md:pb-7 lg:px-8 lg:pb-8">
+                  <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-white/40 mb-3 text-center">
                     Presto in arrivo
                   </p>
-                  <div className="grid grid-cols-6 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                     {COMING_SOON_GAMES.map((game) => (
                       <button
                         key={game.alt}
                         type="button"
                         aria-label={game.alt}
-                        className="group/game relative flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg overflow-hidden bg-white/10 border border-white/15 px-1 py-1.5 transition-all duration-300 hover:bg-white/15 hover:border-white/25 hover:scale-105"
+                        className="group/game relative flex aspect-square sm:aspect-[4/3] w-full flex-col items-center justify-center gap-1.5 rounded-xl overflow-hidden bg-white/10 border border-white/15 px-1 py-2 transition-all duration-300 hover:bg-white/15 hover:border-white/25 hover:scale-105"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -612,7 +491,7 @@ export function LandingWelcome() {
                           className={`pointer-events-none absolute inset-0 bg-gradient-to-br opacity-70 transition-opacity duration-300 group-hover/game:opacity-100 ${GAME_GRADIENTS[game.alt] ?? ''}`}
                         />
                         <div className="relative z-10 flex flex-1 min-h-0 w-full items-center justify-center">
-                          <div className="relative h-full max-h-[52%] w-full max-w-[58%]">
+                          <div className="relative h-full max-h-[56%] w-full max-w-[62%]">
                             <Image
                               src={game.src}
                               alt=""
@@ -622,7 +501,7 @@ export function LandingWelcome() {
                             />
                           </div>
                         </div>
-                        <span className="relative z-10 shrink-0 text-center text-[8px] font-medium leading-tight text-white/80 sm:text-[9px]">
+                        <span className="relative z-10 shrink-0 text-center text-[9px] font-bold leading-tight text-white/80 sm:text-[10px]">
                           {game.label}
                         </span>
                       </button>
@@ -630,16 +509,16 @@ export function LandingWelcome() {
                     <button
                       type="button"
                       aria-label={`+${EXTRA_COMING_SOON_GAMES_COUNT} altri giochi in arrivo`}
-                      className="group/game relative flex aspect-square w-full flex-col items-center justify-center gap-0.5 rounded-lg overflow-hidden bg-white/5 border border-dashed border-white/20 px-1 py-1.5 transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:scale-105"
+                      className="group/game relative flex aspect-square sm:aspect-[4/3] w-full flex-col items-center justify-center gap-0.5 rounded-xl overflow-hidden bg-white/5 border border-dashed border-white/20 px-1 py-2 transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:scale-105"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                       }}
                     >
-                      <span className="relative z-10 text-sm font-extrabold text-white/90 sm:text-base">
+                      <span className="relative z-10 text-base font-black text-white/90 sm:text-lg">
                         +{EXTRA_COMING_SOON_GAMES_COUNT}
                       </span>
-                      <span className="relative z-10 shrink-0 text-center text-[8px] font-medium leading-tight text-white/50 sm:text-[9px]">
+                      <span className="relative z-10 shrink-0 text-center text-[9px] font-bold leading-tight text-white/50 sm:text-[10px]">
                         altri giochi
                       </span>
                     </button>
@@ -647,14 +526,6 @@ export function LandingWelcome() {
                 </div>
               </Link>
             </div>
-
-            {/* ──── RIGHT: VENTAGLIO DI CARTE (4 feature brandizzate) ──── */}
-            <LandingHeroCardFan
-              active={heroRotationIdx}
-              setActive={setHeroRotationIdx}
-              paused={heroRotationPaused}
-              setPaused={setHeroRotationPaused}
-            />
 
           </div>
         </section>
@@ -966,10 +837,34 @@ export function LandingWelcome() {
           0% { background-position: 0% 50%; }
           100% { background-position: 100% 50%; }
         }
+        /* Punto attivo della tagline: il testo si colora gradualmente da
+           sinistra a destra del colore del pallino (sweep clippato sul testo). */
+        .hero-point-reveal {
+          background-image:
+            linear-gradient(90deg, var(--point-color, #fff), var(--point-color, #fff)),
+            linear-gradient(90deg, rgba(255,255,255,0.6), rgba(255,255,255,0.6));
+          background-size: 0% 100%, 100% 100%;
+          background-repeat: no-repeat;
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          /* easing quasi lineare: con curve tipo (0.16,1,...) lo sweep arriva
+             all'80% nei primi 300ms e sembra istantaneo */
+          animation: heroPointReveal 1.8s ease-in-out forwards;
+        }
+        @keyframes heroPointReveal {
+          from { background-size: 0% 100%, 100% 100%; }
+          to { background-size: 100% 100%, 100% 100%; }
+        }
         @media (prefers-reduced-motion: reduce) {
           .hero-gradient-text {
             animation: none;
             background-position: 0% 50%;
+          }
+          .hero-point-reveal {
+            animation: none;
+            background-image: none;
+            color: var(--point-color, #fff);
           }
         }
       `}</style>

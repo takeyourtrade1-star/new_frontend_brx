@@ -57,10 +57,10 @@ export function AuctionCreateReviewStep({ draft }: AuctionCreateReviewStepProps)
           <p className="mt-1 text-sm font-semibold text-gray-900">
             {t('auctions.createDurationDays', { days: draft.durationDays })}
           </p>
-          {draft.antiSniperEnabled && (
+          {draft.antiSnipeEnabled && (
             <p className="mt-2 text-[11px] text-gray-600">
-              {t('auctions.createAntiSniperLabel')}:{' '}
-              {t('auctions.createAntiSniperMinutes', { minutes: String(draft.antiSniperMinutes) })}
+              {t('auctions.createAntiSnipeLabel')}:{' '}
+              {t('auctions.createAntiSnipeMinutes', { minutes: String(draft.antiSnipeMinutes) })}
             </p>
           )}
         </div>
@@ -88,7 +88,7 @@ export function AuctionCreateReviewStep({ draft }: AuctionCreateReviewStepProps)
             {draft.shippingPayer === 'buyer' ? t('auctions.createShippingBuyer') : t('auctions.createShippingSeller')}
             {draft.shippingPayer === 'buyer' && (
               <span className="block text-xs font-normal text-gray-600">
-                {t('auctions.createShippingNationalLabel', { country: draft.shippingOriginCountry || 'IT' })}: €
+                {t('auctions.createShippingNationalLabel')}: €
                 {draft.shippingNationalEur} · {t('auctions.createShippingEuLabel')}: €{draft.shippingEuDefaultEur} ·{' '}
                 {t('auctions.createShippingExtraUeLabel')}: €{draft.shippingRestOfWorldEur}
               </span>

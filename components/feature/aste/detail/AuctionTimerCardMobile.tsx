@@ -105,7 +105,7 @@ export function AuctionTimerCardMobile({
                     <span className="font-semibold text-gray-600">{t('auctions.detailAntiSnipe')}:</span>
                     <span className="text-gray-700">{antiSnipeLabel}</span>
                     <AntiSnipeInfoButton
-                      hint={t('auctions.createAntiSniperHint')}
+                      hint={t('auctions.createAntiSnipeHint')}
                       ariaLabel={t('auctions.detailAntiSnipeInfoAria')}
                     />
                   </p>

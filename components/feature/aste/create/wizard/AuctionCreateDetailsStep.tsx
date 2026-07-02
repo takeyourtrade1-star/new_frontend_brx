@@ -3,8 +3,8 @@
 import { useMemo } from 'react';
 import { Info } from 'lucide-react';
 import {
-  AUCTION_ANTI_SNIPER_BACKEND_READY,
-  AUCTION_ANTI_SNIPER_MINUTES_OPTIONS,
+  AUCTION_ANTI_SNIPE_BACKEND_READY,
+  AUCTION_ANTI_SNIPE_MINUTES_OPTIONS,
   AUCTION_CARD_CONDITION_OPTIONS,
   AUCTION_CUSTOM_DESCRIPTION_MAX,
   conditionSelectValue,
@@ -13,6 +13,8 @@ import {
 import { buildCardLanguageOptions } from '@/lib/card-languages';
 import { CardLanguageSelect } from '@/components/ui/CardLanguageSelect';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { getCardImageUrl } from '@/lib/assets';
+import { AuctionCardImagePeek } from '@/components/feature/aste/create/AuctionCardImagePeek';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 
@@ -39,6 +41,28 @@ export function AuctionCreateDetailsStep({ draft, update, isEmbedded }: AuctionC
     <>
       {draft.isCard && !isEmbedded ? (
         <div className="space-y-5">
+          {draft.cardSelection ? (
+            <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/80 px-4 py-3">
+              {/* Immagine espandibile: chiusa di default (icona fotocamera),
+                  hover desktop → anteprima, tap → modale */}
+              {draft.cardSelection.image ? (
+                <AuctionCardImagePeek
+                  imageUrl={getCardImageUrl(draft.cardSelection.image)}
+                  name={draft.cardSelection.title}
+                />
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-[#1D3160]">
+                  {draft.cardSelection.title}
+                </p>
+                {draft.cardSelection.setName ? (
+                  <p className="truncate text-xs text-gray-500">
+                    {t('auctions.detailExpansion')}: {draft.cardSelection.setName}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wide text-gray-600">
               {t('auctions.createConditionLabel')}
@@ -89,38 +113,38 @@ export function AuctionCreateDetailsStep({ draft, update, isEmbedded }: AuctionC
           <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wide text-gray-700">
-                {t('auctions.createAntiSniperLabel')}
+                {t('auctions.createAntiSnipeLabel')}
               </span>
               <button
                 type="button"
-                title={t('auctions.createAntiSniperHint')}
+                title={t('auctions.createAntiSnipeHint')}
                 className="inline-flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-200 hover:text-[#1D3160]"
-                aria-label={t('auctions.createAntiSniperHint')}
+                aria-label={t('auctions.createAntiSnipeHint')}
               >
                 <Info className="h-4 w-4" aria-hidden />
               </button>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              {AUCTION_ANTI_SNIPER_MINUTES_OPTIONS.map((minutes) => {
-                const backendReady = AUCTION_ANTI_SNIPER_BACKEND_READY.has(minutes);
+              {AUCTION_ANTI_SNIPE_MINUTES_OPTIONS.map((minutes) => {
+                const backendReady = AUCTION_ANTI_SNIPE_BACKEND_READY.has(minutes);
                 return (
                   <button
                     key={minutes}
                     type="button"
                     disabled={!backendReady}
-                    onClick={() => backendReady && update('antiSniperMinutes', minutes)}
+                    onClick={() => backendReady && update('antiSnipeMinutes', minutes)}
                     className={cn(
                       'relative rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
                       !backendReady && 'cursor-not-allowed opacity-50',
-                      draft.antiSniperMinutes === minutes && backendReady
+                      draft.antiSnipeMinutes === minutes && backendReady
                         ? 'border-[#FF7300] bg-[#FF7300] text-white'
                         : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
                     )}
                   >
-                    {t('auctions.createAntiSniperMinutes', { minutes: String(minutes) })}
+                    {t('auctions.createAntiSnipeMinutes', { minutes: String(minutes) })}
                     {!backendReady && (
                       <span className="ml-1 text-[9px] font-medium normal-case text-gray-400">
-                        ({t('auctions.createAntiSniperComingSoon')})
+                        ({t('auctions.createAntiSnipeComingSoon')})
                       </span>
                     )}
                   </button>

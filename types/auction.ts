@@ -135,7 +135,7 @@ export interface AuctionCreatePayload {
   shipping_national_eur?: number | null;
   shipping_eu_default_eur?: number | null;
   shipping_country_prices?: { country_iso: string; price_eur: number }[];
-  /** Anti-Sniper (anti-snipe) extension time in minutes applied when a bid
+  /** Anti-Snipe extension time in minutes applied when a bid
    * arrives near the auction end. Always enabled in the wizard; the backend
    * applies the configured minutes. Allowed: 1, 3, 5 (1 and 3 may be rejected
    * if not yet supported server-side). */

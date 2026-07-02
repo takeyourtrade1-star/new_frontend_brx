@@ -99,7 +99,7 @@ export function buildAuctionCreatePayload(
           })()
         : [],
     anti_sniper_enabled: true,
-    anti_sniper_minutes: draft.antiSniperMinutes,
+    anti_sniper_minutes: draft.antiSnipeMinutes,
   };
 
   return {

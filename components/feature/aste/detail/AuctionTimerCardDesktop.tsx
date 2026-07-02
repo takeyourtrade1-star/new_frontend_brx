@@ -88,7 +88,7 @@ export function AuctionTimerCardDesktop({
             <span className="uppercase tracking-wide text-orange-800/60">{t('auctions.detailAntiSnipe')}:</span>
             <span>{antiSnipeLabel}</span>
             <AntiSnipeInfoButton
-              hint={t('auctions.createAntiSniperHint')}
+              hint={t('auctions.createAntiSnipeHint')}
               ariaLabel={t('auctions.detailAntiSnipeInfoAria')}
               buttonClassName="text-orange-700/55 hover:bg-orange-100/80 hover:text-orange-900"
             />

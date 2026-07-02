@@ -58,8 +58,8 @@ export interface AuctionUI {
   setName: string | null;
   setHref: string | null;
   catalogGameSlug: string | null;
-  antiSniperEnabled: boolean;
-  antiSniperMinutes: number | null;
+  antiSnipeEnabled: boolean;
+  antiSnipeMinutes: number | null;
 }
 
 function asNumber(value: unknown, fallback = 0): number {
@@ -135,8 +135,8 @@ export function apiToAuctionUI(
     setName,
     setHref,
     catalogGameSlug: gameSlug,
-    antiSniperEnabled: a.anti_sniper_enabled === true,
-    antiSniperMinutes:
+    antiSnipeEnabled: a.anti_sniper_enabled === true,
+    antiSnipeMinutes:
       a.anti_sniper_minutes != null && Number.isFinite(Number(a.anti_sniper_minutes))
         ? Number(a.anti_sniper_minutes)
         : null,

@@ -74,9 +74,7 @@ export function AuctionCreateShippingStep({ draft, update, isEmbedded }: Auction
         <div className="space-y-4">
           <div>
             <label htmlFor="ac-ship-national" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-              {t('auctions.createShippingNationalLabel', {
-                country: draft.shippingOriginCountry || 'IT',
-              })}
+              {t('auctions.createShippingNationalLabel')}
             </label>
             <div className="relative mt-1.5 max-w-xs">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
@@ -116,9 +114,6 @@ export function AuctionCreateShippingStep({ draft, update, isEmbedded }: Auction
             <label htmlFor="ac-ship-rest-world" className="block text-xs font-bold uppercase tracking-wide text-gray-600">
               {t('auctions.createShippingExtraUeLabel')}
             </label>
-            <p className="mt-1 text-[11px] text-gray-500">
-              Tariffa unica per acquirenti al di fuori dell&apos;area UE indicata sopra (non il paese di origine).
-            </p>
             <div className="relative mt-1.5 max-w-xs">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
               <input

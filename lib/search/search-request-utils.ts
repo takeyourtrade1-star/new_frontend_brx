@@ -28,8 +28,11 @@ export const ALLOWED_GAME_SLUGS = new Set([
   'yugioh',
 ]);
 
-/** Chiavi di ordinamento accettate da /api/search; tutto il resto fa fallback su name_asc. */
+/** Chiavi di ordinamento accettate da /api/search; tutto il resto fa fallback su name_asc.
+ * `relevance` = nessun sort esplicito: ranking di rilevanza nativo di Meilisearch,
+ * lo stesso della barra di ricerca principale (instantsearch). */
 export const ALLOWED_SORTS = new Set([
+  'relevance',
   'name_asc',
   'name_desc',
   'set_asc',

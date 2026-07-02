@@ -33,8 +33,8 @@ export type AuctionCreateCardSelection = {
   availableLanguages?: string[];
 };
 
-/** Minuti Anti-Sniper supportati (1 e 3 in arrivo lato backend). */
-export type AuctionAntiSniperMinutes = 1 | 3 | 5;
+/** Minuti Anti-Snipe supportati (1 e 3 in arrivo lato backend). */
+export type AuctionAntiSnipeMinutes = 1 | 3 | 5;
 
 export type AuctionCreateDraft = {
   /** null = non ancora risposto nel flusso "È una carta?" */
@@ -53,8 +53,14 @@ export type AuctionCreateDraft = {
   imageUrl: string;
   startingBidEur: string;
   reservePriceEur: string;
-  /** Prezzo Compra subito (facoltativo; abilita buy_now se > 0). */
+  /** Scelta esplicita «vuoi un prezzo di riserva?» nello step prezzo:
+   *  null = non ancora risposto (blocca la pubblicazione nel flusso standalone). */
+  reserveEnabled: boolean | null;
+  /** Prezzo Compra subito (abilita buy_now se > 0). */
   buyNowPriceEur: string;
+  /** Scelta esplicita «vuoi il Compra subito?» nello step prezzo:
+   *  null = non ancora risposto (blocca la pubblicazione nel flusso standalone). */
+  buyNowEnabled: boolean | null;
   /** Prezzo di vendita esistente sul marketplace quando l'asta è creata da
    *  una carta già in inventario e già in vendita. Se presente, il wizard
    *  mostra il selettore «vuoi tenerla in vendita?»: Sì → buy-now = questo
@@ -64,9 +70,9 @@ export type AuctionCreateDraft = {
    *  parallelamente all'asta e il buy-now viene impostato al prezzo esistente. */
   keepInventoryListing: boolean;
   durationDays: 3 | 5 | 7;
-  /** Anti-Sniper opzionale; backend attualmente default 5 min. */
-  antiSniperEnabled: boolean;
-  antiSniperMinutes: AuctionAntiSniperMinutes;
+  /** Anti-Snipe opzionale; backend attualmente default 5 min. */
+  antiSnipeEnabled: boolean;
+  antiSnipeMinutes: AuctionAntiSnipeMinutes;
   /** Hours granted to the winner to pay before the order can escalate to a
    * dispute. Marketplace policy: default & minimum are 7 days (168h); the
    * upper bound is 30 days (720h). The wizard does NOT currently expose this
@@ -204,10 +210,10 @@ export function conditionSelectValue(condition: string): string {
   return AUCTION_CARD_CONDITION_OPTIONS.some((o) => o.value === n) ? n : 'near_mint';
 }
 
-export const AUCTION_ANTI_SNIPER_MINUTES_OPTIONS: readonly AuctionAntiSniperMinutes[] = [1, 3, 5];
+export const AUCTION_ANTI_SNIPE_MINUTES_OPTIONS: readonly AuctionAntiSnipeMinutes[] = [1, 3, 5];
 
-/** Opzioni Anti-Sniper già supportate dal backend (le altre mostrate come «in arrivo»). */
-export const AUCTION_ANTI_SNIPER_BACKEND_READY: ReadonlySet<AuctionAntiSniperMinutes> = new Set([5]);
+/** Opzioni Anti-Snipe già supportate dal backend (le altre mostrate come «in arrivo»). */
+export const AUCTION_ANTI_SNIPE_BACKEND_READY: ReadonlySet<AuctionAntiSnipeMinutes> = new Set([5]);
 
 export const AUCTION_CREATE_DEFAULT_DRAFT: AuctionCreateDraft = {
   isCard: null,
@@ -222,12 +228,14 @@ export const AUCTION_CREATE_DEFAULT_DRAFT: AuctionCreateDraft = {
   imageUrl: '',
   startingBidEur: '1',
   reservePriceEur: '',
+  reserveEnabled: null,
   buyNowPriceEur: '',
+  buyNowEnabled: null,
   inventoryListPriceEur: '',
   keepInventoryListing: true,
   durationDays: 7,
-  antiSniperEnabled: true,
-  antiSniperMinutes: 5,
+  antiSnipeEnabled: true,
+  antiSnipeMinutes: 5,
   paymentDeadlineHours: AUCTION_PAYMENT_DEADLINE_DEFAULT_HOURS,
   shippingPayer: 'buyer',
   shippingFlatEur: '4.99',

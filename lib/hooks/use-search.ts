@@ -1,4 +1,8 @@
-import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQuery,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import type { SearchApiResponse, SearchHit } from '@/app/api/search/route';
 import type { SetResult } from '@/lib/search/global-search-types';
 import { STALE } from '@/lib/hooks/query-config';
@@ -50,6 +54,27 @@ export function useSearchCards(
     queryFn: () => fetchSearch(params),
     staleTime: STALE.catalog,
     ...options,
+  });
+}
+
+/**
+ * Variante paginata "carica altri": stessa query di useSearchCards ma con
+ * useInfiniteQuery — ogni fetchNextPage() accoda la pagina successiva finché
+ * esistono altri risultati (page < totalPages). Usata dai picker (es. crea
+ * asta) al posto della paginazione a pagine.
+ */
+export function useInfiniteSearchCards(
+  params: Omit<SearchParams, 'page'>,
+  options?: { enabled?: boolean },
+) {
+  return useInfiniteQuery({
+    queryKey: ['search', 'cards-infinite', params],
+    queryFn: ({ pageParam }) => fetchSearch({ ...params, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
+    staleTime: STALE.catalog,
+    enabled: options?.enabled,
   });
 }
 

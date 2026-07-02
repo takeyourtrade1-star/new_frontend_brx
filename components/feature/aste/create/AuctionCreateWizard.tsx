@@ -150,6 +150,9 @@ export function AuctionCreateWizard({
       title: t('auctions.createValidationTitle'),
       auctionNoteMax: t('auctions.createValidationAuctionNoteMax'),
       start: t('auctions.createValidationStart'),
+      reserveChoice: t('auctions.createValidationReserveChoice'),
+      reserve: t('auctions.createValidationReserve'),
+      buyNowChoice: t('auctions.createValidationBuyNowChoice'),
       buyNow: t('auctions.createValidationBuyNow'),
       shipping: t('auctions.createValidationShipping'),
       photos: t('auctions.createValidationPhotos', {

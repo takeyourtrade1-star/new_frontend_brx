@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { Trophy, ArrowRight } from 'lucide-react';
 import { AuctionGavelIcon } from '@/components/ui/AuctionGavelIcon';
@@ -135,7 +135,7 @@ function FanIcon({
   reduced: boolean;
   delay?: number;
 }) {
-  const cls = 'h-5 w-5 sm:h-6 sm:w-6';
+  const cls = 'h-4 w-4 sm:h-5 sm:w-5';
 
   if (reduced) {
     switch (featureKey) {
@@ -197,21 +197,21 @@ function FanCardFace({
 
   const face = (
     <div
-      className="relative h-44 w-28 overflow-hidden rounded-2xl sm:h-52 sm:w-32 lg:h-56 lg:w-36"
+      className="relative h-36 w-24 overflow-hidden rounded-xl sm:h-44 sm:w-28"
       style={{
         borderWidth: 1,
         borderColor: `rgba(${card.rgb}, ${isActive ? 0.75 : 0.38})`,
         background:
           'linear-gradient(150deg, #1c1c22 0%, #0e0e12 35%, #16161b 70%, #1c1c22 100%)',
         boxShadow: isActive
-          ? `0 20px 55px rgba(${card.rgb}, 0.15), 0 6px 18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(${card.rgb}, 0.08)`
-          : `0 10px 26px rgba(0,0,0,0.55), inset 0 1px 0 rgba(${card.rgb}, 0.04)`,
+          ? `0 15px 40px rgba(${card.rgb}, 0.12), 0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(${card.rgb}, 0.08)`
+          : `0 8px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(${card.rgb}, 0.04)`,
         filter: isActive ? 'none' : 'brightness(0.66) saturate(0.9)',
         transition: 'box-shadow 350ms ease, border-color 350ms ease, filter 350ms ease',
       }}
     >
       {/* bordo interno sottile */}
-      <div className="pointer-events-none absolute inset-[1px] rounded-2xl border border-white/[0.05]" />
+      <div className="pointer-events-none absolute inset-[1px] rounded-xl border border-white/[0.05]" />
 
       {/* riflesso diagonale */}
       <div
@@ -224,7 +224,7 @@ function FanCardFace({
 
       {/* radial glow dietro il testo (solo attiva) */}
       <div
-        className="pointer-events-none absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity duration-500"
+        className="pointer-events-none absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity duration-500 sm:h-28 sm:w-28"
         style={{
           background: `radial-gradient(circle, rgba(${card.rgb}, 0.1) 0%, transparent 70%)`,
           opacity: isActive ? 1 : 0,
@@ -233,54 +233,56 @@ function FanCardFace({
 
       {/* linea alta / bassa */}
       <div
-        className="absolute left-3.5 right-3.5 top-3.5 h-px"
+        className="absolute left-2.5 right-2.5 top-2.5 h-px"
         style={{ background: `linear-gradient(to right, transparent, rgba(${card.rgb}, 0.35), transparent)` }}
       />
       <div
-        className="absolute bottom-3.5 left-3.5 right-3.5 h-px"
+        className="absolute bottom-2.5 left-2.5 right-2.5 h-px"
         style={{ background: `linear-gradient(to right, transparent, rgba(${card.rgb}, 0.35), transparent)` }}
       />
 
       {/* corner brackets */}
       {CORNERS.map(([pos, inner], ci) => (
-        <div key={ci} className={`absolute ${pos} h-2.5 w-2.5`}>
-          <div className={`absolute ${inner} h-[1.5px] w-2 rounded-full`} style={{ backgroundColor: `rgba(${card.rgb}, 0.55)` }} />
-          <div className={`absolute ${inner} h-2 w-[1.5px] rounded-full`} style={{ backgroundColor: `rgba(${card.rgb}, 0.55)` }} />
+        <div key={ci} className={`absolute ${pos} h-2 w-2`}>
+          <div className={`absolute ${inner} h-[1.5px] w-1.5 rounded-full`} style={{ backgroundColor: `rgba(${card.rgb}, 0.55)` }} />
+          <div className={`absolute ${inner} h-1.5 w-[1.5px] rounded-full`} style={{ backgroundColor: `rgba(${card.rgb}, 0.55)` }} />
         </div>
       ))}
 
       {/* contenuto */}
-      <div className="relative z-[1] flex h-full w-full flex-col items-center justify-center gap-1.5 px-2 text-center">
-        {/* icona (identità sempre visibile, loop automatico come nell'header) */}
+      <div className="relative z-[1] flex h-full w-full flex-col items-center justify-center gap-1 px-2 text-center sm:gap-1.5">
+        {/* icona: animata solo sulla carta attiva — 5 loop infiniti simultanei
+            (framer-motion + CSS) laggano sui PC lenti, quindi le carte dietro
+            restano statiche */}
         <span style={{ color: card.hex }} className="mb-0.5 opacity-90">
-          <FanIcon featureKey={card.key} reduced={reduced} delay={iconDelay} />
+          <FanIcon featureKey={card.key} reduced={reduced || !isActive} delay={iconDelay} />
         </span>
 
         {/* parola rivelata */}
         <motion.span
-          className="font-display text-xl font-extrabold uppercase leading-none tracking-tight sm:text-2xl lg:text-[1.7rem]"
+          className="font-display text-sm font-black uppercase leading-none tracking-tight sm:text-base"
           style={{ color: card.hex }}
           animate={{
             opacity: isActive ? 1 : 0,
-            y: isActive ? 0 : 6,
+            y: isActive ? 0 : 4,
             filter: isActive
-              ? `blur(0px) drop-shadow(0 2px 10px rgba(${card.rgb}, 0.2))`
-              : 'blur(3px) drop-shadow(0 0 0 transparent)',
+              ? `blur(0px) drop-shadow(0 1px 8px rgba(${card.rgb}, 0.25))`
+              : 'blur(2px) drop-shadow(0 0 0 transparent)',
           }}
           transition={revealTransition}
         >
           {card.label}
         </motion.span>
 
-        <span className="text-[0.5rem] font-medium uppercase tracking-[0.3em] text-zinc-500/80">
+        <span className="text-[0.42rem] font-bold uppercase tracking-[0.2em] text-zinc-500/70 sm:text-[0.5rem]">
           Ebartex
         </span>
 
         {/* CTA rivelata */}
         <motion.span
-          className="mt-1 inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider sm:text-[9px]"
+          className="mt-0.5 inline-flex items-center gap-0.5 text-[7.5px] font-bold uppercase tracking-wider sm:text-[9px]"
           style={{ color: card.hex }}
-          animate={{ opacity: isActive ? 1 : 0, y: isActive ? 0 : 6 }}
+          animate={{ opacity: isActive ? 1 : 0, y: isActive ? 0 : 4 }}
           transition={revealTransition}
         >
           {card.cta}
@@ -292,21 +294,23 @@ function FanCardFace({
 
   if (card.external) {
     return (
-      <a {...TOURNAMENTS_PORTAL_LINK_PROPS} className="block rounded-2xl" aria-label={card.ariaLabel}>
+      <a {...TOURNAMENTS_PORTAL_LINK_PROPS} className="block rounded-xl" aria-label={card.ariaLabel}>
         {face}
       </a>
     );
   }
 
   return (
-    <Link href={card.href} className="block rounded-2xl" aria-label={card.ariaLabel}>
+    <Link href={card.href} className="block rounded-xl" aria-label={card.ariaLabel}>
       {face}
     </Link>
   );
 }
 
 /* ───────────────────────────────────────────────
-   Ventaglio
+   Focus + peek: una sola carta in primo piano al
+   centro e la successiva "che sbircia" a destra,
+   entrambe dritte (niente ventaglio ruotato).
    ─────────────────────────────────────────────── */
 
 export function LandingHeroCardFan({
@@ -327,7 +331,6 @@ export function LandingHeroCardFan({
     () =>
       CARD_META.map((m) => ({
         key: m.key,
-        // parola grande = prima parola del tab localizzato (Vendi, Aste, Scambi, Tornei, BRX)
         label: t(`landing.carousel.${m.key}.tab` as MessageKey).split(' ')[0],
         cta: t(`landing.carousel.${m.key}.cta` as MessageKey),
         href: m.href,
@@ -339,88 +342,61 @@ export function LandingHeroCardFan({
     [t]
   );
 
-  /* Larghezza reale → scala l'apertura del ventaglio per non sforare su mobile */
-  const stageRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const el = stageRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver((entries) => {
-      for (const e of entries) setWidth(e.contentRect.width);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  const spread = width ? Math.min(1, Math.max(0.55, width / 520)) : 1;
-
   const N = cards.length;
-  const centerIdx = (N - 1) / 2;
   const activeCard = cards[active];
-
-  /* Hit-test a colonne fisse sull'intero stage, non sulla card animata:
-   * tutte le carte condividono la stessa cella (fan sovrapposto) e la carta
-   * attiva si sposta al centro sotto il cursore fermo, quindi un
-   * `onMouseEnter` per-carta genera un loop (la carta attivata si allontana
-   * dal cursore, che finisce sopra un'altra carta, che si attiva a sua
-   * volta, ecc.). Dividendo lo stage in N colonne statiche il calcolo non
-   * dipende più da dove si trova visivamente la carta in un dato istante. */
-  const handlePointerMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (reduced) return;
-    const rect = stageRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0) return;
-    const relX = (e.clientX - rect.left) / rect.width;
-    const idx = Math.min(N - 1, Math.max(0, Math.floor(relX * N)));
-    setPaused(true);
-    setActive((prev) => (prev === idx ? prev : idx));
-  };
 
   return (
     <div
-      ref={stageRef}
-      className="relative grid w-full min-h-[300px] place-items-center sm:min-h-[340px] lg:min-h-[380px]"
-      style={{ perspective: 1200 }}
-      onMouseMove={handlePointerMove}
+      className="relative flex items-center justify-center w-full max-w-[260px] sm:max-w-[300px] h-48 sm:h-52 overflow-hidden"
       onMouseLeave={() => setPaused(false)}
     >
       {/* alone ambientale nel colore della carta attiva */}
       <div
-        className="pointer-events-none h-56 w-56 rounded-full blur-[60px] transition-[background] duration-700 [grid-area:1/1]"
+        className="pointer-events-none absolute h-44 w-44 rounded-full blur-[48px] transition-[background] duration-700 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 sm:h-52 sm:w-52"
         style={{
-          background: `radial-gradient(circle, rgba(${activeCard.rgb}, 0.1) 0%, transparent 70%)`,
+          background: `radial-gradient(circle, rgba(${activeCard.rgb}, 0.12) 0%, transparent 70%)`,
           zIndex: 0,
         }}
         aria-hidden
       />
 
       {cards.map((card, i) => {
-        const rel = i - centerIdx; // -2 .. 2 (5 carte)
+        const diff = (i - active + N) % N;
+        let offset = diff;
+        if (offset > 2) offset -= N;
+
         const isActive = i === active;
+        const isPeek = offset === 1;
 
-        const restRotate = rel * 13 * spread;
-        const restY = Math.abs(rel) * 10 * spread;
-        const restScale = 1 - Math.abs(rel) * 0.045;
-        const lift = 32 * spread;
-
-        const target = isActive
-          ? { x: 0, y: -lift, rotate: 0, scale: 1.1 }
-          : { x: 0, y: restY, rotate: restRotate, scale: restScale };
+        // Solo attiva (centro) + successiva (peek a destra), entrambe dritte;
+        // le altre scivolano fuori invisibili per dare direzione al cambio.
+        const target = {
+          x: offset === 0 ? 0 : offset === 1 ? 88 : offset > 1 ? 150 : -80,
+          scale: offset === 0 ? 1 : 0.85,
+          opacity: offset === 0 ? 1 : offset === 1 ? 0.45 : 0,
+          rotate: 0,
+        };
 
         return (
           <motion.div
             key={card.key}
-            className="[grid-area:1/1] will-change-transform"
+            className="absolute will-change-transform"
             style={{
-              transformOrigin: '50% 150%',
-              zIndex: isActive ? 50 : 30 - Math.round(Math.abs(rel) * 4),
+              zIndex: isActive ? 50 : isPeek ? 40 : 20,
+              pointerEvents: isActive || isPeek ? 'auto' : 'none',
             }}
             animate={target}
             transition={reduced ? { duration: 0.2 } : springSoft}
+            onMouseEnter={() => {
+              setPaused(true);
+              if (isPeek) setActive(i);
+            }}
             onFocusCapture={() => {
               setActive(i);
               setPaused(true);
             }}
           >
-            <FanCardFace card={card} isActive={isActive} reduced={reduced} iconDelay={i * 0.35} />
+            <FanCardFace card={card} isActive={isActive} reduced={reduced} iconDelay={0.2} />
           </motion.div>
         );
       })}

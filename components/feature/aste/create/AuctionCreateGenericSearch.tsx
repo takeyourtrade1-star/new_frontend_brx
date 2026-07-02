@@ -10,17 +10,17 @@ const ScannerModal = dynamic(
   { ssr: false, loading: () => null }
 );
 import type { SearchHit } from '@/app/api/search/route';
-import { useSearchCards } from '@/lib/hooks/use-search';
+import { useInfiniteSearchCards } from '@/lib/hooks/use-search';
 import {
   auctionGameToSearchParam,
   type AuctionCreateCardSelection,
 } from '@/lib/auction/auction-create-draft';
 import type { AuctionGame } from '@/components/feature/aste/mock-auctions';
-import { AUCTION_CREATE_GAMES } from '@/lib/auction/auction-create-draft';
 import { getCardImageUrl } from '@/lib/assets';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
-import { AuctionCardImagePeek } from '@/components/feature/aste/create/AuctionCardImagePeek';
+import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
+import { SetIconBadge } from '@/components/ui/SetIconBadge';
 
 function hitToSelection(hit: SearchHit): AuctionCreateCardSelection {
   return {
@@ -33,10 +33,6 @@ function hitToSelection(hit: SearchHit): AuctionCreateCardSelection {
   };
 }
 
-const GENERIC_GAME_OPTIONS = AUCTION_CREATE_GAMES.filter((g) => g.value !== 'other').map((g) => ({
-  ...g,
-  available: g.value === 'mtg',
-}));
 
 export function AuctionCreateGenericSearch({
   selectedId,
@@ -50,7 +46,8 @@ export function AuctionCreateGenericSearch({
   onClearSelection?: () => void;
 }) {
   const { t } = useTranslation();
-  const [searchGame, setSearchGame] = useState<AuctionGame>('mtg');
+  // Catalogo attivo: per ora solo Magic (chip giochi rimossi su richiesta).
+  const [searchGame] = useState<AuctionGame>('mtg');
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -62,16 +59,24 @@ export function AuctionCreateGenericSearch({
 
   const apiGame = useMemo(() => auctionGameToSearchParam(searchGame), [searchGame]);
 
-  // Ricerca via React Query (regola §2) invece di useEffect+fetch+useState.
+  // Stessa logica della barra di ricerca principale: ranking di rilevanza
+  // Meilisearch (sort: relevance) e paginazione "carica altri" fino a
+  // esaurire i risultati, invece del cap fisso a 12.
   const {
     data: searchData,
     isLoading: loadingSearch,
     error: searchErr,
-  } = useSearchCards(
-    { q: debounced || undefined, game: apiGame || undefined, limit: 12, page: 1 },
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteSearchCards(
+    { q: debounced || undefined, game: apiGame || undefined, limit: 20, sort: 'relevance' },
     { enabled: Boolean(debounced) },
   );
-  const hits = searchData?.hits ?? [];
+  const hits = useMemo(
+    () => searchData?.pages.flatMap((p) => p.hits) ?? [],
+    [searchData],
+  );
   const searchError = searchErr
     ? (searchErr instanceof Error ? searchErr.message : t('auctions.createSearchError'))
     : null;
@@ -106,37 +111,6 @@ export function AuctionCreateGenericSearch({
         </div>
       ) : (
       <>
-      <p className="text-sm text-gray-500">{t('auctions.createGenericSearchSubtitle')}</p>
-
-      <div className="flex flex-wrap gap-1.5">
-        {GENERIC_GAME_OPTIONS.map(({ value, labelKey, available }) =>
-          available ? (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setSearchGame(value)}
-              className={cn(
-                'rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors',
-                searchGame === value
-                  ? 'border-[#FF7300] bg-[#FF7300] text-white'
-                  : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-              )}
-            >
-              {t(labelKey)}
-            </button>
-          ) : (
-            <span
-              key={value}
-              className="inline-flex cursor-not-allowed items-center gap-1 rounded-full border border-dashed border-gray-300 bg-gray-100/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400"
-              title={`${t(labelKey)} — ${t('landing.comingSoon')}`}
-            >
-              {t(labelKey)}
-              <span className="text-[10px] font-medium">•</span>
-            </span>
-          )
-        )}
-      </div>
-
       <div className="relative">
         <Search
           className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
@@ -195,12 +169,23 @@ export function AuctionCreateGenericSearch({
                     active ? 'bg-orange-50/90 ring-2 ring-inset ring-[#FF7300]' : 'hover:bg-gray-50'
                   )}
                 >
-                  <AuctionCardImagePeek
-                    imageUrl={imgUrl}
-                    name={hit.name}
-                    thumbClassName="h-14 w-11"
-                    sizes="56px"
-                  />
+                  {/* Trigger anteprima + logo set: identici alla barra di ricerca globale */}
+                  <div className="flex shrink-0 items-center gap-2 self-center">
+                    <CardImageCameraPeek
+                      imageUrl={imgUrl}
+                      name={hit.name}
+                      variant="thumb"
+                      previewSide="left"
+                      closeModalLabelKey="auctions.createImagePreviewClose"
+                    />
+                    <SetIconBadge
+                      setIconUri={hit.set_icon_uri}
+                      setCode={hit.set_code}
+                      setName={hit.set_name}
+                      gameSlug={hit.game_slug}
+                      imageClassName="h-8 w-8 object-contain"
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleSelect(sel)}
@@ -220,6 +205,19 @@ export function AuctionCreateGenericSearch({
               </li>
             );
           })}
+          {hasNextPage && (
+            <li>
+              <button
+                type="button"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="flex w-full items-center justify-center gap-2 px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-[#1D3160] transition hover:bg-gray-50 disabled:opacity-60"
+              >
+                {isFetchingNextPage && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+                {t('auctions.createSearchLoadMore')}
+              </button>
+            </li>
+          )}
         </ul>
       )}
 

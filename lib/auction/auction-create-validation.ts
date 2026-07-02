@@ -14,6 +14,9 @@ export type AuctionStepValidationMessages = {
   title: string;
   auctionNoteMax: string;
   start: string;
+  reserveChoice: string;
+  reserve: string;
+  buyNowChoice: string;
   buyNow: string;
   shipping: string;
   photos: string;
@@ -75,6 +78,25 @@ export function validateAuctionCreateStep(
     const start = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.startingBidEur)));
     if (!Number.isFinite(start) || start <= 0) {
       return { ok: false, error: m.start };
+    }
+    // Scelte esplicite Sì/No obbligatorie (solo step prezzo standalone:
+    // l'embedded non espone questi toggle e mantiene il comportamento attuale).
+    if (id === 'price') {
+      if (draft.reserveEnabled === null) {
+        return { ok: false, error: m.reserveChoice };
+      }
+      if (draft.reserveEnabled) {
+        const reserve = roundUpToHalfStep(parseLocaleMoneyInput(String(draft.reservePriceEur)));
+        if (!Number.isFinite(reserve) || reserve < start) {
+          return { ok: false, error: m.reserve };
+        }
+      }
+      if (draft.buyNowEnabled === null) {
+        return { ok: false, error: m.buyNowChoice };
+      }
+      if (draft.buyNowEnabled && !draft.buyNowPriceEur.trim()) {
+        return { ok: false, error: m.buyNow };
+      }
     }
     const buyNowRaw = draft.buyNowPriceEur.trim();
     if (buyNowRaw) {
