@@ -1,7 +1,10 @@
 import {
+  AUCTION_CARD_CONDITION_OPTIONS,
   AUCTION_CUSTOM_DESCRIPTION_MAX,
+  conditionSelectValue,
   type AuctionCreateDraft,
 } from '@/lib/auction/auction-create-draft';
+import { buildCardLanguageOptions } from '@/lib/card-languages';
 import { listingPhotosComplete } from '@/components/feature/aste/create/AuctionListingPhotoUpload';
 import { parseLocaleMoneyInput, roundUpToHalfStep } from '@/lib/auction/bid-math';
 import type { EmbeddedInventoryPick } from '@/lib/auction/auction-create-wizard-types';
@@ -19,6 +22,8 @@ export type AuctionStepValidationMessages = {
   buyNowChoice: string;
   buyNow: string;
   shipping: string;
+  condition: string;
+  cardLanguage: string;
   photos: string;
   photosUploadFailed: string;
   photosUploadPending: string;
@@ -71,6 +76,17 @@ export function validateAuctionCreateStep(
     if (draft.isCard) {
       if (draft.description.length > AUCTION_CUSTOM_DESCRIPTION_MAX) {
         return { ok: false, error: m.auctionNoteMax };
+      }
+      if (!isEmbedded) {
+        const condition = conditionSelectValue(draft.condition);
+        if (!condition || !AUCTION_CARD_CONDITION_OPTIONS.some((o) => o.value === condition)) {
+          return { ok: false, error: m.condition };
+        }
+        const langOptions = buildCardLanguageOptions(draft.cardSelection?.availableLanguages);
+        const lang = draft.cardLanguage.trim();
+        if (!lang || !langOptions.some((o) => o.code === lang)) {
+          return { ok: false, error: m.cardLanguage };
+        }
       }
     }
   }

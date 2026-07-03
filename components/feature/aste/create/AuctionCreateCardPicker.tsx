@@ -18,10 +18,12 @@ import {
   type AuctionCreateCardSelection,
 } from '@/lib/auction/auction-create-draft';
 import type { AuctionGame } from '@/components/feature/aste/mock-auctions';
-import type { CardCatalogHit } from '@/lib/meilisearch-cards-by-ids';
 import { getCardImageUrl } from '@/lib/assets';
+import { getCardDisplayNames } from '@/lib/card-display-name';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { MessageKey } from '@/lib/i18n/messages/en';
+import { matchInventorySearch } from '@/lib/inventory/inventory-filter-utils';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import {
   useAuctionPickerInventory,
@@ -34,18 +36,21 @@ import { AuctionCardGridTile } from '@/components/feature/aste/create/AuctionCar
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { SetIconBadge } from '@/components/ui/SetIconBadge';
 
-function hitToSelection(hit: SearchHit): AuctionCreateCardSelection {
+function hitToSelection(hit: SearchHit, lang: string): AuctionCreateCardSelection {
+  const { primary } = getCardDisplayNames(hit, lang);
   return {
     id: hit.id,
-    title: hit.name,
+    title: primary,
     image: hit.image ?? '',
     setName: hit.set_name,
+    rarity: hit.rarity,
+    collectorNumber: hit.collector_number,
     gameSlug: hit.game_slug,
     availableLanguages: hit.available_languages?.length ? hit.available_languages : undefined,
   };
 }
 
-function inventoryToSelection(item: InventoryWithCard): AuctionCreateCardSelection | null {
+function inventoryToSelection(item: InventoryWithCard, lang: string): AuctionCreateCardSelection | null {
   const card = item.card;
   if (!card) return null;
   const props = item.properties as Record<string, unknown> | undefined;
@@ -57,11 +62,17 @@ function inventoryToSelection(item: InventoryWithCard): AuctionCreateCardSelecti
         ? props.language
         : '';
   const priceEur = item.price_cents > 0 ? moneyInputStringFromNumber(item.price_cents / 100) : '';
+  const { primary } = getCardDisplayNames(
+    { name: card.name ?? '', keywords_localized: card.keywords_localized },
+    lang
+  );
   return {
     id: card.id ?? String(item.blueprint_id),
-    title: card.name ?? '',
+    title: primary,
     image: card.image ?? '',
     setName: card.set_name,
+    rarity: card.rarity,
+    collectorNumber: card.collector_number,
     gameSlug: card.game_slug,
     inventoryItemId: item.id,
     blueprintId: item.blueprint_id,
@@ -69,31 +80,6 @@ function inventoryToSelection(item: InventoryWithCard): AuctionCreateCardSelecti
     cardLanguage: language,
     startingBidEur: priceEur,
   };
-}
-
-
-function normalizeForSearch(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Mc}/gu, '')
-    .replace(/\p{Mn}/gu, '');
-}
-
-function matchCollectionQuery(item: InventoryWithCard, query: string): boolean {
-  const q = query.trim();
-  if (!q) return true;
-  const qNorm = normalizeForSearch(q);
-  const card = item.card;
-  const blob = [
-    card?.name ?? '',
-    card?.set_name ?? '',
-    card?.collector_number ?? '',
-    String(item.blueprint_id),
-  ].join(' ');
-  const blobNorm = normalizeForSearch(blob);
-  const parts = qNorm.split(/\s+/).filter(Boolean);
-  return parts.every((part) => blobNorm.includes(part));
 }
 
 /** Solo Magic è ricercabile in catalogo; gli altri sono placeholder «in arrivo». */
@@ -119,6 +105,7 @@ export function AuctionCreateCardPicker({
   variant?: 'full' | 'wizard-step1-inventory';
 }) {
   const { t } = useTranslation();
+  const { selectedLang } = useLanguage();
   const user = useAuthStore((s) => s.user);
   // FE-REV-018 (pattern): selector puro; fallback localStorage in useMemo, non dentro il selector Zustand.
   const accessTokenFromStore = useAuthStore((s) => s.accessToken);
@@ -186,7 +173,7 @@ export function AuctionCreateCardPicker({
     : null;
 
   const filteredCollection = useMemo(() => {
-    return inventoryItems.filter((item) => matchCollectionQuery(item, collectionQuery));
+    return inventoryItems.filter((item) => matchInventorySearch(item, collectionQuery));
   }, [inventoryItems, collectionQuery]);
 
   return (
@@ -304,7 +291,8 @@ export function AuctionCreateCardPicker({
           <ul className="scrollbar-hide max-h-[min(320px,50vh)] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
             {hits.map((hit, index) => {
               const imgUrl = getCardImageUrl(hit.image ?? null);
-              const sel = hitToSelection(hit);
+              const { primary, secondary } = getCardDisplayNames(hit, selectedLang);
+              const sel = hitToSelection(hit, selectedLang);
               const active = selectedId === hit.id;
               const isTopRelevance = index === 0;
               const showTopPulse = isTopRelevance && !active;
@@ -321,7 +309,7 @@ export function AuctionCreateCardPicker({
                     <div className="flex shrink-0 items-center gap-2 self-center">
                       <CardImageCameraPeek
                         imageUrl={imgUrl}
-                        name={hit.name}
+                        name={primary}
                         variant="thumb"
                         previewSide="left"
                         closeModalLabelKey="auctions.createImagePreviewClose"
@@ -339,13 +327,16 @@ export function AuctionCreateCardPicker({
                       onClick={() => handleSelect(sel)}
                       aria-label={
                         isTopRelevance
-                          ? `${hit.name}, ${hit.set_name}. ${t('auctions.createTopSearchResultHint')}`
+                          ? `${primary}, ${hit.set_name}. ${t('auctions.createTopSearchResultHint')}`
                           : undefined
                       }
                       className="flex min-w-0 flex-1 items-center gap-3 text-left"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-[#1D3160]">{hit.name}</p>
+                        <p className="truncate text-sm font-semibold text-[#1D3160]">{primary}</p>
+                        {secondary ? (
+                          <p className="truncate text-xs text-gray-400">{secondary}</p>
+                        ) : null}
                         <p className="truncate text-xs text-gray-500">{hit.set_name}</p>
                       </div>
                       {active && (
@@ -475,11 +466,17 @@ export function AuctionCreateCardPicker({
         {!loadingCollection && filteredCollection.length > 0 && viewMode === 'grid' && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {filteredCollection.map((row) => {
-              const sel = inventoryToSelection(row);
+              const sel = inventoryToSelection(row, selectedLang);
               if (!sel) return null;
               const imgUrl = getCardImageUrl(row.card?.image ?? null);
               const active = selectedId === sel.id;
-              const cardName = row.card?.name ?? '—';
+              const { primary, secondary } = getCardDisplayNames(
+                {
+                  name: row.card?.name ?? '',
+                  keywords_localized: row.card?.keywords_localized,
+                },
+                selectedLang
+              );
               const props = row.properties as Record<string, unknown> | undefined;
               const condition = typeof props?.condition === 'string' ? props.condition : '';
               const language =
@@ -492,22 +489,26 @@ export function AuctionCreateCardPicker({
                 <AuctionCardGridTile
                   key={row.id}
                   imageUrl={imgUrl}
-                  name={cardName}
+                  name={primary}
                   setName={row.card?.set_name}
                   active={active}
                   activeLabel={t('auctions.createCardSelected')}
                   onSelect={() => handleSelect(sel)}
-                  ariaLabel={t('auctions.createCollectionSelectByImage', { name: cardName })}
+                  ariaLabel={t('auctions.createCollectionSelectByImage', { name: primary })}
                   meta={
                     <>
                       {condition && (
-                        <span className="rounded bg-white/90 px-1.5 py-0.5 text-[9px] font-semibold text-gray-800">{condition}</span>
+                        <span className="rounded-md bg-black/30 px-1.5 py-0.5 text-[9px] font-semibold text-white backdrop-blur-sm">
+                          {condition}
+                        </span>
                       )}
                       {language && (
-                        <span className="rounded bg-white/90 px-1.5 py-0.5 text-[9px] font-semibold text-gray-800">{language}</span>
+                        <span className="rounded-md bg-black/30 px-1.5 py-0.5 text-[9px] font-semibold text-white backdrop-blur-sm">
+                          {language}
+                        </span>
                       )}
                       {row.quantity && (
-                        <span className="rounded bg-white/90 px-1.5 py-0.5 text-[9px] font-semibold text-gray-800">
+                        <span className="rounded-md bg-black/30 px-1.5 py-0.5 text-[9px] font-semibold text-white backdrop-blur-sm">
                           Qtà: {row.quantity}
                         </span>
                       )}
@@ -522,11 +523,17 @@ export function AuctionCreateCardPicker({
         {!loadingCollection && filteredCollection.length > 0 && viewMode === 'list' && (
           <ul className="scrollbar-hide max-h-[min(360px,55vh)] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200 bg-white">
             {filteredCollection.map((row) => {
-              const sel = inventoryToSelection(row);
+              const sel = inventoryToSelection(row, selectedLang);
               if (!sel) return null;
               const imgUrl = getCardImageUrl(row.card?.image ?? null);
               const active = selectedId === sel.id;
-              const cardName = row.card?.name ?? '—';
+              const { primary, secondary } = getCardDisplayNames(
+                {
+                  name: row.card?.name ?? '',
+                  keywords_localized: row.card?.keywords_localized,
+                },
+                selectedLang
+              );
               const props = row.properties as Record<string, unknown> | undefined;
               const condition = typeof props?.condition === 'string' ? props.condition : '';
               const language =
@@ -545,7 +552,7 @@ export function AuctionCreateCardPicker({
                   >
                     <AuctionCardImagePeek
                       imageUrl={imgUrl}
-                      name={cardName}
+                      name={primary}
                       thumbClassName="h-12 w-10"
                       sizes="40px"
                     />
@@ -555,7 +562,10 @@ export function AuctionCreateCardPicker({
                       className="flex min-w-0 flex-1 flex-col items-start justify-center gap-1 text-left"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-[#1D3160]">{row.card?.name}</p>
+                        <p className="truncate text-sm font-semibold text-[#1D3160]">{primary}</p>
+                        {secondary ? (
+                          <p className="truncate text-xs text-gray-400">{secondary}</p>
+                        ) : null}
                         <p className="truncate text-xs text-gray-500">{row.card?.set_name}</p>
                       </div>
                       <div className="flex flex-wrap gap-1 text-[9px] text-gray-600">

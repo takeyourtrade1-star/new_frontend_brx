@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Info } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
+import { Camera, Info } from 'lucide-react';
 import {
   AUCTION_ANTI_SNIPE_BACKEND_READY,
   AUCTION_ANTI_SNIPE_MINUTES_OPTIONS,
@@ -10,11 +11,15 @@ import {
   conditionSelectValue,
   type AuctionCreateDraft,
 } from '@/lib/auction/auction-create-draft';
+import {
+  readAuctionLanguagePreference,
+  writeAuctionLanguagePreference,
+} from '@/lib/auction/auction-language-preference';
 import { buildCardLanguageOptions } from '@/lib/card-languages';
 import { CardLanguageSelect } from '@/components/ui/CardLanguageSelect';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { getCardImageUrl } from '@/lib/assets';
-import { AuctionCardImagePeek } from '@/components/feature/aste/create/AuctionCardImagePeek';
+import { AuctionCreateCardDataPanel } from '@/components/feature/aste/create/AuctionCreateCardDataPanel';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +27,10 @@ type AuctionCreateDraftUpdate = <K extends keyof AuctionCreateDraft>(
   key: K,
   value: AuctionCreateDraft[K]
 ) => void;
+
+/** Stile select condiviso con la tab VENDI (SellSingleDetailsStep). */
+const SELL_TAB_SELECT_CLASS =
+  '[&_button]:rounded-md [&_button]:border-zinc-200/80 [&_button]:bg-zinc-50/40 [&_button]:px-2 [&_button]:py-1 [&_button]:text-[13px]';
 
 export type AuctionCreateDetailsStepProps = {
   draft: AuctionCreateDraft;
@@ -31,63 +40,118 @@ export type AuctionCreateDetailsStepProps = {
 
 export function AuctionCreateDetailsStep({ draft, update, isEmbedded }: AuctionCreateDetailsStepProps) {
   const { t } = useTranslation();
+  const [rememberLanguage, setRememberLanguage] = useState(false);
 
   const cardLanguageFlagOptions = useMemo(
     () => buildCardLanguageOptions(draft.cardSelection?.availableLanguages),
     [draft.cardSelection?.availableLanguages]
   );
 
+  const isFromInventory = draft.cardSelection?.inventoryItemId != null;
+
+  useEffect(() => {
+    if (isEmbedded || isFromInventory || draft.cardLanguage) return;
+    const cached = readAuctionLanguagePreference();
+    if (!cached) return;
+    const valid = cardLanguageFlagOptions.some((o) => o.code === cached);
+    if (valid) update('cardLanguage', cached);
+  }, [isEmbedded, isFromInventory, draft.cardLanguage, cardLanguageFlagOptions, update]);
+
+  const handleLanguageChange = (code: string) => {
+    update('cardLanguage', code);
+    if (rememberLanguage && code) {
+      writeAuctionLanguagePreference(code);
+    }
+  };
+
+  const imageUrl = draft.cardSelection?.image
+    ? getCardImageUrl(draft.cardSelection.image)
+    : null;
+
   return (
     <>
       {draft.isCard && !isEmbedded ? (
         <div className="space-y-5">
           {draft.cardSelection ? (
-            <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/80 px-4 py-3">
-              {/* Immagine espandibile: chiusa di default (icona fotocamera),
-                  hover desktop → anteprima, tap → modale */}
-              {draft.cardSelection.image ? (
-                <AuctionCardImagePeek
-                  imageUrl={getCardImageUrl(draft.cardSelection.image)}
-                  name={draft.cardSelection.title}
-                />
-              ) : null}
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-[#1D3160]">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div className="mx-auto w-full max-w-[180px] shrink-0 sm:mx-0 sm:max-w-[200px]">
+                <p className="mb-2 truncate text-center text-sm font-semibold text-[#1D3160] sm:text-left">
                   {draft.cardSelection.title}
                 </p>
-                {draft.cardSelection.setName ? (
-                  <p className="truncate text-xs text-gray-500">
-                    {t('auctions.detailExpansion')}: {draft.cardSelection.setName}
-                  </p>
-                ) : null}
+                <div
+                  className="relative aspect-[63/88] w-full overflow-hidden rounded-xl border border-zinc-300/50 bg-zinc-100/60 shadow-sm"
+                  style={{ aspectRatio: '63/88' }}
+                >
+                  {imageUrl ? (
+                    <Image
+                      src={imageUrl}
+                      alt={draft.cardSelection.title}
+                      fill
+                      className="object-contain"
+                      sizes="200px"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="absolute inset-0 flex items-center justify-center text-gray-300">
+                      <Camera className="h-8 w-8" aria-hidden />
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="min-w-0 flex-1 space-y-4">
+                <AuctionCreateCardDataPanel selection={draft.cardSelection} />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+                      {t('auctions.createCardLanguageLabel')}
+                    </label>
+                    <CardLanguageSelect
+                      options={cardLanguageFlagOptions}
+                      value={draft.cardLanguage}
+                      onChange={handleLanguageChange}
+                      placeholder={t('auctions.createCardLanguagePlaceholder')}
+                      className={SELL_TAB_SELECT_CLASS}
+                    />
+                    {!isFromInventory ? (
+                      <label className="mt-1.5 flex cursor-pointer items-center gap-1.5 text-[10px] font-semibold text-zinc-600">
+                        <input
+                          type="checkbox"
+                          checked={rememberLanguage}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setRememberLanguage(checked);
+                            if (checked && draft.cardLanguage) {
+                              writeAuctionLanguagePreference(draft.cardLanguage);
+                            }
+                          }}
+                          className="h-3 w-3 rounded border-zinc-300 text-primary focus:ring-primary/25"
+                        />
+                        {t('auctions.createRememberLanguage1h')}
+                      </label>
+                    ) : null}
+                  </div>
+                  <div>
+                    <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+                      {t('auctions.createConditionLabel')}
+                    </label>
+                    <CustomSelect
+                      options={AUCTION_CARD_CONDITION_OPTIONS.map(({ value, labelKey }) => ({
+                        value,
+                        label: t(labelKey),
+                      }))}
+                      value={conditionSelectValue(draft.condition)}
+                      onChange={(value) => update('condition', value)}
+                      placeholder={t('auctions.createConditionPlaceholder')}
+                      className={SELL_TAB_SELECT_CLASS}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           ) : null}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-              {t('auctions.createConditionLabel')}
-            </label>
-            <CustomSelect
-              options={AUCTION_CARD_CONDITION_OPTIONS.map(({ value, labelKey }) => ({
-                value,
-                label: t(labelKey),
-              }))}
-              value={conditionSelectValue(draft.condition)}
-              onChange={(value) => update('condition', value)}
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-              Lingua carta
-            </label>
-            <CardLanguageSelect
-              options={cardLanguageFlagOptions}
-              value={draft.cardLanguage}
-              onChange={(code) => update('cardLanguage', code)}
-              className="mt-1.5"
-            />
-          </div>
+
           <div>
             <span className="block text-xs font-bold uppercase tracking-wide text-gray-600">
               {t('auctions.createDurationLabel')}

@@ -28,7 +28,12 @@ export function AuctionCreateShippingStep({ draft, update, isEmbedded }: Auction
         <div className={cn('mt-3 space-y-2', isEmbedded && 'mt-2 space-y-1.5')}>
           <button
             type="button"
-            onClick={() => update('shippingPayer', 'buyer')}
+            onClick={() => {
+              update('shippingPayer', 'buyer');
+              update('shippingNationalEur', '');
+              update('shippingEuDefaultEur', '');
+              update('shippingRestOfWorldEur', '');
+            }}
             className={cn(
               'flex w-full items-center gap-3 rounded-xl border-2 px-4 py-4 text-left transition-all',
               isEmbedded && 'rounded-lg py-2.5',
@@ -87,6 +92,7 @@ export function AuctionCreateShippingStep({ draft, update, isEmbedded }: Auction
                   'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
                   isEmbedded && 'py-2'
                 )}
+                placeholder="0,00"
                 inputMode="decimal"
               />
             </div>
@@ -106,6 +112,7 @@ export function AuctionCreateShippingStep({ draft, update, isEmbedded }: Auction
                   'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
                   isEmbedded && 'py-2'
                 )}
+                placeholder="0,00"
                 inputMode="decimal"
               />
             </div>
@@ -125,6 +132,7 @@ export function AuctionCreateShippingStep({ draft, update, isEmbedded }: Auction
                   'w-full rounded-lg border border-gray-300 py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25',
                   isEmbedded && 'py-2'
                 )}
+                placeholder="0,00"
                 inputMode="decimal"
               />
             </div>

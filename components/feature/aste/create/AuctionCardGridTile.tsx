@@ -5,11 +5,12 @@ import { Camera } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
+const GLASS_PILL =
+  'inline-block max-w-full rounded-md bg-black/25 px-1.5 py-0.5 backdrop-blur-sm text-white';
+
 /**
- * Tile della vista griglia nella scelta carta del wizard asta: immagine della
- * carta a tutta area, sfocata, con i dati in overlay su gradiente scuro; al
- * passaggio del mouse l'immagine va a fuoco e l'overlay scompare. Su touch
- * (niente hover) resta lo stato di default e il tap seleziona la carta.
+ * Tile della vista griglia nella scelta carta del wizard asta: immagine nitida
+ * a tutta area con i dati in overlay su pill glass (nome, set, meta).
  */
 export function AuctionCardGridTile({
   imageUrl,
@@ -25,7 +26,7 @@ export function AuctionCardGridTile({
   imageUrl: string | null;
   name: string;
   setName?: string | null;
-  /** Badge extra in overlay (icona set, condizione, quantità…). */
+  /** Badge extra in overlay (condizione, lingua, quantità…). */
   meta?: ReactNode;
   active: boolean;
   activeLabel?: string;
@@ -52,7 +53,7 @@ export function AuctionCardGridTile({
           alt=""
           fill
           sizes={sizes}
-          className="scale-[1.06] object-cover blur-[3px] transition-all duration-300 ease-out group-hover:scale-100 group-hover:blur-0"
+          className="object-cover"
           unoptimized
         />
       ) : (
@@ -61,19 +62,14 @@ export function AuctionCardGridTile({
         </span>
       )}
 
-      {/* Overlay dati: sparisce in hover per mostrare la carta a fuoco. */}
-      <span
-        className={cn(
-          'absolute inset-0 flex flex-col justify-end gap-0.5 bg-gradient-to-t from-[#0b1220]/85 via-[#0b1220]/35 to-transparent p-2.5 transition-opacity duration-200',
-          imageUrl && 'group-hover:opacity-0'
-        )}
-      >
-        <span className="line-clamp-2 text-xs font-bold leading-snug text-white drop-shadow-sm">{name}</span>
-        {setName ? <span className="line-clamp-1 text-[10px] text-white/80">{setName}</span> : null}
-        {meta ? <span className="mt-1 flex flex-wrap items-center gap-1">{meta}</span> : null}
+      <span className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-1 p-2">
+        <span className={cn(GLASS_PILL, 'line-clamp-2 text-xs font-bold leading-snug')}>{name}</span>
+        {setName ? (
+          <span className={cn(GLASS_PILL, 'line-clamp-1 text-[10px] font-medium')}>{setName}</span>
+        ) : null}
+        {meta ? <span className="flex flex-wrap items-center gap-1">{meta}</span> : null}
       </span>
 
-      {/* Badge selezione: sempre visibile, anche in hover. */}
       {active && activeLabel ? (
         <span className="absolute right-1.5 top-1.5 rounded-full bg-[#FF7300] px-2 py-0.5 text-[9px] font-bold uppercase text-white shadow">
           {activeLabel}

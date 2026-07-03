@@ -17,6 +17,8 @@ import {
 } from '@/lib/auction/auction-create-draft';
 import type { AuctionGame } from '@/components/feature/aste/mock-auctions';
 import { getCardImageUrl } from '@/lib/assets';
+import { getCardDisplayNames } from '@/lib/card-display-name';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
@@ -24,12 +26,15 @@ import { SetIconBadge } from '@/components/ui/SetIconBadge';
 import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';
 import { AuctionCardGridTile } from './AuctionCardGridTile';
 
-function hitToSelection(hit: SearchHit): AuctionCreateCardSelection {
+function hitToSelection(hit: SearchHit, lang: string): AuctionCreateCardSelection {
+  const { primary } = getCardDisplayNames(hit, lang);
   return {
     id: hit.id,
-    title: hit.name,
+    title: primary,
     image: hit.image ?? '',
     setName: hit.set_name,
+    rarity: hit.rarity,
+    collectorNumber: hit.collector_number,
     gameSlug: hit.game_slug,
     availableLanguages: hit.available_languages?.length ? hit.available_languages : undefined,
   };
@@ -48,6 +53,7 @@ export function AuctionCreateGenericSearch({
   onClearSelection?: () => void;
 }) {
   const { t } = useTranslation();
+  const { selectedLang } = useLanguage();
   // Catalogo attivo: per ora solo Magic (chip giochi rimossi su richiesta).
   const [searchGame] = useState<AuctionGame>('mtg');
   const [query, setQuery] = useState('');
@@ -173,7 +179,8 @@ export function AuctionCreateGenericSearch({
             <ul className="scrollbar-hide max-h-[min(360px,55vh)] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
               {hits.map((hit, index) => {
                 const imgUrl = getCardImageUrl(hit.image ?? null);
-                const sel = hitToSelection(hit);
+                const { primary, secondary } = getCardDisplayNames(hit, selectedLang);
+                const sel = hitToSelection(hit, selectedLang);
                 const active = selectedId === hit.id;
                 const isTopRelevance = index === 0;
                 const showTopPulse = isTopRelevance && !active;
@@ -190,7 +197,7 @@ export function AuctionCreateGenericSearch({
                       <div className="flex shrink-0 items-center gap-2 self-center">
                         <CardImageCameraPeek
                           imageUrl={imgUrl}
-                          name={hit.name}
+                          name={primary}
                           variant="thumb"
                           previewSide="left"
                           closeModalLabelKey="auctions.createImagePreviewClose"
@@ -209,7 +216,10 @@ export function AuctionCreateGenericSearch({
                         className="flex min-w-0 flex-1 items-center gap-3 text-left"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-[#1D3160]">{hit.name}</p>
+                          <p className="truncate text-sm font-semibold text-[#1D3160]">{primary}</p>
+                          {secondary ? (
+                            <p className="truncate text-xs text-gray-400">{secondary}</p>
+                          ) : null}
                           <p className="truncate text-xs text-gray-500">{hit.set_name}</p>
                         </div>
                         {active && (
@@ -241,18 +251,19 @@ export function AuctionCreateGenericSearch({
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 max-h-[min(360px,55vh)] overflow-y-auto p-1 scrollbar-hide">
                 {hits.map((hit) => {
                   const imgUrl = getCardImageUrl(hit.image ?? null);
-                  const sel = hitToSelection(hit);
+                  const { primary } = getCardDisplayNames(hit, selectedLang);
+                  const sel = hitToSelection(hit, selectedLang);
                   const active = selectedId === hit.id;
                   return (
                     <AuctionCardGridTile
                       key={hit.id}
                       imageUrl={imgUrl}
-                      name={hit.name}
+                      name={primary}
                       setName={hit.set_name}
                       active={active}
                       activeLabel={t('auctions.createCardSelected')}
                       onSelect={() => handleSelect(sel)}
-                      ariaLabel={t('auctions.createCollectionSelectByImage', { name: hit.name })}
+                      ariaLabel={t('auctions.createCollectionSelectByImage', { name: primary })}
                       meta={
                         <span className="rounded bg-white/90 p-0.5">
                           <SetIconBadge

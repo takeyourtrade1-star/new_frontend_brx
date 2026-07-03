@@ -43,6 +43,7 @@ import {
   HEADER_GAME_ROW_GAP_CLASS,
   HEADER_GAME_TEXT_INSET_CLASS,
 } from '@/components/layout/headerBrxColumn';
+import { AsteVideoIntro } from '@/components/feature/aste/AsteVideoIntro';
 import { ScambiVideoIntro } from '@/components/feature/scambi/ScambiVideoIntro';
 
 
@@ -68,6 +69,7 @@ export function TopBar() {
   const [vendiMenuOpen, setVendiMenuOpen] = useState(false);
   const [gamesMenuOpen, setGamesMenuOpen] = useState(false);
   const [scambiIntroOpen, setScambiIntroOpen] = useState(false);
+  const [asteIntroOpen, setAsteIntroOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const vendiMenuRef = useRef<HTMLDivElement>(null);
   const acquistiMenuRef = useRef<HTMLDivElement>(null);
@@ -164,6 +166,7 @@ export function TopBar() {
   return (
     <>
       {scambiIntroOpen && <ScambiVideoIntro onClose={() => setScambiIntroOpen(false)} />}
+      {asteIntroOpen && <AsteVideoIntro onClose={() => setAsteIntroOpen(false)} />}
       <div className="flex w-full min-h-0 items-center gap-0 py-0.5">
         {/* Left: Logo + selettore gioco — colonna allineata al menu Prodotti sotto */}
         <div
@@ -517,15 +520,17 @@ export function TopBar() {
 
               {/* 5. ASTE — mobile icona diretta; desktop con label */}
               <MobileHeaderNavIcon
-                as="link"
-                href="/aste"
+                as="button"
+                onClick={() => setAsteIntroOpen(true)}
                 aria-label={t('nav.auctions')}
+                aria-expanded={false}
                 className="group relative order-4 md:hidden"
               >
                 <AuctionGavelIcon className="h-6 w-6" stroke="#FF7300" animated />
               </MobileHeaderNavIcon>
-              <Link
-                href="/aste"
+              <button
+                type="button"
+                onClick={() => setAsteIntroOpen(true)}
                 className="group order-4 hidden items-center gap-1.5 rounded-lg px-1 py-1 text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1D3160] md:order-5 md:flex"
                 aria-label={t('nav.auctions')}
               >
@@ -538,7 +543,7 @@ export function TopBar() {
                 <span className="hidden whitespace-nowrap text-[0.78rem] font-medium uppercase md:inline">
                   {t('nav.auctions')}
                 </span>
-              </Link>
+              </button>
 
               {/* 6. Carrello — solo desktop; su mobile FAB in basso a destra */}
               <div className="order-5 hidden md:order-6 md:block">
@@ -552,7 +557,7 @@ export function TopBar() {
         <div className="ml-1 flex flex-1 justify-end md:flex-none md:justify-start items-center gap-2 md:gap-2.5" aria-label={t('header.menuAria')}>
           {isAuthenticated ? <NotificationBell /> : null}
           <TournamentsPortalLink variant="header" />
-          {!scambiIntroOpen && <HamburgerMenu />}
+          {!scambiIntroOpen && !asteIntroOpen && <HamburgerMenu />}
         </div>
       </div>
     </>

@@ -31,8 +31,8 @@ export function PhotoPairingInlinePanel({
         className,
       )}
     >
-      <div className={cn('flex items-start gap-3', compact && 'gap-2')}>        
-        <div className={cn('shrink-0 rounded-lg border border-zinc-100 bg-white p-2', compact && 'p-1.5')}>          
+      <div className={cn('flex items-start gap-3', compact && 'flex-col gap-2.5 sm:flex-row sm:gap-2')}>
+        <div className={cn('shrink-0 rounded-lg border border-zinc-100 bg-white p-2', compact && 'p-1.5 self-start')}>
           <QRCodeSVG value={qrUrl} size={compact ? 72 : 104} level="M" className={cn(compact ? 'h-[72px] w-[72px]' : 'h-[104px] w-[104px]')} />
         </div>
         <div className={cn('min-w-0 flex-1 pt-0.5', compact && 'pt-0')}>          

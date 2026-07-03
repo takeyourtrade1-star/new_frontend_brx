@@ -20,6 +20,10 @@ export type AuctionCreateCardSelection = {
   title: string;
   image: string;
   setName?: string;
+  /** MTG: Rare, Mythic, Common, Uncommon */
+  rarity?: string;
+  /** MTG: numero collezionista */
+  collectorNumber?: string;
   /** Slug gioco da Meilisearch (`game_slug`), per impostare `draft.game`. */
   gameSlug?: string;
   /** Selezionato dalla collezione Sync (inventario) */
@@ -206,8 +210,9 @@ export function auctionConditionLabelKey(condition: string): MessageKey {
 
 /** Valore valido per `<select>` condizione (fallback se dati legacy). */
 export function conditionSelectValue(condition: string): string {
+  if (!condition.trim()) return '';
   const n = normalizeAuctionCardCondition(condition);
-  return AUCTION_CARD_CONDITION_OPTIONS.some((o) => o.value === n) ? n : 'near_mint';
+  return AUCTION_CARD_CONDITION_OPTIONS.some((o) => o.value === n) ? n : '';
 }
 
 export const AUCTION_ANTI_SNIPE_MINUTES_OPTIONS: readonly AuctionAntiSnipeMinutes[] = [1, 3, 5];
@@ -223,7 +228,7 @@ export const AUCTION_CREATE_DEFAULT_DRAFT: AuctionCreateDraft = {
   game: '',
   title: '',
   description: '',
-  condition: 'near_mint',
+  condition: '',
   cardLanguage: '',
   imageUrl: '',
   startingBidEur: '1',
@@ -240,9 +245,9 @@ export const AUCTION_CREATE_DEFAULT_DRAFT: AuctionCreateDraft = {
   shippingPayer: 'buyer',
   shippingFlatEur: '4.99',
   shippingOriginCountry: 'IT',
-  shippingNationalEur: '4.99',
-  shippingEuDefaultEur: '9.99',
-  shippingRestOfWorldEur: '14.99',
+  shippingNationalEur: '',
+  shippingEuDefaultEur: '',
+  shippingRestOfWorldEur: '',
   listingPhotos: [],
 };
 

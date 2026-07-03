@@ -45,13 +45,18 @@ export function AuctionCreatePhotosStep({
   const { t } = useTranslation();
   const hasPhotos = listingPhotos.length > 0;
   const maxReached = listingPhotos.length >= AUCTION_LISTING_PHOTO_MAX;
+  const showQrPanel = pairing.phoneUploadModalOpen && Boolean(pairing.phonePairingQrUrl);
+
+  const removePhotoAt = (index: number) => {
+    onListingPhotosChange(listingPhotos.filter((_, i) => i !== index));
+  };
 
   return (
     <div
       className={cn(
-        'space-y-2',
-        isEmbedded && 'space-y-1.5',
-        hasPhotos && 'sm:flex sm:flex-row sm:items-start sm:gap-4 sm:space-y-0',
+        'space-y-3',
+        isEmbedded && 'space-y-2',
+        hasPhotos && 'sm:flex sm:flex-row sm:items-start sm:gap-4',
       )}
     >
       <input
@@ -77,11 +82,13 @@ export function AuctionCreatePhotosStep({
         }}
       />
 
-      {/* Colonna azioni: carica / scatta / QR telefono */}
+      {/* Colonna azioni: larghezza fissa per non comprimere la galleria */}
       <div
         className={cn(
           'flex items-stretch gap-1.5',
-          hasPhotos ? 'sm:flex sm:flex-col sm:w-1/3 sm:gap-2' : 'sm:grid sm:grid-cols-2',
+          hasPhotos
+            ? 'sm:flex sm:w-[148px] sm:shrink-0 sm:flex-col sm:gap-2'
+            : 'sm:grid sm:grid-cols-2',
         )}
       >
         <button
@@ -125,43 +132,38 @@ export function AuctionCreatePhotosStep({
         </button>
       </div>
 
-      {/* Colonna contenuto: QR a schermo, sessione attiva, galleria */}
-      <div
-        className={cn(
-          hasPhotos && 'flex-1 sm:w-2/3 space-y-2',
-          !pairing.phoneUploadModalOpen && hasPhotos && 'sm:mt-0',
-        )}
-      >
+      {/* Colonna contenuto: occupa lo spazio restante senza frazioni annidate */}
+      <div className={cn('min-w-0 space-y-3', hasPhotos && 'flex-1')}>
         {pairing.hasActiveSession && !pairing.phoneUploadModalOpen ? (
-          <div className="rounded-xl border border-[#1D3160]/10 bg-[#1D3160]/5 p-3 space-y-2">
+          <div className="space-y-2 rounded-xl border border-[#1D3160]/10 bg-[#1D3160]/5 p-3">
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-500" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#1D3160]">
                 {t('auctions.createReview.phoneLinkActive')}
               </span>
             </div>
-            <div className="text-xs text-zinc-700 font-medium">
+            <div className="text-xs font-medium text-zinc-700">
               {t('auctions.createPhotoPairingSessionActive', {
                 count: String(pairing.remotePhotoCount),
                 max: String(pairing.maxPhotos),
                 minutes: String(pairing.expiresInMinutes ?? '—'),
               })}
             </div>
-            <p className="text-[10px] text-zinc-500 leading-snug">
+            <p className="text-[10px] leading-snug text-zinc-500">
               {t('auctions.createPhotoFromPhonePollingHint')}
             </p>
             <div className="flex gap-3 pt-1 text-[10px] font-semibold">
               <button
                 type="button"
                 onClick={() => void pairing.regenerateQr()}
-                className="text-[#1D3160] hover:text-[#FF7300] transition-colors underline"
+                className="text-[#1D3160] underline transition-colors hover:text-[#FF7300]"
               >
                 {t('auctions.createPhotoPairingRegenerateQr')}
               </button>
               <button
                 type="button"
                 onClick={() => void pairing.revokePairing()}
-                className="text-zinc-500 hover:text-red-600 transition-colors underline"
+                className="text-zinc-500 underline transition-colors hover:text-red-600"
               >
                 {t('auctions.createPhotoPairingCloseSession')}
               </button>
@@ -169,36 +171,19 @@ export function AuctionCreatePhotosStep({
           </div>
         ) : null}
 
-        {pairing.phoneUploadModalOpen && pairing.phonePairingQrUrl ? (
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <div className={cn(hasPhotos ? 'sm:w-1/3' : 'w-full')}>
-              <PhotoPairingInlinePanel
-                qrUrl={pairing.phonePairingQrUrl}
-                body={t('auctions.createPhotoFromPhoneModalBody')}
-                regenerateLabel={t('auctions.createPhotoPairingRegenerateQr')}
-                closeSessionLabel={t('auctions.createPhotoPairingCloseSession')}
-                onRegenerate={pairing.regenerateQr}
-                onCloseSession={() => {
-                  void pairing.revokePairing();
-                  pairing.closePhoneUploadModal();
-                }}
-              />
-            </div>
-            {hasPhotos ? (
-              <div className="sm:w-2/3">
-                <CompactPhotoGallery
-                  photos={listingPhotos}
-                  uploadStatuses={photoUploadStatuses}
-                  onRemove={(index) => {
-                    const next = listingPhotos.filter((_, i) => i !== index);
-                    onListingPhotosChange(next);
-                  }}
-                  highlightPhotoId={pairing.flashPhotoId}
-                  onPhotoClick={onPhotoClick}
-                />
-              </div>
-            ) : null}
-          </div>
+        {showQrPanel ? (
+          <PhotoPairingInlinePanel
+            compact={hasPhotos}
+            qrUrl={pairing.phonePairingQrUrl!}
+            body={t('auctions.createPhotoFromPhoneModalBody')}
+            regenerateLabel={t('auctions.createPhotoPairingRegenerateQr')}
+            closeSessionLabel={t('auctions.createPhotoPairingCloseSession')}
+            onRegenerate={pairing.regenerateQr}
+            onCloseSession={() => {
+              void pairing.revokePairing();
+              pairing.closePhoneUploadModal();
+            }}
+          />
         ) : null}
 
         {pairing.phonePhotoToast ? (
@@ -210,11 +195,19 @@ export function AuctionCreatePhotosStep({
           <p className="text-[11px] text-red-700">{pairing.pairingActionError}</p>
         ) : null}
 
-        {!pairing.phoneUploadModalOpen ? (
+        {hasPhotos ? (
+          <CompactPhotoGallery
+            photos={listingPhotos}
+            uploadStatuses={photoUploadStatuses}
+            onRemove={removePhotoAt}
+            highlightPhotoId={pairing.flashPhotoId}
+            onPhotoClick={onPhotoClick}
+          />
+        ) : !showQrPanel ? (
           <AuctionListingPhotoUpload
             photos={listingPhotos}
             onPhotosChange={onListingPhotosChange}
-            compact={!hasPhotos}
+            compact
             hideAddTile
             uploadStatuses={photoUploadStatuses}
             highlightPhotoId={pairing.flashPhotoId}

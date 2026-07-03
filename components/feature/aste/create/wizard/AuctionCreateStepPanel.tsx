@@ -49,6 +49,7 @@ export type AuctionCreateStepPanelProps = {
   embCameraInputRef: RefObject<HTMLInputElement | null>;
   setLightboxIndex: (index: number) => void;
   setLightboxOpen: (open: boolean) => void;
+  onReviewEditSection?: (section: 'item' | 'price' | 'shipping' | 'photos' | 'notes') => void;
 };
 
 export function AuctionCreateStepPanel({
@@ -77,6 +78,7 @@ export function AuctionCreateStepPanel({
   embCameraInputRef,
   setLightboxIndex,
   setLightboxOpen,
+  onReviewEditSection,
 }: AuctionCreateStepPanelProps) {
   switch (stepId) {
     case 'item_pick':
@@ -156,7 +158,9 @@ export function AuctionCreateStepPanel({
           />
         );
       }
-      return <AuctionCreateReviewStep draft={draft} />;
+      return (
+        <AuctionCreateReviewStep draft={draft} onEditSection={onReviewEditSection} />
+      );
     default: {
       const _exhaustive: never = stepId;
       return _exhaustive;

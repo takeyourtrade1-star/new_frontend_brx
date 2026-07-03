@@ -10,6 +10,7 @@ type CardLanguageSelectProps = {
   onChange: (value: string) => void;
   className?: string;
   disabled?: boolean;
+  placeholder?: string;
 };
 
 export function CardLanguageSelect({
@@ -18,6 +19,7 @@ export function CardLanguageSelect({
   onChange,
   className,
   disabled = false,
+  placeholder,
 }: CardLanguageSelectProps) {
   const customOptions = options.map((o) => ({
     value: o.code,
@@ -32,6 +34,7 @@ export function CardLanguageSelect({
       onChange={onChange}
       className={className}
       disabled={disabled}
+      placeholder={placeholder}
     />
   );
 }

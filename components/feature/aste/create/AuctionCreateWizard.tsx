@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { listingPhotosComplete } from '@/components/feature/aste/create/AuctionListingPhotoUpload';
 import {
-  buildAuctionLanguageOptions,
   AUCTION_CREATE_DEFAULT_DRAFT,
   AUCTION_LISTING_PHOTO_MAX,
   AUCTION_LISTING_PHOTO_MIN,
@@ -29,6 +28,7 @@ import {
 } from '@/lib/auction/auction-create-wizard-types';
 import { validateAuctionCreateStep } from '@/lib/auction/auction-create-validation';
 import { buildAuctionCreatePayload } from '@/lib/auction/build-auction-create-payload';
+import { readAuctionLanguagePreference } from '@/lib/auction/auction-language-preference';
 import { buildCardLanguageOptions } from '@/lib/card-languages';
 import { getCardImageUrl } from '@/lib/assets';
 import { cn } from '@/lib/utils';
@@ -154,6 +154,8 @@ export function AuctionCreateWizard({
       reserve: t('auctions.createValidationReserve'),
       buyNowChoice: t('auctions.createValidationBuyNowChoice'),
       buyNow: t('auctions.createValidationBuyNow'),
+      condition: t('auctions.createValidationCondition'),
+      cardLanguage: t('auctions.createValidationCardLanguage'),
       shipping: t('auctions.createValidationShipping'),
       photos: t('auctions.createValidationPhotos', {
         min: AUCTION_LISTING_PHOTO_MIN,
@@ -274,9 +276,9 @@ export function AuctionCreateWizard({
       return {
         ...base,
         selectedInventoryItemId: null,
-        // Offerta iniziale di base 1 €: l'utente la può modificare nello step prezzo.
+        condition: '',
+        cardLanguage: readAuctionLanguagePreference() ?? '',
         startingBidEur: '1',
-        // Prodotto non in inventario: niente listing esistente → "Compra subito" facoltativo.
         inventoryListPriceEur: '',
         keepInventoryListing: true,
         buyNowPriceEur: '',
@@ -433,6 +435,34 @@ export function AuctionCreateWizard({
     setStepId('details');
   }, []);
 
+  const editReviewSection = useCallback(
+    (section: 'item' | 'price' | 'shipping' | 'photos' | 'notes') => {
+      setError(null);
+      switch (section) {
+        case 'item':
+          setStepId(draft.cardSelection || draft.title.trim() ? 'details' : 'item_pick');
+          break;
+        case 'price':
+          setStepId('price');
+          break;
+        case 'shipping':
+          setStepId('shipping');
+          break;
+        case 'photos':
+          setStepId('photos');
+          break;
+        case 'notes':
+          setStepId('details');
+          break;
+        default: {
+          const _exhaustive: never = section;
+          return _exhaustive;
+        }
+      }
+    },
+    [draft.cardSelection, draft.title]
+  );
+
   const publish = useCallback(async () => {
     const order = getStepOrder(draft.isCard, { variant: stepVariant, hasEmbeddedInventory });
     for (const id of order) {
@@ -510,18 +540,6 @@ export function AuctionCreateWizard({
     if (!listingPhotosComplete(draft.listingPhotos)) return true;
     return !allPhotosUploaded;
   }, [isEmbedded, stepId, draft.listingPhotos, allPhotosUploaded]);
-
-  const cardLanguageOptions = useMemo(
-    () => buildAuctionLanguageOptions(draft.cardSelection?.availableLanguages),
-    [draft.cardSelection?.availableLanguages]
-  );
-
-  useEffect(() => {
-    if (!draft.cardLanguage) return;
-    if (!cardLanguageOptions.some((o) => o.value === draft.cardLanguage)) {
-      update('cardLanguage', cardLanguageOptions[0]?.value ?? '');
-    }
-  }, [cardLanguageOptions, draft.cardLanguage, update]);
 
   const cardLanguageFlagOptions = useMemo(
     () => buildCardLanguageOptions(draft.cardSelection?.availableLanguages),
@@ -667,6 +685,7 @@ export function AuctionCreateWizard({
               embCameraInputRef={embCameraInputRef}
               setLightboxIndex={setLightboxIndex}
               setLightboxOpen={setLightboxOpen}
+              onReviewEditSection={editReviewSection}
             />
           </div>
 

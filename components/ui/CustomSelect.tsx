@@ -32,7 +32,7 @@ export function CustomSelect({
   const [menuPos, setMenuPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const selected = options.find((o) => o.value === value) ?? options[0];
+  const selected = value ? options.find((o) => o.value === value) : undefined;
 
   const calcPos = useCallback(() => {
     if (!triggerRef.current) return;
