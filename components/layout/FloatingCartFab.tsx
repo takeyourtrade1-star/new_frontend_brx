@@ -32,7 +32,16 @@ export function FloatingCartFab() {
 
   // Nascondi il FAB carrello sul carrello stesso e nella pagina "I miei oggetti":
   // lì la barra azioni mobile (ricerca/filtri) sta in basso e il FAB la coprirebbe.
-  if (pathname === '/cart' || pathname === '/account/oggetti') return null;
+  // Nascosto anche nella sezione aste: lì si compra tramite offerte, non col carrello,
+  // e il FAB coprirebbe le barre fisse in basso (filtri hub, dock offerta nel dettaglio).
+  if (
+    pathname === '/cart' ||
+    pathname === '/account/oggetti' ||
+    pathname === '/aste' ||
+    pathname.startsWith('/aste/')
+  ) {
+    return null;
+  }
 
   return (
     <Link

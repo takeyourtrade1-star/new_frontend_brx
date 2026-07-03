@@ -44,6 +44,7 @@ import { ProxyLimitModal } from '@/components/feature/aste/detail/ProxyLimitModa
 import { AuctionImageLightbox } from '@/components/feature/aste/detail/AuctionImageLightbox';
 import { AuctionHero } from '@/components/feature/aste/detail/AuctionHero';
 import { AuctionMobileActionsBar } from '@/components/feature/aste/detail/AuctionMobileActionsBar';
+import { AuctionMobileBidDock } from '@/components/feature/aste/detail/AuctionMobileBidDock';
 import { AuctionShippingDetails } from '@/components/feature/aste/detail/AuctionShippingDetails';
 import { AuctionStatusPanels } from '@/components/feature/aste/detail/AuctionStatusPanels';
 import { AuctionDetailsSummary } from '@/components/feature/aste/detail/AuctionDetailsSummary';
@@ -101,6 +102,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const heroTitleRef = useRef<HTMLDivElement>(null);
   const asteNavRef = useRef<HTMLDivElement>(null);
+  const bidPanelBoxRef = useRef<HTMLDivElement>(null);
+  const [bidPanelInView, setBidPanelInView] = useState(true);
   const [bidsExpanded, setBidsExpanded] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [shippingExpanded, setShippingExpanded] = useState(false);
@@ -302,6 +305,18 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     calendarMenuDesktopRef,
   });
 
+  // Dock offerta mobile: visibile solo quando il pannello offerta inline è fuori viewport.
+  useEffect(() => {
+    const el = bidPanelBoxRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setBidPanelInView(entry.isIntersecting),
+      { threshold: 0.2 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [showBuyerBid, isLoading, numericId]);
+
   useEffect(() => {
     if (proxyBidOutbid && !previousProxyBidOutbidRef.current) {
       setFloatingNotice({
@@ -330,6 +345,22 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       return;
     }
     void setSaved(!isSaved);
+  };
+
+  const handleSubmitOffer = (amountEur: number) => {
+    setMyLastOfferEur(roundMoney(amountEur));
+    setFloatingNotice({
+      kind: 'success',
+      message: `Offerta registrata correttamente: ${fmtEur(roundMoney(amountEur))}.`,
+    });
+  };
+
+  const handleSubmitMaxBid = (amountEur: number) => {
+    setMyMaxBidEur(roundMoney(amountEur));
+    setFloatingNotice({
+      kind: 'success',
+      message: `Proxy bidding impostato a ${fmtEur(roundMoney(amountEur))}.`,
+    });
   };
 
   return (
@@ -371,6 +402,27 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         onToggleSave={handleToggleSave}
         t={t}
       />
+
+      {/* Dock offerta mobile — pillola flottante quando il pannello offerta è fuori schermo */}
+      {showBuyerBid && (
+        <AuctionMobileBidDock
+          visible={!bidPanelInView && !lightboxOpen}
+          auctionId={numericId}
+          currentBidEur={effectiveCurrentBidEur}
+          isWinning={isWinning}
+          reserveMet={reserveMet}
+          maxBidEur={myMaxBidEur}
+          proxyBidOutbid={proxyBidOutbid}
+          buyNowEnabled={detail.buyNowEnabled}
+          buyNowPrice={detail.buyNowPrice}
+          buyNowUrl={detail.buyNowUrl}
+          isAuthenticated={isAuthenticated}
+          onOpenMaxBid={openProxyModal}
+          onRequireAuth={() => setLoginGateOpen(true)}
+          onSubmitOffer={handleSubmitOffer}
+          onSubmitMaxBid={handleSubmitMaxBid}
+        />
+      )}
 
       <section className="w-full bg-white px-0 py-2 sm:px-6 sm:py-3 lg:px-8 lg:py-4">
         <div className="container-content container-content-card-detail">
@@ -469,34 +521,24 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                 />
 
                 {showBuyerBid && (
-                  <AuctionBidPanel
-                    auctionId={numericId}
-                    currentBidEur={effectiveCurrentBidEur}
-                    isWinning={isWinning}
-                    reserveMet={reserveMet}
-                    maxBidEur={myMaxBidEur}
-                    proxyBidOutbid={proxyBidOutbid}
-                    buyNowEnabled={detail.buyNowEnabled}
-                    buyNowPrice={detail.buyNowPrice}
-                    buyNowUrl={detail.buyNowUrl}
-                    isAuthenticated={isAuthenticated}
-                    onOpenMaxBid={openProxyModal}
-                    onRequireAuth={() => setLoginGateOpen(true)}
-                    onSubmitOffer={(amountEur) => {
-                      setMyLastOfferEur(roundMoney(amountEur));
-                      setFloatingNotice({
-                        kind: 'success',
-                        message: `Offerta registrata correttamente: ${fmtEur(roundMoney(amountEur))}.`,
-                      });
-                    }}
-                    onSubmitMaxBid={(amountEur) => {
-                      setMyMaxBidEur(roundMoney(amountEur));
-                      setFloatingNotice({
-                        kind: 'success',
-                        message: `Proxy bidding impostato a ${fmtEur(roundMoney(amountEur))}.`,
-                      });
-                    }}
-                  />
+                  <div ref={bidPanelBoxRef}>
+                    <AuctionBidPanel
+                      auctionId={numericId}
+                      currentBidEur={effectiveCurrentBidEur}
+                      isWinning={isWinning}
+                      reserveMet={reserveMet}
+                      maxBidEur={myMaxBidEur}
+                      proxyBidOutbid={proxyBidOutbid}
+                      buyNowEnabled={detail.buyNowEnabled}
+                      buyNowPrice={detail.buyNowPrice}
+                      buyNowUrl={detail.buyNowUrl}
+                      isAuthenticated={isAuthenticated}
+                      onOpenMaxBid={openProxyModal}
+                      onRequireAuth={() => setLoginGateOpen(true)}
+                      onSubmitOffer={handleSubmitOffer}
+                      onSubmitMaxBid={handleSubmitMaxBid}
+                    />
+                  </div>
                 )}
               </div>
 
@@ -530,6 +572,9 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
           </div>
 
           <SimilarAuctionsSections similarCards={similarCards} />
+
+          {/* Spazio per il dock offerta mobile, così non copre l'ultimo contenuto */}
+          {showBuyerBid && <div aria-hidden className="h-20 lg:hidden" />}
         </div>
       </section>
 

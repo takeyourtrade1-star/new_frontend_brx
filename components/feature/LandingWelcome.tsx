@@ -233,7 +233,7 @@ function HeroTaglinePoints({
   return (
     <div className="flex flex-col text-left py-1 sm:py-2 max-w-xl lg:max-w-2xl">
       {/* Intro phrase */}
-      <span className="text-lg font-extrabold uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-white/95 to-white/70 sm:text-xl md:text-2xl lg:text-3xl mb-3 sm:mb-4 text-left drop-shadow-md select-none">
+      <span className="text-xl font-extrabold uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-white/95 to-white/70 sm:text-xl md:text-2xl lg:text-3xl mb-3 sm:mb-4 text-left drop-shadow-md select-none">
         {t('landing.hero.static.intro')}
       </span>
 
@@ -257,7 +257,7 @@ function HeroTaglinePoints({
                 aria-hidden
               />
               <span
-                className={`text-sm sm:text-base lg:text-[1.05rem] leading-relaxed font-medium ${
+                className={`text-base lg:text-[1.05rem] leading-relaxed font-medium ${
                   isActive
                     ? 'hero-point-reveal'
                     : 'text-white/60 transition-colors duration-300 group-hover:text-white/90'
@@ -425,8 +425,8 @@ export function LandingWelcome() {
                 alt="Ebartex"
                 width={800}
                 height={300}
-                className="h-[5.5rem] w-auto shrink-0 object-contain sm:h-28 md:h-36 xl:h-40"
-                sizes="(max-width: 640px) 220px, (max-width: 1024px) 350px, 450px"
+                className="h-28 w-auto shrink-0 object-contain sm:h-32 md:h-36 xl:h-40"
+                sizes="(max-width: 640px) 300px, (max-width: 1024px) 350px, 450px"
                 priority
                 unoptimized
               />
@@ -441,7 +441,7 @@ export function LandingWelcome() {
             </div>
           </header>
 
-          <div className="mx-auto mt-10 w-full max-w-4xl sm:mt-12">
+          <div className="mx-auto mt-16 w-full max-w-4xl sm:mt-12">
 
             {/* ──── MAGIC CARD ──── */}
             <div
@@ -499,13 +499,13 @@ export function LandingWelcome() {
                   <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-white/40 mb-3 text-center">
                     Presto in arrivo
                   </p>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
                     {COMING_SOON_GAMES.map((game) => (
                       <button
                         key={game.alt}
                         type="button"
                         aria-label={game.alt}
-                        className="group/game relative flex aspect-square sm:aspect-[4/3] w-full flex-col items-center justify-center gap-1.5 rounded-xl overflow-hidden bg-white/10 border border-white/15 px-1 py-2 transition-all duration-300 hover:bg-white/15 hover:border-white/25 hover:scale-105"
+                        className="group/game relative flex aspect-[4/3] w-full flex-col items-center justify-center gap-1.5 rounded-xl overflow-hidden bg-white/10 border border-white/15 px-1 py-2 transition-all duration-300 hover:bg-white/15 hover:border-white/25 hover:scale-105"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -542,7 +542,7 @@ export function LandingWelcome() {
                     <button
                       type="button"
                       aria-label={`+${EXTRA_COMING_SOON_GAMES_COUNT} altri giochi in arrivo`}
-                      className="group/game relative flex aspect-square sm:aspect-[4/3] w-full flex-col items-center justify-center gap-0.5 rounded-xl overflow-hidden bg-white/5 border border-dashed border-white/20 px-1 py-2 transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:scale-105"
+                      className="group/game relative flex aspect-[4/3] w-full flex-col items-center justify-center gap-0.5 rounded-xl overflow-hidden bg-white/5 border border-dashed border-white/20 px-1 py-2 transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:scale-105"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();

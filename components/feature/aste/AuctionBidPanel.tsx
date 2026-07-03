@@ -23,6 +23,8 @@ type AuctionBidPanelProps = {
   onOpenMaxBid: () => void;
   onSubmitOffer: (amountEur: number) => void;
   onSubmitMaxBid: (amountEur: number) => void;
+  /** Id del campo importo: differenziarlo se il pannello è montato più volte nella stessa pagina. */
+  inputId?: string;
 };
 
 type PendingAction = { type: 'direct' | 'max'; amount: number };
@@ -244,6 +246,7 @@ export function AuctionBidPanel({
   onOpenMaxBid,
   onSubmitOffer,
   onSubmitMaxBid,
+  inputId = 'bid-panel-input',
 }: AuctionBidPanelProps) {
   const { t } = useTranslation();
   const placeBidMutation = usePlaceBid(auctionId);
@@ -451,11 +454,11 @@ export function AuctionBidPanel({
         </div>
 
         <div className="mt-3">
-          <label htmlFor="bid-panel-input" className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+          <label htmlFor={inputId} className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-gray-600">
             {t('auctions.bidCustomAmountLabel')}
           </label>
           <input
-            id="bid-panel-input"
+            id={inputId}
             type="text"
             inputMode="decimal"
             value={input}

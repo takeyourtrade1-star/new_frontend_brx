@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
@@ -39,6 +39,18 @@ function buildPageItems(current: number, total: number, span: number): (number |
   }
   return items;
 }
+
+// Design: un'unica pillola segmentata (frecce + numeri + salto pagina) invece
+// di tante bolle separate — i tasti sono "ghost", solo la pagina corrente è piena.
+const ITEM_BASE =
+  'flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-xs tabular-nums transition-colors';
+const ITEM_IDLE = cn(
+  ITEM_BASE,
+  'font-semibold text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-95'
+);
+const ITEM_ACTIVE = cn(ITEM_BASE, 'bg-[#1D3160] font-bold text-white shadow-sm');
+const ARROW_STYLE =
+  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 active:scale-95 disabled:pointer-events-none disabled:opacity-30';
 
 export function Pagination({
   currentPage,
@@ -79,9 +91,6 @@ export function Pagination({
     }
   };
 
-  const arrowStyle =
-    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 active:scale-95 disabled:pointer-events-none disabled:opacity-40';
-
   const renderArrow = (dir: 'prev' | 'next') => {
     const disabled = dir === 'prev' ? isPrevDisabled : isNextDisabled;
     const page = dir === 'prev' ? prevPage : nextPage;
@@ -89,46 +98,36 @@ export function Pagination({
     const Icon = dir === 'prev' ? ChevronLeft : ChevronRight;
     if (buildPageHref && !onPageChange && !disabled) {
       return (
-        <Link href={buildPageHref(page)} className={arrowStyle} aria-label={label}>
-          <Icon className="h-5 w-5" strokeWidth={2} />
+        <Link href={buildPageHref(page)} className={ARROW_STYLE} aria-label={label}>
+          <Icon className="h-4 w-4" strokeWidth={2.25} />
         </Link>
       );
     }
     return (
-      <button type="button" disabled={disabled} onClick={() => goTo(page)} className={arrowStyle} aria-label={label}>
-        <Icon className="h-5 w-5" strokeWidth={2} />
+      <button type="button" disabled={disabled} onClick={() => goTo(page)} className={ARROW_STYLE} aria-label={label}>
+        <Icon className="h-4 w-4" strokeWidth={2.25} />
       </button>
     );
   };
 
   const renderNumbers = (span: number) => (
-    <ul className="flex items-center gap-1" aria-label={pageText}>
+    <ul className="flex items-center gap-0.5" aria-label={pageText}>
       {buildPageItems(currentPage, totalPages, span).map((item, i) => (
         <li key={item === 'gap' ? `gap-${i}` : item}>
           {item === 'gap' ? (
-            <span className="px-0.5 text-xs font-bold text-gray-400" aria-hidden>
+            <span className="flex h-8 w-5 items-center justify-center text-xs font-bold text-gray-400" aria-hidden>
               …
             </span>
           ) : item === currentPage ? (
-            <span
-              aria-current="page"
-              className="flex h-9 min-w-[2.25rem] items-center justify-center rounded-full bg-[#1D3160] px-1.5 text-xs font-bold tabular-nums text-white shadow-sm"
-            >
+            <span aria-current="page" className={ITEM_ACTIVE}>
               {item}
             </span>
           ) : buildPageHref && !onPageChange ? (
-            <Link
-              href={buildPageHref(item)}
-              className="flex h-9 min-w-[2.25rem] items-center justify-center rounded-full border border-gray-200 bg-white px-1.5 text-xs font-semibold tabular-nums text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 active:scale-95"
-            >
+            <Link href={buildPageHref(item)} className={ITEM_IDLE}>
               {item}
             </Link>
           ) : (
-            <button
-              type="button"
-              onClick={() => goTo(item)}
-              className="flex h-9 min-w-[2.25rem] items-center justify-center rounded-full border border-gray-200 bg-white px-1.5 text-xs font-semibold tabular-nums text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 active:scale-95"
-            >
+            <button type="button" onClick={() => goTo(item)} className={ITEM_IDLE}>
               {item}
             </button>
           )}
@@ -137,12 +136,44 @@ export function Pagination({
     </ul>
   );
 
+  const pill = (span: number, withGoto: boolean) => (
+    <div className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-gray-200/80 bg-white p-1 shadow-[0_2px_12px_rgba(29,49,96,0.07)]">
+      {renderArrow('prev')}
+      {renderNumbers(span)}
+      {renderArrow('next')}
+      {withGoto && (
+        <>
+          {/* Salto diretto: utile quando le pagine sono tante */}
+          <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-gray-200" />
+          <form onSubmit={handleGotoSubmit} className="flex shrink-0 items-center">
+            <input
+              type="number"
+              min={1}
+              max={totalPages}
+              inputMode="numeric"
+              value={gotoValue}
+              onChange={(e) => setGotoValue(e.target.value)}
+              placeholder="n°"
+              aria-label={goToLabel}
+              className="h-8 w-11 rounded-full bg-transparent text-center text-xs font-semibold tabular-nums text-gray-700 outline-none transition placeholder:text-gray-400 focus:bg-gray-100 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+            <button
+              type="submit"
+              aria-label={goToLabel}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-[#FF7300] active:scale-95"
+            >
+              <ArrowRight className="h-4 w-4" strokeWidth={2.25} />
+            </button>
+          </form>
+        </>
+      )}
+    </div>
+  );
+
   if (variant === 'compact') {
     return (
-      <nav className={cn('flex items-center gap-1.5', className)} aria-label={pageText}>
-        {renderArrow('prev')}
-        {renderNumbers(1)}
-        {renderArrow('next')}
+      <nav className={cn('flex items-center', className)} aria-label={pageText}>
+        {pill(1, false)}
       </nav>
     );
   }
@@ -150,36 +181,12 @@ export function Pagination({
   return (
     <nav
       className={cn(
-        'flex flex-wrap items-center justify-center gap-2 border-t border-gray-100 bg-gray-50/50 py-3.5 px-4',
+        'flex items-center justify-center border-t border-gray-100 bg-gray-50/50 py-3.5 px-4',
         className
       )}
       aria-label={pageText}
     >
-      {renderArrow('prev')}
-      {renderNumbers(2)}
-      {renderArrow('next')}
-      {/* Salto diretto: utile quando le pagine sono tante */}
-      {totalPages > 7 && (
-        <form onSubmit={handleGotoSubmit} className="ml-1 flex items-center gap-1">
-          <input
-            type="number"
-            min={1}
-            max={totalPages}
-            inputMode="numeric"
-            value={gotoValue}
-            onChange={(e) => setGotoValue(e.target.value)}
-            placeholder="n°"
-            aria-label={goToLabel}
-            className="h-9 w-14 rounded-full border border-gray-200 bg-white px-2 text-center text-xs font-semibold tabular-nums text-gray-700 shadow-sm outline-none transition focus:border-[#FF7300] focus:ring-2 focus:ring-[#FF7300]/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          />
-          <button
-            type="submit"
-            className="flex h-9 items-center justify-center rounded-full border border-gray-200 bg-white px-3 text-xs font-bold uppercase tracking-wide text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-900 active:scale-95"
-          >
-            {t('search.goToPageCta') || 'Vai'}
-          </button>
-        </form>
-      )}
+      {pill(2, totalPages > 7)}
     </nav>
   );
 }
