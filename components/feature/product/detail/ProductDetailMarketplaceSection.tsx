@@ -40,6 +40,9 @@ export interface ProductDetailMarketplaceSectionProps {
   onFirmataChange: (value: 'SÌ' | 'NO' | 'ENTRAMBI') => void;
   alterata: 'SÌ' | 'NO' | 'ENTRAMBI';
   onAlterataChange: (value: 'SÌ' | 'NO' | 'ENTRAMBI') => void;
+  gradata: 'SÌ' | 'NO' | 'ENTRAMBI';
+  onGradataChange: (value: 'SÌ' | 'NO' | 'ENTRAMBI') => void;
+  gradedLabel: string;
   quantita: number;
   onQuantitaChange: (value: number) => void;
   soloFoil: boolean;
@@ -99,6 +102,9 @@ export function ProductDetailMarketplaceSection({
   onFirmataChange,
   alterata,
   onAlterataChange,
+  gradata,
+  onGradataChange,
+  gradedLabel,
   quantita,
   onQuantitaChange,
   soloFoil,
@@ -199,7 +205,7 @@ export function ProductDetailMarketplaceSection({
                     <select
                       value={listingsSort}
                       onChange={(e) => onListingsSortChange(e.target.value as MarketplaceSort)}
-                      className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700"
+                      className="h-10 w-full rounded-2xl border border-global-bg-start/50 bg-white px-3 py-2 text-sm font-semibold text-[#1d1d1f] shadow-[0_0_0_1px_rgba(61,101,198,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-global-bg-start/25"
                     >
                       <option value="price_asc">{sortPriceAsc}</option>
                       <option value="price_desc">{sortPriceDesc}</option>
@@ -319,6 +325,14 @@ export function ProductDetailMarketplaceSection({
                     <div className="flex flex-wrap gap-2">
                       {(['SÌ', 'NO', 'ENTRAMBI'] as const).map((v) => (
                         <button key={v} type="button" onClick={() => onAlterataChange(v)} className={cn('rounded-full px-3 py-1.5 text-xs font-bold', alterata === v ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300')}>{v}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-gray-600 mb-2">{gradedLabel}</label>
+                    <div className="flex flex-wrap gap-2">
+                      {(['SÌ', 'NO', 'ENTRAMBI'] as const).map((v) => (
+                        <button key={v} type="button" onClick={() => onGradataChange(v)} className={cn('rounded-full px-3 py-1.5 text-xs font-bold', gradata === v ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300')}>{v}</button>
                       ))}
                     </div>
                   </div>

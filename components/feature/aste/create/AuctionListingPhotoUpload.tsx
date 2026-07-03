@@ -24,6 +24,17 @@ export function slotPreviewUrl(slot: ListingPhotoSlot): string {
   return slot.kind === 'local' ? URL.createObjectURL(slot.file) : slot.photo.cdn_url;
 }
 
+/** URL anteprima: preferisce CDN post-upload, altrimenti blob locale. */
+export function resolveListingPhotoPreviewUrl(
+  slot: ListingPhotoSlot,
+  uploadStatus?: ListingPhotoUploadStatus
+): string {
+  if (slot.kind === 'remote') return slot.photo.cdn_url;
+  if (uploadStatus?.kind === 'done' && uploadStatus.cdnUrl) return uploadStatus.cdnUrl;
+  if (slot.kind === 'local') return URL.createObjectURL(slot.file);
+  return '';
+}
+
 export function AuctionListingPhotoUpload({
   photos,
   onPhotosChange,
@@ -414,27 +425,51 @@ export function listingPhotosReady(
 }
 
 /** Anteprima in revisione (revoca blob URL al cambio). */
-export function ListingPhotoThumbnailsRow({ photos }: { photos: ListingPhotoSlot[] }) {
-  const urls = useMemo(() => photos.map(slotPreviewUrl), [photos]);
+export function ListingPhotoThumbnailsRow({
+  photos,
+  uploadStatuses,
+  compact = false,
+}: {
+  photos: ListingPhotoSlot[];
+  uploadStatuses?: ListingPhotoUploadStatus[];
+  compact?: boolean;
+}) {
+  const urls = useMemo(
+    () => photos.map((slot, i) => resolveListingPhotoPreviewUrl(slot, uploadStatuses?.[i])),
+    [photos, uploadStatuses]
+  );
 
   useEffect(() => {
     return () => {
       photos.forEach((slot, i) => {
-        if (slot.kind === 'local') URL.revokeObjectURL(urls[i]!);
+        const status = uploadStatuses?.[i];
+        if (slot.kind === 'local' && status?.kind !== 'done') {
+          URL.revokeObjectURL(urls[i]!);
+        }
       });
     };
-  }, [urls, photos]);
+  }, [urls, photos, uploadStatuses]);
 
   if (photos.length === 0) {
     return <span className="text-sm text-gray-500">—</span>;
   }
 
   return (
-    <div className="flex flex-wrap gap-3">
-      {urls.map((u, i) => (
-        // eslint-disable-next-line @next/next/no-img-element -- blob + CDN
-        <img key={i} src={u} alt="" className="h-24 w-24 rounded-lg border border-gray-200 object-cover sm:h-28 sm:w-28" />
-      ))}
+    <div className={cn('flex flex-wrap', compact ? 'gap-2' : 'gap-3')}>
+      {urls.map((u, i) =>
+        u ? (
+          // eslint-disable-next-line @next/next/no-img-element -- blob + CDN
+          <img
+            key={i}
+            src={u}
+            alt=""
+            className={cn(
+              'rounded-lg border border-gray-200 object-cover',
+              compact ? 'h-[4.5rem] w-[4.5rem] sm:h-20 sm:w-20' : 'h-24 w-24 sm:h-28 sm:w-28'
+            )}
+          />
+        ) : null
+      )}
     </div>
   );
 }

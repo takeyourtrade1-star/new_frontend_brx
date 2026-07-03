@@ -25,6 +25,7 @@ export interface ProductFiltersState {
   soloFoil: boolean;
   firmata: TriState;
   alterata: TriState;
+  gradata: TriState;
   quantita: number;
   posizioneVenditore: string;
   tipoVenditore: string | null;
@@ -40,6 +41,7 @@ export const INITIAL_PRODUCT_FILTERS: ProductFiltersState = {
   soloFoil: false,
   firmata: 'ENTRAMBI',
   alterata: 'ENTRAMBI',
+  gradata: 'ENTRAMBI',
   quantita: 1,
   posizioneVenditore: '',
   tipoVenditore: null,
@@ -105,6 +107,7 @@ export function useProductFilters({ productId }: UseProductFiltersArgs) {
       setSoloFoil: (v: boolean) => dispatch({ type: 'set', key: 'soloFoil', value: v }),
       setFirmata: (v: TriState) => dispatch({ type: 'set', key: 'firmata', value: v }),
       setAlterata: (v: TriState) => dispatch({ type: 'set', key: 'alterata', value: v }),
+      setGradata: (v: TriState) => dispatch({ type: 'set', key: 'gradata', value: v }),
       setQuantita: (v: number) => dispatch({ type: 'set', key: 'quantita', value: v }),
       setPosizioneVenditore: (v: string) =>
         dispatch({ type: 'set', key: 'posizioneVenditore', value: v }),
@@ -127,6 +130,7 @@ export function useProductFilters({ productId }: UseProductFiltersArgs) {
       soloFoil: state.soloFoil,
       firmata: state.firmata,
       alterata: state.alterata,
+      gradata: state.gradata,
       quantitaMin: state.quantita,
       posizioneVenditore: state.posizioneVenditore,
       tipoVenditore: state.tipoVenditore as SellerTypeFilter | null,
@@ -138,6 +142,7 @@ export function useProductFilters({ productId }: UseProductFiltersArgs) {
       state.soloFoil,
       state.firmata,
       state.alterata,
+      state.gradata,
       state.quantita,
       state.posizioneVenditore,
       state.tipoVenditore,

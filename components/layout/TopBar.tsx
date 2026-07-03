@@ -143,21 +143,25 @@ export function TopBar() {
   // FE-REV-005: il menu giochi mancava del listener click-outside presente sugli altri menu.
   useClickOutside(gamesMenuRef, () => setGamesMenuOpen(false), gamesMenuOpen);
 
-  /** Mostra nome utente: preferisce la parte prima della @ dell'email, poi il nome, poi il fallback */
+  /** Mostra nome utente: preferisce lo username, poi il nome, poi la parte prima della @ dell'email */
   const shortLabel = (() => {
     if (isAuthenticated && !user && (authLoading || loginMutation.isPending)) {
       return '…';
     }
-    const email = user?.email?.trim() ?? '';
-    const name = user?.name?.trim() ?? '';
-    if (email) {
-      const username = (email.split('@')[0] || '').trim();
-      if (username) {
-        return (username.length > 12 ? `${username.slice(0, 12)}…` : username).toUpperCase();
-      }
+    const username = user?.username?.trim() ?? '';
+    if (username) {
+      return (username.length > 12 ? `${username.slice(0, 12)}…` : username).toUpperCase();
     }
+    const name = user?.name?.trim() ?? '';
     if (name && !name.includes('@')) {
       return name.length > 12 ? `${name.slice(0, 12)}…` : name;
+    }
+    const email = user?.email?.trim() ?? '';
+    if (email) {
+      const emailLocal = (email.split('@')[0] || '').trim();
+      if (emailLocal) {
+        return (emailLocal.length > 12 ? `${emailLocal.slice(0, 12)}…` : emailLocal).toUpperCase();
+      }
     }
     return t('user.fallbackName');
   })();
@@ -288,7 +292,7 @@ export function TopBar() {
                       animated
                     />
                   </span>
-                  <span className="hidden max-w-[6rem] shrink-0 text-[0.78rem] font-medium uppercase text-white md:block" title={user?.email ?? user?.name ?? undefined}>
+                  <span className="hidden max-w-[6rem] shrink-0 text-[0.78rem] font-medium uppercase text-white md:block" title={user?.username ?? user?.name ?? user?.email ?? undefined}>
                     {shortLabel}
                   </span>
                   <span className="hidden text-[0.78rem] text-white sm:inline shrink-0">({balance})</span>

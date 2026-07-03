@@ -1,6 +1,6 @@
 'use client';
 
-import type { LegacyRef, RefObject } from 'react';
+import { useState, type LegacyRef, type RefObject } from 'react';
 import { Camera, ImageIcon, QrCode } from 'lucide-react';
 import {
   AUCTION_LISTING_PHOTO_MAX,
@@ -9,6 +9,11 @@ import {
   type AuctionCreateDraft,
   type ListingPhotoSlot,
 } from '@/lib/auction/auction-create-draft';
+import {
+  clearAuctionShippingPreference,
+  readAuctionShippingPreference,
+  persistAuctionShippingFromDraft,
+} from '@/lib/auction/auction-wizard-preferences';
 import { usePhotoPairingSession } from '@/lib/hooks/use-photo-pairing-session';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
@@ -18,6 +23,7 @@ import {
 } from '../AuctionListingPhotoUpload';
 import { CompactPhotoGallery } from '../CompactPhotoGallery';
 import { PhotoPairingInlinePanel } from '../PhotoPairingInlinePanel';
+import { AuctionWizardRemember1hCheckbox } from './AuctionWizardRemember1hCheckbox';
 
 export type PhotoPairingSession = ReturnType<typeof usePhotoPairingSession>;
 
@@ -51,6 +57,11 @@ export function AuctionCreateEmbeddedReviewStep({
   setLightboxOpen,
 }: AuctionCreateEmbeddedReviewStepProps) {
   const { t } = useTranslation();
+  const [rememberShipping, setRememberShipping] = useState(false);
+
+  const persistIfRemembered = (nextDraft: AuctionCreateDraft) => {
+    if (rememberShipping) persistAuctionShippingFromDraft(nextDraft);
+  };
 
   return (
     <div className="space-y-2.5">
@@ -61,7 +72,26 @@ export function AuctionCreateEmbeddedReviewStep({
         <div className="mt-1 grid grid-cols-2 gap-1.5">
           <button
             type="button"
-            onClick={() => update('shippingPayer', 'buyer')}
+            onClick={() => {
+              const cached = readAuctionShippingPreference();
+              const rates =
+                cached?.shippingPayer === 'buyer'
+                  ? {
+                      shippingNationalEur: cached.shippingNationalEur,
+                      shippingEuDefaultEur: cached.shippingEuDefaultEur,
+                      shippingRestOfWorldEur: cached.shippingRestOfWorldEur,
+                    }
+                  : {
+                      shippingNationalEur: draft.shippingNationalEur,
+                      shippingEuDefaultEur: draft.shippingEuDefaultEur,
+                      shippingRestOfWorldEur: draft.shippingRestOfWorldEur,
+                    };
+              update('shippingPayer', 'buyer');
+              update('shippingNationalEur', rates.shippingNationalEur);
+              update('shippingEuDefaultEur', rates.shippingEuDefaultEur);
+              update('shippingRestOfWorldEur', rates.shippingRestOfWorldEur);
+              persistIfRemembered({ ...draft, shippingPayer: 'buyer', ...rates });
+            }}
             className={cn(
               'rounded-lg border px-2 py-1.5 text-center text-[11px] font-semibold transition-colors',
               draft.shippingPayer === 'buyer'
@@ -73,7 +103,16 @@ export function AuctionCreateEmbeddedReviewStep({
           </button>
           <button
             type="button"
-            onClick={() => update('shippingPayer', 'seller')}
+            onClick={() => {
+              update('shippingPayer', 'seller');
+              persistIfRemembered({
+                ...draft,
+                shippingPayer: 'seller',
+                shippingNationalEur: '',
+                shippingEuDefaultEur: '',
+                shippingRestOfWorldEur: '',
+              });
+            }}
             className={cn(
               'rounded-lg border px-2 py-1.5 text-center text-[11px] font-semibold transition-colors',
               draft.shippingPayer === 'seller'
@@ -108,7 +147,11 @@ export function AuctionCreateEmbeddedReviewStep({
                   id="ac-ship-national-emb"
                   value={draft.shippingNationalEur}
                   onChange={(e) => update('shippingNationalEur', e.target.value)}
-                  onBlur={(e) => update('shippingNationalEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                  onBlur={(e) => {
+                    const value = normalizeAuctionDraftMoneyInput(e.target.value);
+                    update('shippingNationalEur', value);
+                    persistIfRemembered({ ...draft, shippingNationalEur: value });
+                  }}
                   className="w-full rounded-md border border-gray-300 py-1 pl-5 pr-1.5 text-xs tabular-nums text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
                   inputMode="decimal"
                 />
@@ -124,7 +167,11 @@ export function AuctionCreateEmbeddedReviewStep({
                   id="ac-ship-eu-emb"
                   value={draft.shippingEuDefaultEur}
                   onChange={(e) => update('shippingEuDefaultEur', e.target.value)}
-                  onBlur={(e) => update('shippingEuDefaultEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                  onBlur={(e) => {
+                    const value = normalizeAuctionDraftMoneyInput(e.target.value);
+                    update('shippingEuDefaultEur', value);
+                    persistIfRemembered({ ...draft, shippingEuDefaultEur: value });
+                  }}
                   className="w-full rounded-md border border-gray-300 py-1 pl-5 pr-1.5 text-xs tabular-nums text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
                   inputMode="decimal"
                 />
@@ -140,7 +187,11 @@ export function AuctionCreateEmbeddedReviewStep({
                   id="ac-ship-rest-world-emb"
                   value={draft.shippingRestOfWorldEur}
                   onChange={(e) => update('shippingRestOfWorldEur', e.target.value)}
-                  onBlur={(e) => update('shippingRestOfWorldEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                  onBlur={(e) => {
+                    const value = normalizeAuctionDraftMoneyInput(e.target.value);
+                    update('shippingRestOfWorldEur', value);
+                    persistIfRemembered({ ...draft, shippingRestOfWorldEur: value });
+                  }}
                   className="w-full rounded-md border border-gray-300 py-1 pl-5 pr-1.5 text-xs tabular-nums text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
                   inputMode="decimal"
                 />
@@ -148,6 +199,17 @@ export function AuctionCreateEmbeddedReviewStep({
             </div>
           </div>
         )}
+        <AuctionWizardRemember1hCheckbox
+          checked={rememberShipping}
+          onCheckedChange={(checked) => {
+            setRememberShipping(checked);
+            if (checked) {
+              persistAuctionShippingFromDraft(draft);
+            } else {
+              clearAuctionShippingPreference();
+            }
+          }}
+        />
       </div>
 
       <div>

@@ -168,6 +168,15 @@ export function SellSingleDetailsStep({
           />
           Alterata
         </label>
+        <label className="flex items-center gap-1 text-[10px] font-semibold text-zinc-600">
+          <input
+            type="checkbox"
+            checked={draft.extraGraded}
+            onChange={(e) => update('extraGraded', e.target.checked)}
+            className="h-3 w-3 rounded border-zinc-300 text-primary focus:ring-primary/25"
+          />
+          Gradate
+        </label>
       </div>
 
       <div className={cn('grid grid-cols-3 gap-1', compact && 'gap-0.5')}>

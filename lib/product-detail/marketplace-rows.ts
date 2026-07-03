@@ -21,6 +21,7 @@ export interface MarketplaceFilterState {
   soloFoil: boolean;
   firmata: TriStateFilter;
   alterata: TriStateFilter;
+  gradata: TriStateFilter;
   quantitaMin: number;
   posizioneVenditore: string;
   tipoVenditore: SellerTypeFilter | null;
@@ -107,6 +108,7 @@ export function filterMarketplaceRows(
     if (filters.soloFoil && !l.mtg_foil) return false;
     if (!matchesTriState(l.signed, filters.firmata)) return false;
     if (!matchesTriState(l.altered, filters.alterata)) return false;
+    if (!matchesTriState(l.graded ?? undefined, filters.gradata)) return false;
     if (l.quantity < filters.quantitaMin) return false;
 
     if (filters.posizioneVenditore) {

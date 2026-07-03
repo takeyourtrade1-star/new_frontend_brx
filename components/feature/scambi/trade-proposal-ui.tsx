@@ -35,13 +35,14 @@ export type SpecialPrintingFilter = Exclude<TradeCardPrinting, 'standard'>;
 
 export type InventoryPanelVariant = 'mine' | 'other';
 
-const SPECIAL_PRINTING_FILTERS: SpecialPrintingFilter[] = ['foil', 'signed', 'altered'];
+const SPECIAL_PRINTING_FILTERS: SpecialPrintingFilter[] = ['foil', 'signed', 'altered', 'graded'];
 
 const PRINTING_LABELS: Record<TradeCardPrinting, string> = {
   standard: 'Standard',
   foil: 'Foil',
   signed: 'Firmate',
   altered: 'Alterate',
+  graded: 'Gradate',
 };
 
 export function formatTradeEuro(n: number): string {

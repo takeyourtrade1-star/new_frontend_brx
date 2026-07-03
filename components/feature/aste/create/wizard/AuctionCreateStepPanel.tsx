@@ -159,7 +159,11 @@ export function AuctionCreateStepPanel({
         );
       }
       return (
-        <AuctionCreateReviewStep draft={draft} onEditSection={onReviewEditSection} />
+        <AuctionCreateReviewStep
+          draft={draft}
+          photoUploadStatuses={photoUploadStatuses}
+          onEditSection={onReviewEditSection}
+        />
       );
     default: {
       const _exhaustive: never = stepId;

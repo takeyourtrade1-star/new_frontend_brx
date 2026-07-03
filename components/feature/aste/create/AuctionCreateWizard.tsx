@@ -29,6 +29,7 @@ import {
 import { validateAuctionCreateStep } from '@/lib/auction/auction-create-validation';
 import { buildAuctionCreatePayload } from '@/lib/auction/build-auction-create-payload';
 import { readAuctionLanguagePreference } from '@/lib/auction/auction-language-preference';
+import { mergeAuctionWizardPreferences } from '@/lib/auction/auction-wizard-preferences';
 import { buildCardLanguageOptions } from '@/lib/card-languages';
 import { getCardImageUrl } from '@/lib/assets';
 import { cn } from '@/lib/utils';
@@ -41,7 +42,6 @@ import { ImageLightbox } from '@/components/ui/ImageLightbox';
 import { AuctionCreateSuccessScreen } from './wizard/AuctionCreateSuccessScreen';
 import { AuctionCreateStepper } from './wizard/AuctionCreateStepper';
 import { AuctionCreateWizardNav } from './wizard/AuctionCreateWizardNav';
-import { AuctionCreatePublishConfirmModal } from './wizard/AuctionCreatePublishConfirmModal';
 import { AuctionCreateStepPanel } from './wizard/AuctionCreateStepPanel';
 
 export type { AuctionCreateWizardProps };
@@ -70,14 +70,15 @@ export function AuctionCreateWizard({
       : 'item_pick'
   );
   const [draft, setDraft] = useState<AuctionCreateDraft>(() =>
-    isEmbedded && embeddedCard ? createEmbeddedDraftFromProduct(embeddedCard) : AUCTION_CREATE_DEFAULT_DRAFT
+    mergeAuctionWizardPreferences(
+      isEmbedded && embeddedCard ? createEmbeddedDraftFromProduct(embeddedCard) : AUCTION_CREATE_DEFAULT_DRAFT
+    )
   );
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [createdAuctionInfo, setCreatedAuctionInfo] = useState<CreatedAuctionInfo | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const setTransitionTimeout = useTimeoutFn();
-  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const stepContentRef = useRef<HTMLDivElement>(null);
@@ -273,7 +274,7 @@ export function AuctionCreateWizard({
           selectedInventoryItemId: String(sel.inventoryItemId),
         };
       }
-      return {
+      return mergeAuctionWizardPreferences({
         ...base,
         selectedInventoryItemId: null,
         condition: '',
@@ -282,7 +283,7 @@ export function AuctionCreateWizard({
         inventoryListPriceEur: '',
         keepInventoryListing: true,
         buyNowPriceEur: '',
-      };
+      });
     });
     setError(null);
   }, []);
@@ -295,33 +296,37 @@ export function AuctionCreateWizard({
   );
 
   const chooseInInventoryYes = useCallback(() => {
-    setDraft((d) => ({
-      ...d,
-      fromSyncInventory: true,
-      isCard: true,
-      cardSelection: null,
-      title: '',
-      description: '',
-      imageUrl: '',
-      game: '',
-      listingPhotos: [],
-    }));
+    setDraft((d) =>
+      mergeAuctionWizardPreferences({
+        ...d,
+        fromSyncInventory: true,
+        isCard: true,
+        cardSelection: null,
+        title: '',
+        description: '',
+        imageUrl: '',
+        game: '',
+        listingPhotos: [],
+      })
+    );
     setError(null);
   }, []);
 
   const chooseInInventoryNo = useCallback(() => {
-    setDraft((d) => ({
-      ...d,
-      fromSyncInventory: false,
-      isCard: null,
-      cardSelection: null,
-      title: '',
-      description: '',
-      imageUrl: '',
-      game: '',
-      nonCardCategory: '',
-      listingPhotos: [],
-    }));
+    setDraft((d) =>
+      mergeAuctionWizardPreferences({
+        ...d,
+        fromSyncInventory: false,
+        isCard: null,
+        cardSelection: null,
+        title: '',
+        description: '',
+        imageUrl: '',
+        game: '',
+        nonCardCategory: '',
+        listingPhotos: [],
+      })
+    );
     setError(null);
   }, []);
 
@@ -420,21 +425,6 @@ export function AuctionCreateWizard({
 
   const createAuctionMutation = useCreateAuction();
 
-  const openPublishConfirm = useCallback(() => {
-    setError(null);
-    setPublishConfirmOpen(true);
-  }, []);
-
-  const closePublishConfirm = useCallback(() => {
-    setPublishConfirmOpen(false);
-  }, []);
-
-  const editFromPublishConfirm = useCallback(() => {
-    setPublishConfirmOpen(false);
-    setError(null);
-    setStepId('details');
-  }, []);
-
   const editReviewSection = useCallback(
     (section: 'item' | 'price' | 'shipping' | 'photos' | 'notes') => {
       setError(null);
@@ -507,12 +497,6 @@ export function AuctionCreateWizard({
   ]);
 
   const isLastStep = stepId === 'review';
-
-  useEffect(() => {
-    if (stepId !== 'review' && publishConfirmOpen) {
-      setPublishConfirmOpen(false);
-    }
-  }, [stepId, publishConfirmOpen]);
 
   const continueDisabled = useMemo(() => {
     if (stepId === 'item_pick') {
@@ -602,6 +586,7 @@ export function AuctionCreateWizard({
       <div
         className={cn(
           'mx-auto max-w-3xl lg:px-12 xl:px-16',
+          stepId === 'review' && !isEmbedded && 'max-w-4xl',
           isEmbedded && 'max-w-full px-0',
           className
         )}
@@ -701,7 +686,7 @@ export function AuctionCreateWizard({
             totalSteps={totalSteps}
             onBack={goBack}
             onNext={goNext}
-            onOpenPublishConfirm={openPublishConfirm}
+            onPublish={() => void publish()}
           />
         </div>
 
@@ -717,21 +702,9 @@ export function AuctionCreateWizard({
           totalSteps={totalSteps}
           onBack={goBack}
           onNext={goNext}
-          onOpenPublishConfirm={openPublishConfirm}
+          onPublish={() => void publish()}
         />
       </div>
-
-      {publishConfirmOpen && (
-        <AuctionCreatePublishConfirmModal
-          open
-          onClose={closePublishConfirm}
-          onEdit={editFromPublishConfirm}
-          onPublish={() => {
-            setPublishConfirmOpen(false);
-            void publish();
-          }}
-        />
-      )}
 
       <ImageLightbox
         open={lightboxOpen}

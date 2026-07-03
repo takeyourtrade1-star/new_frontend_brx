@@ -48,6 +48,8 @@ export interface MarketplaceCartLine {
 export interface User {
   id: string;
   email: string;
+  /** Username pubblico scelto in registrazione (se restituito dal backend) */
+  username?: string | null;
   name: string | null;
   image: string | null;
   account_status?: string;
@@ -162,6 +164,8 @@ export interface RegisterData {
   ragione_sociale?: string; // Required for business
   piva?: string; // Required for business
   termsAccepted: boolean;
+  /** Approvazione specifica clausole vessatorie ex artt. 1341-1342 c.c. — tracciata separatamente da termsAccepted */
+  specificClausesAccepted: boolean;
   privacyAccepted: boolean;
   cancellationAccepted: boolean;
   adultConfirmed: boolean;

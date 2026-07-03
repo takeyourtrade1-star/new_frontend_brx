@@ -81,7 +81,7 @@ export function RegistrationLegalCheckboxes<T extends LegalCheckboxFields>({
         <LegalTextWithLink
           textKey="registerForm.specificClausesAccepted"
           linkKey="registerForm.termsLink"
-          href="/legal/condizioni"
+          href="/legal/condizioni#clausole-vessatorie"
           textClassName={textClassName}
         />
       </div>
@@ -98,7 +98,12 @@ export function RegistrationLegalCheckboxes<T extends LegalCheckboxFields>({
 
       <div className="flex items-start gap-3">
         <Checkbox {...register('cancellationAccepted' as never)} className="mt-0.5" />
-        <span className={textClassName}>{t('registerForm.cancellationAcceptedText')}</span>
+        <LegalTextWithLink
+          textKey="registerForm.cancellationAcceptedText"
+          linkKey="registerForm.cancellationLink"
+          href="/legal/condizioni#cancellazione"
+          textClassName={textClassName}
+        />
       </div>
 
       <div className="flex items-start gap-3">

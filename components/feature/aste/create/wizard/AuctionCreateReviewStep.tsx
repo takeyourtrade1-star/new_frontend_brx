@@ -1,15 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import {
-  AlignLeft,
-  CircleDollarSign,
-  Edit3,
-  ImageIcon,
-  MapPin,
-  Package,
-  Truck,
-} from 'lucide-react';
+import { useEffect, useMemo, type ReactNode } from 'react';
+import { Camera, Edit3, FileText, ImageIcon, Layers, MapPin, Truck } from 'lucide-react';
 import {
   AUCTION_CREATE_GAMES,
   auctionConditionLabelKey,
@@ -17,16 +9,60 @@ import {
   type AuctionCreateDraft,
 } from '@/lib/auction/auction-create-draft';
 import { getCardImageUrl } from '@/lib/assets';
-import { ListingPhotoThumbnailsRow } from '../AuctionListingPhotoUpload';
+import { SalesTagIcon } from '@/components/ui/SalesTagIcon';
+import {
+  ListingPhotoThumbnailsRow,
+  resolveListingPhotoPreviewUrl,
+  type ListingPhotoUploadStatus,
+} from '../AuctionListingPhotoUpload';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 
 export type AuctionCreateReviewStepProps = {
   draft: AuctionCreateDraft;
+  photoUploadStatuses?: ListingPhotoUploadStatus[];
   onEditSection?: (section: 'item' | 'price' | 'shipping' | 'photos' | 'notes') => void;
 };
 
 const NOT_SET = 'auctions.createSummary.notSet';
+const BRAND_ORANGE = '#FF7300';
+const REVIEW_ICON_SM = 'h-3.5 w-3.5';
+
+function SectionIconBadge({ children }: { children: ReactNode }) {
+  return (
+    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#FF7300]/15 bg-[#FF7300]/10 text-[#FF7300]">
+      {children}
+    </span>
+  );
+}
+
+const REVIEW_SECTION_ICONS = {
+  item: (
+    <SectionIconBadge>
+      <Layers className={REVIEW_ICON_SM} strokeWidth={2.25} aria-hidden />
+    </SectionIconBadge>
+  ),
+  price: (
+    <SectionIconBadge>
+      <SalesTagIcon className={REVIEW_ICON_SM} stroke={BRAND_ORANGE} strokeWidth={2.25} />
+    </SectionIconBadge>
+  ),
+  shipping: (
+    <SectionIconBadge>
+      <Truck className={REVIEW_ICON_SM} strokeWidth={2.25} aria-hidden />
+    </SectionIconBadge>
+  ),
+  photos: (
+    <SectionIconBadge>
+      <Camera className={REVIEW_ICON_SM} strokeWidth={2.25} aria-hidden />
+    </SectionIconBadge>
+  ),
+  notes: (
+    <SectionIconBadge>
+      <FileText className={REVIEW_ICON_SM} strokeWidth={2.25} aria-hidden />
+    </SectionIconBadge>
+  ),
+} as const;
 
 function formatEuro(value: string | number | undefined | null, fallback = '—') {
   if (value == null || value === '') return fallback;
@@ -64,14 +100,16 @@ function EditButton({
 }
 
 function SummarySection({
-  icon: Icon,
+  icon,
   title,
+  subtitle,
   headerAction,
   className,
   children,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ReactNode;
   title: string;
+  subtitle?: string;
   headerAction?: React.ReactNode;
   className?: string;
   children: React.ReactNode;
@@ -83,14 +121,19 @@ function SummarySection({
         className
       )}
     >
-      <header className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#1D3160]/8 text-[#1D3160]">
-            <Icon className="h-3.5 w-3.5" aria-hidden />
-          </span>
-          <h2 className="truncate text-xs font-bold uppercase tracking-wide text-[#1D3160]">
-            {title}
-          </h2>
+      <header className="mb-3 flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-start gap-2">
+          {icon}
+          <div className="min-w-0">
+            <h2 className="truncate text-xs font-bold uppercase tracking-wide text-[#1D3160]">
+              {title}
+            </h2>
+            {subtitle ? (
+              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
         </div>
         {headerAction}
       </header>
@@ -103,17 +146,26 @@ function MetaCell({
   label,
   children,
   emphasized = false,
+  className,
 }: {
   label: string;
   children: React.ReactNode;
   emphasized?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-100 bg-gray-50/70 px-2.5 py-2">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{label}</p>
+    <div
+      className={cn(
+        'min-w-0 rounded-lg border border-gray-100 bg-gray-50/70 px-2.5 py-2',
+        className
+      )}
+    >
+      <p className="truncate text-[10px] font-bold uppercase tracking-wide text-gray-500" title={label}>
+        {label}
+      </p>
       <p
         className={cn(
-          'mt-0.5 text-sm leading-snug',
+          'mt-0.5 line-clamp-2 text-sm leading-snug',
           emphasized ? 'font-bold text-[#1D3160]' : 'font-medium text-gray-900'
         )}
       >
@@ -123,8 +175,68 @@ function MetaCell({
   );
 }
 
-export function AuctionCreateReviewStep({ draft, onEditSection }: AuctionCreateReviewStepProps) {
-  const { t } = useTranslation();
+function PriceCell({
+  label,
+  value,
+  primary = false,
+  muted = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  primary?: boolean;
+  muted?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'min-w-0 rounded-lg border px-2 py-2',
+        primary
+          ? 'border-[#1D3160]/10 bg-[#1D3160]/5'
+          : muted
+            ? 'border-dashed border-gray-200 bg-white/60'
+            : 'border-gray-100 bg-gray-50/70'
+      )}
+    >
+      <p
+        className={cn(
+          'text-[10px] font-bold uppercase leading-tight',
+          muted ? 'text-gray-400' : 'text-gray-500'
+        )}
+      >
+        {label}
+      </p>
+      <p
+        className={cn(
+          'mt-1 break-words tabular-nums',
+          primary
+            ? 'text-xl font-extrabold text-[#1D3160]'
+            : muted
+              ? 'text-base font-semibold text-gray-300'
+              : 'text-base font-bold text-[#1D3160]'
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b border-gray-100 py-1.5 last:border-b-0">
+      <span className="min-w-0 truncate text-[10px] font-bold uppercase tracking-wide text-gray-500" title={label}>
+        {label}
+      </span>
+      <span className="shrink-0 text-right text-sm font-semibold tabular-nums text-gray-900">{children}</span>
+    </div>
+  );
+}
+
+export function AuctionCreateReviewStep({
+  draft,
+  photoUploadStatuses,
+  onEditSection,
+}: AuctionCreateReviewStepProps) {
+  const { t, locale } = useTranslation();
 
   const cardLanguageLabel = useMemo(() => {
     if (!draft.isCard) return null;
@@ -143,21 +255,41 @@ export function AuctionCreateReviewStep({ draft, onEditSection }: AuctionCreateR
 
   const previewPhotoUrl = useMemo(() => {
     if (draft.listingPhotos.length > 0) {
-      const slot = draft.listingPhotos[0];
-      if (slot.kind === 'remote') return slot.photo.cdn_url;
-      if (slot.kind === 'local') return null;
+      const url = resolveListingPhotoPreviewUrl(
+        draft.listingPhotos[0]!,
+        photoUploadStatuses?.[0]
+      );
+      if (url) return url;
     }
+    if (draft.imageUrl?.trim()) return draft.imageUrl;
     if (draft.cardSelection?.image) return getCardImageUrl(draft.cardSelection.image);
     return null;
-  }, [draft.listingPhotos, draft.cardSelection?.image]);
+  }, [draft.listingPhotos, draft.imageUrl, draft.cardSelection?.image, photoUploadStatuses]);
+
+  useEffect(() => {
+    const slot = draft.listingPhotos[0];
+    const status = photoUploadStatuses?.[0];
+    if (!slot || slot.kind !== 'local' || status?.kind === 'done' || !previewPhotoUrl) return;
+    return () => URL.revokeObjectURL(previewPhotoUrl);
+  }, [draft.listingPhotos, photoUploadStatuses, previewPhotoUrl]);
 
   const shippingCountry = (draft.shippingOriginCountry || '').toUpperCase() || null;
+  const shippingCountryName = useMemo(() => {
+    if (!shippingCountry) return null;
+    try {
+      const name = new Intl.DisplayNames([locale], { type: 'region' }).of(shippingCountry);
+      return name && name !== shippingCountry ? name : null;
+    } catch {
+      return null;
+    }
+  }, [shippingCountry, locale]);
   const shippingPayerLabel =
     draft.shippingPayer === 'buyer'
       ? t('auctions.createShippingBuyer')
       : t('auctions.createShippingSeller');
 
   const photoCount = draft.listingPhotos.length;
+  const hasDescription = Boolean(draft.description?.trim());
   const notSet = t(NOT_SET);
   const editLabel = t('common.edit');
 
@@ -170,42 +302,28 @@ export function AuctionCreateReviewStep({ draft, onEditSection }: AuctionCreateR
       />
     ) : null;
 
-  const hasOptionalPrices =
-    (draft.reserveEnabled && draft.reservePriceEur) || (draft.buyNowEnabled && draft.buyNowPriceEur);
+  const showReserve = draft.reserveEnabled && draft.reservePriceEur;
+  const showBuyNow = draft.buyNowEnabled && draft.buyNowPriceEur;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start gap-2.5 rounded-xl border border-amber-200/80 bg-amber-50 px-3.5 py-2.5">
-        <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" aria-hidden />
-        <p className="text-sm font-medium leading-snug text-amber-900">
-          {t('auctions.createCancelWindowBanner')}
-        </p>
-      </div>
-
-      <section className="overflow-hidden rounded-xl border border-[#1D3160]/10 bg-gradient-to-br from-[#1D3160]/[0.04] via-white to-orange-50/30 p-3.5 sm:p-4">
-        <header className="mb-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#1D3160]/10 text-[#1D3160]">
-              <Package className="h-3.5 w-3.5" aria-hidden />
-            </span>
-            <h2 className="text-xs font-bold uppercase tracking-wide text-[#1D3160]">
-              {t('auctions.createSummary.itemHeading')}
-            </h2>
-          </div>
-          {editAction('item', t('auctions.createSummary.itemHeading'))}
-        </header>
-
+    <div className="space-y-3.5">
+      <SummarySection
+        icon={REVIEW_SECTION_ICONS.item}
+        title={t('auctions.createSummary.itemHeading')}
+        headerAction={editAction('item', t('auctions.createSummary.itemHeading'))}
+        className="border-[#1D3160]/10 bg-gradient-to-br from-[#1D3160]/[0.04] via-white to-orange-50/30"
+      >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
           {previewPhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- CDN/remote path blob & remote URLs
             <img
               src={previewPhotoUrl}
               alt=""
-              className="mx-auto h-28 w-[88px] shrink-0 rounded-lg border border-gray-200/80 object-cover shadow-sm sm:mx-0"
+              className="mx-auto h-[7.5rem] w-[5.5rem] shrink-0 rounded-lg border border-gray-200/80 object-cover shadow-sm sm:mx-0"
             />
           ) : (
-            <div className="mx-auto flex h-28 w-[88px] shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-200 bg-white/80 text-[10px] text-gray-400 sm:mx-0">
-              <ImageIcon className="h-4 w-4" aria-hidden />
+            <div className="mx-auto flex h-[7.5rem] w-[5.5rem] shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-200 bg-white/80 px-1 text-center text-[10px] text-gray-400 sm:mx-0">
+              <ImageIcon className="h-4 w-4 text-[#FF7300]/60" aria-hidden />
               {t('auctions.createSummary.itemPhoto')}
             </div>
           )}
@@ -218,22 +336,25 @@ export function AuctionCreateReviewStep({ draft, onEditSection }: AuctionCreateR
               {draft.title || notSet}
             </p>
 
+            {draft.isCard && draft.cardSelection?.setName ? (
+              <p className="mt-0.5 truncate text-xs text-gray-600" title={draft.cardSelection.setName}>
+                {draft.cardSelection.setName}
+              </p>
+            ) : null}
+
             {draft.isCard ? (
-              <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <MetaCell label={t('auctions.createSummary.itemGameLabel')}>
-                    {gameLabel ? t(gameLabel) : notSet}
-                  </MetaCell>
-                  <MetaCell label={t('auctions.createSummary.itemSetLabel')}>
-                    {draft.cardSelection?.setName ?? notSet}
-                  </MetaCell>
-                  <MetaCell label={t('auctions.createSummary.itemConditionLabel')}>
-                    {auctionConditionLabelKey(draft.condition).startsWith('auctions.')
-                      ? t(auctionConditionLabelKey(draft.condition))
-                      : notSet}
-                  </MetaCell>
-                  <MetaCell label={t('auctions.createSummary.itemLanguageLabel')}>
-                    {cardLanguageLabel ?? notSet}
-                  </MetaCell>
+              <div className="mt-2.5 grid grid-cols-3 gap-2">
+                <MetaCell label={t('auctions.createSummary.itemGameLabel')}>
+                  {gameLabel ? t(gameLabel) : notSet}
+                </MetaCell>
+                <MetaCell label={t('auctions.createSummary.itemConditionLabel')}>
+                  {auctionConditionLabelKey(draft.condition).startsWith('auctions.')
+                    ? t(auctionConditionLabelKey(draft.condition))
+                    : notSet}
+                </MetaCell>
+                <MetaCell label={t('auctions.createSummary.itemLanguageLabel')}>
+                  {cardLanguageLabel ?? notSet}
+                </MetaCell>
               </div>
             ) : (
               <p className="mt-1.5 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
@@ -242,39 +363,33 @@ export function AuctionCreateReviewStep({ draft, onEditSection }: AuctionCreateR
             )}
           </div>
         </div>
-      </section>
+      </SummarySection>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3.5 md:grid-cols-2">
         <SummarySection
-          icon={CircleDollarSign}
+          icon={REVIEW_SECTION_ICONS.price}
           title={t('auctions.createSummary.priceHeading')}
           headerAction={editAction('price', t('auctions.createSummary.priceHeading'))}
         >
-          <div className="rounded-lg border border-[#1D3160]/10 bg-[#1D3160]/5 px-3 py-2.5">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#1D3160]/70">
-              {t('auctions.createSummary.priceStartingLabel')}
-            </p>
-            <p className="mt-0.5 text-2xl font-extrabold tabular-nums text-[#1D3160]">
-              {formatEuro(draft.startingBidEur, notSet)}
-            </p>
+          <div className="grid grid-cols-3 gap-2">
+            <PriceCell
+              label={t('auctions.createSummary.priceStartingLabel')}
+              value={formatEuro(draft.startingBidEur, notSet)}
+              primary
+            />
+            <PriceCell
+              label={t('auctions.createSummary.priceReserveLabel')}
+              value={showReserve ? formatEuro(draft.reservePriceEur) : '—'}
+              muted={!showReserve}
+            />
+            <PriceCell
+              label={t('auctions.createSummary.priceBuyNowLabel')}
+              value={showBuyNow ? formatEuro(draft.buyNowPriceEur) : '—'}
+              muted={!showBuyNow}
+            />
           </div>
 
-          {hasOptionalPrices ? (
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {draft.reserveEnabled && draft.reservePriceEur ? (
-                <MetaCell label={t('auctions.createSummary.priceReserveLabel')} emphasized>
-                  {formatEuro(draft.reservePriceEur)}
-                </MetaCell>
-              ) : null}
-              {draft.buyNowEnabled && draft.buyNowPriceEur ? (
-                <MetaCell label={t('auctions.createSummary.priceBuyNowLabel')} emphasized>
-                  {formatEuro(draft.buyNowPriceEur)}
-                </MetaCell>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 pt-2">
+          <div className="mt-2 grid grid-cols-2 gap-2">
             <MetaCell label={t('auctions.createSummary.priceDurationLabel')}>
               {t('auctions.createDurationDays', { days: draft.durationDays })}
             </MetaCell>
@@ -287,7 +402,7 @@ export function AuctionCreateReviewStep({ draft, onEditSection }: AuctionCreateR
         </SummarySection>
 
         <SummarySection
-          icon={Truck}
+          icon={REVIEW_SECTION_ICONS.shipping}
           title={t('auctions.createSummary.shippingHeading')}
           headerAction={editAction('shipping', t('auctions.createSummary.shippingHeading'))}
         >
@@ -298,8 +413,8 @@ export function AuctionCreateReviewStep({ draft, onEditSection }: AuctionCreateR
             <MetaCell label={t('auctions.createSummary.shippingOriginLabel')}>
               {shippingCountry ? (
                 <span className="inline-flex items-center gap-1">
-                  <MapPin className="h-3 w-3 text-gray-400" aria-hidden />
-                  {shippingCountry}
+                  <MapPin className="h-3 w-3 shrink-0 text-gray-400" aria-hidden />
+                  {shippingCountryName ? `${shippingCountryName} (${shippingCountry})` : shippingCountry}
                 </span>
               ) : (
                 notSet
@@ -308,62 +423,75 @@ export function AuctionCreateReviewStep({ draft, onEditSection }: AuctionCreateR
           </div>
 
           {draft.shippingPayer === 'buyer' ? (
-            <div className="mt-2.5 rounded-lg border border-gray-100 bg-gray-50/70 p-2.5">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-gray-500">
+            <div className="mt-2.5 rounded-lg border border-gray-100 bg-gray-50/70 px-2.5 py-1">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                 {t('auctions.createSummary.shippingRatesHeading')}
               </p>
-              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
-                <MetaCell label={t('auctions.createShippingNationalLabel', { country: shippingCountry ?? 'IT' })}>
-                  {formatEuro(draft.shippingNationalEur)}
-                </MetaCell>
-                <MetaCell label={t('auctions.createShippingEuLabel')}>
-                  {formatEuro(draft.shippingEuDefaultEur)}
-                </MetaCell>
-                <MetaCell label={t('auctions.createShippingExtraUeLabel')}>
-                  {formatEuro(draft.shippingRestOfWorldEur)}
-                </MetaCell>
-              </div>
+              <DetailRow label={t('auctions.createShippingNationalLabel', { country: shippingCountry ?? 'IT' })}>
+                {formatEuro(draft.shippingNationalEur)}
+              </DetailRow>
+              <DetailRow label={t('auctions.createShippingEuLabel')}>
+                {formatEuro(draft.shippingEuDefaultEur)}
+              </DetailRow>
+              <DetailRow label={t('auctions.createShippingExtraUeLabel')}>
+                {formatEuro(draft.shippingRestOfWorldEur)}
+              </DetailRow>
             </div>
           ) : (
-            <p className="mt-2.5 rounded-lg border border-emerald-100 bg-emerald-50/70 px-2.5 py-2 text-xs font-medium leading-snug text-emerald-900">
+            <p className="mt-2.5 rounded-lg border border-emerald-100 bg-emerald-50/70 px-2.5 py-1.5 text-xs font-medium leading-snug text-emerald-900">
               {t('auctions.createSummary.shippingIncluded')}
             </p>
           )}
         </SummarySection>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div
+        className={cn(
+          'grid gap-3.5',
+          hasDescription ? 'lg:grid-cols-2' : 'grid-cols-1'
+        )}
+      >
         <SummarySection
-          icon={ImageIcon}
+          icon={REVIEW_SECTION_ICONS.photos}
           title={t('auctions.createSummary.photosHeading')}
+          subtitle={t('auctions.createSummary.photosCount', { count: String(photoCount) })}
           headerAction={editAction('photos', t('auctions.createSummary.photosHeading'))}
         >
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-gray-500">
-            {t('auctions.createSummary.photosCount', { count: String(photoCount) })}
-          </p>
           {photoCount > 0 ? (
-            <ListingPhotoThumbnailsRow photos={draft.listingPhotos} />
+            <ListingPhotoThumbnailsRow
+              photos={draft.listingPhotos}
+              uploadStatuses={photoUploadStatuses}
+              compact
+            />
           ) : (
-            <p className="text-sm text-gray-400">{notSet}</p>
+            <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50/50 px-3 py-4 text-center text-sm text-gray-400">
+              {notSet}
+            </p>
           )}
         </SummarySection>
 
-        <SummarySection
-          icon={AlignLeft}
-          title={t('auctions.createSummary.notesHeading')}
-          headerAction={editAction('notes', t('auctions.createSummary.notesHeading'))}
-        >
-          {draft.description?.trim() ? (
-            <p className="max-h-36 overflow-y-auto whitespace-pre-wrap rounded-lg border border-gray-100 bg-gray-50/70 p-2.5 text-sm leading-relaxed text-gray-800">
+        {hasDescription ? (
+          <SummarySection
+            icon={REVIEW_SECTION_ICONS.notes}
+            title={t('auctions.createSummary.notesHeading')}
+            headerAction={editAction('notes', t('auctions.createSummary.notesHeading'))}
+          >
+            <p className="max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg border border-gray-100 bg-gray-50/70 p-2.5 text-sm leading-relaxed text-gray-800">
               {draft.description}
             </p>
-          ) : (
-            <p className="text-sm text-gray-400">{t('auctions.createSummary.notesEmpty')}</p>
-          )}
-        </SummarySection>
+          </SummarySection>
+        ) : (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-gray-200 bg-gray-50/40 px-3.5 py-3 lg:col-span-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <FileText className="h-4 w-4 shrink-0 text-[#FF7300]/70" aria-hidden />
+              <p className="text-sm text-gray-500">{t('auctions.createSummary.notesEmpty')}</p>
+            </div>
+            {editAction('notes', t('auctions.createSummary.notesHeading'))}
+          </div>
+        )}
       </div>
 
-      <p className="text-center text-[11px] text-gray-500">
+      <p className="pt-0.5 text-center text-[11px] text-gray-500">
         <span
           className="cursor-help underline decoration-dotted underline-offset-2"
           title={t('auctions.createPublishTermsTooltip')}

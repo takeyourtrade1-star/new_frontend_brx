@@ -22,7 +22,7 @@ type AuctionCreateWizardNavProps = {
   totalSteps: number;
   onBack: () => void;
   onNext: () => void;
-  onOpenPublishConfirm: () => void;
+  onPublish: () => void;
 };
 
 export function AuctionCreateWizardNav({
@@ -37,7 +37,7 @@ export function AuctionCreateWizardNav({
   totalSteps,
   onBack,
   onNext,
-  onOpenPublishConfirm,
+  onPublish,
 }: AuctionCreateWizardNavProps) {
   const { t } = useTranslation();
 
@@ -75,28 +75,33 @@ export function AuctionCreateWizardNav({
                 <ChevronRight className="h-3 w-3" aria-hidden />
               </button>
             ) : (
-              <button
-                type="button"
-                disabled={publishDisabled}
-                title={
-                  publishDisabled
-                    ? t('auctions.createValidationPhotos', {
-                        min: AUCTION_LISTING_PHOTO_MIN,
-                        max: AUCTION_LISTING_PHOTO_MAX,
-                      })
-                    : undefined
-                }
-                onClick={onOpenPublishConfirm}
-                className={cn(
-                  'group inline-flex min-h-[32px] items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
-                  publishDisabled
-                    ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
-                    : 'bg-[#FF7300] hover:bg-[#e86800]'
-                )}
-              >
-                <AuctionGavelIcon className="h-3 w-3" animated />
-                {t('auctions.createSubmit')}
-              </button>
+              <div className="flex min-w-0 flex-1 flex-col items-stretch gap-1.5 sm:flex-row sm:items-center sm:justify-end sm:gap-2">
+                <p className="text-[10px] leading-snug text-gray-600 sm:max-w-[11rem] sm:text-right">
+                  {t('auctions.createCancelWindowBanner')}
+                </p>
+                <button
+                  type="button"
+                  disabled={publishDisabled}
+                  title={
+                    publishDisabled
+                      ? t('auctions.createValidationPhotos', {
+                          min: AUCTION_LISTING_PHOTO_MIN,
+                          max: AUCTION_LISTING_PHOTO_MAX,
+                        })
+                      : undefined
+                  }
+                  onClick={onPublish}
+                  className={cn(
+                    'group inline-flex min-h-[32px] shrink-0 items-center justify-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white transition',
+                    publishDisabled
+                      ? 'cursor-not-allowed bg-[#FF7300]/35 opacity-60'
+                      : 'bg-[#FF7300] hover:bg-[#e86800]'
+                  )}
+                >
+                  <AuctionGavelIcon className="h-3 w-3" animated />
+                  {t('auctions.createSubmit')}
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -143,14 +148,33 @@ export function AuctionCreateWizardNav({
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden />
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={onOpenPublishConfirm}
-                className="group inline-flex min-h-[34px] items-center justify-center gap-1 rounded-full bg-[#FF7300] px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#e86800]"
-              >
-                <AuctionGavelIcon className="h-3.5 w-3.5" animated />
-                {t('auctions.createSubmit')}
-              </button>
+              <div className="flex min-w-0 flex-1 flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+                <p className="text-[11px] leading-snug text-gray-600 sm:max-w-xs sm:text-right">
+                  {t('auctions.createCancelWindowBanner')}
+                </p>
+                <button
+                  type="button"
+                  disabled={publishDisabled}
+                  title={
+                    publishDisabled
+                      ? t('auctions.createValidationPhotos', {
+                          min: AUCTION_LISTING_PHOTO_MIN,
+                          max: AUCTION_LISTING_PHOTO_MAX,
+                        })
+                      : undefined
+                  }
+                  onClick={onPublish}
+                  className={cn(
+                    'group inline-flex min-h-[34px] shrink-0 items-center justify-center gap-1 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white transition',
+                    publishDisabled
+                      ? 'cursor-not-allowed bg-[#FF7300]/40 opacity-60'
+                      : 'bg-[#FF7300] hover:bg-[#e86800]'
+                  )}
+                >
+                  <AuctionGavelIcon className="h-3.5 w-3.5" animated />
+                  {t('auctions.createSubmit')}
+                </button>
+              </div>
             )}
           </div>
         </div>

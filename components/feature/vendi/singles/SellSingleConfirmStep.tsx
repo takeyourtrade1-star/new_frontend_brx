@@ -51,11 +51,11 @@ export function SellSingleConfirmStep({
         <span className="text-[10px] text-zinc-600">{sellSingleConditionLabel(draft.condition)}</span>
         <span className="text-[10px] text-zinc-400">·</span>
         <span className="text-[10px] text-zinc-600">{langLabel}</span>
-        {(draft.extraFoil || draft.extraSigned || draft.extraAltered) && (
+        {(draft.extraFoil || draft.extraSigned || draft.extraAltered || draft.extraGraded) && (
           <>
             <span className="text-[10px] text-zinc-400">·</span>
             <span className="text-[10px] text-zinc-600">
-              {[draft.extraFoil && 'Foil', draft.extraSigned && 'Firmata', draft.extraAltered && 'Alterata']
+              {[draft.extraFoil && 'Foil', draft.extraSigned && 'Firmata', draft.extraAltered && 'Alterata', draft.extraGraded && 'Gradate']
                 .filter(Boolean)
                 .join(', ')}
             </span>

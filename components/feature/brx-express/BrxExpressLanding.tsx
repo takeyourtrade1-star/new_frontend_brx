@@ -11,6 +11,7 @@ import { Zap, ArrowRight, FileText, LayoutGrid } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 
+import { BrxExpressIcon } from '@/components/ui/BrxExpressIcon';
 import { BrxExpressLandingScene } from '@/components/feature/brx-express/landing/BrxExpressLandingScene';
 import landingStyles from '@/components/feature/brx-express/landing/brx-express-landing.module.css';
 import { useBrxExpressLandingPath } from '@/hooks/brx-express/useBrxExpressLandingPath';
@@ -96,7 +97,7 @@ export default function BrxExpressLanding() {
           BRX Express
         </h1>
 
-        <p className="mt-4 text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+        <p className="mt-4 text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed whitespace-pre-line">
           {t('brxExpress.heroDescription')}
         </p>
 
@@ -165,7 +166,20 @@ export default function BrxExpressLanding() {
               >
                 <h3 className="text-xl font-bold text-white tracking-tight">{t('brxExpress.card2.title')}</h3>
                 <p className="mt-3 text-sm text-slate-400 leading-relaxed">
-                  {t('brxExpress.card2.description')}
+                  {(() => {
+                    const parts = t('brxExpress.card2.description').split('{icon}');
+                    if (parts.length === 1) return parts[0];
+                    return (
+                      <>
+                        {parts[0]}
+                        <BrxExpressIcon
+                          size="sm"
+                          className="inline align-[-0.125em] mx-0.5 text-orange-400"
+                        />
+                        {parts[1]}
+                      </>
+                    );
+                  })()}
                 </p>
               </div>
             </div>
@@ -260,7 +274,7 @@ export default function BrxExpressLanding() {
               <li className="flex items-start gap-2.5">
                 <span className="text-orange-500 mt-1 select-none">•</span>
                 <span>
-                  <strong>Tempistiche Spedizione:</strong> La spedizione 24h è garantita nei giorni lavorativi ed è soggetta alla stabilità operativa dei corrieri espressi designati da BRX Express.
+                  <strong>Tempistiche Spedizione:</strong> La spedizione in 24/48h è garantita nei giorni lavorativi ed è soggetta alla stabilità operativa dei corrieri espressi designati da BRX Express.
                 </span>
               </li>
               <li className="flex items-start gap-2.5">

@@ -344,7 +344,7 @@ export function TermsOfServiceContent() {
         </Ul>
       </LegalSection>
 
-      <LegalSection>
+      <LegalSection id="cancellazione">
         <H2>ARTICOLO 11 – SOSPENSIONE, CHIUSURA ACCOUNT E RECESSO</H2>
         <P>
           <strong>11.1. Recesso dell&apos;Utente:</strong> L&apos;Utente ha il diritto di recedere dal presente Contratto in qualsiasi
@@ -415,7 +415,7 @@ export function TermsOfServiceContent() {
         </Ul>
       </LegalSection>
 
-      <LegalSection>
+      <LegalSection id="clausole-vessatorie">
         <P>
           L&apos;Utente dichiara di aver letto e compreso integralmente i presenti Termini e Condizioni di Servizio.
           L&apos;utilizzo della Piattaforma, la registrazione di un account o l&apos;attivazione del Modulo Sync

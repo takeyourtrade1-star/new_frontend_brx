@@ -30,6 +30,8 @@ import { getListingPhotos } from '@/lib/api/listing-photo-client';
 import { MarketplaceNowProvider, useMarketplaceNowMs } from '@/lib/hooks/use-marketplace-now-ms';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
+import { MarketplaceReportModal } from '@/components/feature/product/MarketplaceReportModal';
+import type { MarketplaceReportContext } from '@/lib/marketplace/report-reasons';
 
 const CONDITION_TEXT_TO_CODE: Record<string, ConditionCode> = {
   'Near Mint': 'NM',
@@ -139,6 +141,7 @@ function MarketplaceSellerCell({
   reviewCount,
   salesCount,
   isPro,
+  onReport,
 }: {
   username: string;
   country?: string | null;
@@ -146,6 +149,7 @@ function MarketplaceSellerCell({
   reviewCount: number;
   salesCount: number;
   isPro?: boolean;
+  onReport?: () => void;
 }) {
   const { t } = useTranslation();
   const intlLocale = useIntlLocale();
@@ -175,6 +179,18 @@ function MarketplaceSellerCell({
       </Link>
       {isPro ? (
         <span className="shrink-0 rounded bg-slate-700 px-1 py-px text-[7px] font-bold uppercase text-white">Pro</span>
+      ) : null}
+      {onReport ? (
+        <>
+          <span className="shrink-0 text-slate-300">·</span>
+          <button
+            type="button"
+            onClick={onReport}
+            className="shrink-0 text-[10px] font-semibold text-slate-400 hover:text-rose-600 hover:underline"
+          >
+            {t('marketplace.report')}
+          </button>
+        </>
       ) : null}
     </div>
   );
@@ -366,13 +382,24 @@ function MobileDescriptionNote({ description }: { description: string }) {
   );
 }
 
-function MobileTraitLetters({ foil, signed, altered }: { foil?: boolean; signed?: boolean; altered?: boolean }) {
-  if (!foil && !signed && !altered) return null;
+function MobileTraitLetters({
+  foil,
+  signed,
+  altered,
+  graded,
+}: {
+  foil?: boolean;
+  signed?: boolean;
+  altered?: boolean;
+  graded?: boolean;
+}) {
+  if (!foil && !signed && !altered && !graded) return null;
   return (
     <span className="flex shrink-0 items-center gap-0.5 text-[8px] font-bold uppercase leading-none">
       {foil ? <span className="text-violet-700">F</span> : null}
       {signed ? <span className="text-sky-700">S</span> : null}
       {altered ? <span className="text-rose-700">A</span> : null}
+      {graded ? <span className="text-emerald-700">G</span> : null}
     </span>
   );
 }
@@ -388,6 +415,7 @@ function MobileProductAttributes({
   foil,
   signed,
   altered,
+  graded,
 }: {
   conditionCode: ConditionCode;
   langFlag: string | null;
@@ -399,6 +427,7 @@ function MobileProductAttributes({
   foil?: boolean;
   signed?: boolean;
   altered?: boolean;
+  graded?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -407,7 +436,7 @@ function MobileProductAttributes({
       {langFlag ? <FlagIcon country={langFlag} size="xs" title={langTitle} className="shrink-0" /> : null}
       <MarketplacePhotoCarousel imageUrls={imageUrls} name={imageName ?? t('common.card')} compact />
       <MobileDescriptionNote description={description} />
-      <MobileTraitLetters foil={foil} signed={signed} altered={altered} />
+      <MobileTraitLetters foil={foil} signed={signed} altered={altered} graded={graded} />
       {auctionTag ? (
         <span className="shrink-0 rounded bg-[#FFF4EC] px-1 py-px text-[8px] font-bold uppercase text-[#FF7300]">
           {t('common.auction')}
@@ -431,6 +460,7 @@ function MarketplaceProductInfoCell({
   foil,
   signed,
   altered,
+  graded,
 }: {
   conditionCode: ConditionCode;
   langFlag: string | null;
@@ -442,6 +472,7 @@ function MarketplaceProductInfoCell({
   foil?: boolean;
   signed?: boolean;
   altered?: boolean;
+  graded?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -468,6 +499,11 @@ function MarketplaceProductInfoCell({
         {altered ? (
           <span className="shrink-0 text-[9px] font-bold uppercase text-rose-700" title={t('productDetail.filters.traitAltered')}>
             A
+          </span>
+        ) : null}
+        {graded ? (
+          <span className="shrink-0 text-[9px] font-bold uppercase text-emerald-700" title={t('productDetail.filters.traitGraded')}>
+            G
           </span>
         ) : null}
       </div>
@@ -568,6 +604,7 @@ type DesktopAuctionRowProps = {
   cardImageSrc?: string;
   cardName?: string;
   formatEuro: (n: number) => string;
+  onReport?: () => void;
 };
 
 // PERF: auction desktop row skips re-render unless row data changes; countdown isolated in child.
@@ -579,6 +616,7 @@ const DesktopAuctionRow = memo(function DesktopAuctionRow({
   cardImageSrc,
   cardName,
   formatEuro,
+  onReport,
 }: DesktopAuctionRowProps) {
   const sellerName = a.sellerDisplayName || a.seller;
   const auctionCondition = getConditionCode(a.condition);
@@ -601,6 +639,7 @@ const DesktopAuctionRow = memo(function DesktopAuctionRow({
           rating={normalizeRatingToFive(a.sellerRating)}
           reviewCount={a.sellerReviewCount}
           salesCount={0}
+          onReport={onReport}
         />
       </td>
       <td className="border-r border-gray-200/80 px-2.5 py-2">
@@ -645,6 +684,7 @@ type DesktopListingRowProps = {
   onOpenInlineCart: (item: ListingItem) => void;
   onCloseInlineCart: () => void;
   onSetCartQty: (rowKey: string, qty: number, max: number) => void;
+  onReport?: () => void;
 };
 
 // PERF: listing desktop row re-renders only when its item/cart/busy props change.
@@ -668,6 +708,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
   onOpenInlineCart,
   onCloseInlineCart,
   onSetCartQty,
+  onReport,
 }:DesktopListingRowProps) {
   const { t } = useTranslation();
   const conditionCode = listingConditionCode(item.condition);
@@ -695,6 +736,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
           reviewCount={rep.reviewCount}
           salesCount={rep.salesCount}
           isPro={item.seller_account_type === 'business'}
+          onReport={onReport}
         />
       </td>
 
@@ -709,6 +751,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
           foil={item.mtg_foil}
           signed={item.signed}
           altered={item.altered}
+          graded={item.graded ?? undefined}
         />
       </td>
 
@@ -848,6 +891,7 @@ type MobileAuctionRowProps = {
   cardImageSrc?: string;
   cardName?: string;
   formatEuro: (n: number) => string;
+  onReport?: () => void;
 };
 
 // PERF: mobile auction row memoized; countdown isolated in child.
@@ -859,6 +903,7 @@ const MobileAuctionRow = memo(function MobileAuctionRow({
   cardImageSrc,
   cardName,
   formatEuro,
+  onReport,
 }: MobileAuctionRowProps) {
   const { t } = useTranslation();
   const sellerName = a.sellerDisplayName || a.seller;
@@ -882,6 +927,7 @@ const MobileAuctionRow = memo(function MobileAuctionRow({
           rating={normalizeRatingToFive(a.sellerRating)}
           reviewCount={a.sellerReviewCount}
           salesCount={0}
+          onReport={onReport}
         />
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <MemoMobileProductAttributes
@@ -937,6 +983,7 @@ const MobileListingRow = memo(function MobileListingRow({
   onOpenInlineCart,
   onCloseInlineCart,
   onSetCartQty,
+  onReport,
 }:MobileListingRowProps) {
   const { t } = useTranslation();
   const conditionCode = listingConditionCode(item.condition);
@@ -963,6 +1010,7 @@ const MobileListingRow = memo(function MobileListingRow({
           reviewCount={rep.reviewCount}
           salesCount={rep.salesCount}
           isPro={item.seller_account_type === 'business'}
+          onReport={onReport}
         />
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <MemoMobileProductAttributes
@@ -975,6 +1023,7 @@ const MobileListingRow = memo(function MobileListingRow({
             foil={item.mtg_foil}
             signed={item.signed}
             altered={item.altered}
+            graded={item.graded ?? undefined}
           />
           <div className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
             <span className="text-xs font-medium text-slate-600">{item.quantity}</span>
@@ -1156,6 +1205,35 @@ function ModernSellerTableInner({
   );
   const [activeCartRowKey, setActiveCartRowKey] = useState<string | null>(null);
   const [cartQtyByRow, setCartQtyByRow] = useState<Record<string, number>>({});
+  const [reportContext, setReportContext] = useState<MarketplaceReportContext | null>(null);
+
+  const openListingReport = useCallback(
+    (item: ListingItem) => {
+      setReportContext({
+        sellerUsername: item.seller_display_name,
+        sellerId: item.seller_id,
+        kind: 'listing',
+        referenceId: listingRowKey(item),
+        referenceLabel: cardName,
+      });
+    },
+    [cardName]
+  );
+
+  const openAuctionReport = useCallback(
+    (auction: AuctionUI) => {
+      setReportContext({
+        sellerUsername: auction.sellerDisplayName || auction.seller,
+        sellerId: auction.seller,
+        kind: 'auction',
+        referenceId: String(auction.numericId),
+        referenceLabel: auction.title || cardName,
+      });
+    },
+    [cardName]
+  );
+
+  const closeReport = useCallback(() => setReportContext(null), []);
 
   const getCartQty = useCallback(
     (item: ListingItem) => {
@@ -1211,6 +1289,11 @@ function ModernSellerTableInner({
 
   return (
     <>
+      <MarketplaceReportModal
+        open={reportContext != null}
+        context={reportContext}
+        onClose={closeReport}
+      />
       {/* Desktop — layout Cardmarket compatto */}
       <table className="hidden w-full table-fixed border-collapse text-left text-sm sm:table">
         <colgroup>
@@ -1244,6 +1327,7 @@ function ModernSellerTableInner({
                   cardImageSrc={cardImageSrc}
                   cardName={cardName}
                   formatEuro={formatEuro}
+                  onReport={() => openAuctionReport(row.auction)}
                 />
               );
             }
@@ -1278,6 +1362,7 @@ function ModernSellerTableInner({
                 onOpenInlineCart={openInlineCart}
                 onCloseInlineCart={closeInlineCart}
                 onSetCartQty={setCartQty}
+                onReport={isOwn ? undefined : () => openListingReport(item)}
               />
             );
           })}
@@ -1298,6 +1383,7 @@ function ModernSellerTableInner({
                 cardImageSrc={cardImageSrc}
                 cardName={cardName}
                 formatEuro={formatEuro}
+                onReport={() => openAuctionReport(row.auction)}
               />
             );
           }
@@ -1331,6 +1417,7 @@ function ModernSellerTableInner({
               onOpenInlineCart={openInlineCart}
               onCloseInlineCart={closeInlineCart}
               onSetCartQty={setCartQty}
+              onReport={isOwn ? undefined : () => openListingReport(item)}
             />
           );
         })}

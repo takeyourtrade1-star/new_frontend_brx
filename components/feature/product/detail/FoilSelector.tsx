@@ -1,7 +1,7 @@
 'use client';
 
-import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface FoilSelectorProps {
   /** true = mostra solo le inserzioni foil; false = mostra tutto (default). */
@@ -11,51 +11,56 @@ interface FoilSelectorProps {
   className?: string;
 }
 
-const OPTIONS: { value: boolean; label: string }[] = [
-  { value: false, label: 'Tutte' },
-  { value: true, label: 'Foil' },
-];
-
 /**
- * Selettore foil mostrato sopra l'immagine della carta. Filtra le inserzioni
- * del marketplace condividendo lo stato con il filtro "Solo foil" del pannello.
- * Di base ("Tutte") mostra ogni inserzione; "Foil" lascia solo le carte foil.
+ * Toggle foil sopra l'immagine della carta. Condivise lo stato con il filtro
+ * "Solo foil" del pannello marketplace.
  */
 export function FoilSelector({ soloFoil, onChange, size = 'md', className }: FoilSelectorProps) {
+  const { t } = useTranslation();
   const sm = size === 'sm';
+  const label = t('productDetail.filters.traitFoil');
+
   return (
     <div
-      role="radiogroup"
-      aria-label="Filtra per foil"
       className={cn(
-        'inline-flex items-center rounded-full border border-zinc-200 bg-white p-0.5 shadow-sm',
+        'flex w-full items-center justify-between gap-3 rounded-2xl border px-3 transition-colors duration-200',
+        sm ? 'py-1.5' : 'py-2',
+        soloFoil
+          ? 'border-orange-200/90 bg-orange-50/50'
+          : 'border-zinc-200/80 bg-white/90 shadow-sm',
         className
       )}
     >
-      {OPTIONS.map((opt) => {
-        const active = soloFoil === opt.value;
-        return (
-          <button
-            key={String(opt.value)}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            onClick={() => onChange(opt.value)}
-            className={cn(
-              'inline-flex items-center gap-1 rounded-full font-bold uppercase tracking-wide transition-colors',
-              sm ? 'px-2.5 py-1 text-[9px]' : 'px-3 py-1 text-[10px]',
-              active
-                ? opt.value
-                  ? 'bg-gradient-to-r from-[#FF8A26] to-[#FF7300] text-white shadow-sm'
-                  : 'bg-[#1D3160] text-white shadow-sm'
-                : 'text-zinc-500 hover:text-zinc-800'
-            )}
-          >
-            {opt.value && <Sparkles className={cn(sm ? 'h-2.5 w-2.5' : 'h-3 w-3')} aria-hidden />}
-            {opt.label}
-          </button>
-        );
-      })}
+      <span
+        className={cn(
+          'font-medium',
+          sm ? 'text-[11px]' : 'text-xs',
+          soloFoil ? 'text-orange-900' : 'text-zinc-600'
+        )}
+      >
+        {label}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={soloFoil}
+        aria-label={label}
+        onClick={() => onChange(!soloFoil)}
+        className={cn(
+          'relative inline-flex shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8800]/30',
+          sm ? 'h-5 w-9' : 'h-6 w-10',
+          soloFoil ? 'bg-[#FF8800]' : 'bg-zinc-200'
+        )}
+      >
+        <span
+          className={cn(
+            'inline-block rounded-full bg-white shadow-sm transition-transform duration-200',
+            sm ? 'h-4 w-4' : 'h-5 w-5',
+            soloFoil ? (sm ? 'translate-x-[18px]' : 'translate-x-[18px]') : 'translate-x-0.5'
+          )}
+          aria-hidden
+        />
+      </button>
     </div>
   );
 }

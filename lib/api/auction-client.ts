@@ -64,6 +64,32 @@ async function fetchWithTimeout(url: string, options: RequestInit): Promise<Resp
   }
 }
 
+/**
+ * Estrae un messaggio leggibile dal body d'errore. FastAPI su 422 mette in
+ * `detail` un array di { loc, msg, type }: senza normalizzazione diventerebbe
+ * "[object Object],[object Object]".
+ */
+function normalizeErrorMessage(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+  if (Array.isArray(value)) {
+    const parts = value.map(normalizeErrorMessage).filter((p): p is string => Boolean(p));
+    return parts.length ? parts.join(' · ') : null;
+  }
+  if (value && typeof value === 'object') {
+    const obj = value as { msg?: unknown; message?: unknown; detail?: unknown; loc?: unknown };
+    const inner = normalizeErrorMessage(obj.msg ?? obj.message ?? obj.detail);
+    if (!inner) return null;
+    const loc = Array.isArray(obj.loc)
+      ? obj.loc.filter((p): p is string => typeof p === 'string' && p !== 'body').join('.')
+      : null;
+    return loc ? `${loc}: ${inner}` : inner;
+  }
+  return null;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -103,9 +129,9 @@ async function request<T>(
       }
     }
     const msg =
-      data?.detail ||
-      data?.error ||
-      data?.message ||
+      normalizeErrorMessage(data?.detail) ||
+      normalizeErrorMessage(data?.error) ||
+      normalizeErrorMessage(data?.message) ||
       `Auction API error ${res.status}`;
     const err = new Error(msg) as Error & { status: number; data: unknown };
     err.status = res.status;

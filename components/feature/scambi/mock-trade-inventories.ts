@@ -1,4 +1,4 @@
-export type MockInventoryPrinting = 'standard' | 'foil' | 'signed' | 'altered';
+export type MockInventoryPrinting = 'standard' | 'foil' | 'signed' | 'altered' | 'graded';
 
 export interface MockInventoryItem {
   id: string;
@@ -22,7 +22,7 @@ export const MOCK_INVENTORY_A: MockInventoryItem[] = [
   { id: 'inv-a-9', name: 'Monkey D. Luffy OP-01', image: 'https://picsum.photos/seed/luffy01/200/280', condition: 'NM', game: 'op', language: 'jp', printing: 'standard' },
   { id: 'inv-a-10', name: 'Exodia the Forbidden One', image: 'https://picsum.photos/seed/exodia/200/280', condition: 'MP', game: 'ygo', language: 'it', printing: 'foil' },
   { id: 'inv-a-11', name: 'Maui Demigod', image: 'https://picsum.photos/seed/maui/200/280', condition: 'NM', game: 'lorcana', language: 'en', printing: 'altered' },
-  { id: 'inv-a-12', name: 'Ancestral Recall Beta', image: 'https://picsum.photos/seed/ancestral/200/280', condition: 'HP', game: 'mtg', language: 'de', printing: 'standard' },
+  { id: 'inv-a-12', name: 'Ancestral Recall Beta', image: 'https://picsum.photos/seed/ancestral/200/280', condition: 'HP', game: 'mtg', language: 'de', printing: 'graded' },
 ];
 
 export const MOCK_INVENTORY_B: MockInventoryItem[] = [
@@ -37,7 +37,7 @@ export const MOCK_INVENTORY_B: MockInventoryItem[] = [
   { id: 'inv-b-9', name: 'Roronoa Zoro OP-01', image: 'https://picsum.photos/seed/zoro01/200/280', condition: 'NM', game: 'op', language: 'jp', printing: 'standard' },
   { id: 'inv-b-10', name: 'Blue-Eyes White Dragon SDK', image: 'https://picsum.photos/seed/bewdsdk/200/280', condition: 'LP', game: 'ygo', language: 'it', printing: 'signed' },
   { id: 'inv-b-11', name: 'Stitch Rock Star', image: 'https://picsum.photos/seed/stitch/200/280', condition: 'Mint', game: 'lorcana', language: 'en', printing: 'foil' },
-  { id: 'inv-b-12', name: 'Volcanic Island', image: 'https://picsum.photos/seed/volcanic/200/280', condition: 'MP', game: 'mtg', language: 'fr', printing: 'standard' },
+  { id: 'inv-b-12', name: 'Volcanic Island', image: 'https://picsum.photos/seed/volcanic/200/280', condition: 'MP', game: 'mtg', language: 'fr', printing: 'graded' },
 ];
 
 export function findMockInventoryItem(id: string): MockInventoryItem | undefined {

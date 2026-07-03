@@ -198,6 +198,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     soloFoil,
     firmata,
     alterata,
+    gradata,
     quantita,
     posizioneVenditore,
     tipoVenditore,
@@ -210,6 +211,7 @@ export function ProductDetailView(props: ProductDetailViewProps) {
     setSoloFoil,
     setFirmata,
     setAlterata,
+    setGradata,
     setQuantita,
     setPosizioneVenditore,
     setTipoVenditore,
@@ -478,6 +480,9 @@ export function ProductDetailView(props: ProductDetailViewProps) {
           onFirmataChange={setFirmata}
           alterata={alterata}
           onAlterataChange={setAlterata}
+          gradata={gradata}
+          onGradataChange={setGradata}
+          gradedLabel={t('productDetail.filters.graded')}
           quantita={quantita}
           onQuantitaChange={setQuantita}
           soloFoil={soloFoil}

@@ -1,8 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { normalizeAuctionDraftMoneyInput, type AuctionCreateDraft } from '@/lib/auction/auction-create-draft';
+import {
+  clearAuctionBuyNowEnabledPreference,
+  clearAuctionReserveEnabledPreference,
+  writeAuctionBuyNowEnabledPreference,
+  writeAuctionReserveEnabledPreference,
+} from '@/lib/auction/auction-wizard-preferences';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
+import { AuctionWizardRemember1hCheckbox } from './AuctionWizardRemember1hCheckbox';
 
 type AuctionCreateDraftUpdate = <K extends keyof AuctionCreateDraft>(
   key: K,
@@ -53,6 +61,8 @@ const MONEY_INPUT_CLS =
 
 export function AuctionCreatePriceStep({ draft, update, isEmbedded }: AuctionCreatePriceStepProps) {
   const { t } = useTranslation();
+  const [rememberReserve, setRememberReserve] = useState(false);
+  const [rememberBuyNow, setRememberBuyNow] = useState(false);
 
   return (
     <div className={cn('space-y-5', isEmbedded && 'space-y-3')}>
@@ -107,6 +117,7 @@ export function AuctionCreatePriceStep({ draft, update, isEmbedded }: AuctionCre
               onChange={(next) => {
                 update('reserveEnabled', next);
                 if (!next) update('reservePriceEur', '');
+                if (rememberReserve) writeAuctionReserveEnabledPreference(next);
               }}
               yesLabel={t('auctions.createInInventoryYes')}
               noLabel={t('auctions.createInInventoryNo')}
@@ -114,6 +125,17 @@ export function AuctionCreatePriceStep({ draft, update, isEmbedded }: AuctionCre
             />
           </div>
           <p className="mt-1 text-xs leading-snug text-gray-500">{t('auctions.createReserveHint')}</p>
+          <AuctionWizardRemember1hCheckbox
+            checked={rememberReserve}
+            onCheckedChange={(checked) => {
+              setRememberReserve(checked);
+              if (checked && draft.reserveEnabled !== null) {
+                writeAuctionReserveEnabledPreference(draft.reserveEnabled);
+              } else if (!checked) {
+                clearAuctionReserveEnabledPreference();
+              }
+            }}
+          />
           {draft.reserveEnabled && (
             <div className="relative mt-3 max-w-xs">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
@@ -147,6 +169,7 @@ export function AuctionCreatePriceStep({ draft, update, isEmbedded }: AuctionCre
                   update('keepInventoryListing', next);
                   update('buyNowEnabled', next);
                   update('buyNowPriceEur', next ? draft.inventoryListPriceEur : '');
+                  if (rememberBuyNow) writeAuctionBuyNowEnabledPreference(next);
                 }}
                 yesLabel={t('auctions.createKeepListingYes')}
                 noLabel={t('auctions.createKeepListingNo')}
@@ -156,6 +179,17 @@ export function AuctionCreatePriceStep({ draft, update, isEmbedded }: AuctionCre
             <p className="mt-1 text-xs leading-snug text-gray-500">
               {t('auctions.createKeepListingHint', { price: draft.inventoryListPriceEur })}
             </p>
+            <AuctionWizardRemember1hCheckbox
+              checked={rememberBuyNow}
+              onCheckedChange={(checked) => {
+                setRememberBuyNow(checked);
+                if (checked && draft.buyNowEnabled !== null) {
+                  writeAuctionBuyNowEnabledPreference(draft.buyNowEnabled);
+                } else if (!checked) {
+                  clearAuctionBuyNowEnabledPreference();
+                }
+              }}
+            />
           </div>
         ) : (
           <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4">
@@ -168,6 +202,7 @@ export function AuctionCreatePriceStep({ draft, update, isEmbedded }: AuctionCre
                 onChange={(next) => {
                   update('buyNowEnabled', next);
                   if (!next) update('buyNowPriceEur', '');
+                  if (rememberBuyNow) writeAuctionBuyNowEnabledPreference(next);
                 }}
                 yesLabel={t('auctions.createInInventoryYes')}
                 noLabel={t('auctions.createInInventoryNo')}
@@ -175,6 +210,17 @@ export function AuctionCreatePriceStep({ draft, update, isEmbedded }: AuctionCre
               />
             </div>
             <p className="mt-1 text-xs leading-snug text-gray-500">{t('auctions.createBuyNowHint')}</p>
+            <AuctionWizardRemember1hCheckbox
+              checked={rememberBuyNow}
+              onCheckedChange={(checked) => {
+                setRememberBuyNow(checked);
+                if (checked && draft.buyNowEnabled !== null) {
+                  writeAuctionBuyNowEnabledPreference(draft.buyNowEnabled);
+                } else if (!checked) {
+                  clearAuctionBuyNowEnabledPreference();
+                }
+              }}
+            />
             {draft.buyNowEnabled && (
               <div className="relative mt-3 max-w-xs">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>

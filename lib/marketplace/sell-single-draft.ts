@@ -11,6 +11,7 @@ export type SellSingleDraft = {
   extraFoil: boolean;
   extraSigned: boolean;
   extraAltered: boolean;
+  extraGraded: boolean;
   listingPhotos: ListingPhotoSlot[];
 };
 
@@ -23,6 +24,7 @@ export const SELL_SINGLE_DEFAULT_DRAFT: SellSingleDraft = {
   extraFoil: false,
   extraSigned: false,
   extraAltered: false,
+  extraGraded: false,
   listingPhotos: [],
 };
 

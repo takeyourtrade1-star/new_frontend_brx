@@ -35,6 +35,7 @@ export function normalizeUser(
   return {
     id: user.id,
     email: user.email,
+    username: u.username ?? null,
     /** Backend può esporre `username` senza `name`: usiamolo come display name */
     name: u.name ?? u.username ?? null,
     image: u.image ?? null,

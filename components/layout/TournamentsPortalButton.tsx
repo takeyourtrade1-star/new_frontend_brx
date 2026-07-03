@@ -32,6 +32,8 @@ export function TournamentsPortalLink({
       <div className={cn('border-b border-orange-100 px-5 py-4 md:hidden', className)}>
         <Link
           href="/tornei"
+          target="_blank"
+          rel="noopener noreferrer"
           onClick={onNavigate}
           className={cn(
             PORTAL_BTN_SHARED,
@@ -54,6 +56,8 @@ export function TournamentsPortalLink({
   return (
     <Link
       href="/tornei"
+      target="_blank"
+      rel="noopener noreferrer"
       className={cn(
         PORTAL_BTN_SHARED,
         'hidden h-9 shrink-0 rounded-full px-4 text-xs text-white md:inline-flex',

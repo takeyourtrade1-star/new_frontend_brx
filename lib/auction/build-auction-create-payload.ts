@@ -98,8 +98,6 @@ export function buildAuctionCreatePayload(
             return [{ country_iso: AUCTION_SHIPPING_REST_OF_WORLD_ISO, price_eur: rest }];
           })()
         : [],
-    anti_sniper_enabled: true,
-    anti_sniper_minutes: draft.antiSnipeMinutes,
   };
 
   return {

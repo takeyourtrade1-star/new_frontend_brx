@@ -31,7 +31,7 @@ type CollectionCard = {
   set_name: string;
   image?: string | null;
   artist?: string;
-  alterationType: 'signed' | 'altered' | 'both';
+  alterationType: 'signed' | 'altered' | 'both' | 'graded';
   price?: string;
   gameSlug: string;
   rarity?: string;
@@ -197,22 +197,48 @@ const COLLECTION_CARDS: CollectionCard[] = [
     seller: 'ArtisticCards',
     condition: 'NM',
   },
+  {
+    id: 'graded-1',
+    name: 'Ancestral Recall',
+    set_name: 'Beta',
+    image: getCdnImageUrl('card-2.png'),
+    alterationType: 'graded',
+    price: '€ 12.500',
+    gameSlug: 'mtg',
+    rarity: 'Rare',
+    seller: 'GradingHub',
+    condition: 'PSA 10',
+  },
+  {
+    id: 'graded-2',
+    name: 'Charizard',
+    set_name: 'Base Set',
+    image: getCdnImageUrl('card-3.png'),
+    alterationType: 'graded',
+    price: '€ 45.000',
+    gameSlug: 'pokemon',
+    rarity: 'Holo Rare',
+    seller: 'CertifiedCards',
+    condition: 'BGS 9.5',
+  },
 ];
 
 const GLOW_COLORS: Record<string, string> = {
   signed: '251, 191, 36',
   altered: '167, 139, 250',
   both: '255, 115, 0',
+  graded: '52, 211, 153',
 };
 
 const BADGE_LABELS: Record<string, string> = {
   signed: 'Firmata',
   altered: 'Alterata',
   both: 'Firmata + Alterata',
+  graded: 'Gradate',
 };
 
 type ViewMode = 'grid' | 'list';
-type FilterType = 'all' | 'signed' | 'altered' | 'both';
+type FilterType = 'all' | 'signed' | 'altered' | 'both' | 'graded';
 
 function CollectionCardGrid({ card, index }: { card: CollectionCard; index: number }) {
   const imgUrl = getCardImageUrl(card.image ?? null);
@@ -255,6 +281,7 @@ function CollectionCardGrid({ card, index }: { card: CollectionCard; index: numb
           <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 backdrop-blur-sm">
             {card.alterationType === 'signed' && <PenTool className="h-3 w-3 text-amber-400" />}
             {card.alterationType === 'altered' && <Sparkles className="h-3 w-3 text-violet-400" />}
+            {card.alterationType === 'graded' && <Award className="h-3 w-3 text-emerald-400" />}
             {card.alterationType === 'both' && (
               <>
                 <PenTool className="h-3 w-3 text-orange-400" />
@@ -337,6 +364,7 @@ function CollectionCardList({ card, index }: { card: CollectionCard; index: numb
             <span className="flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold">
               {card.alterationType === 'signed' && <PenTool className="h-3 w-3 text-amber-500" />}
               {card.alterationType === 'altered' && <Sparkles className="h-3 w-3 text-violet-500" />}
+              {card.alterationType === 'graded' && <Award className="h-3 w-3 text-emerald-500" />}
               {card.alterationType === 'both' && (
                 <>
                   <PenTool className="h-3 w-3 text-orange-500" />
@@ -401,6 +429,7 @@ export function SignedAlteredCollectionPage() {
   const filterButtons: { type: FilterType; label: string; icon: React.ReactNode }[] = [
     { type: 'all', label: 'Tutte', icon: <Sparkles className="h-4 w-4" /> },
     { type: 'signed', label: 'Firmate', icon: <PenTool className="h-4 w-4" /> },
+    { type: 'graded', label: 'Gradate', icon: <Award className="h-4 w-4" /> },
     { type: 'altered', label: 'Alterate', icon: <Sparkles className="h-4 w-4" /> },
     { type: 'both', label: 'Firmate + Alterate', icon: <><PenTool className="h-4 w-4" /><Sparkles className="h-4 w-4" /></> },
   ];
