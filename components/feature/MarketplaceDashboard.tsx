@@ -521,8 +521,7 @@ export function MarketplaceDashboard({
               className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[44%] bg-gradient-to-t from-slate-100/92 via-slate-100/68 to-transparent"
             />
             {useUnifiedBackground && <DashboardCardFoil />}
-            {/* Titolo sezione VENDITE */}
-            <div className="relative z-10 flex items-start justify-between gap-4 px-6 py-3">
+            <div className="relative z-10 flex items-center justify-between gap-4 px-6 py-3">
               <div className="flex flex-col">
                 <h2 className="text-3xl font-black uppercase tracking-wide font-sans text-slate-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.42)]">Best Sellers</h2>
                 <div className="mt-2 h-1 w-20 rounded-full bg-gradient-to-r from-[#ff7300] to-[#ff9900]" />
@@ -547,7 +546,7 @@ export function MarketplaceDashboard({
 
               <div className="grid min-h-0 flex-1 grid-cols-2 gap-4 px-5 pb-6 pt-5 md:gap-5 md:px-6 md:pb-7 md:pt-6">
                 <div className="flex min-w-0 flex-col">
-                  <ul className="flex-1 space-y-1">
+                  <ul className="flex-1 flex flex-col justify-center space-y-3 lg:space-y-4">
                     {(buyListCards.length > 0 ? buyListCards : []).map((hit, i) => {
                       return <BestSellerRankRow key={hit.id} hit={hit} rank={i + 7} useLightText={useUnifiedBackground} />;
                     })}
@@ -558,7 +557,7 @@ export function MarketplaceDashboard({
                 </div>
 
                 <div className="flex min-w-0 flex-col">
-                  <ul className="flex-1 space-y-1">
+                  <ul className="flex-1 flex flex-col justify-center space-y-3 lg:space-y-4">
                     {(tradeListCards.length > 0 ? tradeListCards : []).map((hit, i) => {
                       return <BestSellerRankRow key={hit.id} hit={hit} rank={i + 10} useLightText={useUnifiedBackground} />;
                     })}

@@ -30,6 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';
 import { AuctionCardImagePeek } from '@/components/feature/aste/create/AuctionCardImagePeek';
+import { AuctionCardGridTile } from '@/components/feature/aste/create/AuctionCardGridTile';
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { SetIconBadge } from '@/components/ui/SetIconBadge';
 
@@ -488,35 +489,31 @@ export function AuctionCreateCardPicker({
                     ? props.language
                     : '';
               return (
-                <div
+                <AuctionCardGridTile
                   key={row.id}
-                  className={cn(
-                    'flex flex-col overflow-hidden rounded-xl border bg-white text-left transition-all',
-                    active ? 'border-[#FF7300] ring-2 ring-[#FF7300] ring-offset-2' : 'border-gray-200 hover:border-gray-300'
-                  )}
-                >
-                  <AuctionCardImagePeek
-                    imageUrl={imgUrl}
-                    name={cardName}
-                    className="rounded-t-xl"
-                    thumbClassName="relative aspect-[63/88] w-full"
-                    sizes="(max-width: 768px) 50vw, 180px"
-                    onImageClick={() => handleSelect(sel)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleSelect(sel)}
-                    className="w-full flex flex-col gap-1 p-2 text-left"
-                  >
-                    <p className="line-clamp-2 text-xs font-semibold text-gray-900">{cardName}</p>
-                    <p className="line-clamp-1 text-[10px] text-gray-500">{row.card?.set_name}</p>
-                    <div className="flex flex-wrap gap-1 text-[9px] text-gray-600 pt-1">
-                      {condition && (<span className="px-1.5 py-0.5 bg-gray-100 rounded">{condition}</span>)}
-                      {language && (<span className="px-1.5 py-0.5 bg-gray-100 rounded">{language}</span>)}
-                      {row.quantity && (<span className="px-1.5 py-0.5 bg-gray-100 rounded">Qtà: {row.quantity}</span>)}
-                    </div>
-                  </button>
-                </div>
+                  imageUrl={imgUrl}
+                  name={cardName}
+                  setName={row.card?.set_name}
+                  active={active}
+                  activeLabel={t('auctions.createCardSelected')}
+                  onSelect={() => handleSelect(sel)}
+                  ariaLabel={t('auctions.createCollectionSelectByImage', { name: cardName })}
+                  meta={
+                    <>
+                      {condition && (
+                        <span className="rounded bg-white/90 px-1.5 py-0.5 text-[9px] font-semibold text-gray-800">{condition}</span>
+                      )}
+                      {language && (
+                        <span className="rounded bg-white/90 px-1.5 py-0.5 text-[9px] font-semibold text-gray-800">{language}</span>
+                      )}
+                      {row.quantity && (
+                        <span className="rounded bg-white/90 px-1.5 py-0.5 text-[9px] font-semibold text-gray-800">
+                          Qtà: {row.quantity}
+                        </span>
+                      )}
+                    </>
+                  }
+                />
               );
             })}
           </div>

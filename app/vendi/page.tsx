@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { VendiLandingPage } from '@/components/feature/vendi/VendiLandingPage';
+import { BrxExpressPromo } from '@/components/feature/brx-express/BrxExpressPromo';
 import { Header } from '@/components/layout/Header';
 
 export const metadata = {
@@ -14,6 +15,7 @@ export default function VendiPage() {
         <Header />
       </Suspense>
       <VendiLandingPage />
+      <BrxExpressPromo variant="sell" />
     </>
   );
 }

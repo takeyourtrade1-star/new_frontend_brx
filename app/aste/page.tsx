@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { AsteHubPage } from '@/components/feature/aste/AsteHubPage';
+import { BrxExpressPromo } from '@/components/feature/brx-express/BrxExpressPromo';
 
 export const metadata = {
   title: 'Aste | Ebartex',
@@ -16,6 +17,7 @@ export default function AstePage() {
         <Header />
       </Suspense>
       <AsteHubPage />
+      <BrxExpressPromo variant="auction" />
     </main>
   );
 }

@@ -72,7 +72,7 @@ export function GameHeroSection({ gameSlug }: GameHeroSectionProps) {
         aria-hidden
       />
 
-      <div className="absolute inset-x-0 top-0 z-10 flex justify-center pt-32 sm:pt-40 md:pt-48 lg:pt-52 3xl:pt-60" aria-hidden>
+      <div className="absolute inset-x-0 top-0 z-10 flex justify-center pt-16 sm:pt-20 md:pt-24 lg:pt-28 3xl:pt-32" aria-hidden>
         <Image
           src={logoSrc}
           alt={alt}
@@ -85,7 +85,7 @@ export function GameHeroSection({ gameSlug }: GameHeroSectionProps) {
       </div>
 
       {gameSlug !== 'mtg' && (
-        <div className="absolute inset-x-0 z-20 flex justify-center px-4 top-[270px] sm:top-[310px] md:top-[360px] lg:top-[390px]">
+        <div className="absolute inset-x-0 z-20 flex justify-center px-4 top-[204px] sm:top-[232px] md:top-[268px] lg:top-[300px]">
           <div className="max-w-xl rounded-full border border-white/20 bg-black/60 px-5 py-2 text-center text-[10px] font-medium text-white shadow-2xl backdrop-blur-md sm:text-xs md:text-sm">
             Questi giochi sono presto in arrivo, ma intanto puoi curiosare il nostro sito oppure dare un&apos;occhiata a{' '}
             <Link href="/home/magic" className="font-bold text-primary hover:underline">

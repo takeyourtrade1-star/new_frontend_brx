@@ -1621,7 +1621,7 @@ export const es: Record<MessageKey, string> = {
     'Session active: photos from your phone appear here within a few seconds, even if you close the QR popup.',
   'auctions.createPhotoFromPhoneModalTitle': 'Escanea con tu móvil',
   'auctions.createPhotoFromPhoneModalBody':
-    '¡Escanea el código QR con tu teléfono, abre el enlace y ni siquiera necesitas iniciar sesión para pasar las fotos a tu PC!',
+    'Escanea el código QR con tu teléfono, abre el enlace y pasa las fotos a tu PC, sin necesidad de iniciar sesión.',
   'auctions.createPhotoFromPhoneModalCloseHint':
     'You can close this window: photos from your phone will keep appearing automatically in the Photos step.',
   'auctions.createPhotoFromPhoneModalClose': 'Cerrar',
@@ -2612,4 +2612,18 @@ export const es: Record<MessageKey, string> = {
   'asso.backFace.sub.legendary': 'Legendario',
   'asso.backFace.sub.special': 'Edición especial',
   'asso.backFace.sub.ultraRare': 'Ultra raro',
+
+  // Bannerino promozionale contestuale BRX Express
+  'brxPromo.badge': 'BRX Express',
+  'brxPromo.close': 'Ocultar',
+  'brxPromo.product.title': 'Cómpralo en BRX Express',
+  'brxPromo.product.body': 'Cartas verificadas, custodiadas y enviadas directamente por nosotros.',
+  'brxPromo.sell.title': '¿Vender sin complicaciones?',
+  'brxPromo.sell.body': 'Sin fotos, anuncios ni envíos: envíanos tus cartas y cobra.',
+  'brxPromo.inventory.title': '¿Cartas paradas en tu colección?',
+  'brxPromo.inventory.body': 'Envíalas a BRX Express: nos ocupamos de todo y tú cobras.',
+  'brxPromo.trade.title': '¿No encuentras el intercambio adecuado?',
+  'brxPromo.trade.body': 'Vende las cartas que no intercambias, sin gestionar nada.',
+  'brxPromo.auction.title': 'Vende también sin subastas',
+  'brxPromo.auction.body': 'Con BRX Express ponemos tus cartas a la venta por ti.',
 };

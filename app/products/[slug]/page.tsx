@@ -1,4 +1,5 @@
 import { ProductDetailView } from '@/components/feature/product/ProductDetailView';
+import { BrxExpressPromo } from '@/components/feature/brx-express/BrxExpressPromo';
 import { ProductCategoryPageClient } from '@/components/feature/product/ProductCategoryPageClient';
 import { EbartexBoutiquePage } from '@/components/feature/product/EbartexBoutiquePage';
 import { MissingPage } from '@/components/shared/MissingPage';
@@ -79,6 +80,7 @@ function ProductDetailWithSuspense(
       }
     >
       <ProductDetailView {...props} />
+      <BrxExpressPromo variant="product" />
     </Suspense>
   );
 }

@@ -1617,7 +1617,7 @@ export const en = {
     'Session active: photos from your phone appear here within a few seconds, even if you close the QR popup.',
   'auctions.createPhotoFromPhoneModalTitle': 'Scan with your phone',
   'auctions.createPhotoFromPhoneModalBody':
-    'Scan the QR code with your phone, open the link, and you don\'t even need to log in to transfer photos to your PC!',
+    'Scan the QR code with your phone, open the link and transfer the photos to your PC — no login needed.',
   'auctions.createPhotoFromPhoneModalCloseHint':
     'You can close this window: photos from your phone will keep appearing automatically in the Photos step.',
   'auctions.createPhotoFromPhoneModalClose': 'Close',
@@ -2617,6 +2617,20 @@ export const en = {
   'asso.backFace.sub.legendary': 'Legendary',
   'asso.backFace.sub.special': 'Special Edition',
   'asso.backFace.sub.ultraRare': 'Ultra Rare',
+
+  // Bannerino promozionale contestuale BRX Express
+  'brxPromo.badge': 'BRX Express',
+  'brxPromo.close': 'Hide',
+  'brxPromo.product.title': 'Buy it on BRX Express',
+  'brxPromo.product.body': 'Cards verified, stored and shipped directly by us.',
+  'brxPromo.sell.title': 'Selling without the hassle?',
+  'brxPromo.sell.body': 'No photos, listings or shipping: send us your cards and get paid.',
+  'brxPromo.inventory.title': 'Cards sitting idle?',
+  'brxPromo.inventory.body': 'Send them to BRX Express: we handle everything, you get paid.',
+  'brxPromo.trade.title': 'Can\'t find the right trade?',
+  'brxPromo.trade.body': 'Sell the cards you don\'t trade, with zero effort.',
+  'brxPromo.auction.title': 'Sell without auctions too',
+  'brxPromo.auction.body': 'With BRX Express we list and sell your cards for you.',
 } as const;
 
 export type MessageKey = keyof typeof en;

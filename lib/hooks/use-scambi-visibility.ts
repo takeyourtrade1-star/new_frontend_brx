@@ -15,6 +15,11 @@ import { FEATURES } from '@/lib/config/features';
  */
 export function useScambiVisibility(): boolean {
   const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  if (!isAuthenticated) {
+    return false;
+  }
 
   if (FEATURES.scambiEnabled) {
     return true;

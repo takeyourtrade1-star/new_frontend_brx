@@ -36,10 +36,7 @@ export function PhotoPairingInlinePanel({
           <QRCodeSVG value={qrUrl} size={compact ? 72 : 104} level="M" className={cn(compact ? 'h-[72px] w-[72px]' : 'h-[104px] w-[104px]')} />
         </div>
         <div className={cn('min-w-0 flex-1 pt-0.5', compact && 'pt-0')}>          
-          <p className={cn('leading-snug text-zinc-700', compact ? 'text-[10px]' : 'text-[11px]')}>{body}</p>
-          <p className={cn('line-clamp-2 break-all leading-snug text-zinc-400', compact ? 'mt-0.5 text-[9px]' : 'mt-1 text-[9px]')} title={qrUrl}>
-            {qrUrl}
-          </p>
+          <p className={cn('font-medium leading-snug text-zinc-800', compact ? 'text-[12px]' : 'text-[13px]')}>{body}</p>
           <div className={cn('flex flex-wrap gap-1.5', compact ? 'mt-1.5' : 'mt-2')}>            
             <button
               type="button"

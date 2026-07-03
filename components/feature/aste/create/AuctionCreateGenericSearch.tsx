@@ -21,6 +21,8 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 import { CardImageCameraPeek } from '@/components/ui/CardImageCameraPeek';
 import { SetIconBadge } from '@/components/ui/SetIconBadge';
+import { AuctionViewToggle } from '@/components/feature/aste/auctions-browse-shared';
+import { AuctionCardGridTile } from './AuctionCardGridTile';
 
 function hitToSelection(hit: SearchHit): AuctionCreateCardSelection {
   return {
@@ -51,6 +53,7 @@ export function AuctionCreateGenericSearch({
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebounced(query.trim()), 350);
@@ -153,72 +156,132 @@ export function AuctionCreateGenericSearch({
       )}
 
       {debounced && !searchError && hits.length > 0 && (
-        <ul className="scrollbar-hide max-h-[min(320px,50vh)] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
-          {hits.map((hit, index) => {
-            const imgUrl = getCardImageUrl(hit.image ?? null);
-            const sel = hitToSelection(hit);
-            const active = selectedId === hit.id;
-            const isTopRelevance = index === 0;
-            const showTopPulse = isTopRelevance && !active;
-            return (
-              <li key={hit.id}>
-                <div
-                  className={cn(
-                    'flex w-full items-stretch gap-3 px-3 py-3',
-                    showTopPulse && 'auction-search-top-hit',
-                    active ? 'bg-orange-50/90 ring-2 ring-inset ring-[#FF7300]' : 'hover:bg-gray-50'
-                  )}
-                >
-                  {/* Trigger anteprima + logo set: identici alla barra di ricerca globale */}
-                  <div className="flex shrink-0 items-center gap-2 self-center">
-                    <CardImageCameraPeek
-                      imageUrl={imgUrl}
-                      name={hit.name}
-                      variant="thumb"
-                      previewSide="left"
-                      closeModalLabelKey="auctions.createImagePreviewClose"
-                    />
-                    <SetIconBadge
-                      setIconUri={hit.set_icon_uri}
-                      setCode={hit.set_code}
-                      setName={hit.set_name}
-                      gameSlug={hit.game_slug}
-                      imageClassName="h-8 w-8 object-contain"
-                    />
-                  </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+              {t('search.results')}
+            </span>
+            <AuctionViewToggle
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              listLabel={t('auctions.viewList')}
+              gridLabel={t('auctions.viewGrid')}
+            />
+          </div>
+
+          {viewMode === 'list' ? (
+            <ul className="scrollbar-hide max-h-[min(360px,55vh)] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+              {hits.map((hit, index) => {
+                const imgUrl = getCardImageUrl(hit.image ?? null);
+                const sel = hitToSelection(hit);
+                const active = selectedId === hit.id;
+                const isTopRelevance = index === 0;
+                const showTopPulse = isTopRelevance && !active;
+                return (
+                  <li key={hit.id}>
+                    <div
+                      className={cn(
+                        'flex w-full items-stretch gap-3 px-3 py-3',
+                        showTopPulse && 'auction-search-top-hit',
+                        active ? 'bg-orange-50/90 ring-2 ring-inset ring-[#FF7300]' : 'hover:bg-gray-50'
+                      )}
+                    >
+                      {/* Trigger anteprima + logo set: identici alla barra di ricerca globale */}
+                      <div className="flex shrink-0 items-center gap-2 self-center">
+                        <CardImageCameraPeek
+                          imageUrl={imgUrl}
+                          name={hit.name}
+                          variant="thumb"
+                          previewSide="left"
+                          closeModalLabelKey="auctions.createImagePreviewClose"
+                        />
+                        <SetIconBadge
+                          setIconUri={hit.set_icon_uri}
+                          setCode={hit.set_code}
+                          setName={hit.set_name}
+                          gameSlug={hit.game_slug}
+                          imageClassName="h-8 w-8 object-contain"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleSelect(sel)}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-[#1D3160]">{hit.name}</p>
+                          <p className="truncate text-xs text-gray-500">{hit.set_name}</p>
+                        </div>
+                        {active && (
+                          <span className="shrink-0 rounded-full bg-[#FF7300] px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                            {t('auctions.createCardSelected')}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+              {hasNextPage && (
+                <li>
                   <button
                     type="button"
-                    onClick={() => handleSelect(sel)}
-                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="flex w-full items-center justify-center gap-2 px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-[#1D3160] transition hover:bg-gray-50 disabled:opacity-60"
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-[#1D3160]">{hit.name}</p>
-                      <p className="truncate text-xs text-gray-500">{hit.set_name}</p>
-                    </div>
-                    {active && (
-                      <span className="shrink-0 rounded-full bg-[#FF7300] px-2 py-0.5 text-[10px] font-bold uppercase text-white">
-                        {t('auctions.createCardSelected')}
-                      </span>
-                    )}
+                    {isFetchingNextPage && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+                    {t('auctions.createSearchLoadMore')}
                   </button>
-                </div>
-              </li>
-            );
-          })}
-          {hasNextPage && (
-            <li>
-              <button
-                type="button"
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                className="flex w-full items-center justify-center gap-2 px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-[#1D3160] transition hover:bg-gray-50 disabled:opacity-60"
-              >
-                {isFetchingNextPage && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
-                {t('auctions.createSearchLoadMore')}
-              </button>
-            </li>
+                </li>
+              )}
+            </ul>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 max-h-[min(360px,55vh)] overflow-y-auto p-1 scrollbar-hide">
+                {hits.map((hit) => {
+                  const imgUrl = getCardImageUrl(hit.image ?? null);
+                  const sel = hitToSelection(hit);
+                  const active = selectedId === hit.id;
+                  return (
+                    <AuctionCardGridTile
+                      key={hit.id}
+                      imageUrl={imgUrl}
+                      name={hit.name}
+                      setName={hit.set_name}
+                      active={active}
+                      activeLabel={t('auctions.createCardSelected')}
+                      onSelect={() => handleSelect(sel)}
+                      ariaLabel={t('auctions.createCollectionSelectByImage', { name: hit.name })}
+                      meta={
+                        <span className="rounded bg-white/90 p-0.5">
+                          <SetIconBadge
+                            setIconUri={hit.set_icon_uri}
+                            setCode={hit.set_code}
+                            setName={hit.set_name}
+                            gameSlug={hit.game_slug}
+                            imageClassName="h-4 w-4 object-contain"
+                          />
+                        </span>
+                      }
+                    />
+                  );
+                })}
+              </div>
+              {hasNextPage && (
+                <button
+                  type="button"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-[#1D3160] transition hover:bg-gray-50 disabled:opacity-60 shadow-sm"
+                >
+                  {isFetchingNextPage && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+                  {t('auctions.createSearchLoadMore')}
+                </button>
+              )}
+            </div>
           )}
-        </ul>
+        </div>
       )}
 
       </>

@@ -1560,7 +1560,7 @@ export const it: Record<MessageKey, string> = {
   'auctions.createAntiSnipeLabel': 'Anti-Snipe',
   'auctions.createAntiSnipeToggle': 'Attiva Anti-Snipe',
   'auctions.createAntiSnipeHint':
-    'Se qualcuno offre negli ultimi minuti prima della chiusura, l’asta si prolunga del tempo scelto per evitare offerte all’ultimo secondo.',
+    'Se qualcuno offre negli ultimi 2 minuti prima della chiusura, l’asta si prolunga del tempo scelto per evitare offerte all’ultimo secondo.',
   'auctions.createAntiSnipeMinutes': '{minutes} min',
   'auctions.createAntiSnipeComingSoon': 'In arrivo',
   'auctions.createBuyNowLabel': 'Prezzo Compra subito (facoltativo)',
@@ -1570,8 +1570,8 @@ export const it: Record<MessageKey, string> = {
   'auctions.createKeepListingYes': 'Sì, tieni in vendita',
   'auctions.createKeepListingNo': 'No, solo asta',
   'auctions.createValidationBuyNow': 'Il Compra subito deve essere superiore all’offerta iniziale.',
-  'auctions.createReserveToggleLabel': 'Vuoi un prezzo di riserva?',
-  'auctions.createBuyNowToggleLabel': 'Vuoi il Compra subito?',
+  'auctions.createReserveToggleLabel': 'Attivare prezzo di riserva?',
+  'auctions.createBuyNowToggleLabel': 'Attivare Compra subito?',
   'auctions.createValidationReserveChoice': 'Scegli Sì o No per il prezzo di riserva.',
   'auctions.createValidationReserve': 'Il prezzo di riserva deve essere almeno pari all’offerta iniziale.',
   'auctions.createValidationBuyNowChoice': 'Scegli Sì o No per il Compra subito.',
@@ -1621,7 +1621,7 @@ export const it: Record<MessageKey, string> = {
     'Sessione attiva: le foto dal telefono compaiono qui da sole entro pochi secondi, anche se chiudi il popup del QR.',
   'auctions.createPhotoFromPhoneModalTitle': 'Scansiona con il telefono',
   'auctions.createPhotoFromPhoneModalBody':
-    'Inquadra il QR code dal telefono, apri il link e non serve nemmeno accedere per passare le foto al tuo PC!',
+    'Inquadra il QR code dal telefono, apri il link e passa le foto al PC, senza bisogno di accedere.',
   'auctions.createPhotoFromPhoneModalCloseHint':
     'Puoi chiudere questa finestra con il QR: le foto inviate dal telefono continueranno ad apparire da sole nel passo Foto.',
   'auctions.createPhotoFromPhoneModalClose': 'Chiudi',
@@ -2622,4 +2622,18 @@ export const it: Record<MessageKey, string> = {
   'asso.backFace.sub.legendary': 'Leggendario',
   'asso.backFace.sub.special': 'Edizione Speciale',
   'asso.backFace.sub.ultraRare': 'Ultra Raro',
+
+  // Bannerino promozionale contestuale BRX Express
+  'brxPromo.badge': 'BRX Express',
+  'brxPromo.close': 'Nascondi',
+  'brxPromo.product.title': 'Compralo su BRX Express',
+  'brxPromo.product.body': 'Carte verificate, custodite e spedite direttamente da noi.',
+  'brxPromo.sell.title': 'Vendere senza pensieri?',
+  'brxPromo.sell.body': 'Niente foto, annunci o spedizioni: inviaci le tue carte e incassi.',
+  'brxPromo.inventory.title': 'Carte ferme in collezione?',
+  'brxPromo.inventory.body': 'Inviale a BRX Express: pensiamo a tutto noi e tu incassi.',
+  'brxPromo.trade.title': 'Non trovi lo scambio giusto?',
+  'brxPromo.trade.body': 'Vendi le carte che non scambi, senza gestire nulla.',
+  'brxPromo.auction.title': 'Vendi anche senza aste',
+  'brxPromo.auction.body': 'Con BRX Express mettiamo in vendita noi le tue carte per te.',
 };

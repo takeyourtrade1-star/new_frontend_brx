@@ -85,7 +85,7 @@ export function SellSingleWizardModals({
             </button>
           }
         >
-          <p className="text-sm leading-relaxed text-gray-700">
+          <p className="text-base font-semibold leading-relaxed text-gray-800">
             {t('vendi.sell.photoFromPhoneModalBody')}
           </p>
           <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
@@ -96,9 +96,6 @@ export function SellSingleWizardModals({
               <QRCodeSVG value={pairing.phonePairingQrUrl} size={qrCodeSize} level="M" className="h-auto w-auto max-w-full" />
             ) : null}
           </div>
-          <p className="mt-2 line-clamp-2 text-center text-[10px] text-gray-500" title={pairing.phonePairingQrUrl}>
-            {pairing.phonePairingQrUrl}
-          </p>
         </SellWizardModal>
       ) : null}
 

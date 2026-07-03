@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { OggettiContent } from '@/components/feature/account/OggettiContent';
+import { BrxExpressPromo } from '@/components/feature/brx-express/BrxExpressPromo';
 import { MascotteLoader } from '@/components/dev/MascotteLoader';
 
 export const metadata = {
@@ -9,8 +10,11 @@ export const metadata = {
 
 export default function OggettiPage() {
   return (
-    <Suspense fallback={<div className="p-8 flex justify-center"><MascotteLoader size="sm" /></div>}>
-      <OggettiContent />
-    </Suspense>
+    <>
+      <Suspense fallback={<div className="p-8 flex justify-center"><MascotteLoader size="sm" /></div>}>
+        <OggettiContent />
+      </Suspense>
+      <BrxExpressPromo variant="inventory" />
+    </>
   );
 }

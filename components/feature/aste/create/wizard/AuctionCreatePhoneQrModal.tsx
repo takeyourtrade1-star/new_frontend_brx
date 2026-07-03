@@ -25,7 +25,7 @@ export function AuctionCreatePhoneQrModal({ open, qrUrl, onClose }: AuctionCreat
         <h2 id="phone-upload-qr-title" className="text-lg font-bold uppercase tracking-wide text-[#1D3160]">
           {t('auctions.createPhotoFromPhoneModalTitle')}
         </h2>
-        <p className="mt-3 text-sm md:text-base font-bold leading-relaxed text-gray-900 text-center">
+        <p className="mt-3 text-base md:text-lg font-bold leading-relaxed text-gray-900 text-center">
           {t('auctions.createPhotoFromPhoneModalBody')}
         </p>
         <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700 text-center">

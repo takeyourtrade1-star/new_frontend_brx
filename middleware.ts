@@ -34,6 +34,7 @@ const PROTECTED_PREFIXES = [
   '/aste/mie',
   '/aste/partecipazioni',
   '/bidding',
+  '/scambi',
 ];
 
 const LOGIN_PATH = '/login';
@@ -85,5 +86,7 @@ export const config = {
     '/aste/partecipazioni/:path*',
     '/bidding',
     '/bidding/:path*',
+    '/scambi',
+    '/scambi/:path*',
   ],
 };

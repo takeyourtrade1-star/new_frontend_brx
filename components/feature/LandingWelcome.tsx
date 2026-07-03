@@ -178,6 +178,37 @@ const HERO_POINT_ROUTES: { href: string; external?: boolean }[] = [
   { href: '/brx-express' },
 ];
 
+const KEYWORD_REGEX_BY_LOCALE: Record<string, RegExp> = {
+  it: /(BRX Express|comprare|vendere|scambiare|all'asta|asta|tornei live)/gi,
+  en: /(BRX Express|buy|sell|trade|auction|live tournaments)/gi,
+  es: /(BRX Express|comprar|vender|intercambiar|subastar|torneos en vivo)/gi,
+  pt: /(BRX Express|comprar|vender|trocar|leilão|torneios ao vivo)/gi,
+  fr: /(BRX Express|acheter|vendre|échanger|aux enchères|enchères|tournois en direct)/gi,
+  de: /(BRX Express|kaufen|verkaufen|tauschen|versteigern|live-turniere)/gi,
+};
+
+function highlightKeywords(text: string, isActive: boolean, locale: string) {
+  const regex = KEYWORD_REGEX_BY_LOCALE[locale] || KEYWORD_REGEX_BY_LOCALE['it'];
+  const parts = text.split(regex);
+  if (parts.length === 1) return text;
+
+  return parts.map((part, i) => {
+    if (part.match(regex)) {
+      return (
+        <span
+          key={i}
+          className={`hero-keyword transition-all duration-500 font-bold ${
+            isActive ? 'hero-keyword-active' : 'hero-keyword-inactive'
+          }`}
+        >
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
 function HeroTaglinePoints({
   active,
   setActive,
@@ -187,7 +218,7 @@ function HeroTaglinePoints({
   setActive: (i: number) => void;
   setPaused: (paused: boolean) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   // Riordinati per combaciare con la rotazione del ventaglio:
   // point1=Vendi, point3=Aste, point2=Scambi, point4=Tornei, point5=BRX.
@@ -233,7 +264,7 @@ function HeroTaglinePoints({
                 }`}
                 style={isActive ? { ['--point-color' as string]: color.hex } : undefined}
               >
-                {point}
+                {highlightKeywords(point, isActive, locale)}
               </span>
             </>
           );
@@ -852,9 +883,41 @@ export function LandingWelcome() {
              all'80% nei primi 300ms e sembra istantaneo */
           animation: heroPointReveal 1.8s ease-in-out forwards;
         }
-        @keyframes heroPointReveal {
+                @keyframes heroPointReveal {
           from { background-size: 0% 100%, 100% 100%; }
           to { background-size: 100% 100%, 100% 100%; }
+        }
+        /* Parole chiave accentuate: foil olografico perlescente, applicato
+           SOLO alla frase attiva. Da inattive ereditano il colore del testo
+           circostante. Sul foil: pastelli tenui in diagonale + lama di luce
+           bianca che spazza avanti/indietro (carta foil inclinata). */
+        .hero-keyword {
+          font-weight: 800;
+          display: inline-block;
+          white-space: nowrap;
+          transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.4s ease-in-out, opacity 0.4s ease-in-out;
+        }
+        .hero-keyword-inactive {
+          color: inherit;
+          transform: scale(1);
+        }
+        .hero-keyword-active {
+          background-image:
+            linear-gradient(100deg, rgba(255,255,255,0) 42%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 58%),
+            linear-gradient(115deg, #D3F2FF 0%, #E6DFFF 24%, #FFE4F1 48%, #FFF2D8 70%, #DFFCF0 88%, #D3F2FF 100%);
+          background-size: 250% 100%, 200% auto;
+          -webkit-background-clip: text !important;
+          background-clip: text !important;
+          -webkit-text-fill-color: transparent !important;
+          color: transparent !important;
+          animation: heroKeywordFoil 6s ease-in-out infinite;
+          transform: scale(1.04);
+          filter: drop-shadow(0 0 4px rgba(215, 240, 255, 0.4)) drop-shadow(0 0 12px rgba(165, 210, 255, 0.2));
+        }
+        @keyframes heroKeywordFoil {
+          0% { background-position: 0% 0%, 0% 50%; }
+          50% { background-position: 100% 0%, 100% 50%; }
+          100% { background-position: 0% 0%, 0% 50%; }
         }
         @media (prefers-reduced-motion: reduce) {
           .hero-gradient-text {
@@ -865,6 +928,11 @@ export function LandingWelcome() {
             animation: none;
             background-image: none;
             color: var(--point-color, #fff);
+          }
+          .hero-keyword,
+          .hero-keyword-active {
+            transition: none;
+            animation: none;
           }
         }
       `}</style>

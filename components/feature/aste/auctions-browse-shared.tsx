@@ -7,7 +7,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LayoutGrid, LayoutList, Star } from 'lucide-react';
+import { Grid2x2, Rows3, Star } from 'lucide-react';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { cn } from '@/lib/utils';
@@ -146,7 +146,7 @@ export function AuctionViewToggle({
             viewMode === 'list' ? activeCls : inactiveCls
           )}
         >
-          <LayoutList className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <Rows3 className="h-3.5 w-3.5 shrink-0" aria-hidden />
         </button>
         <button
           type="button"
@@ -159,7 +159,7 @@ export function AuctionViewToggle({
             viewMode === 'grid' ? activeCls : inactiveCls
           )}
         >
-          <LayoutGrid className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <Grid2x2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
         </button>
       </div>
     );
@@ -179,7 +179,7 @@ export function AuctionViewToggle({
               : 'text-gray-500 hover:bg-gray-200'
           }`}
         >
-          <LayoutList className="h-4 w-4 shrink-0" />
+          <Rows3 className="h-4 w-4 shrink-0" />
         </button>
         <button
           type="button"
@@ -192,7 +192,7 @@ export function AuctionViewToggle({
               : 'text-gray-500 hover:bg-gray-200'
           }`}
         >
-          <LayoutGrid className="h-4 w-4 shrink-0" />
+          <Grid2x2 className="h-4 w-4 shrink-0" />
         </button>
       </div>
     );
@@ -209,7 +209,7 @@ export function AuctionViewToggle({
             : 'border-r border-[#FF7300]/30 bg-white text-[#FF7300] hover:bg-orange-50/80'
         }`}
       >
-        <LayoutList className="h-4 w-4 shrink-0" />
+        <Rows3 className="h-4 w-4 shrink-0" />
         {listLabel}
       </button>
       <button
@@ -221,7 +221,7 @@ export function AuctionViewToggle({
             : 'border-l border-[#FF7300]/30 bg-white text-[#FF7300] hover:bg-orange-50/80'
         }`}
       >
-        <LayoutGrid className="h-4 w-4 shrink-0" />
+        <Grid2x2 className="h-4 w-4 shrink-0" />
         {gridLabel}
       </button>
     </div>

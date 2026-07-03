@@ -84,7 +84,7 @@ export function PushTestButton({ className }: { className?: string }) {
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: applicationServerKey as any,
+          applicationServerKey: applicationServerKey as BufferSource,
         });
       }
 
