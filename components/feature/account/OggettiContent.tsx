@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { ViewToggle } from '@/components/shared/ViewToggle';
 import Link from 'next/link';
 import {
   Download,
@@ -373,30 +374,15 @@ export function OggettiContent() {
                 <span className="hidden sm:inline">{t('accountPage.itemsExport')}</span>
               </button>
 
-              <div className="hidden shrink-0 items-center rounded-lg bg-gray-100 p-1 md:flex">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('table')}
-                  className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
-                    viewMode === 'table' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  aria-label={t('accountPage.itemsViewTableAria')}
-                  title={t('accountPage.itemsViewTable')}
-                >
-                  <List className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('cards')}
-                  className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
-                    viewMode === 'cards' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  aria-label={t('accountPage.itemsViewGridAria')}
-                  title={t('accountPage.itemsViewGrid')}
-                >
-                  <Grid3X3 className="h-4 w-4" />
-                </button>
-              </div>
+              <ViewToggle
+                className="hidden md:flex"
+                current={viewMode}
+                onChange={setViewMode}
+                listValue="table"
+                gridValue="cards"
+                listLabel={t('accountPage.itemsViewTable')}
+                gridLabel={t('accountPage.itemsViewGrid')}
+              />
             </div>
           </div>
 
@@ -582,30 +568,15 @@ export function OggettiContent() {
                   <span className="hidden sm:inline">{t('accountPage.itemsExport')}</span>
                 </button>
 
-                <div className="hidden shrink-0 items-center rounded-lg bg-gray-100 p-1 md:flex">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('table')}
-                    className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
-                      viewMode === 'table' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                    aria-label="Tabella"
-                    title="Tabella"
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('cards')}
-                    className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-all duration-150 ${
-                      viewMode === 'cards' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                    aria-label="Griglia"
-                    title="Griglia"
-                  >
-                    <Grid3X3 className="h-4 w-4" />
-                  </button>
-                </div>
+                <ViewToggle
+                  className="hidden md:flex"
+                  current={viewMode}
+                  onChange={setViewMode}
+                  listValue="table"
+                  gridValue="cards"
+                  listLabel="Tabella"
+                  gridLabel="Griglia"
+                />
               </div>
             </div>
 

@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSetPageCards } from '@/lib/hooks/use-search';
 import { LayoutGrid, LayoutList, Search } from 'lucide-react';
+import { ViewToggle } from '@/components/shared/ViewToggle';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
@@ -226,30 +227,13 @@ export function SetPageClient({ game, setName }: SetPageClientProps) {
               />
             </div>
           </div>
-
           <div className="flex items-center justify-end gap-2">
-            <div className="flex overflow-hidden rounded-md border border-gray-200 bg-white">
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-2 text-sm font-bold uppercase transition-colors ${
-                  viewMode === 'list' ? 'bg-[#FF7300] text-white' : 'text-gray-600 hover:bg-gray-50'
-                }`}
-                aria-label={t('search.viewList')}
-              >
-                <LayoutList className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 text-sm font-bold uppercase transition-colors border-l border-gray-200 ${
-                  viewMode === 'grid' ? 'bg-[#FF7300] text-white' : 'text-gray-600 hover:bg-gray-50'
-                }`}
-                aria-label={t('search.viewGrid')}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-            </div>
+            <ViewToggle
+              current={viewMode}
+              onChange={setViewMode}
+              listLabel={t('search.viewList')}
+              gridLabel={t('search.viewGrid')}
+            />
           </div>
         </div>
 

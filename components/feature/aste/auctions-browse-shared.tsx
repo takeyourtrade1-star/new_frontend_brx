@@ -113,6 +113,8 @@ export function auctionGameLabel(
   return t(GAME_KEYS[g]);
 }
 
+import { ViewToggle } from '@/components/shared/ViewToggle';
+
 export type AuctionTranslate = (k: MessageKey, vars?: Record<string, string | number>) => string;
 
 export function AuctionViewToggle({
@@ -120,7 +122,6 @@ export function AuctionViewToggle({
   onViewModeChange,
   listLabel = 'Lista',
   gridLabel = 'Griglia',
-  variant = 'icons-only',
 }: {
   viewMode: 'list' | 'grid';
   onViewModeChange: (v: 'list' | 'grid') => void;
@@ -128,103 +129,13 @@ export function AuctionViewToggle({
   gridLabel?: string;
   variant?: 'icons-only' | 'with-labels' | 'compact';
 }) {
-  if (variant === 'compact') {
-    const activeCls =
-      'border-[#FF7300]/40 bg-[#FF7300]/85 text-white shadow-sm';
-    const inactiveCls =
-      'border-gray-200 bg-white text-gray-600 hover:border-[#FF7300]/30 hover:text-gray-900';
-    return (
-      <div className="flex items-center gap-1" role="group" aria-label={`${listLabel} / ${gridLabel}`}>
-        <button
-          type="button"
-          onClick={() => onViewModeChange('list')}
-          aria-label={listLabel}
-          title={listLabel}
-          aria-pressed={viewMode === 'list'}
-          className={cn(
-            'inline-flex items-center justify-center rounded-full border p-1.5 transition-colors',
-            viewMode === 'list' ? activeCls : inactiveCls
-          )}
-        >
-          <Rows3 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        </button>
-        <button
-          type="button"
-          onClick={() => onViewModeChange('grid')}
-          aria-label={gridLabel}
-          title={gridLabel}
-          aria-pressed={viewMode === 'grid'}
-          className={cn(
-            'inline-flex items-center justify-center rounded-full border p-1.5 transition-colors',
-            viewMode === 'grid' ? activeCls : inactiveCls
-          )}
-        >
-          <Grid2x2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        </button>
-      </div>
-    );
-  }
-
-  if (variant === 'icons-only') {
-    return (
-      <div className="flex h-10 overflow-hidden rounded-full bg-gray-100">
-        <button
-          type="button"
-          onClick={() => onViewModeChange('list')}
-          aria-label={listLabel}
-          title={listLabel}
-          className={`flex h-10 w-12 items-center justify-center transition-colors ${
-            viewMode === 'list'
-              ? 'bg-primary text-white'
-              : 'text-gray-500 hover:bg-gray-200'
-          }`}
-        >
-          <Rows3 className="h-4 w-4 shrink-0" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onViewModeChange('grid')}
-          aria-label={gridLabel}
-          title={gridLabel}
-          className={`flex h-10 w-12 items-center justify-center transition-colors ${
-            viewMode === 'grid'
-              ? 'bg-primary text-white'
-              : 'text-gray-500 hover:bg-gray-200'
-          }`}
-        >
-          <Grid2x2 className="h-4 w-4 shrink-0" />
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex overflow-hidden rounded-none border border-[#FF7300]/50">
-      <button
-        type="button"
-        onClick={() => onViewModeChange('list')}
-        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold uppercase transition-colors ${
-          viewMode === 'list'
-            ? 'bg-[#FF7300] text-white shadow-inner hover:bg-[#e86800]'
-            : 'border-r border-[#FF7300]/30 bg-white text-[#FF7300] hover:bg-orange-50/80'
-        }`}
-      >
-        <Rows3 className="h-4 w-4 shrink-0" />
-        {listLabel}
-      </button>
-      <button
-        type="button"
-        onClick={() => onViewModeChange('grid')}
-        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold uppercase transition-colors ${
-          viewMode === 'grid'
-            ? 'bg-[#FF7300] text-white shadow-inner hover:bg-[#e86800]'
-            : 'border-l border-[#FF7300]/30 bg-white text-[#FF7300] hover:bg-orange-50/80'
-        }`}
-      >
-        <Grid2x2 className="h-4 w-4 shrink-0" />
-        {gridLabel}
-      </button>
-    </div>
+    <ViewToggle
+      current={viewMode}
+      onChange={onViewModeChange}
+      listLabel={listLabel}
+      gridLabel={gridLabel}
+    />
   );
 }
 

@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 
 export type ViewMode = 'list' | 'grid';
 
+import { ViewToggle } from '@/components/shared/ViewToggle';
+
 type SearchResultsToolbarProps = {
   total: number;
   sortParam: string;
@@ -62,32 +64,12 @@ export function SearchResultsToolbar({
             ))}
           </select>
         </div>
-        <div className="flex h-9 shrink-0 overflow-hidden rounded-full border border-gray-200 bg-[#f2f2f7]">
-          <button
-            type="button"
-            onClick={() => onViewModeChange('list')}
-            aria-label={t('search.viewList')}
-            title={t('search.viewList')}
-            className={cn(
-              'flex h-9 w-10 items-center justify-center transition-colors',
-              viewMode === 'list' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-200/80'
-            )}
-          >
-            <Rows3 className="h-4 w-4 shrink-0" aria-hidden />
-          </button>
-          <button
-            type="button"
-            onClick={() => onViewModeChange('grid')}
-            aria-label={t('search.viewGrid')}
-            title={t('search.viewGrid')}
-            className={cn(
-              'flex h-9 w-10 items-center justify-center transition-colors',
-              viewMode === 'grid' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-200/80'
-            )}
-          >
-            <Grid2x2 className="h-4 w-4 shrink-0" aria-hidden />
-          </button>
-        </div>
+        <ViewToggle
+          current={viewMode}
+          onChange={onViewModeChange}
+          listLabel={t('search.viewList')}
+          gridLabel={t('search.viewGrid')}
+        />
       </div>
     </div>
   );

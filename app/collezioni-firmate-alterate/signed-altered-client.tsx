@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
+import { ViewToggle } from '@/components/shared/ViewToggle';
 import { motion } from 'framer-motion';
 import {
   PenTool,
@@ -542,26 +543,12 @@ export function SignedAlteredCollectionPage() {
               </div>
 
               {/* View mode toggle */}
-              <div className="flex items-center rounded-lg border border-zinc-200 bg-white p-1">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`rounded p-1.5 transition-colors ${
-                    viewMode === 'grid' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:bg-zinc-100'
-                  }`}
-                  aria-label="Vista griglia"
-                >
-                  <Grid3X3 className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`rounded p-1.5 transition-colors ${
-                    viewMode === 'list' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:bg-zinc-100'
-                  }`}
-                  aria-label="Vista lista"
-                >
-                  <List className="h-4 w-4" />
-                </button>
-              </div>
+              <ViewToggle
+                current={viewMode}
+                onChange={setViewMode}
+                listLabel="Vista lista"
+                gridLabel="Vista griglia"
+              />
             </div>
           </div>
         </div>
