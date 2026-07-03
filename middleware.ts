@@ -50,11 +50,17 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Leggiamo solo il cookie HttpOnly impostato dal BFF /api/auth.
+  // Leggiamo solo i cookie HttpOnly impostati dal BFF /api/auth.
   // Non leggiamo cookie Zustand (ebartex-auth) perché non sono HttpOnly
   // e possono essere scritti da qualsiasi script client.
+  // Il refresh token (30 giorni) conta come sessione: l'access token scade
+  // in fretta e il client lo rinnova in modo silenzioso — senza questo
+  // fallback l'utente loggato veniva rimbalzato a /login nella finestra tra
+  // scadenza del cookie e refresh (es. click sul carrello appena riaperta
+  // l'app). Il middleware è solo UX: l'auth vera resta nei route handler BFF.
   const sessionCookie = request.cookies.get(appConfig.auth.tokenKey)?.value;
-  const hasSession = !!(sessionCookie?.trim());
+  const refreshCookie = request.cookies.get(appConfig.auth.refreshTokenKey)?.value;
+  const hasSession = !!(sessionCookie?.trim() || refreshCookie?.trim());
 
   if (!hasSession) {
     const loginUrl = new URL(LOGIN_PATH, request.url);

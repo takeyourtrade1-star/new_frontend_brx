@@ -466,8 +466,10 @@ export function LandingWelcome() {
                 <div className="relative flex flex-1 flex-col overflow-hidden rounded-t-2xl px-5 pt-5 pb-5 sm:px-6 sm:pt-6 md:px-7 md:pt-7 lg:px-8 lg:pt-8">
                   <CardFoilOverlay className="dashboard-card-foil rounded-t-2xl opacity-[0.14]" />
 
-                  {/* Top row: Text + Logo */}
-                  <div className="flex flex-col sm:flex-row flex-1 items-center justify-between gap-6 sm:gap-8 mt-4 sm:mt-2">
+                  {/* Top row: Text + Logo — su mobile il titolo è centrato sotto il
+                      badge assoluto "Disponibile subito!": serve più margine per
+                      non finirci sotto (il badge occupa ~top-4 → ~44px). */}
+                  <div className="flex flex-col sm:flex-row flex-1 items-center justify-between gap-6 sm:gap-8 mt-8 sm:mt-2">
                   <div className="flex flex-col gap-1.5 sm:gap-2 text-center sm:text-left">
                     <h2 className="font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold uppercase tracking-tight text-white drop-shadow-lg">
                       Magic: The Gathering
