@@ -36,8 +36,10 @@ export const pt: Record<MessageKey, string> = {
   'nav.cameraMatchQrHint':
     'O CameraMatch usa a câmara do telemóvel — continue no smartphone após digitalizar.',
   'push.testButton': 'Testar notificações push',
-  'push.scheduled': 'Notificação a chegar em 60 segundos — pode deixar a app em segundo plano.',
+  'push.scheduled': 'Notificação a chegar em 10 segundos — também pode mudar para outra app ou aba.',
   'push.sent': 'Notificação enviada!',
+  'push.notifTitle': 'EbarteX 🔔',
+  'push.notifBody': 'Notificação de teste: as notificações funcionam neste dispositivo!',
   'push.errorUnsupported':
     'Notificações push não suportadas aqui. No iPhone, instale primeiro a app: Partilhar → Adicionar ao ecrã principal.',
   'push.errorPermission': 'Permissão de notificações negada — ative-a nas definições.',

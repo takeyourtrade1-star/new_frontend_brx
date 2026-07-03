@@ -36,8 +36,10 @@ export const de: Record<MessageKey, string> = {
   'nav.cameraMatchQrHint':
     'CameraMatch nutzt die Handykamera — nach dem Scannen auf dem Smartphone weitermachen.',
   'push.testButton': 'Push-Benachrichtigungen testen',
-  'push.scheduled': 'Benachrichtigung kommt in 60 Sekunden — die App darf in den Hintergrund.',
+  'push.scheduled': 'Benachrichtigung kommt in 10 Sekunden — Sie können auch zu einer anderen App oder einem anderen Tab wechseln.',
   'push.sent': 'Benachrichtigung gesendet!',
+  'push.notifTitle': 'EbarteX 🔔',
+  'push.notifBody': 'Testbenachrichtigung: Benachrichtigungen funktionieren auf diesem Gerät!',
   'push.errorUnsupported':
     'Push-Benachrichtigungen werden hier nicht unterstützt. Auf dem iPhone zuerst die App installieren: Teilen → Zum Home-Bildschirm.',
   'push.errorPermission': 'Benachrichtigungsberechtigung verweigert — in den Einstellungen aktivieren.',

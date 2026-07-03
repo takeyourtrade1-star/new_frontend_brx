@@ -36,8 +36,10 @@ export const en = {
     'Scan this QR code with your phone camera to open CameraMatch on your device.',
   'nav.cameraMatchQrHint': 'CameraMatch uses your phone camera — continue on mobile after scanning.',
   'push.testButton': 'Test push notifications',
-  'push.scheduled': 'Notification arriving in 60 seconds — you can put the app in the background.',
+  'push.scheduled': 'Notification arriving in 10 seconds — you can also switch to another app or tab.',
   'push.sent': 'Notification sent!',
+  'push.notifTitle': 'EbarteX 🔔',
+  'push.notifBody': 'Test notification: notifications work on this device!',
   'push.errorUnsupported':
     'Push notifications not supported here. On iPhone, install the app first: Share → Add to Home Screen.',
   'push.errorPermission': 'Notification permission denied — enable it in your settings.',

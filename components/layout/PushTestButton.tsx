@@ -5,7 +5,7 @@ import { Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
-const TEST_DELAY_SECONDS = 60;
+const TEST_DELAY_SECONDS = 10;
 
 type PushTestStatus = 'idle' | 'working' | 'scheduled' | 'sent' | 'error';
 
@@ -15,25 +15,11 @@ type PushErrorKey =
   | 'push.errorNoSw'
   | 'push.errorGeneric';
 
-/** Converte la chiave VAPID pubblica (base64url) nel formato richiesto da subscribe(). */
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(base64);
-  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
-}
-
-function sameKey(existing: ArrayBuffer | null, expected: Uint8Array): boolean {
-  if (!existing) return false;
-  const bytes = new Uint8Array(existing);
-  if (bytes.length !== expected.length) return false;
-  return bytes.every((b, i) => b === expected[i]);
-}
-
 /**
- * Bottone di prova per le notifiche Web Push della PWA: chiede il permesso,
- * registra la subscription e chiede al server di inviare una push dopo 60s
- * (arriva anche con l'app in background/chiusa).
+ * Bottone di prova per le notifiche della PWA: chiede il permesso e mostra una
+ * notifica locale via service worker dopo 10s, senza server né chiavi VAPID.
+ * Il timer vive nella pagina: la notifica arriva con l'app aperta o in
+ * background, non ad app chiusa (per quello serve una vera Web Push via server).
  * Su iOS funziona solo con l'app installata in Home (iOS 16.4+).
  */
 export function PushTestButton({ className }: { className?: string }) {
@@ -50,12 +36,7 @@ export function PushTestButton({ className }: { className?: string }) {
     if (status === 'working' || status === 'scheduled') return;
     setStatus('working');
 
-    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!vapidPublicKey) {
-      fail('push.errorGeneric');
-      return;
-    }
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) {
       fail('push.errorUnsupported');
       return;
     }
@@ -74,36 +55,23 @@ export function PushTestButton({ className }: { className?: string }) {
         return;
       }
 
-      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
-      let subscription = await registration.pushManager.getSubscription();
-      if (subscription && !sameKey(subscription.options.applicationServerKey, applicationServerKey)) {
-        // Subscription creata con una chiave VAPID diversa: va rifatta.
-        await subscription.unsubscribe();
-        subscription = null;
-      }
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: applicationServerKey as BufferSource,
-        });
-      }
-
-      // Da qui la notifica è in mano al server: l'utente può chiudere l'app.
+      const title = t('push.notifTitle');
+      const body = t('push.notifBody');
       setStatus('scheduled');
-
-      const res = await fetch('/api/push/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subscription: subscription.toJSON(),
-          delaySeconds: TEST_DELAY_SECONDS,
-        }),
-      });
-      if (!res.ok) {
-        fail('push.errorGeneric');
-        return;
-      }
-      setStatus('sent');
+      window.setTimeout(() => {
+        registration
+          .showNotification(title, {
+            body,
+            icon: '/logo.png',
+            badge: '/logo.png',
+            data: { url: '/' },
+          })
+          .then(() => setStatus('sent'))
+          .catch((err) => {
+            console.error('[push test] errore:', err);
+            fail('push.errorGeneric');
+          });
+      }, TEST_DELAY_SECONDS * 1000);
     } catch (err) {
       console.error('[push test] errore:', err);
       fail('push.errorGeneric');
