@@ -95,9 +95,8 @@ export function validateAuctionCreateStep(
     if (!Number.isFinite(start) || start <= 0) {
       return { ok: false, error: m.start };
     }
-    // Scelte esplicite Sì/No obbligatorie (solo step prezzo standalone:
-    // l'embedded non espone questi toggle e mantiene il comportamento attuale).
-    if (id === 'price') {
+    // Scelte esplicite Sì/No obbligatorie (step prezzo standalone e dettagli embedded).
+    if (id === 'price' || isEmbedded) {
       if (draft.reserveEnabled === null) {
         return { ok: false, error: m.reserveChoice };
       }

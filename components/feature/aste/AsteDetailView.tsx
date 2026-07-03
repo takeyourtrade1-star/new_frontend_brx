@@ -568,7 +568,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
           <SimilarAuctionsSections similarCards={similarCards} />
 
           {/* Spazio per il dock offerta mobile, così non copre l'ultimo contenuto */}
-          {showBuyerBid && <div aria-hidden className="h-20 lg:hidden" />}
+          {showBuyerBid && <div aria-hidden className="h-14 lg:hidden" />}
         </div>
       </section>
 

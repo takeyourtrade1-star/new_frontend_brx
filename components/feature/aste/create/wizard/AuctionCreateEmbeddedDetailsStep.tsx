@@ -14,10 +14,20 @@ import {
   readAuctionLanguagePreference,
   writeAuctionLanguagePreference,
 } from '@/lib/auction/auction-language-preference';
+import {
+  clearAuctionBuyNowEnabledPreference,
+  clearAuctionReserveEnabledPreference,
+  writeAuctionBuyNowEnabledPreference,
+  writeAuctionReserveEnabledPreference,
+} from '@/lib/auction/auction-wizard-preferences';
 import type { CardLanguageOption } from '@/lib/card-languages';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
+import { YesNoToggle } from './AuctionCreatePriceStep';
+import { AuctionWizardRemember1hCheckbox } from './AuctionWizardRemember1hCheckbox';
 
+const EMB_MONEY_INPUT_CLS =
+  'w-full rounded-lg border border-gray-300 py-1.5 pl-7 pr-2.5 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25';
 
 export type AuctionCreateEmbeddedDetailsStepProps = {
   draft: AuctionCreateDraft;
@@ -32,6 +42,8 @@ export function AuctionCreateEmbeddedDetailsStep({
 }: AuctionCreateEmbeddedDetailsStepProps) {
   const { t } = useTranslation();
   const [rememberLanguage, setRememberLanguage] = useState(false);
+  const [rememberReserve, setRememberReserve] = useState(false);
+  const [rememberBuyNow, setRememberBuyNow] = useState(false);
 
   useEffect(() => {
     if (draft.cardLanguage) return;
@@ -116,102 +128,151 @@ export function AuctionCreateEmbeddedDetailsStep({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label htmlFor="ac-start-emb" className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
-            {t('auctions.createStartingBidLabel')}
-          </label>
-          <div className="relative mt-1">
-            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500">€</span>
-            <input
-              id="ac-start-emb"
-              value={draft.startingBidEur}
-              onChange={(e) => update('startingBidEur', e.target.value)}
-              onBlur={(e) => update('startingBidEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-              className="w-full rounded-lg border border-gray-300 py-1.5 pl-7 pr-2.5 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-              inputMode="decimal"
-            />
-          </div>
+      <div>
+        <label htmlFor="ac-start-emb" className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
+          {t('auctions.createStartingBidLabel')}
+        </label>
+        <div className="relative mt-1 max-w-xs">
+          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500">€</span>
+          <input
+            id="ac-start-emb"
+            value={draft.startingBidEur}
+            onChange={(e) => update('startingBidEur', e.target.value)}
+            onBlur={(e) => update('startingBidEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+            className={EMB_MONEY_INPUT_CLS}
+            inputMode="decimal"
+          />
         </div>
-        <div>
-          <label htmlFor="ac-res-emb" className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
-            {t('auctions.createReserveLabel')}
-          </label>
-          <div className="relative mt-1">
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-wide text-gray-600">
+            {t('auctions.createReserveToggleLabel')}
+          </span>
+          <YesNoToggle
+            value={draft.reserveEnabled}
+            onChange={(next) => {
+              update('reserveEnabled', next);
+              if (!next) update('reservePriceEur', '');
+              if (rememberReserve) writeAuctionReserveEnabledPreference(next);
+            }}
+            yesLabel={t('auctions.createInInventoryYes')}
+            noLabel={t('auctions.createInInventoryNo')}
+            ariaLabel={t('auctions.createReserveToggleLabel')}
+          />
+        </div>
+        <p className="mt-1 text-[10px] leading-snug text-gray-500">{t('auctions.createReserveHint')}</p>
+        <AuctionWizardRemember1hCheckbox
+          checked={rememberReserve}
+          className="mt-1.5"
+          onCheckedChange={(checked) => {
+            setRememberReserve(checked);
+            if (checked && draft.reserveEnabled !== null) {
+              writeAuctionReserveEnabledPreference(draft.reserveEnabled);
+            } else if (!checked) {
+              clearAuctionReserveEnabledPreference();
+            }
+          }}
+        />
+        {draft.reserveEnabled ? (
+          <div className="relative mt-2 max-w-xs">
             <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500">€</span>
             <input
               id="ac-res-emb"
               value={draft.reservePriceEur}
               onChange={(e) => update('reservePriceEur', e.target.value)}
               onBlur={(e) => update('reservePriceEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-              className="w-full rounded-lg border border-gray-300 py-1.5 pl-7 pr-2.5 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
+              className={EMB_MONEY_INPUT_CLS}
               inputMode="decimal"
               placeholder="—"
+              aria-label={t('auctions.createReserveToggleLabel')}
             />
           </div>
-        </div>
+        ) : null}
       </div>
-      <p className="text-[10px] leading-snug text-gray-500">{t('auctions.createReserveHint')}</p>
 
       {draft.inventoryListPriceEur ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-2.5">
-          <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
-            {t('auctions.createKeepListingLabel')}
-          </span>
-          <p className="mt-0.5 text-[10px] leading-snug text-gray-500">
-            {t('auctions.createKeepListingHint', { price: draft.inventoryListPriceEur })}
-          </p>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                update('keepInventoryListing', true);
-                update('buyNowPriceEur', draft.inventoryListPriceEur);
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
+              {t('auctions.createKeepListingLabel')}
+            </span>
+            <YesNoToggle
+              value={draft.buyNowEnabled}
+              onChange={(next) => {
+                update('keepInventoryListing', next);
+                update('buyNowEnabled', next);
+                update('buyNowPriceEur', next ? draft.inventoryListPriceEur : '');
+                if (rememberBuyNow) writeAuctionBuyNowEnabledPreference(next);
               }}
-              className={cn(
-                'rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors',
-                draft.keepInventoryListing
-                  ? 'border-[#FF7300] bg-[#FF7300] text-white'
-                  : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-              )}
-            >
-              {t('auctions.createKeepListingYes')}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                update('keepInventoryListing', false);
-                update('buyNowPriceEur', '');
-              }}
-              className={cn(
-                'rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors',
-                !draft.keepInventoryListing
-                  ? 'border-[#FF7300] bg-[#FF7300] text-white'
-                  : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-              )}
-            >
-              {t('auctions.createKeepListingNo')}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div>
-          <label htmlFor="ac-buynow-emb" className="block text-[10px] font-bold uppercase tracking-wide text-gray-600">
-            {t('auctions.createBuyNowLabel')}
-          </label>
-          <div className="relative mt-1 max-w-xs">
-            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500">€</span>
-            <input
-              id="ac-buynow-emb"
-              value={draft.buyNowPriceEur}
-              onChange={(e) => update('buyNowPriceEur', e.target.value)}
-              onBlur={(e) => update('buyNowPriceEur', normalizeAuctionDraftMoneyInput(e.target.value))}
-              className="w-full rounded-lg border border-gray-300 py-1.5 pl-7 pr-2.5 text-xs text-gray-900 focus:border-[#FF7300] focus:outline-none focus:ring-2 focus:ring-[#FF7300]/25"
-              inputMode="decimal"
-              placeholder="—"
+              yesLabel={t('auctions.createKeepListingYes')}
+              noLabel={t('auctions.createKeepListingNo')}
+              ariaLabel={t('auctions.createKeepListingLabel')}
             />
           </div>
-          <p className="mt-0.5 text-[10px] leading-snug text-gray-500">{t('auctions.createBuyNowHint')}</p>
+          <p className="mt-1 text-[10px] leading-snug text-gray-500">
+            {t('auctions.createKeepListingHint', { price: draft.inventoryListPriceEur })}
+          </p>
+          <AuctionWizardRemember1hCheckbox
+            checked={rememberBuyNow}
+            className="mt-1.5"
+            onCheckedChange={(checked) => {
+              setRememberBuyNow(checked);
+              if (checked && draft.buyNowEnabled !== null) {
+                writeAuctionBuyNowEnabledPreference(draft.buyNowEnabled);
+              } else if (!checked) {
+                clearAuctionBuyNowEnabledPreference();
+              }
+            }}
+          />
+        </div>
+      ) : (
+        <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-gray-600">
+              {t('auctions.createBuyNowToggleLabel')}
+            </span>
+            <YesNoToggle
+              value={draft.buyNowEnabled}
+              onChange={(next) => {
+                update('buyNowEnabled', next);
+                if (!next) update('buyNowPriceEur', '');
+                if (rememberBuyNow) writeAuctionBuyNowEnabledPreference(next);
+              }}
+              yesLabel={t('auctions.createInInventoryYes')}
+              noLabel={t('auctions.createInInventoryNo')}
+              ariaLabel={t('auctions.createBuyNowToggleLabel')}
+            />
+          </div>
+          <p className="mt-1 text-[10px] leading-snug text-gray-500">{t('auctions.createBuyNowHint')}</p>
+          <AuctionWizardRemember1hCheckbox
+            checked={rememberBuyNow}
+            className="mt-1.5"
+            onCheckedChange={(checked) => {
+              setRememberBuyNow(checked);
+              if (checked && draft.buyNowEnabled !== null) {
+                writeAuctionBuyNowEnabledPreference(draft.buyNowEnabled);
+              } else if (!checked) {
+                clearAuctionBuyNowEnabledPreference();
+              }
+            }}
+          />
+          {draft.buyNowEnabled ? (
+            <div className="relative mt-2 max-w-xs">
+              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500">€</span>
+              <input
+                id="ac-buynow-emb"
+                value={draft.buyNowPriceEur}
+                onChange={(e) => update('buyNowPriceEur', e.target.value)}
+                onBlur={(e) => update('buyNowPriceEur', normalizeAuctionDraftMoneyInput(e.target.value))}
+                className={EMB_MONEY_INPUT_CLS}
+                inputMode="decimal"
+                placeholder="—"
+                aria-label={t('auctions.createBuyNowToggleLabel')}
+              />
+            </div>
+          ) : null}
         </div>
       )}
 

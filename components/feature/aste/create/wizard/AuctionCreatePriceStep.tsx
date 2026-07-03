@@ -24,7 +24,7 @@ export type AuctionCreatePriceStepProps = {
 };
 
 /** Coppia di pill Sì/No: scelta esplicita obbligatoria (stato iniziale null = nessuna selezionata). */
-function YesNoToggle({
+export function YesNoToggle({
   value,
   onChange,
   yesLabel,

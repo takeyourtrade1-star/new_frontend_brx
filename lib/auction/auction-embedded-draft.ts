@@ -90,6 +90,7 @@ export function mergeInventoryIntoAuctionDraft(
     startingBidEur: priceHint,
     inventoryListPriceEur: existingListPrice,
     keepInventoryListing: existingListPrice !== '',
+    buyNowEnabled: existingListPrice !== '' ? true : draft.buyNowEnabled,
     buyNowPriceEur: existingListPrice !== '' ? existingListPrice : draft.buyNowPriceEur,
     cardSelection: draft.cardSelection
       ? {

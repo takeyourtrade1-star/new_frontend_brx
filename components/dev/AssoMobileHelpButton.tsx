@@ -21,7 +21,7 @@ export function AssoMobileHelpButton({ isStickyBarVisible, onClick }: AssoMobile
     <button
       type="button"
       onClick={onClick}
-      className="fixed flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white/95 px-2.5 py-1 text-[12px] font-medium text-zinc-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 active:scale-95"
+      className="fixed flex items-center gap-1 rounded-full border border-white/60 bg-white/70 px-2 py-0.5 text-[11px] font-medium text-zinc-600 shadow-[0_8px_20px_rgba(29,49,96,0.12)] backdrop-blur-xl backdrop-saturate-150 transition-colors hover:bg-white/85 hover:text-zinc-900 active:scale-95"
       style={{
         zIndex: 9999,
         left: 12,

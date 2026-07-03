@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Dock offerta mobile — pillola glass fissa in basso (< lg). Tap → bottom sheet con AuctionBidPanel.
+ * Dock offerta mobile — due pillole glass (< lg): prezzo a sinistra, CTA offerta a destra.
  */
 
 import { useEffect, useState } from 'react';
@@ -9,7 +9,11 @@ import { createPortal } from 'react-dom';
 import { Gavel, X } from 'lucide-react';
 import { AuctionBidPanel } from '@/components/feature/aste/AuctionBidPanel';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { formatEur, cn } from '@/lib/utils';
+import { cn, formatEur } from '@/lib/utils';
+
+/** Stile glass condiviso con AuctionMobileActionsBar. */
+const GLASS_SURFACE =
+  'border border-white/60 bg-white/70 shadow-[0_10px_24px_rgba(29,49,96,0.15)] backdrop-blur-xl backdrop-saturate-150';
 
 type AuctionMobileBidDockProps = {
   /** Mostra la pillola (il sheet resta indipendente da questo flag). */
@@ -29,6 +33,11 @@ type AuctionMobileBidDockProps = {
   onSubmitOffer: (amountEur: number) => void;
   onSubmitMaxBid: (amountEur: number) => void;
 };
+
+function dispatchStickyBarVisibility(visible: boolean) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('stickyBarVisibilityChange', { detail: { visible } }));
+}
 
 export function AuctionMobileBidDock({
   visible,
@@ -55,12 +64,10 @@ export function AuctionMobileBidDock({
     setMounted(true);
   }, []);
 
-  // Navigando client-side su un'altra asta il sheet aperto va chiuso.
   useEffect(() => {
     setSheetOpen(false);
   }, [auctionId]);
 
-  // Scroll lock + chiusura con Escape quando il sheet è aperto.
   useEffect(() => {
     if (!sheetOpen) return;
     const prevOverflow = document.body.style.overflow;
@@ -77,37 +84,52 @@ export function AuctionMobileBidDock({
 
   const showPill = visible && !sheetOpen;
 
+  // Sposta Asso/Aiuto sopra il dock (stesso evento usato da AsteHubPage).
+  useEffect(() => {
+    if (!mounted) return;
+    dispatchStickyBarVisibility(showPill);
+    return () => dispatchStickyBarVisibility(false);
+  }, [showPill, mounted]);
+
   const pill = (
     <div
       className={cn(
-        'fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[9998] transition-all duration-200 lg:hidden',
-        showPill
-          ? 'pointer-events-auto translate-y-0 opacity-100'
-          : 'pointer-events-none translate-y-3 opacity-0'
+        'pointer-events-none fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[9998] flex items-center gap-2 transition-all duration-200 lg:hidden',
+        showPill ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
       )}
     >
+      <div
+        className={cn(
+          GLASS_SURFACE,
+          'min-w-0 flex-1 rounded-full px-3 py-1.5',
+          showPill && 'pointer-events-auto'
+        )}
+        aria-live="polite"
+      >
+        <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-gray-500">
+          {t('auctions.currentBid')}
+        </p>
+        <p
+          className={cn(
+            'truncate text-[15px] font-extrabold leading-tight tabular-nums',
+            isWinning ? 'text-emerald-700' : 'text-[#1D3160]'
+          )}
+        >
+          {formatEur(currentBidEur)}
+        </p>
+      </div>
       <button
         type="button"
         onClick={() => setSheetOpen(true)}
-        className="mx-auto flex w-full max-w-md items-center justify-between gap-3 rounded-full border border-white/60 bg-white/80 py-1.5 pl-5 pr-1.5 shadow-[0_10px_28px_rgba(29,49,96,0.25)] backdrop-blur-xl backdrop-saturate-150 transition active:scale-[0.98]"
+        className={cn(
+          GLASS_SURFACE,
+          'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition active:scale-95',
+          showPill ? 'pointer-events-auto' : 'pointer-events-none'
+        )}
+        aria-label={t('auctions.bidPanel.makeBid')}
+        title={t('auctions.bidPanel.makeBid')}
       >
-        <span className="min-w-0 text-left">
-          <span className="block text-[9px] font-semibold uppercase tracking-wide text-gray-500">
-            {t('auctions.currentBid')}
-          </span>
-          <span
-            className={cn(
-              'block truncate text-base font-extrabold leading-tight',
-              isWinning ? 'text-emerald-700' : 'text-[#1D3160]'
-            )}
-          >
-            {formatEur(currentBidEur)}
-          </span>
-        </span>
-        <span className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[#FF7300] px-4 text-sm font-bold text-white shadow-sm">
-          <Gavel className="h-4 w-4" aria-hidden />
-          {t('auctions.bidPanel.makeBid')}
-        </span>
+        <Gavel className="h-4 w-4 text-[#FF7300]" aria-hidden />
       </button>
     </div>
   );
