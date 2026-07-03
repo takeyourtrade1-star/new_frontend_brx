@@ -1452,6 +1452,7 @@ export const en = {
   'auctions.bidPanel.maxActive': 'Active maximum bid',
   'auctions.bidPanel.maxTitleTooltip': 'Set your cap: the system bids for you up to that amount',
   'auctions.bidPanel.makeBid': 'Place bid',
+  'auctions.bidPanel.offerCta': 'Bid',
   'auctions.bidPanel.maxBid': 'Maximum bid',
   'auctions.bidPanel.howMaxWorks': 'How does a max bid work?',
   'savedAuctions.loading': 'Loading saved auctions…',

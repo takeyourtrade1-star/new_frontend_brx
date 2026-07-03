@@ -1456,6 +1456,7 @@ export const de: Record<MessageKey, string> = {
   'auctions.bidPanel.maxActive': 'Höchstgebot aktiv',
   'auctions.bidPanel.maxTitleTooltip': 'Lege die Obergrenze fest: Das System bietet für dich bis zu diesem Betrag',
   'auctions.bidPanel.makeBid': 'Gebot abgeben',
+  'auctions.bidPanel.offerCta': 'Bieten',
   'auctions.bidPanel.maxBid': 'Höchstgebot',
   'auctions.bidPanel.howMaxWorks': 'Wie funktioniert ein Höchstgebot?',
   'savedAuctions.loading': 'Gespeicherte Auktionen werden geladen…',

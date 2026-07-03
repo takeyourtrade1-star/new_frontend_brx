@@ -1456,6 +1456,7 @@ export const pt: Record<MessageKey, string> = {
   'auctions.bidPanel.maxActive': 'Licitação máxima ativa',
   'auctions.bidPanel.maxTitleTooltip': 'Define o teu limite: o sistema licita por ti até esse valor',
   'auctions.bidPanel.makeBid': 'Licitar',
+  'auctions.bidPanel.offerCta': 'Licitar',
   'auctions.bidPanel.maxBid': 'Licitação máxima',
   'auctions.bidPanel.howMaxWorks': 'Como funciona uma licitação máxima?',
   'savedAuctions.loading': 'A carregar leilões guardados…',

@@ -1456,6 +1456,7 @@ export const es: Record<MessageKey, string> = {
   'auctions.bidPanel.maxActive': 'Puja máxima activa',
   'auctions.bidPanel.maxTitleTooltip': 'Establece tu límite: el sistema puja por ti hasta ese importe',
   'auctions.bidPanel.makeBid': 'Pujar',
+  'auctions.bidPanel.offerCta': 'Pujar',
   'auctions.bidPanel.maxBid': 'Puja máxima',
   'auctions.bidPanel.howMaxWorks': '¿Cómo funciona una puja máxima?',
   'savedAuctions.loading': 'Cargando subastas guardadas…',

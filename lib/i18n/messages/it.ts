@@ -1456,6 +1456,7 @@ export const it: Record<MessageKey, string> = {
   'auctions.bidPanel.maxActive': 'Offerta massima attiva',
   'auctions.bidPanel.maxTitleTooltip': 'Imposta il tetto massimo: il sistema rilancia per te fino a quell\'importo',
   'auctions.bidPanel.makeBid': 'Fai offerta',
+  'auctions.bidPanel.offerCta': 'Offri',
   'auctions.bidPanel.maxBid': 'Offerta massima',
   'auctions.bidPanel.howMaxWorks': 'Come funziona un\'offerta max?',
   'savedAuctions.loading': 'Caricamento aste salvate…',

@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Gavel, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { AuctionBidPanel } from '@/components/feature/aste/AuctionBidPanel';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn, formatEur } from '@/lib/utils';
@@ -94,43 +94,46 @@ export function AuctionMobileBidDock({
   const pill = (
     <div
       className={cn(
-        'pointer-events-none fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[9998] flex items-center gap-2 transition-all duration-200 lg:hidden',
+        'pointer-events-none fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[9998] transition-all duration-200 lg:hidden',
         showPill ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
       )}
     >
-      <div
-        className={cn(
-          GLASS_SURFACE,
-          'min-w-0 flex-1 rounded-full px-3 py-1.5',
-          showPill && 'pointer-events-auto'
-        )}
-        aria-live="polite"
-      >
-        <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-gray-500">
-          {t('auctions.currentBid')}
-        </p>
-        <p
+      <div className="flex w-full items-center justify-between gap-3">
+        <div
           className={cn(
-            'truncate text-[15px] font-extrabold leading-tight tabular-nums',
-            isWinning ? 'text-emerald-700' : 'text-[#1D3160]'
+            GLASS_SURFACE,
+            'shrink-0 rounded-full px-3 py-1.5',
+            showPill && 'pointer-events-auto'
           )}
+          aria-live="polite"
         >
-          {formatEur(currentBidEur)}
-        </p>
+          <p className="text-[7px] font-semibold uppercase leading-none tracking-[0.14em] text-gray-500">
+            {t('auctions.currentBid')}
+          </p>
+          <p
+            className={cn(
+              'mt-0.5 whitespace-nowrap text-sm font-extrabold leading-none tabular-nums',
+              isWinning ? 'text-emerald-700' : 'text-[#1D3160]'
+            )}
+          >
+            {formatEur(currentBidEur)}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          className={cn(
+            GLASS_SURFACE,
+            'inline-flex shrink-0 items-center justify-center rounded-full px-4 py-2 transition active:scale-[0.98]',
+            showPill ? 'pointer-events-auto' : 'pointer-events-none'
+          )}
+          aria-label={t('auctions.bidPanel.makeBid')}
+        >
+          <span className="whitespace-nowrap text-sm font-bold text-[#FF7300]">
+            {t('auctions.bidPanel.offerCta')}
+          </span>
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={() => setSheetOpen(true)}
-        className={cn(
-          GLASS_SURFACE,
-          'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition active:scale-95',
-          showPill ? 'pointer-events-auto' : 'pointer-events-none'
-        )}
-        aria-label={t('auctions.bidPanel.makeBid')}
-        title={t('auctions.bidPanel.makeBid')}
-      >
-        <Gavel className="h-4 w-4 text-[#FF7300]" aria-hidden />
-      </button>
     </div>
   );
 
