@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { CardLanguageSelect } from '@/components/ui/CardLanguageSelect';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import {
@@ -9,9 +10,14 @@ import {
   normalizeAuctionDraftMoneyInput,
   type AuctionCreateDraft,
 } from '@/lib/auction/auction-create-draft';
+import {
+  readAuctionLanguagePreference,
+  writeAuctionLanguagePreference,
+} from '@/lib/auction/auction-language-preference';
 import type { CardLanguageOption } from '@/lib/card-languages';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn } from '@/lib/utils';
+
 
 export type AuctionCreateEmbeddedDetailsStepProps = {
   draft: AuctionCreateDraft;
@@ -25,6 +31,22 @@ export function AuctionCreateEmbeddedDetailsStep({
   cardLanguageFlagOptions,
 }: AuctionCreateEmbeddedDetailsStepProps) {
   const { t } = useTranslation();
+  const [rememberLanguage, setRememberLanguage] = useState(false);
+
+  useEffect(() => {
+    if (draft.cardLanguage) return;
+    const cached = readAuctionLanguagePreference();
+    if (!cached) return;
+    const valid = cardLanguageFlagOptions.some((o) => o.code === cached);
+    if (valid) update('cardLanguage', cached);
+  }, [draft.cardLanguage, cardLanguageFlagOptions, update]);
+
+  const handleLanguageChange = (code: string) => {
+    update('cardLanguage', code);
+    if (rememberLanguage && code) {
+      writeAuctionLanguagePreference(code);
+    }
+  };
 
   return (
     <div className="space-y-2.5">
@@ -45,14 +67,29 @@ export function AuctionCreateEmbeddedDetailsStep({
         </div>
         <div>
           <span className="mb-0.5 block text-[10px] font-bold uppercase tracking-wide text-gray-600">
-            Lingua carta
+            {t('auctions.createCardLanguageLabel')}
           </span>
           <CardLanguageSelect
             options={cardLanguageFlagOptions}
             value={draft.cardLanguage}
-            onChange={(code) => update('cardLanguage', code)}
+            onChange={handleLanguageChange}
             className="[&_button]:rounded-lg [&_button]:border-gray-300 [&_button]:bg-white [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-xs"
           />
+          <label className="mt-1.5 flex cursor-pointer items-center gap-1.5 text-[10px] font-semibold text-zinc-600">
+            <input
+              type="checkbox"
+              checked={rememberLanguage}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setRememberLanguage(checked);
+                if (checked && draft.cardLanguage) {
+                  writeAuctionLanguagePreference(draft.cardLanguage);
+                }
+              }}
+              className="h-3 w-3 rounded border-zinc-300 text-primary focus:ring-primary/25"
+            />
+            {t('auctions.createRememberLanguage1h')}
+          </label>
         </div>
       </div>
 

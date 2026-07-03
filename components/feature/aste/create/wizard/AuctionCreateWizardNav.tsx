@@ -14,6 +14,8 @@ type AuctionCreateWizardNavProps = {
   isEmbedded: boolean;
   stepId: WizardStepId;
   itemPickSearchActive: boolean;
+  /** Footer inline dentro la card (solo embedded). */
+  showEmbeddedFooter?: boolean;
   showStickyNav: boolean;
   isLastStep: boolean;
   continueDisabled: boolean;
@@ -29,6 +31,7 @@ export function AuctionCreateWizardNav({
   isEmbedded,
   stepId,
   itemPickSearchActive,
+  showEmbeddedFooter = true,
   showStickyNav,
   isLastStep,
   continueDisabled,
@@ -41,12 +44,12 @@ export function AuctionCreateWizardNav({
 }: AuctionCreateWizardNavProps) {
   const { t } = useTranslation();
 
-  const showEmbeddedFooter =
-    isEmbedded && (stepId !== 'item_pick' || itemPickSearchActive);
+  const renderEmbeddedFooter =
+    showEmbeddedFooter && isEmbedded && (stepId !== 'item_pick' || itemPickSearchActive);
 
   return (
     <>
-      {showEmbeddedFooter && (
+      {renderEmbeddedFooter && (
         <div className="border-t border-zinc-100 bg-zinc-50/70 px-3 py-2">
           <div className="flex items-center justify-between gap-2">
             <button

@@ -1,8 +1,7 @@
 'use client';
 
 /**
- * Dock offerta mobile — pillola glass fissa in basso, visibile quando il pannello
- * offerta inline è fuori viewport (es. hero). Tap → bottom sheet con AuctionBidPanel.
+ * Dock offerta mobile — pillola glass fissa in basso (< lg). Tap → bottom sheet con AuctionBidPanel.
  */
 
 import { useEffect, useState } from 'react';
@@ -10,7 +9,7 @@ import { createPortal } from 'react-dom';
 import { Gavel, X } from 'lucide-react';
 import { AuctionBidPanel } from '@/components/feature/aste/AuctionBidPanel';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { formatEur } from '@/lib/utils';
+import { formatEur, cn } from '@/lib/utils';
 
 type AuctionMobileBidDockProps = {
   /** Mostra la pillola (il sheet resta indipendente da questo flag). */
@@ -50,6 +49,11 @@ export function AuctionMobileBidDock({
 }: AuctionMobileBidDockProps) {
   const { t } = useTranslation();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Navigando client-side su un'altra asta il sheet aperto va chiuso.
   useEffect(() => {
@@ -72,6 +76,41 @@ export function AuctionMobileBidDock({
   }, [sheetOpen]);
 
   const showPill = visible && !sheetOpen;
+
+  const pill = (
+    <div
+      className={cn(
+        'fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[9998] transition-all duration-200 lg:hidden',
+        showPill
+          ? 'pointer-events-auto translate-y-0 opacity-100'
+          : 'pointer-events-none translate-y-3 opacity-0'
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => setSheetOpen(true)}
+        className="mx-auto flex w-full max-w-md items-center justify-between gap-3 rounded-full border border-white/60 bg-white/80 py-1.5 pl-5 pr-1.5 shadow-[0_10px_28px_rgba(29,49,96,0.25)] backdrop-blur-xl backdrop-saturate-150 transition active:scale-[0.98]"
+      >
+        <span className="min-w-0 text-left">
+          <span className="block text-[9px] font-semibold uppercase tracking-wide text-gray-500">
+            {t('auctions.currentBid')}
+          </span>
+          <span
+            className={cn(
+              'block truncate text-base font-extrabold leading-tight',
+              isWinning ? 'text-emerald-700' : 'text-[#1D3160]'
+            )}
+          >
+            {formatEur(currentBidEur)}
+          </span>
+        </span>
+        <span className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[#FF7300] px-4 text-sm font-bold text-white shadow-sm">
+          <Gavel className="h-4 w-4" aria-hidden />
+          {t('auctions.bidPanel.makeBid')}
+        </span>
+      </button>
+    </div>
+  );
 
   const sheet =
     sheetOpen && typeof document !== 'undefined'
@@ -145,36 +184,7 @@ export function AuctionMobileBidDock({
 
   return (
     <>
-      <div
-        className={`fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 transition-all duration-200 lg:hidden ${
-          showPill
-            ? 'pointer-events-auto translate-y-0 opacity-100'
-            : 'pointer-events-none translate-y-3 opacity-0'
-        }`}
-      >
-        <button
-          type="button"
-          onClick={() => setSheetOpen(true)}
-          className="mx-auto flex w-full max-w-md items-center justify-between gap-3 rounded-full border border-white/60 bg-white/80 py-1.5 pl-5 pr-1.5 shadow-[0_10px_28px_rgba(29,49,96,0.25)] backdrop-blur-xl backdrop-saturate-150 transition active:scale-[0.98]"
-        >
-          <span className="min-w-0 text-left">
-            <span className="block text-[9px] font-semibold uppercase tracking-wide text-gray-500">
-              {t('auctions.currentBid')}
-            </span>
-            <span
-              className={`block truncate text-base font-extrabold leading-tight ${
-                isWinning ? 'text-emerald-700' : 'text-[#1D3160]'
-              }`}
-            >
-              {formatEur(currentBidEur)}
-            </span>
-          </span>
-          <span className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[#FF7300] px-4 text-sm font-bold text-white shadow-sm">
-            <Gavel className="h-4 w-4" aria-hidden />
-            {t('auctions.bidPanel.makeBid')}
-          </span>
-        </button>
-      </div>
+      {mounted ? createPortal(pill, document.body) : null}
       {sheet}
     </>
   );

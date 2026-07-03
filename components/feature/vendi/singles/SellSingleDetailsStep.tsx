@@ -1,12 +1,18 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { CardLanguageSelect } from '@/components/ui/CardLanguageSelect';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import {
+  readAuctionLanguagePreference,
+  writeAuctionLanguagePreference,
+} from '@/lib/auction/auction-language-preference';
 import type { CardLanguageOption } from '@/lib/card-languages';
 import { SELL_SINGLE_CONDITION_OPTIONS } from '@/lib/marketplace/sell-single-conditions';
 import type { SellSingleDraft } from '@/lib/marketplace/sell-single-draft';
 import { cn, formatEuroNoSpace } from '@/lib/utils';
 import { useIntlLocale } from '@/lib/i18n/useIntlLocale';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import { Minus, Plus } from 'lucide-react';
 
 type SellSingleDetailsStepProps = {
@@ -31,8 +37,25 @@ export function SellSingleDetailsStep({
   onConditionChange,
 }: SellSingleDetailsStepProps) {
   const intlLocale = useIntlLocale();
+  const { t } = useTranslation();
+  const [rememberLanguage, setRememberLanguage] = useState(false);
   const formatEuro = (n: number) => formatEuroNoSpace(n, intlLocale);
   const qty = Number.isFinite(draft.quantity) ? Math.max(1, draft.quantity) : 1;
+
+  useEffect(() => {
+    if (draft.language) return;
+    const cached = readAuctionLanguagePreference();
+    if (!cached) return;
+    const valid = languageOptions.some((o) => o.code === cached);
+    if (valid) update('language', cached);
+  }, [draft.language, languageOptions, update]);
+
+  const handleLanguageChange = (code: string) => {
+    update('language', code);
+    if (rememberLanguage && code) {
+      writeAuctionLanguagePreference(code);
+    }
+  };
 
   return (
     <div className={cn('space-y-2.5', compact && 'space-y-2')}>
@@ -111,12 +134,27 @@ export function SellSingleDetailsStep({
           <CardLanguageSelect
             options={languageOptions}
             value={draft.language}
-            onChange={(code) => update('language', code)}
+            onChange={handleLanguageChange}
             className={cn(
               compact &&
                 '[&_button]:rounded-md [&_button]:border-zinc-200/80 [&_button]:bg-zinc-50/40 [&_button]:px-2 [&_button]:py-0.5 [&_button]:text-xs',
             )}
           />
+          <label className="mt-1.5 flex cursor-pointer items-center gap-1.5 text-[10px] font-semibold text-zinc-600">
+            <input
+              type="checkbox"
+              checked={rememberLanguage}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setRememberLanguage(checked);
+                if (checked && draft.language) {
+                  writeAuctionLanguagePreference(draft.language);
+                }
+              }}
+              className="h-3 w-3 rounded border-zinc-300 text-primary focus:ring-primary/25"
+            />
+            {t('auctions.createRememberLanguage1h')}
+          </label>
         </div>
         <div>
           <label className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">

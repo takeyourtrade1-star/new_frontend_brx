@@ -21,6 +21,7 @@ import {
   type SellSingleDraft,
 } from '@/lib/marketplace/sell-single-draft';
 import { buildCardLanguageOptions, type CardLanguageOption } from '@/lib/card-languages';
+import { readAuctionLanguagePreference } from '@/lib/auction/auction-language-preference';
 import type { CardDocument } from '@/lib/product-detail';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
@@ -95,6 +96,14 @@ export function SellSingleWizard({
       setDraft((d) => ({ ...d, language: languageOptions[0]!.code }));
     }
   }, [languageOptions, draft.language]);
+
+  useEffect(() => {
+    const cached = readAuctionLanguagePreference();
+    if (!cached) return;
+    if (languageOptions.some((o) => o.code === cached)) {
+      setDraft((d) => (d.language === cached ? d : { ...d, language: cached }));
+    }
+  }, [languageOptions]);
 
   useEffect(() => {
     if (!publishToast) return;

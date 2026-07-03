@@ -104,8 +104,6 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const heroTitleRef = useRef<HTMLDivElement>(null);
   const asteNavRef = useRef<HTMLDivElement>(null);
-  const bidPanelBoxRef = useRef<HTMLDivElement>(null);
-  const [bidPanelInView, setBidPanelInView] = useState(true);
   const [bidsExpanded, setBidsExpanded] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [shippingExpanded, setShippingExpanded] = useState(false);
@@ -308,18 +306,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
     calendarMenuDesktopRef,
   });
 
-  // Dock offerta mobile: visibile solo quando il pannello offerta inline è fuori viewport.
-  useEffect(() => {
-    const el = bidPanelBoxRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setBidPanelInView(entry.isIntersecting),
-      { threshold: 0.2 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [showBuyerBid, isLoading, numericId]);
-
+  // Dock offerta mobile: pillola fissa sempre visibile sotto lg (il pannello inline è desktop-only).
   useEffect(() => {
     if (proxyBidOutbid && !previousProxyBidOutbidRef.current) {
       setFloatingNotice({
@@ -413,7 +400,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       {/* Dock offerta mobile — pillola flottante quando il pannello offerta è fuori schermo */}
       {showBuyerBid && (
         <AuctionMobileBidDock
-          visible={!bidPanelInView && !lightboxOpen}
+          visible={!lightboxOpen}
           auctionId={numericId}
           currentBidEur={effectiveCurrentBidEur}
           isWinning={isWinning}
@@ -528,7 +515,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
                 />
 
                 {showBuyerBid && (
-                  <div ref={bidPanelBoxRef}>
+                  <div className="hidden lg:block">
                     <AuctionBidPanel
                       auctionId={numericId}
                       currentBidEur={effectiveCurrentBidEur}

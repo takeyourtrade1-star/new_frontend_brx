@@ -532,6 +532,11 @@ export function AuctionCreateWizard({
 
   useEffect(() => {
     if (!isEmbedded || draft.cardLanguage) return;
+    const cached = readAuctionLanguagePreference();
+    if (cached && cardLanguageFlagOptions.some((o) => o.code === cached)) {
+      update('cardLanguage', cached);
+      return;
+    }
     const first = cardLanguageFlagOptions[0]?.code;
     if (first) update('cardLanguage', first);
   }, [isEmbedded, draft.cardLanguage, cardLanguageFlagOptions, update]);
@@ -678,6 +683,7 @@ export function AuctionCreateWizard({
             isEmbedded={isEmbedded}
             stepId={stepId}
             itemPickSearchActive={itemPickSearchActive}
+            showEmbeddedFooter
             showStickyNav={false}
             isLastStep={isLastStep}
             continueDisabled={continueDisabled}
@@ -694,6 +700,7 @@ export function AuctionCreateWizard({
           isEmbedded={isEmbedded}
           stepId={stepId}
           itemPickSearchActive={itemPickSearchActive}
+          showEmbeddedFooter={false}
           showStickyNav={showStickyNav}
           isLastStep={isLastStep}
           continueDisabled={continueDisabled}
