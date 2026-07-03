@@ -50,6 +50,8 @@ import { AuctionStatusPanels } from '@/components/feature/aste/detail/AuctionSta
 import { AuctionDetailsSummary } from '@/components/feature/aste/detail/AuctionDetailsSummary';
 import { AuctionSellerStats } from '@/components/feature/aste/detail/AuctionSellerStats';
 import { AuctionFloatingNotice } from '@/components/feature/aste/detail/AuctionFloatingNotice';
+import { MarketplaceReportModal } from '@/components/feature/product/MarketplaceReportModal';
+import { scheduleFakeOutbidNotification } from '@/lib/notifications/fake-outbid-notification';
 
 export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const { t } = useTranslation();
@@ -110,6 +112,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
   const calendarMenuMobileRef = useRef<HTMLDivElement>(null);
   const calendarMenuDesktopRef = useRef<HTMLDivElement>(null);
   const [pendingSaveAfterLogin, setPendingSaveAfterLogin] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const { isSaved, setSaved } = useAuctionSaved({
     numericId,
@@ -353,6 +356,8 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       kind: 'success',
       message: `Offerta registrata correttamente: ${fmtEur(roundMoney(amountEur))}.`,
     });
+    // TEST notifiche fittizie: "sei stato superato" locale dopo 10s (vedi modulo).
+    void scheduleFakeOutbidNotification({ auctionId: numericId, auctionTitle: detailTitle });
   };
 
   const handleSubmitMaxBid = (amountEur: number) => {
@@ -361,6 +366,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
       kind: 'success',
       message: `Proxy bidding impostato a ${fmtEur(roundMoney(amountEur))}.`,
     });
+    void scheduleFakeOutbidNotification({ auctionId: numericId, auctionTitle: detailTitle });
   };
 
   return (
@@ -389,6 +395,7 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
         statsWatchingCount={statsWatchingCount}
         heroTitleRef={heroTitleRef}
         onToggleSave={handleToggleSave}
+        onReport={!isOwner ? () => setReportOpen(true) : undefined}
         t={t}
       />
 
@@ -607,6 +614,18 @@ export function AsteDetailView({ auctionId }: { auctionId: string }) {
           subtitle="Bastano pochi secondi per partecipare all'asta."
         />
       )}
+
+      <MarketplaceReportModal
+        open={reportOpen}
+        context={{
+          sellerUsername: detail.sellerDisplayName || detail.seller,
+          sellerId: detail.seller,
+          kind: 'auction',
+          referenceId: String(numericId),
+          referenceLabel: detail.title,
+        }}
+        onClose={() => setReportOpen(false)}
+      />
 
       {proxyModalOpen && myMaxBidEur != null && (
         <ProxyLimitModal

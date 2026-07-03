@@ -175,7 +175,7 @@ export function SellSingleDetailsStep({
             onChange={(e) => update('extraGraded', e.target.checked)}
             className="h-3 w-3 rounded border-zinc-300 text-primary focus:ring-primary/25"
           />
-          Gradate
+          Gradata
         </label>
       </div>
 

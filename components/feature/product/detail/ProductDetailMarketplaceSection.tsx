@@ -1,6 +1,6 @@
 'use client';
 
-import { Tag, Zap } from 'lucide-react';
+import { ChevronDown, Tag, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CardDocument } from '@/lib/product-detail';
 import type { ListingItem } from '@/lib/api/sync-client';
@@ -202,16 +202,23 @@ export function ProductDetailMarketplaceSection({
                   )}
                   <div>
                     <label className="mb-1 block text-[10px] font-bold uppercase text-gray-600">{sortLabel}</label>
-                    <select
-                      value={listingsSort}
-                      onChange={(e) => onListingsSortChange(e.target.value as MarketplaceSort)}
-                      className="h-10 w-full rounded-2xl border border-global-bg-start/50 bg-white px-3 py-2 text-sm font-semibold text-[#1d1d1f] shadow-[0_0_0_1px_rgba(61,101,198,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-global-bg-start/25"
-                    >
-                      <option value="price_asc">{sortPriceAsc}</option>
-                      <option value="price_desc">{sortPriceDesc}</option>
-                      <option value="seller">{sortSeller}</option>
-                      <option value="condition">{sortCondition}</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={listingsSort}
+                        onChange={(e) => onListingsSortChange(e.target.value as MarketplaceSort)}
+                        className="h-10 w-full appearance-none rounded-2xl border border-global-bg-start/50 bg-white py-2 pl-3 pr-9 text-sm font-semibold text-[#1d1d1f] shadow-[0_0_0_1px_rgba(61,101,198,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-global-bg-start/25"
+                      >
+                        <option value="price_asc">{sortPriceAsc}</option>
+                        <option value="price_desc">{sortPriceDesc}</option>
+                        <option value="seller">{sortSeller}</option>
+                        <option value="condition">{sortCondition}</option>
+                      </select>
+                      <ChevronDown
+                        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#3D65C6]/70"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    </div>
                   </div>
                   {sellerSubTab === 'VENDITORI' && (
                     <>

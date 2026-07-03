@@ -17,6 +17,8 @@ export interface AuctionHeroProps {
   statsWatchingCount: number;
   heroTitleRef: React.RefObject<HTMLDivElement>;
   onToggleSave: () => void;
+  /** Apre il modal di segnalazione asta/venditore (assente per il proprietario). */
+  onReport?: () => void;
   t: (key: MessageKey, vars?: Record<string, string | number>) => string;
 }
 
@@ -33,6 +35,7 @@ export function AuctionHero({
   statsWatchingCount,
   heroTitleRef,
   onToggleSave,
+  onReport,
   t,
 }: AuctionHeroProps) {
   return (
@@ -93,6 +96,18 @@ export function AuctionHero({
                     <span className="text-[12px] tracking-[0.1em] text-[#FFB800] drop-shadow-[0_1px_1px_rgba(255,184,0,0.5)]">{'★'.repeat(Math.min(5, Math.round((sellerRating / 100) * 5)))}</span>
                     <span className="ml-[2px] font-bold text-gray-700">{sellerRating}%</span>
                   </div>
+                  {onReport && (
+                    <>
+                      <span className="text-gray-300">|</span>
+                      <button
+                        type="button"
+                        onClick={onReport}
+                        className="text-[10px] font-semibold text-gray-400 transition hover:text-rose-600 hover:underline"
+                      >
+                        {t('marketplace.report')}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
 

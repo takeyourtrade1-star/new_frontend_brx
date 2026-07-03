@@ -87,7 +87,7 @@ export function SellSingleReviewStep({
             <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-1.5">
               <dt className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Extra</dt>
               <dd className="text-right text-gray-700">
-                {[draft.extraFoil && 'Foil', draft.extraSigned && 'Firmata', draft.extraAltered && 'Alterata', draft.extraGraded && 'Gradate']
+                {[draft.extraFoil && 'Foil', draft.extraSigned && 'Firmata', draft.extraAltered && 'Alterata', draft.extraGraded && 'Gradata']
                   .filter(Boolean)
                   .join(', ') || '—'}
               </dd>
