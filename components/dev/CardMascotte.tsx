@@ -25,6 +25,7 @@ import { useAssoTypewriter } from '@/hooks/useAssoTypewriter';
 import { ASSO_MESSAGE_CHAT_MS } from '@/lib/asso-messages';
 import {
   ASSO_MOBILE_MAX_WIDTH,
+  STICKY_BOTTOM_BAR_EVENT,
   getAssoBubbleBottom,
 } from '@/lib/asso-layout';
 import { getTournamentsPortalUrl } from '@/lib/config/tournaments';
@@ -1567,12 +1568,12 @@ export function CardMascotte() {
   // Listen for sticky bar visibility changes
   useEffect(() => {
     const handleStickyBarShow = (e: Event) => {
-      const detail = (e as CustomEvent<{ visible: boolean }>).detail;
+      const detail = (e as CustomEvent<{ visible: boolean; kind?: 'hub' | 'bidDock' }>).detail;
       setIsStickyBarVisible(Boolean(detail?.visible));
     };
 
-    window.addEventListener('stickyBarVisibilityChange', handleStickyBarShow);
-    return () => window.removeEventListener('stickyBarVisibilityChange', handleStickyBarShow);
+    window.addEventListener(STICKY_BOTTOM_BAR_EVENT, handleStickyBarShow);
+    return () => window.removeEventListener(STICKY_BOTTOM_BAR_EVENT, handleStickyBarShow);
   }, []);
 
   // No separate sleep promo cycle - uses same index as awake state

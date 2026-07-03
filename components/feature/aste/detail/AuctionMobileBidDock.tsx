@@ -10,6 +10,7 @@ import { Gavel, X } from 'lucide-react';
 import { AuctionBidPanel } from '@/components/feature/aste/AuctionBidPanel';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { cn, formatEur } from '@/lib/utils';
+import { dispatchStickyBottomBar } from '@/lib/asso-layout';
 
 /** Stile glass condiviso con AuctionMobileActionsBar. */
 const GLASS_SURFACE =
@@ -34,9 +35,8 @@ type AuctionMobileBidDockProps = {
   onSubmitMaxBid: (amountEur: number) => void;
 };
 
-function dispatchStickyBarVisibility(visible: boolean) {
-  if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent('stickyBarVisibilityChange', { detail: { visible } }));
+function dispatchBidDockVisibility(visible: boolean) {
+  dispatchStickyBottomBar({ visible, kind: 'bidDock' });
 }
 
 export function AuctionMobileBidDock({
@@ -84,11 +84,11 @@ export function AuctionMobileBidDock({
 
   const showPill = visible && !sheetOpen;
 
-  // Sposta Asso/Aiuto sopra il dock (stesso evento usato da AsteHubPage).
+  // Sposta Aiuto sopra il dock (evento globale + fallback route in AssoMobileHelpButton).
   useEffect(() => {
     if (!mounted) return;
-    dispatchStickyBarVisibility(showPill);
-    return () => dispatchStickyBarVisibility(false);
+    dispatchBidDockVisibility(showPill);
+    return () => dispatchBidDockVisibility(false);
   }, [showPill, mounted]);
 
   const pill = (

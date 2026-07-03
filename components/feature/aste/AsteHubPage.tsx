@@ -13,6 +13,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
+import { dispatchStickyBottomBar } from '@/lib/asso-layout';
 import { auctionDetailPath } from '@/lib/auction/auction-paths';
 import { getStoredAsteViewMode, setStoredAsteViewMode, type AsteViewMode } from '@/lib/auction/aste-view-storage';
 import {
@@ -344,7 +345,7 @@ export function AsteHubPage() {
       const scrollY = window.scrollY || document.documentElement.scrollTop;
       const isVisible = scrollY > 300;
       setShowStickyBar(isVisible);
-      window.dispatchEvent(new CustomEvent('stickyBarVisibilityChange', { detail: { visible: isVisible } }));
+      dispatchStickyBottomBar({ visible: isVisible, kind: 'hub' });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -352,7 +353,7 @@ export function AsteHubPage() {
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.dispatchEvent(new CustomEvent('stickyBarVisibilityChange', { detail: { visible: false } }));
+      dispatchStickyBottomBar({ visible: false });
     };
   }, []);
 
