@@ -17,7 +17,7 @@ export const ASSO_LAYOUT = {
  * Allineato al safe-area del dock + altezza riga (~2.25rem) + gap.
  */
 export const ASSO_HELP_BOTTOM_ABOVE_BID_DOCK =
-  'calc(max(0.75rem, env(safe-area-inset-bottom)) + 3rem)';
+  'calc(env(safe-area-inset-bottom, 0px) + 1rem + 3.5rem)';
 
 export const ASSO_MOBILE_MAX_WIDTH = 639;
 

@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowLeftRight, ArrowRight, Check, Info, ShieldCheck, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowLeftRight, ArrowRight, Check, Handshake, Info, ShieldCheck, Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { tradeBalance } from '@/lib/scambi/card-mock-value';
@@ -59,6 +59,59 @@ function ActionButton({
   );
 }
 
+/**
+ * Barra di navigazione step della controproposta, fissa in basso allo schermo.
+ * Fluttua sopra il contenuto (sticky) così Indietro/Continua restano sempre
+ * raggiungibili; scorre via col contenitore quando si esce dal flusso, senza
+ * coprire ciò che sta sotto la pagina.
+ */
+function StepFooter({
+  backLabel,
+  backIcon,
+  onBack,
+  nextLabel,
+  nextIcon,
+  nextDisabled,
+  onNext,
+}: {
+  backLabel: string;
+  backIcon?: ReactNode;
+  onBack: () => void;
+  nextLabel: string;
+  nextIcon?: ReactNode;
+  nextDisabled?: boolean;
+  onNext: () => void;
+}) {
+  return (
+    <div className="sticky bottom-0 z-30 -mx-4 mt-4 border-t border-gray-200/70 bg-[#F5F4F0]/85 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.9rem)] backdrop-blur-md sm:-mx-6 sm:px-6">
+      <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-4 py-2.5 text-[12px] font-bold uppercase tracking-wide text-gray-600 shadow-sm transition hover:bg-gray-50 active:scale-95"
+        >
+          {backIcon}
+          {backLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={nextDisabled}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white shadow-sm transition active:scale-95',
+            nextDisabled
+              ? 'cursor-not-allowed bg-gray-300'
+              : 'bg-gradient-to-b from-[#FF8A26] to-[#FF7300] shadow-[#FF7300]/30 hover:shadow-md hover:shadow-[#FF7300]/40 hover:brightness-105',
+          )}
+        >
+          {nextLabel}
+          {nextIcon}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function ReceivedProposalDetail({
   proposal,
   onBack,
@@ -91,14 +144,18 @@ export function ReceivedProposalDetail({
   const [counterMode, setCounterMode] = useState(false);
   const [step, setStep] = useState<'table' | 'credits' | 'review'>('table');
   const inventoriesRef = useRef<HTMLElement>(null);
+  const flowRef = useRef<HTMLDivElement>(null);
 
+  // All'ingresso in controproposta e a ogni cambio step, riporta la vista in cima
+  // al flusso (stepper): ogni passo parte da una posizione prevedibile, invece di
+  // ereditare lo scroll del passo precedente (che finiva in punti casuali).
   useEffect(() => {
     if (!counterMode) return;
     const frame = requestAnimationFrame(() => {
-      inventoriesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      flowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
     return () => cancelAnimationFrame(frame);
-  }, [counterMode]);
+  }, [counterMode, step]);
 
   const [selectedRequestedIds, setSelectedRequestedIds] = useState<string[]>(initialRequestedIds);
   const [selectedOfferedIds, setSelectedOfferedIds] = useState<string[]>(initialOfferedIds);
@@ -375,7 +432,7 @@ export function ReceivedProposalDetail({
 
       {/* Se siamo in controproposta, mostriamo il flusso a 3 step */}
       {status === 'open' && counterMode ? (
-        <div className="mt-2">
+        <div ref={flowRef} className="mt-2 scroll-mt-28">
           {/* Stepper minimale */}
           <div className="mb-4 flex items-center gap-2" aria-label="Avanzamento proposta">
             {STEP_LABELS.map(({ id, label }, i) => {
@@ -426,28 +483,14 @@ export function ReceivedProposalDetail({
                 showCredits={false}
                 inventoriesSectionRef={inventoriesRef}
               />
-              <div className="mt-4 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={exitCounter}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-4 py-2 text-[12px] font-bold uppercase tracking-wide text-gray-600 transition hover:bg-gray-50"
-                >
-                  Annulla modifiche
-                </button>
-                <button
-                  type="button"
-                  onClick={() => canContinueTable && setStep('credits')}
-                  disabled={!canContinueTable}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-[12px] font-bold uppercase tracking-wide text-white transition active:scale-95',
-                    canContinueTable
-                      ? 'bg-gradient-to-b from-[#FF8A26] to-[#FF7300] shadow-sm shadow-[#FF7300]/30 hover:shadow-md hover:shadow-[#FF7300]/40 hover:brightness-105'
-                      : 'cursor-not-allowed bg-gray-300',
-                  )}
-                >
-                  Continua <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
-                </button>
-              </div>
+              <StepFooter
+                backLabel="Annulla modifiche"
+                onBack={exitCounter}
+                nextLabel="Continua"
+                nextIcon={<ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />}
+                nextDisabled={!canContinueTable}
+                onNext={() => canContinueTable && setStep('credits')}
+              />
             </>
           )}
 
@@ -521,28 +564,15 @@ export function ReceivedProposalDetail({
                 </div>
               </section>
 
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep('table')}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-4 py-2 text-[12px] font-bold uppercase tracking-wide text-gray-600 transition hover:bg-gray-50"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Indietro
-                </button>
-                <button
-                  type="button"
-                  onClick={() => canContinueCredits && setStep('review')}
-                  disabled={!canContinueCredits}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-[12px] font-bold uppercase tracking-wide text-white transition active:scale-95',
-                    canContinueCredits
-                      ? 'bg-gradient-to-b from-[#FF8A26] to-[#FF7300] shadow-sm shadow-[#FF7300]/30 hover:shadow-md hover:shadow-[#FF7300]/40 hover:brightness-105'
-                      : 'cursor-not-allowed bg-gray-300',
-                  )}
-                >
-                  Continua <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
-                </button>
-              </div>
+              <StepFooter
+                backLabel="Indietro"
+                backIcon={<ArrowLeft className="h-3.5 w-3.5" aria-hidden />}
+                onBack={() => setStep('table')}
+                nextLabel="Continua"
+                nextIcon={<ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />}
+                nextDisabled={!canContinueCredits}
+                onNext={() => canContinueCredits && setStep('review')}
+              />
             </div>
           )}
 
@@ -603,78 +633,100 @@ export function ReceivedProposalDetail({
                   <h2 className="text-sm font-black uppercase tracking-tight text-[#1D3160]">Come volete scambiarvi le carte?</h2>
                 </div>
                 <div className="grid gap-3 px-4 py-4 sm:grid-cols-2">
+                  {/* Ebartex Guarantee — opzione premium/consigliata, arancione brand */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMethod('intermediary')}
+                    className={cn(
+                      'group relative flex flex-col gap-2.5 overflow-hidden rounded-2xl border-2 p-4 text-left text-white transition-all hover:-translate-y-0.5 active:translate-y-0',
+                      'bg-gradient-to-br from-[#FF9838] via-[#FF7300] to-[#EA5F05]',
+                      selectedMethod === 'intermediary'
+                        ? 'border-white shadow-xl shadow-[#FF7300]/45 ring-4 ring-[#FF7300]/25'
+                        : 'border-white/40 shadow-lg shadow-[#FF7300]/25 hover:shadow-xl hover:shadow-[#FF7300]/35',
+                    )}
+                  >
+                    {/* Glow decorativo + shine */}
+                    <span
+                      className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/25 blur-2xl"
+                      aria-hidden
+                    />
+                    <span
+                      className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"
+                      aria-hidden
+                    />
+                    <div className="relative flex w-full items-center justify-between">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-white shadow-sm ring-1 ring-white/40 backdrop-blur-sm">
+                        <ShieldCheck className="h-5 w-5" strokeWidth={2.5} />
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-[#EA5F05] shadow-sm">
+                          <Sparkles className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
+                          Consigliato
+                        </span>
+                        <span
+                          className={cn(
+                            'flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all',
+                            selectedMethod === 'intermediary' ? 'border-white bg-white' : 'border-white/70 bg-white/15',
+                          )}
+                        >
+                          {selectedMethod === 'intermediary' && <span className="h-1.5 w-1.5 rounded-full bg-[#FF7300]" />}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="relative flex items-center gap-1.5 text-[13px] font-black uppercase tracking-wide text-white">
+                      Ebartex Guarantee
+                    </span>
+                    <span className="relative text-xs leading-relaxed text-white/85">
+                      Spedite entrambi le carte a Ebartex: le verifichiamo una a una e completiamo lo
+                      scambio solo quando è tutto perfetto. Massima sicurezza.
+                    </span>
+                  </button>
+
+                  {/* Spedizione diretta — opzione base, tono spento */}
                   <button
                     type="button"
                     onClick={() => setSelectedMethod('direct')}
                     className={cn(
                       'group flex flex-col gap-2.5 rounded-2xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0',
                       selectedMethod === 'direct'
-                        ? 'border-[#FF7300] bg-orange-50/20 shadow-lg shadow-[#FF7300]/10'
-                        : 'border-gray-200 bg-white hover:border-[#FF7300]/50 hover:shadow-md',
+                        ? 'border-gray-400 bg-white shadow-md ring-1 ring-gray-300'
+                        : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white hover:shadow-sm',
                     )}
                   >
                     <div className="flex w-full items-center justify-between">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF8A26] to-[#FF7300] text-white shadow-sm">
-                        <ArrowLeftRight className="h-5 w-5" strokeWidth={2.5} />
+                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-200 text-gray-500 ring-1 ring-gray-300">
+                        <Handshake className="h-5 w-5" strokeWidth={2} />
                       </span>
                       <span
                         className={cn(
-                          'flex h-5 w-5 items-center justify-center rounded-full border transition-all',
-                          selectedMethod === 'direct' ? 'border-[#FF7300] bg-[#FF7300]' : 'border-gray-300 bg-white',
+                          'flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all',
+                          selectedMethod === 'direct' ? 'border-gray-500 bg-gray-500' : 'border-gray-300 bg-white',
                         )}
                       >
                         {selectedMethod === 'direct' && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
                       </span>
                     </div>
-                    <span className="text-[13px] font-black uppercase tracking-wide text-[#1D3160]">
+                    <span className="text-[13px] font-black uppercase tracking-wide text-gray-600">
                       Spedizione diretta 1:1
                     </span>
-                    <span className="text-xs leading-relaxed text-gray-500">
+                    <span className="text-xs leading-relaxed text-gray-400">
                       Tu e {proposal.fromUser.name} vi spedite le carte direttamente. Il modo più veloce,
                       da collezionista a collezionista.
                     </span>
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMethod('intermediary')}
-                    className={cn(
-                      'group relative flex flex-col gap-2.5 rounded-2xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0',
-                      selectedMethod === 'intermediary'
-                        ? 'border-[#1D3160] bg-[#1D3160]/5 shadow-lg shadow-[#1D3160]/10'
-                        : 'border-[#1D3160]/20 bg-[#F8FAFD] hover:border-[#1D3160]/50 hover:shadow-md',
-                    )}
-                  >
-                    <div className="flex w-full items-center justify-between">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#2A4480] to-[#1D3160] text-white shadow-sm">
-                        <ShieldCheck className="h-5 w-5" strokeWidth={2.5} />
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-[#1D3160] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">
-                          Consigliato
-                        </span>
-                        <span
-                          className={cn(
-                            'flex h-5 w-5 items-center justify-center rounded-full border transition-all',
-                            selectedMethod === 'intermediary' ? 'border-[#1D3160] bg-[#1D3160]' : 'border-gray-300 bg-white',
-                          )}
-                        >
-                          {selectedMethod === 'intermediary' && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="flex items-center gap-1.5 text-[13px] font-black uppercase tracking-wide text-[#1D3160]">
-                      Ebartex Guarantee
-                    </span>
-                    <span className="text-xs leading-relaxed text-gray-500">
-                      Spedite entrambi le carte a Ebartex: le verifichiamo una a una e completiamo lo
-                      scambio solo quando è tutto perfetto. Massima sicurezza.
-                    </span>
-                  </button>
                 </div>
 
+                {selectedMethod === 'intermediary' && (
+                  <div className="mx-4 mb-4 flex items-start gap-2 rounded-xl bg-[#FF7300]/8 px-3 py-2.5 text-[12px] leading-snug text-[#B24E04] ring-1 ring-[#FF7300]/20">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                    <span>
+                      <span className="font-bold">Zero pensieri:</span> riceviamo le carte di entrambi,
+                      ne verifichiamo qualità e condizioni e completiamo lo scambio per voi.
+                    </span>
+                  </div>
+                )}
                 {selectedMethod === 'direct' && (
-                  <div className="mx-4 mb-4 flex items-start gap-2 rounded-xl bg-sky-50 px-3 py-2.5 text-[12px] leading-snug text-sky-800 ring-1 ring-sky-200/70">
+                  <div className="mx-4 mb-4 flex items-start gap-2 rounded-xl bg-gray-100 px-3 py-2.5 text-[12px] leading-snug text-gray-600 ring-1 ring-gray-200">
                     <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                     <span>
                       <span className="font-bold">Scambio in autonomia:</span> con la spedizione diretta
@@ -684,39 +736,16 @@ export function ReceivedProposalDetail({
                     </span>
                   </div>
                 )}
-                {selectedMethod === 'intermediary' && (
-                  <div className="mx-4 mb-4 flex items-start gap-2 rounded-xl bg-[#1D3160]/5 px-3 py-2.5 text-[12px] leading-snug text-[#1D3160] ring-1 ring-[#1D3160]/15">
-                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-                    <span>
-                      <span className="font-bold">Zero pensieri:</span> riceviamo le carte di entrambi,
-                      ne verifichiamo qualità e condizioni e completiamo lo scambio per voi.
-                    </span>
-                  </div>
-                )}
               </section>
 
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep('credits')}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-4 py-2 text-[12px] font-bold uppercase tracking-wide text-gray-600 transition hover:bg-gray-50"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Indietro
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectedMethod && confirmCounter()}
-                  disabled={!selectedMethod}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-[12px] font-bold uppercase tracking-wide text-white transition active:scale-95',
-                    selectedMethod
-                      ? 'bg-gradient-to-b from-[#FF8A26] to-[#FF7300] shadow-sm shadow-[#FF7300]/30 hover:shadow-md hover:shadow-[#FF7300]/40 hover:brightness-105'
-                      : 'cursor-not-allowed bg-gray-300',
-                  )}
-                >
-                  Invia controproposta
-                </button>
-              </div>
+              <StepFooter
+                backLabel="Indietro"
+                backIcon={<ArrowLeft className="h-3.5 w-3.5" aria-hidden />}
+                onBack={() => setStep('credits')}
+                nextLabel="Invia controproposta"
+                nextDisabled={!selectedMethod}
+                onNext={() => selectedMethod && confirmCounter()}
+              />
             </div>
           )}
         </div>
@@ -769,25 +798,79 @@ export function ReceivedProposalDetail({
 
             {/* Opzioni */}
             <div className="grid gap-3 px-5 py-4 sm:grid-cols-2">
+              {/* Ebartex Guarantee — opzione premium/consigliata, arancione brand */}
+              <button
+                type="button"
+                onClick={() => setSelectedMethod('intermediary')}
+                className={cn(
+                  "group relative flex flex-col gap-2.5 overflow-hidden rounded-2xl border-2 p-4 text-left text-white transition-all hover:-translate-y-0.5 active:translate-y-0",
+                  "bg-gradient-to-br from-[#FF9838] via-[#FF7300] to-[#EA5F05]",
+                  selectedMethod === 'intermediary'
+                    ? "border-white shadow-xl shadow-[#FF7300]/45 ring-4 ring-[#FF7300]/25"
+                    : "border-white/40 shadow-lg shadow-[#FF7300]/25 hover:shadow-xl hover:shadow-[#FF7300]/35"
+                )}
+              >
+                <span
+                  className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/25 blur-2xl"
+                  aria-hidden
+                />
+                <span
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"
+                  aria-hidden
+                />
+                <div className="relative flex w-full items-center justify-between">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-white shadow-sm ring-1 ring-white/40 backdrop-blur-sm">
+                    <ShieldCheck className="h-5 w-5" strokeWidth={2.5} />
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-[#EA5F05] shadow-sm">
+                      <Sparkles className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
+                      Consigliato
+                    </span>
+                    <div
+                      className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all",
+                        selectedMethod === 'intermediary'
+                          ? "border-white bg-white"
+                          : "border-white/70 bg-white/15"
+                      )}
+                    >
+                      {selectedMethod === 'intermediary' && (
+                        <div className="h-1.5 w-1.5 rounded-full bg-[#FF7300]" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <span className="relative flex items-center gap-1.5 text-[13px] font-black uppercase tracking-wide text-white">
+                  <ShieldCheck className="h-4 w-4 shrink-0 text-white" aria-hidden />
+                  Ebartex Guarantee
+                </span>
+                <span className="relative text-xs leading-relaxed text-white/85">
+                  Spedite entrambi le carte a Ebartex: le verifichiamo una a una e completiamo lo
+                  scambio solo quando è tutto perfetto. Massima sicurezza, zero pensieri.
+                </span>
+              </button>
+
+              {/* Scambio diretto — opzione base, tono spento */}
               <button
                 type="button"
                 onClick={() => setSelectedMethod('direct')}
                 className={cn(
                   "group flex flex-col gap-2.5 rounded-2xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0",
                   selectedMethod === 'direct'
-                    ? "border-[#FF7300] bg-orange-50/20 shadow-lg shadow-[#FF7300]/10"
-                    : "border-gray-200 bg-white hover:border-[#FF7300]/50 hover:shadow-md"
+                    ? "border-gray-400 bg-white shadow-md ring-1 ring-gray-300"
+                    : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white hover:shadow-sm"
                 )}
               >
                 <div className="flex w-full items-center justify-between">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF8A26] to-[#FF7300] text-white shadow-sm">
-                    <ArrowLeftRight className="h-5 w-5" strokeWidth={2.5} />
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-200 text-gray-500 ring-1 ring-gray-300">
+                    <Handshake className="h-5 w-5" strokeWidth={2} />
                   </span>
                   <div
                     className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded-full border transition-all",
+                      "flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all",
                       selectedMethod === 'direct'
-                        ? "border-[#FF7300] bg-[#FF7300]"
+                        ? "border-gray-500 bg-gray-500"
                         : "border-gray-300 bg-white"
                     )}
                   >
@@ -796,60 +879,18 @@ export function ReceivedProposalDetail({
                     )}
                   </div>
                 </div>
-                <span className="text-[13px] font-black uppercase tracking-wide text-[#1D3160]">
+                <span className="text-[13px] font-black uppercase tracking-wide text-gray-600">
                   Scambio diretto 1:1
                 </span>
-                <span className="text-xs leading-relaxed text-gray-500">
+                <span className="text-xs leading-relaxed text-gray-400">
                   Tu e {proposal.fromUser.name} vi spedite le carte direttamente. Veloce e senza
                   intermediari: ogni utente è responsabile del proprio scambio, e Ebartex congela gli
                   eventuali crediti finché entrambi non confermate l&apos;arrivo delle carte.
                 </span>
-                <span className="mt-1 flex items-start gap-1.5 rounded-lg bg-sky-50 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-sky-700 ring-1 ring-sky-200/70">
+                <span className="mt-1 flex items-start gap-1.5 rounded-lg bg-gray-100 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-gray-600 ring-1 ring-gray-200">
                   <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
                   Consiglio: trattandosi di carte di valore, puoi chiedere qualche foto e video e dare
                   un&apos;occhiata alle condizioni prima di confermare.
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedMethod('intermediary')}
-                className={cn(
-                  "group relative flex flex-col gap-2.5 rounded-2xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0",
-                  selectedMethod === 'intermediary'
-                    ? "border-[#1D3160] bg-[#1D3160]/5 shadow-lg shadow-[#1D3160]/10"
-                    : "border-[#1D3160]/20 bg-[#F8FAFD] hover:border-[#1D3160]/50 hover:shadow-md"
-                )}
-              >
-                <div className="flex w-full items-center justify-between">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#2A4480] to-[#1D3160] text-white shadow-sm">
-                    <ShieldCheck className="h-5 w-5" strokeWidth={2.5} />
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-[#1D3160] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">
-                      Consigliato
-                    </span>
-                    <div
-                      className={cn(
-                        "flex h-5 w-5 items-center justify-center rounded-full border transition-all",
-                        selectedMethod === 'intermediary'
-                          ? "border-[#1D3160] bg-[#1D3160]"
-                          : "border-gray-300 bg-white"
-                      )}
-                    >
-                      {selectedMethod === 'intermediary' && (
-                        <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <span className="flex items-center gap-1.5 text-[13px] font-black uppercase tracking-wide text-[#1D3160]">
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-[#1D3160]" aria-hidden />
-                  Ebartex Guarantee
-                </span>
-                <span className="text-xs leading-relaxed text-gray-500">
-                  Spedite entrambi le carte a Ebartex: le verifichiamo una a una e completiamo lo
-                  scambio solo quando è tutto perfetto. Massima sicurezza, zero pensieri.
                 </span>
               </button>
             </div>

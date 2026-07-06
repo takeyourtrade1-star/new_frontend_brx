@@ -94,7 +94,7 @@ export function AuctionMobileBidDock({
   const pill = (
     <div
       className={cn(
-        'pointer-events-none fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[9998] transition-all duration-200 lg:hidden',
+        'pointer-events-none fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-[9998] transition-all duration-200 lg:hidden',
         showPill ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
       )}
     >
@@ -102,17 +102,17 @@ export function AuctionMobileBidDock({
         <div
           className={cn(
             GLASS_SURFACE,
-            'shrink-0 rounded-full px-3 py-1.5',
+            'shrink-0 rounded-2xl px-4 py-2.5',
             showPill && 'pointer-events-auto'
           )}
           aria-live="polite"
         >
-          <p className="text-[7px] font-semibold uppercase leading-none tracking-[0.14em] text-gray-500">
+          <p className="text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-gray-500">
             {t('auctions.currentBid')}
           </p>
           <p
             className={cn(
-              'mt-0.5 whitespace-nowrap text-sm font-extrabold leading-none tabular-nums',
+              'mt-1 whitespace-nowrap text-lg font-extrabold leading-none tabular-nums',
               isWinning ? 'text-emerald-700' : 'text-[#1D3160]'
             )}
           >
@@ -124,12 +124,12 @@ export function AuctionMobileBidDock({
           onClick={() => setSheetOpen(true)}
           className={cn(
             GLASS_SURFACE,
-            'inline-flex shrink-0 items-center justify-center rounded-full px-4 py-2 transition active:scale-[0.98]',
+            'inline-flex min-h-[3rem] shrink-0 items-center justify-center rounded-2xl px-7 py-3 transition active:scale-[0.98]',
             showPill ? 'pointer-events-auto' : 'pointer-events-none'
           )}
           aria-label={t('auctions.bidPanel.makeBid')}
         >
-          <span className="whitespace-nowrap text-sm font-bold text-[#FF7300]">
+          <span className="whitespace-nowrap text-base font-bold text-[#FF7300]">
             {t('auctions.bidPanel.offerCta')}
           </span>
         </button>

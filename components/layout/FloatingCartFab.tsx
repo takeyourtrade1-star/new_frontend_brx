@@ -34,11 +34,15 @@ export function FloatingCartFab() {
   // lì la barra azioni mobile (ricerca/filtri) sta in basso e il FAB la coprirebbe.
   // Nascosto anche nella sezione aste: lì si compra tramite offerte, non col carrello,
   // e il FAB coprirebbe le barre fisse in basso (filtri hub, dock offerta nel dettaglio).
+  // Stesso motivo negli scambi: non si usa il carrello e la barra step (Continua/
+  // Indietro) della controproposta sta fissa in basso.
   if (
     pathname === '/cart' ||
     pathname === '/account/oggetti' ||
     pathname === '/aste' ||
-    pathname.startsWith('/aste/')
+    pathname.startsWith('/aste/') ||
+    pathname === '/scambi' ||
+    pathname.startsWith('/scambi/')
   ) {
     return null;
   }

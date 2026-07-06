@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, ChevronRight, Search, Coins, Send, Clock, Inbox, CheckCircle2, X, Loader2 } from 'lucide-react';
+import { Home, ChevronRight, ChevronDown, ChevronUp, Search, Coins, Send, Clock, Inbox, CheckCircle2, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
@@ -135,10 +135,37 @@ function StepBadge({
   );
 }
 
-/** Tutorial passi dello scambio: stepper verticale su mobile, riga su desktop. */
+/** Chiave localStorage per ricordare se il tutorial è nascosto (solo mobile). */
+const TUTORIAL_HIDDEN_KEY = 'scambi-tutorial-hidden';
+
+/** Tutorial passi dello scambio: stepper verticale su mobile, riga su desktop.
+ *  Su mobile è comprimibile con un toggle "Nascondi/Mostra" (preferenza ricordata),
+ *  così quando si apre una proposta il tutorial non occupa tutto lo schermo. */
 function TradeStepsTicker() {
   const [started, setStarted] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Ripristina la preferenza "tutorial nascosto".
+  useEffect(() => {
+    try {
+      setHidden(localStorage.getItem(TUTORIAL_HIDDEN_KEY) === '1');
+    } catch {
+      /* localStorage non disponibile: mostra il tutorial */
+    }
+  }, []);
+
+  const toggleHidden = useCallback(() => {
+    setHidden((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(TUTORIAL_HIDDEN_KEY, next ? '1' : '0');
+      } catch {
+        /* ignora: la preferenza semplicemente non verrà ricordata */
+      }
+      return next;
+    });
+  }, []);
 
   // Avvia la cascata solo quando il tutorial entra nel viewport.
   useEffect(() => {
@@ -159,32 +186,57 @@ function TradeStepsTicker() {
 
   return (
     <div ref={containerRef} className="mb-6">
-      {/* Mobile: stepper verticale con connettore */}
-      <ol className="flex flex-col px-4 py-4 sm:hidden">
-        {TRADE_STEPS.map((step, index) => {
-          const isLast = index === TRADE_STEPS.length - 1;
-          return (
-            <li
-              key={step.lead}
-              className={cn('flex gap-3.5', started ? 'scambi-step-enter' : 'opacity-0')}
-              style={{ '--step-delay': `${index * STEP_ENTER_DELAY_MS}ms` } as CSSProperties}
-            >
-              <div className="flex flex-col items-center">
-                <StepBadge step={step} index={index} size="lg" />
-                {!isLast && <span className="my-1 w-0.5 flex-1 rounded-full bg-[#FF7300]/25" aria-hidden />}
-              </div>
-              <StepLabel
-                step={step}
-                className={cn(
-                  'pt-3 text-[15px] font-semibold text-[#1D3160]',
-                  !isLast && 'pb-4',
-                  isLast && 'font-bold'
-                )}
-              />
-            </li>
-          );
-        })}
-      </ol>
+      {/* Mobile: intestazione con toggle Nascondi/Mostra */}
+      <div className="flex items-center justify-between px-4 sm:hidden">
+        <span className="text-xs font-bold uppercase tracking-wide text-gray-400">
+          Come funziona
+        </span>
+        <button
+          type="button"
+          onClick={toggleHidden}
+          aria-expanded={!hidden}
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#FF7300] transition hover:bg-[#FF7300]/10 active:scale-95"
+        >
+          {hidden ? (
+            <>
+              <ChevronDown className="h-3.5 w-3.5" aria-hidden /> Mostra
+            </>
+          ) : (
+            <>
+              <ChevronUp className="h-3.5 w-3.5" aria-hidden /> Nascondi
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Mobile: stepper verticale con connettore (nascondibile) */}
+      {!hidden && (
+        <ol className="flex flex-col px-4 pb-4 pt-3 sm:hidden">
+          {TRADE_STEPS.map((step, index) => {
+            const isLast = index === TRADE_STEPS.length - 1;
+            return (
+              <li
+                key={step.lead}
+                className={cn('flex gap-3.5', started ? 'scambi-step-enter' : 'opacity-0')}
+                style={{ '--step-delay': `${index * STEP_ENTER_DELAY_MS}ms` } as CSSProperties}
+              >
+                <div className="flex flex-col items-center">
+                  <StepBadge step={step} index={index} size="lg" />
+                  {!isLast && <span className="my-1 w-0.5 flex-1 rounded-full bg-[#FF7300]/25" aria-hidden />}
+                </div>
+                <StepLabel
+                  step={step}
+                  className={cn(
+                    'pt-3 text-[15px] font-semibold text-[#1D3160]',
+                    !isLast && 'pb-4',
+                    isLast && 'font-bold'
+                  )}
+                />
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
       {/* Desktop: riga orizzontale */}
       <div className="hidden flex-wrap items-center justify-center gap-y-3 px-6 py-5 sm:flex">
@@ -385,7 +437,7 @@ export function ScambiContent() {
 
           <div className="flex items-center justify-center gap-2.5 sm:col-start-2 sm:justify-self-center">
             <TradeCardsEmblem className="h-6 w-6 shrink-0 text-[#FF7300] sm:h-7 sm:w-7" />
-            <p className="text-base font-extrabold uppercase tracking-widest text-[#1D3160] sm:text-lg">
+            <p className="text-center text-base font-extrabold uppercase tracking-widest text-[#1D3160] sm:text-lg">
               Il primo marketplace per{' '}
               <span className="text-[#FF7300]">scambiare</span>{' '}
               le tue carte
