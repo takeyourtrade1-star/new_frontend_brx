@@ -76,7 +76,11 @@ export const AUTH_SPLIT_BUTTON_CLASS =
 
 
 
-export const AUTH_SPLIT_VIEW_SHELL_CLASS = 'lg:min-h-screen lg:pt-6 xl:pt-8';
+// `min-h-screen` anche su mobile: il pannello bianco del form riempie la viewport
+// come nel login (che usa lo stesso min-h-screen), invece di collassare all'altezza
+// del contenuto e lasciare emergere lo showcase scuro sotto la card. `lg:min-h-screen`
+// resta per non toccare il comportamento desktop (batte il lg:min-h-0 della colonna).
+export const AUTH_SPLIT_VIEW_SHELL_CLASS = 'min-h-screen lg:min-h-screen lg:pt-6 xl:pt-8';
 
 
 

@@ -60,11 +60,21 @@ function ActionButton({
 }
 
 /**
- * Barra di navigazione step della controproposta, fissa in basso allo schermo.
- * Fluttua sopra il contenuto (sticky) così Indietro/Continua restano sempre
- * raggiungibili; scorre via col contenitore quando si esce dal flusso, senza
- * coprire ciò che sta sotto la pagina.
+ * Barra fissa in basso allo schermo (sticky): fluttua sopra il contenuto così le
+ * azioni restano sempre raggiungibili, e scorre via col contenitore quando si esce
+ * dal flusso, senza coprire ciò che sta sotto la pagina. I margini negativi sono
+ * allineati al padding di `container-content` (1.25rem / 1.75rem) per arrivare
+ * pulita fino ai bordi del contenuto.
  */
+function StickyBar({ children }: { children: ReactNode }) {
+  return (
+    <div className="sticky bottom-0 z-30 -mx-5 mt-4 border-t border-gray-200/70 bg-[#F5F4F0]/85 px-5 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.9rem)] backdrop-blur-md sm:-mx-7 sm:px-7">
+      <div className="mx-auto max-w-2xl">{children}</div>
+    </div>
+  );
+}
+
+/** Navigazione step della controproposta (Indietro / Continua) dentro la StickyBar. */
 function StepFooter({
   backLabel,
   backIcon,
@@ -83,8 +93,8 @@ function StepFooter({
   onNext: () => void;
 }) {
   return (
-    <div className="sticky bottom-0 z-30 -mx-4 mt-4 border-t border-gray-200/70 bg-[#F5F4F0]/85 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.9rem)] backdrop-blur-md sm:-mx-6 sm:px-6">
-      <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
+    <StickyBar>
+      <div className="flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={onBack}
@@ -108,7 +118,7 @@ function StepFooter({
           {nextIcon}
         </button>
       </div>
-    </div>
+    </StickyBar>
   );
 }
 
@@ -390,45 +400,9 @@ export function ReceivedProposalDetail({
         </div>
       </div>
 
-      {/* Azioni per proposta originale (solo quando non siamo in controproposta) */}
-      {status === 'open' && !counterMode && (
-        <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
-          {rejectButton}
-          {counterButton}
-          {acceptButton}
-        </div>
-      )}
-
-      {status === 'rejecting' && (
-        <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5">
-          <p className="text-xs font-bold text-red-700">Vuoi davvero rifiutare questa proposta?</p>
-          <label className="mt-1.5 flex items-center gap-2 text-[12px] text-gray-700">
-            <input
-              type="checkbox"
-              checked={blockFuture}
-              onChange={(e) => setBlockFuture(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-gray-300 text-[#FF7300] accent-[#FF7300]"
-            />
-            Rifiuta altre proposte di scambio da {proposal.fromUser.name} per 24h
-          </label>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setStatus('open')}
-              className="rounded-full bg-white px-3.5 py-1.5 text-[11px] font-bold text-gray-700 ring-1 ring-inset ring-gray-300 transition hover:bg-gray-50"
-            >
-              Annulla
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatus('rejected')}
-              className="rounded-full bg-red-600 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white transition hover:bg-red-700 active:scale-[0.98]"
-            >
-              Conferma rifiuto
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Le azioni (Rifiuta / Contro proposta / Accetta) e la conferma di rifiuto
+          vivono in una barra sticky in fondo alla vista di lettura: restano sempre
+          raggiungibili anche dopo aver scrollato le carte. Vedi sotto. */}
 
       {/* Se siamo in controproposta, mostriamo il flusso a 3 step */}
       {status === 'open' && counterMode ? (
@@ -632,10 +606,16 @@ export function ReceivedProposalDetail({
                 <div className="border-b border-gray-100 px-4 py-3">
                   <h2 className="text-sm font-black uppercase tracking-tight text-[#1D3160]">Come volete scambiarvi le carte?</h2>
                 </div>
-                <div className="grid gap-3 px-4 py-4 sm:grid-cols-2">
+                <div
+                  className="grid gap-3 px-4 py-4 sm:grid-cols-2"
+                  role="radiogroup"
+                  aria-label="Modalità di scambio"
+                >
                   {/* Ebartex Guarantee — opzione premium/consigliata, arancione brand */}
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={selectedMethod === 'intermediary'}
                     onClick={() => setSelectedMethod('intermediary')}
                     className={cn(
                       'group relative flex flex-col gap-2.5 overflow-hidden rounded-2xl border-2 p-4 text-left text-white transition-all hover:-translate-y-0.5 active:translate-y-0',
@@ -685,6 +665,8 @@ export function ReceivedProposalDetail({
                   {/* Spedizione diretta — opzione base, tono spento */}
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={selectedMethod === 'direct'}
                     onClick={() => setSelectedMethod('direct')}
                     className={cn(
                       'group flex flex-col gap-2.5 rounded-2xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0',
@@ -772,6 +754,52 @@ export function ReceivedProposalDetail({
             showCredits={true}
             inventoriesSectionRef={inventoriesRef}
           />
+
+          {/* Azioni sticky in fondo: sempre raggiungibili mentre si scorrono le carte. */}
+          {status === 'open' && (
+            <StickyBar>
+              <div className="flex items-center justify-between gap-2">
+                {rejectButton}
+                <div className="flex items-center gap-2">
+                  {counterButton}
+                  {acceptButton}
+                </div>
+              </div>
+            </StickyBar>
+          )}
+
+          {status === 'rejecting' && (
+            <StickyBar>
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5">
+                <p className="text-xs font-bold text-red-700">Vuoi davvero rifiutare questa proposta?</p>
+                <label className="mt-1.5 flex items-center gap-2 text-[12px] text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={blockFuture}
+                    onChange={(e) => setBlockFuture(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-gray-300 text-[#FF7300] accent-[#FF7300]"
+                  />
+                  Rifiuta altre proposte di scambio da {proposal.fromUser.name} per 24h
+                </label>
+                <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStatus('open')}
+                    className="rounded-full bg-white px-3.5 py-1.5 text-[11px] font-bold text-gray-700 ring-1 ring-inset ring-gray-300 transition hover:bg-gray-50"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatus('rejected')}
+                    className="rounded-full bg-red-600 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white transition hover:bg-red-700 active:scale-[0.98]"
+                  >
+                    Conferma rifiuto
+                  </button>
+                </div>
+              </div>
+            </StickyBar>
+          )}
         </>
       )}
 
@@ -797,10 +825,16 @@ export function ReceivedProposalDetail({
             </div>
 
             {/* Opzioni */}
-            <div className="grid gap-3 px-5 py-4 sm:grid-cols-2">
+            <div
+              className="grid gap-3 px-5 py-4 sm:grid-cols-2"
+              role="radiogroup"
+              aria-label="Modalità di scambio"
+            >
               {/* Ebartex Guarantee — opzione premium/consigliata, arancione brand */}
               <button
                 type="button"
+                role="radio"
+                aria-checked={selectedMethod === 'intermediary'}
                 onClick={() => setSelectedMethod('intermediary')}
                 className={cn(
                   "group relative flex flex-col gap-2.5 overflow-hidden rounded-2xl border-2 p-4 text-left text-white transition-all hover:-translate-y-0.5 active:translate-y-0",
@@ -854,6 +888,8 @@ export function ReceivedProposalDetail({
               {/* Scambio diretto — opzione base, tono spento */}
               <button
                 type="button"
+                role="radio"
+                aria-checked={selectedMethod === 'direct'}
                 onClick={() => setSelectedMethod('direct')}
                 className={cn(
                   "group flex flex-col gap-2.5 rounded-2xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 active:translate-y-0",
