@@ -149,6 +149,25 @@ describe('refresh-token', () => {
       stopProactiveRefresh();
     });
 
+    it('refresh fallito con token in scadenza: una sola fetch, poi backoff (niente loop)', async () => {
+      localStorage.setItem(config.auth.tokenKey, makeJwt(60)); // entro il buffer
+      localStorage.setItem(config.auth.refreshTokenKey, 'r');
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({}),
+      } as unknown as Response);
+      vi.stubGlobal('fetch', fetchMock);
+
+      startProactiveRefresh();
+
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      // Senza backoff il fallimento rientrerebbe subito nel ramo "refresh
+      // immediato" e qui vedremmo già altre chiamate in coda.
+      await new Promise((resolve) => setTimeout(resolve, 25));
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      stopProactiveRefresh();
+    });
+
     it('non rinnova subito se il token è lontano dalla scadenza', async () => {
       localStorage.setItem(config.auth.tokenKey, makeJwt(60 * 60));
       localStorage.setItem(config.auth.refreshTokenKey, 'r');

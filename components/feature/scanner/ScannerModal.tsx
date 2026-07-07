@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useRef, useState, type RefObject } from 'react';
 import { Camera, X, Lightbulb } from 'lucide-react';
 import { useBrxScanner } from '@/hooks/useBrxScanner';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import { ScannerModelGate } from '@/components/feature/scanner/ScannerModelGate';
 import { ScannerBetaNotice } from '@/components/feature/scanner/ScannerBetaNotice';
 import { cn } from '@/lib/utils';
@@ -444,6 +445,7 @@ async function applyTorch(videoRef: RefObject<HTMLVideoElement | null>, on: bool
 // ---------------------------------------------------------------------------
 
 export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
+  const { t } = useTranslation();
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
 
@@ -607,7 +609,7 @@ export function ScannerModal({ onConfirm, onClose }: ScannerModalProps) {
       {state === 'requesting_camera' && <RequestingCameraLoader />}
 
       {state === 'error' && (
-        <ErrorPanel message={errorMessage ?? 'Impossibile accedere alla fotocamera.'} onClose={handleCloseBtn} />
+        <ErrorPanel message={errorMessage ?? t('scanner.cameraGenericError')} onClose={handleCloseBtn} />
       )}
 
       {(state === 'scanning' || state === 'processing' || state === 'matched') && (

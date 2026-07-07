@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import {
@@ -38,10 +38,13 @@ export function ProductCategoryButton({
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
-  const setOpenState = (next: boolean) => {
-    if (onOpenChange) onOpenChange(next);
-    else setInternalOpen(next);
-  };
+  const setOpenState = useCallback(
+    (next: boolean) => {
+      if (onOpenChange) onOpenChange(next);
+      else setInternalOpen(next);
+    },
+    [onOpenChange]
+  );
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<CategoryDropdownRect | null>(null);
@@ -90,7 +93,7 @@ export function ProductCategoryButton({
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [open, suppressAttachedPortal]);
+  }, [open, suppressAttachedPortal, setOpenState]);
 
   const currentLabel = useMemo(() => {
     if (!selectedCategory || selectedCategory === 'all') return 'Tutte';

@@ -9,8 +9,12 @@ export function useTranslation() {
   const { selectedLang, dictVersion } = useLanguage();
 
   const t = useCallback(
-    (key: MessageKey, vars?: Record<string, string | number>) => getMessage(selectedLang, key, vars),
-    // dictVersion forza un nuovo `t` quando un dizionario lazy finisce di caricare.
+    (key: MessageKey, vars?: Record<string, string | number>) => {
+      // dictVersion lega l'identità di `t` al caricamento dei dizionari lazy:
+      // nuovo `t` → re-render dei consumer memoizzati con la lingua reale.
+      void dictVersion;
+      return getMessage(selectedLang, key, vars);
+    },
     [selectedLang, dictVersion]
   );
 

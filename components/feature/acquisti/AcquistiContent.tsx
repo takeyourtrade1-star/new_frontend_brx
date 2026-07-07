@@ -268,7 +268,8 @@ export function AcquistiContent() {
 
   // Ordini marketplace via React Query (regola §2) invece di useState+useEffect+fetch.
   const marketplaceQuery = useMyMarketplaceOrders(!isSupportoTab);
-  const marketplaceOrders = marketplaceQuery.data?.items ?? [];
+  const marketplaceItems = marketplaceQuery.data?.items;
+  const marketplaceOrders = useMemo(() => marketplaceItems ?? [], [marketplaceItems]);
   const marketplaceLoading = marketplaceQuery.isLoading;
   const marketplaceError = marketplaceQuery.error
     ? (marketplaceQuery.error instanceof MarketplaceApiError
@@ -296,7 +297,8 @@ export function AcquistiContent() {
 
   // Segnalazioni via React Query (regola §2) invece di useState+useEffect+fetch.
   const disputesQuery = useMyDisputes(isSupportoTab);
-  const disputes = disputesQuery.data?.data ?? [];
+  const disputesData = disputesQuery.data?.data;
+  const disputes = useMemo(() => disputesData ?? [], [disputesData]);
   const disputesLoading = disputesQuery.isLoading;
   const disputesError = disputesQuery.error
     ? (disputesQuery.error instanceof Error ? disputesQuery.error.message : 'Impossibile caricare le segnalazioni.')

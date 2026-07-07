@@ -143,8 +143,10 @@ export function useSetPageCards(
         const worker = async () => {
           while (cursor < restPages.length) {
             const idx = cursor++;
-            const next = await fetchSearch({ ...base, page: restPages[idx] }).catch(() => null);
-            pageHits[idx] = next && Array.isArray(next.hits) ? next.hits : [];
+            // Niente catch: una pagina fallita fa fallire la query (React Query
+            // riprova), invece di mostrare un set incompleto in silenzio.
+            const next = await fetchSearch({ ...base, page: restPages[idx] });
+            pageHits[idx] = Array.isArray(next.hits) ? next.hits : [];
           }
         };
         await Promise.all(

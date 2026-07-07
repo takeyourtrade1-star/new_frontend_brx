@@ -110,11 +110,24 @@ export const tokenManager = new TokenManager();
 // ─── Proactive refresh ────────────────────────────────────────────────────────
 
 let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+/** Invalidates in-flight reschedules when stop/start is called (prevents zombie loops). */
+let proactiveRefreshGeneration = 0;
+/** Backoff between retries when a refresh fails or keeps returning near-expiry tokens. */
+const REFRESH_RETRY_DELAY_MS = 60_000;
+
+function scheduleProactiveRefresh(delayMs: number): void {
+  proactiveRefreshTimer = setTimeout(() => {
+    proactiveRefreshTimer = null;
+    startProactiveRefresh();
+  }, delayMs);
+}
 
 /**
  * Schedules a token refresh 5 minutes before the current access token expires.
  * Call once after a successful login / initializeAuth. The function is
  * self-rescheduling: after each refresh it calls itself to set up the next timer.
+ * On failure it retries with a fixed backoff instead of looping immediately —
+ * a revoked/expired refresh token must not hammer /api/auth/refresh.
  */
 export function startProactiveRefresh(): void {
   if (typeof window === 'undefined') return;
@@ -123,6 +136,7 @@ export function startProactiveRefresh(): void {
     clearTimeout(proactiveRefreshTimer);
     proactiveRefreshTimer = null;
   }
+  const generation = ++proactiveRefreshGeneration;
 
   const token = localStorage.getItem(config.auth.tokenKey);
   if (!token) return;
@@ -136,15 +150,24 @@ export function startProactiveRefresh(): void {
 
     if (msUntilRefresh <= 0) {
       // Token already near/past expiry — refresh immediately then reschedule.
-      tokenManager.ensureFreshToken().then(() => startProactiveRefresh());
+      tokenManager.ensureFreshToken().then((newToken) => {
+        // stop/start intervenuti durante il refresh: non ri-schedulare.
+        if (generation !== proactiveRefreshGeneration) return;
+        if (newToken && !isTokenNearExpiry(newToken)) {
+          startProactiveRefresh();
+          return;
+        }
+        // Refresh fallito o token ancora prossimo alla scadenza: senza backoff
+        // questo ramo rientrerebbe subito in msUntilRefresh <= 0 → loop.
+        // Riprova solo se esiste ancora un refresh token da spendere.
+        if (localStorage.getItem(config.auth.refreshTokenKey)) {
+          scheduleProactiveRefresh(REFRESH_RETRY_DELAY_MS);
+        }
+      });
       return;
     }
 
-    proactiveRefreshTimer = setTimeout(async () => {
-      proactiveRefreshTimer = null;
-      await tokenManager.ensureFreshToken();
-      startProactiveRefresh();
-    }, msUntilRefresh);
+    scheduleProactiveRefresh(msUntilRefresh);
   } catch {
     // Malformed token — nothing to schedule.
   }
@@ -152,6 +175,7 @@ export function startProactiveRefresh(): void {
 
 /** Cancels any pending proactive-refresh timer (call on logout). */
 export function stopProactiveRefresh(): void {
+  proactiveRefreshGeneration++;
   if (proactiveRefreshTimer !== null) {
     clearTimeout(proactiveRefreshTimer);
     proactiveRefreshTimer = null;

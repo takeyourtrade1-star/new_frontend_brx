@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { type OnnxLoadProgress } from '@/lib/scanner/onnx-loader';
 import { BALANCED } from '@/lib/scanner/balancedProfile';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 import { useOnnxSession, type ModelStatus } from './scanner/useOnnxSession';
 import { useScanLoop } from './scanner/useScanLoop';
@@ -102,6 +103,8 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const effectiveConf = Math.max(rawConf, BALANCED.confFloor);
   const effectiveHint = Math.max(rawHint, BALANCED.hintConfFloor);
 
+  const { t } = useTranslation();
+
   // ---------------------------------------------------------------------------
   // State / refs owned by the orchestrator (camera + scanner lifecycle)
   // ---------------------------------------------------------------------------
@@ -112,6 +115,10 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // Incrementato a ogni open/stop: invalida le openCamera in-flight, così uno
+  // stream ottenuto DOPO stopScanning/unmount viene fermato subito e la camera
+  // non resta accesa (race su getUserMedia in await).
+  const cameraSessionRef = useRef(0);
 
   // ONNX edge pipeline: model load, worker, embedding, retry/standard controls.
   const {
@@ -164,6 +171,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   });
 
   const stopScanning = useCallback(() => {
+    cameraSessionRef.current++;
     stopLoop();
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -180,6 +188,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   // ---------------------------------------------------------------------------
 
   const openCamera = useCallback(async (): Promise<void> => {
+    const session = ++cameraSessionRef.current;
     setState('requesting_camera');
     setErrorMessage(null);
     beginScan();
@@ -196,13 +205,21 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
         audio: false,
       });
     } catch (err) {
+      if (session !== cameraSessionRef.current) return;
       const msg =
         err instanceof DOMException && err.name === 'NotAllowedError'
-          ? 'Camera permission denied. Please allow camera access and try again.'
-          : 'Could not access camera.';
+          ? t('scanner.deniedBody')
+          : t('scanner.cameraGenericError');
       setErrorMessage(msg);
       setState('error');
       onError?.(msg);
+      return;
+    }
+
+    // Scanner chiuso/smontato mentre getUserMedia era in attesa: il cleanup è
+    // già girato, quindi fermiamo qui le track o la camera resterebbe accesa.
+    if (session !== cameraSessionRef.current) {
+      stream.getTracks().forEach((t) => t.stop());
       return;
     }
 
@@ -214,7 +231,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
 
     setState('scanning');
     startScanLoop();
-  }, [beginScan, onError, startScanLoop]);
+  }, [beginScan, onError, startScanLoop, t]);
 
   useEffect(() => {
     if (!autoOpenCamera || cameraOpenedRef.current) return;

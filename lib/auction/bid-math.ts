@@ -5,11 +5,28 @@ export function roundUpToHalfStep(value: number): number {
   return Number(normalized.toFixed(2));
 }
 
-/** Parser importi utente che accetta notazione italiana con virgola. */
+/**
+ * Parser importi utente che accetta notazione italiana con virgola.
+ *
+ * Con la virgola non c'è ambiguità: punto = migliaia, virgola = decimali
+ * ("1.234,50" → 1234.5). Senza virgola il punto è ambiguo: "10.000" scritto
+ * da un utente italiano significa diecimila, non 10 (bug: offerta massima
+ * "10.000" piazzata come 10 €). Disambiguazione: se i punti formano gruppi
+ * di 3 cifre in stile migliaia IT ("1.000", "12.345.678") vengono rimossi;
+ * altrimenti il punto resta decimale ("10.5", "10.50", "0.500" → 0.5).
+ */
 export function parseLocaleMoneyInput(rawInput: string): number {
   const raw = rawInput.trim();
   if (!raw) return NaN;
-  const normalized = raw.includes(',') ? raw.replace(/\./g, '').replace(',', '.') : raw;
+  let normalized: string;
+  if (raw.includes(',')) {
+    normalized = raw.replace(/\./g, '').replace(',', '.');
+  } else if (/^[1-9]\d{0,2}(\.\d{3})+$/.test(raw)) {
+    // Solo punti in gruppi di 3 (prima cifra ≠ 0): separatore migliaia italiano.
+    normalized = raw.replace(/\./g, '');
+  } else {
+    normalized = raw;
+  }
   const parsed = Number.parseFloat(normalized);
   return Number.isFinite(parsed) ? parsed : NaN;
 }

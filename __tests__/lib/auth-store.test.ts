@@ -185,12 +185,31 @@ describe('auth-store', () => {
       expect(state.isAuthenticated).toBe(false);
       expect(state.flashMessage).toBe('Disconnessione avvenuta con successo');
     });
+
+    it('logout({ silent: true }) pulisce lo store senza flash di successo', async () => {
+      useAuthStore.setState({
+        user: mockUser,
+        accessToken: 'access_123',
+        isAuthenticated: true,
+      });
+      localStorage.setItem('ebartex_access_token', 'access_123');
+      localStorage.setItem('ebartex_refresh_token', 'refresh_123');
+
+      await useAuthStore.getState().logout({ silent: true });
+
+      const state = useAuthStore.getState();
+      expect(state.user).toBeNull();
+      expect(state.accessToken).toBeNull();
+      expect(state.isAuthenticated).toBe(false);
+      // Logout automatico (es. sessione scaduta): nessun toast "Disconnessione…"
+      expect(state.flashMessage).toBeNull();
+    });
   });
 
   describe('preAuthToken persistence', () => {
-    it('il preAuthToken MFA viene persistito nello storage', async () => {
+    it('il preAuthToken MFA NON viene persistito in localStorage (vive in sessionStorage)', async () => {
       useAuthStore.setState({
-        preAuthToken: 'pre_auth_persisted',
+        preAuthToken: 'pre_auth_not_persisted',
         mfaRequired: true,
       });
 
@@ -200,8 +219,10 @@ describe('auth-store', () => {
       const raw = localStorage.getItem('ebartex-auth');
       expect(raw).toBeTruthy();
       const persisted = JSON.parse(raw!);
-      expect(persisted.state.preAuthToken).toBe('pre_auth_persisted');
-      expect(persisted.state.mfaRequired).toBe(true);
+      // Superficie ridotta: il flusso MFA tra reload passa da sessionStorage
+      // (lib/auth/mfa-session.ts), non dallo store persistito.
+      expect(persisted.state.preAuthToken).toBeUndefined();
+      expect(persisted.state.mfaRequired).toBeUndefined();
     });
 
 

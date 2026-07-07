@@ -35,6 +35,8 @@ export function getLoadedDictionary(locale: UiLocale): Dict | undefined {
 /**
  * Carica una sola volta il dizionario della lingua richiesta.
  * Risolve immediatamente se già in memoria; deduplica le richieste concorrenti.
+ * Se il chunk lazy fallisce (rete), risolve col fallback EN ma NON cachea il
+ * fallimento: il prossimo cambio lingua riprova il download.
  */
 export async function loadDictionary(locale: UiLocale): Promise<Dict> {
   const cached = loaded[locale];
@@ -44,11 +46,15 @@ export async function loadDictionary(locale: UiLocale): Promise<Dict> {
   if (!loader) return FALLBACK_DICTIONARY;
 
   if (!inflight[locale]) {
-    inflight[locale] = loader().then((dict) => {
-      loaded[locale] = dict;
-      delete inflight[locale];
-      return dict;
-    });
+    inflight[locale] = loader()
+      .then((dict) => {
+        loaded[locale] = dict;
+        return dict;
+      })
+      .catch(() => FALLBACK_DICTIONARY)
+      .finally(() => {
+        delete inflight[locale];
+      });
   }
   return inflight[locale] as Promise<Dict>;
 }

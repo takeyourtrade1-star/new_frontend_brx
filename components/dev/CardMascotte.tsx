@@ -48,6 +48,17 @@ import { getRecentLogs } from '@/lib/dev/log-capture';
 import { useConsoleLogCapture } from '@/lib/hooks/use-console-log-capture';
 import { useTimeouts } from '@/lib/hooks/use-timeout-fn';
 
+// Achievement thresholds (statico: fuori dal componente, così i useCallback che
+// lo leggono non hanno una dipendenza ricreata a ogni render).
+const ACHIEVEMENTS: Record<number, string> = {
+  1: 'Primo flip!',
+  5: 'Curioso!',
+  10: 'Collezionista',
+  25: 'Esperto di carte',
+  50: 'Maestro del flip',
+  100: 'Leggenda BRX',
+};
+
 export function CardMascotte() {
   const authUser = useAuthStore((s) => s.user);
   const { t } = useTranslation();
@@ -389,16 +400,6 @@ export function CardMascotte() {
     { gradient: 'linear-gradient(145deg, #F43F5E 0%, #FB7185 50%, #FDA4AF 100%)', pattern: '30deg', label: 'FOIL', sub: 'Edizione Speciale', unlock: 30 },
     { gradient: 'linear-gradient(145deg, #F59E0B 0%, #FBBF24 50%, #FDE68A 100%)', pattern: '135deg', label: 'GOLD', sub: 'Ultra Raro', unlock: 50 },
   ], []);
-
-  // Achievement thresholds
-  const ACHIEVEMENTS: Record<number, string> = {
-    1: 'Primo flip!',
-    5: 'Curioso!',
-    10: 'Collezionista',
-    25: 'Esperto di carte',
-    50: 'Maestro del flip',
-    100: 'Leggenda BRX',
-  };
 
   // Get current achievement title based on flip count
   const getCurrentTitle = useCallback((count: number): string => {
@@ -980,7 +981,7 @@ export function CardMascotte() {
   }, []);
 
   // Audio feedback using Web Audio API
-  const playOpenSound = () => {
+  const playOpenSound = useCallback(() => {
     try {
       const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
 
@@ -1005,7 +1006,7 @@ export function CardMascotte() {
       oscillator.stop(audioContext.currentTime + 0.15);
     } catch {
     }
-  };
+  }, []);
 
   // Success sound feedback when bug report is submitted
   const playSuccessSound = () => {

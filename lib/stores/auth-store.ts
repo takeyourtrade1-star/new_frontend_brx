@@ -53,7 +53,8 @@ interface AuthState {
   ) => Promise<{ mfaRequired: boolean; preAuthToken?: string }>;
   verifyMFA: (data: VerifyMFAData) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
-  logout: () => Promise<void>;
+  /** `silent: true` per i logout automatici (es. sessione scaduta): niente toast di successo. */
+  logout: (opts?: { silent?: boolean }) => Promise<void>;
   setUser: (user: User) => void;
   updateUserName: (name: string) => void;
   updateUserPreferences: (
@@ -147,8 +148,14 @@ export const useAuthStore = create<AuthState>()(
               set({ accessToken: newAccess, isAuthenticated: true, sessionExpired: false });
               accessToken = newAccess;
             } else if (refreshToken) {
-              // refresh_token presente ma risposta non ok (scaduto/revocato) → logout
-              await get().logout();
+              // refresh_token presente ma risposta non ok (scaduto/revocato):
+              // logout silenzioso + toast d'errore, NON il flash "Disconnessione
+              // avvenuta con successo" (l'utente non ha chiesto il logout).
+              await get().logout({ silent: true });
+              set({
+                sessionExpired: true,
+                authError: 'La sessione è scaduta. Accedi di nuovo.',
+              });
               return;
             }
           } catch {
@@ -182,12 +189,12 @@ export const useAuthStore = create<AuthState>()(
                   sessionExpired: false,
                 });
               } else {
-                await get().logout();
+                await get().logout({ silent: true });
               }
             }
           } catch {
             if (!refreshToken) {
-              await get().logout();
+              await get().logout({ silent: true });
             } else {
               set({ user: null, accessToken: null, isAuthenticated: false, sessionExpired: false });
             }
@@ -495,7 +502,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       // Logout
-      logout: async () => {
+      logout: async (opts) => {
         const accessToken =
           typeof window !== 'undefined'
             ? localStorage.getItem(config.auth.tokenKey)
@@ -529,7 +536,7 @@ export const useAuthStore = create<AuthState>()(
           mfaRequired: false,
           preAuthToken: null,
           authError: null,
-          flashMessage: 'Disconnessione avvenuta con successo',
+          flashMessage: opts?.silent ? null : 'Disconnessione avvenuta con successo',
         });
       },
 
@@ -737,9 +744,9 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         accessToken: state.accessToken,
         isAuthenticated: state.isAuthenticated,
-        // Persiste il flusso MFA tra reload / navigazione (token breve, come sessione login)
-        preAuthToken: state.preAuthToken,
-        mfaRequired: state.mfaRequired,
+        // NB: preAuthToken/mfaRequired NON vengono persistiti qui: il flusso MFA
+        // tra reload vive in sessionStorage (lib/auth/mfa-session.ts, superficie
+        // ridotta) e la pagina verify-mfa lo ripristina nello store al mount.
       }),
       merge: (persisted, current) => ({
         ...current,
@@ -748,10 +755,6 @@ export const useAuthStore = create<AuthState>()(
           (persisted as { accessToken: string | null }).accessToken ?? null,
         isAuthenticated:
           (persisted as { isAuthenticated: boolean }).isAuthenticated ?? false,
-        preAuthToken:
-          (persisted as { preAuthToken: string | null }).preAuthToken ?? null,
-        mfaRequired:
-          (persisted as { mfaRequired: boolean }).mfaRequired ?? false,
         flashMessage: null, // Non persistire flashMessage
       }),
     }

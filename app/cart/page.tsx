@@ -69,7 +69,7 @@ export default function CartPage() {
   const handleCheckout = useCallback(async () => {
     if (!user?.id || !accessToken) {
       setCheckoutErrors([
-        { lineId: '_auth', title: t('cart.title'), message: 'Accedi per completare l\'acquisto.' },
+        { lineId: '_auth', title: t('cart.title'), message: t('cart.loginRequired') },
       ]);
       return;
     }

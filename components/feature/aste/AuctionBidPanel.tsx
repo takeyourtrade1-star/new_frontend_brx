@@ -512,13 +512,21 @@ export function AuctionBidPanel({
                 {t('auctions.buyNowButton')}
               </a>
             ) : (
-              <button
-                type="button"
-                title={`${t('auctions.buyNowButton')} · ${fmtEur(buyNowPrice)}`}
-                className="inline-flex min-h-[40px] w-full flex-1 items-center justify-center rounded-lg border border-[#1D3160] bg-[#1D3160] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#15264b] sm:min-h-0"
-              >
-                {t('auctions.buyNowButton')}
-              </button>
+              // Senza buy_now_url dal backend non esiste un'azione d'acquisto:
+              // bottone disabilitato con motivo, non un finto CTA senza onClick.
+              <span className="flex w-full flex-1 flex-col sm:min-w-[140px]">
+                <button
+                  type="button"
+                  disabled
+                  title={t('auctions.buyNowUnavailable')}
+                  className="inline-flex min-h-[40px] w-full items-center justify-center rounded-lg border border-gray-300 bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-400 sm:min-h-0"
+                >
+                  {t('auctions.buyNowButton')} · {fmtEur(buyNowPrice)}
+                </button>
+                <span className="mt-1 text-center text-[10px] font-medium text-gray-400">
+                  {t('auctions.buyNowUnavailable')}
+                </span>
+              </span>
             )
           )}
         </div>

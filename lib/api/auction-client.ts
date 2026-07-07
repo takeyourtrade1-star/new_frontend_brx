@@ -17,6 +17,7 @@ import type {
   SavedAuctionStatusResponse,
 } from '@/types/auction';
 import { tokenManager } from '@/lib/api/refresh-token';
+import { config } from '@/lib/config';
 
 export function createIdempotencyKey(): string {
   if (
@@ -31,7 +32,7 @@ export function createIdempotencyKey(): string {
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('ebartex_access_token');
+  return localStorage.getItem(config.auth.tokenKey);
 }
 
 function authHeaders(): Record<string, string> {
@@ -167,9 +168,15 @@ export const auctionApi = {
   createAuction(
     payload: AuctionCreatePayload
   ): Promise<{ success: boolean; data: import('@/types/auction').AuctionAPI }> {
+    // Idempotency-Key: il retry automatico su errore di rete/timeout riusa le
+    // stesse options, quindi la stessa key — il backend può scartare il doppione
+    // (senza key un timeout con richiesta già processata creava un'asta doppia).
     return request(``, {
       method: 'POST',
       body: JSON.stringify(payload),
+      headers: {
+        'Idempotency-Key': createIdempotencyKey(),
+      },
     });
   },
 

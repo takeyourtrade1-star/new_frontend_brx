@@ -110,7 +110,6 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    const searchApiUrl = process.env.NEXT_PUBLIC_SEARCH_API_URL || process.env.VITE_SEARCH_API_URL || 'http://localhost:8000';
     if (!process.env.BRX_MATCH_API_URL) {
       // Fallback hardcoded all'IP del servizio match: utile in dev, ma in
       // produzione la variabile DEVE essere impostata. Segnaliamo a build-time
@@ -129,11 +128,9 @@ const nextConfig = {
     return [
       // Favicon: evita 404 su /favicon.ico servendo logo-pwa.svg
       { source: '/favicon.ico', destination: '/logo-pwa.svg' },
-      // Proxy per Search Engine (BRX_Search) - reindex e altre API admin
-      {
-        source: '/search-api/:path*',
-        destination: `${searchApiUrl}/:path*`,
-      },
+      // NOTA: il vecchio rewrite /search-api/* → BRX_Search (API admin, es. reindex)
+      // è stato rimosso: nessun call-site nel frontend e bypassava auth/rate-limit
+      // del BFF, esponendo il servizio admin a chiunque.
       // Proxy per BRX Match (scanner MTG): /brx-match/* → EC2 dedicata (imposta BRX_MATCH_API_URL su Amplify)
       {
         source: '/brx-match/:path*',
