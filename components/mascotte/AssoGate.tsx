@@ -3,12 +3,11 @@
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-// CardMascotte è un overlay (createPortal + z-index fissato): non occupa spazio nel
-// flusso del layout, quindi il fallback può essere `null` senza alterare l'UI.
+// AssoRoot è un overlay (position:fixed): fallback null non altera il layout.
 // L'import dinamico con ssr:false tiene la mascotte fuori dal bundle iniziale;
-// internamente html2canvas è caricato on-demand solo all'interazione (vedi CardMascotte.tsx).
-const CardMascotte = dynamic(
-  () => import('@/components/dev/CardMascotte').then((m) => m.CardMascotte),
+// guardaroba e html2canvas sono a loro volta chunk on-demand (vedi AssoRoot).
+const AssoRoot = dynamic(
+  () => import('@/components/mascotte/AssoRoot').then((m) => m.AssoRoot),
   { ssr: false, loading: () => null }
 );
 
@@ -20,7 +19,7 @@ const HIDDEN_PATH_PREFIXES = [
   '/recupera-credenziali',
 ];
 
-export function CardMascotteGate() {
+export function AssoGate() {
   const pathname = usePathname();
 
   if (
@@ -32,5 +31,5 @@ export function CardMascotteGate() {
     return null;
   }
 
-  return <CardMascotte />;
+  return <AssoRoot />;
 }

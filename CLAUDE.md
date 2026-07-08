@@ -57,6 +57,7 @@ devono passare. Se tocchi le stringhe i18n, esegui anche `npm run i18n:keys`.
 | Auth | `lib/stores/auth-store.ts`, `app/api/auth/` |
 | i18n runtime | `lib/i18n/` (`useTranslation`, `getMessage`, `dictionaries`) |
 | Scanner carte | `hooks/useBrxScanner.ts`, `hooks/scannerEmbed.worker.ts`, `app/scanner/` |
+| Mascotte Asso | `components/mascotte/` (machine/audio/persistence; item wardrobe lazy in `wardrobe/items/`, regole in `wardrobe/ART_DIRECTION.md`) |
 | Ricerca | `app/api/search/`, `lib/hooks/use-search.ts`, `components/layout/GlobalSearchBar.tsx` |
 | Guide deploy/setup | `docs/` |
 

@@ -7,7 +7,7 @@ import {
   getCapturedLogs,
   getRecentLogs,
 } from '@/lib/dev/log-capture';
-import { BUG_MODAL_FADE_MS } from '@/components/dev/card-mascotte/constants';
+import { BUG_MODAL_FADE_MS } from '@/components/mascotte/constants';
 
 export type BugFormState = {
   name: string;

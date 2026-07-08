@@ -3,7 +3,7 @@ import { Nunito } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { ConditionalFooter } from '@/components/layout/ConditionalFooter';
-import { CardMascotteGate } from '@/components/dev/CardMascotteGate';
+import { AssoGate } from '@/components/mascotte/AssoGate';
 import { BuildInfoBadge } from '@/components/dev/BuildInfoBadge';
 import { IOSInstallPromptGate } from '@/components/pwa/IOSInstallPromptGate';
 import { SITE_URL } from '@/lib/config';
@@ -122,7 +122,7 @@ export default function RootLayout({
             {children}
             <ConditionalFooter />
           </div>
-          <CardMascotteGate />
+          <AssoGate />
           <BuildInfoBadge />
         </Providers>
       </body>

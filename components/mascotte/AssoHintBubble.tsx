@@ -1,6 +1,7 @@
 'use client';
 
 import { X } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import { ASSO_LAYOUT } from '@/lib/asso-layout';
 import { ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX } from '@/lib/asso-messages';
 import type { AssoBubblePayload } from '@/hooks/useAssoBubbleQueue';
@@ -90,6 +91,7 @@ export function AssoHintBubble({
 }
 
 function DismissButton({ onDismiss }: { onDismiss: () => void }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -99,8 +101,8 @@ function DismissButton({ onDismiss }: { onDismiss: () => void }) {
         onDismiss();
       }}
       className="absolute right-0.5 top-0.5 z-10 flex h-4 w-4 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-200/60 hover:text-zinc-700"
-      aria-label="Chiudi messaggio di Asso"
-      title="Chiudi"
+      aria-label={t('asso.hint.dismiss')}
+      title={t('asso.hint.dismiss')}
     >
       <X className="h-2.5 w-2.5" aria-hidden />
     </button>
