@@ -735,7 +735,8 @@ export function AssoRoot() {
         flipParticles={flipParticles}
         dressingSparkles={dressingSparkles}
         hintBubble={
-          !overlayVisible && !machine.mini ? (
+          // Nascosta anche col guardaroba aperto: si sovrapporrebbe al pannello.
+          !overlayVisible && !machine.mini && machine.panel !== 'wardrobe' ? (
             <AssoHintBubble
               visible={assoBubble.isVisible}
               message={assoBubble.current}

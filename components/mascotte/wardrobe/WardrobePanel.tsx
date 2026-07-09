@@ -111,7 +111,7 @@ export default function WardrobePanel({
           </div>
 
           {category === 'color' ? (
-            <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/10 bg-black/15 p-1.5 sm:grid-cols-3">
+            <div className="grid max-h-[250px] grid-cols-2 gap-1.5 overflow-y-auto rounded-xl border border-white/10 bg-black/15 p-1.5">
               {FACE_COLOR_OPTIONS.map((option) => {
                 const isActive = equipped.faceColor === option.id;
                 return (
@@ -127,15 +127,15 @@ export default function WardrobePanel({
                       : 'border-white/15 bg-black/20 text-white/85 hover:border-white/30 hover:bg-white/10'
                       }`}
                   >
-                    <span className="flex items-center gap-1.5 truncate text-[9px] font-semibold">
+                    <span className="flex min-w-0 items-center gap-1.5 text-[9px] font-semibold">
                       <span
-                        className="h-2.5 w-2.5 rounded-full"
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
                         style={{
                           backgroundColor: option.line,
                           boxShadow: `0 0 8px ${option.glowMid}`,
                         }}
                       />
-                      {t(option.nameKey)}
+                      <span className="truncate">{t(option.nameKey)}</span>
                     </span>
                   </button>
                 );
