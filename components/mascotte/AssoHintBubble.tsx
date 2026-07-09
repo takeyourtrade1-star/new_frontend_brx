@@ -20,9 +20,9 @@ type AssoHintBubbleProps = {
 };
 
 /**
- * Bubble discreto ancorato alla mascotte Asso.
- * Pensata per essere poco invasiva: dimensioni ridotte, palette neutra,
- * niente gradienti colorati.
+ * Nuvoletta di pensiero di Asso: centrata sopra la card, palette neutra
+ * (niente accenti sgargianti), coda a puntini verso la testa e leggero
+ * galleggiamento. I "sogni" in sleep usano la stessa forma, appena più fredda.
  */
 export function AssoHintBubble({
   visible,
@@ -40,18 +40,24 @@ export function AssoHintBubble({
 
   const showCta = !isStyleReaction && message.kind !== 'styleReaction' && !isTyping;
   const text = displayedText || (visible && !isTyping ? message.text : '');
+  const cloudBg = isSleeping ? 'rgba(241,243,248,0.96)' : 'rgba(252,251,249,0.96)';
+  const cloudBorder = '1px solid rgba(60,60,70,0.1)';
+  // Centro orizzontale della card (right 48px + metà larghezza 96px).
+  const cardCenterFromRight = ASSO_LAYOUT.mascotRight + ASSO_LAYOUT.mascotWidth / 2;
 
   return (
     <div
-      className={`group fixed flex flex-col items-end ${isStyleReaction ? 'cursor-default' : showCta ? 'cursor-pointer' : ''}`}
+      className={`group fixed flex flex-col items-center ${isStyleReaction ? 'cursor-default' : showCta ? 'cursor-pointer' : ''}`}
       style={{
         zIndex: 10003,
         bottom: bubbleBottom,
-        right: ASSO_LAYOUT.bubbleRight,
+        right: cardCenterFromRight,
         width: 'max-content',
-        maxWidth: `min(calc(100vw - ${ASSO_LAYOUT.bubbleRight * 2}px - ${ASSO_LAYOUT.mascotRight}px), ${ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX}px)`,
+        maxWidth: `min(calc(100vw - 24px), ${ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX + 30}px)`,
         opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0) scale(1)' : 'translateY(6px) scale(0.97)',
+        transform: visible
+          ? 'translateX(50%) translateY(0) scale(1)'
+          : 'translateX(50%) translateY(6px) scale(0.96)',
         transition:
           'bottom 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 320ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
         pointerEvents: visible ? 'auto' : 'none',
@@ -70,21 +76,36 @@ export function AssoHintBubble({
         if (!isStyleReaction && showCta) onPromoClick?.();
       }}
     >
-      <div className="relative asso-hint-bubble-enter w-full">
+      <div className="asso-hint-bubble-enter asso-thought-bob flex w-full flex-col items-center">
+        {/* Nuvola */}
         <div
-          className="relative rounded-lg px-2.5 py-1.5 text-left"
+          className="relative px-3 py-2 text-center"
           style={{
-            background: isSleeping ? 'rgba(244,244,245,0.96)' : 'rgba(250,250,250,0.97)',
-            border: '1px solid rgba(0,0,0,0.07)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+            background: cloudBg,
+            border: cloudBorder,
+            borderRadius: '18px',
+            boxShadow: '0 4px 14px rgba(20,20,30,0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
+            backdropFilter: 'blur(4px)',
           }}
         >
           <DismissButton onDismiss={onDismiss} />
-          <p className="relative pr-5 text-[11px] font-normal leading-snug text-zinc-700">
+          <p className="relative text-[11px] font-normal italic leading-snug text-zinc-600">
             {text}
             {isTyping && <TypewriterCursor />}
           </p>
         </div>
+
+        {/* Coda del pensiero: puntini che scendono verso la testa di Asso */}
+        <span
+          aria-hidden="true"
+          className="asso-thought-dot mt-[3px] h-2 w-2 rounded-full"
+          style={{ background: cloudBg, border: cloudBorder, boxShadow: '0 2px 5px rgba(20,20,30,0.08)' }}
+        />
+        <span
+          aria-hidden="true"
+          className="asso-thought-dot asso-thought-dot-2 mt-[2px] h-[5px] w-[5px] translate-x-[6px] rounded-full"
+          style={{ background: cloudBg, border: cloudBorder, boxShadow: '0 2px 4px rgba(20,20,30,0.07)' }}
+        />
       </div>
     </div>
   );
@@ -100,7 +121,12 @@ function DismissButton({ onDismiss }: { onDismiss: () => void }) {
         e.stopPropagation();
         onDismiss();
       }}
-      className="absolute right-0.5 top-0.5 z-10 flex h-4 w-4 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-200/60 hover:text-zinc-700"
+      className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full text-zinc-400 opacity-0 transition-all hover:text-zinc-700 group-hover:opacity-100"
+      style={{
+        background: 'rgba(252,251,249,0.97)',
+        border: '1px solid rgba(60,60,70,0.1)',
+        boxShadow: '0 1px 3px rgba(20,20,30,0.08)',
+      }}
       aria-label={t('asso.hint.dismiss')}
       title={t('asso.hint.dismiss')}
     >

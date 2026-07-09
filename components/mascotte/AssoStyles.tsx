@@ -185,6 +185,19 @@ export function AssoStyles({ faceColor }: { faceColor: FaceColorOption }) {
           100% { opacity: 1; transform: translateY(0) scale(1); }
         }
         .asso-hint-bubble-enter { animation: assoHintPopIn 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+        /* Pensiero che galleggia piano (dopo il pop-in) */
+        @keyframes assoThoughtBob {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-2px); }
+        }
+        .asso-thought-bob { animation: assoHintPopIn 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards, assoThoughtBob 4.5s ease-in-out 500ms infinite; }
+        /* Solo opacity: il transform resta alle utility (translate-x dei puntini) */
+        @keyframes assoThoughtDotIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .asso-thought-dot { opacity: 0; animation: assoThoughtDotIn 260ms ease-out 180ms forwards; }
+        .asso-thought-dot-2 { animation-delay: 300ms; }
         @keyframes assoCursorBlink { 0%, 45% { opacity: 1; } 50%, 100% { opacity: 0.15; } }
         .asso-typewriter-cursor { animation: assoCursorBlink 0.95s step-end infinite; }
 
@@ -264,6 +277,8 @@ export function AssoStyles({ faceColor }: { faceColor: FaceColorOption }) {
           [data-asso-mascot="true"],
           [data-asso-mascot="true"] *,
           .asso-hint-bubble-enter,
+          .asso-thought-bob,
+          .asso-thought-dot,
           .asso-typewriter-cursor,
           .flip-particle,
           .dressing-sparkle,
