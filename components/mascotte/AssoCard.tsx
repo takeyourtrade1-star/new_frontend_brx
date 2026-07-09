@@ -140,7 +140,7 @@ export function AssoCard({
           transition: isFlipping
             ? 'transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1)'
             : 'transform 150ms ease-out',
-          transform: `rotateX(${tilt.x}deg) rotateY(${isFlipped ? 180 + tilt.y : tilt.y}deg)`,
+          transform: `rotateX(${tilt.x}deg) rotateY(${isFlipped ? 180 + tilt.y : tilt.y}deg) scale(${isHovered && !isMini ? 1.05 : 1})`,
         }}
       >
         {/* ── Fronte ── */}
@@ -149,16 +149,30 @@ export function AssoCard({
           style={{ pointerEvents: isFlipped ? 'none' : 'auto' }}
         >
           <div className="relative h-full w-full overflow-visible rounded-2xl" style={{ background: 'transparent' }}>
-            {/* Glow morbido */}
+            {/* Glow morbido con respiro */}
             <div
-              className="pointer-events-none absolute rounded-2xl"
+              className="asso-glow-breathe pointer-events-none absolute rounded-2xl"
               style={{
                 inset: '-3px',
                 zIndex: 0,
                 boxShadow: isShiny
                   ? '0 0 28px rgba(168,85,247,0.5), 0 0 56px rgba(59,130,246,0.3)'
-                  : `0 6px 24px ${faceColor.glowSoft}, 0 2px 8px rgba(0,0,0,0.15)`,
+                  : `0 6px 24px ${faceColor.glowSoft}, 0 0 10px ${faceColor.glowMid}, 0 2px 8px rgba(0,0,0,0.15)`,
                 transition: 'box-shadow 300ms ease',
+              }}
+            />
+
+            {/* Texture carta collezionabile: trama a rombi appena percettibile */}
+            <div
+              className="pointer-events-none absolute rounded-2xl"
+              style={{
+                inset: '1.5px',
+                zIndex: 1,
+                background: `
+                  radial-gradient(ellipse at 28% 14%, rgba(250,249,246,0.09) 0%, rgba(250,249,246,0) 55%),
+                  repeating-linear-gradient(45deg, rgba(250,249,246,0.028) 0 2px, transparent 2px 9px),
+                  repeating-linear-gradient(-45deg, rgba(250,249,246,0.028) 0 2px, transparent 2px 9px)
+                `,
               }}
             />
 
@@ -179,19 +193,33 @@ export function AssoCard({
               />
             )}
 
-            {/* Bordo sottile */}
+            {/* Bordo shimmer: gradiente conico che ruota lento (glow-up 13.6) */}
             <div
-              className="pointer-events-none absolute rounded-2xl"
+              className="asso-border-shimmer pointer-events-none absolute rounded-2xl"
               style={{
                 inset: '0px',
                 zIndex: 2,
                 padding: '1.5px',
-                background: `linear-gradient(160deg, ${faceColor.glowMid} 0%, ${faceColor.glowStrong} 50%, ${faceColor.glowMid} 100%)`,
+                background: `conic-gradient(from var(--asso-border-angle, 0deg), ${faceColor.glowMid} 0%, ${faceColor.glowStrong} 18%, rgba(255,232,200,0.95) 26%, ${faceColor.glowStrong} 34%, ${faceColor.glowMid} 55%, ${faceColor.glowStrong} 78%, ${faceColor.glowMid} 100%)`,
                 WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                 WebkitMaskComposite: 'xor',
                 maskComposite: 'exclude',
               }}
             />
+
+            {/* Stellina glint periodica (angolo alto-destra) */}
+            <svg
+              className="asso-glint-star pointer-events-none absolute"
+              style={{ top: '-7px', right: '-6px', zIndex: 12 }}
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path d="M12 2 L14 10 L22 12 L14 14 L12 22 L10 14 L2 12 L10 10 Z" fill="#fff6e8" />
+              <path d="M12 6 L13.2 10.8 L18 12 L13.2 13.2 L12 18 L10.8 13.2 L6 12 L10.8 10.8 Z" fill={faceColor.line} opacity="0.85" />
+            </svg>
 
             {/* Pill badge ASSO */}
             <div
@@ -199,7 +227,7 @@ export function AssoCard({
               style={{ bottom: '5px', zIndex: 8 }}
             >
               <div
-                className="asso-pill-anim relative flex items-center justify-center"
+                className="asso-pill-anim relative flex items-center justify-center overflow-hidden"
                 style={{
                   height: '14px',
                   paddingInline: '8px',
@@ -212,8 +240,17 @@ export function AssoCard({
                         : 'linear-gradient(180deg, #FF7300 0%, #FF9A40 100%)',
                   animation: 'asso-pulse 3s ease-in-out infinite',
                   borderRadius: '9999px',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.15)',
                 }}
               >
+                {/* Sheen periodica sul badge */}
+                <span
+                  className="asso-pill-sheen pointer-events-none absolute inset-y-0 w-4"
+                  style={{
+                    background: 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.55) 50%, transparent 80%)',
+                  }}
+                  aria-hidden="true"
+                />
                 <span
                   className="font-comodo text-[7.5px] font-bold leading-none"
                   style={{

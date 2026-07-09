@@ -63,6 +63,34 @@ export function AssoStyles({ faceColor }: { faceColor: FaceColorOption }) {
         }
         .bug-mouth { transform-box: fill-box; transform-origin: center; animation: bugMouthSip 1.05s ease-in-out infinite; }
 
+        /* ── Glow-up card (13.6) ──────────────────────────────── */
+        @property --asso-border-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+        @keyframes assoBorderSpin { to { --asso-border-angle: 360deg; } }
+        .asso-border-shimmer { animation: assoBorderSpin 9s linear infinite; }
+        @keyframes assoGlowBreathe {
+          0%, 100% { opacity: 0.75; }
+          50% { opacity: 1; }
+        }
+        .asso-glow-breathe { animation: assoGlowBreathe 4s ease-in-out infinite; }
+        @keyframes assoGlint {
+          0%, 84%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+          88% { opacity: 1; transform: scale(1.05) rotate(35deg); }
+          92% { opacity: 0.9; transform: scale(0.9) rotate(60deg); }
+          96% { opacity: 0; transform: scale(0.3) rotate(90deg); }
+        }
+        .asso-glint-star {
+          opacity: 0;
+          transform-origin: center;
+          animation: assoGlint 7s ease-in-out infinite;
+          filter: drop-shadow(0 0 3px rgba(255,246,232,0.9));
+        }
+        @keyframes assoPillSheen {
+          0%, 78% { transform: translateX(-26px); opacity: 0; }
+          82% { opacity: 1; }
+          96%, 100% { transform: translateX(72px); opacity: 0; }
+        }
+        .asso-pill-sheen { left: 0; animation: assoPillSheen 6s ease-in-out infinite; }
+
         /* ── Pill badge ASSO ──────────────────────────────────── */
         @keyframes asso-pulse {
           0%, 100% { box-shadow: 0 -1px 4px rgba(0,0,0,0.15), inset 0 -1px 0 rgba(255,255,255,0.25); }
@@ -219,10 +247,14 @@ export function AssoStyles({ faceColor }: { faceColor: FaceColorOption }) {
         .sleep-bubble-large .sleep-bubble-text { font-size: 11px; letter-spacing: -0.3px; }
         .sleep-bubble-small .sleep-bubble-text { font-size: 9px; }
 
-        /* In sonno: ferma float, pulse e blink — CPU ~zero (PLAN/13.3) */
+        /* In sonno: ferma float, pulse, blink e shimmer — CPU ~zero (PLAN/13.3) */
         [data-asso-sleeping="true"],
         [data-asso-sleeping="true"] .asso-eye-blink,
         [data-asso-sleeping="true"] .asso-item-float,
+        [data-asso-sleeping="true"] .asso-border-shimmer,
+        [data-asso-sleeping="true"] .asso-glow-breathe,
+        [data-asso-sleeping="true"] .asso-glint-star,
+        [data-asso-sleeping="true"] .asso-pill-sheen,
         [data-asso-sleeping="true"] .asso-pill-anim {
           animation-play-state: paused !important;
         }

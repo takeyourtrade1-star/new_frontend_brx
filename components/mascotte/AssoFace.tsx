@@ -21,17 +21,33 @@ function OpenEye({ cx, blink }: { cx: number; blink: boolean }) {
       <circle className="face-line" cx={cx} cy="39" r="11.5" stroke="#4a5548" strokeWidth="2.5" />
       <g className="asso-pupil-follow">
         <circle className="pupil" cx={cx} cy="40" r="5.6" fill="#4a5548" stroke="none" />
+        {/* Doppio highlight: pupilla più viva */}
         <circle className="pupil-highlight" cx={cx - 2.7} cy="36.4" r="2.2" fill="#faf9f6" stroke="none" />
+        <circle className="pupil-highlight" cx={cx + 2.1} cy="42.6" r="0.9" fill="#faf9f6" stroke="none" opacity="0.8" />
       </g>
     </g>
+  );
+}
+
+/** Guance rosate: carattere in ogni espressione sveglia. */
+function Blush() {
+  return (
+    <>
+      <ellipse cx="20" cy="53" rx="5.5" ry="3.2" fill="#ff9d9d" stroke="none" opacity="0.32" />
+      <ellipse cx="80" cy="53" rx="5.5" ry="3.2" fill="#ff9d9d" stroke="none" opacity="0.32" />
+    </>
   );
 }
 
 function NormalFace() {
   return (
     <>
+      {/* Sopracciglia */}
+      <Stroke d="M 28 23.5 Q 35 20.5 42 23.5" halo={3.4} line={2.4} />
+      <Stroke d="M 58 23.5 Q 65 20.5 72 23.5" halo={3.4} line={2.4} />
       <OpenEye cx={35} blink />
       <OpenEye cx={65} blink />
+      <Blush />
       <Stroke d="M 34 63 Q 50 77 66 63" halo={4.2} line={3.2} />
     </>
   );
@@ -40,8 +56,11 @@ function NormalFace() {
 function WinkFace() {
   return (
     <>
+      {/* Sopracciglio alzato sull'occhio aperto */}
+      <Stroke d="M 59 21.5 Q 67 18.5 75 22" halo={3.4} line={2.4} />
       <Stroke d="M 24 40 Q 34 32 44 40" halo={4.4} line={3.4} />
       <OpenEye cx={67} blink={false} />
+      <Blush />
       <Stroke d="M 39 63 Q 54 72 68 62" halo={4.2} line={3.2} />
     </>
   );
