@@ -185,19 +185,26 @@ export function AssoStyles({ faceColor }: { faceColor: FaceColorOption }) {
           100% { opacity: 1; transform: translateY(0) scale(1); }
         }
         .asso-hint-bubble-enter { animation: assoHintPopIn 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-        /* Pensiero che galleggia piano (dopo il pop-in) */
+        /* Pensiero che galleggia piano, con micro-rotazione (dopo il pop-in) */
         @keyframes assoThoughtBob {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-2px); }
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-2.5px) rotate(0.5deg); }
         }
         .asso-thought-bob { animation: assoHintPopIn 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards, assoThoughtBob 4.5s ease-in-out 500ms infinite; }
-        /* Solo opacity: il transform resta alle utility (translate-x dei puntini) */
+        /* Solo opacity sul wrapper: il transform resta alle utility (translate-x) */
         @keyframes assoThoughtDotIn {
           from { opacity: 0; }
           to { opacity: 1; }
         }
         .asso-thought-dot { opacity: 0; animation: assoThoughtDotIn 260ms ease-out 180ms forwards; }
         .asso-thought-dot-2 { animation-delay: 300ms; }
+        /* Respiro dei puntini (sul figlio: niente conflitti col translate) */
+        @keyframes assoThoughtDotPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(0.82); }
+        }
+        .asso-thought-dot > span { animation: assoThoughtDotPulse 3.4s ease-in-out 1.2s infinite; }
+        .asso-thought-dot-2 > span { animation-delay: 2.2s; }
         @keyframes assoCursorBlink { 0%, 45% { opacity: 1; } 50%, 100% { opacity: 0.15; } }
         .asso-typewriter-cursor { animation: assoCursorBlink 0.95s step-end infinite; }
 
@@ -279,6 +286,7 @@ export function AssoStyles({ faceColor }: { faceColor: FaceColorOption }) {
           .asso-hint-bubble-enter,
           .asso-thought-bob,
           .asso-thought-dot,
+          .asso-thought-dot > span,
           .asso-typewriter-cursor,
           .flip-particle,
           .dressing-sparkle,

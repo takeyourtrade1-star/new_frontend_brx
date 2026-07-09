@@ -20,9 +20,10 @@ type AssoHintBubbleProps = {
 };
 
 /**
- * Nuvoletta di pensiero di Asso: centrata sopra la card, palette neutra
- * (niente accenti sgargianti), coda a puntini verso la testa e leggero
- * galleggiamento. I "sogni" in sleep usano la stessa forma, appena più fredda.
+ * Nuvoletta di pensiero di Asso, in stile fumetto: silhouette a gobbe
+ * (blob solidi dello stesso colore unificati da un drop-shadow sul wrapper,
+ * così il contorno segue la sagoma senza cuciture interne), coda a puntini
+ * verso la testa, galleggiamento lento. Palette neutra; in sleep vira fredda.
  */
 export function AssoHintBubble({
   visible,
@@ -40,10 +41,17 @@ export function AssoHintBubble({
 
   const showCta = !isStyleReaction && message.kind !== 'styleReaction' && !isTyping;
   const text = displayedText || (visible && !isTyping ? message.text : '');
-  const cloudBg = isSleeping ? 'rgba(241,243,248,0.96)' : 'rgba(252,251,249,0.96)';
-  const cloudBorder = '1px solid rgba(60,60,70,0.1)';
+  const cloud = isSleeping ? '#eef2f8' : '#fbfaf7';
   // Centro orizzontale della card (right 48px + metà larghezza 96px).
   const cardCenterFromRight = ASSO_LAYOUT.mascotRight + ASSO_LAYOUT.mascotWidth / 2;
+
+  const bump = (style: React.CSSProperties) => (
+    <span
+      aria-hidden="true"
+      className="absolute rounded-full"
+      style={{ background: cloud, ...style }}
+    />
+  );
 
   return (
     <div
@@ -53,7 +61,7 @@ export function AssoHintBubble({
         bottom: bubbleBottom,
         right: cardCenterFromRight,
         width: 'max-content',
-        maxWidth: `min(calc(100vw - 24px), ${ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX + 30}px)`,
+        maxWidth: `min(calc(100vw - 24px), ${ASSO_MESSAGE_BUBBLE_MAX_WIDTH_PX + 40}px)`,
         opacity: visible ? 1 : 0,
         transform: visible
           ? 'translateX(50%) translateY(0) scale(1)'
@@ -76,42 +84,53 @@ export function AssoHintBubble({
         if (!isStyleReaction && showCta) onPromoClick?.();
       }}
     >
-      <div className="asso-hint-bubble-enter asso-thought-bob flex w-full flex-col items-center">
-        {/* Nuvola */}
-        <div
-          className="relative px-3 py-2 text-center"
-          style={{
-            background: cloudBg,
-            border: cloudBorder,
-            borderRadius: '18px',
-            boxShadow: '0 4px 14px rgba(20,20,30,0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <DismissButton onDismiss={onDismiss} />
-          <p className="relative text-[11px] font-normal italic leading-snug text-zinc-600">
-            {text}
-            {isTyping && <TypewriterCursor />}
-          </p>
+      {/* Il drop-shadow sul wrapper disegna il contorno dell'intera sagoma
+          (nuvola + gobbe + puntini), senza bordi che si incrociano dentro. */}
+      <div
+        className="asso-hint-bubble-enter asso-thought-bob flex w-full flex-col items-center"
+        style={{
+          filter: isSleeping
+            ? 'drop-shadow(0 1px 2px rgba(50,60,90,0.18)) drop-shadow(0 8px 18px rgba(40,50,80,0.14))'
+            : 'drop-shadow(0 1px 2px rgba(40,38,32,0.16)) drop-shadow(0 8px 18px rgba(30,28,24,0.13))',
+        }}
+      >
+        <div className="relative">
+          {/* Gobbe della nuvola (dietro al corpo, stesso colore = nessuna cucitura) */}
+          {bump({ top: '-7px', left: '12%', width: '20px', height: '20px' })}
+          {bump({ top: '-10px', left: '38%', width: '27px', height: '27px' })}
+          {bump({ top: '-6px', right: '13%', width: '16px', height: '16px' })}
+          {bump({ top: '35%', left: '-6px', width: '15px', height: '15px' })}
+          {bump({ top: '42%', right: '-6px', width: '13px', height: '13px' })}
+          {bump({ bottom: '-5px', left: '22%', width: '14px', height: '14px' })}
+          {bump({ bottom: '-5px', right: '26%', width: '12px', height: '12px' })}
+
+          {/* Corpo */}
+          <div
+            className="relative z-[1] px-3.5 py-2 text-center"
+            style={{ background: cloud, borderRadius: '20px' }}
+          >
+            <p className={`relative text-[11px] font-normal italic leading-snug ${isSleeping ? 'text-slate-500' : 'text-zinc-600'}`}>
+              {text}
+              {isTyping && <TypewriterCursor />}
+            </p>
+          </div>
+
+          <DismissButton cloud={cloud} onDismiss={onDismiss} />
         </div>
 
-        {/* Coda del pensiero: puntini che scendono verso la testa di Asso */}
-        <span
-          aria-hidden="true"
-          className="asso-thought-dot mt-[3px] h-2 w-2 rounded-full"
-          style={{ background: cloudBg, border: cloudBorder, boxShadow: '0 2px 5px rgba(20,20,30,0.08)' }}
-        />
-        <span
-          aria-hidden="true"
-          className="asso-thought-dot asso-thought-dot-2 mt-[2px] h-[5px] w-[5px] translate-x-[6px] rounded-full"
-          style={{ background: cloudBg, border: cloudBorder, boxShadow: '0 2px 4px rgba(20,20,30,0.07)' }}
-        />
+        {/* Coda: puntini che scendono verso la testa di Asso */}
+        <span className="asso-thought-dot mt-[4px]" aria-hidden="true">
+          <span className="block h-2 w-2 rounded-full" style={{ background: cloud }} />
+        </span>
+        <span className="asso-thought-dot asso-thought-dot-2 mt-[3px] translate-x-[7px]" aria-hidden="true">
+          <span className="block h-[5px] w-[5px] rounded-full" style={{ background: cloud }} />
+        </span>
       </div>
     </div>
   );
 }
 
-function DismissButton({ onDismiss }: { onDismiss: () => void }) {
+function DismissButton({ cloud, onDismiss }: { cloud: string; onDismiss: () => void }) {
   const { t } = useTranslation();
   return (
     <button
@@ -121,12 +140,8 @@ function DismissButton({ onDismiss }: { onDismiss: () => void }) {
         e.stopPropagation();
         onDismiss();
       }}
-      className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full text-zinc-400 opacity-0 transition-all hover:text-zinc-700 group-hover:opacity-100"
-      style={{
-        background: 'rgba(252,251,249,0.97)',
-        border: '1px solid rgba(60,60,70,0.1)',
-        boxShadow: '0 1px 3px rgba(20,20,30,0.08)',
-      }}
+      className="absolute -right-2.5 -top-2.5 z-10 flex h-[18px] w-[18px] items-center justify-center rounded-full text-zinc-400 opacity-0 transition-all hover:text-zinc-700 focus-visible:opacity-100 group-hover:opacity-100"
+      style={{ background: cloud }}
       aria-label={t('asso.hint.dismiss')}
       title={t('asso.hint.dismiss')}
     >
