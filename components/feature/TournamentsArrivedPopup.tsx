@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Trophy, X } from 'lucide-react';
+import { dispatchPromoPopup } from '@/lib/asso-layout';
 
 /** Non riproporre il popup nella stessa sessione dopo la chiusura. */
 const DISMISS_KEY = 'ebx-tournaments-popup-dismissed';
@@ -15,6 +16,14 @@ const SHOW_DELAY_MS = 2500;
  */
 export function TournamentsArrivedPopup() {
   const [visible, setVisible] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Avvisa Asso: finché il popup è visibile la mascotte va in mini sopra di esso.
+  useEffect(() => {
+    if (!visible) return;
+    dispatchPromoPopup({ visible: true, height: rootRef.current?.offsetHeight });
+    return () => dispatchPromoPopup({ visible: false });
+  }, [visible]);
 
   useEffect(() => {
     try {
@@ -39,6 +48,7 @@ export function TournamentsArrivedPopup() {
 
   return (
     <div
+      ref={rootRef}
       role="dialog"
       aria-label="I Tornei sono arrivati"
       className="fixed bottom-4 right-4 z-50 w-[min(340px,calc(100vw-2rem))] animate-in slide-in-from-bottom-4 fade-in duration-500"

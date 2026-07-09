@@ -33,6 +33,8 @@ export interface AssoCardProps {
   isExternalModalOpen: boolean;
   isBugModalOpen: boolean;
   justReappeared: boolean;
+  /** Se valorizzato, sostituisce il bottom standard (es. sopra il popup promo). */
+  bottomOverridePx?: number | null;
   tilt: { x: number; y: number };
   holoPos: { x: number; y: number };
   backVariant: number;
@@ -70,6 +72,7 @@ export function AssoCard({
   isExternalModalOpen,
   isBugModalOpen,
   justReappeared,
+  bottomOverridePx,
   tilt,
   holoPos,
   backVariant,
@@ -106,7 +109,7 @@ export function AssoCard({
       className={`fixed cursor-pointer select-none ${justReappeared ? 'mascotte-reappear' : ''}`}
       style={{
         zIndex: isOverlayVisible ? Z_INDEX.mascotteOverlay : Z_INDEX.mascotteBase,
-        bottom: isStickyBarVisible ? '80px' : '20px',
+        bottom: bottomOverridePx != null ? `${bottomOverridePx}px` : isStickyBarVisible ? '80px' : '20px',
         right: '48px',
         width: '96px',
         height: '128px',

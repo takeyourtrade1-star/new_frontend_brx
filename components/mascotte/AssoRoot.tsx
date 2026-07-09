@@ -18,8 +18,10 @@ import { useAssoTypewriter } from '@/hooks/useAssoTypewriter';
 import { ASSO_MESSAGE_CHAT_MS } from '@/lib/asso-messages';
 import {
   ASSO_MOBILE_MAX_WIDTH,
+  PROMO_POPUP_EVENT,
   STICKY_BOTTOM_BAR_EVENT,
   getAssoBubbleBottom,
+  type PromoPopupDetail,
 } from '@/lib/asso-layout';
 import type { MessageKey } from '@/lib/i18n/messages/en';
 import { AssoCard } from './AssoCard';
@@ -133,6 +135,21 @@ export function AssoRoot() {
     };
     window.addEventListener(STICKY_BOTTOM_BAR_EVENT, handler);
     return () => window.removeEventListener(STICKY_BOTTOM_BAR_EVENT, handler);
+  }, []);
+
+  // Popup promo nell'angolo (es. "I Tornei sono arrivati"): finché è visibile
+  // Asso passa in mini e si alza appena sopra, così non si sovrappongono.
+  const [promoPopup, setPromoPopup] = useState<{ visible: boolean; height: number }>({
+    visible: false,
+    height: 0,
+  });
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<PromoPopupDetail>).detail;
+      setPromoPopup({ visible: Boolean(detail?.visible), height: detail?.height ?? 0 });
+    };
+    window.addEventListener(PROMO_POPUP_EVENT, handler);
+    return () => window.removeEventListener(PROMO_POPUP_EVENT, handler);
   }, []);
 
   // ── Modale esterna (dock offerta asta) ──────────────────────────────────
@@ -664,6 +681,11 @@ export function AssoRoot() {
 
   const isStyleReactionActive = assoBubble.current?.kind === 'styleReaction';
 
+  // Mini forzata dal popup promo; il bottom la porta subito sopra il popup
+  // (16px = bottom del popup, 12px di respiro).
+  const isMiniEffective = machine.mini || promoPopup.visible;
+  const promoBottomPx = promoPopup.visible ? 16 + promoPopup.height + 12 : null;
+
   const chatModal = machine.panel === 'chat' && (
     <AssoChatModal
       zIndex={Z_INDEX.modal}
@@ -731,12 +753,12 @@ export function AssoRoot() {
         screenshot={screenshot}
         newUnlock={newUnlock}
         isSleeping={machine.sleeping}
-        showSleepBubbles={!overlayVisible && !machine.flipped && !machine.mini}
+        showSleepBubbles={!overlayVisible && !machine.flipped && !isMiniEffective}
         flipParticles={flipParticles}
         dressingSparkles={dressingSparkles}
         hintBubble={
           // Nascosta anche col guardaroba aperto: si sovrapporrebbe al pannello.
-          !overlayVisible && !machine.mini && machine.panel !== 'wardrobe' ? (
+          !overlayVisible && !isMiniEffective && machine.panel !== 'wardrobe' ? (
             <AssoHintBubble
               visible={assoBubble.isVisible}
               message={assoBubble.current}
@@ -774,11 +796,12 @@ export function AssoRoot() {
         expression={expression}
         faceColor={faceColor}
         equipped={equipped}
-        isMini={machine.mini}
+        isMini={isMiniEffective}
         setIsMini={(value) => {
           const mini = typeof value === 'function' ? value(machine.mini) : value;
           dispatch({ type: 'SET_MINI', mini });
         }}
+        bottomOverridePx={promoBottomPx}
         isHovered={isHovered}
         setIsHovered={setIsHovered}
         isFlipped={machine.flipped}

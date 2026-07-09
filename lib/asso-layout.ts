@@ -35,6 +35,20 @@ export function dispatchStickyBottomBar(detail: StickyBottomBarDetail): void {
   window.dispatchEvent(new CustomEvent(STICKY_BOTTOM_BAR_EVENT, { detail }));
 }
 
+/**
+ * Evento globale: popup promo nell'angolo di Asso (es. "I Tornei sono arrivati").
+ * Finché è visibile, Asso passa in mini e si alza sopra il popup (`height` = altezza
+ * misurata del popup, per calcolare il bottom della mascotte).
+ */
+export type PromoPopupDetail = { visible: boolean; height?: number };
+
+export const PROMO_POPUP_EVENT = 'promoPopupVisibilityChange';
+
+export function dispatchPromoPopup(detail: PromoPopupDetail): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(PROMO_POPUP_EVENT, { detail }));
+}
+
 export function isAuctionDetailPath(pathname: string | null | undefined): boolean {
   return pathname != null && /^\/aste\/\d+\/?$/.test(pathname);
 }
