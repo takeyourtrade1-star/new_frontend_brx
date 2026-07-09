@@ -68,7 +68,7 @@ export function HamburgerMenu() {
 
   const navItems = useMemo(
     () => [
-      { label: t('nav.cameraMatch') ?? 'CameraMatch', href: '/scanner', icon: ScanLine, badge: 'beta' as const },
+      { label: t('nav.cameraMatch') ?? 'Asso Vision', href: '/scanner', icon: ScanLine, badge: 'beta' as const },
       { label: t('nav.advancedSinglesSearch') ?? 'Ricerca avanzata singole', href: '/search/advanced', icon: Search, badge: undefined },
       { label: t('nav.userSearch'), href: '/search/user', icon: Users, badge: undefined },
     ],
@@ -365,11 +365,11 @@ export function HamburgerMenu() {
             </div>
           )}
 
-          {/* Nav items — CameraMatch: su desktop apre popup QR verso /scanner sul telefono */}
+          {/* Nav items — Asso Vision: su desktop apre popup QR verso /scanner sul telefono */}
           {navItems.map((item) => {
             const IconComponent = item.icon;
-            const isCameraMatch = item.href === '/scanner';
-            if (isCameraMatch) {
+            const isAssoVision = item.href === '/scanner';
+            if (isAssoVision) {
               return (
                 <Link
                   key={item.href}

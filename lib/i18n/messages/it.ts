@@ -28,13 +28,13 @@ export const it: Record<MessageKey, string> = {
   'nav.userSearch': 'Ricerca utente',
   'nav.blog': 'Blog',
   'nav.advancedSinglesSearch': 'Ricerca avanzate singole',
-  'nav.cameraMatch': 'CameraMatch',
+  'nav.cameraMatch': 'Asso Vision',
   'nav.cameraMatchAria': 'Scansiona una carta con la fotocamera',
-  'nav.cameraMatchQrTitle': 'Apri CameraMatch sul telefono',
+  'nav.cameraMatchQrTitle': 'Apri Asso Vision sul telefono',
   'nav.cameraMatchQrSubtitle':
-    'Inquadra questo QR con la fotocamera del telefono per aprire CameraMatch sul dispositivo.',
+    'Inquadra questo QR con la fotocamera del telefono per aprire Asso Vision sul dispositivo.',
   'nav.cameraMatchQrHint':
-    'CameraMatch usa la fotocamera del telefono: dopo la scansione continua da mobile.',
+    'Asso Vision usa la fotocamera del telefono: dopo la scansione continua da mobile.',
   'push.testButton': 'Prova notifiche push',
   'push.scheduled': 'Notifica in arrivo tra 10 secondi: puoi anche passare a un’altra app o scheda.',
   'push.sent': 'Notifica inviata!',

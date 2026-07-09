@@ -71,7 +71,7 @@
         },
         {
           "id": "cameramatch",
-          "label": "CameraMatch e Scanner (ricerca per foto, riconoscimento)",
+          "label": "Asso Vision e Scanner (ricerca per foto, riconoscimento)",
           "target_section": "cameramatch_scanner"
         },
         {
@@ -444,16 +444,16 @@
                 "Sfoglia i risultati e confronta i venditori"
               ],
               "alternatives": [
-                "Usa la funzione CameraMatch (icona fotocamera accanto alla barra di ricerca) per scansionare una carta fisica",
+                "Usa la funzione Asso Vision (icona fotocamera accanto alla barra di ricerca) per scansionare una carta fisica",
                 "Usa la Ricerca Avanzata Singole dal menu per filtri più dettagliati (espansione, set, venditore specifico)",
                 "Cerca per nome venditore se conosci un seller affidabile"
               ]
             },
             {
               "id": "cc_002",
-              "question": "Cos'è CameraMatch?",
+              "question": "Cos'è Asso Vision?",
               "answer_type": "text",
-              "description": "CameraMatch è una funzione in Beta che permette di scansionare carte fisiche con la fotocamera del dispositivo. Riconosce automaticamente la carta e mostra i risultati disponibili sul marketplace.",
+              "description": "Asso Vision è una funzione in Beta che permette di scansionare carte fisiche con la fotocamera del dispositivo. Riconosce automaticamente la carta e mostra i risultati disponibili sul marketplace.",
               "how_to": "Clicca l'icona della fotocamera accanto alla barra di ricerca, inquadra la carta frontalmente con buona luce.",
               "limitations": "Essendo in Beta, il riconoscimento potrebbe non essere perfetto per tutte le carte, specialmente foil o carte con riflessi."
             },
@@ -1380,16 +1380,16 @@
     },
     {
       "id": "cameramatch_scanner",
-      "title": "CameraMatch e Scanner",
+      "title": "Asso Vision e Scanner",
       "icon": "camera",
       "priority": 13,
       "faq_groups": [
         {
-          "group_title": "Uso di CameraMatch",
+          "group_title": "Uso di Asso Vision",
           "faqs": [
             {
               "id": "cm_001",
-              "question": "Come uso la funzione CameraMatch?",
+              "question": "Come uso la funzione Asso Vision?",
               "answer_type": "steps",
               "steps": [
                 "Clicca l'icona della fotocamera accanto alla barra di ricerca in homepage",
@@ -1402,7 +1402,7 @@
             },
             {
               "id": "cm_002",
-              "question": "CameraMatch non riconosce la mia carta",
+              "question": "Asso Vision non riconosce la mia carta",
               "answer_type": "checklist",
               "checklist": [
                 { "check": "Assicurati di avere buona illuminazione", "detail": "Evita ombre e punti luce troppo forti" },
@@ -1410,13 +1410,13 @@
                 { "check": "La carta deve essere ben visibile e a fuoco", "detail": "Tieni fermo il dispositivo durante la scansione" },
                 { "check": "Carte foil o con riflessi", "detail": "Possono essere difficili da riconoscere. Prova ad angolare la luce." }
               ],
-              "fallback": "Se CameraMatch non funziona, usa la ricerca manuale per nome della carta. Digita il nome nella barra di ricerca e seleziona dai risultati."
+              "fallback": "Se Asso Vision non funziona, usa la ricerca manuale per nome della carta. Digita il nome nella barra di ricerca e seleziona dai risultati."
             },
             {
               "id": "cm_003",
-              "question": "CameraMatch è disponibile per tutti i giochi?",
+              "question": "Asso Vision è disponibile per tutti i giochi?",
               "answer_type": "text",
-              "answer": "CameraMatch è progettato per riconoscere carte dei principali giochi TCG supportati da eBartex: Magic: The Gathering, Pokémon, Yu-Gi-Oh!, One Piece TCG, Lorcana, Star Wars. Il database di riconoscimento viene aggiornato regolarmente con le nuove espansioni.",
+              "answer": "Asso Vision è progettato per riconoscere carte dei principali giochi TCG supportati da eBartex: Magic: The Gathering, Pokémon, Yu-Gi-Oh!, One Piece TCG, Lorcana, Star Wars. Il database di riconoscimento viene aggiornato regolarmente con le nuove espansioni.",
               "note": "Essendo una funzione in Beta, il supporto per giochi meno popolari o carte promo speciali potrebbe essere limitato."
             }
           ]

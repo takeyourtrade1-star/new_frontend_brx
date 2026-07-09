@@ -4,10 +4,12 @@ import { Header } from '@/components/layout/Header';
 import { BLOG_POSTS } from '@/lib/blog-posts';
 
 export const metadata = {
-  title: 'Blog | Ebartex – Novità e annunci',
+  title: 'Ebartex Journey – Novità e annunci',
   description:
     'Tutte le novità di Ebartex: nuove funzionalità, aste, scambi, tornei, BRX Express e annunci dal marketplace delle carte collezionabili.',
 };
+
+const JOURNEY_LETTERS = [...'Journey'];
 
 export default function BlogPage() {
   return (
@@ -23,8 +25,19 @@ export default function BlogPage() {
             <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#FF7300]">
               Ebartex
             </p>
-            <h1 className="mt-1 text-3xl font-black uppercase tracking-tight text-[#1D3160] sm:text-4xl">
-              Blog
+            <h1 className="mt-1 text-4xl font-black uppercase tracking-tight text-[#1D3160] sm:text-5xl">
+              <span className="sr-only">Journey</span>
+              <span aria-hidden className="whitespace-nowrap">
+                {JOURNEY_LETTERS.map((letter, i) => (
+                  <span
+                    key={i}
+                    className="journey-letter"
+                    style={{ animationDelay: `${i * 70}ms, ${i * 140}ms` }}
+                  >
+                    {letter}
+                  </span>
+                ))}
+              </span>
             </h1>
             <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
               Novità, annunci e nuove funzionalità del marketplace, raccontate man mano che arrivano.
@@ -51,6 +64,11 @@ export default function BlogPage() {
                     >
                       {post.tag}
                     </span>
+                    {post.wip && (
+                      <span className="rounded-full border border-dashed border-gray-400 bg-gray-50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                        In lavorazione
+                      </span>
+                    )}
                     <time
                       dateTime={post.date}
                       className="text-[11px] font-semibold uppercase tracking-wide text-gray-400"

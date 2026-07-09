@@ -19,6 +19,8 @@ export type BlogPost = {
   paragraphs: string[];
   /** Call-to-action opzionale in fondo al post (link interno o esterno). */
   cta?: { href: string; label: string };
+  /** Feature ancora in lavorazione: mostra il badge "In lavorazione" accanto al tag. */
+  wip?: boolean;
 };
 
 export const BLOG_POSTS: BlogPost[] = [
@@ -44,11 +46,11 @@ export const BLOG_POSTS: BlogPost[] = [
     dateLabel: '14 maggio 2026',
     tag: 'Scanner',
     tagClass: 'bg-sky-100 text-sky-700',
-    title: 'CameraMatch (beta): inquadra una carta, la troviamo noi',
+    title: 'Asso Vision (beta): inquadra una carta, la troviamo noi',
     excerpt:
       'Il nuovo scanner riconosce le tue carte dalla fotocamera del telefono, direttamente nel browser.',
     paragraphs: [
-      'Digitare nomi lunghissimi è ufficialmente storia: con CameraMatch inquadri una carta con la fotocamera e il riconoscimento avviene in tempo reale, direttamente nel browser, senza installare nulla.',
+      'Digitare nomi lunghissimi è ufficialmente storia: con Asso Vision inquadri una carta con la fotocamera e il riconoscimento avviene in tempo reale, direttamente nel browser, senza installare nulla.',
       'La beta parte da Magic: The Gathering. Usala per cercare una carta al volo, aggiungerla all’inventario o metterla in vendita in pochi secondi.',
     ],
   },
@@ -58,6 +60,7 @@ export const BLOG_POSTS: BlogPost[] = [
     dateLabel: '28 aprile 2026',
     tag: 'BRX Express',
     tagClass: 'bg-orange-100 text-orange-700',
+    wip: true,
     title: 'BRX Express: inviaci le tue carte, al resto pensiamo noi',
     excerpt:
       'Il modo più comodo di vendere: spedisci a noi le tue carte, le verifichiamo e vendiamo per te.',
@@ -72,6 +75,7 @@ export const BLOG_POSTS: BlogPost[] = [
     dateLabel: '15 aprile 2026',
     tag: 'Scambi',
     tagClass: 'bg-emerald-100 text-emerald-700',
+    wip: true,
     title: 'Scambi: le carte che vuoi, senza spendere',
     excerpt:
       'Da oggi puoi scambiare i tuoi doppioni con gli altri collezionisti, direttamente sul tavolo di scambio.',
@@ -86,6 +90,7 @@ export const BLOG_POSTS: BlogPost[] = [
     dateLabel: '2 aprile 2026',
     tag: 'Aste',
     tagClass: 'bg-amber-100 text-amber-700',
+    wip: true,
     title: 'Aste live: aggiudicati le carte che insegui',
     excerpt:
       'Rilanci in diretta, anti-snipe e pagamenti protetti: le aste arrivano su Ebartex.',
