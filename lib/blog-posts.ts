@@ -17,22 +17,26 @@ export type BlogPost = {
   title: string;
   excerpt: string;
   paragraphs: string[];
+  /** Call-to-action opzionale in fondo al post (link interno o esterno). */
+  cta?: { href: string; label: string };
 };
 
 export const BLOG_POSTS: BlogPost[] = [
   {
     slug: 'tornei-live',
-    date: '2026-06-09',
-    dateLabel: '9 giugno 2026',
+    date: '2026-07-09',
+    dateLabel: '9 luglio 2026',
     tag: 'Tornei',
     tagClass: 'bg-violet-100 text-violet-700',
-    title: 'Arrivano i Tornei live: gioca, vinci, fatti un nome',
+    title: 'I Tornei sono arrivati: parte la Pre-beta, aperta a tutti',
     excerpt:
-      'Da oggi puoi sfidare la community nei tornei live con premi in crediti e classifiche.',
+      'Sfide 1v1 in webcam, tavoli live e chat di partita: i Tornei Ebartex sono finalmente realtà. Entra nella Pre-beta e aiutaci a renderli perfetti.',
     paragraphs: [
-      'Il tavolo da gioco si accende: da oggi su Ebartex trovi i Tornei live. Ogni settimana nuovi eventi con premi in crediti, classifiche e la possibilità di farti un nome nella community.',
-      'Iscriverti è semplicissimo: apri il portale Tornei, scegli l’evento e prenota il tuo posto. Round in diretta, avversari reali e una classifica da scalare.',
+      'Ci siamo davvero: i Tornei Ebartex sono finalmente arrivati, in versione Pre-beta. Sfide 1v1 in webcam contro avversari reali, tavoli live, chat di partita e ready check: tutto quello che abbiamo costruito in questi mesi è da oggi aperto a chiunque voglia provarlo.',
+      'Perché “Pre-beta”? Perché il bello deve ancora venire, e vogliamo costruirlo insieme a voi. Entra, gioca le tue partite e se noti qualcosa che non funziona — o che vorresti diverso — faccelo sapere: ogni segnalazione, ogni screenshot, ogni idea ci aiuta a migliorare il prodotto per tutta la community.',
+      'Non ti serve nient’altro che il tuo account Ebartex e una webcam. Scegli un tavolo, siediti, sfida il tuo avversario faccia a faccia e scrivi con noi il primo capitolo dei Tornei.',
     ],
+    cta: { href: '/tornei', label: 'Entra nei Tornei (Pre-beta) →' },
   },
   {
     slug: 'cameramatch-beta',

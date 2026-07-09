@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { Header } from '@/components/layout/Header';
 import { LandingWelcome } from '@/components/feature/LandingWelcome';
+import { TournamentsArrivedPopup } from '@/components/feature/TournamentsArrivedPopup';
 
 export const metadata = {
   title: 'Ebartex | Compra e Vendi',
@@ -15,6 +16,7 @@ export default function LandingPage() {
         <Header reserveSpace={true} />
       </Suspense>
       <LandingWelcome />
+      <TournamentsArrivedPopup />
     </>
   );
 }

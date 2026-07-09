@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { BLOG_POSTS } from '@/lib/blog-posts';
 
@@ -67,6 +68,14 @@ export default function BlogPage() {
                       </p>
                     ))}
                   </div>
+                  {post.cta && (
+                    <Link
+                      href={post.cta.href}
+                      className="mt-4 inline-flex items-center rounded-full bg-[#FF7300] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-sm transition-colors hover:bg-[#e56700]"
+                    >
+                      {post.cta.label}
+                    </Link>
+                  )}
                 </div>
               </article>
             ))}
