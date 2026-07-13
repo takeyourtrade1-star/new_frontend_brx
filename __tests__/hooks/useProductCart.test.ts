@@ -30,7 +30,10 @@ const item = {
   condition: 'near_mint',
 } as ListingItem;
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  window.sessionStorage.clear();
+});
 
 describe('useProductCart', () => {
   it('blocca l\'aggiunta al carrello senza autenticazione', () => {
@@ -70,5 +73,33 @@ describe('useProductCart', () => {
 
     expect(result.current.purchaseListing).toBe(item);
     expect(result.current.purchaseQty).toBe(5); // clamp a item.quantity
+  });
+
+  it('avvia lo scambio mantenendo il riferimento all\'inserzione reale', () => {
+    const args = baseArgs();
+    const marketplaceItem = {
+      ...item,
+      marketplace_listing_id: 'listing-uuid',
+      listing_source: 'marketplace' as const,
+    };
+    const { result } = renderHook(() => useProductCart(args));
+
+    act(() => {
+      result.current.handleProposeTrade(marketplaceItem);
+    });
+
+    expect(JSON.parse(window.sessionStorage.getItem('ebartex_trade_proposal_ctx') ?? '{}')).toMatchObject({
+      listing: {
+        id: 'mkt:listing-uuid',
+        source: 'marketplace',
+        sellerId: 's1',
+        quantity: 5,
+      },
+      card: {
+        id: 'mkt:listing-uuid',
+        name: 'Sol Ring',
+      },
+    });
+    expect(args.router.push).toHaveBeenCalledWith('/scambi/proponi');
   });
 });

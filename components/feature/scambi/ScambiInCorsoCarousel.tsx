@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, RefreshCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { fetchScambiCatalog } from '@/lib/scambi/scambi-catalog';
-import type { ScambioUI } from '@/components/feature/scambi/scambi-types';
+import { getCardImageUrl } from '@/lib/assets';
+import type { PublicBestSellerItem } from '@/lib/api/marketplace-client';
 
 /* ─────────────────────────────────────────────────────── */
 /*  Constants                                              */
@@ -23,29 +23,23 @@ const SWIPE_THRESHOLD = 50;
 /*  Main Component                                         */
 /* ─────────────────────────────────────────────────────── */
 
-export function ScambiInCorsoCarousel({ useLightText = false, compact = false }: { useLightText?: boolean; compact?: boolean } = {}) {
+export function ScambiInCorsoCarousel({
+  items,
+  isLoading = false,
+  useLightText = false,
+  compact = false,
+}: {
+  items: PublicBestSellerItem[];
+  isLoading?: boolean;
+  useLightText?: boolean;
+  compact?: boolean;
+}) {
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const [scambi, setScambi] = useState<ScambioUI[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  /* ── Load scambi catalog ── */
-  useEffect(() => {
-    let cancelled = false;
-    fetchScambiCatalog(12).then((items) => {
-      if (!cancelled) {
-        setScambi(items);
-        setIsLoading(false);
-      }
-    }).catch(() => {
-      if (!cancelled) setIsLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, []);
 
   /* ── Scroll-state check ── */
   const updateScrollState = useCallback(() => {
@@ -76,7 +70,7 @@ export function ScambiInCorsoCarousel({ useLightText = false, compact = false }:
   useEffect(() => {
     if (isPaused) return;
     const el = scrollRef.current;
-    if (!el || scambi.length < 2) return;
+    if (!el || items.length < 2) return;
 
     const id = setInterval(() => {
       const maxScroll = el.scrollWidth - el.clientWidth;
@@ -86,7 +80,7 @@ export function ScambiInCorsoCarousel({ useLightText = false, compact = false }:
     }, AUTOPLAY_MS);
 
     return () => clearInterval(id);
-  }, [isPaused, scambi.length]);
+  }, [isPaused, items.length]);
 
   /* ── Listen to scroll position ── */
   useEffect(() => {
@@ -202,8 +196,8 @@ export function ScambiInCorsoCarousel({ useLightText = false, compact = false }:
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {scambi.map((item) => (
-            <div key={item.id} className="w-[120px] shrink-0 md:w-[140px]">
+          {items.map((item) => (
+            <div key={item.card_id} className="w-[120px] shrink-0 md:w-[140px]">
               <ScambiCard item={item} useLightText={useLightText} />
             </div>
           ))}
@@ -216,7 +210,7 @@ export function ScambiInCorsoCarousel({ useLightText = false, compact = false }:
             </>
           )}
 
-          {!isLoading && scambi.length === 0 && (
+          {!isLoading && items.length === 0 && (
             <div className="mx-2 flex min-h-[80px] w-full items-center justify-center rounded-2xl border border-white/20 bg-slate-900/40 px-4 text-xs font-medium text-white/90">
               {t('home.scambi.empty')}
             </div>
@@ -247,20 +241,25 @@ function ScambiCardSkeleton({ useLightText = false }: { useLightText?: boolean }
 /*  Scambi Card                                            */
 /* ─────────────────────────────────────────────────────── */
 
-function ScambiCard({ item, useLightText = false }: { item: ScambioUI; useLightText?: boolean }) {
-  const [imageOk, setImageOk] = useState(true);
+function ScambiCard({ item, useLightText = false }: { item: PublicBestSellerItem; useLightText?: boolean }) {
+  const { t } = useTranslation();
+  const imageUrl = getCardImageUrl(item.image);
+  const [imageOk, setImageOk] = useState(Boolean(imageUrl));
+  const sellersLabel = t(item.listings_count === 1 ? 'cart.sellersOne' : 'cart.sellers', {
+    count: item.listings_count,
+  });
 
   return (
     <Link
-      href={`/scambi/${item.id}`}
+      href={`/products/${item.card_id}`}
       className="group flex flex-col gap-1.5"
     >
       {/* Immagine */}
       <div className="relative aspect-[63/88] w-full overflow-hidden rounded-lg bg-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_6px_16px_rgba(0,0,0,0.12)]">
-        {item.image && imageOk ? (
+        {imageUrl && imageOk ? (
           <Image
-            src={item.image}
-            alt={item.title}
+            src={imageUrl}
+            alt={item.name}
             fill
             className="object-cover"
             sizes="(min-width: 768px) 140px, 120px"
@@ -289,13 +288,14 @@ function ScambiCard({ item, useLightText = false }: { item: ScambioUI; useLightT
           "line-clamp-1 text-[11px] font-semibold transition-colors group-hover:text-[#ff7300]",
           useLightText ? "text-white" : "text-slate-800"
         )}>
-          {item.title}
+          {item.name}
         </p>
         <p className={cn(
           "mt-0.5 line-clamp-1 text-[9px]",
           useLightText ? "text-slate-300" : "text-slate-500"
         )}>
-          {item.seller} · {item.condition}
+          {sellersLabel}
+          {item.min_price ? ` · € ${item.min_price}` : ''}
         </p>
       </div>
     </Link>

@@ -280,7 +280,7 @@ export function MarketplaceDashboard({
   const isMtg = !gameSlug || gameSlug === 'mtg';
 
   // Best sellers REALI: carte in vendita dai venditori registrati (feed pubblico).
-  const { data: bestSellersData } = useBestSellers(
+  const { data: bestSellersData, isLoading: bestSellersLoading } = useBestSellers(
     { game: gameSlug ?? 'mtg', limit: 12 },
     { enabled: isMtg },
   );
@@ -308,6 +308,13 @@ export function MarketplaceDashboard({
     const hits = (searchData?.hits ?? []).filter((h) => h?.id && h?.name);
     return hits.length > 0 ? hits : MTG_HITS_FALLBACK;
   }, [gameSlug, bestSellersData, searchData]);
+
+  // Gli scambi mostrano solo carte con inserzioni attive reali. Niente fallback
+  // Meilisearch/mock: in assenza del feed pubblico mostriamo lo stato vuoto.
+  const tradeableListings = useMemo(
+    () => (bestSellersData?.items ?? []).filter((item) => item.card_id && item.listings_count > 0),
+    [bestSellersData],
+  );
 
   const [magicOffset, setMagicOffset] = useState(0);
 
@@ -497,7 +504,12 @@ export function MarketplaceDashboard({
             </div>
 
             <div className="relative z-10 flex flex-col overflow-hidden">
-              <ScambiInCorsoCarousel useLightText compact />
+              <ScambiInCorsoCarousel
+                items={tradeableListings}
+                isLoading={bestSellersLoading}
+                useLightText
+                compact
+              />
             </div>
           </div>
         </div>
@@ -634,7 +646,12 @@ export function MarketplaceDashboard({
               </div>
 
               <div className="relative z-10 flex flex-col overflow-hidden">
-                <ScambiInCorsoCarousel useLightText compact />
+                <ScambiInCorsoCarousel
+                  items={tradeableListings}
+                  isLoading={bestSellersLoading}
+                  useLightText
+                  compact
+                />
               </div>
             </div>
           </div>

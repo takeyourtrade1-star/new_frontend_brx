@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { type ListingItem } from '@/lib/api/sync-client';
 import type { MarketplaceCartLine } from '@/types';
 import { buildCartLineFromListingItem } from '@/lib/marketplace/cart-line';
+import { listingRowKey } from '@/lib/marketplace/listing-map';
 import { listingConditionCode } from '@/lib/product-detail/marketplace-rows';
 import { setTradeProposalContext } from '@/lib/scambi/trade-proposal-context';
 import { parseBlueprintId } from '@/lib/product-detail/parse-blueprint-id';
@@ -129,8 +130,14 @@ export function useProductCart({
           isPro: item.seller_account_type === 'business',
           country: item.country ?? null,
         },
+        listing: {
+          id: listingRowKey(item),
+          source: item.listing_source ?? 'sync',
+          sellerId: item.seller_id,
+          quantity: item.quantity,
+        },
         card: {
-          id: `product-${card.id}`,
+          id: listingRowKey(item),
           name: card.name,
           image: rowImageSrc,
           condition: listingConditionCode(item.condition),

@@ -1,17 +1,15 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, ChevronRight, ChevronDown, ChevronUp, Search, Coins, Send, Clock, Inbox, CheckCircle2, X, Loader2 } from 'lucide-react';
+import { Home, ChevronRight, ChevronDown, ChevronUp, Search, Coins, Send, Clock, Inbox, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScambiIcon } from '@/components/ui/ScambiIcon';
 import { AppBreadcrumb, type AppBreadcrumbItem } from '@/components/ui/AppBreadcrumb';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { OrderTabs, type OrderTab } from '@/components/feature/ordini/OrderTabs';
-import { ScambiResultsGrid } from './scambi-browse-shared';
-import type { ScambioUI } from './scambi-types';
-import { fetchScambiCatalog } from '@/lib/scambi/scambi-catalog';
+import GlobalSearchBar from '@/components/layout/GlobalSearchBar';
 import { MOCK_RECEIVED_PROPOSALS, type ReceivedProposal } from './mock-received-proposals';
 import { ReceivedProposalDetail } from './ReceivedProposalDetail';
 
@@ -306,96 +304,9 @@ function ProposalListItem({ proposal, onOpen }: { proposal: ReceivedProposal; on
   );
 }
 
-/** Barra di ricerca interna agli scambi: stessa logica della ricerca principale,
- *  ma cerca solo nel catalogo degli scambi. */
-function TradeSearchBar({
-  value,
-  onChange,
-  onSubmit,
-  onClear,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  onSubmit: () => void;
-  onClear: () => void;
-}) {
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-      className="flex w-full items-center gap-2 rounded-full bg-white py-1.5 pl-4 pr-1.5 shadow-sm ring-1 ring-gray-200 transition focus-within:ring-2 focus-within:ring-[#FF7300]/40"
-    >
-      <Search className="h-5 w-5 shrink-0 text-gray-400" aria-hidden />
-      <input
-        type="search"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Che cosa cerchi da scambiare?"
-        enterKeyHint="search"
-        inputMode="search"
-        className="min-w-0 flex-1 bg-transparent text-base text-gray-900 placeholder:text-gray-500 focus:outline-none md:text-sm"
-        aria-label="Cerca tra gli scambi"
-      />
-      {value && (
-        <button
-          type="button"
-          onClick={onClear}
-          aria-label="Cancella ricerca"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      )}
-      <button
-        type="submit"
-        aria-label="Cerca"
-        className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#FF7300] px-4 text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#e66800] active:scale-95"
-      >
-        <Search className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-        <span className="hidden sm:inline">Cerca</span>
-      </button>
-    </form>
-  );
-}
-
 export function ScambiContent() {
   const [activeTab, setActiveTab] = useState<ScambiTabId>('richieste');
   const [openProposal, setOpenProposal] = useState<ReceivedProposal | null>(null);
-
-  // Ricerca interna sul catalogo scambi (caricato pigramente alla prima ricerca).
-  const [searchInput, setSearchInput] = useState('');
-  const [activeQuery, setActiveQuery] = useState('');
-  const [catalog, setCatalog] = useState<ScambioUI[]>([]);
-  const [catalogLoading, setCatalogLoading] = useState(false);
-
-  const runSearch = useCallback(() => {
-    const q = searchInput.trim();
-    setActiveQuery(q);
-    if (q && catalog.length === 0) {
-      setCatalogLoading(true);
-      fetchScambiCatalog(60)
-        .then((rows) => setCatalog(rows))
-        .finally(() => setCatalogLoading(false));
-    }
-  }, [searchInput, catalog.length]);
-
-  const clearSearch = useCallback(() => {
-    setSearchInput('');
-    setActiveQuery('');
-  }, []);
-
-  const searchResults = useMemo(() => {
-    const needle = activeQuery.trim().toLowerCase();
-    if (!needle) return [];
-    return catalog.filter(
-      (s) =>
-        s.title.toLowerCase().includes(needle) || s.seller.toLowerCase().includes(needle),
-    );
-  }, [activeQuery, catalog]);
-
-  const hasActiveSearch = activeQuery.trim().length > 0;
 
   const proposals = MOCK_RECEIVED_PROPOSALS;
   const activeLabel = getTabLabel(activeTab);
@@ -446,81 +357,41 @@ export function ScambiContent() {
           </div>
         </div>
 
-        {/* Ricerca interna agli scambi */}
-        <div className="mb-6">
-          <TradeSearchBar
-            value={searchInput}
-            onChange={setSearchInput}
-            onSubmit={runSearch}
-            onClear={clearSearch}
-          />
+        {/* Stessa ricerca globale: dal risultato si apre il prodotto, dove ogni
+            inserzione reale espone l'azione "Proponi scambio". */}
+        <div className="relative z-[80] mb-6 rounded-2xl bg-[#1D3160] p-2 shadow-sm sm:p-3">
+          <GlobalSearchBar />
         </div>
 
-        {hasActiveSearch ? (
-          <section>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-gray-600">
-                Risultati per{' '}
-                <span className="font-bold text-gray-900">«{activeQuery}»</span>
-              </p>
-              <button
-                type="button"
-                onClick={clearSearch}
-                className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-[#FF7300] transition hover:underline"
-              >
-                <X className="h-3.5 w-3.5" aria-hidden />
-                Chiudi ricerca
-              </button>
+        <TradeStepsTicker />
+
+        {openProposal ? (
+          <ReceivedProposalDetail proposal={openProposal} onBack={() => setOpenProposal(null)} />
+        ) : (
+          <>
+            {/* Tab — dropdown a tendina su mobile, pillole su desktop (come "Le mie vendite") */}
+            <div className="mb-6">
+              <OrderTabs
+                leftTabs={leftTabs}
+                rightTabs={rightTabs}
+                activeTab={activeTab}
+                onChange={setActiveTab}
+              />
             </div>
 
-            {catalogLoading ? (
-              <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-6 py-12 shadow-sm">
-                <Loader2 className="h-6 w-6 animate-spin text-[#FF7300]" aria-hidden />
-                <p className="text-sm text-gray-500">Caricamento scambi…</p>
+            {/* Contenuto */}
+            {activeTab === 'richieste' && proposals.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {proposals.map((p) => (
+                  <ProposalListItem key={p.id} proposal={p} onOpen={() => setOpenProposal(p)} />
+                ))}
               </div>
-            ) : searchResults.length > 0 ? (
-              <ScambiResultsGrid scambi={searchResults} />
             ) : (
               <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-xl border border-gray-300 bg-white px-6 py-12 shadow-sm">
                 <p className="text-center text-base font-semibold uppercase tracking-wide text-gray-500">
-                  Nessuno scambio trovato per «{activeQuery}»
+                  {EMPTY_STATE_BY_TAB[activeTab] ?? 'NESSUNO SCAMBIO'}
                 </p>
               </div>
-            )}
-          </section>
-        ) : (
-          <>
-            <TradeStepsTicker />
-
-            {openProposal ? (
-              <ReceivedProposalDetail proposal={openProposal} onBack={() => setOpenProposal(null)} />
-            ) : (
-              <>
-                {/* Tab — dropdown a tendina su mobile, pillole su desktop (come "Le mie vendite") */}
-                <div className="mb-6">
-                  <OrderTabs
-                    leftTabs={leftTabs}
-                    rightTabs={rightTabs}
-                    activeTab={activeTab}
-                    onChange={setActiveTab}
-                  />
-                </div>
-
-                {/* Contenuto */}
-                {activeTab === 'richieste' && proposals.length > 0 ? (
-                  <div className="flex flex-col gap-2">
-                    {proposals.map((p) => (
-                      <ProposalListItem key={p.id} proposal={p} onOpen={() => setOpenProposal(p)} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-xl border border-gray-300 bg-white px-6 py-12 shadow-sm">
-                    <p className="text-center text-base font-semibold uppercase tracking-wide text-gray-500">
-                      {EMPTY_STATE_BY_TAB[activeTab] ?? 'NESSUNO SCAMBIO'}
-                    </p>
-                  </div>
-                )}
-              </>
             )}
           </>
         )}

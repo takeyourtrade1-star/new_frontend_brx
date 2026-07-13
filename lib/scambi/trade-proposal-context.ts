@@ -23,9 +23,19 @@ export interface TradeProposalCard {
   game: string | null;
 }
 
+export interface TradeProposalListing {
+  /** Chiave stabile della riga reale (sync item oppure UUID marketplace). */
+  id: string;
+  source: 'sync' | 'marketplace';
+  sellerId: string;
+  quantity: number;
+}
+
 export interface TradeProposalContext {
   seller: TradeProposalSeller;
   card: TradeProposalCard;
+  /** Inserzione reale scelta nella tabella venditori. */
+  listing: TradeProposalListing;
   /** 'propose' = proposta normale; 'counter' = controproposta a chi mi ha scritto. */
   mode?: 'propose' | 'counter';
 }
