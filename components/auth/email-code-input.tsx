@@ -10,9 +10,13 @@ export interface EmailCodeInputProps {
   disabled?: boolean;
   className?: string;
   id?: string;
+  length?: number;
+  digitsOnly?: boolean;
+  ariaLabel?: string;
 }
 
 const REGEXP_ALPHANUM_LOWER = /^[a-z0-9]$/;
+const REGEXP_DIGIT = /^\d$/;
 
 /**
  * 8 caratteri alfanumerici minuscoli — input nativi per massima affidabilità
@@ -25,13 +29,18 @@ export function EmailCodeInput({
   disabled,
   className,
   id,
+  length = 8,
+  digitsOnly = false,
+  ariaLabel = 'Code character',
 }: EmailCodeInputProps) {
   const inputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
 
   const chars = React.useMemo(() => {
-    const raw = value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8);
+    const normalized = value.toLowerCase();
+    const raw = (digitsOnly ? normalized.replace(/\D/g, '') : normalized.replace(/[^a-z0-9]/g, ''))
+      .slice(0, length);
     return raw.split('');
-  }, [value]);
+  }, [digitsOnly, length, value]);
 
   const focusIdx = React.useCallback((idx: number) => {
     inputRefs.current[idx]?.focus();
@@ -39,12 +48,12 @@ export function EmailCodeInput({
   }, []);
 
   const updateValue = React.useCallback((nextChars: string[]) => {
-    const joined = nextChars.join('').slice(0, 8);
+    const joined = nextChars.join('').slice(0, length);
     onChange(joined);
-    if (joined.length === 8) {
+    if (joined.length === length) {
       onComplete?.(joined);
     }
-  }, [onChange, onComplete]);
+  }, [length, onChange, onComplete]);
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>, idx: number) => {
@@ -72,13 +81,13 @@ export function EmailCodeInput({
         return;
       }
 
-      if (e.key === 'ArrowRight' && idx < 7) {
+      if (e.key === 'ArrowRight' && idx < length - 1) {
         e.preventDefault();
         focusIdx(idx + 1);
         return;
       }
     },
-    [chars, disabled, focusIdx, updateValue]
+    [chars, disabled, focusIdx, length, updateValue]
   );
 
   const handleChange = React.useCallback(
@@ -95,38 +104,36 @@ export function EmailCodeInput({
         return;
       }
 
-      if (!REGEXP_ALPHANUM_LOWER.test(lastChar)) return;
+      if (!(digitsOnly ? REGEXP_DIGIT : REGEXP_ALPHANUM_LOWER).test(lastChar)) return;
 
       const lowered = lastChar.toLowerCase();
       const next = [...chars];
       next[idx] = lowered;
       updateValue(next);
 
-      if (idx < 7) {
+      if (idx < length - 1) {
         focusIdx(idx + 1);
       }
     },
-    [chars, disabled, focusIdx, updateValue]
+    [chars, digitsOnly, disabled, focusIdx, length, updateValue]
   );
 
   const handlePaste = React.useCallback(
     (e: React.ClipboardEvent<HTMLInputElement>) => {
       if (disabled) return;
       e.preventDefault();
-      const pasted = e.clipboardData
-        .getData('text')
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '')
-        .slice(0, 8);
+      const raw = e.clipboardData.getData('text').toLowerCase();
+      const pasted = (digitsOnly ? raw.replace(/\D/g, '') : raw.replace(/[^a-z0-9]/g, ''))
+        .slice(0, length);
 
-      const next = pasted.split('').slice(0, 8);
+      const next = pasted.split('').slice(0, length);
       updateValue(next);
 
       // Focus sul campo successivo all'ultimo carattere incollato
-      const focusIndex = Math.min(7, next.length);
+      const focusIndex = Math.min(length - 1, next.length);
       setTimeout(() => focusIdx(focusIndex), 0);
     },
-    [disabled, focusIdx, updateValue]
+    [digitsOnly, disabled, focusIdx, length, updateValue]
   );
 
   const slotClass = cn(
@@ -145,12 +152,13 @@ export function EmailCodeInput({
       className={cn('w-full px-4', className)}
     >
       <div className="flex items-center justify-center gap-2">
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length }).map((_, i) => (
           <input
             key={i}
             ref={(el) => { inputRefs.current[i] = el; }}
             type="text"
-            inputMode="text"
+            inputMode={digitsOnly ? 'numeric' : 'text'}
+            pattern={digitsOnly ? '[0-9]*' : undefined}
             autoComplete="one-time-code"
             maxLength={1}
             disabled={disabled}
@@ -159,7 +167,7 @@ export function EmailCodeInput({
             onKeyDown={(e) => handleKeyDown(e, i)}
             onPaste={handlePaste}
             className={slotClass}
-            aria-label={`Code character ${i + 1}`}
+            aria-label={`${ariaLabel} ${i + 1}`}
           />
         ))}
       </div>

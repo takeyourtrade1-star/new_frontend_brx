@@ -5,11 +5,17 @@
  */
 
 import axios, {
+  AxiosRequestConfig,
   AxiosError,
   AxiosInstance,
   InternalAxiosRequestConfig,
 } from 'axios';
-import type { PreAuthTokenResponse, TokenResponse } from '@/types';
+import type {
+  PreAuthTokenResponse,
+  RegistrationPendingResponse,
+  TokenResponse,
+  VerificationSuccessResponse,
+} from '@/types';
 import { config } from '../config';
 import { isTournamentsTransitionPath } from '@/lib/config/tournaments';
 import { tokenManager } from './refresh-token';
@@ -37,6 +43,9 @@ const REFRESH_SKIP_PATHS = [
   '/api/auth/password/reset/confirm-init',
   '/api/auth/password/reset/confirm-final',
   '/api/auth/password/reset/confirm',
+  '/api/auth/verify-email/code',
+  '/api/auth/verify-email/token',
+  '/api/auth/resend-verification',
 ] as const;
 
 /** Endpoint auth che un utente anonimo (non loggato) può chiamare. */
@@ -53,6 +62,9 @@ const ANONYMOUS_AUTH_PATHS = [
   '/api/auth/password/reset/confirm-init',
   '/api/auth/password/reset/confirm-final',
   '/api/auth/password/reset/confirm',
+  '/api/auth/verify-email/code',
+  '/api/auth/verify-email/token',
+  '/api/auth/resend-verification',
 ] as const;
 
 /** Risposta tipica per richieste che inviano solo email / messaggio generico (OTP, reset). */
@@ -265,7 +277,11 @@ class AuthApiClient {
   /**
    * POST request
    */
-  async post<T = unknown>(url: string, data?: unknown): Promise<T> {
+  async post<T = unknown>(
+    url: string,
+    data?: unknown,
+    requestConfig?: AxiosRequestConfig
+  ): Promise<T> {
     // Normalizza l'URL per evitare slash doppi
     const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
 
@@ -275,7 +291,7 @@ class AuthApiClient {
       return directCredentialedResponse;
     }
 
-    const response = await this.instance.post<T>(normalizedUrl, data);
+    const response = await this.instance.post<T>(normalizedUrl, data, requestConfig);
     return response.data;
   }
 
@@ -336,6 +352,34 @@ class AuthApiClient {
       code,
       }
     );
+  }
+
+  async verifyRegistrationEmailCode(
+    flowId: string,
+    code: string
+  ): Promise<VerificationSuccessResponse> {
+    return this.post<VerificationSuccessResponse>('/api/auth/verify-email/code', {
+      flow_id: flowId,
+      code,
+    });
+  }
+
+  async verifyRegistrationEmailToken(
+    flowId: string,
+    token: string
+  ): Promise<VerificationSuccessResponse> {
+    return this.post<VerificationSuccessResponse>('/api/auth/verify-email/token', {
+      flow_id: flowId,
+      token,
+    });
+  }
+
+  async resendRegistrationVerification(
+    flowId: string
+  ): Promise<RegistrationPendingResponse> {
+    return this.post<RegistrationPendingResponse>('/api/auth/resend-verification', {
+      flow_id: flowId,
+    });
   }
 
   /**

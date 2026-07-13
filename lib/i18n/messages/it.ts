@@ -2495,6 +2495,32 @@ export const it: Record<MessageKey, string> = {
   // Generic Errors
   'errors.generic.unknown': 'Si è verificato un errore imprevisto. Riprova più tardi.',
   'errors.generic.message': 'Qualcosa è andato storto. Riprova.',
+  // Registration email verification
+  'emailVerification.invalidFlowTitle': 'Link di verifica non valido',
+  'emailVerification.invalidFlowBody': 'Apri il link ricevuto via email oppure ripeti la registrazione.',
+  'emailVerification.backToRegister': 'Torna alla registrazione',
+  'emailVerification.successTitle': 'Email verificata',
+  'emailVerification.successBody': 'Il tuo account \u00e8 attivo. Ora puoi accedere con le credenziali scelte durante la registrazione.',
+  'emailVerification.goToLogin': 'Vai al login',
+  'emailVerification.title': 'Verifica la tua email',
+  'emailVerification.subtitle': 'Inserisci il codice ricevuto via email per attivare il tuo account.',
+  'emailVerification.sentTo': 'Abbiamo inviato il codice a {destination}. Controlla anche la cartella spam.',
+  'emailVerification.linkReady': 'Il link \u00e8 pronto. Conferma per verificare il tuo indirizzo email.',
+  'emailVerification.confirmLink': 'Conferma email',
+  'emailVerification.useCodeInstead': 'Usa il codice invece del link',
+  'emailVerification.codeLabel': 'Inserisci il codice di 6 cifre',
+  'emailVerification.codeHint': 'Il codice scade dopo pochi minuti e pu\u00f2 essere usato una sola volta.',
+  'emailVerification.codeCharacter': 'Cifra del codice',
+  'emailVerification.verifying': 'Verifica in corso...',
+  'emailVerification.verify': 'Verifica email',
+  'emailVerification.resendHint': 'Non hai ricevuto il codice?',
+  'emailVerification.resendCountdown': 'Reinvia tra {seconds}s',
+  'emailVerification.resend': 'Reinvia codice',
+  'emailVerification.errors.tooManyAttempts': 'Troppi tentativi. Richiedi un nuovo codice e riprova.',
+  'emailVerification.errors.resendTooEarly': 'Attendi prima di richiedere un nuovo codice.',
+  'emailVerification.errors.unavailable': 'Servizio temporaneamente non disponibile. Riprova tra poco.',
+  'emailVerification.errors.invalidOrExpired': 'Codice o link non valido, scaduto o gi\u00e0 utilizzato.',
+
 
   // Login Code
   'loginCode.title': 'Accedi con codice',

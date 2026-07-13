@@ -22,6 +22,11 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { RegistrationLegalCheckboxes } from '@/components/legal/RegistrationLegalCheckboxes';
 import { CountrySelect, type CountryOption } from '@/components/ui/CountrySelect';
 import { useUserCountry } from '@/lib/hooks/use-user-country';
+import {
+  buildVerificationPath,
+  savePendingRegistration,
+} from '@/lib/auth/registration-verification';
+
 import { useMemo } from 'react';
 
 const defaultValues: RegisterPrivatoValues = {
@@ -51,6 +56,7 @@ export function RegistratiPrivatoForm() {
   const clearStoreError = useAuthStore((s) => s.clearError);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const flashMessage = useAuthStore((s) => s.flashMessage);
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   const {
     register,
@@ -161,9 +167,18 @@ export function RegistratiPrivatoForm() {
     clearStoreError();
     try {
       const payload = toRegisterPayloadPrivato({ ...values, website_url: '' });
-      await registerUser(payload);
+      if (!idempotencyKeyRef.current) {
+        idempotencyKeyRef.current = crypto.randomUUID();
+      }
+      const result = await registerUser(payload, idempotencyKeyRef.current);
+      if (result.status === 'verification_pending') {
+        savePendingRegistration(result);
+        router.push(buildVerificationPath(result.flow_id));
+        return;
+      }
       router.push('/');
     } catch (err: unknown) {
+      idempotencyKeyRef.current = null;
       // Usa il nuovo sistema di gestione errori con i18n
       authError.setError(err);
       

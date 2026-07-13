@@ -2489,6 +2489,32 @@ export const de: Record<MessageKey, string> = {
   // Generic Errors
   'errors.generic.unknown': 'Ein unerwarteter Fehler ist aufgetreten. Bitte später erneut versuchen.',
   'errors.generic.message': 'Etwas ist schief gelaufen. Bitte erneut versuchen.',
+  // Registration email verification
+  'emailVerification.invalidFlowTitle': 'Ungultiger Bestatigungslink',
+  'emailVerification.invalidFlowBody': 'Offne den Link aus der E-Mail oder starte die Registrierung erneut.',
+  'emailVerification.backToRegister': 'Zuruck zur Registrierung',
+  'emailVerification.successTitle': 'E-Mail bestatigt',
+  'emailVerification.successBody': 'Dein Konto ist aktiv. Du kannst dich jetzt mit deinen gewahlten Zugangsdaten anmelden.',
+  'emailVerification.goToLogin': 'Zur Anmeldung',
+  'emailVerification.title': 'E-Mail bestatigen',
+  'emailVerification.subtitle': 'Gib den Code aus der E-Mail ein, um dein Konto zu aktivieren.',
+  'emailVerification.sentTo': 'Wir haben den Code an {destination} gesendet. Prufe auch den Spam-Ordner.',
+  'emailVerification.linkReady': 'Der Link ist bereit. Bestatige deine E-Mail-Adresse.',
+  'emailVerification.confirmLink': 'E-Mail bestatigen',
+  'emailVerification.useCodeInstead': 'Code statt Link verwenden',
+  'emailVerification.codeLabel': '6-stelligen Code eingeben',
+  'emailVerification.codeHint': 'Der Code lauft nach wenigen Minuten ab und kann nur einmal verwendet werden.',
+  'emailVerification.codeCharacter': 'Codeziffer',
+  'emailVerification.verifying': 'Wird gepruft...',
+  'emailVerification.verify': 'E-Mail bestatigen',
+  'emailVerification.resendHint': 'Code nicht erhalten?',
+  'emailVerification.resendCountdown': 'Erneut senden in {seconds}s',
+  'emailVerification.resend': 'Code erneut senden',
+  'emailVerification.errors.tooManyAttempts': 'Zu viele Versuche. Fordere einen neuen Code an.',
+  'emailVerification.errors.resendTooEarly': 'Warte, bevor du einen neuen Code anforderst.',
+  'emailVerification.errors.unavailable': 'Dienst vorubergehend nicht verfugbar. Versuche es bald erneut.',
+  'emailVerification.errors.invalidOrExpired': 'Code oder Link ist ungultig, abgelaufen oder bereits verwendet.',
+
 
   // Login Code
   'loginCode.title': 'Mit Code anmelden',

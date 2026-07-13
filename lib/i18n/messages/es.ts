@@ -2489,6 +2489,32 @@ export const es: Record<MessageKey, string> = {
   // Generic Errors
   'errors.generic.unknown': 'Ha ocurrido un error inesperado. Por favor, inténtalo más tarde.',
   'errors.generic.message': 'Algo ha salido mal. Por favor, inténtalo de nuevo.',
+  // Registration email verification
+  'emailVerification.invalidFlowTitle': 'Enlace de verificacion no valido',
+  'emailVerification.invalidFlowBody': 'Abre el enlace recibido por correo o repite el registro.',
+  'emailVerification.backToRegister': 'Volver al registro',
+  'emailVerification.successTitle': 'Correo verificado',
+  'emailVerification.successBody': 'Tu cuenta esta activa. Ya puedes iniciar sesion con tus credenciales.',
+  'emailVerification.goToLogin': 'Ir al inicio de sesion',
+  'emailVerification.title': 'Verifica tu correo',
+  'emailVerification.subtitle': 'Introduce el codigo recibido por correo para activar tu cuenta.',
+  'emailVerification.sentTo': 'Enviamos el codigo a {destination}. Revisa tambien la carpeta de spam.',
+  'emailVerification.linkReady': 'El enlace esta listo. Confirma para verificar tu correo.',
+  'emailVerification.confirmLink': 'Confirmar correo',
+  'emailVerification.useCodeInstead': 'Usar el codigo en lugar del enlace',
+  'emailVerification.codeLabel': 'Introduce el codigo de 6 digitos',
+  'emailVerification.codeHint': 'El codigo caduca en pocos minutos y solo puede usarse una vez.',
+  'emailVerification.codeCharacter': 'Digito del codigo',
+  'emailVerification.verifying': 'Verificando...',
+  'emailVerification.verify': 'Verificar correo',
+  'emailVerification.resendHint': 'No recibiste el codigo?',
+  'emailVerification.resendCountdown': 'Reenviar en {seconds}s',
+  'emailVerification.resend': 'Reenviar codigo',
+  'emailVerification.errors.tooManyAttempts': 'Demasiados intentos. Solicita un codigo nuevo.',
+  'emailVerification.errors.resendTooEarly': 'Espera antes de solicitar un codigo nuevo.',
+  'emailVerification.errors.unavailable': 'Servicio no disponible temporalmente. Intentalo pronto.',
+  'emailVerification.errors.invalidOrExpired': 'El codigo o enlace no es valido, ha caducado o ya se uso.',
+
 
   // Login Code
   'loginCode.title': 'Iniciar sesión con código',

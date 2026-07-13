@@ -167,6 +167,51 @@ describe('auth-store', () => {
     });
   });
 
+  describe('registration email verification', () => {
+    it('returns verification_pending and forwards the idempotency key', async () => {
+      const pending = {
+        status: 'verification_pending' as const,
+        flow_id: '0198f65d-88e7-7f38-9c71-6b28ea26eb9d',
+        destination: 't***@example.com',
+        expires_at: '2026-07-13T15:20:00Z',
+        resend_available_at: '2026-07-13T15:01:00Z',
+        delivery_status: 'queued' as const,
+      };
+      vi.mocked(authApi.post).mockResolvedValue(pending);
+
+      const result = await useAuthStore.getState().register(
+        {
+          username: 'test_user',
+          email: 'test@example.com',
+          password: 'Password1',
+          account_type: 'personal',
+          country: 'IT',
+          phone_prefix: '+39',
+          phone: '3331234567',
+          first_name: 'Test',
+          last_name: 'User',
+          termsAccepted: true,
+          specificClausesAccepted: true,
+          privacyAccepted: true,
+          cancellationAccepted: true,
+          adultConfirmed: true,
+          website_url: '',
+        },
+        'registration-idempotency-key'
+      );
+
+      expect(result).toEqual(pending);
+      expect(authApi.post).toHaveBeenCalledWith(
+        '/api/auth/register',
+        expect.objectContaining({ email: 'test@example.com', website_url: '' }),
+        { headers: { 'Idempotency-Key': 'registration-idempotency-key' } }
+      );
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+      expect(useAuthStore.getState().isLoading).toBe(false);
+      expect(useAuthStore.getState().flashMessage).toBeNull();
+    });
+  });
+
   describe('logout', () => {
     it('logout pulisce store e imposta flash message', async () => {
       useAuthStore.setState({

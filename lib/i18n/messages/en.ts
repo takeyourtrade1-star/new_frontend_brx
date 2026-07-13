@@ -2490,6 +2490,32 @@ export const en = {
   // Generic Errors
   'errors.generic.unknown': 'An unexpected error occurred. Please try again later.',
   'errors.generic.message': 'Something went wrong. Please try again.',
+  // Registration email verification
+  'emailVerification.invalidFlowTitle': 'Invalid verification link',
+  'emailVerification.invalidFlowBody': 'Open the link received by email or restart registration.',
+  'emailVerification.backToRegister': 'Back to registration',
+  'emailVerification.successTitle': 'Email verified',
+  'emailVerification.successBody': 'Your account is active. You can now log in with the credentials chosen during registration.',
+  'emailVerification.goToLogin': 'Go to login',
+  'emailVerification.title': 'Verify your email',
+  'emailVerification.subtitle': 'Enter the code received by email to activate your account.',
+  'emailVerification.sentTo': 'We sent the code to {destination}. Check your spam folder too.',
+  'emailVerification.linkReady': 'The link is ready. Confirm to verify your email address.',
+  'emailVerification.confirmLink': 'Confirm email',
+  'emailVerification.useCodeInstead': 'Use the code instead of the link',
+  'emailVerification.codeLabel': 'Enter the 6-digit code',
+  'emailVerification.codeHint': 'The code expires after a few minutes and can only be used once.',
+  'emailVerification.codeCharacter': 'Code digit',
+  'emailVerification.verifying': 'Verifying...',
+  'emailVerification.verify': 'Verify email',
+  'emailVerification.resendHint': 'Did not receive the code?',
+  'emailVerification.resendCountdown': 'Resend in {seconds}s',
+  'emailVerification.resend': 'Resend code',
+  'emailVerification.errors.tooManyAttempts': 'Too many attempts. Request a new code and try again.',
+  'emailVerification.errors.resendTooEarly': 'Wait before requesting a new code.',
+  'emailVerification.errors.unavailable': 'Service temporarily unavailable. Try again shortly.',
+  'emailVerification.errors.invalidOrExpired': 'The code or link is invalid, expired, or already used.',
+
 
   // Login Code
   'loginCode.title': 'Log in with code',

@@ -19,6 +19,11 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 import { CountrySelect, type CountryOption } from '@/lib/auction/country-flag';
 import { useUserCountry } from '@/lib/hooks/use-user-country';
 import { RegistrationLegalCheckboxes } from '@/components/legal/RegistrationLegalCheckboxes';
+import {
+  buildVerificationPath,
+  savePendingRegistration,
+} from '@/lib/auth/registration-verification';
+
 
 const defaultValues: RegisterDemoValues = {
   website_url: '',
@@ -47,6 +52,7 @@ export function RegistratiDemoForm() {
   const clearError = useAuthStore((s) => s.clearError);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const flashMessage = useAuthStore((s) => s.flashMessage);
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   const prefilledEmail = searchParams.get('email') ?? '';
   const rawReturnTo = searchParams.get('returnTo');
@@ -187,9 +193,18 @@ export function RegistratiDemoForm() {
     clearError();
     try {
       const payload = toRegisterPayloadDemo({ ...values, website_url: '' });
-      await registerUser(payload);
+      if (!idempotencyKeyRef.current) {
+        idempotencyKeyRef.current = crypto.randomUUID();
+      }
+      const result = await registerUser(payload, idempotencyKeyRef.current);
+      if (result.status === 'verification_pending') {
+        savePendingRegistration(result);
+        router.push(buildVerificationPath(result.flow_id, safeReturnTo()));
+        return;
+      }
       router.push(safeReturnTo());
     } catch {
+      idempotencyKeyRef.current = null;
       // Errori già impostati nello store e via setError dall'effetto
     }
   };

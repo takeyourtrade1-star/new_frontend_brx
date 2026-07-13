@@ -132,10 +132,12 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   });
 
   const auth = request.headers.get('authorization') || request.headers.get('Authorization');
+  const idempotencyKey = request.headers.get('idempotency-key');
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
     ...(auth ? { Authorization: auth } : {}),
+    ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
   };
   const isInternalUsersPath =
     pathSegments[0] === 'users' ||

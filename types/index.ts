@@ -171,6 +171,26 @@ export interface RegisterData {
   adultConfirmed: boolean;
 }
 
+export interface RegistrationPendingResponse {
+  status: 'verification_pending';
+  flow_id: string;
+  destination: string;
+  expires_at: string;
+  resend_available_at: string;
+  delivery_status: 'queued';
+}
+
+export interface VerificationSuccessResponse {
+  status: 'verified';
+  verified_at: string;
+  next_action: 'login';
+}
+
+export type RegistrationResult =
+  | RegistrationPendingResponse
+  | { status: 'authenticated' }
+  | { status: 'legacy_created' };
+
 export interface VerifyMFAData {
   pre_auth_token: string;
   mfa_code: string;

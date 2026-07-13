@@ -12,6 +12,8 @@ import type {
   PreAuthTokenResponse,
   UserResponse,
   LoginResponse,
+  RegistrationPendingResponse,
+  RegistrationResult,
 } from '@/types';
 import { authApi } from '@/lib/api/auth-client';
 import { parseAuthError } from '@/lib/api/auth-error';
@@ -52,7 +54,7 @@ interface AuthState {
     credentials: LoginCredentials
   ) => Promise<{ mfaRequired: boolean; preAuthToken?: string }>;
   verifyMFA: (data: VerifyMFAData) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  register: (data: RegisterData, idempotencyKey?: string) => Promise<RegistrationResult>;
   /** `silent: true` per i logout automatici (es. sessione scaduta): niente toast di successo. */
   logout: (opts?: { silent?: boolean }) => Promise<void>;
   setUser: (user: User) => void;
@@ -433,7 +435,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       // Register (solo registrazione: non toccare login)
-      register: async (data: RegisterData) => {
+      register: async (data: RegisterData, idempotencyKey?: string) => {
         set({ isLoading: true, error: null, registrationFieldErrors: null });
 
         try {
@@ -443,10 +445,24 @@ export const useAuthStore = create<AuthState>()(
             website_url: data.website_url ?? '',
           };
 
-          const response = await authApi.post<UserResponse | TokenResponse>(
+          const response = await authApi.post<
+            UserResponse | TokenResponse | RegistrationPendingResponse
+          >(
             '/api/auth/register',
-            payload
+            payload,
+            idempotencyKey
+              ? { headers: { 'Idempotency-Key': idempotencyKey } }
+              : undefined
           );
+
+          if ('status' in response && response.status === 'verification_pending') {
+            set({
+              isLoading: false,
+              error: null,
+              flashMessage: null,
+            });
+            return response;
+          }
 
           // Se la registrazione restituisce token (auto-login), gestiscili
           if ('access_token' in response && 'refresh_token' in response) {
@@ -457,7 +473,7 @@ export const useAuthStore = create<AuthState>()(
             let normalized: User | null = null;
             try {
               normalized = await fetchMe();
-            } catch (meError) {
+            } catch {
               // If /me fails, still set authenticated but without user
             }
             set({
@@ -468,15 +484,17 @@ export const useAuthStore = create<AuthState>()(
               error: null,
               flashMessage: 'Registrazione completata con successo',
             });
-          } else {
-            // Registrazione avvenuta ma senza auto-login (verifica email richiesta)
-            set({
-              isLoading: false,
-              error: null,
-              flashMessage:
-                'Registrazione completata. Verifica la tua email per attivare l\'account.',
-            });
+            return { status: 'authenticated' };
           }
+
+          // Compatibilita con il percorso legacy quando il feature flag e disattivato.
+          set({
+            isLoading: false,
+            error: null,
+            flashMessage:
+              'Registrazione completata. Verifica la tua email per attivare l\'account.',
+          });
+          return { status: 'legacy_created' };
         } catch (error) {
           const parsed = parseAuthError(error);
           let fieldErrors = parsed.fieldErrors ?? null;
