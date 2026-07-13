@@ -1,7 +1,6 @@
 import { syncClient, type InventoryItemResponse } from '@/lib/api/sync-client';
-import { getMyListings } from '@/lib/api/marketplace-client';
-import { mapListingResponseToInventoryItem } from '@/lib/marketplace/listing-map';
-import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
+import { getMyListings, type ListingResponse } from '@/lib/api/marketplace-client';
+import { composeAccountInventory } from '@/lib/inventory/compose-account-inventory';
 import { INVENTORY_API_CHUNK } from '@/lib/inventory/fetch-catalog-batched';
 
 export type AccountInventoryRawResult = {
@@ -22,21 +21,19 @@ export async function fetchAccountInventoryRaw(
     const res = await syncClient.getInventory(userId, accessToken, INVENTORY_API_CHUNK, offset);
     const items = res.items ?? [];
     totalFromApi = res.total ?? allItems.length + items.length;
-    allItems.push(
-      ...items.map((item) => ({ ...item, listing_source: 'sync' as const }))
-    );
+    allItems.push(...items);
     offset += items.length;
     if (items.length < INVENTORY_API_CHUNK || offset >= totalFromApi) break;
   } while (true);
 
-  let marketplaceRows: InventoryItemWithCatalog[] = [];
+  let marketplaceListings: ListingResponse[] = [];
   try {
     const mkt = await getMyListings({ page: 1, page_size: 200, status_filter: 'active' });
-    marketplaceRows = (mkt.items ?? []).map(mapListingResponseToInventoryItem);
+    marketplaceListings = mkt.items ?? [];
   } catch {
     /* marketplace opzionale */
   }
 
-  const merged = [...allItems, ...marketplaceRows];
+  const merged = composeAccountInventory(allItems, marketplaceListings);
   return { items: merged, total: merged.length };
 }

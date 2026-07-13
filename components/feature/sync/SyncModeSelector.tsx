@@ -34,7 +34,7 @@ const SYNC_MODES: {
     badgeClass: 'bg-orange-100 text-orange-700 ring-orange-200',
     icon: <Wifi className="h-4 w-4" aria-hidden />,
     description:
-      'Sincronizza i tuoi listing verso il marketplace collegato. Gli acquisti sulla piattaforma sono mock: le quantità esterne non vengono decrementate.',
+      'Prova generale (shadow): legge i dati reali di CardTrader in sola lettura e simula le operazioni in locale. Nessuna scrittura viene mai inviata a CardTrader.',
   },
   {
     value: 'real',
@@ -42,7 +42,7 @@ const SYNC_MODES: {
     badgeClass: 'bg-green-100 text-green-700 ring-green-200',
     icon: <Zap className="h-4 w-4" aria-hidden />,
     description:
-      'Sincronizzazione bidirezionale completa. Ogni acquisto rimuove la carta dal marketplace collegato tramite saga transazionale.',
+      'Ogni acquisto su Ebartex decrementa lo stock CardTrader degli articoli importati (protezione oversell). Le inserzioni create su Ebartex non vengono mai esportate.',
     warning:
       'Passare a modalità REALE attiva operazioni dirette sul marketplace collegato. Assicurati che la tua chiave API abbia i permessi di scrittura.',
   },

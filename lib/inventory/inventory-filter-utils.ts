@@ -105,6 +105,30 @@ export function getInventoryGameKey(item: InventoryItemWithCatalog): InventoryGa
   return 'other';
 }
 
+/**
+ * Giochi visibili nella proiezione inventario: per ora solo Magic (+ prodotti
+ * sigillati). Pokémon/One Piece/Yu-Gi-Oh! hanno mapping catalogo/sync incompleti
+ * e restano nascosti finché il backend non li supporta (piano CardTrader, Fase 8).
+ */
+const VISIBLE_INVENTORY_GAME_KEYS: ReadonlySet<string> = new Set(['mtg', 'sealed']);
+
+/** Prefissi card_id di giochi nascosti, per righe marketplace senza dato catalogo. */
+const HIDDEN_CARD_ID_PREFIXES = ['pk_', 'op_'] as const;
+
+export function isVisibleInventoryGame(item: InventoryItemWithCatalog): boolean {
+  if (item.card) {
+    return VISIBLE_INVENTORY_GAME_KEYS.has(getInventoryGameKey(item));
+  }
+  // Catalogo non (ancora) risolto: nascondi solo se il card_id del listing
+  // marketplace identifica già un gioco non supportato; altrimenti la riga resta
+  // visibile — nessuna esclusione silenziosa per mapping mancante o caricamento.
+  const cardId = item.card_id;
+  if (typeof cardId === 'string') {
+    return !HIDDEN_CARD_ID_PREFIXES.some((prefix) => cardId.startsWith(prefix));
+  }
+  return true;
+}
+
 export function matchesGameFilter(
   item: InventoryItemWithCatalog,
   filterGame: string

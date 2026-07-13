@@ -20,6 +20,8 @@
 | [10](./10-bug-fix-specifici.md) | Bug Fix Specifici | 15 bug identificati (scanner, auction, profile, dispute) | 3-5 giorni | Alta |
 | [11](./11-responsive-mobile.md) | Responsive & Mobile | TopBar overflow, touch target, drawer landscape, aspect ratio | 2-3 giorni | Media |
 | [12](./12-code-quality-hygiene.md) | Code Quality & Hygiene | Tipizzazione, Zod split, cache headers, error boundaries | ongoing | Bassa-Media |
+| [13](./13-refactor-mascotte-asso.md) | Refactor Mascotte Asso | `components/mascotte/`, chunk −67%, wardrobe lazy | 3-5 giorni | Media |
+| [14](./14-backend-scambi.md) | Backend Scambi | Modulo `/trades` nel servizio auction: stato, escrow inventario, consegna; BFF + wiring FE | 3-5 settimane | **Alta** |
 
 ---
 

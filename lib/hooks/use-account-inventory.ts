@@ -8,6 +8,7 @@ import { fetchCardsByBlueprintIds } from '@/lib/meilisearch-cards-by-ids';
 import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 import { accountInventoryKeys } from '@/lib/inventory/account-inventory-keys';
 import { fetchAccountInventoryRaw } from '@/lib/inventory/fetch-account-inventory-raw';
+import { isVisibleInventoryGame } from '@/lib/inventory/inventory-filter-utils';
 import {
   CATALOG_FETCH_BATCH,
   fetchCatalogBatched,
@@ -100,12 +101,15 @@ export function useAccountInventory(
     );
   }, [query.dataUpdatedAt, query.data?.items]);
 
+  // Proiezione visibile: per ora solo giochi MTG/sealed (piano CardTrader, Fase 8).
   const inventoryItems = useMemo<InventoryItemWithCatalog[]>(
     () =>
-      inventoryRaw.map((item) => ({
-        ...item,
-        card: catalogMap[item.blueprint_id],
-      })),
+      inventoryRaw
+        .map((item) => ({
+          ...item,
+          card: catalogMap[item.blueprint_id],
+        }))
+        .filter(isVisibleInventoryGame),
     [inventoryRaw, catalogMap]
   );
 
