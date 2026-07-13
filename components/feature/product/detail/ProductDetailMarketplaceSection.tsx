@@ -382,129 +382,117 @@ export function ProductDetailMarketplaceSection({
             )}
           </aside>
 
-          <div className="flex-1 min-w-0 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="min-w-0 flex-1">
             <div
-              className="border-b border-gray-200 bg-white px-2 pt-2 sm:px-3 sm:pt-3"
+              className="relative z-[1] flex items-end gap-1 overflow-x-auto px-2 scrollbar-hide sm:px-3"
               role="tablist"
               aria-label={tabsAriaLabel}
             >
-              <div className="flex flex-wrap items-center gap-2 overflow-x-auto scrollbar-hide pb-2">
-                <div
-                  className="flex min-w-0 flex-1 rounded-xl bg-slate-100/80 p-1 ring-1 ring-inset ring-slate-200/70"
-                  role="presentation"
-                >
-                  {(
-                    [
-                      { id: 'VENDITORI' as const, label: inVenditaLabel, icon: 'vendita' },
-                      { id: 'ASTE' as const, label: asteLabel, icon: 'aste' },
-                    ] as const
-                  ).map((tab) => {
-                    const iconClass = 'h-4 w-4 sm:h-[18px] sm:w-[18px] shrink-0';
-                    const selected = sellerSubTab === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        role="tab"
-                        id={`pd-market-tab-${tab.id}`}
-                        aria-selected={selected}
-                        aria-controls={`pd-market-panel-${tab.id}`}
-                        onClick={() => onSellerSubTabChange(tab.id)}
-                        className={cn(
-                          'group flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[10px] font-bold uppercase tracking-wide transition-all duration-200 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs',
-                          selected
-                            ? 'bg-white text-[#FF7300] shadow-sm ring-1 ring-slate-200/90'
-                            : 'text-slate-500 hover:text-slate-700'
-                        )}
-                      >
-                        {tab.icon === 'vendita' && (
-                          <Tag className={iconClass} aria-hidden />
-                        )}
-                        {tab.icon === 'aste' && (
-                          <AuctionGavelIcon className={iconClass} animated />
-                        )}
-                        <span className="truncate">{tab.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  type="button"
-                  role="tab"
-                  id="pd-market-tab-TCG_EXPRESS"
-                  aria-selected={sellerSubTab === 'TCG_EXPRESS'}
-                  aria-controls="pd-market-panel-TCG_EXPRESS"
-                  onClick={() => onSellerSubTabChange('TCG_EXPRESS')}
-                  className={cn(
-                    'relative flex shrink-0 items-center justify-center gap-1 self-center rounded-full px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide transition-all',
-                    sellerSubTab === 'TCG_EXPRESS'
-                      ? 'bg-white text-[#FF7300] shadow-sm ring-2 ring-[#FF7300]/30'
-                      : 'bg-white text-orange-600/90 ring-1 ring-gray-200 hover:bg-orange-50/60'
-                  )}
-                >
-                  <Zap className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  <span className="truncate">{brxExpressLabel}</span>
-                  <span className="inline-flex items-center rounded-full bg-emerald-500 px-1 text-[7px] font-bold leading-[1.6] text-white">
-                    {brxNewLabel}
-                  </span>
-                </button>
-              </div>
-              <p className="pb-2 text-[11px] text-gray-500 sm:text-xs">{tabsHint}</p>
+              {(
+                [
+                  { id: 'VENDITORI' as const, label: inVenditaLabel, icon: 'vendita' },
+                  { id: 'ASTE' as const, label: asteLabel, icon: 'aste' },
+                  { id: 'TCG_EXPRESS' as const, label: brxExpressLabel, icon: 'express' },
+                ] as const
+              ).map((tab) => {
+                const selected = sellerSubTab === tab.id;
+                const iconClass = cn(
+                  'shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:scale-110',
+                  selected ? 'h-[18px] w-[18px]' : 'h-4 w-4'
+                );
+
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    id={`pd-market-tab-${tab.id}`}
+                    aria-selected={selected}
+                    aria-controls={`pd-market-panel-${tab.id}`}
+                    onClick={() => onSellerSubTabChange(tab.id)}
+                    className={cn(
+                      'group relative -mb-px flex shrink-0 items-center gap-1.5 rounded-t-xl border border-b-0 px-3 font-bold uppercase tracking-wide transition-all duration-200 sm:px-4',
+                      selected
+                        ? 'z-10 border-zinc-300/80 bg-white pb-2.5 pt-2.5 text-[11px] text-primary shadow-[0_-4px_12px_rgba(0,0,0,0.08)]'
+                        : 'border-zinc-200/90 bg-zinc-100 pb-2 pt-1.5 text-[10px] text-zinc-500 shadow-[0_-1px_3px_rgba(0,0,0,0.04)] hover:bg-zinc-50 hover:text-zinc-700'
+                    )}
+                  >
+                    {tab.icon === 'vendita' && <Tag className={iconClass} aria-hidden />}
+                    {tab.icon === 'aste' && <AuctionGavelIcon className={iconClass} animated />}
+                    {tab.icon === 'express' && <Zap className={iconClass} aria-hidden />}
+                    <span className="truncate">{tab.label}</span>
+                    {tab.id === 'TCG_EXPRESS' && (
+                      <span className="inline-flex items-center rounded-full bg-emerald-500 px-1 text-[7px] font-bold leading-[1.6] text-white">
+                        {brxNewLabel}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-            {sellerSubTab === 'VENDITORI' && (
-              <div
-                id="pd-market-panel-VENDITORI"
-                role="tabpanel"
-                aria-labelledby="pd-market-tab-VENDITORI"
-                className="overflow-x-auto animate-in fade-in slide-in-from-bottom-2 duration-300"
-              >
-                {listingActionMessage && (
-                  <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">{listingActionMessage}</div>
-                )}
-                <ModernSellerTable
-                  rows={sortedMarketplaceRows}
-                  loading={listingsLoading}
-                  auctionsLoading={auctionsLoading}
-                  error={listingsError}
-                  emptyMessage={marketplaceEmptyMessage}
-                  cardImageSrc={cardImageSrc}
-                  cardName={card?.name}
-                  cardLanguage={card?.available_languages?.[0] ?? null}
-                  onAddToCart={onAddToCart}
-                  onBuyNow={onBuyNow}
-                  onProposeTrade={onProposeTrade}
-                  isOwnListing={isOwnListing}
-                  onOwnerEdit={onOwnerEdit}
-                  onOwnerQuantityChange={onOwnerQuantityChange}
-                  busyItemId={rowBusyId}
-                />
-              </div>
-            )}
-            {sellerSubTab === 'ASTE' && card && (
-              <div
-                id="pd-market-panel-ASTE"
-                role="tabpanel"
-                aria-labelledby="pd-market-tab-ASTE"
-              >
-                <ProductAuctionsPanel card={card} />
-              </div>
-            )}
-            {sellerSubTab === 'TCG_EXPRESS' && (
-              <div
-                id="pd-market-panel-TCG_EXPRESS"
-                role="tabpanel"
-                aria-labelledby="pd-market-tab-TCG_EXPRESS"
-                className="p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300"
-              >
-                <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50/60 p-6 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-400 shadow-md shadow-orange-500/20">
-                    <Zap className="h-6 w-6 text-white" aria-hidden />
-                  </div>
-                  <p className="text-sm font-extrabold uppercase tracking-wide text-orange-700">BRX Express</p>
-                  <p className="mt-1 text-sm text-orange-600/80">Spedizione ultra-rapida per le tue carte. Presto disponibile.</p>
+            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+              <p className="border-b border-gray-200 px-3 py-2 text-[11px] text-gray-500 sm:px-4 sm:text-xs">
+                {tabsHint}
+              </p>
+              {sellerSubTab === 'VENDITORI' && (
+                <div
+                  id="pd-market-panel-VENDITORI"
+                  role="tabpanel"
+                  aria-labelledby="pd-market-tab-VENDITORI"
+                  className="overflow-x-auto animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
+                  {listingActionMessage && (
+                    <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                      {listingActionMessage}
+                    </div>
+                  )}
+                  <ModernSellerTable
+                    rows={sortedMarketplaceRows}
+                    loading={listingsLoading}
+                    auctionsLoading={auctionsLoading}
+                    error={listingsError}
+                    emptyMessage={marketplaceEmptyMessage}
+                    cardImageSrc={cardImageSrc}
+                    cardName={card?.name}
+                    cardLanguage={card?.available_languages?.[0] ?? null}
+                    onAddToCart={onAddToCart}
+                    onBuyNow={onBuyNow}
+                    onProposeTrade={onProposeTrade}
+                    isOwnListing={isOwnListing}
+                    onOwnerEdit={onOwnerEdit}
+                    onOwnerQuantityChange={onOwnerQuantityChange}
+                    busyItemId={rowBusyId}
+                  />
                 </div>
-              </div>
-            )}
+              )}
+              {sellerSubTab === 'ASTE' && card && (
+                <div
+                  id="pd-market-panel-ASTE"
+                  role="tabpanel"
+                  aria-labelledby="pd-market-tab-ASTE"
+                >
+                  <ProductAuctionsPanel card={card} />
+                </div>
+              )}
+              {sellerSubTab === 'TCG_EXPRESS' && (
+                <div
+                  id="pd-market-panel-TCG_EXPRESS"
+                  role="tabpanel"
+                  aria-labelledby="pd-market-tab-TCG_EXPRESS"
+                  className="p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
+                  <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50/60 p-6 text-center">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-400 shadow-md shadow-orange-500/20">
+                      <Zap className="h-6 w-6 text-white" aria-hidden />
+                    </div>
+                    <p className="text-sm font-extrabold uppercase tracking-wide text-orange-700">BRX Express</p>
+                    <p className="mt-1 text-sm text-orange-600/80">
+                      Spedizione ultra-rapida per le tue carte. Presto disponibile.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
