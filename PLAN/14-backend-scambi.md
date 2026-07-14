@@ -276,4 +276,7 @@ Metriche transizioni/escrow; schedule EventBridge (expire + recover); runbook DI
 - `auth` aggiornato senza riavviare Search/Meilisearch; `source` è esposto nell'inventario pubblico.
 - Scheduler produzione attivi riusando il Lambda esistente: `expire-trades` ogni 15 minuti e `recover-accepting` ogni 5 minuti; entrambe le invocazioni manuali hanno risposto `200`.
 - Frontend Amplify job `491` riuscito sul commit `5379c67`; `/build-info.json` espone quel commit, `/scambi` applica il redirect auth e `/api/trades` senza cookie risponde `401` con `private, no-store` sia sul dominio Amplify sia su `www.ebartex.com`.
-- Resta solo il test funzionale con due utenti reali/CardTrader e, durante uno scambio attivo, il giro di reconciler senza mutazioni inattese.
+- **Correzione Ebartex-only**: marketplace espone escrow S2S idempotente sulle inserzioni non collegate a CardTrader; auction orchestra provider sync+marketplace; frontend mostra e invia entrambi. Migrazioni `005_trade_inventory` e `20260714_mkt_trade` applicate, con versionamento Alembic marketplace separato (`mkt_alembic_version`).
+- Immagini ECR `brx-marketplace:trades-ebartex-11b4953` e `ebartex-auction:trades-ebartex-72ded86` online; rollback `rollback-pre-ebartex-trades-20260714-1458`. Health e S2S (`422` autenticato su payload vuoto, `401` senza token) verdi; pool auction di nuovo limitato a 32 connessioni teoriche.
+- Frontend Amplify job `493` riuscito sul commit `d3d2fcb`; `/build-info.json` espone `d3d2fcb`.
+- Restano il test funzionale con due utenti reali su un item Ebartex-only e uno CardTrader e, durante uno scambio attivo, il giro di reconciler senza mutazioni inattese.
