@@ -154,8 +154,10 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
         country: null,
       },
       listing: {
-        id: `sync:${first.inventory_item_id}`,
-        source: 'sync',
+        id: first.inventory_source === 'marketplace'
+          ? `mkt:${first.marketplace_listing_id}`
+          : `sync:${first.inventory_item_id}`,
+        source: first.inventory_source,
         sellerId: trade.proposer_id,
         quantity: first.quantity,
       },
@@ -168,7 +170,9 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
         game: null,
       },
       requestedItems: offered.map((item) => ({
-        inventoryItemId: item.inventory_item_id,
+        source: item.inventory_source,
+        inventoryItemId: item.inventory_item_id ?? undefined,
+        marketplaceListingId: item.marketplace_listing_id ?? undefined,
         blueprintId: item.blueprint_id,
         quantity: item.quantity,
         name: catalog[item.blueprint_id]?.name,

@@ -40,7 +40,9 @@ export interface TradeProposalContext {
   mode?: 'propose' | 'counter';
   parentTradeId?: number;
   requestedItems?: Array<{
-    inventoryItemId: number;
+    source: 'sync' | 'marketplace';
+    inventoryItemId?: number;
+    marketplaceListingId?: string;
     blueprintId: number;
     quantity: number;
     name?: string;

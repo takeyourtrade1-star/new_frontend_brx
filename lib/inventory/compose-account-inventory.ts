@@ -15,19 +15,13 @@ export function isTradableSyncRow(item: InventoryItemResponse): boolean {
   return item.source === 'cardtrader' || item.source === 'trade';
 }
 
-/** Listing marketplace creato in modalità DEMO: mock di test, escluso dalla proiezione. */
-export function isDemoListing(listing: ListingResponse): boolean {
-  return listing.sync_mode_at_creation === 'demo';
-}
-
 /**
  * Compone la proiezione inventario di /account/oggetti da righe sync CardTrader
  * e listing marketplace EBARTEX, senza merge cieco (piano CardTrader, Fase 8):
  *
  * - righe sync senza `external_stock_id` (interne/test) → escluse;
  * - righe sync a quantità zero (sold out) → escluse dall'inventario attivo;
- * - listing marketplace creati in DEMO (mock) → esclusi (restano gestibili
- *   nel pannello Vendite);
+ * - listing marketplace EBARTEX attivi, anche senza CardTrader → inclusi;
  * - listing marketplace già collegati a una riga sync tramite
  *   `cardtrader_article_id` ↔ `external_stock_id` → esclusi (stesso stock
  *   fisico: la riga sync è la fonte autorevole per lo stato CardTrader).
@@ -48,7 +42,6 @@ export function composeAccountInventory(
   );
 
   const marketplaceRows = marketplaceListings
-    .filter((listing) => !isDemoListing(listing))
     .filter(
       (listing) =>
         listing.cardtrader_article_id == null ||

@@ -92,13 +92,16 @@ describe('composeAccountInventory', () => {
     expect(items.map((i) => i.id)).toEqual([1]);
   });
 
-  it('esclude i listing marketplace creati in modalità DEMO (mock)', () => {
+  it('include i listing presenti solo su Ebartex anche in modalità DEMO', () => {
     const items = composeAccountInventory(
       [],
       [listing(), listing({ id: 'aaaaaaaa-0000-0000-0000-000000000002', sync_mode_at_creation: 'demo' })]
     );
-    expect(items).toHaveLength(1);
-    expect(items[0].marketplace_listing_id).toBe('aaaaaaaa-0000-0000-0000-000000000001');
+    expect(items).toHaveLength(2);
+    expect(items.map((item) => item.marketplace_listing_id)).toEqual([
+      'aaaaaaaa-0000-0000-0000-000000000001',
+      'aaaaaaaa-0000-0000-0000-000000000002',
+    ]);
   });
 
   it('deduplica il listing marketplace collegato a una riga sync via cardtrader_article_id', () => {

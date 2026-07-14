@@ -14,14 +14,16 @@ import {
   getTradeProposalContext,
   type TradeProposalContext,
 } from '@/lib/scambi/trade-proposal-context';
-import type { TradeAddress } from '@/types/trade';
+import type { TradeAddress, TradeItemInput } from '@/types/trade';
 
 interface PickerItem {
-  id: number;
+  id: string;
+  inventoryItemId?: number;
+  marketplaceListingId?: string;
   blueprintId: number;
   quantity: number;
   name: string;
-  source: 'cardtrader' | 'trade';
+  source: 'cardtrader' | 'trade' | 'marketplace';
 }
 
 const EMPTY_ADDRESS: TradeAddress = {
@@ -32,9 +34,9 @@ function ItemPicker({ title, empty, items, selected, locked, onChange }: {
   title: string;
   empty: string;
   items: PickerItem[];
-  selected: Record<number, number>;
-  locked?: Set<number>;
-  onChange: (next: Record<number, number>) => void;
+  selected: Record<string, number>;
+  locked?: Set<string>;
+  onChange: (next: Record<string, number>) => void;
 }) {
   const toggle = (item: PickerItem) => {
     if (locked?.has(item.id)) return;
@@ -89,8 +91,8 @@ export function TradeProposalPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const [ctx, setCtx] = useState<TradeProposalContext | null>(null);
   const [hydrated, setHydrated] = useState(false);
-  const [offered, setOffered] = useState<Record<number, number>>({});
-  const [requested, setRequested] = useState<Record<number, number>>({});
+  const [offered, setOffered] = useState<Record<string, number>>({});
+  const [requested, setRequested] = useState<Record<string, number>>({});
   const [address, setAddress] = useState<TradeAddress>(EMPTY_ADDRESS);
   const [message, setMessage] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -101,12 +103,19 @@ export function TradeProposalPage() {
     const stored = getTradeProposalContext();
     setCtx(stored);
     if (stored) {
-      const initial: Record<number, number> = {};
+      const initial: Record<string, number> = {};
       if (stored.requestedItems?.length) {
-        for (const item of stored.requestedItems) initial[item.inventoryItemId] = Math.max(1, item.quantity);
-      } else if (stored.listing.source === 'sync') {
-        const id = Number(stored.listing.id.replace(/^sync:/, ''));
-        if (Number.isInteger(id) && id > 0) initial[id] = 1;
+        for (const item of stored.requestedItems) {
+          const key = item.source === 'marketplace'
+            ? `marketplace:${item.marketplaceListingId}`
+            : `sync:${item.inventoryItemId}`;
+          initial[key] = Math.max(1, item.quantity);
+        }
+      } else {
+        const key = stored.listing.source === 'marketplace'
+          ? `marketplace:${stored.listing.id.replace(/^mkt:/, '')}`
+          : `sync:${stored.listing.id.replace(/^sync:/, '')}`;
+        initial[key] = 1;
       }
       setRequested(initial);
     }
@@ -128,41 +137,60 @@ export function TradeProposalPage() {
   const { data: requestedCatalog = {} } = useMeilisearchCards([...new Set(requestedBlueprintIds)]);
 
   const myItems = useMemo<PickerItem[]>(() => inventory.inventoryRaw
-    .filter((item) => item.listing_source === 'sync' && (item.source === 'cardtrader' || item.source === 'trade'))
-    .map((item) => ({
-      id: item.id,
-      blueprintId: item.blueprint_id,
-      quantity: item.quantity,
-      name: inventory.catalogMap[item.blueprint_id]?.name || t('trades.cardFallback', { id: item.blueprint_id }),
-      source: item.source as 'cardtrader' | 'trade',
-    })), [inventory.catalogMap, inventory.inventoryRaw, t]);
+    .filter((item) => (
+      item.listing_source === 'marketplace' && Boolean(item.marketplace_listing_id)
+    ) || (
+      item.listing_source === 'sync' && (item.source === 'cardtrader' || item.source === 'trade')
+    ))
+    .map((item) => {
+      const isMarketplace = item.listing_source === 'marketplace' && Boolean(item.marketplace_listing_id);
+      return {
+        id: isMarketplace ? `marketplace:${item.marketplace_listing_id}` : `sync:${item.id}`,
+        inventoryItemId: isMarketplace ? undefined : item.id,
+        marketplaceListingId: isMarketplace ? item.marketplace_listing_id : undefined,
+        blueprintId: item.blueprint_id,
+        quantity: item.quantity,
+        name: inventory.catalogMap[item.blueprint_id]?.name || item.description || t('trades.cardFallback', { id: item.blueprint_id }),
+        source: isMarketplace ? 'marketplace' : item.source as 'cardtrader' | 'trade',
+      };
+    }), [inventory.catalogMap, inventory.inventoryRaw, t]);
 
   const otherItems = useMemo<PickerItem[]>(() => {
     if (ctx?.requestedItems?.length) {
       return ctx.requestedItems.map((item) => ({
-        id: item.inventoryItemId,
+        id: item.source === 'marketplace'
+          ? `marketplace:${item.marketplaceListingId}`
+          : `sync:${item.inventoryItemId}`,
+        inventoryItemId: item.inventoryItemId,
+        marketplaceListingId: item.marketplaceListingId,
         blueprintId: item.blueprintId,
         quantity: item.quantity,
         name: item.name || requestedCatalog[item.blueprintId]?.name || t('trades.cardFallback', { id: item.blueprintId }),
-        source: 'cardtrader',
+        source: item.source === 'marketplace' ? 'marketplace' : 'trade',
       }));
     }
-    const items = (publicCollection.data?.items ?? []).map((item) => ({
-      id: item.id,
+    const items: PickerItem[] = (publicCollection.data?.items ?? []).map((item) => ({
+      id: `sync:${item.id}`,
+      inventoryItemId: item.id,
       blueprintId: item.blueprint_id,
       quantity: item.quantity,
       name: requestedCatalog[item.blueprint_id]?.name || t('trades.cardFallback', { id: item.blueprint_id }),
       source: item.source,
     }));
-    if (ctx?.listing.source === 'sync') {
-      const baseId = Number(ctx.listing.id.replace(/^sync:/, ''));
-      if (Number.isInteger(baseId) && !items.some((item) => item.id === baseId)) {
+    if (ctx) {
+      const isMarketplace = ctx.listing.source === 'marketplace';
+      const marketplaceListingId = isMarketplace ? ctx.listing.id.replace(/^mkt:/, '') : undefined;
+      const inventoryItemId = isMarketplace ? undefined : Number(ctx.listing.id.replace(/^sync:/, ''));
+      const baseId = isMarketplace ? `marketplace:${marketplaceListingId}` : `sync:${inventoryItemId}`;
+      if (!items.some((item) => item.id === baseId)) {
         items.unshift({
           id: baseId,
+          inventoryItemId,
+          marketplaceListingId,
           blueprintId: Number(ctx.card.id) || 0,
           quantity: ctx.listing.quantity,
           name: ctx.card.name,
-          source: 'cardtrader',
+          source: isMarketplace ? 'marketplace' : 'cardtrader',
         });
       }
     }
@@ -171,24 +199,41 @@ export function TradeProposalPage() {
 
   const lockedRequested = useMemo(() => {
     if (ctx?.requestedItems?.length) {
-      return new Set(ctx.requestedItems.map((item) => item.inventoryItemId));
+      return new Set(ctx.requestedItems.map((item) => item.source === 'marketplace'
+        ? `marketplace:${item.marketplaceListingId}`
+        : `sync:${item.inventoryItemId}`));
     }
-    const id = ctx?.listing.source === 'sync'
-      ? Number(ctx.listing.id.replace(/^sync:/, ''))
-      : 0;
-    return new Set(Number.isInteger(id) && id > 0 ? [id] : []);
+    if (!ctx) return new Set<string>();
+    const id = ctx.listing.source === 'marketplace'
+      ? `marketplace:${ctx.listing.id.replace(/^mkt:/, '')}`
+      : `sync:${ctx.listing.id.replace(/^sync:/, '')}`;
+    return new Set([id]);
   }, [ctx]);
   const validAddress = Boolean(address.full_name && address.street && address.city && address.zip && address.country);
   const canSubmit = Boolean(ctx && Object.keys(offered).length && Object.keys(requested).length && validAddress);
   const busy = createTrade.isPending || counterTrade.isPending;
 
   const updateAddress = (key: keyof TradeAddress, value: string) => setAddress((current) => ({ ...current, [key]: value }));
+  const toTradeItems = (selected: Record<string, number>, items: PickerItem[]): TradeItemInput[] => {
+    const byId = new Map(items.map((item) => [item.id, item]));
+    const result: TradeItemInput[] = [];
+    for (const [id, quantity] of Object.entries(selected)) {
+      const item = byId.get(id);
+      if (!item) continue;
+      if (item.marketplaceListingId) {
+        result.push({ marketplace_listing_id: item.marketplaceListingId, quantity });
+      } else if (item.inventoryItemId) {
+        result.push({ inventory_item_id: item.inventoryItemId, quantity });
+      }
+    }
+    return result;
+  };
   const submit = async () => {
     if (!ctx || !canSubmit) return;
     setSubmitError(null);
     const common = {
-      offered: Object.entries(offered).map(([id, quantity]) => ({ inventory_item_id: Number(id), quantity })),
-      requested: Object.entries(requested).map(([id, quantity]) => ({ inventory_item_id: Number(id), quantity })),
+      offered: toTradeItems(offered, myItems),
+      requested: toTradeItems(requested, otherItems),
       message: message.trim() || undefined,
       offered_credits_cents: 0 as const,
       requested_credits_cents: 0 as const,
@@ -206,7 +251,7 @@ export function TradeProposalPage() {
   };
 
   if (!hydrated) return <div className="min-h-[60vh] bg-[#F5F4F0]" />;
-  if (!ctx || ctx.listing.source === 'marketplace') {
+  if (!ctx) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 bg-[#F5F4F0] px-4 text-center">
         <h1 className="text-xl font-black text-[#1D3160]">{ctx ? t('trades.notTradable') : t('trades.noSelection')}</h1>

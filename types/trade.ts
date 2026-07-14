@@ -12,13 +12,17 @@ export interface TradeAddress {
   phone?: string | null;
 }
 
-export interface TradeItemInput { inventory_item_id: number; quantity: number }
+export type TradeItemInput =
+  | { inventory_item_id: number; marketplace_listing_id?: never; quantity: number }
+  | { marketplace_listing_id: string; inventory_item_id?: never; quantity: number };
 
 export interface TradeItem {
   id: number;
   direction: 'offered' | 'requested';
   owner_user_id: string;
-  inventory_item_id: number;
+  inventory_source: 'sync' | 'marketplace';
+  inventory_item_id: number | null;
+  marketplace_listing_id: string | null;
   quantity: number;
   blueprint_id: number;
   price_cents: number;
