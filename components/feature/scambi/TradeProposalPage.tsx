@@ -111,7 +111,7 @@ export function TradeProposalPage() {
             : `sync:${item.inventoryItemId}`;
           initial[key] = Math.max(1, item.quantity);
         }
-      } else {
+      } else if (stored.listing.quantity > 0) {
         const key = stored.listing.source === 'marketplace'
           ? `marketplace:${stored.listing.id.replace(/^mkt:/, '')}`
           : `sync:${stored.listing.id.replace(/^sync:/, '')}`;
@@ -137,6 +137,7 @@ export function TradeProposalPage() {
   const { data: requestedCatalog = {} } = useMeilisearchCards([...new Set(requestedBlueprintIds)]);
 
   const myItems = useMemo<PickerItem[]>(() => inventory.inventoryRaw
+    .filter((item) => item.quantity > 0)
     .filter((item) => (
       item.listing_source === 'marketplace' && Boolean(item.marketplace_listing_id)
     ) || (
@@ -169,7 +170,9 @@ export function TradeProposalPage() {
         source: item.source === 'marketplace' ? 'marketplace' : 'cardtrader',
       }));
     }
-    const items: PickerItem[] = (publicCollection.data?.items ?? []).map((item) => ({
+    const items: PickerItem[] = (publicCollection.data?.items ?? [])
+      .filter((item) => item.quantity > 0)
+      .map((item) => ({
       id: `sync:${item.id}`,
       inventoryItemId: item.id,
       blueprintId: item.blueprint_id,
@@ -177,7 +180,7 @@ export function TradeProposalPage() {
       name: requestedCatalog[item.blueprint_id]?.name || t('trades.cardFallback', { id: item.blueprint_id }),
       source: 'cardtrader',
     }));
-    if (ctx) {
+    if (ctx && ctx.listing.quantity > 0) {
       const isMarketplace = ctx.listing.source === 'marketplace';
       const marketplaceListingId = isMarketplace ? ctx.listing.id.replace(/^mkt:/, '') : undefined;
       const inventoryItemId = isMarketplace ? undefined : Number(ctx.listing.id.replace(/^sync:/, ''));
