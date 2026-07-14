@@ -258,3 +258,14 @@ Metriche transizioni/escrow; schedule EventBridge (expire + recover); runbook DI
 - BFF provato contro auction locale: GET autenticata `200`/`no-store`, create con idempotency key e cancel riusciti; senza cookie `401`.
 - Lo smoke ha scoperto e corretto un rumore operativo: gli `AppError` attesi erano gestiti dal fallback generico e il `404` dell'estraneo produceva uno stacktrace. Ora hanno handler specifico e rollback a livello `DEBUG`; test dedicato verde, suite auction **76 passati / 2 skipped** includendo i 4 test PostgreSQL.
 - Restano volutamente non spuntati lo smoke con due utenti reali/dev e la verifica del reconciler in produzione: richiedono ambiente e conferma esplicita.
+
+### Deploy produzione — 2026-07-14
+
+- Pubblicate immagini ECR immutabili per `sync`, `auction` e `auth`; rollback comune `rollback-pre-trades-20260714-134713`.
+- `sync` migrato per primo: backfill `source` su 3513 righe, `inventory_ops` creato, API e worker sani.
+- Lo schema auction era già materialmente aggiornato fino a `20260526_listing_photos`, ma `alembic_version` era fermo a `006`: verificati tabelle, colonne, indici, vincoli, tipi `NUMERIC(18,4)` e trigger append-only; aggiunti i due indici e il check mancanti, riallineato il baseline, quindi applicata `20260714_trades`.
+- `auction` online con healthcheck sano, pool PostgreSQL limitato a 32 connessioni teoriche, zero `ERROR`/traceback allo startup e collegamento S2S verso sync verificato (`422` su payload vuoto autenticato).
+- `auth` aggiornato senza riavviare Search/Meilisearch; `source` è esposto nell'inventario pubblico.
+- Scheduler produzione attivi riusando il Lambda esistente: `expire-trades` ogni 15 minuti e `recover-accepting` ogni 5 minuti; entrambe le invocazioni manuali hanno risposto `200`.
+- Frontend Amplify job `491` riuscito sul commit `5379c67`; `/build-info.json` espone quel commit, `/scambi` applica il redirect auth e `/api/trades` senza cookie risponde `401` con `private, no-store` sia sul dominio Amplify sia su `www.ebartex.com`.
+- Resta solo il test funzionale con due utenti reali/CardTrader e, durante uno scambio attivo, il giro di reconciler senza mutazioni inattese.
