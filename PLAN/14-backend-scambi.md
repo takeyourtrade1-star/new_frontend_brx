@@ -289,11 +289,14 @@ Metriche transizioni/escrow; schedule EventBridge (expire + recover); runbook DI
 - Frontend Amplify job `493` riuscito sul commit `d3d2fcb`; `/build-info.json` espone `d3d2fcb`.
 - Restano il test funzionale con due utenti reali su un item Ebartex-only e uno CardTrader e, durante uno scambio attivo, il giro di reconciler senza mutazioni inattese.
 
-### Correzione ciclo inventario — pronta localmente, non deployata
+### Correzione ciclo inventario — deployata il 2026-07-14
 
 - Aggiunta `reserved_quantity` in sync e marketplace: lo stock accettato resta visibile come “In scambio”; solo il residuo è acquistabile.
 - Alla chiusura, `consume` elimina definitivamente la quantità scambiata dalla vecchia inserzione. L'accredito ricevuto resta interno e non viene pubblicato.
 - L'annullo pre-spedizione ripristina lo stock; dopo una spedizione serve contestazione e conferma del rientro fisico.
 - Corrieri supportati nel dettaglio scambio: Poste/SDA, BRT, GLS, DHL, UPS, FedEx/TNT, InPost e Altro; tracking cliccabile quando disponibile.
 - Verifica locale: frontend 252 test, typecheck, lint, i18n e build verdi; PostgreSQL reale: sync 6 test, marketplace 2 test, auction 10 test; Ruff verde sui file modificati.
-- Questa correzione **non è ancora stata deployata in produzione**.
+- Deploy produzione completato con immagini `ebartex-sync:trade-visibility-072cc78`, `brx-marketplace:trade-visibility-681565c` e `ebartex-auction:trade-visibility-d5e2c8e`; rollback comune `rollback-pre-trade-visibility-20260714-170629`.
+- Migrazioni `20260714_trade_inventory_visibility.sql` e `006_trade_visibility` applicate; API e worker dei tre servizi sani, senza errori nei log di avvio.
+- Frontend Amplify job `495` riuscito sul commit `bc75159`; `/build-info.json` espone `bc75159`.
+- Smoke produzione: le righe ricevute `source=trade` restano nell'inventario proprietario ma non sono restituite dalle inserzioni pubbliche; auth BFF e redirect `/scambi` verificati.
