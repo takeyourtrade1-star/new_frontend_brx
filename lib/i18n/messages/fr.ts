@@ -1,6 +1,8 @@
 import type { MessageKey } from './en';
+import { tradesEn } from './trades';
 
 export const fr: Record<MessageKey, string> = {
+  ...tradesEn,
   'common.openMenu': 'Ouvrir le menu',
   'common.closeMenu': 'Fermer le menu',
   'common.menuDialog': 'Menu',

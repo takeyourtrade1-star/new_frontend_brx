@@ -14,9 +14,21 @@ export type NotificationType =
   | 'DISPUTE_OPENED'
   | 'DISPUTE_MESSAGE'
   | 'AUCTION_REASSIGNED'
-  | 'AUCTION_CANCELLED';
+  | 'AUCTION_CANCELLED'
+  | 'TRADE_PROPOSED'
+  | 'TRADE_RECEIVED'
+  | 'TRADE_COUNTERED'
+  | 'TRADE_ACCEPTED'
+  | 'TRADE_DECLINED'
+  | 'TRADE_CANCEL_REQUESTED'
+  | 'TRADE_CANCELLED'
+  | 'TRADE_SHIPPED'
+  | 'TRADE_COMPLETED'
+  | 'TRADE_EXPIRING'
+  | 'TRADE_EXPIRED'
+  | 'TRADE_ASSISTANCE';
 
-export type NotificationRelatedKind = 'order' | 'auction' | 'dispute';
+export type NotificationRelatedKind = 'order' | 'auction' | 'dispute' | 'trade';
 
 export interface NotificationAPI {
   id: number;

@@ -17,7 +17,7 @@ Questo file dice all'agente *quali piani sono già stati eseguiti* senza dover l
 | 11 | Responsive & Mobile | **Completato** (eseguito 2026-06-29: 11.1/11.2/11.4/11.6/11.7/11.8; 11.3 già in Plan 7, 11.5 già implementato con OggettiMobileList) |
 | 12 | Code Quality & Hygiene | **Quasi completato** (eseguito 2026-06-29: 12.1-12.4, 12.6, 12.8-12.12; 12.5/12.7 saltati per rischio runtime, 12.9 già ok) |
 | 13 | Refactor Mascotte Asso | **Completato** (eseguito 2026-07-08, dettagli nel file e in memoria agente) |
-| 14 | Backend Scambi | **Originale** (piano scritto 2026-07-13 dopo ricognizione FE+backend; da eseguire — Fasi 1-3 nel repo `ebartex-devs/auction`, 4-5 qui) |
+| 14 | Backend Scambi | **Implementazione locale completata** (2026-07-14: Fasi 0–6 implementate; suite sync 12/12 e auction 76 passati/2 skipped; smoke integrato auction→sync→PostgreSQL, BFF e runbook DISPUTED verdi con totale invariato e 404 puliti. Restano deploy, smoke CardTrader con utenti reali e verifica reconciler in produzione, tutti bloccati fino a conferma esplicita) |
 
 ## Legenda
 

@@ -100,6 +100,7 @@ export interface PublicInventoryItem {
   properties?: Record<string, unknown> | null;
   description?: string | null;
   graded?: boolean;
+  source: 'cardtrader' | 'trade';
   updated_at?: string | null;
 }
 

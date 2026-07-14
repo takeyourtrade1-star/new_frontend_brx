@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   composeAccountInventory,
   isCardTraderSyncRow,
+  isTradableSyncRow,
 } from '@/lib/inventory/compose-account-inventory';
 import { isVisibleInventoryGame } from '@/lib/inventory/inventory-filter-utils';
 import type { InventoryItemResponse } from '@/lib/api/sync-client';
@@ -15,6 +16,7 @@ function syncRow(overrides: Partial<InventoryItemResponse> = {}): InventoryItemR
     quantity: 2,
     price_cents: 500,
     external_stock_id: 'ct-1',
+    source: 'cardtrader',
     updated_at: '2026-07-01T00:00:00Z',
     ...overrides,
   };
@@ -47,21 +49,39 @@ describe('isCardTraderSyncRow', () => {
   });
 
   it('rifiuta righe interne senza external_stock_id (mock/test)', () => {
-    expect(isCardTraderSyncRow(syncRow({ external_stock_id: null }))).toBe(false);
-    expect(isCardTraderSyncRow(syncRow({ external_stock_id: undefined }))).toBe(false);
-    expect(isCardTraderSyncRow(syncRow({ external_stock_id: '  ' }))).toBe(false);
+    expect(isCardTraderSyncRow(syncRow({ source: 'trade', external_stock_id: null }))).toBe(false);
+    expect(isCardTraderSyncRow(syncRow({ source: 'internal_test', external_stock_id: null }))).toBe(false);
+  });
+});
+
+describe('isTradableSyncRow', () => {
+  it('accetta stock CardTrader e carte ricevute in scambio', () => {
+    expect(isTradableSyncRow(syncRow())).toBe(true);
+    expect(isTradableSyncRow(syncRow({ source: 'trade', external_stock_id: null }))).toBe(true);
+  });
+
+  it('rifiuta lo stock di test interno', () => {
+    expect(isTradableSyncRow(syncRow({ source: 'internal_test' }))).toBe(false);
   });
 });
 
 describe('composeAccountInventory', () => {
   it('esclude le righe sync interne senza external_stock_id', () => {
     const items = composeAccountInventory(
-      [syncRow(), syncRow({ id: 2, external_stock_id: null })],
+      [syncRow(), syncRow({ id: 2, source: 'internal_test', external_stock_id: null })],
       []
     );
     expect(items).toHaveLength(1);
     expect(items[0].id).toBe(1);
     expect(items[0].listing_source).toBe('sync');
+  });
+
+  it('include le carte ricevute da uno scambio', () => {
+    const items = composeAccountInventory(
+      [syncRow({ id: 2, source: 'trade', external_stock_id: null })],
+      []
+    );
+    expect(items.map((item) => item.id)).toEqual([2]);
   });
 
   it('esclude le righe sync a quantità zero (sold out)', () => {

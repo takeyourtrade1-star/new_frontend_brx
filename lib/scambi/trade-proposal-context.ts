@@ -38,6 +38,13 @@ export interface TradeProposalContext {
   listing: TradeProposalListing;
   /** 'propose' = proposta normale; 'counter' = controproposta a chi mi ha scritto. */
   mode?: 'propose' | 'counter';
+  parentTradeId?: number;
+  requestedItems?: Array<{
+    inventoryItemId: number;
+    blueprintId: number;
+    quantity: number;
+    name?: string;
+  }>;
 }
 
 const STORAGE_KEY = 'ebartex_trade_proposal_ctx';

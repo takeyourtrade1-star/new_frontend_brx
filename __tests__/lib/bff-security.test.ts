@@ -598,3 +598,46 @@ describe('Log — nessun dato sensibile', () => {
     }
   });
 });
+
+describe('/api/trades - sicurezza privata', () => {
+  it('root GET senza cookie risponde 401', async () => {
+    const { GET } = await import('@/app/api/trades/route');
+    const res = await GET(makeRequest('/api/trades'));
+    expect(res.status).toBe(401);
+    expect(res.headers.get('cache-control')).toMatch(/no-store/);
+  });
+
+  it('subpath GET senza cookie risponde 401', async () => {
+    const { GET } = await import('@/app/api/trades/[...path]/route');
+    const res = await GET(makeRequest('/api/trades/1'), {
+      params: Promise.resolve({ path: ['1'] }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('inoltra le chiavi di idempotenza e tracciamento', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      json: () => Promise.resolve({ success: true, data: {} }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { POST } = await import('@/app/api/trades/route');
+    const res = await POST(makeRequest('/api/trades', {
+      method: 'POST',
+      cookie: VALID_COOKIE,
+      body: '{}',
+      headers: { 'Idempotency-Key': 'trade-key', 'X-Request-ID': 'request-key' },
+    }));
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'Idempotency-Key': 'trade-key',
+          'X-Request-ID': 'request-key',
+        }),
+      }),
+    );
+  });
+});

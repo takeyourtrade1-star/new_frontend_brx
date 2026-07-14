@@ -9,7 +9,7 @@
  * validazione/limiti prima di interrogare l'istanza.
  *
  * La firma esportata resta invariata: i call site esistenti (OggettiContent,
- * UserProfileCollectionPanel, ScambiProponiModal, AuctionCreateCardPicker,
+ * UserProfileCollectionPanel, TradeProposalPage, AuctionCreateCardPicker,
  * ProductDetailView) non necessitano modifiche.
  */
 

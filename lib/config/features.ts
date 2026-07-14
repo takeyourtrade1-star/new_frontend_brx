@@ -9,5 +9,8 @@ export const FEATURES = {
   scambiEnabled: true,
 
   /** Se true, mostra la route /scambi. Se false, reindirizza al portale tornei esterno. */
-  scambiRouteEnabled: false,
+  scambiRouteEnabled: true,
+
+  /** I crediti negli scambi restano fuori dalla v1. */
+  scambiCreditsEnabled: false,
 } as const;

@@ -1,7 +1,10 @@
+import { tradesEn } from './trades';
+
 /**
  * English (default fallback). Keys are dot paths shared across all locales.
  */
 export const en = {
+  ...tradesEn,
   'common.openMenu': 'Open menu',
   'common.closeMenu': 'Close menu',
   'common.menuDialog': 'Menu',

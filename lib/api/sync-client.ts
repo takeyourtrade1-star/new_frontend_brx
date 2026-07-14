@@ -71,6 +71,7 @@ export interface InventoryItemResponse {
   price_cents: number;
   properties?: Record<string, unknown> | null;
   external_stock_id?: string | null;
+  source?: 'cardtrader' | 'trade' | 'internal_test';
   description?: string | null;
   user_data_field?: string | null;
   graded?: boolean | null;

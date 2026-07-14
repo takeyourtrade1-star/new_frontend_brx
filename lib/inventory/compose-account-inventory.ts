@@ -5,12 +5,14 @@ import type { InventoryItemWithCatalog } from '@/lib/sync/inventory-types';
 
 /**
  * Riga sync realmente gestita dal sync CardTrader.
- * Le righe senza `external_stock_id` sono create internamente (test/mock) e il
- * sync non le tocca mai: non rappresentano stock CardTrader e non vanno mostrate
- * nella proiezione inventario (piano CardTrader, Fase 8).
  */
 export function isCardTraderSyncRow(item: InventoryItemResponse): boolean {
-  return item.external_stock_id != null && String(item.external_stock_id).trim() !== '';
+  return item.source === 'cardtrader';
+}
+
+/** Stock reale visibile e scambiabile: CardTrader oppure accreditato da uno scambio. */
+export function isTradableSyncRow(item: InventoryItemResponse): boolean {
+  return item.source === 'cardtrader' || item.source === 'trade';
 }
 
 /** Listing marketplace creato in modalità DEMO: mock di test, escluso dalla proiezione. */
@@ -34,13 +36,15 @@ export function composeAccountInventory(
   syncItems: InventoryItemResponse[],
   marketplaceListings: ListingResponse[]
 ): InventoryItemWithCatalog[] {
-  const cardtraderRows: InventoryItemWithCatalog[] = syncItems
-    .filter(isCardTraderSyncRow)
+  const tradableRows: InventoryItemWithCatalog[] = syncItems
+    .filter(isTradableSyncRow)
     .filter((item) => (item.quantity ?? 0) > 0)
     .map((item) => ({ ...item, listing_source: 'sync' as const }));
 
   const knownExternalIds = new Set(
-    cardtraderRows.map((item) => String(item.external_stock_id))
+    tradableRows
+      .filter(isCardTraderSyncRow)
+      .map((item) => String(item.external_stock_id))
   );
 
   const marketplaceRows = marketplaceListings
@@ -52,5 +56,5 @@ export function composeAccountInventory(
     )
     .map(mapListingResponseToInventoryItem);
 
-  return [...cardtraderRows, ...marketplaceRows];
+  return [...tradableRows, ...marketplaceRows];
 }

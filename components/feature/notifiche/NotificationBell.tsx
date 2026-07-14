@@ -25,6 +25,18 @@ const TYPE_LABEL: Record<NotificationAPI['type'], string> = {
   DISPUTE_MESSAGE: 'Messaggio',
   AUCTION_REASSIGNED: 'Riassegnazione',
   AUCTION_CANCELLED: 'Asta annullata',
+  TRADE_PROPOSED: 'Scambio proposto',
+  TRADE_RECEIVED: 'Proposta ricevuta',
+  TRADE_COUNTERED: 'Controproposta',
+  TRADE_ACCEPTED: 'Scambio accettato',
+  TRADE_DECLINED: 'Scambio rifiutato',
+  TRADE_CANCEL_REQUESTED: 'Annullamento richiesto',
+  TRADE_CANCELLED: 'Scambio annullato',
+  TRADE_SHIPPED: 'Carte spedite',
+  TRADE_COMPLETED: 'Scambio completato',
+  TRADE_EXPIRING: 'Scambio in scadenza',
+  TRADE_EXPIRED: 'Scambio scaduto',
+  TRADE_ASSISTANCE: 'Assistenza scambio',
 };
 
 function getDeepLink(n: NotificationAPI): string | null {
@@ -45,6 +57,8 @@ function getDeepLink(n: NotificationAPI): string | null {
       return n.related_id ? `/aste/${n.related_id}` : null;
     case 'dispute':
       return n.related_id ? `/ordini/contestazioni/${n.related_id}` : null;
+    case 'trade':
+      return n.related_id ? `/scambi/${n.related_id}` : null;
     default:
       return null;
   }
