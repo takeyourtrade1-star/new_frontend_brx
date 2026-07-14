@@ -68,6 +68,7 @@ export interface InventoryItemResponse {
   id: number;
   blueprint_id: number;
   quantity: number;
+  reserved_quantity?: number;
   price_cents: number;
   properties?: Record<string, unknown> | null;
   external_stock_id?: string | null;
@@ -96,6 +97,8 @@ export interface ListingItem {
   seller_display_name: string;
   country: string | null;
   quantity: number;
+  /** Quantity visible but unavailable because an accepted trade holds it. */
+  reserved_quantity?: number;
   price_cents: number;
   condition: string | null;
   mtg_language: string | null;

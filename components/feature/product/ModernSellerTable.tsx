@@ -716,6 +716,9 @@ const DesktopListingRow = memo(function DesktopListingRow({
   const rep = getSellerReputation(item);
   const rowKey = listingRowKey(item);
   const imageUrls = useListingRowImageUrls(item, cardImageSrc);
+  const reservedQuantity = item.reserved_quantity ?? 0;
+  const isFullyTradeLocked = item.quantity === 0 && reservedQuantity > 0;
+  const ownerLocked = isOwn && reservedQuantity > 0;
 
   return (
     <tr
@@ -758,14 +761,27 @@ const DesktopListingRow = memo(function DesktopListingRow({
       <td className="px-2.5 py-2">
         <MarketplaceOfferGrid
           price={formatEuro(item.price_cents / 100)}
-          quantity={item.quantity}
+          quantity={
+            reservedQuantity > 0 ? (
+              <span className="inline-flex flex-col items-center leading-tight">
+                <span>{item.quantity}</span>
+                <span className="text-[8px] font-bold uppercase text-amber-600">
+                  {t('trades.inventoryReserved', { count: reservedQuantity })}
+                </span>
+              </span>
+            ) : item.quantity
+          }
           hideQuantity={isCartOpen}
           actions={
-            isOwn ? (
+            isFullyTradeLocked ? (
+              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-800">
+                {t('trades.inventoryLocked')}
+              </span>
+            ) : isOwn ? (
               <div className="inline-flex items-center rounded-sm border border-slate-200 bg-white">
                 <button
                   type="button"
-                  disabled={isBusy}
+                  disabled={isBusy || ownerLocked}
                   onClick={() => onOwnerQuantityChange?.(item, -1)}
                   className="inline-flex h-7 w-6 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
                   aria-label={t('cart.decreaseQty')}
@@ -777,7 +793,7 @@ const DesktopListingRow = memo(function DesktopListingRow({
                 </span>
                 <button
                   type="button"
-                  disabled={isBusy || item.quantity >= 999}
+                  disabled={isBusy || ownerLocked || item.quantity >= 999}
                   onClick={() => onOwnerQuantityChange?.(item, 1)}
                   className="inline-flex h-7 w-6 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
                   aria-label={t('cart.increaseQty')}
@@ -786,8 +802,9 @@ const DesktopListingRow = memo(function DesktopListingRow({
                 </button>
                 <button
                   type="button"
+                  disabled={ownerLocked}
                   onClick={() => onOwnerEdit?.(item)}
-                  className="inline-flex h-7 w-6 items-center justify-center border-l border-slate-200 text-slate-500 hover:bg-amber-50"
+                  className="inline-flex h-7 w-6 items-center justify-center border-l border-slate-200 text-slate-500 hover:bg-amber-50 disabled:opacity-40"
                   aria-label={t('marketplace.editListing')}
                 >
                   <Pencil className="h-3 w-3" />
@@ -991,6 +1008,9 @@ const MobileListingRow = memo(function MobileListingRow({
   const rep = getSellerReputation(item);
   const rowKey = listingRowKey(item);
   const imageUrls = useListingRowImageUrls(item, cardImageSrc);
+  const reservedQuantity = item.reserved_quantity ?? 0;
+  const isFullyTradeLocked = item.quantity === 0 && reservedQuantity > 0;
+  const ownerLocked = isOwn && reservedQuantity > 0;
 
   return (
     <article
@@ -1026,14 +1046,21 @@ const MobileListingRow = memo(function MobileListingRow({
             graded={item.graded ?? undefined}
           />
           <div className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
-            <span className="text-xs font-medium text-slate-600">{item.quantity}</span>
+            <span className="text-xs font-medium text-slate-600">
+              {item.quantity}
+              {reservedQuantity > 0 && (
+                <span className="ml-1 font-bold text-amber-600">
+                  {t('trades.inventoryReserved', { count: reservedQuantity })}
+                </span>
+              )}
+            </span>
             <span className="text-sm font-bold text-slate-900">{formatEuro(item.price_cents / 100)}</span>
           </div>
         </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5 self-center">
-        {!isOwn && !isCartOpen && onProposeTrade && (
+        {!isFullyTradeLocked && !isOwn && !isCartOpen && onProposeTrade && (
           <button
             type="button"
             onClick={() => onProposeTrade(item)}
@@ -1044,12 +1071,16 @@ const MobileListingRow = memo(function MobileListingRow({
             <ScambiIcon className="h-4 w-4" strokeWidth={2.25} />
           </button>
         )}
-        {isOwn ? (
+        {isFullyTradeLocked ? (
+          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-800">
+            {t('trades.inventoryLocked')}
+          </span>
+        ) : isOwn ? (
           <div className="inline-flex flex-col overflow-hidden rounded-sm border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center border-b border-slate-200">
               <button
                 type="button"
-                disabled={isBusy}
+                disabled={isBusy || ownerLocked}
                 onClick={() => onOwnerQuantityChange?.(item, -1)}
                 className="inline-flex h-8 w-8 items-center justify-center text-slate-600 disabled:opacity-40"
                 aria-label={t('common.decrease')}
@@ -1061,7 +1092,7 @@ const MobileListingRow = memo(function MobileListingRow({
               </span>
               <button
                 type="button"
-                disabled={isBusy || item.quantity >= 999}
+                disabled={isBusy || ownerLocked || item.quantity >= 999}
                 onClick={() => onOwnerQuantityChange?.(item, 1)}
                 className="inline-flex h-8 w-8 items-center justify-center text-slate-600 disabled:opacity-40"
                 aria-label={t('common.increase')}
@@ -1071,8 +1102,9 @@ const MobileListingRow = memo(function MobileListingRow({
             </div>
             <button
               type="button"
+              disabled={ownerLocked}
               onClick={() => onOwnerEdit?.(item)}
-              className="inline-flex h-7 w-full items-center justify-center text-slate-500 hover:bg-amber-50"
+              className="inline-flex h-7 w-full items-center justify-center text-slate-500 hover:bg-amber-50 disabled:opacity-40"
               aria-label={t('common.edit')}
             >
               <Pencil className="h-3.5 w-3.5" />

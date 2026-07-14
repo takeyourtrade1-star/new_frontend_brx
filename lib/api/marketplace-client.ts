@@ -199,6 +199,7 @@ export interface ListingResponse {
   title: string;
   price: string;
   quantity: number;
+  reserved_quantity?: number;
   condition: CardCondition;
   language: string;
   status: ListingStatus;
@@ -264,6 +265,7 @@ export interface PublicListingResponse {
   title: string;
   price: string;
   quantity: number;
+  reserved_quantity?: number;
   condition: CardCondition;
   language: string;
   created_at: string;

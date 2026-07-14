@@ -67,7 +67,7 @@ export function useCancelTrade() {
     tradesApi.cancel(tradeId, reason));
 }
 export function useShipTrade() {
-  return useTradeMutation<{ tradeId: number; tracking_carrier?: string; tracking_code?: string }>(
+  return useTradeMutation<{ tradeId: number; tracking_carrier: string; tracking_code: string }>(
     ({ tradeId, ...tracking }) => tradesApi.ship(tradeId, tracking));
 }
 export function useConfirmTradeReceipt() {

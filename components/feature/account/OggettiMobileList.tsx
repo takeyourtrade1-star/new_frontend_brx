@@ -66,13 +66,14 @@ function MobileRowActions({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const busy = qtyUpdatingId === item.id || deletingId === item.id;
+  const tradeLocked = (item.reserved_quantity ?? 0) > 0;
 
   return (
     <div className="relative flex shrink-0 items-center gap-1">
       <div className="flex items-center rounded-lg bg-gray-100/90 p-0.5">
         <button
           type="button"
-          disabled={mutationsDisabled || busy}
+          disabled={tradeLocked || mutationsDisabled || busy}
           onClick={() => onQtyDelta(item, -1)}
           className="flex h-8 w-8 items-center justify-center rounded-md text-red-600 disabled:opacity-40"
           aria-label={t('accountPage.itemsDecreaseQty')}
@@ -81,10 +82,15 @@ function MobileRowActions({
         </button>
         <span className="min-w-[1.25rem] text-center text-xs font-bold tabular-nums text-gray-800">
           {item.quantity}
+          {tradeLocked && (
+            <span className="block text-[8px] font-bold uppercase text-amber-700">
+              {t('trades.inventoryLocked')}
+            </span>
+          )}
         </span>
         <button
           type="button"
-          disabled={mutationsDisabled || busy || item.quantity >= 999}
+          disabled={tradeLocked || mutationsDisabled || busy || item.quantity >= 999}
           onClick={() => onQtyDelta(item, 1)}
           className="flex h-8 w-8 items-center justify-center rounded-md text-emerald-700 disabled:opacity-40"
           aria-label={t('accountPage.itemsIncreaseQty')}
@@ -94,8 +100,9 @@ function MobileRowActions({
       </div>
       <button
         type="button"
+        disabled={tradeLocked}
         onClick={() => setMenuOpen((o) => !o)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 ring-1 ring-gray-200/80"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 ring-1 ring-gray-200/80 disabled:opacity-40"
         aria-label={t('accountPage.itemsTableActions')}
       >
         <MoreVertical className="h-4 w-4" />
@@ -185,6 +192,7 @@ export function OggettiMobileList({
         const setName = item.card?.set_name ?? '';
         const productHref = item.card?.id ? `/products/${item.card.id}` : null;
         const isSelected = selectedIds?.has(item.id) ?? false;
+        const tradeLocked = (item.reserved_quantity ?? 0) > 0;
         const priceLabel = formatEuroNoSpace((item.price_cents ?? 0) / 100, intlLocale);
 
         return (
@@ -198,8 +206,9 @@ export function OggettiMobileList({
               {selectionMode && (
                 <button
                   type="button"
+                  disabled={tradeLocked}
                   onClick={() => onToggleSelect?.(item.id)}
-                  className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                  className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg disabled:opacity-40 ${
                     isSelected ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'
                   }`}
                   aria-label={isSelected ? 'Deseleziona' : 'Seleziona'}
@@ -259,6 +268,11 @@ export function OggettiMobileList({
                     <RarityIndicator rarity={item.card.rarity} size="sm" />
                   ) : null}
                   {isDemoEbartexListing(item) ? <DemoListingBadge /> : null}
+                  {tradeLocked ? (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase text-amber-800">
+                      {t('trades.inventoryLocked')}
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="mt-1.5 flex max-w-full items-center justify-between gap-2">

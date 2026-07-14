@@ -84,7 +84,7 @@ export const tradesApi = {
   cancel: (tradeId: number, reason?: string) => post(`/${tradeId}/cancel`, { reason }),
   counter: (tradeId: number, body: Omit<CreateTradeInput, 'receiver_id' | 'delivery_method'>) =>
     post(`/${tradeId}/counter`, body, true),
-  ship: (tradeId: number, tracking?: { tracking_carrier?: string; tracking_code?: string }) =>
+  ship: (tradeId: number, tracking: { tracking_carrier: string; tracking_code: string }) =>
     post(`/${tradeId}/ship`, tracking),
   confirmReceipt: (tradeId: number) => post(`/${tradeId}/confirm-receipt`),
   requestCancel: (tradeId: number) => post(`/${tradeId}/request-cancel`),

@@ -10,9 +10,9 @@ export function isCardTraderSyncRow(item: InventoryItemResponse): boolean {
   return item.source === 'cardtrader';
 }
 
-/** Stock reale visibile e scambiabile: CardTrader oppure accreditato da uno scambio. */
+/** Stock realmente in vendita: CardTrader. Le carte ricevute richiedono una nuova inserzione. */
 export function isTradableSyncRow(item: InventoryItemResponse): boolean {
-  return item.source === 'cardtrader' || item.source === 'trade';
+  return item.source === 'cardtrader';
 }
 
 /**
@@ -32,7 +32,7 @@ export function composeAccountInventory(
 ): InventoryItemWithCatalog[] {
   const tradableRows: InventoryItemWithCatalog[] = syncItems
     .filter(isTradableSyncRow)
-    .filter((item) => (item.quantity ?? 0) > 0)
+    .filter((item) => (item.quantity ?? 0) + (item.reserved_quantity ?? 0) > 0)
     .map((item) => ({ ...item, listing_source: 'sync' as const }));
 
   const knownExternalIds = new Set(

@@ -55,9 +55,9 @@ describe('isCardTraderSyncRow', () => {
 });
 
 describe('isTradableSyncRow', () => {
-  it('accetta stock CardTrader e carte ricevute in scambio', () => {
+  it('accetta solo stock CardTrader gia in vendita', () => {
     expect(isTradableSyncRow(syncRow())).toBe(true);
-    expect(isTradableSyncRow(syncRow({ source: 'trade', external_stock_id: null }))).toBe(true);
+    expect(isTradableSyncRow(syncRow({ source: 'trade', external_stock_id: null }))).toBe(false);
   });
 
   it('rifiuta lo stock di test interno', () => {
@@ -76,12 +76,12 @@ describe('composeAccountInventory', () => {
     expect(items[0].listing_source).toBe('sync');
   });
 
-  it('include le carte ricevute da uno scambio', () => {
+  it('non pubblica automaticamente le carte ricevute da uno scambio', () => {
     const items = composeAccountInventory(
       [syncRow({ id: 2, source: 'trade', external_stock_id: null })],
       []
     );
-    expect(items.map((item) => item.id)).toEqual([2]);
+    expect(items).toEqual([]);
   });
 
   it('esclude le righe sync a quantità zero (sold out)', () => {
@@ -90,6 +90,15 @@ describe('composeAccountInventory', () => {
       []
     );
     expect(items.map((i) => i.id)).toEqual([1]);
+  });
+
+  it('mantiene visibile una riga CardTrader interamente bloccata nello scambio', () => {
+    const items = composeAccountInventory(
+      [syncRow({ quantity: 0, reserved_quantity: 1 })],
+      []
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0].reserved_quantity).toBe(1);
   });
 
   it('include i listing presenti solo su Ebartex anche in modalità DEMO', () => {

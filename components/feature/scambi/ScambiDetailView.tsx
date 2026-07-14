@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, PackageCheck, RefreshCw, ShieldAlert, Truck } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Loader2, PackageCheck, RefreshCw, ShieldAlert, Truck } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useMeilisearchCards } from '@/lib/hooks/use-meilisearch-cards';
@@ -20,6 +20,12 @@ import {
 } from '@/lib/hooks/use-trades';
 import { setTradeProposalContext } from '@/lib/scambi/trade-proposal-context';
 import type { Trade, TradeAddress, TradeItem, TradeStatus } from '@/types/trade';
+import {
+  TRADE_CARRIERS,
+  tradeCarrierLabel,
+  tradeTrackingUrl,
+  type TradeCarrierId,
+} from '@/lib/shipping/trade-carriers';
 
 const EMPTY_ADDRESS: TradeAddress = {
   full_name: '', street: '', city: '', zip: '', province: '', country: 'IT', phone: '',
@@ -83,6 +89,41 @@ function AddressFields({ value, onChange }: { value: TradeAddress; onChange: (va
   );
 }
 
+function TrackingSummary({
+  title,
+  carrier,
+  code,
+  linkLabel,
+  otherCarrierLabel,
+}: {
+  title: string;
+  carrier: string | null;
+  code: string | null;
+  linkLabel: string;
+  otherCarrierLabel: string;
+}) {
+  if (!code) return null;
+  const url = tradeTrackingUrl(carrier, code);
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <p className="text-xs font-black uppercase text-[#1D3160]">{title}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-700">
+        {tradeCarrierLabel(carrier, otherCarrierLabel)} · {code}
+      </p>
+      {url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#FF7300] hover:underline"
+        >
+          {linkLabel} <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      )}
+    </div>
+  );
+}
+
 export function ScambiDetailView({ scambioId }: { scambioId: string }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -91,7 +132,7 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
   const query = useTrade(tradeId);
   const trade = query.data?.data;
   const [address, setAddress] = useState<TradeAddress>(EMPTY_ADDRESS);
-  const [carrier, setCarrier] = useState('');
+  const [carrier, setCarrier] = useState<TradeCarrierId | ''>('');
   const [tracking, setTracking] = useState('');
   const [assistanceReason, setAssistanceReason] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
@@ -131,6 +172,7 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
   const isReceiver = user?.id === trade.receiver_id;
   const me = trade.parties?.find((party) => party.user_id === user?.id);
   const other = trade.parties?.find((party) => party.user_id !== user?.id);
+  const anyShipped = Boolean(me?.shipped_at || other?.shipped_at);
   const validAddress = Boolean(address.full_name && address.street && address.city && address.zip && address.country);
 
   const perform = async (operation: () => Promise<unknown>) => {
@@ -140,6 +182,16 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
     } catch (error) {
       setActionError(error instanceof Error ? error.message : t('trades.actionError'));
     }
+  };
+
+  const submitShipment = () => {
+    const code = tracking.trim();
+    if (!carrier || code.length < 3) return;
+    void perform(() => ship.mutateAsync({
+      tradeId,
+      tracking_carrier: carrier,
+      tracking_code: code,
+    }));
   };
 
   const startCounter = () => {
@@ -233,11 +285,29 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
             <h2 className="text-sm font-black uppercase text-[#1D3160]">{t('trades.shippingTitle')}</h2>
             {!me?.shipped_at && trade.status === 'ACCEPTED' && (
               <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-                <input value={carrier} onChange={(event) => setCarrier(event.target.value)} placeholder={t('trades.carrier')} className="h-10 rounded-lg border border-slate-200 px-3 text-sm" />
+                <select
+                  value={carrier}
+                  onChange={(event) => setCarrier(event.target.value as TradeCarrierId | '')}
+                  className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  aria-label={t('trades.carrier')}
+                >
+                  <option value="">{t('trades.selectCarrier')}</option>
+                  {TRADE_CARRIERS.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.id === 'other' ? t('trades.carrierOther') : option.label}
+                    </option>
+                  ))}
+                </select>
                 <input value={tracking} onChange={(event) => setTracking(event.target.value)} placeholder={t('trades.tracking')} className="h-10 rounded-lg border border-slate-200 px-3 text-sm" />
-                <button disabled={busy} onClick={() => void perform(() => ship.mutateAsync({ tradeId, tracking_carrier: carrier || undefined, tracking_code: tracking || undefined }))} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1D3160] px-4 text-sm font-bold text-white disabled:opacity-40">
+                <button disabled={busy || !carrier || tracking.trim().length < 3} onClick={submitShipment} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1D3160] px-4 text-sm font-bold text-white disabled:opacity-40">
                   <Truck className="h-4 w-4" /> {t('trades.markShipped')}
                 </button>
+              </div>
+            )}
+            {(me?.tracking_code || other?.tracking_code) && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <TrackingSummary title={t('trades.yourShipment')} carrier={me?.tracking_carrier ?? null} code={me?.tracking_code ?? null} linkLabel={t('trades.trackShipment')} otherCarrierLabel={t('trades.carrierOther')} />
+                <TrackingSummary title={t('trades.otherShipment')} carrier={other?.tracking_carrier ?? null} code={other?.tracking_code ?? null} linkLabel={t('trades.trackShipment')} otherCarrierLabel={t('trades.carrierOther')} />
               </div>
             )}
             {other?.shipped_at && !me?.receipt_confirmed_at && trade.status === 'ACCEPTED' && (
@@ -246,22 +316,31 @@ export function ScambiDetailView({ scambioId }: { scambioId: string }) {
               </button>
             )}
             <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-              {!me?.cancel_requested_at && !other?.cancel_requested_at && trade.status === 'ACCEPTED' && (
+              {!anyShipped && !me?.cancel_requested_at && !other?.cancel_requested_at && trade.status === 'ACCEPTED' && (
                 <button disabled={busy} onClick={() => void perform(() => requestCancel.mutateAsync(tradeId))} className="rounded-full border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">
                   {t('trades.requestCancel')}
                 </button>
               )}
-              {other?.cancel_requested_at && (
+              {!anyShipped && other?.cancel_requested_at && (
                 <button disabled={busy} onClick={() => void perform(() => confirmCancel.mutateAsync(tradeId))} className="rounded-full border border-red-200 px-4 py-2 text-xs font-bold text-red-700 disabled:opacity-40">
                   {t('trades.confirmCancel')}
                 </button>
               )}
             </div>
-            <div className="flex gap-2 border-t border-slate-100 pt-4">
-              <input value={assistanceReason} onChange={(event) => setAssistanceReason(event.target.value)} placeholder={t('trades.assistanceReason')} className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 text-sm" />
-              <button disabled={busy || !assistanceReason.trim()} onClick={() => void perform(() => assistance.mutateAsync({ tradeId, reason: assistanceReason.trim() }))} className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-bold text-white disabled:opacity-40">
-                <ShieldAlert className="h-4 w-4" /> {t('trades.assistance')}
-              </button>
+            <div className="border-t border-slate-100 pt-4">
+              {trade.status === 'ACCEPTED' ? (
+                <>
+                  <p className="mb-2 text-xs text-slate-500">{t('trades.assistanceHelp')}</p>
+                  <div className="flex gap-2">
+                    <input value={assistanceReason} onChange={(event) => setAssistanceReason(event.target.value)} placeholder={t('trades.assistanceReason')} className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 text-sm" />
+                    <button disabled={busy || assistanceReason.trim().length < 3} onClick={() => void perform(() => assistance.mutateAsync({ tradeId, reason: assistanceReason.trim() }))} className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-bold text-white disabled:opacity-40">
+                      <ShieldAlert className="h-4 w-4" /> {t('trades.assistance')}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm font-semibold text-amber-700">{t('trades.disputeOpen')}</p>
+              )}
             </div>
           </section>
         )}

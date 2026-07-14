@@ -23,7 +23,7 @@ interface PickerItem {
   blueprintId: number;
   quantity: number;
   name: string;
-  source: 'cardtrader' | 'trade' | 'marketplace';
+  source: 'cardtrader' | 'marketplace';
 }
 
 const EMPTY_ADDRESS: TradeAddress = {
@@ -140,7 +140,7 @@ export function TradeProposalPage() {
     .filter((item) => (
       item.listing_source === 'marketplace' && Boolean(item.marketplace_listing_id)
     ) || (
-      item.listing_source === 'sync' && (item.source === 'cardtrader' || item.source === 'trade')
+      item.listing_source === 'sync' && item.source === 'cardtrader'
     ))
     .map((item) => {
       const isMarketplace = item.listing_source === 'marketplace' && Boolean(item.marketplace_listing_id);
@@ -151,7 +151,7 @@ export function TradeProposalPage() {
         blueprintId: item.blueprint_id,
         quantity: item.quantity,
         name: inventory.catalogMap[item.blueprint_id]?.name || item.description || t('trades.cardFallback', { id: item.blueprint_id }),
-        source: isMarketplace ? 'marketplace' : item.source as 'cardtrader' | 'trade',
+        source: isMarketplace ? 'marketplace' : 'cardtrader',
       };
     }), [inventory.catalogMap, inventory.inventoryRaw, t]);
 
@@ -166,7 +166,7 @@ export function TradeProposalPage() {
         blueprintId: item.blueprintId,
         quantity: item.quantity,
         name: item.name || requestedCatalog[item.blueprintId]?.name || t('trades.cardFallback', { id: item.blueprintId }),
-        source: item.source === 'marketplace' ? 'marketplace' : 'trade',
+        source: item.source === 'marketplace' ? 'marketplace' : 'cardtrader',
       }));
     }
     const items: PickerItem[] = (publicCollection.data?.items ?? []).map((item) => ({
@@ -175,7 +175,7 @@ export function TradeProposalPage() {
       blueprintId: item.blueprint_id,
       quantity: item.quantity,
       name: requestedCatalog[item.blueprint_id]?.name || t('trades.cardFallback', { id: item.blueprint_id }),
-      source: item.source,
+      source: 'cardtrader',
     }));
     if (ctx) {
       const isMarketplace = ctx.listing.source === 'marketplace';

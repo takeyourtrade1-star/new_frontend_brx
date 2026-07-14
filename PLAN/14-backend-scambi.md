@@ -54,10 +54,10 @@
 |---|-----------|--------|
 | **D1** | Il ciclo di vita degli scambi è un **modulo `/trades` dentro il servizio auction** | Riusa gratis: macchina a stati con lock, storico append-only, notifiche, email, auth JWT, rate limit, Alembic, deploy. Codice ben separato (file `trade_*`) per poterlo estrarre in futuro. |
 | **D2** | **Ogni mutazione passa dal servizio proprietario via endpoint S2S idempotenti**: sync per `user_inventory_items`, marketplace per `mkt_listings`; auction orchestra e compensa | Il sync resta l'unico proprietario della logica CardTrader. Marketplace applica l'escrow locale sulla stessa riga usata dalla vendita Ebartex, evitando oversell senza imporre CardTrader. |
-| **D3** | **Escrow all'accettazione, trasferimento alla doppia conferma di ricezione**; ripristino esatto se lo scambio salta | Le carte "si tolgono" quando il patto è vincolante, compaiono all'altro quando le ha davvero. Snapshot per-item congelato alla proposta → ripristini esatti e rilevamento modifiche. |
+| **D3** | **Escrow all'accettazione, trasferimento alla doppia conferma di ricezione**; ripristino esatto se lo scambio salta | Durante l'escrow la quantità riservata resta visibile ma non acquistabile; l'eventuale residuo resta in vendita. Alla chiusura la quantità scambiata viene consumata definitivamente dalla vecchia inserzione. |
 | **D4** | **Le righe CardTrader-linked si scambiano decrementando anche CT all'accettazione** (stesso schema del purchase v2: riserva locale condizionale → chiamata CT fuori dai lock → compensazione); ripristino = increment CT + locale | **Obbligatorio, verificato nel codice**: il reconciler riallinea ogni 6h le righe CT-linked alla verità CardTrader — un decremento solo locale verrebbe annullato al giro dopo. Decrementando CT in pari passo, export e locale coincidono e il reconciler non ha nulla da correggere. È anche coerente col prodotto: per l'oversell uno scambio È una vendita. |
-| **D5** | **Le righe con `external_stock_id NULL` si gestiscono direttamente** (decremento/accredito locale, senza CT) | Verificato nel reconciler: le righe interne non vengono mai toccate da nessun percorso del sync → sicure per costruzione. Le carte **ricevute negli scambi** nascono così (`source='trade'`), quindi diventano subito ri-scambiabili in modo sicuro. |
-| **D6** | Nuova colonna **`source`** su `user_inventory_items`: `cardtrader` (backfill: external NOT NULL), `internal_test` (backfill: external NULL esistenti — oggi sono mock), `trade` (accrediti scambi) | La UI attuale (compose inventario) nasconde le righe NULL come "test interni": senza un campo esplicito le carte ricevute in scambio sarebbero invisibili. Nel sync sono tradabili `cardtrader` e `trade`; le inserzioni Ebartex-only arrivano separatamente dal marketplace. |
+| **D5** | **Le righe con `external_stock_id NULL` si gestiscono direttamente** (decremento/accredito locale, senza CT) | Verificato nel reconciler: le righe interne non vengono mai toccate da nessun percorso del sync. Le carte ricevute nascono `source='trade'`, ma **non sono pubblicate automaticamente**: per venderle o scambiarle l'utente crea una nuova inserzione. |
+| **D6** | Nuova colonna **`source`** su `user_inventory_items`: `cardtrader` (backfill: external NOT NULL), `internal_test` (backfill: external NULL esistenti), `trade` (accrediti scambi) | Distingue stock pubblicato, accrediti da scambio e test. Le API pubbliche espongono solo stock realmente messo in vendita; una riga `trade` ricevuta resta una registrazione interna finché l'utente non ripubblica manualmente. |
 | **D7** | **Niente prenotazione alla proposta**; vince il primo che accetta; stessa carta ammessa in più proposte | Prenotare alla proposta bloccherebbe l'inventario per giorni. All'accettazione si rivalida tutto; le proposte concorrenti falliranno con errore chiaro. |
 | **D8** | **Controproposta = nuovo scambio** con `parent_trade_id`; l'originale passa a `COUNTERED` | Scambi immutabili dopo la creazione → storico pulito, catena consultabile. |
 | **D9** | **Indirizzi snapshot per-scambio** (proposer alla proposta, receiver all'accettazione; visibili all'altro solo da ACCEPTED) | La rubrica indirizzi è un progetto a sé (servirà anche ai pagamenti). |
@@ -84,11 +84,13 @@ Stile esistente: id `BigInteger`, utenti `UUID` senza FK (dal JWT), timestamptz.
 
 ### Nel servizio **sync** (Fase 0)
 - Colonna **`source`** su `user_inventory_items` (String, backfill come D6) + aggiornamento dei **due** modelli ORM che mappano la tabella (quello del sync e la copia nel repo auction).
-- **`inventory_ops`**: registro idempotenza per gli endpoint interni — `op_key` UNIQUE (es. `trade:123:offered:reserve`), `kind`, `payload_json`, `status`, timestamps. Un retry con lo stesso `op_key` restituisce l'esito registrato, mai un doppio effetto.
+- Colonna **`reserved_quantity`**: quantità già sottratta dalla disponibilità ma ancora visibile come “In scambio”. `quantity` resta la sola quantità acquistabile.
+- **`inventory_ops`**: registro idempotenza per `reserve`/`release`/`consume`/`credit` — `op_key` UNIQUE (es. `trade:123:offered:reserve`). Un retry restituisce l'esito registrato, mai un doppio effetto.
 
 ### Nel servizio **marketplace** (estensione Ebartex-only)
-- **`mkt_trade_inventory_ops`**: ledger idempotente per riserva/rilascio.
-- Endpoint S2S `snapshot`, `reservations`, `reservations/release`, protetti dallo stesso token interno.
+- Colonna **`reserved_quantity`** su `mkt_listings`: stesso comportamento dello stock sync.
+- **`mkt_trade_inventory_ops`**: ledger idempotente per riserva/rilascio/consumo.
+- Endpoint S2S `snapshot`, `reservations`, `reservations/release`, `reservations/consume`, protetti dallo stesso token interno.
 - Solo `cardtrader_article_id IS NULL`: gli oggetti CardTrader-linked restano sul percorso sync e non possono essere prenotati due volte.
 
 ---
@@ -122,10 +124,12 @@ Stile esistente: id `BigInteger`, utenti `UUID` senza FK (dal JWT), timestamptz.
 5. **Recupero**: un job interno rilascia e riporta a `PROPOSED` gli scambi rimasti in `ACCEPTING` oltre N minuti (crash a metà saga). Tutte le chiamate sono idempotenti per `op_key` → retry sicuri.
 
 ### Completamento
-Alla **seconda** conferma di ricezione (lock sul trade): `POST sync /internal/credit` per ciascun destinatario — crea **righe nuove** (`source='trade'`, `external_stock_id NULL`, snapshot di blueprint/properties/price) in modo idempotente; marca `released_at`+`receiver_credited`; stato → `COMPLETED`. Il CAS sullo stato + `released_at` + `op_key` rendono impossibile la doppia consegna anche con retry.
+Alla **seconda** conferma di ricezione (lock sul trade): `POST sync /internal/credit` per ciascun destinatario crea righe interne (`source='trade'`, `external_stock_id NULL`) **non pubblicate**. Poi `reservations/consume` azzera la quantità riservata sulle vecchie inserzioni senza ripristinarla. Le righe interamente consumate spariscono dalla vendita; l'eventuale quantità residua resta acquistabile. CAS, `released_at` e `op_key` impediscono doppi accrediti o doppi consumi.
 
 ### Ripristino (annullo consensuale post-accettazione / risoluzione assistenza)
 `POST sync /internal/reservations/release`: per ogni item — riga NULL-origin → incremento locale (o ricreazione da snapshot se sparita); riga CT-linked → `increment_product_quantity(+n)` su CT **e** incremento locale guardato; se CT rifiuta (prodotto auto-cancellato a quantità 0) → **riga nuova locale** `source='trade'` con notifica all'utente ("su CardTrader l'inserzione non esiste più: ricreala tu se vuoi") — mai lasciare una riga CT-linked disallineata, il reconciler la azzererebbe. Marca `returned_to_owner`/`returned_as_new_row`.
+
+L'annullo consensuale è ammesso solo prima della prima spedizione. Dopo una spedizione si apre una contestazione (`DISPUTED`); l'operatore può ripristinare lo stock solo dopo conferma esplicita del rientro fisico delle carte (`returned_to_owners=true`).
 
 ---
 
@@ -144,6 +148,9 @@ Alla **seconda** conferma di ricezione (lock sul trade): `POST sync /internal/cr
 | CT auto-cancella il prodotto (escrow totale o vendita del resto) e poi lo scambio salta | Ripristino fallback: riga nuova locale `source='trade'` + notifica (D nel §4); mai righe CT-linked fantasma |
 | Doppio click / retry di rete su qualsiasi azione | `Idempotency-Key` sulle POST del BFF + CAS sullo stato + `op_key` univoci lato sync: replay → stessa risposta |
 | Crash a metà accettazione | Stato `ACCEPTING` + job di recupero che rilascia e riporta a `PROPOSED`; ogni op è ripetibile |
+| Annullamento prima della spedizione | Consenso di entrambe le parti → `release`; la quantità riservata torna acquistabile, anche su CT quando collegata |
+| Annullamento dopo una spedizione | Annullo diretto bloccato; contestazione obbligatoria. Nessun ripristino finché l'operatore non conferma il rientro fisico |
+| Scambio completato | La vecchia inserzione consuma la quantità scambiata. Le carte ricevute sono accreditate internamente ma non tornano in vendita automaticamente |
 | Proposta ignorata | `EXPIRED` via job schedulato su `due_at` (+7gg), promemoria a −24h; niente escrow da ripulire |
 | Proposer ci ripensa / receiver rifiuta | `cancel` (solo PROPOSED) / `decline` con motivo opzionale |
 | Uno dei due non spedisce mai | Promemoria; dopo N giorni ciascuno può chiedere assistenza → `DISPUTED`, risoluzione manuale (mai auto-assegnazione) |
@@ -176,6 +183,7 @@ Errori `{detail, code}` (catalogo `AppError` esistente) + codici `TRADE_*`.
 |---|---|
 | `POST /internal/reservations` | Batch per utente: decrementi condizionali atomici + propagazione CT per righe `cardtrader` (pattern purchase v2), idempotente per `op_key` |
 | `POST /internal/reservations/release` | Ripristino (increment CT+locale; fallback riga nuova se CT rifiuta), idempotente |
+| `POST /internal/reservations/consume` | Chiusura definitiva della prenotazione dopo accredito al destinatario, senza ripristino al venditore |
 | `POST /internal/credit` | Accredito righe nuove `source='trade'`, idempotente |
 
 ### BFF (questo repo)
@@ -187,9 +195,9 @@ Errori `{detail, code}` (catalogo `AppError` esistente) + codici `TRADE_*`.
 
 1. `lib/api/trades-client.ts` (retry 401 via `tokenManager`) + `lib/hooks/use-trades.ts` (React Query: liste, dettaglio, mutazioni con invalidation).
 2. **Tab reali** in `ScambiContent` (richieste/inviate/conclusi), senza mock.
-3. **Dettaglio**: accetta (con form indirizzo), rifiuta, contro-proponi; sezione consegna (indirizzi, "ho spedito"+tracking, "ho ricevuto", stato altro lato).
-4. **Composer unificato** (`TradeProposalPage`+`TradeComposer`, ritiro di `ScambiProponiModal`): lato "offro" = inventario reale filtrato per `source IN ('cardtrader','trade')` e qty>0; lato "chiedo" = collezione pubblica del receiver stesso filtro (l'endpoint pubblico dovrà esporre `source`). Entry-point da pagina prodotto → item pubblico del venditore; se non tradabile → "non scambiabile".
-5. **Compose inventario account**: sostituire l'euristica "external NULL = test" col campo `source` esplicito (evoluzione già prevista) — le carte ricevute in scambio devono comparire.
+3. **Dettaglio**: accetta (con form indirizzo), rifiuta, contro-proponi; sezione consegna con lista corrieri italiani, tracking cliccabile, "ho ricevuto" e stato altro lato.
+4. **Composer unificato** (`TradeProposalPage`+`TradeComposer`, ritiro di `ScambiProponiModal`): lato "offro" = sole inserzioni pubblicate e disponibili (`cardtrader` oppure marketplace Ebartex-only); lato "chiedo" = collezione pubblica del receiver con la stessa regola. Una riga ricevuta `source='trade'` richiede una nuova inserzione manuale.
+5. **Inventario/vendita**: le righe in escrow restano visibili con badge “In scambio”; se il blocco è parziale il residuo resta acquistabile. Modifica e cancellazione sono disabilitate finché esiste quantità riservata.
 6. **Crediti nascosti** dietro `scambiCreditsEnabled=false`; bilancia informativa sui `price_cents` reali o rimossa.
 7. Notifiche `trade_*` in `types/notification.ts` + deep-link; i18n in **tutti e 6** i locale + `npm run i18n:keys`.
 
@@ -201,7 +209,7 @@ Ogni fase chiude con typecheck/lint/test verdi ed è testabile da sola.
 Fase 0 nel repo `sync`; 1–3 nel repo `auction`; 4–5 in questo repo; estensione Ebartex-only in `brx-marketplace`; deploy col pattern ECR+compose (rollback tag come oggi).
 
 ### Fase 0 — Fondazioni inventario (repo sync) + verifiche
-Colonna `source` (+backfill) e aggiornamento dei due ORM; tabella `inventory_ops`; endpoint interni `reservations`/`release`/`credit` con X-Internal-Token, riuso del pattern purchase v2 e del client CT; test d'integrazione su Postgres usa-e-getta (riuso harness), inclusi: doppia prenotazione concorrente, CT che fallisce a metà batch → compensazione, replay idempotente, reconciler che gira su inventario con prenotazioni attive senza toccare nulla.
+Colonne `source` (+backfill) e `reserved_quantity`, aggiornamento dei due ORM; tabella `inventory_ops`; endpoint interni `reservations`/`release`/`consume`/`credit` con X-Internal-Token, riuso del pattern purchase v2 e del client CT; test d'integrazione su Postgres usa-e-getta, inclusi: doppia prenotazione concorrente, CT che fallisce a metà batch → compensazione, replay idempotente, consumo finale e reconciler che non altera prenotazioni attive.
 **Verifiche lampo incluse**: (a) auction punta allo stesso db dell'inventario (`\dt` dalla connessione auction); (b) vincolo reale su `user_inventory_items.user_id` (`\d` — esistono 3 DDL storici divergenti: nessuna FK / FK→users / FK→user_sync_settings; se fosse l'ultima, l'accredito a utenti senza riga sync fallirebbe → adeguare l'insert).
 **Criteri**: endpoint interni funzionanti e idempotenti su dev; reconciler-test verde; verifiche (a)(b) documentate in cima al file.
 
@@ -216,8 +224,8 @@ Stato `ACCEPTING`, gambe A/B verso sync, compensazioni, job di recupero, counter
 **Estensione Ebartex-only (2026-07-14)**: auction orchestra anche il provider marketplace; `brx-marketplace` espone snapshot/riserva/rilascio idempotenti e blocca le righe CardTrader-linked. **Criteri**: uno scambio misto sync + marketplace prenota e rilascia entrambi; una vendita concorrente non causa oversell.
 
 ### Fase 3 — Consegna e completamento
-Ship/confirm-receipt; accredito via `/internal/credit`; annullo consensuale con release (incl. fallback CT-cancellato); assistenza → DISPUTED + `resolve-trade`.
-**Criteri**: doppia conferma → un solo accredito anche con retry; ripristino esatto; somma carte invariata a fine scambio (test); accredito ok anche per utente senza riga `user_sync_settings` (esito verifica (b)).
+Ship/confirm-receipt; corriere e tracking obbligatori; accredito via `/internal/credit`; consumo della vecchia inserzione; annullo consensuale con release solo prima della spedizione; contestazione e rientro fisico obbligatori dopo la spedizione.
+**Criteri**: doppia conferma → un solo accredito e un solo consumo anche con retry; annullo pre-spedizione → ripristino esatto; annullo post-spedizione senza rientro → rifiutato; somma carte invariata; accredito ok anche per utente senza riga `user_sync_settings`.
 
 ### Fase 4 — BFF
 Route handler, client TS, test bff-security.
@@ -225,7 +233,7 @@ Route handler, client TS, test bff-security.
 
 ### Fase 5 — Frontend
 Hook, tab reali, dettaglio con azioni, composer unificato su inventari reali (filtro `source`), sezione consegna, compose account su `source`, crediti dietro flag, notifiche, i18n ×6.
-**Criteri**: scambio completo end-to-end tra due utenti reali su dev **senza mock**; `i18n:keys` verde; mock file eliminati.
+**Criteri**: scambio completo end-to-end tra due utenti reali su dev **senza mock**; stock in escrow visibile ma bloccato; tracking apre il sito del corriere; ricevuto non pubblicato; `i18n:keys` verde; mock file eliminati.
 
 ### Fase 6 — Hardening e ops
 Metriche transizioni/escrow; schedule EventBridge (expire + recover); runbook DISPUTED; smoke staging; review sicurezza (authz, rate limit, input caps, token interni, log senza PII e senza indirizzi). Quick win già noto: l'healthcheck di `auction-api` è unhealthy probabilmente per lo stesso `curl` mancante fixato oggi sul sync — sistemarlo nel compose.
@@ -237,7 +245,7 @@ Metriche transizioni/escrow; schedule EventBridge (expire + recover); runbook DI
 
 - **Crediti/conguaglio** e compensazioni in denaro (D10) — dopo i pagamenti.
 - **Intermediario Ebartex** (deposito e verifica centrale) — resta a schema.
-- **Rubrica indirizzi** riusabile, corrieri/etichette, **chat** sullo scambio, dispute complete con chat (c'è l'assistenza minima), **valore di mercato reale** ed equità imposta dal server.
+- **Rubrica indirizzi** riusabile, acquisto automatico di etichette corriere, **chat** sullo scambio, dispute complete con chat (c'è la contestazione minima), **valore di mercato reale** ed equità imposta dal server.
 
 ## 10. Rischi residui e note
 
@@ -249,7 +257,7 @@ Metriche transizioni/escrow; schedule EventBridge (expire + recover); runbook DI
 
 ## 11. Criteri di accettazione complessivi
 
-- [ ] Due utenti reali completano uno scambio end-to-end: uno con item CardTrader e uno con inserzione Ebartex-only → proposta → accettazione → doppia spedizione → doppia conferma → carte trasferite (`source='trade'`) e visibili.
+- [ ] Due utenti reali completano uno scambio end-to-end: uno con item CardTrader e uno con inserzione Ebartex-only → proposta → accettazione → doppia spedizione → doppia conferma → vecchie quantità consumate e carte ricevute (`source='trade'`) non pubblicate.
 - [x] In nessuno scenario testato (concorrenza, retry, crash a metà saga, annulli, dispute, giro di reconciler) l'inventario totale cambia se non per il trasferimento previsto; mai quantità negative, mai duplicazioni.
 - [x] Ogni transizione in `trade_status_history` e ogni mutazione inventario in `inventory_ops`, con attore e motivo.
 - [x] Un non partecipante non può né leggere né agire (404); gli endpoint `/internal/*` rifiutano chiamate senza token interno.
@@ -280,3 +288,12 @@ Metriche transizioni/escrow; schedule EventBridge (expire + recover); runbook DI
 - Immagini ECR `brx-marketplace:trades-ebartex-11b4953` e `ebartex-auction:trades-ebartex-72ded86` online; rollback `rollback-pre-ebartex-trades-20260714-1458`. Health e S2S (`422` autenticato su payload vuoto, `401` senza token) verdi; pool auction di nuovo limitato a 32 connessioni teoriche.
 - Frontend Amplify job `493` riuscito sul commit `d3d2fcb`; `/build-info.json` espone `d3d2fcb`.
 - Restano il test funzionale con due utenti reali su un item Ebartex-only e uno CardTrader e, durante uno scambio attivo, il giro di reconciler senza mutazioni inattese.
+
+### Correzione ciclo inventario — pronta localmente, non deployata
+
+- Aggiunta `reserved_quantity` in sync e marketplace: lo stock accettato resta visibile come “In scambio”; solo il residuo è acquistabile.
+- Alla chiusura, `consume` elimina definitivamente la quantità scambiata dalla vecchia inserzione. L'accredito ricevuto resta interno e non viene pubblicato.
+- L'annullo pre-spedizione ripristina lo stock; dopo una spedizione serve contestazione e conferma del rientro fisico.
+- Corrieri supportati nel dettaglio scambio: Poste/SDA, BRT, GLS, DHL, UPS, FedEx/TNT, InPost e Altro; tracking cliccabile quando disponibile.
+- Verifica locale: frontend 252 test, typecheck, lint, i18n e build verdi; PostgreSQL reale: sync 6 test, marketplace 2 test, auction 10 test; Ruff verde sui file modificati.
+- Questa correzione **non è ancora stata deployata in produzione**.

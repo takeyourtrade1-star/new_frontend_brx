@@ -322,6 +322,7 @@ export function OggettiTable({
       <RarityLegendProvider>
       <div className="hidden grid-cols-2 gap-5 md:grid lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5">
         {items.map((item) => {
+          const tradeLocked = (item.reserved_quantity ?? 0) > 0;
           const imgUrl = item.card?.image
             ? buildImageUrl(item.card.image) || defaultImage
             : defaultImage;
@@ -376,8 +377,9 @@ export function OggettiTable({
                   {selectionMode && (
                     <button
                       type="button"
+                      disabled={tradeLocked}
                       onClick={() => onToggleSelect?.(item.id)}
-                      className={`absolute left-2 top-2 z-20 flex h-11 w-11 items-center justify-center rounded-xl shadow-md backdrop-blur-sm transition-all md:left-3 md:top-3 md:h-auto md:w-auto md:rounded-lg md:p-2 ${
+                      className={`absolute left-2 top-2 z-20 flex h-11 w-11 items-center justify-center rounded-xl shadow-md backdrop-blur-sm transition-all disabled:opacity-40 md:left-3 md:top-3 md:h-auto md:w-auto md:rounded-lg md:p-2 ${
                         isSelected(item.id) 
                           ? 'bg-primary text-white' 
                           : 'bg-white/90 text-gray-400 hover:text-primary'
@@ -393,6 +395,11 @@ export function OggettiTable({
 
                   {/* Quick Stats Badges - Top Right - Glass Effect */}
                   <div className="absolute right-3 top-3 z-10 flex flex-col gap-1.5">
+                    {tradeLocked && (
+                      <span className="rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-bold uppercase text-amber-800 shadow-sm">
+                        {t('trades.inventoryLocked')}
+                      </span>
+                    )}
                     {isPopular && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-primary/20 backdrop-blur-sm px-2.5 py-1 text-xs font-bold text-primary border border-primary/30 shadow-sm">
                         <Flame className="h-3 w-3" />
@@ -432,7 +439,7 @@ export function OggettiTable({
                     <button
                       type="button"
                       onClick={() => setEditItem(item)}
-                      disabled={mutationsDisabled}
+                      disabled={mutationsDisabled || tradeLocked}
                       className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/50 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-800 shadow-lg backdrop-blur-sm transition-all hover:border-primary/30 hover:bg-primary hover:text-white active:scale-95 disabled:opacity-50"
                     >
                       <Edit3 className="h-3.5 w-3.5" />
@@ -497,7 +504,7 @@ export function OggettiTable({
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        disabled={mutationsDisabled || qtyUpdatingId === item.id || deletingId === item.id}
+                        disabled={tradeLocked || mutationsDisabled || qtyUpdatingId === item.id || deletingId === item.id}
                         onClick={() => handleQtyDelta(item, -1)}
                         className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-red-500 text-white shadow-sm transition hover:bg-red-600 active:scale-95 disabled:opacity-50 md:h-7 md:w-7 md:rounded-md"
                         aria-label={t('accountPage.itemsDecreaseQty')}
@@ -510,10 +517,16 @@ export function OggettiTable({
                       </button>
                       <span className="min-w-[1.75rem] text-center text-sm font-bold tabular-nums text-gray-800">
                         {item.quantity}
+                        {tradeLocked && (
+                          <span className="block text-[9px] uppercase text-amber-700">
+                            {t('trades.inventoryReserved', { count: item.reserved_quantity ?? 0 })}
+                          </span>
+                        )}
                       </span>
                       <button
                         type="button"
                         disabled={
+                          tradeLocked ||
                           mutationsDisabled ||
                           qtyUpdatingId === item.id ||
                           deletingId === item.id ||
@@ -534,7 +547,7 @@ export function OggettiTable({
               <button
                 type="button"
                 onClick={() => handleDelete(item)}
-                disabled={mutationsDisabled || deletingId === item.id}
+                disabled={tradeLocked || mutationsDisabled || deletingId === item.id}
                 className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full border border-gray-200/50 bg-white/80 text-gray-400 opacity-100 shadow-md backdrop-blur-sm transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-500 active:scale-95 md:right-3 md:top-[50%] md:translate-y-[-50%] md:p-2 md:opacity-0 md:group-hover:opacity-100"
                 title={t('accountPage.itemsDelete')}
                 aria-label={t('accountPage.itemsDelete')}
@@ -600,6 +613,7 @@ export function OggettiTable({
           </thead>
           <tbody>
             {items.map((item) => {
+              const tradeLocked = (item.reserved_quantity ?? 0) > 0;
               const imgUrl = item.card?.image
                 ? buildImageUrl(item.card.image) || defaultImage
                 : defaultImage;
@@ -647,11 +661,12 @@ export function OggettiTable({
                     <td className="search-results-td pl-2 pr-0 align-middle">
                       <button
                         type="button"
+                        disabled={tradeLocked}
                         onClick={(e) => {
                           e.stopPropagation();
                           onToggleSelect?.(item.id);
                         }}
-                        className={`inline-flex items-center justify-center rounded p-1 transition-colors ${
+                        className={`inline-flex items-center justify-center rounded p-1 transition-colors disabled:opacity-40 ${
                           isSelected(item.id)
                             ? 'text-primary'
                             : 'text-gray-400 hover:text-primary'
@@ -785,7 +800,7 @@ export function OggettiTable({
                       <button
                         type="button"
                         disabled={
-                          mutationsDisabled || qtyUpdatingId === item.id || deletingId === item.id
+                          tradeLocked || mutationsDisabled || qtyUpdatingId === item.id || deletingId === item.id
                         }
                         onClick={() => handleQtyDelta(item, -1)}
                         className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-red-500 text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50"
@@ -799,10 +814,16 @@ export function OggettiTable({
                       </button>
                       <span className="min-w-[1.25rem] text-center text-[13px] font-semibold tabular-nums text-gray-800">
                         {item.quantity}
+                        {tradeLocked && (
+                          <span className="block text-[8px] font-bold uppercase text-amber-700">
+                            {t('trades.inventoryLocked')}
+                          </span>
+                        )}
                       </span>
                       <button
                         type="button"
                         disabled={
+                          tradeLocked ||
                           mutationsDisabled ||
                           qtyUpdatingId === item.id ||
                           deletingId === item.id ||
@@ -830,7 +851,7 @@ export function OggettiTable({
                           e.stopPropagation();
                           setEditItem(item);
                         }}
-                        disabled={mutationsDisabled}
+                        disabled={tradeLocked || mutationsDisabled}
                         className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF7300] text-white shadow-md shadow-orange-500/25 transition-all hover:bg-[#e86a00] hover:shadow-lg active:scale-95 disabled:opacity-50"
                         title={t('accountPage.itemsEdit')}
                         aria-label={t('accountPage.itemsEdit')}
@@ -843,7 +864,7 @@ export function OggettiTable({
                           e.stopPropagation();
                           handleDelete(item);
                         }}
-                        disabled={mutationsDisabled || deletingId === item.id}
+                        disabled={tradeLocked || mutationsDisabled || deletingId === item.id}
                         className="inline-flex h-7 w-7 items-center justify-center rounded bg-red-600 text-white transition-colors hover:bg-red-700 disabled:opacity-50"
                         title={t('accountPage.itemsDelete')}
                         aria-label={t('accountPage.itemsDelete')}
@@ -880,4 +901,4 @@ export function OggettiTable({
     </div>
     </RarityLegendProvider>
   );
-}
+}
